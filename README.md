@@ -9,11 +9,11 @@ This is a BASH shell script which will create a series of directories -- vol001/
 
 ### USAGE
 
-To run this script, first read its comments for details, then copy **buildvol** to your system. Download the ISO images listed, and make sure you have all the required utilities installed, then edit the script variables in the VARIABLES section. To build a volume, specify a volume number:
+To run this script, place **buildvol** somewhere on your system. Read its comments for details. Download the ISO images and make sure you have all the required utilities installed. Then edit two variables in the VARIABLES section: $iso_loc and $buildroot. You can now build a single volume. e.g.:
 ```
 buildvol 228
 ```
-To build the entire collection:
+Or build the entire collection (on my system this takes a bit over five minutes):
 ```
 for i in {1..310}; do buildvol $i; done
 ```
