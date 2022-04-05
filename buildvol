@@ -423,8 +423,17 @@
     echo                "$lbrname"       > $recipe
     for j in *; do echo "$builddir/$j"  >> $recipe; done
     mklbr                $recipe
-    touch -r .           $lbrname
     
+    # The version of mklbr I'm using doesn't automatically translate _ to / when creating the LBR. So do it manually.
+    for j in ./*; do {
+      oldname=$(echo $(basename $j) | cut -d'.' -f1)                              # filename with _
+      newname=$(echo $oldname | tr '_' '/')                                       # filename with /
+      [[ ! "$oldname" == "$newname" ]] && sed -i "s|$oldname|$newname|g" $lbrname # could also do something like echo $newname | grep "/"
+      }
+    done
+
+    touch -r .           $lbrname                                                 # set archive datestamp
+
     # clean up
     rm                   $recipe
     cd -                                            &> /dev/null 1>&2
