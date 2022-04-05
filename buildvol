@@ -71,7 +71,7 @@
 # File names have suffered a number of corruptions. Some characters, such as /, @ and +, which are legal under CP/M, are 
 # problematic under other file systems. The forward slash / in particular has played havoc in UNIX environments (cf. Vol 195
 # in Walnut Creek). File names are restored to their originals with the exception of the forward slash which has been replaced
-# with an underscore.
+# with an underscore on the host system. The / is retained inside DSKs and LBRs.
 
 # File Integrity
 # ---- ---------
@@ -635,7 +635,7 @@
     131) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
     132) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
     133) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    134) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
+    134) source cpmdosgg ; copyfiles; dismount; pad;                    rename "GLOBALS.RN_ GLOBALS.RN$" "PASZCODE.RN_ PASZCODE.RN$"     ; datefiles; archives; crc ;;
     135) source cpmdosgg ; copyfiles; dismount; pad;                    rename "DIR_*"                                                   ; datefiles; archives; crc  ; notes "TEST.SUB not in -CATALOG." ;;
     136) source cpmdosgg ; copyfiles; dismount; pad;                    rename "BB_*.*"                                                  ; datefiles; archives; crc ;;
     137) source cpmdosgg ; copyfiles; dismount; pad;                    rename "MP_*"                     ; touch $builddir/MP-SIMUL.IN2 ; datefiles; archives; crc  ; notes "-CATALOG lists a 0-byte MP-SIMUL.IN2, which is miss-" "ing from some collections. It is recreated here." ;;
