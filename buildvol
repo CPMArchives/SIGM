@@ -10,7 +10,7 @@
   
 #    cpmdosgg.iso                                                          http://cpmarchives.classiccmp.org/downloads/cpmdosgg_iso.zip
 #    sourdough_jims_cpm_archive.iso                                        http://cpmarchives.classiccmp.org/downloads/sourdough_jims_cpm_archive.iso.zip
-#    nicholson.iso                             
+#    nicholson.iso                                                         http://cpmarchives.classiccmp.org/downloads/nicholson.iso
 #    November_1994_Walnut_Creek_cpm_cdrom.iso                              http://cpmarchives.classiccmp.org/downloads/November_1994_Walnut_Creek_cpm_cdrom.iso.7z
 #    cpmug.iso                                                             http://cpmarchives.classiccmp.org/downloads/cpmug.iso
 #    oakcpm.iso                                                            http://cpmarchives.classiccmp.org/downloads/oakcpm.iso.7z
@@ -68,10 +68,10 @@
 
 # File Names
 # ---- -----
-# File names have suffered a number of corruptions. Some characters, such as /, @ and +, which are legal under CP/M, are 
-# problematic under other file systems. The forward slash / in particular has played havoc in UNIX environments (cf. Vol 195
-# in Walnut Creek). File names are restored to their originals with the exception of the forward slash which has been replaced
-# with an underscore on the host system. The / is retained inside DSKs and LBRs.
+# File names have suffered a number of corruptions. Some characters, such as /, @ and +, which are legal under CP/M, are prob-
+# lematic under other file systems, and are often found altered. / is a special problem, which has played havoc in UNIX environ-
+# ments (cf. volume 195 on the Walnut Creek CD). It is stored properly as / inside the ARK, LBR and DSK images created here, but
+# as _ (underscore) on the host system.
 
 # File Integrity
 # ---- ---------
@@ -88,8 +88,8 @@
 #----------
 
          low=1 ; high=310                      # Define the acceptable range of vol nums
-     iso_loc=$(pwd)/sources                    # Where you keep your ISO images of sources
    buildroot=$(pwd)/sigm ; mkdir -p $buildroot # Where the rebuilt vols will be saved; each will be in a subdir called vol###/
+     iso_loc=/home/nathanael/mounts/saruman/web/cpmarchives/downloads # Where you SIG/M source ISOs are
 
   # Make sure user supplied a valid volume number.
   [[ -z $1          ]]                         && { echo "You must specify a volume between $low and $high; e.g., $0 52" ; exit 1; }
@@ -133,13 +133,24 @@
   [[ -d $tempdir ]] && rm -rf $tempdir              > /dev/null 2>&1
   mkdir -p $tempdir                                 > /dev/null 2>&1
   
+  # You can change these if you want. $iso_loc is set in VARIABLES above.
+
+   cpmdosgg_iso=$iso_loc/cpmdosgg.iso 
+      cpmug_iso=$iso_loc/cpmug.iso 
+       nich_iso=$iso_loc/nicholson.iso 
+         wc_iso=$iso_loc/November_1994_Walnut_Creek_cpm_cdrom.iso
+        oak_iso=$iso_loc/oakcpm.iso 
+  sourdough_iso=$iso_loc/sourdough_jims_cpm_archive.iso  
+
   case $1 in
      cpmdosgg) # SIG/M vols 1-280 are found in CPMDOSGG dirs cpm10/, cpm11/ and cpm12/.
-               sudo mount $iso_loc/cpmdosgg.iso  $tempdir/  > /dev/null 2>&1 || { echo Source iso not found. ; exit 1; } 
+               mkdir -p $tempdir
+               [[ -f $cpmdosgg_iso ]] && sudo mount $cpmdosgg_iso  $tempdir/ > /dev/null 2>&1 || { echo $(basename $cpmdosgg_iso) not found. ; exit 1; } 
                src=$tempdir/cpm1${vol:0:1}/1$vol/
                ;;
         cpmug) # SIG/M vols 2, 4, etc. are duplicated in CPMUG vols 56, 58, etc.
-               sudo mount $iso_loc/cpmug.iso     $tempdir/ >/dev/null 2>&1 || { echo Source iso not found. ; exit 1; }
+               mkdir -p $tempdir
+               [[ -f $cpmug_iso ]] && sudo mount $cpmug_iso     $tempdir/ > /dev/null 2>&1 || { echo $(basename $cpmug_iso) not found. ; exit 1; }
                [[ $vol == 002 ]] && src=$tempdir/cpmug056
                [[ $vol == 004 ]] && src=$tempdir/cpmug058
                [[ $vol == 005 ]] && src=$tempdir/cpmug059
@@ -153,7 +164,8 @@
                # works, just go with that. The way this code is currently structured, it seems to set up the extract/ source, 
                # then just switch to the IMD image anyway.
     
-               sudo mount $iso_loc/nicholson.iso $tempdir/ > /dev/null 2>&1 || { echo Source iso not found. ; exit 1; }
+               mkdir -p $tempdir
+               [[ -f $nich_iso ]] && sudo mount $nich_iso      $tempdir/ > /dev/null 2>&1 || { echo $basename $nich_iso not found. ; exit 1; }
                [[ -d $tempdir/extract/sigm$vol/     ]] && src=$tempdir/extract/sigm$vol/
                [[ -f $tempdir/sigm/sigm$vol.imd     ]] && { 
                  imdu -b $tempdir/sigm/sigm$vol.imd ./sigm$vol.dsk > /dev/null 2>&1
@@ -164,13 +176,15 @@
                  }
                ;;
            wc) # The Walnut Creek CD's copy of SIG/M is in simtel/sigm/ subdirs vols000/, vols100/, vols200/ and vols300/.
-               sudo mount $iso_loc/November_1994_Walnut_Creek_cpm_cdrom.iso $tempdir/ >/dev/null 2>&1 || { echo Source iso not found. ; exit 1; }
+               mkdir -p $tempdir
+               [[ -f $wc_iso ]] && sudo mount $wc_iso        $tempdir/ > /dev/null 2>&1 || { echo $wc_iso not found. ; exit 1; }
                src=$tempdir/simtel/sigm/vols${vol:0:1}00/vol$vol/
                ;;
           oak) # OAK's collection is in some ways the most complicated. While its collection is nearly complete complete 
                # (lackings vols 184-192), it is a mixture of expanded subdirs and .ARK archive files. Thus depending on the 
                # vol it can either be pulled from the expanded dir, or extracted from the .ARK archive.          
-               sudo mount $iso_loc/oakcpm.iso $tempdir/ > /dev/null 2>&1  || { echo Source iso not found. ; exit 1; }
+               mkdir -p $tempdir
+               [[ -f $oak_iso ]] && sudo mount $oak_iso       $tempdir/ > /dev/null 2>&1 || { echo $oak_iso not found. ; exit 1; }
                [[ -d $tempdir/sigm/vol$vol/ ]] && src=$tempdir/sigm/vol$vol/ || {
                   curdir=$(pwd)
                   sudo cp $tempdir/sigm/sigmv$vol.ark $curdir/ # for some reason fails without sudo
@@ -185,7 +199,8 @@
                ;;
     sourdough) # Sourdough's SIG/M collection is in library_collections/sigm/. Like OAK, it is a mixture of expanded
                # dirs and .ARK archives.
-               sudo mount $iso_loc/sourdough_jims_cpm_archive.iso $tempdir/ > /dev/null 2>&1 || { echo Source iso not found. ; exit 1; }
+               mkdir -p $tempdir
+               [[ -f $sourdough_iso ]] && sudo mount $sourdough_iso $tempdir/ > /dev/null 2>&1 || { echo $sourdough_iso not found. ; exit 1; }
                [[ -d $tempdir/library_collections/sigm/vol$vol/ ]] && src=$tempdir/library_collections/sigm/vol$vol || {
                   curdir=$(pwd)
                   cp $tempdir/library_collections/sigm/sigmv$vol.ark $curdir
@@ -200,9 +215,11 @@
                ;;
   esac
   
-  echo "------"                # Tell user where the contents are being pulled from
-  echo "VOL$vol Files from $1"
-  echo "------"
+  echo ""
+  echo ""
+  echo "============"                # Tell user where the contents are being pulled from
+  echo "SIG/M VOL$vol Files from $1"
+  echo "============"
   }  
   
   copyfiles () {
@@ -288,15 +305,13 @@
       304 | 305 | 306 | 307 | 308 | 309 | 310) date=19880315 ;; 
         *) date=$(grep released $builddir/-CATALOG.$vol | rev | cut -d' ' -f1-3 | rev) ;;
     esac      
-    touch -d "$date" $builddir/*
-    touch -d "$date" $builddir
-#    touch -d "$date" $builddir/../ARK/VOL$vol.ARK
-#    touch -d "$date" $builddir/../DSK/VOL$vol.DSK
     echo ""
     echo "  VOLDATE"
     echo "    ----"
     echo "    $date"
     echo "    ----"
+    touch -d "$date" $builddir/*
+    touch -d "$date" $builddir
   } 
   
   crc () {
@@ -346,6 +361,7 @@
   
   dismount () {
     mountpoint -q $tempdir > /dev/null 2>&1 && sudo umount -l $tempdir > /dev/null 2>&1
+    rm -rf $tempdir > /dev/null 2>&1
   }
   
   rename () {
@@ -379,14 +395,26 @@
   }
   
   ark () {
-    which arc     &> /dev/null 1>&2 || { echo "arc util not found"     ; return; }
-    dest=../ARK;   arkname=$dest/SIGMV$vol.ARK
-    cd $builddir                                    &> /dev/null 1>&2
+    which arc    &> /dev/null 1>&2 || { echo "arc util not found"     ; return; }
+    dest=$buildroot/ARK; arkname=$dest/SIGMV$vol.ARK
+    cd                   $builddir                  &> /dev/null 1>&2
     mkdir -p             $dest                      &> /dev/null 1>&2
-    [[ -f                $arkname ]] && rm $arkname &> /dev/null 1>&2
+    [[ -f                $arkname ]] && rm $arkname &> /dev/null 1>&2  # remove any previous version
 
     # build archive
     arc a                $arkname ./*               &> /dev/null 1>&2
+
+    # On my Linux system I'm using arc v5.21r, which translates between / and :. But on the host system, I've replaced / with _, which arc 
+    # doesn't pick up, so here I'll manually convert _ to / inside the ARK files. Note that when listing contents with "arc l", arc will
+    # display / as :, and translate / to : when extracting, but internally it is stored as /.
+    
+    for j in ./*; do {
+      oldname=$(echo $(basename $j) | cut -d'.' -f1)                              # filename with _
+      newname=$(echo $oldname | tr '_' '/')                                       # filename with /
+      [[ ! "$oldname" == "$newname" ]] && sed -i "s|$oldname|$newname|g" $arkname # could also do something like echo $newname | grep "/"
+      }
+    done
+    
     touch -r .           $arkname                   &> /dev/null 1>&2  # set datestamp of ARK
     
     # clean up
@@ -397,15 +425,15 @@
   dsk () {
     which mkfs.cpm &> /dev/null 1>&2 || { echo "mkfs.cpm util not found"; return; }
     which cpmcp    &> /dev/null 1>&2 || { echo "cpmcp util not found"   ; return; }
-    dest=../DSK;   dskname=$dest/SIGMV$vol.DSK
-    cd $builddir                                    &> /dev/null 1>&2
+    dest=$buildroot/DSK; dskname=$dest/SIGMV$vol.DSK
+    cd                   $builddir                  &> /dev/null 1>&2
     mkdir -p             $dest                      &> /dev/null 1>&2
-    [[ -f                $dskname ]] && rm $dskname &> /dev/null 1>&2
+    [[ -f                $dskname ]] && rm $dskname &> /dev/null 1>&2  # remove any previous version
 
     # build archive
     mkfs.cpm -f ibm-3740 $dskname                   &> /dev/null 1>&2
     cpmcp -f    ibm-3740 $dskname ./* 0:            &> /dev/null 1>&2
-    touch -r .           $dskname                   &> /dev/null 1>&2  # set datestamp of ARK
+    touch -r .           $dskname                   &> /dev/null 1>&2  # set datestamp of DSK
     
     # clean up
     cd -                                            &> /dev/null 1>&2
@@ -414,17 +442,19 @@
 
   lbr () {
     which mklbr &> /dev/null 1>&2   || { echo "mklbr util not found"   ; return; }
-    dest=../LBR;   lbrname=$dest/SIGMV$vol.LBR ; recipe=$dest/$vol.rcp
-    cd $builddir                                    &> /dev/null 1>&2
+    dest=$buildroot/LBR; lbrname=$dest/SIGMV$vol.LBR ; recipe=$dest/$vol.rcp
+    cd                   $builddir                  &> /dev/null 1>&2
     mkdir -p             $dest                      &> /dev/null 1>&2
-    [[ -f                $lbrname ]] && rm $lbrname &> /dev/null 1>&2
+    [[ -f                $lbrname ]] && rm $lbrname &> /dev/null 1>&2  # remove any previous version
 
     # build archive
     echo                "$lbrname"       > $recipe
     for j in *; do echo "$builddir/$j"  >> $recipe; done
     mklbr                $recipe
+    rm                   $recipe
     
-    # The version of mklbr I'm using doesn't automatically translate _ to / when creating the LBR. So do it manually.
+    # The version of mklbr I'm using doesn't translate _ to / when creating the LBR. So do it manually.
+
     for j in ./*; do {
       oldname=$(echo $(basename $j) | cut -d'.' -f1)                              # filename with _
       newname=$(echo $oldname | tr '_' '/')                                       # filename with /
@@ -432,10 +462,9 @@
       }
     done
 
-    touch -r .           $lbrname                                                 # set archive datestamp
+    touch -r .           $lbrname                   &> /dev/null 1>&2  # set datestamp of LBR
 
     # clean up
-    rm                   $recipe
     cd -                                            &> /dev/null 1>&2
     echo "    $(basename $lbrname)"
   }
@@ -499,9 +528,13 @@
 # MAIN
 #-----
 
-# VERIFIED: Results for all volumes manually checked for CRC and volume contents.
+# All volumes' CRCs and filenames have been manually compared to crckfile/crcklist/-catalog.
 
-  case $vol in # Any processing specific to a volume goes here.
+  case $vol in # Build the specified volume.
+  
+    # General process: mount the source, copy the files, dismount the source, pad the files, set datestamps, build ARK/LBR/DSK archives, and finally show the file CRCs.
+    # Reminder (cuz I'm always in danger of forgetting why): datefiles must run before archives so that files have proper dates before they're archived. 
+  
     001) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
     002) source cpmug    ; copyfiles; dismount; pad;                    rename "./SIG_M.$vol ./-CATALOG.$vol"                            ; datefiles; archives; crc ;;
     003) source oak      ; copyfiles; dismount; source wc ; head -n 15 $src/../vol015/sigmlog.003 > $builddir/-CATALOG.$vol; tail -n 12 $src/../vol015/sigmlog.003 > $builddir/ABSTRACT.$vol; dismount; pad; datefiles; archives; crc ;;
@@ -567,7 +600,7 @@
     063) source cpmdosgg ; copyfiles; dismount; pad;                    rename "NAD_*"                                                   ; datefiles; archives; crc ;;
     064) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
     065) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    066) source cpmdosgg ; copyfiles; dismount; pad; sed -i 's/CMMMAND/COMMAND/g' $builddir/ZCPR_14.ASM; rename "ZCPR*" "SD_*"           ; datefiles; archives; crc ;; # At some point after CRCs were generated, a single byte in ZCPR_14.ASM was altered. Changing it back restores the proper CRC.
+    066) source cpmdosgg ; copyfiles; dismount; pad; sed -i 's:CMMMAND:COMMAND:g' $builddir/ZCPR_14.ASM; rename "ZCPR*" "SD_*"           ; datefiles; archives; crc ;; # At some point after CRCs were generated, a single byte in ZCPR_14.ASM was altered. Changing it back restores the proper CRC.
     067) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
     068) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
     069) source cpmdosgg ; copyfiles; dismount; pad;                    rename "CUB__.DAT CUB++.DAT"                                     ; datefiles; archives; crc ;;
@@ -812,14 +845,13 @@
     308) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
     309) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
     310) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-      *) echo Volume $vol not implemented yet. ;;
+      *) echo Volume $vol not implemented yet. ;; # You should never see this.
   esac
   
 #---------
 # Clean up
 #---------
-  # return home; unmount (-l to force even if busy)
-
+  [[ -d $tempdir ]] && rm -rf $tempdir # in case it somehow got missed.
   cd - >/dev/null 2>&1
   
 exit 0
