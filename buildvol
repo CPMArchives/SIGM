@@ -2,18 +2,25 @@
   
 # This is a script to build a clean set of SIG/M volumes from available sources.
   
+# --------
+# VERSIONS
+# --------
+#   2022-04-06 - Set date of ARK, LBR, DSK dirs to release date of vol 310.
+#   
+#   2022-04-05 - Initial release.
+
 # ------------
-# Requirements
+# REQUIREMENTS
 # ------------
 
 #  ISOs (all available from the *HUMONGOUS CP/M* Archives):
   
-#    cpmdosgg.iso                                                          http://cpmarchives.classiccmp.org/downloads/cpmdosgg_iso.zip
-#    sourdough_jims_cpm_archive.iso                                        http://cpmarchives.classiccmp.org/downloads/sourdough_jims_cpm_archive.iso.zip
-#    nicholson.iso                                                         http://cpmarchives.classiccmp.org/downloads/nicholson.iso
-#    November_1994_Walnut_Creek_cpm_cdrom.iso                              http://cpmarchives.classiccmp.org/downloads/November_1994_Walnut_Creek_cpm_cdrom.iso.7z
-#    cpmug.iso                                                             http://cpmarchives.classiccmp.org/downloads/cpmug.iso
-#    oakcpm.iso                                                            http://cpmarchives.classiccmp.org/downloads/oakcpm.iso.7z
+#    cpmdosgg.iso                                             http://cpmarchives.classiccmp.org/downloads/cpmdosgg_iso.zip
+#    sourdough_jims_cpm_archive.iso                           http://cpmarchives.classiccmp.org/downloads/sourdough_jims_cpm_archive.iso.zip
+#    nicholson.iso                                            http://cpmarchives.classiccmp.org/downloads/nicholson.iso
+#    November_1994_Walnut_Creek_cpm_cdrom.iso                 http://cpmarchives.classiccmp.org/downloads/November_1994_Walnut_Creek_cpm_cdrom.iso.7z
+#    cpmug.iso                                                http://cpmarchives.classiccmp.org/downloads/cpmug.iso
+#    oakcpm.iso                                               http://cpmarchives.classiccmp.org/downloads/oakcpm.iso.7z
   
 #   Place the above ISOs together in an accessible directory and point the var $iso_loc below to it. 
 
@@ -21,26 +28,24 @@
 
 #   Make sure these are available somewhere in your system path.
 
-#       imdu - Dave Dunfield's ImageDisk utility                           http://dunfield.classiccmp.org/img/index.htm ; https://oldcomputers-ddns.org/public/pub/manuals/imd.pdf
-#       arc  - a utility for handling CP/M .ARK archives                   
-#       crck - a utility for generating CPM-style CRC values               http://cpmarchives.classiccmp.org/cpm/mirrors/oak.oakland.edu/pub/unix-c/cpm/crck.tar.Z
-#   cpmtools - specifically cpmcp (http://www.moria.de/~michael/cpmtools/  https://github.com/lipro-cpm4l/cpmtools/tree/cpm4l/cpmtools-2.21
-#      mklbr - create .lbr archives                                        https://github.com/ogdenpm/mklbr
+#       imdu - Dave Dunfield's ImageDisk utility              http://dunfield.classiccmp.org/img/index.htm ; https://oldcomputers-ddns.org/public/pub/manuals/imd.pdf
+#       arc  - a utility for handling CP/M .ARK archives      Debian: sudo apt install arc ; Source: https://github.com/ani6al/arc
+#       crck - a utility for generating CPM-style CRC values  http://cpmarchives.classiccmp.org/cpm/mirrors/oak.oakland.edu/pub/unix-c/cpm/crck.tar.Z
+#   cpmtools - specifically cpmcp                             http://www.moria.de/~michael/cpmtools/ ; https://github.com/lipro-cpm4l/cpmtools/tree/cpm4l/cpmtools-2.21
+#      mklbr - create .lbr archives                           https://github.com/ogdenpm/mklbr
 
 # -----
-# Usage
+# USAGE
 # -----
 
-#   You should be able to run this script from anywhere that has access to $iso_loc. You must specify a volume
-#   between 1 and 310. E.g.,
-  
-#     ./buildvol 37
-  
-#   The volume will be built in $buildroot/vol037.
-  
-#   You may be prompted for your password; this is so sudo mount can be run.
+#   Place this script somewhere on your system. Read these comments for details. Download the ISO images and make sure you 
+#   have all the required utilities installed (see the REQUIREMENTS section above) and available in your system path. Then 
+#   edit two variables in the VARIABLES section: $iso_loc and $buildroot. You can now build a single volume; e.g.:
 
-#   To rebuild the entire collection (or a subrange), run this from the command line:
+#     ./buildvol 228
+
+#   Or the entire collection (on my system this takes a bit over five minutes):
+
 #     for i in {1..310}; do ./buildvol $i; done
 
 # ------- ----
@@ -73,30 +78,35 @@
 # ments (cf. volume 195 on the Walnut Creek CD). It is stored properly as / inside the ARK, LBR and DSK images created here, but
 # as _ (underscore) on the host system.
 
+# File Dates
+# ---- -----
+# The CP/M file system had no capacity for storing file dates, so the original files had none. The decision has been made to
+# set dates on individual files to match their volume's release date, but keep in mind that these, too, are not original dates.
+
 # File Integrity
 # ---- ---------
 # CP/M had no facility for recording exact file sizes, but stored files in 128-byte records. Thus typically a file, unless it
 # happened to be exactly some multiple of 128 bytes in length, was padded with a number of "garbage" bytes (commonly 1AH, since
-# CP/M filled freshly formatted disks with 1AH which also doubled as an end-of-file marker for text files under CP/M) to the 
-# next 128-bytes. However, as the SIG/M collection passed through other OSes this padding was often lost. Though not detrimental,
-# this resulted in files whose CRC values no longer match the CRCs supplied in -CATALOG or CRCKFILE listings. This project re-
-# stores the padding to all files that are not an exact multiple of 128 bytes in length, fixing in almost all cases mismatched
-# CRCs.
+# CP/M filled freshly formatted disks with 1AH which also doubled as an end-of-file marker for text files under CP/M) to the next
+# 128-bytes. However, when the SIG/M collection passed through other OSes text files often lost this padding. Though not detri-
+# mental, this resulted in CRCs which no longer match those in -CATALOG or CRCKFILE listings. This project restores the padding
+# to all files that are not an exact multiple of 128 bytes in length, restoring in almost all cases original CRCs.
 
 #----------
 # VARIABLES
 #----------
 
-         low=1 ; high=310                      # Define the acceptable range of vol nums
-   buildroot=$(pwd)/sigm ; mkdir -p $buildroot # Where the rebuilt vols will be saved; each will be in a subdir called vol###/
-     iso_loc=/home/nathanael/mounts/saruman/web/cpmarchives/downloads # Where you SIG/M source ISOs are
+         low=1 ; high=310                                                                 # Define the acceptable range of vol nums
+     iso_loc=/home/nathanael/mounts/saruman/web/cpmarchives/downloads                     # Where you SIG/M source ISOs are
+   buildroot=/home/nathanael/mounts/saruman/web/cpmarchives/cpm/Software/UserGroups/SIGM/ # Where the rebuilt vols will be saved; 
+   mkdir -p $buildroot                                                                    # each will be in a subdir called vol###/
 
   # Make sure user supplied a valid volume number.
   [[ -z $1          ]]                         && { echo "You must specify a volume between $low and $high; e.g., $0 52" ; exit 1; }
   [[ $1 =~ ^[0-9]+$ ]]                         || { echo "$1 is not a number. Try again."                                ; exit 1; }
   [[ "$1" -lt $low  ]] || [[ "$1" -gt $high ]] && { echo "Enter a number between $low and $high."                        ; exit 1; }
   vol=`printf %03d $1`
-  builddir=$buildroot/vol$vol ; rm -rf $builddir > /dev/null 2>&1 ; mkdir -p $builddir
+  builddir=$buildroot/sigmv$vol ; rm -rf $builddir > /dev/null 2>&1 ; mkdir -p $builddir
   
 # ---------
 # FUNCTIONS
@@ -115,7 +125,7 @@
 #       LBR - Creates a CP/M-style LBR archive.
 #  ARCHIVES - Master routine that calls ARK, DSK and LBR.
 #    REMOVE - Deletes files.                       
-#       PAD - Pads files out to 128-byte multiples with 1AH.
+#       PAD - Pads file lengths with 1AH out to 128-byte multiples.
 #     NOTES - Spit out some notes at the end.
 
   source () { 
@@ -416,6 +426,7 @@
     done
     
     touch -r .           $arkname                   &> /dev/null 1>&2  # set datestamp of ARK
+    touch -d "19880315"  $dest                                         # set datestamp of ARK dir to date of most recent SIG/M volume
     
     # clean up
     cd -                                            &> /dev/null 1>&2
@@ -434,6 +445,7 @@
     mkfs.cpm -f ibm-3740 $dskname                   &> /dev/null 1>&2
     cpmcp -f    ibm-3740 $dskname ./* 0:            &> /dev/null 1>&2
     touch -r .           $dskname                   &> /dev/null 1>&2  # set datestamp of DSK
+    touch -d "19880315"  $dest                                         # set datestamp of DSK dir to date of most recent SIG/M volume
     
     # clean up
     cd -                                            &> /dev/null 1>&2
@@ -463,6 +475,7 @@
     done
 
     touch -r .           $lbrname                   &> /dev/null 1>&2  # set datestamp of LBR
+    touch -d "19880315"  $dest                                         # set datestamp of LBR dir to date of most recent SIG/M volume
 
     # clean up
     cd -                                            &> /dev/null 1>&2
@@ -777,7 +790,7 @@
     240) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc  ; notes "EPRINT.ZSM is unlisted in -CATALOG." ;;
     241) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
     242) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    243) source oak      ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc  ; notes "GETNAME.PRO, VISCOS1 .DAT CRC mismatch." ;;
+    243) source oak      ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc  ; notes "CRC mismatch: GETNAME.PRO, VISCOS1 .DAT." ;;
     244) source cpmdosgg ; copyfiles; dismount; pad;                    rename "LPAK1?_*"                                                ; datefiles; archives; crc ;;
     245) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
     246) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
@@ -815,17 +828,17 @@
     278) source oak      ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
     279) source oak      ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc  ; notes "LABEL.MAC, TAIL.ASM CRC mismatch." ;;
     280) source oak      ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc  ; notes "MULTICOL.PAS CRC mismatch." ;;
-    281) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc  ; notes " CMPCODE.DOC, ZLOAD.DOC, SNOOPY.FOR," "FORT07.DAT CRC mismatch." ;;
+    281) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc  ; notes "CRC mismatch: CMPCODE.DOC, ZLOAD.DOC," "SNOOPY.FOR, FORT07.DAT." ;;
     282) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
     283) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
     284) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    285) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc  ; notes "CRC mismatch: BROWSE.DOC, CURSOR.ASM, SAVEREST.ASM, SAVEREST.DOC, TWENTY  .ASM, WORD-KEY.FIX";;
+    285) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc  ; notes "CRC mismatch: BROWSE.DOC, CURSOR.ASM," "SAVEREST.ASM, SAVEREST.DOC, TWENTY.ASM," "WORD-KEY.FIX.";;
     286) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
     287) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
     288) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
     289) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc  ; notes "CRC mismatch: RAMDSKRB.DOC." ;;
     290) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    291) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc  ; notes "CRC mismatch: CONCORD.PAS, DELIB.PAS," "DIR.INC, DWS.PAS, ERRORS.PAS, FREEDIR.INC," "FREE.INC, FUNCKEYS.PAS, IOERROR.PAS, MLABELS.PAS," "OKI.PAS, WIPE.PAS." ;;
+    291) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc  ; notes "CRC mismatch: CONCORD.PAS, DELIB.PAS," "DIR.INC, DWS.PAS, ERRORS.PAS, FREEDIR.INC," "FREE.INC, FUNCKEYS.PAS, IOERROR.PAS," "MLABELS.PAS, OKI.PAS, WIPE.PAS." ;;
     292) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc  ; notes "CRC mismatch: SIZE.PAS, STRIP8.PAS." ;;
     293) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc  ; notes "WIPE.PAS not listed in -CATALOG." "Wandered over from v291?" ;;
     294) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
