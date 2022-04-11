@@ -130,7 +130,9 @@
 #       PAD - Pads file lengths with 1AH out to 128-byte multiples.
 #     NOTES - Spit out some notes at the end.
 
+# ------------
   source () { 
+# ------------
   # Sources for the SIG/M collections are various ISO images from *HUMONGOUS* CP/M: nicholson.iso, cpmdosgg.iso, cpmug.iso, 
   # sourdough_jims_cpm_archive.iso, November_1994_Walnut_Creek_cpm_cdrom.iso and oakcpm.iso, placed in a single location 
   # which is specified in $iso_loc above.
@@ -234,7 +236,9 @@
   echo "============"
   }  
   
+# ------------
   copyfiles () {
+# ------------
     echo ""
     echo "  Copying files"
     echo "    ----"
@@ -257,7 +261,9 @@
     echo "    ----"
   }
 
+# ------------
   datefiles () {
+# ------------
     case $vol in            # For most vols, -CATALOG specifies a release date, so that date will be used.
       001) date=19801015 ;; # Vols 1-42 lack -CATALOG. Dates used here are based on newsgroup discussions
       002) date=19801025 ;; # archived on the Walnut Creek CD in /simtel/archives/cpm and /cpm/news which
@@ -326,57 +332,167 @@
     touch -d "$date" $builddir
   } 
   
-  crc () {
-    # Vols 1-18 have no CRCs.
-    # Vols 19-25 have CRCKFILE.
-    # Vols 26-48 have CRCKLIST.
-    # Vols 49+ have CRCs in -CATALOG.
-    echo ""
-    echo "  CRCs"
-    echo "    ----"
-    for i in $builddir/*; do
-      name=$(echo $(basename $i) | cut -d'.' -f1)
-      ext=$( echo $(basename $i) | cut -d'.' -f2)
-      [[ "$name" == "$ext" ]] && ext= # If there's no extension -f2 above grabs -f1 instead
-      crc=$(cpmcrck $i | head -n 6 | tail -n 1 | rev | cut -d' ' -f1 | rev | tr 'a-z' 'A-Z')
-      output="$(printf "%-8.15s.%-3s" $name $ext)  $(echo $crc | cut -b1-2) $(echo $crc | cut -b3-4)"
-      echo "    $output"
-    done
-    echo "    ----"
-  }
-    
+# ------------
   checkcrc () {
+# ------------
+
+    # Verify file integrity by comparing the file's actual CRC with the CRC listed in -$crcfile. Here's a sample -CATALOG file listing, for ADDADR.ASM:
+    #    49.01   ADDADR  .ASM     1K     3B 9E   Accounts Payable/Receivable
+
+    # So 1) get the file's actual CRC with cpmcrck. 2) grep the file listing in -CATALOG and extract the CRC value (3B 9E above) from it. 3) Compare.
+    
     cd $builddir >/dev/null 2>&1
     echo ""
-    echo "  CRC verification"
+    echo "  File Integrity"
     echo "    ----"
-                                                                                                        # Vols 1-18 have no CRC lists
-    [[ ${vol#0} -gt 18 ]] && [[ ${vol#0} -lt 26 ]]  && { crcfile="./CRCKFILE.$vol"; crcrange="32-36"; } # Vols 19-25 CRCs are in CRCKFILE
-    [[ ${vol#0} -gt 25 ]] && [[ ${vol#0} -lt 49 ]]  && { crcfile="./CRCKLIST.$vol"; crcrange="32-36"; } # Vols 26-48 CRCs are in CRCKLIST
-    [[ ${vol#0} -gt 48 ]]                           && { crcfile="./-CATALOG.$vol"; crcrange="24-28"; } # Vols 49+   CRCs are in -CATALOG
-    [[ ${vol#0} -gt 300 ]]                          && { crcfile="./-CATALOG.$vol"; crcrange="29-33"; } # Vol 51 -CATALOG CRCs start col 29
-    [[ ${vol#0} -eq 51 ]]                           && { crcfile="./-CATALOG.$vol"; crcrange="20-24"; } # Vol 51 -CATALOG CRCs start col 25
+    
+    # A combination of $fields and $bytes is used to extract the file's listed CRC value from $crcfile. $crcfile is one of CRCKFILE.$vol, CRCKLIST.$vol or -CATALOG.$vol.
+    
+    crcfile="./-CATALOG.$vol" ; fields="-f3" ; bytes="-b13-17" # defaults
+
+    # For most volumes, the above defaults work. Put exceptions here. Note $((10#$vol))) converts to base 10
+    # which strips the leading zero (e.g., 049 --> 49), which would cause BASH to interpret it as a hex value.
+    # Note: this is for volume-wide settings. Any individual file within a volume that needs special attention
+    # is handled below.
+    
+    [[ $(echo $((10#$vol))) -le  18 ]]                                       && { echo "    No CRCs available"  ; echo "    ----" ; return      ; } # Vols 1-18 no CRCs
+    [[ $(echo $((10#$vol))) -le  25 ]]                                       && { crcfile="./CRCKFILE.$vol" ; fields="-f2"    ; bytes="-b12-16" ; } # Vols 19-25
+    [[ $(echo $((10#$vol))) -ge  26 ]] && [[ $(echo $((10#$vol))) -le  48 ]] && { crcfile="./CRCKLIST.$vol" ; fields="-f2"    ; bytes="-b12-16" ; } # Vols 26-48
+    [[ $(echo $((10#$vol))) -ge  49 ]] && [[ $(echo $((10#$vol))) -le  50 ]] && {                                               bytes="-b9-13"  ; } # Vols 49-50
+    [[ $(echo $((10#$vol))) -eq  51 ]] &&                                       {                                               bytes="-b5-9"   ; } # Vol  51
+    [[ $(echo $((10#$vol))) -ge  52 ]] && [[ $(echo $((10#$vol))) -le  75 ]] && {                                               bytes="-b9-13"  ; } # Vols 52-75
+    [[ $(echo $((10#$vol))) -eq  76 ]] || [[ $(echo $((10#$vol))) -eq  78 ]] && {                                               bytes="-b11-15" ; } # Vols 76, 78
+    [[ $(echo $((10#$vol))) -ge  83 ]] && [[ $(echo $((10#$vol))) -le  84 ]] && {                                               bytes="-b11-15" ; } # Vols 83, 84
+    [[ $(echo $((10#$vol))) -ge  86 ]] && [[ $(echo $((10#$vol))) -le  93 ]] && {                                               bytes="-b11-15" ; } # Vols 86-93
+    [[ $(echo $((10#$vol))) -ge  94 ]] && [[ $(echo $((10#$vol))) -le 114 ]] && {                                               bytes="-b12-16" ; } # Vols 94-114
+
+    # Cycle through the files in the current volume.
+    
     for i in ./*; do
-      name=$(echo $i | cut -b 3- | cut -d'.' -f1)                                   # strip './' and grab filename portion without extension
-      ext=$( echo $i | cut -b 3- | cut -d'.' -f2); [[ $ext == $name ]] && ext="   " # grab filename ext only; set to '   ' if none
+
+      actualcrc="$(cpmcrck $i | tail -1 | cut -b46-50 | tr 'a-z' 'A-Z')"            # get the file's actual CRC
+
+      # break out name and extension portions of filename, and build $expandedname.
+      
+      f=$(basename $i) 
+      name=$(echo $f | cut -d'.' -f1)                                               # strip './' and grab filename portion without extension
+      ext=$( echo $f | cut -d'.' -f2); [[ $ext == $name ]] && ext="   "             # grab filename ext only; set to '   ' if none
+      expandedname="$(printf "%-8.15s.%s" $name $ext)"                              # Pad out to full 8.3; e.g., "CRC.COM" to 'CRC     .COM'
+
+      [[ ! "$ext" == "$vol" ]] && [[ ! "${f:0:1}" == "-" ]] && { # Skip any file whose extension is the vol number (-CATALOG.049) or whose name starts with -.
+
+        # If an individual file is an exception to the volume-wide $fields and/or $bytes settings, put it here.
+      
+        orgbytes=$bytes                                                             # Save current value for later restoration
+
+        case $f in
+           "ARCUSTM.DCL" )                  bytes="-b10-14" ;;                      # Vol 49
+          "CHGLIB22.LBR" )                  bytes="-b10-14" ;;                      # Vol 250
+          "PRAELUD1.SNG" | "SCARLATI.SNG" ) bytes="-b10-14" ;;                      # Vol 57
+            "FLS-11.COM" )                  bytes="-b16-20" ;;                      # Vol 60
+                  "NEWS" )                  bytes="-b11-15" ;;                      # Vol 249
+              "SYOPMENU" )                  bytes="-b10-14" ;;                      # Vol 249
+        esac
+          
+        # Define the name to grep for in $crcfile. Can add exceptions for individual files.
+        
+        case $expandedname in 
+          "CRC     .COM" ) [[ $(echo $((10#$vol))) -eq 89  ]] || [[ $(echo $((10#$vol))) -eq 108 ]] && grepname="CRC    .COM" ;;  # Vol 89  CRC.COM is improperly listed as "CRC    .COM" (only three spaces)
+          "GLOBALS .RN$" ) grepname="GLOBALS .RN" ;; # Vol 134
+          "HELP    .COM" ) [[ $(echo $((10#$vol))) -eq 89  ]] && grepname="HELP   .COM" ;; # Vol 89 HELP.COM is improperly listed as "HELP   .COM" (only three spaces)
+          "JOIN    .ACG" ) [[ $(echo $((10#$vol))) -eq 89  ]] && grepname="JOIN.ACG"    ;; # Vol 146
+          "PASZCODE.RN$" ) grepname="PASZCODE.RN" ;; # Vol 134
+          "MDBSGETM.PLI" ) grepname="MDBSGETM.PL"                                       ;; # Vol 49
+          "PRICES  .DOC" ) grepname="PRICES.DOC"                                        ;; # Vol 53
+          "SIG_M   .LIB" ) [[ $(echo $((10#$vol))) -eq 146 ]] && grepname="SIG/M.LIB" || grepname="SIG/M   .LIB" # Vol 146
+                           [[ $(echo $((10#$vol))) -ge 193 ]] && grepname="SIG-M   .LIB"   # Vols 193-310
+                           ;;
+          "TESTPROT.BAS" ) grepname="TestProt.BAS" ;; # Vol 52
+          "Z2SYS-1 .MOD" ) grepname="Z2SYS-1.MOD"                                       ;; # Vol 108
+                        *) grepname=$(echo "$expandedname" | tr '_' '/')                ;; # Replace _ with / before grepping.
+        esac
   
-      expname="$(printf "%-8.15s.%s" $name $ext)"                                   # convert CRC.COM to 'CRC     .COM'
-      crc1="$(cpmcrck $i | tail -1 | cut -b 46-50 | tr 'a-z' 'A-Z')"                # generate CRC
-      grepname=$(echo "$expname" | tr '_' '/')                                      # Replace _ with / before grepping.
-      crc2=$(grep -i "\\$grepname" $crcfile | cut -b "$crcrange" | tr -d ' ')       # get CRC from -CATALOG. '\\' = don't choke on -NAME.
-      [[ ! "$ext" == ".$vol" ]] && grep -i "\\$grepname" $crcfile >/dev/null || echo "    $expname" not listed # listed in -CATALOG?
-      [[ ! "$ext" ==  "$vol" ]] && [[ ! "$crc1" == "$crc2" ]] && [[ ! "$expname" == "CRC     .COM" ]] && [[ ! "$expname" == "JOIN    .AZG" ]] && [[ ! "$expname" == "JOIN    .ACG" ]] && [[ ! "$expname" == "SIG_M   .LIB" ]] && [[ ! "$expname" == "SIG-M   .LZB" ]]  && echo "    $expname" CRC mismatch  $crc1 $crc2                   # compare CRCs
+        # Search for $grepname in $crcfile. Report if not found. If found, extract the CRC.
+
+        grep -i "$grepname" $crcfile >/dev/null || echo "    $expandedname not listed in $crcfile" # VOL $vol >> ~/projects/sigm/notlisted
+        grep -i "$grepname" $crcfile >/dev/null && { 
+          case $f in
+            # Some files are listed, but without CRCs, so CRCs are manually supplied here. Some have undergone revisions and require multiple CRCs.
+            # To check all the CRCs of a file, go to $buildroot and run:
+            #    fn=CRC.COM; for i in {001..310}; do   [[ -f sigmv$i/$fn ]] && cpmcrck sigmv$i/$fn | tail -1; done
+            "CRC.CMD"      ) expectedcrc=10E5 ;;                                                          
+            "CRC.COM"      )                                       expectedcrc=B207
+                             [[ $(echo $((10#$vol))) -eq 102 ]] && expectedcrc=BB23
+                             [[ $(echo $((10#$vol))) -ge 216 ]] && expectedcrc=EE87
+                             [[ $(echo $((10#$vol))) -ge 295 ]] && expectedcrc=CB3E
+                             [[ $(echo $((10#$vol))) -eq 296 ]] && expectedcrc=053B
+                             [[ $(echo $((10#$vol))) -eq 299 ]] && expectedcrc=EE87
+                             [[ $(echo $((10#$vol))) -ge 300 ]] && expectedcrc=B207
+                             ;;                 
+            "CRCK.COM"     ) expectedcrc=2D47 ;;
+            "DELBR.COM"    ) expectedcrc=EF3A ;; 
+            "HELP.COM"     ) expectedcrc=D6CC ; [[ $(echo $((10#$vol))) -eq 102 ]] && expectedcrc=3447 ; [[ $(echo $((10#$vol))) -ge 186 ]] && expectedcrc=928B ;;
+            "JOIN.ACG"     ) expectedcrc=83E7 ; [[ $(echo $((10#$vol))) -ge 153 ]] && expectedcrc=9B11 ; [[ $(echo $((10#$vol))) -ge 174 ]] && expectedcrc=83E7 ; [[ $(echo $((10#$vol))) -ge 282 ]] && expectedcrc=A289 ; [[ $(echo $((10#$vol))) -ge 295 ]] && expectedcrc=83E7 ;;
+            "JOIN.AZG"     ) expectedcrc=3EC0 ; [[ $(echo $((10#$vol))) -ge 305 ]] && expectedcrc=3E32 ;;
+            "LTYPE.COM"    ) expectedcrc=AC16 ;;                                                          
+            "LU.COM"       ) expectedcrc=3D98 ; [[ $(echo $((10#$vol))) -ge 157 ]] && expectedcrc=BA32 ;; 
+            "LU86.CMD"     ) expectedcrc=1723 ;;   
+            "MDBSGETM.PLI" ) expectedcrc=B7A1 ;; # Vol 49
+            "PRICES.DOC"   ) expectedcrc=6CC7 ;; # Vol 53
+            "READTHIS"     )                                       expectedcrc=2AE0 # Vols 164-166
+                             [[ $(echo $((10#$vol))) -eq 173 ]] && expectedcrc=BB80 
+                             [[ $(echo $((10#$vol))) -eq 197 ]] && expectedcrc=58FF
+                             ;;                 
+            "READ.ME"      ) [[ $(echo $((10#$vol))) -eq 184 ]] && expectedcrc=D9F5 ;; # Vol 184
+            "READTHIS.1ST" ) expectedcrc=CCAE ;; # Vol 168
+            "REGIONS.SIG"  ) expectedcrc=3214 ; [[ $(echo $((10#$vol))) -ge 252 ]] && expectedcrc=FD05 ;;
+            "SHOW.COM"     ) expectedcrc=F628 ;; 
+            "SIG_M.LIB"    )                                       expectedcrc=C9BE
+                             [[ $(echo $((10#$vol))) -eq 104 ]] && expectedcrc=93AE
+                             [[ $(echo $((10#$vol))) -ge 118 ]] && expectedcrc=1539
+                             [[ $(echo $((10#$vol))) -ge 200 ]] && expectedcrc=D31C
+                             [[ $(echo $((10#$vol))) -ge 208 ]] && expectedcrc=15CA
+                             [[ $(echo $((10#$vol))) -eq 243 ]] && expectedcrc=0C6F
+                             [[ $(echo $((10#$vol))) -eq 253 ]] && expectedcrc=0C6F
+                             [[ $(echo $((10#$vol))) -ge 278 ]] && expectedcrc=0C6F
+                             [[ $(echo $((10#$vol))) -ge 291 ]] && expectedcrc=F4DD
+                             [[ $(echo $((10#$vol))) -ge 295 ]] && expectedcrc=15CA
+                             ;;                 
+            "SIG/M.LIB"    ) expectedcrc=C9BE ;;                                                          
+            "SIG-M.LZB"    ) expectedcrc=F286 ;;                                                          
+            "TYPE1.COM"    ) expectedcrc=56FB ; [[ $(echo $((10#$vol))) -ge 184 ]] && expectedcrc=FFD7 ;; 
+            "USQ.COM"      ) expectedcrc=561F ; [[ $(echo $((10#$vol))) -ge 152 ]] && expectedcrc=5621 ; [[ $(echo $((10#$vol))) -ge 176 ]] && expectedcrc=7D52 ;;
+            "USQ.CMD"      ) expectedcrc=24C0 ; [[ $(echo $((10#$vol))) -ge 175 ]] && expectedcrc=F46E ; [[ $(echo $((10#$vol))) -ge 207 ]] && expectedcrc=24C0 ; [[ $(echo $((10#$vol))) -ge 210 ]] && expectedcrc=EB7C ; [[ $(echo $((10#$vol))) -ge 229 ]] && expectedcrc=0CAF ;;
+            "Z2SYS-1.MOD"  ) expectedcrc=3DF1 ;; # Vol 108
+            "ZCPR2.IDX"    ) expectedcrc=63C6 ; [[ $(echo $((10#$vol))) -ge 124 ]] && expectedcrc=0BA7 ;;
+            "ZCPR3.CAT"    ) expectedcrc=95F2 ;;
+                          *) expectedcrc=$(grep -a "$grepname" $crcfile | cut -d'.' $fields | cut $bytes | tr -d [:space:] | cut -b1-4) ;;
+          esac                 
+          
+          # Finally, if the actual and listed CRCs don't match, report it.
+          
+          [[ ! "$actualcrc" == "$expectedcrc" ]] && echo "    $expandedname CRC mismatch **** ACTUAL: $actualcrc EXPECTED: $expectedcrc" # VOL $vol >> ~/projects/sigm/mismatches
+        }
+
+       bytes=$orgbytes # restore original value in case it was altered, so the rest of the files in this volume aren't processed with the wrong value.
+       }  
     done
+
     echo "    ----"
+    #read -p "Continue..."
     cd - >/dev/null 2>&1
   }
   
+# ------------
   dismount () {
+# ------------
     mountpoint -q $tempdir > /dev/null 2>&1 && sudo umount -l $tempdir > /dev/null 2>&1
     rm -rf $tempdir > /dev/null 2>&1
   }
   
+# ------------
   rename () {
+# ------------
     # To rename single files (each pair wrapped in quotations):
     #   rename './oldname ./newname' './oldname ./newname'
     
@@ -406,7 +522,9 @@
 #    mv $builddir/$1  $builddir/$2
   }
   
+# ------------
   ark () {
+# ------------
     which arc    &> /dev/null 1>&2 || { echo "arc util not found"     ; return; }
     dest=$buildroot/ARK; arkname=$dest/SIGMV$vol.ARK
     cd                   $builddir                  &> /dev/null 1>&2
@@ -417,9 +535,9 @@
     arc a                $arkname ./*               &> /dev/null 1>&2
 
     # On my Linux system I'm using arc v5.21r, which translates between / and :. But on the host system, I've replaced / with _, which arc 
-    # doesn't pick up, so here I'll manually convert _ to / inside the ARK files. Note that when listing contents with "arc l", arc will
-    # display / as :, and translate / to : when extracting, but internally it is stored as /.
-    
+    # doesn't pick up, so here I'll manually convert _ to / inside the ARK files. Note that arc will translation / to : when listing or
+    # extracting the ARK contents, but internally it is stored as /.
+
     for j in ./*; do {
       oldname=$(echo $(basename $j) | cut -d'.' -f1)                              # filename with _
       newname=$(echo $oldname | tr '_' '/')                                       # filename with /
@@ -428,14 +546,16 @@
     done
     
     touch -r .           $arkname                   &> /dev/null 1>&2  # set datestamp of ARK
-    touch -d "19880315"  $dest                                         # set datestamp of ARK dir to date of most recent SIG/M volume
+    touch -d "19880315"  $dest                                         # set datestamp of ARK dir to date of most recent SIG/M volume (i.e., vol 310)
     
     # clean up
     cd -                                            &> /dev/null 1>&2
     echo "    $(basename $arkname)"
   }
   
+# ------------
   dsk () {
+# ------------
     which mkfs.cpm &> /dev/null 1>&2 || { echo "mkfs.cpm util not found"; return; }
     which cpmcp    &> /dev/null 1>&2 || { echo "cpmcp util not found"   ; return; }
     dest=$buildroot/DSK; dskname=$dest/SIGMV$vol.DSK
@@ -454,7 +574,9 @@
     echo "    $(basename $dskname)"
   }
 
+# ------------
   lbr () {
+# ------------
     which mklbr &> /dev/null 1>&2   || { echo "mklbr util not found"   ; return; }
     dest=$buildroot/LBR; lbrname=$dest/SIGMV$vol.LBR ; recipe=$dest/$vol.rcp
     cd                   $builddir                  &> /dev/null 1>&2
@@ -463,28 +585,31 @@
 
     # build archive
     echo                "$lbrname"       > $recipe
-    for j in *; do echo "$builddir/$j"  >> $recipe; done
+    for j in *; do echo "$builddir/$j?$(echo $j | tr '_' '/')"  >> $recipe; done
     mklbr                $recipe
     rm                   $recipe
     
     # The version of mklbr I'm using doesn't translate _ to / when creating the LBR. So do it manually.
+    # UPDATE: Turns out mklbr can do the translation; I've updated to code above and this is now obsolete.
 
-    for j in ./*; do {
-      oldname=$(echo $(basename $j) | cut -d'.' -f1)                              # filename with _
-      newname=$(echo $oldname | tr '_' '/')                                       # filename with /
-      [[ ! "$oldname" == "$newname" ]] && sed -i "s|$oldname|$newname|g" $lbrname # could also do something like echo $newname | grep "/"
-      }
-    done
+#    for j in ./*; do {
+#      oldname=$(echo $(basename $j) | cut -d'.' -f1)                              # filename with _
+#      newname=$(echo $oldname | tr '_' '/')                                       # filename with /
+#      [[ ! "$oldname" == "$newname" ]] && sed -i "s|$oldname|$newname|g" $lbrname # could also do something like echo $newname | grep "/"
+#      }
+#    done
 
     touch -r .           $lbrname                   &> /dev/null 1>&2  # set datestamp of LBR
-    touch -d "19880315"  $dest                                         # set datestamp of LBR dir to date of most recent SIG/M volume
+    touch -d "19880315"  $dest                                         # set datestamp of LBR dir to date of most recent SIG/M volume (i.e., vol 310)
 
     # clean up
     cd -                                            &> /dev/null 1>&2
     echo "    $(basename $lbrname)"
   }
   
+# ------------
   archives () {
+# ------------
     echo ""
     echo "  Archives"
     echo "    ----"
@@ -492,7 +617,9 @@
     echo "    ----"
   }
 
+# ------------
   remove () {
+# ------------
     echo ""
     echo "  Remove"
     echo "    ----"
@@ -503,7 +630,9 @@
     echo "    ----"
   }
   
+# ------------
   pad () {
+# ------------
 
   # Under CP/M all files were stored in 128-byte records, such that files which were not a multiple of 128 bytes
   # in length were padded with garbage to the next 128-byte boundary (If the files were originally copied to 
@@ -531,7 +660,9 @@
 
   }
   
+# ------------
   notes () {
+# ------------
     echo ""
     echo "  Notes"
     echo "    ----"
@@ -550,316 +681,316 @@
     # General process: mount the source, copy the files, dismount the source, pad the files, set datestamps, build ARK/LBR/DSK archives, and finally show the file CRCs.
     # Reminder (cuz I'm always in danger of forgetting why): datefiles must run before archives so that files have proper dates before they're archived. 
   
-    001) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    002) source cpmug    ; copyfiles; dismount; pad;                    rename "./SIG_M.$vol ./-CATALOG.$vol"                            ; datefiles; archives; crc ;;
-    003) source oak      ; copyfiles; dismount; source wc ; head -n 15 $src/../vol015/sigmlog.003 > $builddir/-CATALOG.$vol; tail -n 12 $src/../vol015/sigmlog.003 > $builddir/ABSTRACT.$vol; dismount; pad; datefiles; archives; crc ;;
-    004) source cpmug    ; copyfiles; dismount; pad; remove SIG_M.LIB;  rename "DU_8_12.ASM DU-8_12.ASM" "BDOS_PAT.ASM BDOS-PAT.ASM"     ; datefiles; archives; crc ;;
-    005) source cpmug    ; copyfiles; dismount; pad; remove SIG_M.LIB;  rename "CP_M_NET.MSG CP_M-NET.MSG"                               ; datefiles; archives; crc ;;
-    006) source cpmug    ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    007) source nicholson; copyfiles; dismount; pad; remove SIG_M.LIB                                                                    ; datefiles; archives; crc ;;
-    008) source cpmdosgg ; copyfiles; dismount; pad; remove SIG_M.LIB                                                                    ; datefiles; archives; crc ;;
-    009) source nicholson; copyfiles; dismount; pad; remove SIG_M.LIB                                                                    ; datefiles; archives; crc ;;
-    010) source nicholson; copyfiles; dismount; pad; remove SIG_M.LIB                                                                    ; datefiles; archives; crc ;;
-    011) source cpmug    ; copyfiles; dismount; pad; remove SIG_M.LIB                                                                    ; datefiles; archives; crc ;;
-    012) source cpmdosgg ; copyfiles; dismount; pad; remove SIG_M.LIB                                                                    ; datefiles; archives; crc ;;
-    013) source nicholson; copyfiles; dismount; pad; remove SIG_M.LIB                                                                    ; datefiles; archives; crc ;;
-    014) source cpmdosgg ; copyfiles; dismount; pad; remove SIG_M.LIB                                                                    ; datefiles; archives; crc ;;
-    015) source cpmug    ; copyfiles; dismount; pad;                    rename "./-CATALOG.015  CATALOG.015" "DCATALOG.015 ./-CATALOG.015";datefiles; archives; crc ;;
-    016) source cpmdosgg ; copyfiles; dismount; pad; remove SIG_M.LIB;  rename "DU_*" "FILE_*"                                           ; datefiles; archives; crc ;;
-    017) source cpmdosgg ; copyfiles; dismount; pad; remove SIG_M.LIB;  rename "SORTV_*" "./_CATALOG.ACK ./-CATALOG.ACK"                 ; datefiles; archives; crc ;;
-    018) source nicholson; copyfiles; dismount; pad; remove SIG_M.LIB;  rename "CATALOG.ACK  ./-CATALOG.ACK"                             ; datefiles; archives; crc ;;
-    019) source nicholson; copyfiles; dismount; pad;                    rename "CATALOG.ACK ./-CATALOG.ACK";                               datefiles; archives; crc ;; # CRCK.COM, SIG/M.LIB: in CRCKFILE.019 and on disk but not -CATALOG.019. CRCKFILE.019: in -CATALOG.019 and on disk but not in CRCKFILE.019
-    020) source nicholson; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;; # -CATALOG.020 CRC mismatch; CRCK.COM not listed in -CATALOG; CRCKFILE.020 not listed in CRCKFILE.
-    021) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    022) source sourdough; copyfiles; dismount; pad; remove SIG_M.LIB                                                                    ; datefiles; archives; crc ;; # LESSON4 in CRCKFILE, not in -CATALOG. TEST.DAT in CRCKFILE, not in -CATALOG.
-    023) source nicholson; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;; # SIG_M.LIB in CRCKFILE, not in -CATALOG. CRCK.COM in CRCKFILE, not in -CATALOG. CRCKFILE in -CATALOG, not in CRCKFILE.
-    024) source nicholson; copyfiles; dismount; pad;                    rename "CATALOG.ACK ./-CATALOG.ACK"                              ; datefiles; archives; crc ;;
-    025) source nicholson; copyfiles; dismount; pad;                    rename "CATALOG.ACK ./-CATALOG.ACK"                              ; datefiles; archives; crc ;;
-    026) source cpmdosgg ; copyfiles; dismount; pad;                    rename "EL_*" "./_CATA026.ACK ./-CATA026.ACK"                    ; datefiles; archives; crc ;;
-    027) source cpmdosgg ; copyfiles; dismount; pad;                    rename "./_CATA027.ACK ./-CATA027.ACK"                           ; datefiles; archives; crc ;;
-    028) source cpmdosgg ; copyfiles; dismount; pad;                    rename "LIFE_*" "NAME_*" "_CATA028.ACK ./-CATA028.ACK"           ; datefiles; archives; crc ;;
-    029) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    030) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    031) source cpmdosgg ; copyfiles; dismount; pad;                rename "CATA031.ACK ./-CATA031.ACK" "IKB_*" "IKB-1-2.DOC IKB-1&2.DOC"; datefiles; archives; crc  ; notes "STAR1.BAD CRC mismatch." ;;
-    032) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    033) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    034) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    035) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    036) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    037) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    038) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    039) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc  ; notes "-CATALOG.039 CRC mismatch" ;;
-    040) source cpmdosgg ; copyfiles; dismount; pad;                    rename " MENU_*" "RUN80_*" "VMAP_*" "ISIS_*"                     ; datefiles; archives; crc ;;
-    041) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    042) source cpmdosgg ; copyfiles; dismount; pad;                    rename "HD_*"                                                    ; datefiles; archives; crc ;;
-    043) source oak      ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    044) source cpmdosgg ; copyfiles; dismount; pad;                    rename "DU_*" "SD_*"  "WASH_*"                                   ; datefiles; archives; crc  ; notes "-CATALOG.044 lists WASH-16.ASM; however, all known extanct" "SIG/M collections have WASH-14.ASM." ;;
-    045) source cpmdosgg ; copyfiles; dismount; pad; remove READ.ME                                                                      ; datefiles; archives; crc ;; # README isn't in any file list, and is just a portion of DUNGEO.DOC in any case. Bye-bye.
-    046) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    047) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    048) source cpmdosgg ; copyfiles; dismount; pad;                    rename "CRCKLIST.043 CRCKLIST.048"                               ; datefiles; archives; crc ;;
-    049) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    050) source cpmdosgg ; copyfiles; dismount; pad;                    rename "TALK_.LIB TALK@.LIB" "VOIC_.DOC VOIC@.DOC" "VOIC_.LIB VOIC@.LIB" "VOIC_EQU.LIB VOIC@EQU.LIB"; datefiles; archives; crc ;; # _ replaces @ instead of /; need to account for this
-    051) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;; 
-    052) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;; 
-    053) source cpmdosgg ; copyfiles; dismount; pad;                    rename "X_UTIL.SAM X\$UTIL.SAM"                                  ; datefiles; archives; crc ;; 
-    054) source cpmdosgg ; copyfiles; dismount; pad;                    rename "I_O_CAP.ADD I_O-CAP.ADD" "I_O_CAP.ASM I_O-CAP.ASM"       ; datefiles; archives; crc ;; 
-    055) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;; 
-    056) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;; 
-    057) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;; 
-    058) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;; 
-    059) source oak      ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;     
-    060) source cpmdosgg ; copyfiles; dismount; source oak ; cp $tempdir/SIG-M.LIB $builddir/; dismount; pad;   rename "*_*"             ; datefiles; archives; crc;   notes "Only cpmdosgg's RBBS22.DOC and RBSUTL22.ASC" "match CRCs. However it lacks SIG/M.LIB, which" "is pulled from OAK." ;;
-    061) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    062) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    063) source cpmdosgg ; copyfiles; dismount; pad;                    rename "NAD_*"                                                   ; datefiles; archives; crc ;;
-    064) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    065) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    066) source cpmdosgg ; copyfiles; dismount; pad; sed -i 's:CMMMAND:COMMAND:g' $builddir/ZCPR_14.ASM; rename "ZCPR*" "SD_*"           ; datefiles; archives; crc ;; # At some point after CRCs were generated, a single byte in ZCPR_14.ASM was altered. Changing it back restores the proper CRC.
-    067) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    068) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    069) source cpmdosgg ; copyfiles; dismount; pad;                    rename "CUB__.DAT CUB++.DAT"                                     ; datefiles; archives; crc ;;
-    070) source cpmdosgg ; copyfiles; dismount; pad;                    rename "A_*" "STARTRE_.NBP STARTRE\$.NBP"                        ; datefiles; archives; crc ;;
-    071) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    072) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    073) source cpmdosgg ; copyfiles; dismount; pad;                    rename "COMP_*" "PAGE_*" "VD*"                                   ; datefiles; archives; crc ;;
-    074) source cpmdosgg ; copyfiles; dismount; pad;                    rename "CLOCK_*"                                                 ; datefiles; archives; crc ;;
-    075) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    076) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    077) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    078) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    079) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    080) source oak      ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    081) source oak      ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    082) source oak      ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    083) source cpmdosgg ; copyfiles; dismount; pad;                    rename "ICE_*.*"                                                 ; datefiles; archives; crc ;;
-    084) source oak      ; copyfiles; dismount; source cpmdosgg ; cp $src/entrbbs.bas $builddir/ENTRBBS.BAS; dismount; pad; rename "FINDP.ASM FIND+.ASM" "FINDP.COM FIND+.COM" "XSTAMP.ASM XSTAM+.ASM" "XSTAMP.COM XSTAM+.COM" "CRC CRC.COM"   ; datefiles; archives; crc ;;
-    085) source cpmdosgg ; copyfiles; dismount; source oak; cp $src/SIGNS.COM  $builddir/SIGNS.COM; cp -f $src/RUNOFF.COM $builddir/RUNOFF.COM; cp -f $src/PASDIR.PAS $builddir/PASDIR.PAS; cp -f $src/REMOVECC.PAS $builddir/REMOVECC.PAS; cp -f $src/TRIMCOLS.PAS $builddir/TRIMCOLS.PAS; cp -f $src/XSUB.COM $builddir/XSUB.COM; dismount; pad; datefiles; archives; crc  ; notes "Must mix and match CPMDOSGG and OAK" "to complete a set of intact files." ;;
-    086) source oak      ; copyfiles; dismount; pad;                    rename "FAST2.COM _.COM"                                         ; datefiles; archives; crc  ; notes "Both CPMDOSGG and OAK have U.COM" "which is not listed in -CATALOG." "It is retained for now." ;;
-    087) source cpmdosgg ; copyfiles; dismount; source oak; cp $src/BDSCAT.AQL $builddir/; cp $src/RATFOR.HLP $builddir/; dismount; rename "DISPLAY_.ASM DISPLAY+.ASM" "DISPLAY_.COM DISPLAY+.COM" "TYP_.ASM TYP+.ASM" "TYP_.COM TYP+.COM" "THIS_*"; datefiles; archives; crc ;;
-    088) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    089) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc;  notes "SYSLIBI.WS is on disk but not listed in -CATALOG." ;;
-    090) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    091) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc;  notes "READ.ME is on disk but not listed in -CATALOG." ;;
-    092) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    093) source cpmdosgg ; copyfiles; dismount; source oak; cp $src/trsmodem.com $builddir/TRSMODEM.COM; dismount; pad                   ; datefiles; archives; crc ;;
-    094) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    095) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    096) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    097) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    098) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    099) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    100) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    101) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    102) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    103) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    104) source oak      ; copyfiles; cp $tempdir/sigm/vol104/sig/m.lib $builddir/SIG_M.LIB; dismount; pad                               ; datefiles; archives; crc ;;
-    105) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    106) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    107) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    108) source cpmdosgg ; copyfiles; cp $tempdir/cpm11/1107/crc.com $builddir/CRC.COM     ; dismount; pad                               ; datefiles; archives; crc ;;
-    109) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc  ; notes "USERMAN2.TXT isn't listed in -CATALOG." ;;
-    110) source cpmdosgg ; copyfiles; dismount; pad;                    rename "*_*"                                                     ; datefiles; archives; crc  ; notes "SIGN_ON.ACG, TWO_REC.FMT not in -CATALOG." ;;
-    111) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    112) source cpmdosgg ; copyfiles; dismount; pad;                    rename "*_*" "RBBS-I-O.NQW RBBS-I_O.NQW"                         ; datefiles; archives; crc ;;
-    113) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    114) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    115) source cpmdosgg ; copyfiles; dismount; pad;                    rename "*_*"                                                     ; datefiles; archives; crc ;;
-    116) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    117) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc  ; notes "USQ.COM not listed in -CATALOG." ;;
-    118) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    119) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    120) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    121) source cpmdosgg ; copyfiles; dismount; pad;                    rename "MDM709C_.AQM MDM709C+.AQM" "SD_*.*"                      ; datefiles; archives; crc ;;
-    122) source cpmdosgg ; copyfiles; dismount; pad;                    rename "DU2_*"                                                   ; datefiles; archives; crc ;;
-    123) source cpmdosgg ; copyfiles; dismount; pad;                    rename "FIND_*"                                                  ; datefiles; archives; crc ;;
-    124) source cpmdosgg ; copyfiles; dismount; pad;                    rename "ZCPR2_*"                                                 ; datefiles; archives; crc ;;
-    125) source cpmdosgg ; copyfiles; dismount; pad; remove __SIG_M.125;rename "ZCPR2_*"                                                 ; datefiles; archives; crc ;;
-    126) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    127) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    128) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    129) source oak      ; copyfiles; cp $src/db2sig/m.lbr $builddir/DB2SIG_M.LBR; dismount; pad; remove CRCKLIST.CRC                    ; datefiles; archives; crc  ; notes "CPMDOSGG seems an earlier version of SIG/M. -CATALOG" "lists DB2SIG/M.LBR (0E47), but the disk holds instead" "its expanded contents. OTOH, OAK/WC have DB2SIG/M.LBR" "(51C0) & matching -CATALOGs. No known extant ver of" "(0E47). Compares of CPMDOSGG files w/OAK LBR contents" "reveals significant CRC differences. I've chosen to" "go with OAK for this volume." ;;
-    130) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    131) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    132) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    133) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    134) source cpmdosgg ; copyfiles; dismount; pad;                    rename "GLOBALS.RN_ GLOBALS.RN$" "PASZCODE.RN_ PASZCODE.RN$"     ; datefiles; archives; crc ;;
-    135) source cpmdosgg ; copyfiles; dismount; pad;                    rename "DIR_*"                                                   ; datefiles; archives; crc  ; notes "TEST.SUB not in -CATALOG." ;;
-    136) source cpmdosgg ; copyfiles; dismount; pad;                    rename "BB_*.*"                                                  ; datefiles; archives; crc ;;
-    137) source cpmdosgg ; copyfiles; dismount; pad;                    rename "MP_*"                     ; touch $builddir/MP-SIMUL.IN2 ; datefiles; archives; crc  ; notes "-CATALOG lists a 0-byte MP-SIMUL.IN2, which is miss-" "ing from some collections. It is recreated here." ;;
-    138) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    139) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    140) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    141) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    142) source cpmdosgg ; copyfiles; dismount; pad;                    rename "*_*"                                                     ; datefiles; archives; crc ;;
-    143) source cpmdosgg ; copyfiles; dismount; pad;                    rename "PACKET_*"                                                ; datefiles; archives; crc ;;
-    144) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    145) source cpmdosgg ; copyfiles; dismount; pad;                    rename "*_*"                                                     ; datefiles; archives; crc ;;
-    146) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    147) source cpmdosgg ; copyfiles; dismount; pad;                    rename "FILE_*" "CRCK_*" "WM_*"                                  ; datefiles; archives; crc ;;
-    148) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    149) source cpmdosgg ; copyfiles; dismount; pad;                    rename "MODEM7_*" "UNIX_*"                                       ; datefiles; archives; crc ;;
-    150) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    151) source cpmdosgg ; copyfiles; dismount; pad;                    rename "DSK7_*" "MBOOT_*" "FMT_*" "MODEM_*"                      ; datefiles; archives; crc ;;
-    152) source cpmdosgg ; copyfiles; dismount; pad;                    rename "DU_*.*"                                                  ; datefiles; archives; crc ;;
-    153) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    154) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    155) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc  ; notes "ABSTRACT.155 missing from all collections." ;;
-    156) source cpmdosgg ; copyfiles; dismount; pad;                    rename "SQ_*"                                                    ; datefiles; archives; crc ;;
-    157) source cpmdosgg ; copyfiles; dismount; pad;                    rename "Z80_*"                                                   ; datefiles; archives; crc ;;
-    158) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    159) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    160) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    161) source cpmdosgg ; copyfiles; dismount; pad;                    rename "DU_*" "TYPER_*"                                          ; datefiles; archives; crc ;;
-    162) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    163) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    164) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc  ; notes "READTHIS not in -CATALOG." ;;
-    165) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc  ; notes "READTHIS not in -CATALOG." ;;
-    166) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc  ; notes "READTHIS not in -CATALOG." ;;
-    167) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    168) source cpmdosgg ; copyfiles; dismount; pad;                    rename "*_*"                                                     ; datefiles; archives; crc  ; notes "READTHIS not in -CATALOG." ;;
-    169) source cpmdosgg ; copyfiles; dismount; pad;                    rename "M7*"                                                     ; datefiles; archives; crc ;;
-    170) source cpmdosgg ; copyfiles; dismount; pad;                    rename "M7*" "M7AC-3.AQM M7AC+3.AQM"                             ; datefiles; archives; crc ;;
-    171) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    172) source cpmdosgg ; copyfiles; dismount; pad;                    rename "DU_*" "OKI_*"                                            ; datefiles; archives; crc ;;
-    173) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc  ; notes "READTHIS not in -CATALOG." ;;
-    174) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    175) source cpmdosgg ; copyfiles; dismount; pad;                    rename "F47_*" "MODEM_*"                                         ; datefiles; archives; crc ;;
-    176) source cpmdosgg ; copyfiles; dismount; pad;                    rename "DRI_*" "DU_*" "SD_*"                                     ; datefiles; archives; crc ;;
-    177) source cpmdosgg ; copyfiles; dismount; pad;                    rename "MY_*" "WS_*"                                             ; datefiles; archives; crc ;;
-    178) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    179) source cpmdosgg ; copyfiles; dismount; pad;                    rename "BIOS3_.DQC BIOS3+.DQC"                                   ; datefiles; archives; crc  ; notes "CARCHIVE.DQC not listed in -CATALOG." ;;
-    180) source cpmdosgg ; copyfiles; dismount; pad;                    rename "*_*"                                                     ; datefiles; archives; crc ;;
-    181) source cpmdosgg ; copyfiles; dismount; pad;                    rename "*_*"                                                     ; datefiles; archives; crc  ; notes "CXREF.HQP not listed in -CATALOG." ;;
-    182) source cpmdosgg ; copyfiles; dismount; pad;                    rename "NS_*" "TAG_*"                                            ; datefiles; archives; crc ;;
-    183) source cpmdosgg ; copyfiles; dismount; pad;                    rename "READ_*"                                                  ; datefiles; archives; crc ;;
-    184) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    185) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    186) source cpmdosgg ; copyfiles; dismount; pad;                    rename "CRC_*"                                                   ; datefiles; archives; crc ;;
-    187) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    188) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    189) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    190) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    191) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    192) source cpmdosgg ; copyfiles; dismount; pad;                    rename "SYS2*"                                                   ; datefiles; archives; crc ;;
-    193) source cpmdosgg ; copyfiles; dismount; pad;                    rename "PAF*"                                                    ; datefiles; archives; crc ;;
-    194) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    195) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc  ; notes "-CATALOG mis-lists DELBR.COM as DELRB.COM." ;;
-    196) source cpmdosgg ; copyfiles; dismount; pad;                    rename "SD_*"                                                    ; datefiles; archives; crc ;;
-    197) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc  ; notes "-CATALOG mis-lists DELBR.COM as DELIB.COM." ;;
-    198) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    199) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    200) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    201) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    202) source cpmdosgg ; copyfiles; dismount; pad;                    rename "RSA_*"                                                   ; datefiles; archives; crc ;;
-    203) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    204) source cpmdosgg ; copyfiles; dismount; pad;                    rename "F83_*"                                                   ; datefiles; archives; crc ;;
-    205) source cpmdosgg ; copyfiles; dismount; pad;                    rename "F83_*"                                                   ; datefiles; archives; crc ;;
-    206) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    207) source cpmdosgg ; copyfiles; dismount; pad;                    rename "LU86_*"                                                  ; datefiles; archives; crc ;;
-    208) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    209) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    210) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    211) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    212) source cpmdosgg ; copyfiles; dismount; pad; rename "CPM2__.LBR CPM2-+.LBR" "FIND_2.LBR FIND+2.LBR" "UNERA_.LBR UNERA+.LBR" "*_*"; datefiles; archives; crc ;;
-    213) source cpmdosgg ; copyfiles; dismount; pad;                    rename "LBR_*"                                                   ; datefiles; archives; crc ;;
-    214) source cpmdosgg ; copyfiles; dismount; pad;                    rename "LBR_*"                                                   ; datefiles; archives; crc ;;
-    215) source cpmdosgg ; copyfiles; dismount; pad;                    rename "LBR_*"                                                   ; datefiles; archives; crc ;;
-    216) source cpmdosgg ; copyfiles; dismount; pad;                    rename "M8NM_*"                                                  ; datefiles; archives; crc ;;
-    217) source cpmdosgg ; copyfiles; dismount; pad;                    rename "M8??_*"                                                  ; datefiles; archives; crc ;;
-    218) source cpmdosgg ; copyfiles; dismount; pad;                    rename "MX?_*"                                                   ; datefiles; archives; crc ;;
-    219) source cpmdosgg ; copyfiles; dismount; pad;                    rename "MX?_*"                                                   ; datefiles; archives; crc ;;
-    220) source cpmdosgg ; copyfiles; dismount; pad;                    rename "MX?_*" "MXO-R-10.AQM MXO-R+10.AQM"                       ; datefiles; archives; crc ;;
-    221) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    222) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    223) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    224) source cpmdosgg ; copyfiles; dismount; pad;                    rename "C80V_*"                                                  ; datefiles; archives; crc ;;
-    225) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    226) source cpmdosgg ; copyfiles; dismount; pad;                    rename "DRI_*"                                                   ; datefiles; archives; crc ;;
-    227) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    228) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    229) source cpmdosgg ; copyfiles; dismount; pad;                    rename "SAVE0_*"                                                 ; datefiles; archives; crc ;;
-    230) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    231) source cpmdosgg ; copyfiles; dismount; pad;                    rename "CP_M_.LBR CP-M+.LBR"                                     ; datefiles; archives; crc ;;
-    232) source cpmdosgg ; copyfiles; dismount; pad;                    rename "M7BBS_.AQM M7BBS+.AQM"                                   ; datefiles; archives; crc ;;
-    233) source cpmdosgg ; copyfiles; dismount; pad;                    rename "BOY_*"                                                   ; datefiles; archives; crc  ; notes "CLEANUP.DQC not listed in -CATALOG." ;;
-    234) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    235) source cpmdosgg ; copyfiles; dismount; pad;                    rename "BOKA_EI.BQS BOKA&EI.BQS" "FORTH_*"                       ; datefiles; archives; crc ;;
-    236) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    237) source cpmdosgg ; copyfiles; dismount; pad;                    rename "PILOT_*"                                                 ; datefiles; archives; crc ;;
-    238) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    239) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    240) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc  ; notes "EPRINT.ZSM is unlisted in -CATALOG." ;;
-    241) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    242) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    243) source oak      ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc  ; notes "CRC mismatch: GETNAME.PRO, VISCOS1 .DAT." ;;
-    244) source cpmdosgg ; copyfiles; dismount; pad;                    rename "LPAK1?_*"                                                ; datefiles; archives; crc ;;
-    245) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    246) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    247) source cpmdosgg ; copyfiles; dismount; pad;                    rename "DU_*" "Z19_*"                                            ; datefiles; archives; crc ;;
-    248) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    249) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    250) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc  ; notes "VDO25.LBR not listed in -CATALOG." "Strayed over from vol 282?" ;;
-    251) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    252) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    253) source oak      ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    254) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    255) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    256) source cpmdosgg ; copyfiles; dismount; pad;                    rename "TFR_*" "TRANS_*"                                         ; datefiles; archives; crc ;;
-    257) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    258) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    259) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    260) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    261) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    262) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    263) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    264) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    265) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    266) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    267) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    268) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    269) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    270) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    271) source cpmdosgg ; copyfiles; dismount; pad;                    rename "FP_*"                                                    ; datefiles; archives; crc ;;
-    272) source cpmdosgg ; copyfiles; dismount; pad;                    rename "*_*"                                                     ; datefiles; archives; crc ;;
-    273) source cpmdosgg ; copyfiles; dismount; pad;                    rename "*_*"                                                     ; datefiles; archives; crc ;;
-    274) source cpmdosgg ; copyfiles; dismount; pad;                    rename "*_*"                                                     ; datefiles; archives; crc ;;
-    275) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    276) source cpmdosgg ; copyfiles; dismount; pad;                    rename "*_*"                                                     ; datefiles; archives; crc ;;
-    277) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    278) source oak      ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    279) source oak      ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc  ; notes "LABEL.MAC, TAIL.ASM CRC mismatch." ;;
-    280) source oak      ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc  ; notes "MULTICOL.PAS CRC mismatch." ;;
-    281) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc  ; notes "CRC mismatch: CMPCODE.DOC, ZLOAD.DOC," "SNOOPY.FOR, FORT07.DAT." ;;
-    282) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    283) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    284) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    285) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc  ; notes "CRC mismatch: BROWSE.DOC, CURSOR.ASM," "SAVEREST.ASM, SAVEREST.DOC, TWENTY.ASM," "WORD-KEY.FIX.";;
-    286) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    287) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    288) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    289) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc  ; notes "CRC mismatch: RAMDSKRB.DOC." ;;
-    290) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    291) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc  ; notes "CRC mismatch: CONCORD.PAS, DELIB.PAS," "DIR.INC, DWS.PAS, ERRORS.PAS, FREEDIR.INC," "FREE.INC, FUNCKEYS.PAS, IOERROR.PAS," "MLABELS.PAS, OKI.PAS, WIPE.PAS." ;;
-    292) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc  ; notes "CRC mismatch: SIZE.PAS, STRIP8.PAS." ;;
-    293) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc  ; notes "WIPE.PAS not listed in -CATALOG." "Wandered over from v291?" ;;
-    294) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    295) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    296) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    297) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    298) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    299) source sourdough; copyfiles; dismount; pad;                    rename "KPHANDYP.LBR KPHANDY+.LBR"                               ; datefiles; archives; crc  ; notes "-READ.ME not listed in -CATALOG." ;;
-    300) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    301) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    302) source sourdough; copyfiles; dismount; pad; remove CRCKLIST.CRC                                                                 ; datefiles; archives; crc ;;
-    303) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    304) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    305) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    306) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    307) source sourdough; copyfiles; dismount; pad; remove ./-READ.ME; rename "RDIR15P.LBR RDIR15+.LBR"                                 ; datefiles; archives; crc ;;
-    308) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    309) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
-    310) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; crc ;;
+    001) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    002) source cpmug    ; copyfiles; dismount; pad;                    rename "./SIG_M.$vol ./-CATALOG.$vol"                            ; datefiles; archives; checkcrc ;;
+    003) source oak      ; copyfiles; dismount; source wc ; head -n 15 $src/../vol015/sigmlog.003 > $builddir/-CATALOG.$vol; tail -n 12 $src/../vol015/sigmlog.003 > $builddir/ABSTRACT.$vol; dismount; pad; datefiles; archives; checkcrc ;;
+    004) source cpmug    ; copyfiles; dismount; pad; remove SIG_M.LIB;  rename "DU_8_12.ASM DU-8_12.ASM" "BDOS_PAT.ASM BDOS-PAT.ASM"     ; datefiles; archives; checkcrc ;;
+    005) source cpmug    ; copyfiles; dismount; pad; remove SIG_M.LIB;  rename "CP_M_NET.MSG CP_M-NET.MSG"                               ; datefiles; archives; checkcrc ;;
+    006) source cpmug    ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    007) source nicholson; copyfiles; dismount; pad; remove SIG_M.LIB                                                                    ; datefiles; archives; checkcrc ;;
+    008) source cpmdosgg ; copyfiles; dismount; pad; remove SIG_M.LIB                                                                    ; datefiles; archives; checkcrc ;;
+    009) source nicholson; copyfiles; dismount; pad; remove SIG_M.LIB                                                                    ; datefiles; archives; checkcrc ;;
+    010) source nicholson; copyfiles; dismount; pad; remove SIG_M.LIB                                                                    ; datefiles; archives; checkcrc ;;
+    011) source cpmug    ; copyfiles; dismount; pad; remove SIG_M.LIB                                                                    ; datefiles; archives; checkcrc ;;
+    012) source cpmdosgg ; copyfiles; dismount; pad; remove SIG_M.LIB                                                                    ; datefiles; archives; checkcrc ;;
+    013) source nicholson; copyfiles; dismount; pad; remove SIG_M.LIB                                                                    ; datefiles; archives; checkcrc ;;
+    014) source cpmdosgg ; copyfiles; dismount; pad; remove SIG_M.LIB                                                                    ; datefiles; archives; checkcrc ;;
+    015) source cpmug    ; copyfiles; dismount; pad;                    rename "./-CATALOG.015  CATALOG.015" "DCATALOG.015 ./-CATALOG.015";datefiles; archives; checkcrc ;;
+    016) source cpmdosgg ; copyfiles; dismount; pad; remove SIG_M.LIB;  rename "DU_*" "FILE_*"                                           ; datefiles; archives; checkcrc ;;
+    017) source cpmdosgg ; copyfiles; dismount; pad; remove SIG_M.LIB;  rename "SORTV_*" "./_CATALOG.ACK ./-CATALOG.ACK"                 ; datefiles; archives; checkcrc ;;
+    018) source nicholson; copyfiles; dismount; pad; remove SIG_M.LIB;  rename "CATALOG.ACK  ./-CATALOG.ACK"                             ; datefiles; archives; checkcrc ;;
+    019) source nicholson; copyfiles; dismount; pad;                    rename "CATALOG.ACK ./-CATALOG.ACK";                               datefiles; archives; checkcrc ;; # CRCK.COM, SIG/M.LIB: in CRCKFILE.019 and on disk but not -CATALOG.019. CRCKFILE.019: in -CATALOG.019 and on disk but not in CRCKFILE.019
+    020) source nicholson; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;; # -CATALOG.020 CRC mismatch; CRCK.COM not listed in -CATALOG; CRCKFILE.020 not listed in CRCKFILE.
+    021) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    022) source sourdough; copyfiles; dismount; pad; remove SIG_M.LIB                                                                    ; datefiles; archives; checkcrc ;; # LESSON4 in CRCKFILE, not in -CATALOG. TEST.DAT in CRCKFILE, not in -CATALOG.
+    023) source nicholson; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;; # SIG_M.LIB in CRCKFILE, not in -CATALOG. CRCK.COM in CRCKFILE, not in -CATALOG. CRCKFILE in -CATALOG, not in CRCKFILE.
+    024) source nicholson; copyfiles; dismount; pad;                    rename "CATALOG.ACK ./-CATALOG.ACK"                              ; datefiles; archives; checkcrc ;;
+    025) source nicholson; copyfiles; dismount; pad;                    rename "CATALOG.ACK ./-CATALOG.ACK"                              ; datefiles; archives; checkcrc ;;
+    026) source cpmdosgg ; copyfiles; dismount; pad;           rename "EL_*" "./_CATA026.ACK ./-CATA026.ACK" "NAME-ADD.DOC NAME&ADD.DOC" ; datefiles; archives; checkcrc ;;
+    027) source cpmdosgg ; copyfiles; dismount; pad;                    rename "./_CATA027.ACK ./-CATA027.ACK"                           ; datefiles; archives; checkcrc ;;
+    028) source cpmdosgg ; copyfiles; dismount; pad;                    rename "LIFE_*" "NAME_*" "_CATA028.ACK ./-CATA028.ACK" "NAME-ADD.DOC NAME&ADD.DOC" ; datefiles; archives; checkcrc ;;
+    029) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    030) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    031) source nicholson; copyfiles; dismount; pad;                    rename "CATA031.ACK ./-CATA031.ACK"                              ; datefiles; archives; checkcrc  ; notes "Only Nicholson yields fully matching CRCs." ;;
+    032) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    033) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    034) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    035) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    036) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    037) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    038) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    039) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc  ; notes "-CATALOG.039 CRC mismatch" ;;
+    040) source cpmdosgg ; copyfiles; dismount; pad;                    rename " MENU_*" "RUN80_*" "VMAP_*"                              ; datefiles; archives; checkcrc ;;
+    041) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    042) source cpmdosgg ; copyfiles; dismount; pad;                    rename "HD_*"                                                    ; datefiles; archives; checkcrc ;;
+    043) source oak      ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    044) source cpmdosgg ; copyfiles; dismount; pad;                    rename "DU_*" "SD_*"  "WASH_*"                                   ; datefiles; archives; checkcrc  ; notes "-CATALOG.044 lists WASH-16.ASM; however, all known extanct" "SIG/M collections have WASH-14.ASM." ;;
+    045) source cpmdosgg ; copyfiles; dismount; pad; remove READ.ME                                                                      ; datefiles; archives; checkcrc ;; # README isn't in any file list, and is just a portion of DUNGEO.DOC in any case. Bye-bye.
+    046) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    047) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    048) source cpmdosgg ; copyfiles; dismount; pad;                    rename "CRCKLIST.043 CRCKLIST.048"                               ; datefiles; archives; checkcrc ;;
+    049) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc  ; notes "Corruption in -CATALOG.049 makes it impossible to" "extract MDBSGETM.PLI's CRC." ;;
+    050) source cpmdosgg ; copyfiles; dismount; pad                             ; rename "TALK_.LIB TALK@.LIB" "VOIC_.DOC VOIC@.DOC" "VOIC_.LIB VOIC@.LIB" "VOIC_EQU.LIB VOIC@EQU.LIB"; datefiles; archives; checkcrc ;; # _ replaces @ instead of /; need to account for this
+    051) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;; 
+    052) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;; 
+    053) source cpmdosgg ; copyfiles; dismount; pad;                              rename "X_UTIL.SAM X\$UTIL.SAM" "READ_ME.DOC READ-ME.DOC"  ; datefiles; archives; checkcrc ;; 
+    054) source cpmdosgg ; copyfiles; dismount; pad;                              rename "I_O_CAP.ADD I_O-CAP.ADD" "I_O_CAP.ASM I_O-CAP.ASM" ; datefiles; archives; checkcrc ;; 
+    055) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;; 
+    056) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;; 
+    057) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;; 
+    058) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;; 
+    059) source oak      ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc  ; notes "Unfortunately, none of the extant sources" "yields matching CRCs." ;;     
+    060) source cpmdosgg ; copyfiles; dismount; source oak ; cp $tempdir/SIG-M.LIB $builddir/; dismount; pad; remove "CRCK.COM SIG_M.LIB"; rename "*_*" "SQ-USQ15.DOC SQ_USQ15.DOC" ; datefiles; archives; checkcrc;   notes "Only cpmdosgg's RBBS22.DOC and RBSUTL22.ASC" "match CRCs. However it lacks SIG/M.LIB, which" "is pulled from OAK." ;;
+    061) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    062) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    063) source cpmdosgg ; copyfiles; dismount; pad;                    rename "NAD_*"                                                   ; datefiles; archives; checkcrc ;;
+    064) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    065) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    066) source cpmdosgg ; copyfiles; dismount; pad; sed -i 's:CMMMAND:COMMAND:g' $builddir/ZCPR_14.ASM; rename "ZCPR*" "SD_*"           ; datefiles; archives; checkcrc ;; # At some point after CRCs were generated, a single byte in ZCPR_14.ASM was altered. Changing it back restores the proper CRC.
+    067) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    068) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    069) source cpmdosgg ; copyfiles; dismount; pad;                    rename "CUB__.DAT CUB++.DAT"                                     ; datefiles; archives; checkcrc ;;
+    070) source cpmdosgg ; copyfiles; dismount; pad;                    rename "A_*" "STARTRE_.NBP STARTRE\$.NBP"                        ; datefiles; archives; checkcrc ;;
+    071) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    072) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    073) source cpmdosgg ; copyfiles; dismount; pad;                    rename "COMP_*" "PAGE_*" "VD*"                                   ; datefiles; archives; checkcrc ;;
+    074) source cpmdosgg ; copyfiles; dismount; pad;                    rename "CLOCK_*"                                                 ; datefiles; archives; checkcrc ;;
+    075) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    076) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    077) source cpmdosgg ; copyfiles; dismount; pad;                    rename "*CPR_*"                                                  ; datefiles; archives; checkcrc ;;
+    078) source cpmdosgg ; copyfiles; dismount; pad;                    rename "*TALK1_*"                                                ; datefiles; archives; checkcrc ;;
+    079) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    080) source oak      ; copyfiles; dismount; pad; for j in "ARTIL" "SAMPLE"; do for i in $builddir/$j-*; do mv $i $(echo $i | tr '-' '_'); done; done; datefiles; archives; checkcrc  ; notes "Unfortunately, none of the extant sources" "yields matching CRCs." ;;
+    081) source oak      ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    082) source oak      ; copyfiles; dismount; pad;                    rename "ABSTRACT.081 ABSTRACT.082"                               ; datefiles; archives; checkcrc ;;
+    083) source cpmdosgg ; copyfiles; dismount; pad;                    rename "ICE_*.*"                                                 ; datefiles; archives; checkcrc ;;
+    084) source oak      ; copyfiles; dismount; source cpmdosgg ; cp $src/entrbbs.bas $builddir/ENTRBBS.BAS; dismount; pad; rename "FINDP.ASM FIND+.ASM" "FINDP.COM FIND+.COM" "XSTAMP.ASM XSTAM+.ASM" "XSTAMP.COM XSTAM+.COM" "CRC CRC.COM"   ; datefiles; archives; checkcrc ;;
+    085) source cpmdosgg ; copyfiles; dismount; source oak; cp $src/SIGNS.COM  $builddir/SIGNS.COM; cp -f $src/RUNOFF.COM $builddir/RUNOFF.COM; cp -f $src/PASDIR.PAS $builddir/PASDIR.PAS; cp -f $src/REMOVECC.PAS $builddir/REMOVECC.PAS; cp -f $src/TRIMCOLS.PAS $builddir/TRIMCOLS.PAS; cp -f $src/XSUB.COM $builddir/XSUB.COM; dismount; pad; datefiles; archives; checkcrc  ; notes "Must mix and match CPMDOSGG and OAK" "to complete a set of intact files." ;;
+    086) source oak      ; copyfiles; dismount; pad; remove "U.COM";    rename "FAST2.COM _.COM"                                         ; datefiles; archives; checkcrc  ; notes "Both CPMDOSGG and OAK have U.COM" "which is not listed in -CATALOG." "It is retained for now." ;;
+    087) source cpmdosgg ; copyfiles; dismount; source oak; cp $src/BDSCAT.AQL $builddir/; cp $src/RATFOR.HLP $builddir/; dismount; rename "DISPLAY_.ASM DISPLAY+.ASM" "DISPLAY_.COM DISPLAY+.COM" "TYP_.ASM TYP+.ASM" "TYP_.COM TYP+.COM" "THIS_*"; datefiles; archives; checkcrc ;;
+    088) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    089) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc  ;  notes "SYSLIBI.WS is on disk but not listed in -CATALOG." ;;
+    090) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    091) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc  ;  notes "READ.ME is on disk but not listed in -CATALOG." ;;
+    092) source cpmdosgg ; copyfiles; dismount; pad; rename "LITL_ADA.ASM LITL-ADA.ASM" "LITL_ADA.DOC LITL-ADA.DOC" "LITL_ADA.PRN LITL-ADA.PRN" "RBBS_USE.DOC RBBS-USE.DOC" ; datefiles; archives; checkcrc ;;
+    093) source cpmdosgg ; copyfiles; dismount; source oak; cp $src/trsmodem.com $builddir/TRSMODEM.COM; dismount; pad                   ; datefiles; archives; checkcrc ;;
+    094) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    095) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    096) source cpmdosgg ; copyfiles; dismount; pad; rename "CRCK_51.A86 CRCK-51.A86" "FILE_EXT.A86 FILE-EXT.A86" "XDIR_A86.DOC XDIR-A86.DOC" ; datefiles; archives; checkcrc ;;
+    097) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    098) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    099) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    100) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    101) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    102) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    103) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    104) source oak      ; copyfiles; cp $tempdir/sigm/vol104/sig/m.lib $builddir/SIG_M.LIB; dismount; pad                               ; datefiles; archives; checkcrc ;;
+    105) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    106) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    107) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    108) source cpmdosgg ; copyfiles; cp $tempdir/cpm11/1107/crc.com $builddir/CRC.COM ; dismount; pad; rename "Z2SYS_1.MOD Z2SYS-1.MOD" ; datefiles; archives; checkcrc ;;
+    109) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc  ; notes "USERMAN1,3,4,5 are listed, but not USERMAN2.TXT" ;;
+    110) source cpmdosgg ; copyfiles; dismount; pad;                    rename "*_*"                                                     ; datefiles; archives; checkcrc  ; notes "SIGN_ON.ACG, TWO_REC.FMT not in -CATALOG." ;;
+    111) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    112) source cpmdosgg ; copyfiles; dismount; pad;                    rename "*_*" "RBBS-I-O.NQW RBBS-I_O.NQW"                         ; datefiles; archives; checkcrc ;;
+    113) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    114) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    115) source cpmdosgg ; copyfiles; dismount; pad;                    rename "*_*"                                                     ; datefiles; archives; checkcrc ;;
+    116) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    117) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc  ; notes "USQ.COM not listed in -CATALOG." ;;
+    118) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    119) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    120) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    121) source cpmdosgg ; copyfiles; dismount; pad;                    rename "MDM709C_.AQM MDM709C+.AQM" "SD_*.*"                      ; datefiles; archives; checkcrc ;;
+    122) source cpmdosgg ; copyfiles; dismount; pad;                    rename "DU2_*" "./ZCPR2.IDX ./-ZCPR2.IDX"                        ; datefiles; archives; checkcrc ;;
+    123) source cpmdosgg ; copyfiles; dismount; pad;                    rename "FIND_*"                                                  ; datefiles; archives; checkcrc ;;
+    124) source cpmdosgg ; copyfiles; dismount; pad;                    rename "ZCPR2_*"                                                 ; datefiles; archives; checkcrc ;;
+    125) source cpmdosgg ; copyfiles; dismount; pad; remove __SIG_M.125;rename "ZCPR2_*"                                                 ; datefiles; archives; checkcrc ;;
+    126) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    127) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    128) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    129) source oak      ; copyfiles; cp $src/db2sig/m.lbr $builddir/DB2SIG_M.LBR; dismount; pad; remove CRCKLIST.CRC                    ; datefiles; archives; checkcrc  ; notes "CPMDOSGG seems an earlier version of SIG/M. -CATALOG" "lists DB2SIG/M.LBR (0E47), but the disk holds instead" "its expanded contents. OTOH, OAK/WC have DB2SIG/M.LBR" "(51C0) & matching -CATALOGs. No known extant ver of" "(0E47). Compares of CPMDOSGG files w/OAK LBR contents" "reveals significant CRC differences. I've chosen to" "go with OAK for this volume." ;;
+    130) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    131) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    132) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    133) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    134) source cpmdosgg ; copyfiles; dismount; pad;                    rename "GLOBALS.RN_ GLOBALS.RN$" "PASZCODE.RN_ PASZCODE.RN$"     ; datefiles; archives; checkcrc ;;
+    135) source cpmdosgg ; copyfiles; dismount; pad;                    rename "DIR_*"                                                   ; datefiles; archives; checkcrc  ; notes "TEST.SUB not in -CATALOG." ;;
+    136) source cpmdosgg ; copyfiles; dismount; pad;                    rename "BB_*.*"                                                  ; datefiles; archives; checkcrc ;;
+    137) source cpmdosgg ; copyfiles; dismount; pad;                    rename "MP_*"                     ; touch $builddir/MP-SIMUL.IN2 ; datefiles; archives; checkcrc  ; notes "-CATALOG lists a 0-byte MP-SIMUL.IN2, which is miss-" "ing from some collections. It is recreated here." ;;
+    138) source cpmdosgg ; copyfiles; dismount; pad;                    rename "MP_DEMO.LBR MP-DEMO.LBR"                                 ; datefiles; archives; checkcrc ;;
+    139) source cpmdosgg ; copyfiles; dismount; pad;                    rename "UN_PROT.BAS UN-PROT.BAS"                                 ; datefiles; archives; checkcrc ;;
+    140) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    141) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    142) source cpmdosgg ; copyfiles; dismount; pad;                    rename "*_*" "SFA-SAV.0 SFA_SAV.0"                               ; datefiles; archives; checkcrc ;;
+    143) source cpmdosgg ; copyfiles; dismount; pad;                    rename "PACKET_*"                                                ; datefiles; archives; checkcrc ;;
+    144) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    145) source cpmdosgg ; copyfiles; dismount; pad;                    rename "*_*"                                                     ; datefiles; archives; checkcrc ;;
+    146) source cpmdosgg ; copyfiles; dismount; pad;                    rename "SD_48B.A86 SD-48B.A86" "SD_48B.CMD SD-48B.CMD"           ; datefiles; archives; checkcrc ;;
+    147) source cpmdosgg ; copyfiles; dismount; pad;                    rename "FILE_*" "CRCK_*" "WM_*"                                  ; datefiles; archives; checkcrc ;;
+    148) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    149) source cpmdosgg ; copyfiles; dismount; pad;                    rename "MODEM7_*" "UNIX_*"                                       ; datefiles; archives; checkcrc ;;
+    150) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    151) source cpmdosgg ; copyfiles; dismount; pad;                    rename "DSK7_*" "MBOOT_*" "FMT_*" "MODEM_*"                      ; datefiles; archives; checkcrc ;;
+    152) source cpmdosgg ; copyfiles; dismount; pad;                    rename "DU_*.*"                                                  ; datefiles; archives; checkcrc ;;
+    153) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    154) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    155) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc  ; notes "ABSTRACT.155 missing from all collections." ;;
+    156) source cpmdosgg ; copyfiles; dismount; pad;                    rename "SQ_*"                                                    ; datefiles; archives; checkcrc ;;
+    157) source cpmdosgg ; copyfiles; dismount; pad;                    rename "Z80_*"                                                   ; datefiles; archives; checkcrc ;;
+    158) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    159) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    160) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    161) source cpmdosgg ; copyfiles; dismount; pad;                    rename "DU_*" "TYPER_*"                                          ; datefiles; archives; checkcrc ;;
+    162) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    163) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    164) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc  ; notes "READTHIS not in -CATALOG." ;;
+    165) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc  ; notes "READTHIS not in -CATALOG." ;;
+    166) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc  ; notes "READTHIS not in -CATALOG." ;;
+    167) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    168) source cpmdosgg ; copyfiles; dismount; pad;                    rename "*_*"                                                     ; datefiles; archives; checkcrc  ; notes "READTHIS not in -CATALOG." ;;
+    169) source cpmdosgg ; copyfiles; dismount; pad;                    rename "M7*"                                                     ; datefiles; archives; checkcrc ;;
+    170) source cpmdosgg ; copyfiles; dismount; pad;                    rename "M7*" "M7AC-3.AQM M7AC+3.AQM"                             ; datefiles; archives; checkcrc ;;
+    171) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    172) source cpmdosgg ; copyfiles; dismount; pad;                    rename "DU_*" "OKI_*"                                            ; datefiles; archives; checkcrc ;;
+    173) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc  ; notes "READTHIS not in -CATALOG." ;;
+    174) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    175) source cpmdosgg ; copyfiles; dismount; pad;                    rename "F47_*" "MODEM_*"                                         ; datefiles; archives; checkcrc ;;
+    176) source cpmdosgg ; copyfiles; dismount; pad;                    rename "DRI_*" "DU_*" "SD_*"                                     ; datefiles; archives; checkcrc ;;
+    177) source cpmdosgg ; copyfiles; dismount; pad;                    rename "MY_*"; for i in $builddir/WS_*; do mv $i $(echo $i | tr '_' '$'); done ; datefiles; archives; checkcrc ;;
+    178) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    179) source cpmdosgg ; copyfiles; dismount; pad;                    rename "BIOS3_.DQC BIOS3+.DQC"                                   ; datefiles; archives; checkcrc  ; notes "CARCHIVE.DQC not listed in -CATALOG." ;;
+    180) source cpmdosgg ; copyfiles; dismount; pad;                    rename "*_*"                                                     ; datefiles; archives; checkcrc ;;
+    181) source cpmdosgg ; copyfiles; dismount; pad;                    rename "*_*"                                                     ; datefiles; archives; checkcrc  ; notes "CXREF.HQP not listed in -CATALOG." ;;
+    182) source cpmdosgg ; copyfiles; dismount; pad;                    rename "NS_*" "TAG_*"                                            ; datefiles; archives; checkcrc ;;
+    183) source cpmdosgg ; copyfiles; dismount; pad;                    rename "READ_*"                                                  ; datefiles; archives; checkcrc ;;
+    184) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    185) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    186) source cpmdosgg ; copyfiles; dismount; pad;                    rename "CRC_*"                                                   ; datefiles; archives; checkcrc ;;
+    187) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    188) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    189) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    190) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    191) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    192) source cpmdosgg ; copyfiles; dismount; pad;                    rename "SYS2*"                                                   ; datefiles; archives; checkcrc ;;
+    193) source cpmdosgg ; copyfiles; dismount; pad;                    rename "PAF*"                                                    ; datefiles; archives; checkcrc ;;
+    194) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    195) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc  ; notes "-CATALOG mis-lists DELBR.COM as DELRB.COM." ;;
+    196) source cpmdosgg ; copyfiles; dismount; pad;                    rename "SD_*"                                                    ; datefiles; archives; checkcrc ;;
+    197) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc  ; notes "-CATALOG mis-lists DELBR.COM as DELIB.COM." ;;
+    198) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    199) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    200) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    201) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    202) source cpmdosgg ; copyfiles; dismount; pad;                    rename "RSA_*"                                                   ; datefiles; archives; checkcrc ;;
+    203) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    204) source cpmdosgg ; copyfiles; dismount; pad;                    rename "F83_*"                                                   ; datefiles; archives; checkcrc ;;
+    205) source cpmdosgg ; copyfiles; dismount; pad;                    rename "F83_*"                                                   ; datefiles; archives; checkcrc ;;
+    206) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    207) source cpmdosgg ; copyfiles; dismount; pad;                    rename "LU86_*" "APC_DUMP.LBR APC-DUMP.LBR"                      ; datefiles; archives; checkcrc ;;
+    208) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    209) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    210) source cpmdosgg ; copyfiles; dismount; pad;                    rename "CRC_64.AQ6 CRC-64.AQ6"                                   ; datefiles; archives; checkcrc ;;
+    211) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    212) source cpmdosgg ; copyfiles; dismount; pad; rename "CPM2__.LBR CPM2-+.LBR" "FIND_2.LBR FIND+2.LBR" "UNERA_.LBR UNERA+.LBR" "*_*"; datefiles; archives; checkcrc ;;
+    213) source cpmdosgg ; copyfiles; dismount; pad;                    rename "LBR_*"                                                   ; datefiles; archives; checkcrc ;;
+    214) source cpmdosgg ; copyfiles; dismount; pad;                    rename "LBR_*"                                                   ; datefiles; archives; checkcrc ;;
+    215) source cpmdosgg ; copyfiles; dismount; pad;                    rename "LBR_*"                                                   ; datefiles; archives; checkcrc ;;
+    216) source cpmdosgg ; copyfiles; dismount; pad;                    rename "M8NM_*"                                                  ; datefiles; archives; checkcrc ;;
+    217) source cpmdosgg ; copyfiles; dismount; pad;                    rename "M8??_*"                                                  ; datefiles; archives; checkcrc ;;
+    218) source cpmdosgg ; copyfiles; dismount; pad;                    rename "MX?_*"                                                   ; datefiles; archives; checkcrc ;;
+    219) source cpmdosgg ; copyfiles; dismount; pad;                    rename "MX?_*"                                                   ; datefiles; archives; checkcrc ;;
+    220) source cpmdosgg ; copyfiles; dismount; pad;                    rename "MX?_*" "MXO-R-10.AQM MXO-R+10.AQM"                       ; datefiles; archives; checkcrc ;;
+    221) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    222) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    223) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    224) source cpmdosgg ; copyfiles; dismount; pad;                    rename "C80V_*"                                                  ; datefiles; archives; checkcrc ;;
+    225) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    226) source cpmdosgg ; copyfiles; dismount; pad;                    rename "DRI_*"                                                   ; datefiles; archives; checkcrc ;;
+    227) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    228) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    229) source cpmdosgg ; copyfiles; dismount; pad;                    rename "SAVE0_*" "APC_*"                                         ; datefiles; archives; checkcrc ;;
+    230) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    231) source cpmdosgg ; copyfiles; dismount; pad;                    rename "CP_M_.LBR CP-M+.LBR"                                     ; datefiles; archives; checkcrc ;;
+    232) source cpmdosgg ; copyfiles; dismount; pad;                    rename "M7BBS_.AQM M7BBS+.AQM"                                   ; datefiles; archives; checkcrc ;;
+    233) source cpmdosgg ; copyfiles; dismount; pad;                    rename "BOY_*"                                                   ; datefiles; archives; checkcrc  ; notes "CLEANUP.DQC not listed in -CATALOG." ;;
+    234) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    235) source cpmdosgg ; copyfiles; dismount; pad;                    rename "BOKA_EI.BQS BOKA&EI.BQS" "FORTH_*"                       ; datefiles; archives; checkcrc ;;
+    236) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    237) source cpmdosgg ; copyfiles; dismount; pad;                    rename "PILOT_*"                                                 ; datefiles; archives; checkcrc ;;
+    238) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    239) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    240) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc  ; notes "EPRINT.ZSM is unlisted in -CATALOG." ;;
+    241) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    242) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    243) source oak      ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc  ; notes "CRC mismatch: GETNAME.PRO, VISCOS1 .DAT." ;;
+    244) source cpmdosgg ; copyfiles; dismount; pad;                    rename "LPAK1?_*"                                                ; datefiles; archives; checkcrc ;;
+    245) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    246) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    247) source cpmdosgg ; copyfiles; dismount; pad;                    rename "DU_*" "Z19_*"                                            ; datefiles; archives; checkcrc ;;
+    248) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    249) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    250) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc  ; notes "Though VDO25.LBR is not listed in -CATALOG" "and seems out of place, it is retained.    " ;;
+    251) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    252) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    253) source oak      ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    254) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    255) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    256) source cpmdosgg ; copyfiles; dismount; pad;                    rename "TFR_*" "TRANS_*"                                         ; datefiles; archives; checkcrc ;;
+    257) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    258) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    259) source oak      ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    260) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    261) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    262) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    263) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    264) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    265) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    266) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    267) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    268) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    269) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    270) source cpmdosgg ; copyfiles; dismount; pad;                    rename "FS_*"                                                    ; datefiles; archives; checkcrc ;;
+    271) source cpmdosgg ; copyfiles; dismount; pad;                    rename "FP_*"                                                    ; datefiles; archives; checkcrc ;;
+    272) source cpmdosgg ; copyfiles; dismount; pad;                    rename "*_*"                                                     ; datefiles; archives; checkcrc ;;
+    273) source cpmdosgg ; copyfiles; dismount; pad;                    rename "*_*"                                                     ; datefiles; archives; checkcrc ;;
+    274) source cpmdosgg ; copyfiles; dismount; pad;                    rename "*_*"                                                     ; datefiles; archives; checkcrc ;;
+    275) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    276) source cpmdosgg ; copyfiles; dismount; pad;                    rename "*_*"                                                     ; datefiles; archives; checkcrc ;;
+    277) source cpmdosgg ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    278) source oak      ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    279) source oak      ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc  ; notes "LABEL.MAC, TAIL.ASM CRC mismatch." ;;
+    280) source oak      ; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc  ; notes "MULTICOL.PAS CRC mismatch." ;;
+    281) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc  ; notes "CRC mismatch: CMPCODE.DOC, ZLOAD.DOC," "SNOOPY.FOR, FORT07.DAT." ;;
+    282) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    283) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    284) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    285) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc  ; notes "CRC mismatch: BROWSE.DOC, CURSOR.ASM," "SAVEREST.ASM, SAVEREST.DOC, TWENTY.ASM," "WORD-KEY.FIX.";;
+    286) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    287) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    288) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    289) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc  ; notes "CRC mismatch: RAMDSKRB.DOC." ;;
+    290) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    291) source sourdough; copyfiles; cp $src/../vol293/wipe.pas $builddir/WIPE.PAS; dismount; pad                                       ; datefiles; archives; checkcrc  ; notes "None of the extant sources yields matching" "CRCs. However, vol 293 has a good copy of " "WIPE.PAS; that is copied here.            " ;;
+    292) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc  ; notes "CRC mismatch: SIZE.PAS, STRIP8.PAS." ;;
+    293) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc  ; notes "WIPE.PAS not listed in -CATALOG." "Wandered over from v291?" ;;
+    294) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    295) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    296) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    297) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    298) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    299) source sourdough; copyfiles; dismount; pad;                    rename "KPHANDYP.LBR KPHANDY+.LBR"                               ; datefiles; archives; checkcrc  ; notes "-READ.ME not listed in -CATALOG." ;;
+    300) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    301) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    302) source sourdough; copyfiles; dismount; pad; remove CRCKLIST.CRC                                                                 ; datefiles; archives; checkcrc ;;
+    303) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    304) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    305) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    306) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    307) source sourdough; copyfiles; dismount; pad; remove ./-READ.ME; rename "RDIR15P.LBR RDIR15+.LBR"                                 ; datefiles; archives; checkcrc ;;
+    308) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    309) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    310) source sourdough; copyfiles; dismount; pad                                                                                      ; datefiles; archives; checkcrc ;;
       *) echo Volume $vol not implemented yet. ;; # You should never see this.
   esac
   
