@@ -1,0 +1,89 @@
+#!/bin/bash
+
+vol=$1
+cd sigmv$vol
+echo "=========================================  "
+echo "SIG/M Volume $vol    released ___, __ 198_  "
+echo "-----------------------------------------  "
+echo "                                           "
+echo "       ----------------------------------  "
+
+totfiles=0; totbytes=0; totkb=0; totrecs=0
+
+for i in ./*; do # also anything with extension .$vol
+  [[   "$(echo $(basename $i) | cut -d'.' -f1)" == "-CATALOG" ]] || \
+  [[   "$(echo $(basename $i) | cut -d'.' -f1)" == "CRC"      ]] || \
+  [[   "$(echo $(basename $i) | cut -d'.' -f1)" == "CRCK"     ]] || \
+  [[   "$(echo $(basename $i) | cut -d'.' -f1)" == "SIG_M"    ]] || \
+  [[   "$(echo $(basename $i) | cut -d'.' -f1)" == "ACKLIST"  ]] || \
+  [[   "$(echo $(basename $i) | cut -d'.' -f1)" == "CRCKLIST" ]] || \
+  [[   "$(echo $(basename $i) | cut -d'.' -f1)" == "CRCKFILE" ]] || \
+  [[   "$(echo $(basename $i) | cut -d'.' -f2)" == "$vol"     ]] ||
+  [[   "$(echo $(basename $i) | cut -d'.' -f1)" == "ABSTRACT" ]] && {
+    totfiles=$((totfiles+=1))
+        vnum=$(printf '%3s' $((10#$vol)))                                        # volume number stripped of leading zeroes and leftpadded with spaces
+        fnum=$(printf '%-3s' $n)                                                 # file number
+        name=$(printf '%-8s' $(echo $(basename $i) | cut -d'.' -f1))             # file name right padded to 8 chars
+         ext=$(printf '%-3s' $(echo $(basename $i) | cut -d'.' -f2))             # file extension right padded to 3 chars
+         recs=$(ls $i -l --block-size=128  | cut -d' ' -f5)                      # file size in records
+        bytes=$(ls $i -l                   | cut -d' ' -f5)                      # file size in bytes
+           kb=$(ls $i -l --block-size=1024 | cut -d' ' -f5)                      # file size in kilobytes
+          crc=$(cpmcrck $i | tail -1 | cut -b46-49 | tr '[:lower:]' '[:upper:]') # file CRC
+     totbytes=$((totbytes+$bytes))                                               # total file size in bytes
+        totkb=$((totkb+$kb))                                                     # total file size in kb
+      totrecs=$((totrecs+$recs))                                                 # total file size in records
+      
+    [[ "$(echo $ext | tr -d ' ')" == "$(echo $name | tr -d ' ')" ]] && ext="   "
+    echo -n "       $name.$ext  " 
+    echo -n "$(printf '%5s' $bytes)"
+    echo -n "$(printf '%4s' $kb)k "
+    echo -n "$(printf '%4s' $recs) "
+    echo $crc
+    }
+done
+
+echo "       ----------------------------------  "
+echo "                                           "
+echo "Index  Name           Size  KB   Rec CRCK  Description"
+echo "-------------------------------------------------------  "
+
+n=0
+for i in ./*; do
+  [[ ! "$(echo $(basename $i) | cut -d'.' -f1)" == "-CATALOG" ]] && \
+  [[ ! "$(echo $(basename $i) | cut -d'.' -f1)" == "CRC"      ]] && \
+  [[ ! "$(echo $(basename $i) | cut -d'.' -f1)" == "CRCK"     ]] && \
+  [[ ! "$(echo $(basename $i) | cut -d'.' -f1)" == "SIG_M"    ]] && \
+  [[ ! "$(echo $(basename $i) | cut -d'.' -f1)" == "ACKLIST"  ]] && \
+  [[ ! "$(echo $(basename $i) | cut -d'.' -f1)" == "CRCKLIST" ]] && \
+  [[ ! "$(echo $(basename $i) | cut -d'.' -f1)" == "CRCKFILE" ]] && \
+  [[ ! "$(echo $(basename $i) | cut -d'.' -f2)" == "$vol"     ]] && \
+  [[ ! "$(echo $(basename $i) | cut -d'.' -f1)" == "ABSTRACT" ]] && {
+    totfiles=$((totfiles+=1))
+    n=$((n+=1))
+    vnum=$(printf '%3s' $((10#$vol)))                                        # volume number stripped of leading zeroes and leftpadded with spaces
+    fnum=$(printf '%-3s' $n)                                                 # file number
+    name=$(printf '%-8s' $(echo $(basename $i) | cut -d'.' -f1))             # file name right padded to 8 chars
+     ext=$(printf '%-3s' $(echo $(basename $i) | cut -d'.' -f2))             # file extension right padded to 3 chars
+     recs=$(ls $i -l --block-size=128  | cut -d' ' -f5)                      # file size in records
+    bytes=$(ls $i -l                   | cut -d' ' -f5)                      # file size in bytes
+       kb=$(ls $i -l --block-size=1024 | cut -d' ' -f5)                      # file size in kilobytes
+      crc=$(cpmcrck $i | tail -1 | cut -b46-49 | tr '[:lower:]' '[:upper:]') # file CRC
+      totbytes=$((totbytes+$bytes))                                          # total file size in bytes
+      totkb=$((totkb+$kb))                                                   # total file size in kb
+      totrecs=$((totrecs+$recs))                                             # total file size in records
+    [[ "$(echo $ext | tr -d ' ')" == "$(echo $name | tr -d ' ')" ]] && ext="   "
+    echo -n "$vnum.$fnum" 
+    echo -n "$name.$ext  " 
+    echo -n "$(printf '%5s' $bytes)"
+    echo -n "$(printf '%4s' $kb)k "
+    echo -n "$(printf '%4s' $recs) "
+    echo $crc
+   } 
+done
+
+cd - > /dev/null
+echo "-------------------------------------------------------"
+echo "       Total     $totfiles $totbytes  $totkb   $totrecs                     "
+echo ""
+echo "Copyright (c) 1982 by Sig/M-Amateur Computer Group"
+echo "of New Jersey Inc., Box 97, Iselin NJ, 08830-0097 "
