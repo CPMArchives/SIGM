@@ -1,9 +1,11 @@
 #!/bin/bash
 
+root=.
 vol=$1
-cd sigmv$vol
+cd $root/sigmv$vol
+#cd sigmv$vol
 echo "=========================================  "
-echo "SIG/M Volume $vol    released ___, __ 198_  "
+echo "SIG/M Volume $vol    released $(ls ./* -l | tail -1 | cut -b32-43)  "
 echo "-----------------------------------------  "
 echo "                                           "
 echo "       ----------------------------------  "
@@ -34,11 +36,7 @@ for i in ./*; do # also anything with extension .$vol
       totrecs=$((totrecs+$recs))                                                 # total file size in records
       
     [[ "$(echo $ext | tr -d ' ')" == "$(echo $name | tr -d ' ')" ]] && ext="   "
-    echo -n "       $name.$ext  " 
-    echo -n "$(printf '%5s' $bytes)"
-    echo -n "$(printf '%4s' $kb)k "
-    echo -n "$(printf '%4s' $recs) "
-    echo $crc
+    echo "       $name.$ext $(printf '%6s' $bytes)$(printf '%4s' $kb)k$(printf '%5s' $recs)$(printf '%5s' $crc)"
     }
 done
 
@@ -72,18 +70,14 @@ for i in ./*; do
       totkb=$((totkb+$kb))                                                   # total file size in kb
       totrecs=$((totrecs+$recs))                                             # total file size in records
     [[ "$(echo $ext | tr -d ' ')" == "$(echo $name | tr -d ' ')" ]] && ext="   "
-    echo -n "$vnum.$fnum" 
-    echo -n "$name.$ext  " 
-    echo -n "$(printf '%5s' $bytes)"
-    echo -n "$(printf '%4s' $kb)k "
-    echo -n "$(printf '%4s' $recs) "
-    echo $crc
+    echo "$vnum.$fnum$name.$ext $(printf '%6s' $bytes)$(printf '%4s' $kb)k$(printf '%5s' $recs)$(printf '%5s' $crc)"
    } 
 done
 
-cd - > /dev/null
 echo "-------------------------------------------------------"
-echo "       Total     $totfiles $totbytes  $totkb   $totrecs                     "
+echo "       Total   $(printf '%4s' $totfiles)$(printf '%7s' $totbytes)$(printf '%4s' $totkb)k$(printf '%5s' $totrecs)"
 echo ""
-echo "Copyright (c) 1982 by Sig/M-Amateur Computer Group"
+echo "Copyright (c) $(ls ./* -l | tail -1 | cut -b40-43) by Sig/M-Amateur Computer Group"
 echo "of New Jersey Inc., Box 97, Iselin NJ, 08830-0097 "
+echo ""
+cd - > /dev/null
