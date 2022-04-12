@@ -17,3 +17,11 @@ Or the entire collection (on my system this takes a bit over five minutes):
 ```
 for i in {1..310}; do ./buildvol $i; done
 ```
+
+### LIST
+
+This second script will produce a file listing reminiscent of a volume's -CATALOG list. Simply point the variable **$root** at the parent directory of your sigmv*/ directories, then run it, specifying the volume:
+
+```
+./list 167
+```
