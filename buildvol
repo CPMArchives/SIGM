@@ -44,7 +44,8 @@
 
 #   Place this script somewhere on your system. Read these comments for details. Download the ISO images and make sure you 
 #   have all the required utilities installed (see the REQUIREMENTS section above) and available in your system path. Then 
-#   edit two variables in the VARIABLES section: $iso_loc and $buildroot. You can now build a single volume; e.g.:
+#   edit two variables in the VARIABLES section: $iso_loc and $buildroot. Or just place the ISOs and this script together 
+#   in the current directory. You can now build a single volume; e.g.:
 
 #     ./buildvol 228
 
@@ -102,8 +103,8 @@
 
          vol=$1
          low=1 ; high=310                                                                 # Define the acceptable range of vol nums
-     iso_loc=/home/nathanael/mounts/saruman/web/cpmarchives/downloads                     # Where you SIG/M source ISOs are
-   buildroot=/home/nathanael/mounts/saruman/web/cpmarchives/cpm/Software/UserGroups/SIGM/ # Where the rebuilt vols will be saved; 
+     iso_loc=$(pwd)                                                                       # Where you SIG/M source ISOs are (default current dir)
+   buildroot=$(pwd)                                                                       # Where the rebuilt vols will be saved (default curr dir); 
    mkdir -p $buildroot                                                                    # each will be in a subdir called vol###/
 
   # Make sure user supplied a valid volume number.
