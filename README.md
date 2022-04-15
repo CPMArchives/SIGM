@@ -25,3 +25,7 @@ This second script will produce a file listing reminiscent of a volume's -CATALO
 ```
 ./list 167
 ```
+
+#### -CATALOG.ALL
+
+-CATALOG.ALL is a cleaned-up, prettified compilation of all the individual -CATALOG.xxx files, providing details of the contents of each volume.
