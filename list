@@ -1,7 +1,19 @@
 #!/bin/bash
 
 root=.
+low=1 ; high=310                                                                 # Define the acceptable range of vol nums
 vol=$1
+# Make sure user passed a parameter...
+[[ -z $1 ]]   && { echo "You must specify a volume between $low and $high; e.g., $0 52" ; exit 1; }
+
+# strip any leading zeroes for to verify the param is a number between $low and $high.
+while [ "$(echo ${vol:0:1})" == "0" ]; do vol=$(echo $vol | cut -b2-); done  # strip all leading zeroes
+[[ $1 =~ ^[0-9]+$ ]]   || { echo "$1 is not a number. Try again." ; exit 1; }
+[[ "$vol" -lt $low  ]] || [[ "$vol" -gt $high ]] && { echo "Enter a number between $low and $high."                        ; exit 1; }
+
+# now add back the leading zeroes for processing.
+vol=`printf %03d $vol`
+
 cd $root/sigmv$vol
 
 totfiles=0; totbytes=0; totkb=0; totrecs=0                                      # counters for total files, total bytes, etc.
