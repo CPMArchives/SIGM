@@ -13,7 +13,7 @@ Before running this script, you must download the required iso files (read the s
 
 ```
 export iso_loc=/path/to/ISOs
-export builddir=/where/to/build/SIGM
+export buildroot=/where/to/build/SIGM
 ```
 
 You can now build a single volume; e.g.:
