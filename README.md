@@ -27,7 +27,7 @@ for i in {1..310}; do ./buildvol $i; done
 
 ### LIST
 
-This second script will produce a file listing reminiscent of a volume's -CATALOG list. Simply point the variable **$root** at the parent directory of your sigmv*/ directories, then run it, specifying the volume:
+This second script will produce a file listing reminiscent of SIG/M's -CATALOG listings. This script will only run from the directory where your rebuilt SIG/M collection is. You must specify the volume:
 
 ```
 ./list 167
