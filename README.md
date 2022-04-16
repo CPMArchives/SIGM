@@ -9,7 +9,15 @@ This is a BASH shell script which will create a series of directories -- sigmv00
 
 ### USAGE
 
-To run this script, place **buildvol** somewhere on your system. Read its comments for details. Download the ISO images and make sure you have all the required utilities installed and available in your system path. Then edit two variables in the VARIABLES section: **$iso_loc** and **$buildroot**. You can now build a single volume; e.g.:
+Before running this script, you must download the required iso files. Read the script source for details. Place the ISOs, together with this script,
+in a directory on your system. By default the script looks for the ISOs, and builds SIG/M volumes, in the current directory. This may be changed by setting two environment variables before running the script.
+
+```
+export iso_loc=/path/to/ISOs/
+export builddir=/where/you/want/the/volumes/built
+```
+
+You can now build a single volume; e.g.:
 ```
 ./buildvol 228
 ```
