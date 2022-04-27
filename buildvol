@@ -163,12 +163,12 @@
   case $1 in
      cpmdosgg) # SIG/M vols 1-280 are found in CPMDOSGG dirs cpm10/, cpm11/ and cpm12/.
                mkdir -p $tempdir
-               [[ -f $cpmdosgg_iso ]] && sudo mount $cpmdosgg_iso  $tempdir/ > /dev/null 2>&1 || { echo $(basename $cpmdosgg_iso) not found. ; exit 1; } 
+               [[ -f $cpmdosgg_iso ]] && sudo mount $cpmdosgg_iso  $tempdir/ > /dev/null 2>&1 || { echo $(basename $cpmdosgg_iso) not found. Specify the location of your ISO files with:; echo ""; echo "export iso_loc=/path/to/ISOs"  ; exit 1; } 
                src=$tempdir/cpm1${vol:0:1}/1$vol/
                ;;
         cpmug) # SIG/M vols 2, 4, etc. are duplicated in CPMUG vols 56, 58, etc.
                mkdir -p $tempdir
-               [[ -f $cpmug_iso ]] && sudo mount $cpmug_iso     $tempdir/ > /dev/null 2>&1 || { echo $(basename $cpmug_iso) not found. ; exit 1; }
+               [[ -f $cpmug_iso ]] && sudo mount $cpmug_iso     $tempdir/ > /dev/null 2>&1 || { echo $(basename $cpmug_iso) not found. Specify the location of your ISO files with:; echo ""; echo "export iso_loc=/path/to/ISOs"   ; exit 1; }
                [[ $vol == 002 ]] && src=$tempdir/cpmug056
                [[ $vol == 004 ]] && src=$tempdir/cpmug058
                [[ $vol == 005 ]] && src=$tempdir/cpmug059
@@ -183,7 +183,7 @@
                # then just switch to the IMD image anyway.
     
                mkdir -p $tempdir
-               [[ -f $nich_iso ]] && sudo mount $nich_iso      $tempdir/ > /dev/null 2>&1 || { echo $basename $nich_iso not found. ; exit 1; }
+               [[ -f $nich_iso ]] && sudo mount $nich_iso      $tempdir/ > /dev/null 2>&1 || { echo $basename $nich_iso not found. Specify the location of your ISO files with:; echo ""; echo "export iso_loc=/path/to/ISOs"   ; exit 1; }
                [[ -d $tempdir/extract/sigm$vol/     ]] && src=$tempdir/extract/sigm$vol/
                [[ -f $tempdir/sigm/sigm$vol.imd     ]] && { 
                  imdu -b $tempdir/sigm/sigm$vol.imd ./sigm$vol.dsk > /dev/null 2>&1
@@ -195,14 +195,14 @@
                ;;
            wc) # The Walnut Creek CD's copy of SIG/M is in simtel/sigm/ subdirs vols000/, vols100/, vols200/ and vols300/.
                mkdir -p $tempdir
-               [[ -f $wc_iso ]] && sudo mount $wc_iso        $tempdir/ > /dev/null 2>&1 || { echo $wc_iso not found. ; exit 1; }
+               [[ -f $wc_iso ]] && sudo mount $wc_iso        $tempdir/ > /dev/null 2>&1 || { echo $wc_iso not found. Specify the location of your ISO files with:; echo ""; echo "export iso_loc=/path/to/ISOs"   ; exit 1; }
                src=$tempdir/simtel/sigm/vols${vol:0:1}00/vol$vol/
                ;;
           oak) # OAK's collection is in some ways the most complicated. While its collection is nearly complete complete 
                # (lackings vols 184-192), it is a mixture of expanded subdirs and .ARK archive files. Thus depending on the 
                # vol it can either be pulled from the expanded dir, or extracted from the .ARK archive.          
                mkdir -p $tempdir
-               [[ -f $oak_iso ]] && sudo mount $oak_iso       $tempdir/ > /dev/null 2>&1 || { echo $oak_iso not found. ; exit 1; }
+               [[ -f $oak_iso ]] && sudo mount $oak_iso       $tempdir/ > /dev/null 2>&1 || { echo $oak_iso not found. Specify the location of your ISO files with:; echo ""; echo "export iso_loc=/path/to/ISOs"   ; exit 1; }
                [[ -d $tempdir/sigm/vol$vol/ ]] && src=$tempdir/sigm/vol$vol/ || {
                   curdir=$(pwd)
                   sudo cp $tempdir/sigm/sigmv$vol.ark $curdir/ # for some reason fails without sudo
@@ -218,7 +218,7 @@
     sourdough) # Sourdough's SIG/M collection is in library_collections/sigm/. Like OAK, it is a mixture of expanded
                # dirs and .ARK archives.
                mkdir -p $tempdir
-               [[ -f $sourdough_iso ]] && sudo mount $sourdough_iso $tempdir/ > /dev/null 2>&1 || { echo $sourdough_iso not found. ; exit 1; }
+               [[ -f $sourdough_iso ]] && sudo mount $sourdough_iso $tempdir/ > /dev/null 2>&1 || { echo $sourdough_iso not found. Specify the location of your ISO files with:; echo ""; echo "export iso_loc=/path/to/ISOs"   ; exit 1; }
                [[ -d $tempdir/library_collections/sigm/vol$vol/ ]] && src=$tempdir/library_collections/sigm/vol$vol || {
                   curdir=$(pwd)
                   cp $tempdir/library_collections/sigm/sigmv$vol.ark $curdir
