@@ -89,6 +89,7 @@ for i in ./*; do                                                                
     bytes=$(ls $i -l                   | cut -d' ' -f5)                          # file size in bytes
        kb=$(ls $i -l --block-size=1024 | cut -d' ' -f5)                          # file size in kilobytes
       crc=$(cpmcrck $i | tail -1 | cut -b46-49 | tr '[:lower:]' '[:upper:]')     # file CRC
+    [[ $vol -ge 100 ]] && descript=$(cat ./-CATALOG.$vol | grep "$name.$ext" | head -1 | cut -b35-) || descript="" # file description from -CATALOG
       totbytes=$((totbytes+$bytes))                                              # total file size in bytes
       totkb=$((totkb+$kb))                                                       # total file size in kb
       totrecs=$((totrecs+$recs))                                                 # total file size in records
