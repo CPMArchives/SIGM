@@ -1,7 +1,7 @@
 # SIGM
 ### PREFACE
 
-The **Special Interest Group/Microcomputers** is a still-active users' group of the **_Amateur Computer Club_ of New Jersey**. Originally formed in the late 1970s, through 1988 it frequently released software distribution disks of software dedicated to 8-bit computing, primparily under the **CP/M** operating system and its later derivatives. Its software library eventually became one of the most important of the era.
+The **Special Interest Group/Microcomputers** is a still-active users' group of the **_Amateur Computer Club_ of New Jersey**. Originally formed in the late 1970s, through 1988 it frequently released software distribution disks of software dedicated to 8-bit computing, primarily under the **CP/M** operating system and its later derivatives. Its software library eventually became one of the most important of the era.
 
 Versions of the SIG/M library are still available from a number of sources on the Internet, subject, however, to a large number of accretions and corruptions, and none of the collections is complete (nearly all, for example, omit volumes 184-192). This project, therefore, aims to recreate as closely and cleanly as possible an "original" version of the library, with as many of the various accretions, omissions and corruptions fixed as possible.
 
