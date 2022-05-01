@@ -1,13 +1,15 @@
 # SIGM
 ### PREFACE
 
-The **Special Interest Group/Microcomputers** is a still-active users' group of the **_Amateur Computer Club_ of New Jersey**. Originally formed in the late 1970s, through 1988 it frequently released software distribution disks of software dedicated to 8-bit computing, primparily under the **CP/M** operating system and its later derivatives. Its software library eventually became one of the most important of the era.
+The **Special Interest Group/Microcomputers** is a still-active users' group of the **_Amateur Computer Club_ of New Jersey**. Originally formed in the late 1970s, through 1988 it frequently released software distribution disks of software dedicated to 8-bit computing, primarily under the **CP/M** operating system and its later derivatives. Its software library eventually became one of the most important of the era.
 
 Versions of the SIG/M library are still available from a number of sources on the Internet, subject, however, to a large number of accretions and corruptions, and none of the collections is complete (nearly all, for example, omit volumes 184-192). This project, therefore, aims to recreate as closely and cleanly as possible an "original" version of the library, with as many of the various accretions, omissions and corruptions fixed as possible.
 
-This is a BASH shell script which will create a series of directories -- sigmv001/, sigmv002/, etc. -- each of which holds the contents of the corresponding SIG/M volume, as well as .ARK and .LBR CP/M archives, and .DSK files, which are IBM-3740-format disk images intended for use in **CP/M** emulators.
+### BUILDVOL
 
-### USAGE
+This is a BASH shell script which will rebuild SIG/M volumes, pulling from the extant sources. It creates a series of directories -- sigmv001/, sigmv002/, etc. -- for each volume, as well as .ARK and .LBR CP/M archives, and .DSK files, which are IBM-3740-format disk images intended for use in **CP/M** emulators.
+
+#### USAGE
 
 Before running this script, you must download the required iso files (read the script source for download links) and place them all in a directory on your system. By default, this script will look for the ISOs, and build SIGM, in the currently logged directory. To change this, set two environment variables: 
 
