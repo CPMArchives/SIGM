@@ -768,7 +768,37 @@
     echo "    ----"
 
   }
-  
+
+# ------------
+  padnull () {
+# ------------
+
+  # A special version of pad that pads with null (00H) rather than 1AH.
+  # Used only for some files in vol 285. The files are in UNIX /r format,
+  # so must first be converted to DOS /r/n. Then a single EOF (Crl-Z or
+  # 1AH) byte is added to the end of the file. Finally, the file is padded
+  # out to 128 with null (00H) instead of 1AH that the pad function above uses.
+
+    cd $builddir
+    sudo chmod 777 ./*
+
+    echo ""
+    echo "  Null Padding"
+    echo "    ----"
+
+    for f in BRIEF-TS.HOW BROWSE.DOC CURSOR.ASM SAVEREST.ASM SAVEREST.DOC TWENTY.ASM WORD-KEY.FIX; do
+      echo "    $f"
+      unix2dos -f $f>/dev/null 2>&1
+      printf "%b" '\x1A' >> $f
+      count=$(( 128 - $(ls -l $f | cut -d' ' -f5) % 128 ))
+      [[ $count -eq 128 ]] && count=0
+      for (( c=1; c<=$count; c++)); do printf "%b" '\x00' >> $f; done  
+     done  
+
+    echo "    ----"
+
+  }
+
 # ------------
   notes () {
 # ------------
@@ -815,7 +845,7 @@
     023) copyfiles nicholson; pad                                                                                      ; datefiles; archives; checkcrc ;; # SIG_M.LIB in CRCKFILE, not in -CATALOG. CRCK.COM in CRCKFILE, not in -CATALOG. CRCKFILE in -CATALOG, not in CRCKFILE.
     024) copyfiles nicholson; pad;                    rename "CATALOG.ACK ./-CATALOG.ACK"                              ; datefiles; archives; checkcrc ;;
     025) copyfiles nicholson; pad;                    rename "CATALOG.ACK ./-CATALOG.ACK"                              ; datefiles; archives; checkcrc ;;
-    026) copyfiles cpmdosgg ; pad;           rename "EL_*" "./_CATA026.ACK ./-CATA026.ACK" "NAME-ADD.DOC NAME&ADD.DOC" ; datefiles; archives; checkcrc ;;
+    026) copyfiles cpmdosgg ; pad;           rename "EL_*" "./_CATA026.ACK ./-CATA026.ACK"                             ; datefiles; archives; checkcrc ;;
     027) copyfiles cpmdosgg ; pad;                    rename "./_CATA027.ACK ./-CATA027.ACK"                           ; datefiles; archives; checkcrc ;;
     028) copyfiles cpmdosgg ; pad; rename "LIFE_*" "NAME_*" "_CATA028.ACK ./-CATA028.ACK" "NAME-ADD.DOC NAME&ADD.DOC"  ; datefiles; archives; checkcrc ;;
     029) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc ;;
@@ -863,7 +893,7 @@
          notes "Thanks to Martin from comp.os.cpm for finding un- " "corrupted copies of these files in cpmdosgg."
          ;;     
 #   060) source     cpmdosgg ; copyfiles; dismount; source oak ; cp $tempdir/SIG-M.LIB $builddir/; dismount; pad; remove "CRCK.COM SIG_M.LIB"; rename "*_*" "SQ-USQ15.DOC SQ_USQ15.DOC" ; datefiles; archives; checkcrc;   notes "Only cpmdosgg's RBBS22.DOC and RBSUTL22.ASC" "match CRCs. However it lacks SIG/M.LIB, which" "is pulled from OAK." ;;
-    060) copyfiles cpmdosgg ; copyfiles oak SIG-M.LIB ; pad; remove "CRCK.COM SIG_M.LIB"; rename "*_*" "SQ-USQ15.DOC SQ_USQ15.DOC"     ; datefiles; archives; checkcrc;   notes "Only cpmdosgg's RBBS22.DOC and RBSUTL22.ASC" "match CRCs. However it lacks SIG/M.LIB, which" "is pulled from OAK." ;;
+    060) copyfiles cpmdosgg ; copyfiles oak SIG-M.LIB ; pad; remove CRCK.COM; rename "*_*" "SQ-USQ15.DOC SQ_USQ15.DOC" ; datefiles; archives; checkcrc;   notes "Only cpmdosgg's RBBS22.DOC and RBSUTL22.ASC" "match CRCs. However it lacks SIG/M.LIB, which" "is pulled from OAK." ;;
     061) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc; notes "CRC false flag: READ.ME incorrectly reports a mismatched CRC. In " "fact, its CRC is correct."  ;; 
     062) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc ;;
     063) copyfiles cpmdosgg ; pad;                    rename "NAD_*"                                                   ; datefiles; archives; checkcrc ;;
@@ -1090,16 +1120,16 @@
     277) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc ;;
     278) copyfiles oak      ; pad                                                                                      ; datefiles; archives; checkcrc ;;
     279) copyfiles oak      ; source cpmdosgg; for i in comp.asm label.mac tail.asm; do cp $tempdir/cpm12/1279/$i $builddir/$(echo $i | tr 'a-z' 'A-Z'); done ; dismount; pad ; datefiles; archives; checkcrc  ;;
-    280) copyfiles oak      ; pad                                                                                      ; datefiles; archives; checkcrc  ; notes "MULTICOL.PAS CRC mismatch." ;;
-    281) copyfiles sourdough; pad                                                                                      ; datefiles; archives; checkcrc  ; notes "CRC mismatch: CMPCODE.DOC, ZLOAD.DOC," "SNOOPY.FOR, FORT07.DAT." ;;
+    280) copyfiles oak      ; unix2dos $builddir/MULTCOL.PAS >/dev/null; pad                                                      ; datefiles; archives; checkcrc ;;
+    281) copyfiles sourdough; for i in CMPCODE.DOC SNOOPY.FOR ZLOAD.DOC FORT07.DAT; do unix2dos $builddir/$i >/dev/null; done; pad                                                                                      ; datefiles; archives; checkcrc ;;
     282) copyfiles sourdough; pad                                                                                      ; datefiles; archives; checkcrc ;;
     283) copyfiles sourdough; pad                                                                                      ; datefiles; archives; checkcrc ;;
     284) copyfiles sourdough; pad                                                                                      ; datefiles; archives; checkcrc ;;
-    285) copyfiles sourdough; pad                                                                                      ; datefiles; archives; checkcrc  ; notes "CRC mismatch: BROWSE.DOC, CURSOR.ASM," "SAVEREST.ASM, SAVEREST.DOC, TWENTY.ASM," "WORD-KEY.FIX.";;
+    285) copyfiles sourdough; padnull; pad                                                                             ; datefiles; archives; checkcrc ;;
     286) copyfiles sourdough; pad                                                                                      ; datefiles; archives; checkcrc ;;
     287) copyfiles sourdough; pad                                                                                      ; datefiles; archives; checkcrc ;;
     288) copyfiles sourdough; pad                                                                                      ; datefiles; archives; checkcrc ;;
-    289) copyfiles sourdough; pad                                                                                      ; datefiles; archives; checkcrc  ; notes "CRC mismatch: RAMDSKRB.DOC." ;;
+    289) copyfiles sourdough; unix2dos $builddir/RAMDSKRB.DOC >/dev/null; pad                                                     ; datefiles; archives; checkcrc ;;
     290) copyfiles sourdough; pad                                                                                      ; datefiles; archives; checkcrc ;;
     291) copyfiles sourdough; copyfiles sourdough ../vol293/wipe.pas
          source sourdough
