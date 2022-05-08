@@ -878,21 +878,10 @@
     056) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc; notes "CRC false flag: READ.ME incorrectly reports a mismatched CRC. In " "fact, its CRC is correct."  ;; 
     057) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc; notes "CRC false flag: READ.ME incorrectly reports a mismatched CRC. In " "fact, its CRC is correct."  ;; 
     058) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc ;; 
-#   059) copyfiles oak      ; pad                                                                                      ; datefiles; archives; checkcrc  ; notes "Unfortunately, none of the extant sources" "yields matching CRCs." ;;     
-    059) source cpmdosgg
-#   read -p "ENTER..."
-         for f in $tempdir/cpm06/627/* ; do cp $f $builddir/$(basename $f | tr 'a-z' 'A-Z') >/dev/null 2>&1; done
-         cp $tempdir/cpm11/1114/read.me $builddir/READ2.ME
-         dismount
-         copyfiles oak ./-CATALOG.059 SIG_M.LIB READ.ME SIG-M.LIB CRCK.COM
-         remove _CATALOG.* _HISTORY.018 CRCKLIST.CRC CRCK4.COM
-         pad
-         datefiles
-         archives
-         checkcrc
-         notes "Thanks to Martin from comp.os.cpm for finding un- " "corrupted copies of these files in cpmdosgg."
-         ;;     
-#   060) source     cpmdosgg ; copyfiles; dismount; source oak ; cp $tempdir/SIG-M.LIB $builddir/; dismount; pad; remove "CRCK.COM SIG_M.LIB"; rename "*_*" "SQ-USQ15.DOC SQ_USQ15.DOC" ; datefiles; archives; checkcrc;   notes "Only cpmdosgg's RBBS22.DOC and RBSUTL22.ASC" "match CRCs. However it lacks SIG/M.LIB, which" "is pulled from OAK." ;;
+    059) source cpmdosgg; for f in $tempdir/cpm06/627/* ; do cp $f $builddir/$(basename $f | tr 'a-z' 'A-Z') >/dev/null 2>&1; done; dismount
+         copyfiles oak "-CATALOG.059" SIG-M.LIB CRCK.COM
+         rename "_HISTORY.018 READ.ME" "SIG-M.LIB SIG_M.LIB" "CRCK4.COM CRCK.COM"; remove _CATALOG.* CRCKLIST.CRC CRCK4.COM
+         pad; datefiles; archives; checkcrc; notes "CRC false flag: READ.ME is correct. Huge thanks to Martin from" "comp.os.cpm for finding clean copies of these files in cpmdosgg." ;;     
     060) copyfiles cpmdosgg ; copyfiles oak SIG-M.LIB ; pad; remove CRCK.COM; rename "*_*" "SQ-USQ15.DOC SQ_USQ15.DOC" ; datefiles; archives; checkcrc;   notes "Only cpmdosgg's RBBS22.DOC and RBSUTL22.ASC" "match CRCs. However it lacks SIG/M.LIB, which" "is pulled from OAK." ;;
     061) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc; notes "CRC false flag: READ.ME incorrectly reports a mismatched CRC. In " "fact, its CRC is correct."  ;; 
     062) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc ;;
@@ -913,24 +902,19 @@
     077) copyfiles cpmdosgg ; pad;                    rename "*CPR_*"                                                  ; datefiles; archives; checkcrc ;;
     078) copyfiles cpmdosgg ; pad;                    rename "*TALK1_*"                                                ; datefiles; archives; checkcrc ;;
     079) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc ;;
-#   080) copyfiles oak      ; pad; for j in "ARTIL" "SAMPLE"; do for i in $builddir/$j-*; do mv $i $(echo $i | tr '-' '_'); done; done; datefiles; archives; checkcrc  ; notes "Unfortunately, none of the extant sources" "yields matching CRCs." ;;
     080) copyfiles cpmdosgg ; copyfiles oak PINUP82.CAL SIGHTRED.COM ; pad; remove *.081 CONSTS.* COPY.* D*.* FF.* GE*.* IM*.* PP.* PR*.* SP*.* *.TEX TP.* TY*.* X*.*; datefiles; archives; checkcrc  ; notes "Thanks to Martin in the comp.os.cpm forums for discovering" "compdosgg has the correct CRCs. But compdosgg has" "additional files that must be cleaned out." ;;
     081) copyfiles oak      ; pad                                                                                      ; datefiles; archives; checkcrc ;;
     082) copyfiles oak      ; pad;                    rename "ABSTRACT.081 ABSTRACT.082"                               ; datefiles; archives; checkcrc ;;
     083) copyfiles cpmdosgg ; pad;                    rename "ICE_*.*"                                                 ; datefiles; archives; checkcrc ;;
-#   084) source oak          ; copyfiles; dismount; source cpmdosgg ; cp $src/entrbbs.bas $builddir/ENTRBBS.BAS; dismount; pad; rename "FINDP.ASM FIND+.ASM" "FINDP.COM FIND+.COM" "XSTAMP.ASM XSTAM+.ASM" "XSTAMP.COM XSTAM+.COM" "CRC CRC.COM"   ; datefiles; archives; checkcrc ;;
     084) copyfiles oak      ; copyfiles cpmdosgg entrbbs.bas ; pad; rename "FINDP.ASM FIND+.ASM" "FINDP.COM FIND+.COM" "XSTAMP.ASM XSTAM+.ASM" "XSTAMP.COM XSTAM+.COM" "CRC CRC.COM"   ; datefiles; archives; checkcrc ;;
-#   085) source cpmdosgg     ; copyfiles; dismount; source oak; cp $src/SIGNS.COM  $builddir/SIGNS.COM; cp -f $src/RUNOFF.COM $builddir/RUNOFF.COM; cp -f $src/PASDIR.PAS $builddir/PASDIR.PAS; cp -f $src/REMOVECC.PAS $builddir/REMOVECC.PAS; cp -f $src/TRIMCOLS.PAS $builddir/TRIMCOLS.PAS; cp -f $src/XSUB.COM $builddir/XSUB.COM; dismount; pad; datefiles; archives; checkcrc  ; notes "Must mix and match CPMDOSGG and OAK" "to complete a set of intact files." ;;
     085) copyfiles cpmdosgg ; copyfiles oak SIGNS.COM RUNOFF.COM PASDIR.PAS REMOVECC.PAS TRIMCOLS.PAS XSUB.COM ; pad; datefiles; archives; checkcrc  ; notes "Must mix and match CPMDOSGG and OAK" "to complete a set of intact files." ;;
     086) copyfiles oak      ; pad; remove "U.COM";    rename "FAST2.COM _.COM"                                         ; datefiles; archives; checkcrc  ; notes "Both CPMDOSGG and OAK have U.COM" "which is not listed in -CATALOG." "It is retained for now." ;;
-#   087) source cpmdosgg     ; copyfiles; dismount; source oak; cp $src/BDSCAT.AQL $builddir/; cp $src/RATFOR.HLP $builddir/; dismount; rename "DISPLAY_.ASM DISPLAY+.ASM" "DISPLAY_.COM DISPLAY+.COM" "TYP_.ASM TYP+.ASM" "TYP_.COM TYP+.COM" "THIS_*"; datefiles; archives; checkcrc ;;
     087) copyfiles cpmdosgg ; copyfiles oak BDSCAT.AQL RATFOR.HLP ; rename "DISPLAY_.ASM DISPLAY+.ASM" "DISPLAY_.COM DISPLAY+.COM" "TYP_.ASM TYP+.ASM" "TYP_.COM TYP+.COM" "THIS_*"; datefiles; archives; checkcrc ; notes "BDSCAT.AQL, RATFOR.HLP CRC mismatch, so copies pulled from OAK." ;;
     088) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc ;;
     089) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc  ;  notes "SYSLIBI.WS is on disk but not listed in -CATALOG." ;;
     090) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc ;;
     091) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc  ;  notes "READ.ME is on disk but not listed in -CATALOG." ;;
     092) copyfiles cpmdosgg ; pad; rename "LITL_ADA.ASM LITL-ADA.ASM" "LITL_ADA.DOC LITL-ADA.DOC" "LITL_ADA.PRN LITL-ADA.PRN" "RBBS_USE.DOC RBBS-USE.DOC" ; datefiles; archives; checkcrc ;;
-#   093) source cpmdosgg ; copyfiles; dismount; source oak; cp $src/trsmodem.com $builddir/TRSMODEM.COM; dismount; pad  ; datefiles; archives; checkcrc ;;
     093) copyfiles cpmdosgg ; copyfiles oak trsmodem.com ; pad                                                        ; datefiles; archives; checkcrc ;;
     094) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc ;;
     095) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc ;;
@@ -942,7 +926,6 @@
     101) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc ;;
     102) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc ;;
     103) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc ;;
-#   104) source oak          ; copyfiles; cp $tempdir/sigm/vol104/sig/m.lib $builddir/SIG_M.LIB; dismount; pad                               ; datefiles; archives; checkcrc ;;
     104) copyfiles oak      ; copyfiles oak sig/m.lib; pad;               rename "M.LIB SIG_M.LIB"                                         ; datefiles; archives; checkcrc ; notes "I don't know where the CRC compare value is from. I" "don't know if ZCPR2.IDX is correct." ;;
     105) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc ;;
     106) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc ;;
@@ -1011,7 +994,6 @@
     169) copyfiles cpmdosgg ; pad;                    rename "M7*"                                                     ; datefiles; archives; checkcrc ;;
     170) copyfiles cpmdosgg ; pad;                    rename "M7*" "M7AC-3.AQM M7AC+3.AQM"                             ; datefiles; archives; checkcrc ;;
     171) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc ;;
-#   172) source cpmdosgg     ; copyfiles; dismount; source sourdough; cp $src/disk3.asm $builddir/DISK3.ASM; dismount; pad; rename "DU_*" "OKI_*"; datefiles; archives; checkcrc ;;
     172) copyfiles cpmdosgg ; copyfiles sourdough disk3.asm; pad;     rename "DU_*" "OKI_*"                           ; datefiles; archives; checkcrc ;;
     173) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc  ; notes "READTHIS not in -CATALOG." ;;
     174) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc ;;
