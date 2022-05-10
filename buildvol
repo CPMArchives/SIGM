@@ -855,7 +855,7 @@
     036) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc ;;
     037) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc ;;
     038) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc ;;
-    039) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc  ; notes "-CATALOG.039 CRC mismatch" ;;
+    039) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc ;;
     040) copyfiles cpmdosgg ; pad;                    rename " MENU_*" "RUN80_*" "VMAP_*"                              ; datefiles; archives; checkcrc ;;
     041) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc ;;
     042) copyfiles cpmdosgg ; pad;                    rename "HD_*"                                                    ; datefiles; archives; checkcrc ;;
@@ -869,18 +869,18 @@
     050) copyfiles cpmdosgg ; pad; rename "TALK_.LIB TALK@.LIB" "VOIC_.DOC VOIC@.DOC" "VOIC_.LIB VOIC@.LIB" "VOIC_EQU.LIB VOIC@EQU.LIB"; datefiles; archives; checkcrc ;; # _ replaces @ instead of /; need to account for this
     051) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc ;; 
     052) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc ;; 
-    053) copyfiles cpmdosgg ; pad;                              rename "X_UTIL.SAM X\$UTIL.SAM" "READ_ME.DOC READ-ME.DOC"  ; datefiles; archives; checkcrc ;; 
-    054) copyfiles cpmdosgg ; pad;                              rename "I_O_CAP.ADD I_O-CAP.ADD" "I_O_CAP.ASM I_O-CAP.ASM" ; datefiles; archives; checkcrc; notes "CRC false flag: READ.ME incorrectly reports a mismatched CRC. In " "fact, its CRC is correct."  ;; 
+    053) copyfiles cpmdosgg ; pad;                    rename "X_UTIL.SAM X\$UTIL.SAM" "READ_ME.DOC READ-ME.DOC"        ; datefiles; archives; checkcrc ;; 
+    054) copyfiles cpmdosgg ; pad;                    rename "I_O_CAP.ADD I_O-CAP.ADD" "I_O_CAP.ASM I_O-CAP.ASM"       ; datefiles; archives; checkcrc; notes "CRC false flag: READ.ME CRC is correct."  ;; 
     055) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc ;; 
-    056) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc; notes "CRC false flag: READ.ME incorrectly reports a mismatched CRC. In " "fact, its CRC is correct."  ;; 
-    057) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc; notes "CRC false flag: READ.ME incorrectly reports a mismatched CRC. In " "fact, its CRC is correct."  ;; 
+    056) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc; notes "CRC false flag: READ.ME CRC is correct."  ;; 
+    057) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc; notes "CRC false flag: READ.ME CRC is correct."  ;; 
     058) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc ;; 
     059) source cpmdosgg; for f in $tempdir/cpm06/627/* ; do cp $f $builddir/$(basename $f | tr 'a-z' 'A-Z') >/dev/null 2>&1; done; dismount
          copyfiles oak "-CATALOG.059" SIG-M.LIB CRCK.COM
          rename "_HISTORY.018 READ.ME" "SIG-M.LIB SIG_M.LIB" ; remove _CATALOG.* CRCKLIST.CRC CRCK4.COM
          pad; datefiles; archives; checkcrc; notes "CRC false flag: READ.ME is correct. Huge thanks to Martin from" "comp.os.cpm for finding clean copies of these files in cpmdosgg." ;;     
     060) copyfiles cpmdosgg ; copyfiles oak SIG-M.LIB ; pad; remove CRCK.COM; rename "*_*" "SQ-USQ15.DOC SQ_USQ15.DOC" ; datefiles; archives; checkcrc;   notes "Only cpmdosgg's RBBS22.DOC and RBSUTL22.ASC" "match CRCs. However it lacks SIG/M.LIB, which" "is pulled from OAK." ;;
-    061) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc; notes "CRC false flag: READ.ME incorrectly reports a mismatched CRC. In " "fact, its CRC is correct."  ;; 
+    061) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc; notes "CRC false flag: READ.ME CRC is correct."  ;; 
     062) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc ;;
     063) copyfiles cpmdosgg ; pad;                    rename "NAD_*"                                                   ; datefiles; archives; checkcrc ;;
     064) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc ;;
@@ -991,8 +991,8 @@
     169) copyfiles cpmdosgg ; pad;                    rename "M7*"                                                     ; datefiles; archives; checkcrc ;;
     170) copyfiles cpmdosgg ; pad;                    rename "M7*" "M7AC-3.AQM M7AC+3.AQM"                             ; datefiles; archives; checkcrc ;;
     171) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc ;;
-    172) copyfiles cpmdosgg ; copyfiles sourdough disk3.asm; pad;     rename "DU_*" "OKI_*"                           ; datefiles; archives; checkcrc ;;
-    173) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc  ; notes "READTHIS not in -CATALOG." ;;
+    172) copyfiles cpmdosgg ; copyfiles sourdough disk3.asm; unix2dos $builddir/DISK3.ASM; pad; rename "DU_*" "OKI_*"                                ; datefiles; archives; checkcrc ;;
+    173) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc  ; notes "CRC false flag: JOIN.ACG 3 vers exist: 83e7, 9b11," "28a7. 9B11 expected but all sources have 83E7." ;;
     174) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc ;;
     175) copyfiles cpmdosgg ; pad;                    rename "F47_*" "MODEM_*"                                         ; datefiles; archives; checkcrc ;;
     176) copyfiles cpmdosgg ; pad;                    rename "DRI_*" "DU_*" "SD_*"                                     ; datefiles; archives; checkcrc ;;
@@ -1059,10 +1059,10 @@
     237) copyfiles cpmdosgg ; pad;                    rename "PILOT_*"                                                 ; datefiles; archives; checkcrc ;;
     238) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc ;;
     239) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc ;;
-    240) copyfiles cpmdosgg ; pad;                    rename "DELBR.COM DELBRA.COM"                                    ; datefiles; archives; checkcrc  ; notes "EPRINT.ZSM is unlisted in -CATALOG." ;;
-    241) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    240) copyfiles cpmdosgg ; pad;                    rename "DELBR.COM DELBRA.COM"                                    ; datefiles; archives; checkcrc  ; notes "CRC false flag: DELBRA.COM CRC is correct." "EPRINT.ZSM is unlisted in -CATALOG." ;;
+    241) copyfiles cpmdosgg ; pad;                    rename "DELBR.COM DELBRA.COM"                                    ; datefiles; archives; checkcrc  ; notes "CRC false flag: DELBRA.COM CRC is correct." ;;
     242) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc ;;
-    243) copyfiles oak      ; pad                                                                                      ; datefiles; archives; checkcrc  ; notes "CRC mismatch: GETNAME.PRO, VISCOS1 .DAT." ;;
+    243) copyfiles oak      ; unix2dos $builddir/VISCOS1.DAT; unix2dos $builddir/GETNAME.PRO; pad                                                                                      ; datefiles; archives; checkcrc  ;;
     244) copyfiles cpmdosgg ; pad;                    rename "LPAK1?_*"                                                ; datefiles; archives; checkcrc ;;
     245) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc ;;
     246) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc ;;
@@ -1070,7 +1070,7 @@
     248) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc ;;
     249) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc ;;
     250) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc  ; notes "Though VDO25.LBR is not listed in -CATALOG" "and seems out of place, it is retained.    " ;;
-    251) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc ;;
+    251) copyfiles cpmdosgg ; pad;                    rename "DELBR.COM DELBRA.COM"                                    ; datefiles; archives; checkcrc  ; notes "CRC false flag: DELBRA.COM's CRC is correct." ;;
     252) copyfiles cpmdosgg ; pad                                                                                      ; datefiles; archives; checkcrc ;;
     253) copyfiles oak      ; pad                                                                                      ; datefiles; archives; checkcrc ;;
     254) copyfiles cpmdosgg ; pad;                    rename "DELBR.COM DELBRA.COM"                                    ; datefiles; archives; checkcrc  ; notes "CRC false flag: DELBRA.COM's CRC is correct." ;;
