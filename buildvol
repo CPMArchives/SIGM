@@ -431,10 +431,6 @@
       f=$(basename $i) 
       name=$(echo $f | cut -d'.' -f1)                                               # strip './' and grab filename portion without extension
       ext=$( echo $f | cut -d'.' -f2); [[ $ext == $name ]] && ext="   "             # grab filename ext only; set to '   ' if none
-#      while [[ ${#name} -le 7 ]]; do name="name ";done
-#      while [[ ${#ext}  -le 2 ]]; do ext="$ext " ;done
-#      echo ":$name.$ext:"
-#      read -p "CONT..."
       expandedname="$(printf "%-8.15s.%s" $name $ext)"                              # Pad out to full 8.3; e.g., "CRC.COM" to 'CRC     .COM'
 
       [[ ! "$ext" == "$vol" ]] && [[ ! "${f:0:1}" == "-" ]] && { # Skip any file whose extension is the vol number (-CATALOG.049) or whose name starts with -.
@@ -541,7 +537,6 @@
     done
 
     echo "    ----"
-    #read -p "Continue..."
     cd - >/dev/null 2>&1
   }
   
@@ -580,8 +575,6 @@
     [[ -f "SIG-M.LIB" ]] && mv SIG-M.LIB SIG_M.LIB # In case SIG_M.LIB got caught up in any wildcard sweeps, name it back
     echo "    ----"
     cd - >/dev/null 2>&1 
-#    echo "    $1  to $2"
-#    mv $builddir/$1  $builddir/$2
   }
   
 # ------------
@@ -692,16 +685,6 @@
     mklbr                $recipe
     rm                   $recipe
     
-    # The version of mklbr I'm using doesn't translate _ to / when creating the LBR. So do it manually.
-    # UPDATE: Turns out mklbr can do the translation; I've updated to code above and this is now obsolete.
-
-#    for j in ./*; do {
-#      oldname=$(echo $(basename $j) | cut -d'.' -f1)                              # filename with _
-#      newname=$(echo $oldname | tr '_' '/')                                       # filename with /
-#      [[ ! "$oldname" == "$newname" ]] && sed -i "s|$oldname|$newname|g" $lbrname # could also do something like echo $newname | grep "/"
-#      }
-#    done
-
     touch -r .           $lbrname                   &> /dev/null 1>&2  # set datestamp of LBR
     touch -d "19880315"  $dest                                         # set datestamp of LBR dir to date of most recent SIG/M volume (i.e., vol 310)
 
@@ -838,12 +821,12 @@
     019) copyfiles nicholson;      remove CRCK.COM SIG_M.LIB; rename "CATALOG.ACK ./-CATALOG.ACK"                                              ; pad ; datefiles; archives; checkcrc ;; # CRCK.COM, SIG/M.LIB: in CRCKFILE.019 and on disk but not -CATALOG.019. CRCKFILE.019: in -CATALOG.019 and on disk but not in CRCKFILE.019
     020) copyfiles nicholson;      remove CRCK.COM SIG_M.LIB                                                                                   ; pad ; datefiles; archives; checkcrc ;; # -CATALOG.020 CRC mismatch; CRCK.COM not listed in -CATALOG; CRCKFILE.020 not listed in CRCKFILE.
     021) copyfiles sourdough                                                                                                                   ; pad ; datefiles; archives; checkcrc ;;
-    022) copyfiles sourdough;      remove SIG_M.LIB                                                                                            ; pad ; datefiles; archives; checkcrc  ; notes "LESSON4 is not listed in CRCKFILE or -CATALOG.022." "TEST.DAT listed in CRCKFILE, not in -CATALOG." ;;
-    023) copyfiles nicholson                                                                                                                   ; pad ; datefiles; archives; checkcrc ;; # SIG_M.LIB in CRCKFILE, not in -CATALOG. CRCK.COM in CRCKFILE, not in -CATALOG. CRCKFILE in -CATALOG, not in CRCKFILE.
-    024) copyfiles nicholson;                         rename "CATALOG.ACK ./-CATALOG.ACK"                                                      ; pad ; datefiles; archives; checkcrc ;;
-    025) copyfiles nicholson;                         rename "CATALOG.ACK ./-CATALOG.ACK"                                                      ; pad ; datefiles; archives; checkcrc ;;
-    026) copyfiles cpmdosgg ;                         rename "EL_*" "./_CATA026.ACK ./-CATA026.ACK"                                            ; pad ; datefiles; archives; checkcrc ;;
-    027) copyfiles cpmdosgg ;                         rename "./_CATA027.ACK ./-CATA027.ACK"                                                   ; pad ; datefiles; archives; checkcrc ;;
+    022) copyfiles sourdough;      remove SIG_M.LIB TEST.DAT                                                                                   ; pad ; datefiles; archives; checkcrc  ; notes "TEST.DAT doesn't appear in the earliest source " "(CPMDOSgg) nor in -CATALOG or CRCKFILE. Removed." ;;
+    023) copyfiles nicholson                                                                                                                   ; pad ; datefiles; archives; checkcrc  ; notes "DATE.DOC, CRCK.COM, SIG/M.LIB only in CRCKFILE." ;; # SIG_M.LIB in CRCKFILE, not in -CATALOG. CRCK.COM in CRCKFILE, not in -CATALOG. CRCKFILE in -CATALOG, not in CRCKFILE.
+    024) copyfiles nicholson;                         rename "CATALOG.ACK ./-CATALOG.ACK"                                                      ; pad ; datefiles; archives; checkcrc  ; notes "SIG/M.LIB appears only in CRCKFILE." ;;
+    025) copyfiles nicholson;                         rename "CATALOG.ACK ./-CATALOG.ACK"                                                      ; pad ; datefiles; archives; checkcrc  ; notes "SIG/M.LIB appears only in CRCKFILE." ;;
+    026) copyfiles cpmdosgg ;                         rename "EL_*" "./_CATA026.ACK ./-CATA026.ACK"                                            ; pad ; datefiles; archives; checkcrc  ; notes "CRCK.COM EBASIC.COM RUN.COM SCRAMBLE.* SIGM.LIB   " "XMASTER.FIL appear in CRCKFILE only.";;
+    027) copyfiles cpmdosgg ;                         rename "./_CATA027.ACK ./-CATA027.ACK"                                                   ; pad ; datefiles; archives; checkcrc  ; notes "CRCK.COM, SIG/M.LIB appear in CRCKFILE only.      " ;;
     028) copyfiles cpmdosgg ;                         rename "LIFE_*" "NAME_*" "_CATA028.ACK ./-CATA028.ACK" "NAME-ADD.DOC NAME&ADD.DOC"       ; pad ; datefiles; archives; checkcrc ;;
     029) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
     030) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
@@ -942,11 +925,11 @@
     122) copyfiles cpmdosgg ;                         rename "DU2_*" "./ZCPR2.IDX ./-ZCPR2.IDX"                                                ; pad ; datefiles; archives; checkcrc ;;
     123) copyfiles cpmdosgg ;                         rename "FIND_*"                                                                          ; pad ; datefiles; archives; checkcrc ;;
     124) copyfiles cpmdosgg ;                         rename "ZCPR2_*"                                                                         ; pad ; datefiles; archives; checkcrc ;;
-    125) copyfiles cpmdosgg ;      remove __SIG_M.125;rename "ZCPR2_*"                                                                         ; pad ; datefiles; archives; checkcrc ;;
+    125) copyfiles cpmdosgg ;    remove __SIG_M.125 ; rename "ZCPR2_*"                                                                         ; pad ; datefiles; archives; checkcrc ;;
     126) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
     127) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
     128) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
-    129) copyfiles oak      ; copyfiles oak db2sig/m.lbr;      remove CRCKLIST.CRC; rename "M.LBR DB2SIG_M.LBR"                                ; pad ; datefiles; archives; checkcrc  ; notes "CPMDOSGG seems an earlier version of SIG/M. -CATALOG" "lists DB2SIG/M.LBR (0E47), but the disk holds instead" "its expanded contents. OTOH, OAK/WC have DB2SIG/M.LBR" "(51C0) & matching -CATALOGs. No known extant ver of" "(0E47). Compares of CPMDOSGG files w/OAK LBR contents" "reveals significant CRC differences. I've chosen to" "go with OAK for this volume." ;;
+    129) copyfiles oak      ; copyfiles oak db2sig/m.lbr; remove CRCKLIST.CRC; rename "M.LBR DB2SIG_M.LBR"                                     ; pad ; datefiles; archives; checkcrc  ; notes "CPMDOSGG seems an earlier version of SIG/M. -CATALOG" "lists DB2SIG/M.LBR (0E47), but the disk holds instead" "its expanded contents. OTOH, OAK/WC have DB2SIG/M.LBR" "(51C0) & matching -CATALOGs. No known extant ver of" "(0E47). Compares of CPMDOSGG files w/OAK LBR contents" "reveals significant CRC differences. I've chosen to" "go with OAK for this volume." ;;
     130) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
     131) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
     132) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
