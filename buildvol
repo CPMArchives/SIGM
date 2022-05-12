@@ -77,11 +77,9 @@
 # ------ -------
 # Occasionally, files have gone missing from some sources. More commonly, some sources (looking at you, Walnut Creek), have
 # accreted additional files. For volume content, -CATALOG and (where available) CRCKFILE are considered canonical. Only files
-# listed there are included, with currently two exceptions: CRCKFILE and CRCK.COM. Both are often not listed in -CATALOG and,
-# for obvious reasons CRCKFILE is not listed in CRCKFILE. Nevertheless, the presence of CRCKFILE is compelling regardless, 
-# and in cases where CRCKFILE is present, it lists CRCK.COM even when -CATALOG does not. So even where CRCK.COM is not listed
-# in either -CATALOG or CRCKFILE, it may be included. Exceptions are going to be Vols 1-18 where no CRCs are provided, so
-# the inclusion of CRCK.COM would serve no purpose.
+# listed there are included, with three exceptions: CRCKFILE itself, CRCK.COM and SIG/M.LIB. In early volumes CRCK.COM appears
+# only in CRCKFILE; likely it was added after -CATALOG was built. In later volumes when CRCs have moved into -CATALOG CRCK.COM
+# and SIG/M.LIB appear only inconsistently, even when they are present in the sources. In those instances, they are retained.
 
 # File Names
 # ---- -----
@@ -93,16 +91,20 @@
 # File Dates
 # ---- -----
 # The CP/M file system had no capacity for storing file dates, so the original files had none. The decision has been made to
-# set dates on individual files to match their volume's release date, but keep in mind that these, too, are not original dates.
+# set dates on individual files to match their volume's release date, but keep in mind that these, too, are artificial.
+#
+# Exceptions are CRCK.COM (CRC.COM beginning with vol 73) and SIG/M.LIB, which appear in multiple volumes. So long as they remain 
+# identical to earlier versions, their dates will be set to the date of their earliest appearance in the SIG/M collection. [Not 
+# yet implemented]
 
 # File Integrity
 # ---- ---------
 # CP/M had no facility for recording exact file sizes, but stored files in 128-byte records. Thus typically a file, unless it
 # happened to be exactly some multiple of 128 bytes in length, was padded with a number of "garbage" bytes (commonly 1AH, since
 # CP/M filled freshly formatted disks with 1AH which also doubled as an end-of-file marker for text files under CP/M) to the next
-# 128-bytes. However, when the SIG/M collection passed through other OSes text files often lost this padding. Though not detri-
-# mental, this resulted in CRCs which no longer match those in -CATALOG or CRCKFILE listings. This project restores the padding
-# to all files that are not an exact multiple of 128 bytes in length, restoring in almost all cases original CRCs.
+# multiple of 128 bytes. However, when the SIG/M collection passed through other OSes text files often lost this padding. Though 
+# not detrimental, this resulted in CRCs which no longer match those in -CATALOG or CRCKFILE listings. This project restores the 
+# padding to all files that are not an exact multiple of 128 bytes in length, restoring in almost all cases original CRCs.
 
 #----------
 # VARIABLES
@@ -126,11 +128,11 @@
 # FUNCTIONS
 # ---------
 
-#    SOURCE - Mounts the source specified ("cpmdosgg", "oak", etc.) in preparation to copy the files.
+#    SOURCE - Mounts the source specified ("cpmdosgg", "oak", etc.) in preparation to copy the files. Mostly called from COPYFILES.
 # COPYFILES - Copies files from the source, uppercasing all filenames. Also corrects a few corrupted names.
 # DATEFILES - Sets the file datestamps to the date of release of that volume; in most cases pulls the date from -CATALOG.
 #  CHECKCRC - an attempt to automate CRC comparison, but it may be hopelessly messy. Not currently used.
-#  DISMOUNT - Unmount the source mounted with SOURCE.
+#  DISMOUNT - Unmount the source mounted with SOURCE. Mostly called from COPYFILES.
 #    RENAME - Renames files.
 #       ARK - Creates a VOL###.ARK archive file. Requires cpmtools.
 #       DSK - Creates an IBM-3740-format disk image for use in CP/M emulators.
@@ -138,6 +140,7 @@
 #  ARCHIVES - Master routine that calls ARK, DSK and LBR.
 #    REMOVE - Deletes files.                       
 #       PAD - Pads file lengths with 1AH out to 128-byte multiples.
+#   PADNULL - Same as PAD, but pads with 00H instead of 1AH; used only in vol 285.
 #     NOTES - Spit out some notes at the end.
 
 # ------------
@@ -803,25 +806,25 @@
     001) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
     002) copyfiles cpmug    ;                         rename "./SIG_M.$vol ./-CATALOG.$vol"                                                    ; pad ; datefiles; archives; checkcrc ;;
     003) copyfiles oak      ; source wc; head -n 15 $src/../vol015/sigmlog.003 > $builddir/-CATALOG.$vol; tail -n 12 $src/../vol015/sigmlog.003 > $builddir/ABSTRACT.$vol; dismount; pad; datefiles; archives; checkcrc ;;
-    004) copyfiles cpmug    ;      remove SIG_M.LIB;  rename "DU_8_12.ASM DU-8_12.ASM" "BDOS_PAT.ASM BDOS-PAT.ASM"                             ; pad ; datefiles; archives; checkcrc ;;
-    005) copyfiles cpmug    ;      remove SIG_M.LIB;  rename "CP_M_NET.MSG CP_M-NET.MSG"                                                       ; pad ; datefiles; archives; checkcrc ;;
+    004) copyfiles cpmug    ;                         rename "DU_8_12.ASM DU-8_12.ASM" "BDOS_PAT.ASM BDOS-PAT.ASM"                             ; pad ; datefiles; archives; checkcrc ;;
+    005) copyfiles cpmug    ;                         rename "CP_M_NET.MSG CP_M-NET.MSG"                                                       ; pad ; datefiles; archives; checkcrc ;;
     006) copyfiles cpmug                                                                                                                       ; pad ; datefiles; archives; checkcrc ;;
-    007) copyfiles nicholson;      remove SIG_M.LIB                                                                                            ; pad ; datefiles; archives; checkcrc ;;
-    008) copyfiles cpmdosgg ;      remove SIG_M.LIB                                                                                            ; pad ; datefiles; archives; checkcrc ;;
-    009) copyfiles nicholson;      remove SIG_M.LIB                                                                                            ; pad ; datefiles; archives; checkcrc ;;
-    010) copyfiles nicholson;      remove SIG_M.LIB                                                                                            ; pad ; datefiles; archives; checkcrc ;;
-    011) copyfiles cpmug    ;      remove SIG_M.LIB                                                                                            ; pad ; datefiles; archives; checkcrc ;;
-    012) copyfiles cpmdosgg ;      remove SIG_M.LIB                                                                                            ; pad ; datefiles; archives; checkcrc ;;
-    013) copyfiles nicholson;      remove SIG_M.LIB                                                                                            ; pad ; datefiles; archives; checkcrc ;;
-    014) copyfiles cpmdosgg ;      remove SIG_M.LIB                                                                                            ; pad ; datefiles; archives; checkcrc ;;
+    007) copyfiles nicholson                                                                                                                   ; pad ; datefiles; archives; checkcrc ;;
+    008) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
+    009) copyfiles nicholson                                                                                                                   ; pad ; datefiles; archives; checkcrc ;;
+    010) copyfiles nicholson                                                                                                                   ; pad ; datefiles; archives; checkcrc ;;
+    011) copyfiles cpmug                                                                                                                       ; pad ; datefiles; archives; checkcrc ;;
+    012) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
+    013) copyfiles nicholson                                                                                                                   ; pad ; datefiles; archives; checkcrc ;;
+    014) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
     015) copyfiles cpmug    ;                         rename "./-CATALOG.015  CATALOG.015" "DCATALOG.015 ./-CATALOG.015"                       ; pad ; datefiles; archives; checkcrc ;;
-    016) copyfiles cpmdosgg ;      remove SIG_M.LIB;  rename "DU_*" "FILE_*"                                                                   ; pad ; datefiles; archives; checkcrc ;;
-    017) copyfiles cpmdosgg ;      remove SIG_M.LIB;  rename "SORTV_*" "./_CATALOG.ACK ./-CATALOG.ACK"                                         ; pad ; datefiles; archives; checkcrc ;;
-    018) copyfiles nicholson;      remove SIG_M.LIB;  rename "CATALOG.ACK  ./-CATALOG.ACK"                                                     ; pad ; datefiles; archives; checkcrc ;;
-    019) copyfiles nicholson;      remove CRCK.COM SIG_M.LIB; rename "CATALOG.ACK ./-CATALOG.ACK"                                              ; pad ; datefiles; archives; checkcrc ;; # CRCK.COM, SIG/M.LIB: in CRCKFILE.019 and on disk but not -CATALOG.019. CRCKFILE.019: in -CATALOG.019 and on disk but not in CRCKFILE.019
-    020) copyfiles nicholson;      remove CRCK.COM SIG_M.LIB                                                                                   ; pad ; datefiles; archives; checkcrc ;; # -CATALOG.020 CRC mismatch; CRCK.COM not listed in -CATALOG; CRCKFILE.020 not listed in CRCKFILE.
+    016) copyfiles cpmdosgg ;                         rename "DU_*" "FILE_*"                                                                   ; pad ; datefiles; archives; checkcrc ;;
+    017) copyfiles cpmdosgg ;                         rename "SORTV_*" "./_CATALOG.ACK ./-CATALOG.ACK"                                         ; pad ; datefiles; archives; checkcrc ;;
+    018) copyfiles nicholson;                         rename "CATALOG.ACK  ./-CATALOG.ACK"                                                     ; pad ; datefiles; archives; checkcrc ;;
+    019) copyfiles nicholson;                         rename "CATALOG.ACK ./-CATALOG.ACK"                                                      ; pad ; datefiles; archives; checkcrc ;; # CRCK.COM, SIG/M.LIB: in CRCKFILE.019 and on disk but not -CATALOG.019. CRCKFILE.019: in -CATALOG.019 and on disk but not in CRCKFILE.019
+    020) copyfiles nicholson                                                                                                                   ; pad ; datefiles; archives; checkcrc ;; # -CATALOG.020 CRC mismatch; CRCK.COM not listed in -CATALOG; CRCKFILE.020 not listed in CRCKFILE.
     021) copyfiles sourdough                                                                                                                   ; pad ; datefiles; archives; checkcrc ;;
-    022) copyfiles sourdough;      remove SIG_M.LIB TEST.DAT                                                                                   ; pad ; datefiles; archives; checkcrc  ; notes "TEST.DAT doesn't appear in the earliest source " "(CPMDOSgg) nor in -CATALOG or CRCKFILE. Removed." ;;
+    022) copyfiles sourdough                                                                                                                   ; pad ; datefiles; archives; checkcrc  ; notes "TEST.DAT doesn't appear in the earliest source " "(CPMDOSgg) nor in -CATALOG or CRCKFILE. Removed." ;;
     023) copyfiles nicholson                                                                                                                   ; pad ; datefiles; archives; checkcrc  ; notes "DATE.DOC, CRCK.COM, SIG/M.LIB only in CRCKFILE." ;; # SIG_M.LIB in CRCKFILE, not in -CATALOG. CRCK.COM in CRCKFILE, not in -CATALOG. CRCKFILE in -CATALOG, not in CRCKFILE.
     024) copyfiles nicholson;                         rename "CATALOG.ACK ./-CATALOG.ACK"                                                      ; pad ; datefiles; archives; checkcrc  ; notes "SIG/M.LIB appears only in CRCKFILE." ;;
     025) copyfiles nicholson;                         rename "CATALOG.ACK ./-CATALOG.ACK"                                                      ; pad ; datefiles; archives; checkcrc  ; notes "SIG/M.LIB appears only in CRCKFILE." ;;
@@ -852,26 +855,26 @@
     050) copyfiles cpmdosgg ;      rename "TALK_.LIB TALK@.LIB" "VOIC_.DOC VOIC@.DOC" "VOIC_.LIB VOIC@.LIB" "VOIC_EQU.LIB VOIC@EQU.LIB"        ; pad ; datefiles; archives; checkcrc  ; notes "CRCK.COM, SIG/M.LIB appear in CRCKFILE only.      " ;; # _ replaces @ instead of /; need to account for this
     051) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "CRCK.COM, SIG/M.LIB appear in CRCKFILE only.      " ;;
     052) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "CRCK.COM, SIG/M.LIB appear in CRCKFILE only.      " ;;
-    053) copyfiles cpmdosgg ;                         rename "X_UTIL.SAM X\$UTIL.SAM" "READ_ME.DOC READ-ME.DOC"                                ; pad ; datefiles; archives; checkcrc  ; notes "CRCK.COM SIG/M.LIB PRICES.DOC not in -CATALOG.    " ;; 
-    054) copyfiles cpmdosgg ;      remove CRCK.COM SIG_M.LIB; rename "I_O_CAP.ADD I_O-CAP.ADD" "I_O_CAP.ASM I_O-CAP.ASM"                       ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: READ.ME CRC is correct.           " ;;
-    055) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "CRCK.COM SIG/M.LIB -CATALOG.055 not in -CATALOG.  " ;; 
+    053) copyfiles cpmdosgg ;                            rename "X_UTIL.SAM X\$UTIL.SAM" "READ_ME.DOC READ-ME.DOC"                             ; pad ; datefiles; archives; checkcrc  ; notes "PRICES.DOC doesn't appear in -CATALOG's listings, " "but is mentioned in -CATALOG notes.               " ;; 
+    054) copyfiles cpmdosgg ;                            rename "I_O_CAP.ADD I_O-CAP.ADD" "I_O_CAP.ASM I_O-CAP.ASM"                            ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: READ.ME CRC is correct.           " ;;
+    055) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;; 
     056) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: READ.ME CRC is correct.           " "CRCK.COM, SIG/M.LIB appear in CRCKFILE only.      " ;;
     057) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: READ.ME CRC is correct.           " "CRCK.COM, SIG/M.LIB appear in CRCKFILE only.      " ;;
-    058) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "CRCK.COM, SIG/M.LIB appear in CRCKFILE only.      " ;;
+    058) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
     059) source cpmdosgg; for f in $tempdir/cpm06/627/* ; do cp $f $builddir/$(basename $f | tr 'a-z' 'A-Z') >/dev/null 2>&1; done; dismount; copyfiles \
          oak "-CATALOG.059" SIG-M.LIB CRCK.COM; rename "_HISTORY.018 READ.ME" "SIG-M.LIB SIG_M.LIB" ; remove _CATALOG.* CRCKLIST.CRC CRCK4.COM ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: READ.ME is correct. Huge thanks to" "Martin from comp.os.cpm for finding clean copies  " "of these files in cpmdosgg." ;;     
     060) copyfiles cpmdosgg ; copyfiles oak SIG-M.LIB ; rename "*_*" "SQ-USQ15.DOC SQ_USQ15.DOC"                                               ; pad ; datefiles; archives; checkcrc  ; notes "Only cpmdosgg's RBBS22.DOC and RBSUTL22.ASC       " "match CRCs. However it lacks SIG/M.LIB, which     " "is pulled from OAK.        " ;;
     061) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: READ.ME CRC is correct.           " "CRCK.COM, SIG/M.LIB appear in CRCKFILE only.      " ;; 
     062) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "CRCK.COM, SIG/M.LIB appear in CRCKFILE only.      " ;; 
-    063) copyfiles cpmdosgg ; remove CRCK.COM;        rename "NAD_*"                                                                           ; pad ; datefiles; archives; checkcrc  ; notes "CRCK.COM not in -CATALOG. Removed.                " ;;
+    063) copyfiles cpmdosgg ;                         rename "NAD_*"                                                                           ; pad ; datefiles; archives; checkcrc  ; notes "CRCK.COM not in -CATALOG. Removed.                " ;;
     064) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "CRCK.COM, SIG/M.LIB appear in CRCKFILE only.      " ;; 
     065) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "SIG/M.LIB appears in CRCKFILE only.               " ;; 
-    066) copyfiles cpmdosgg ;      sed -i 's:CMMMAND:COMMAND:g' $builddir/ZCPR_14.ASM; rename "ZCPR*" "SD_*"                                   ; pad ; datefiles; archives; checkcrc ;; # At some point after CRCs were generated, a single byte in ZCPR_14.ASM was altered. Changing it back restores the proper CRC.
-    067) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
+    066) copyfiles cpmdosgg ; copyfiles cpmdosgg ../1057/crck.com; sed -i 's:CMMMAND:COMMAND:g' $builddir/ZCPR_14.ASM; rename "ZCPR*" "SD_*"   ; pad ; datefiles; archives; checkcrc  ; notes "At some point after CRCs were generated, a single " "byte in ZCPR_14.ASM was altered. Changing it back " "restores the proper CRC.   "  "SIG/M.LIB appears in CRCKFILE only.               " ;;
+    067) copyfiles cpmdosgg ; copyfiles cpmdosgg ../1057/crck.com                                                                              ; pad ; datefiles; archives; checkcrc  ; notes "SIG/M.LIB listed in CRCKFILE only.                " ;;
     068) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
     069) copyfiles cpmdosgg ;                         rename "CUB__.DAT CUB++.DAT"                                                             ; pad ; datefiles; archives; checkcrc ;;
     070) copyfiles cpmdosgg ;                         rename "A_*" "STARTRE_.NBP STARTRE\$.NBP"                                                ; pad ; datefiles; archives; checkcrc ;;
-    071) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
+    071) copyfiles cpmdosgg ; copyfiles cpmdosgg ../1057/crck.com                                                                              ; pad ; datefiles; archives; checkcrc  ; notes "CRCK.COM doesn't appear in the sources, but is    " "listed in -CATALOG. It is copied from vol 57.     " ;;
     072) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
     073) copyfiles cpmdosgg ;                         rename "COMP_*" "PAGE_*" "VD*"                                                           ; pad ; datefiles; archives; checkcrc ;;
     074) copyfiles cpmdosgg ;                         rename "CLOCK_*"                                                                         ; pad ; datefiles; archives; checkcrc ;;
@@ -891,20 +894,20 @@
     088) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
     089) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ;  notes "SYSLIBI.WS is on disk but not listed in -CATALOG." ;;
     090) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
-    091) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ;  notes "READ.ME is on disk but not listed in -CATALOG." ;;
+    091) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ;  notes "READ.ME is on disk but not listed in -CATALOG.   " ;;
     092) copyfiles cpmdosgg ; rename "LITL_ADA.ASM LITL-ADA.ASM" "LITL_ADA.DOC LITL-ADA.DOC" "LITL_ADA.PRN LITL-ADA.PRN" "RBBS_USE.DOC RBBS-USE.DOC" ; pad ; datefiles; archives; checkcrc ;;
-    093) copyfiles cpmdosgg ; copyfiles oak trsmodem.com                                                                                       ; pad ; datefiles; archives; checkcrc ;;
+    093) copyfiles cpmdosgg ; copyfiles oak trsmodem.com ; copyfiles cpmdosgg ../1091/sig_m.lib ;                                              ; pad ; datefiles; archives; checkcrc ;;
     094) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
     095) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
     096) copyfiles cpmdosgg ;                         rename "CRCK_51.A86 CRCK-51.A86" "FILE_EXT.A86 FILE-EXT.A86" "XDIR_A86.DOC XDIR-A86.DOC" ; pad ; datefiles; archives; checkcrc ;;
     097) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
-    098) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
-    099) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ; notes "CRC false flag: ZEX.ZEX's CRC is correct." ;;
+    098) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "SYSIO.ASM is not listed in -CATALOG.              " ;;
+    099) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: ZEX.ZEX's CRC is correct." ;;
     100) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
     101) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
     102) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
     103) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
-    104) copyfiles oak      ; copyfiles oak sig/m.lib; rename "M.LIB SIG_M.LIB"                                                                ; pad ; datefiles; archives; checkcrc ; notes "I don't know where the CRC compare value is from. I" "don't know if ZCPR2.IDX is correct." ;;
+    104) copyfiles oak      ; copyfiles oak sig/m.lib; rename "M.LIB SIG_M.LIB"                                                                ; pad ; datefiles; archives; checkcrc  ; notes "I don't know where the CRC compare value is from. I" "don't know if ZCPR2.IDX is correct." ;;
     105) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
     106) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
     107) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
