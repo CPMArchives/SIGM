@@ -132,6 +132,7 @@
 # COPYFILES - Copies files from the source, uppercasing all filenames. Also corrects a few corrupted names.
 # DATEFILES - Sets the file datestamps to the date of release of that volume; in most cases pulls the date from -CATALOG.
 #  CHECKCRC - an attempt to automate CRC comparison, but it may be hopelessly messy. Not currently used.
+#       CRC - returns the CRC value of a file
 #  DISMOUNT - Unmount the source mounted with SOURCE. Mostly called from COPYFILES.
 #    RENAME - Renames files.
 #       ARK - Creates a VOL###.ARK archive file. Requires cpmtools.
@@ -250,30 +251,41 @@
   }  
   
 # ------------
-  OLD_copyfiles () {
+  crc () {
 # ------------
-    echo ""
-    echo "  Copying files"
-    echo "    ----"
-    echo "    From $src"
-    for f in $src/* ; do cp $f $builddir/$(basename $f | tr 'a-z' 'A-Z') >/dev/null 2>&1; done  # Uppercase all filename
-    for i in ./_SIGM ./-SIGM ./_SIG_M ./-SIG_M; do                              # Some collections added variants of -SIGM.xxx as volume; careful of SIG_M.$vol (see vol 2); it's legit.
-    [[ -f $builddir/$i.$vol ]] && rm -rf $builddir/$i.$vol >/dev/null 2>&1      # labels. They're not original, so clean them out.
-    done                                                                        
-
-    for i in ./_CATALOG ./CATALOG; do                                           # Rename -CATALOG
-      [[ -f $builddir/$i.$vol ]] && mv $builddir/$i.$vol $builddir/-CATALOG.$vol >/dev/null 2>&1
-    done  
-
-    for i in ./SIG_M.LIB ./SIG\$M.LIB ./SIG-M.LIB; do                           # Rename SIG/M.LIB
-      [[ -f $builddir/$i ]] && mv $builddir/$i $builddir/SIG_M.LIB >/dev/null 2>&1
-    done  
-
-    sudo chmod 777 $builddir/*   # Some vols (e.g., 104) give "Permission denied" when the script attempts to pad the files
-
-    echo "    ----"
+    echo $(cpmcrck $1 | tail -1 | rev | cut -d' ' -f1 | rev)
   }
+  
+# ------------
+  rename () {
+# ------------
+    # To rename single files (each pair wrapped in quotations):
+    #   rename './oldname ./newname' './oldname ./newname'
+    
+    # To batch rename a wildcarded spec:
+    #   rename 'DU_*.*'
 
+    # NOTE: Use the wildcarded option only when you wish to
+    # replace _ with -. If you wish to replace _ with some
+    # other char, use single file format.
+    
+    cd $builddir >/dev/null 2>&1 
+    echo ""
+    echo "  Rename"
+    echo "    ----"
+    for i in "$@"; do 
+      echo "$i" | grep "*" > /dev/null && { 
+        for j in $i; do
+          echo "    $j $(echo $j | tr '_' '-')"
+          mv $j $(echo $j | tr '_' '-')
+          done
+        } || { echo "    $i"; mv $i; }
+    done
+    [[ -f "SIG-M.LIB" ]] && mv SIG-M.LIB SIG_M.LIB # In case SIG_M.LIB got caught up in any wildcard sweeps, name it back
+    echo "    ----"
+    cd - >/dev/null 2>&1 
+  }
+  
 # ------------
   copyfiles () {
 # ------------
@@ -302,11 +314,24 @@
         [[ -f $builddir/$i.$vol ]] && mv $builddir/$i.$vol $builddir/-CATALOG.$vol >/dev/null 2>&1
       done  
 
-      for i in ./SIG_M.LIB ./SIG\$M.LIB ./SIG-M.LIB; do                                           # Rename SIG/M.LIB
+      for i in ./SIG\$M.LIB ./SIG-M.LIB; do                                                       # Rename SIG/M.LIB
         [[ -f $builddir/$i ]] && mv $builddir/$i $builddir/SIG_M.LIB >/dev/null 2>&1
       done  
     } || for f in $@; do cp $src/$f $builddir/$(basename $f | tr 'a-z' 'A-Z') >/dev/null 2>&1; done
-  
+    
+    # SIG/M.LIB is variously named SIG_M.LIB or SIG-M.LIB through the different collections. Per the -CATALOGs, 
+    # it switches from SIG/M.LIB to SIG-M.LIB around volume 193. We'll follow the -CATALOGs here.
+    
+    #    v=$vol                                                                                        # To do a numeric comparison, we must first strip any leading zeroes
+    #    while [ "$(echo ${v:0:1})" == "0" ]; do v=$(echo $v | cut -b2-); done                         # from the volume number so BASH doesn't treat it as a hex value.
+    #    [[ $v -ge 193 ]] && mv $builddir/SIG_M.LIB $builddir/SIG-M.LIB                                # This isn't working, but can do it from the cmd line. touch gives permission denied. Why? 
+
+    # Initially, I built the above code, but it fails to rename SIG_M.LIB in 24 of the 113 vols between 193 and 310 that have
+    # it. I have no idea why it works for most vols but fails in a few. So after a couple of days of trying to figure out why, 
+    # I gave up and use this code instead; it works.
+    
+    for i in {193..310}; do [[ -f $buildroot/sigmv$i/SIG_M.LIB ]] && mv $buildroot/sigmv$i/SIG_M.LIB $buildroot/sigmv$i/SIG-M.LIB; done
+
     sudo chmod 777 $builddir/*                                                                    # Some vols (e.g., 104) give "Permission denied" when the script attempts to pad the files
     dismount
     echo "    ----"
@@ -315,12 +340,12 @@
 # ------------
   datefiles () {
 # ------------              
-  # SIG/M began in about Sept 1980. Early volumes (prior to vol 43) didn't include release dates.
-  # Release dates used here are gleaned largely from the SIG/M newsletters on SIG/M Vol 51 but in 
-  # most cases only the month can be gleaned. It would seem reasonable to call the date of that
-  # month's SIG/M meeting the official date, but in most cases that date is unknown (Jun '81 is
-  # the exception; the 7/81 newsletter tells us it was June 12th). So the 15th of that month
-  # is arbitrarily assigned.
+  # SIG/M began in about Sept 1980. For most volumes (ca. 43-310), release dates can be culled from
+  # -CATALOG. For early volumes (pre-vol 43) that didn't include release dates, dates used here are
+  # gleaned largely from the SIG/M newsletters on SIG/M Vol 51, but in most cases only the month
+  # can be gleaned. While it would seem reasonable to call the date of that month's SIG/M meeting
+  # the official date, in most cases that date is unknown (Jun '81 is the exception; the 7/81 news-
+  # letter tells us it was June 12th); so the 15th of that month is arbitrarily assigned.
     case $vol in            
       001) date=19801015 ;; # The 11/80 newsletter mentions three vols already available
       002) date=19801015 ;; # and says four more would be released at that month's SIG/M 
@@ -370,16 +395,17 @@
       092) date=19830114 ;; # -CATALOG malformatting chokes date extraction; specifying manually.
       093) date=19830115 ;; # -CATALOG malformatting chokes date extraction; specifying manually.
       118) date=19830614 ;; # -CATALOG malformatting chokes date extraction; specifying manually.
-      128 | 129) date=19830909 ;; # -CATALOG date formatting screws up the extraction code; specifying the date manually.
-      135) date=19830901 ;; # -CATALOG date formatting screws up the extraction code; specifying the date manually.
-      153) date=19840206 ;; # -CATALOG date formatting screws up the extraction code; specifying the date manually.
-      291 | 292 | 293 | 294) date=19861121 ;; # -CATALOG date formatting screws up the extraction code; specifying the date manually.
+      128 | 129) date=19830909 ;; # -CATALOG malformatting chokes date extraction; specifying manually.
+      135) date=19830901 ;; # -CATALOG malformatting chokes date extraction; specifying manually.
+      153) date=19840206 ;; # -CATALOG malformatting chokes date extraction; specifying manually.
+      291 | 292 | 293 | 294) date=19861121 ;; # -CATALOG malformatting chokes date extraction; specifying manually.
       295 | 296 | 297 | 298 | 299) date=19870815 ;; # No release date. Assuming it goes with vol 296.
       300 | 301) date=19870915 ;; # Release dates for vols 296-310 are MM/YY only. The 15th of those months is arbitrarily assigned.
       302 | 303) date=19871115 ;; 
       304 | 305 | 306 | 307 | 308 | 309 | 310) date=19880315 ;; 
         *) date=$(grep released $builddir/-CATALOG.$vol | rev | cut -d' ' -f1-3 | rev) ;;
-    esac      
+    esac   
+    
     echo ""
     echo "  VOLDATE"
     echo "    ----"
@@ -387,6 +413,36 @@
     echo "    ----"
     touch -d "$date" $builddir/*
     touch -d "$date" $builddir
+    
+    # A few utility files, such as CRC.COM or SIG/M.LIB, appear throughout the SIG/M collection. This will date all occur-
+    # rences of a file to its first appearance in the collection. Various versions of a file are distinguished by CRC.
+    
+    # Could just as easily do "for i in $builddir/*", but there are occasional CRC collisions in the collection; calling out
+    # specific file names will minimize that possibility that the CRC value will misidentify a completely different file.
+
+    for i in CRC.COM SIG_M.LIB SIG-M.LIB USQ.COM LU.COM JOIN.ACG DELBR.COM DELBRA.COM CRC.CMD USQ.CMD; do 
+     [[ -f $builddir/$i ]] && {                            # if the file exists in the current volume
+      case $(crc $builddir/$i) in                          
+        151e) date=19801115 ;; c9be) date=19801215 ;; 93ae) date=19830214 ;; # SIG/M.LIB
+        1539) date=19830614 ;; d31c) date=19841116 ;; 15ca) date=19841221 ;;
+        0c6f) date=19850920 ;; f4dd) date=19861121 ;;   
+
+        b207) date=19820926 ;; bb23) date=19830214 ;; ee87) date=19850118 ;; # CRC.COM
+        cb3e) date=19870815 ;; 053b) date=19870515 ;;
+
+        561f) date=19811125 ;; 5621) date=19831202 ;; 7d52) date=19840601 ;; # USQ.COM
+        83e7) date=19831007 ;; 9b11) date=19840106 ;;                        # JOIN.ACG
+        3d98) date=19830909 ;; ba32) date=19840106 ;;                        # LU.COM
+        f628) date=19841116 ;;                                               # SHOW.COM
+        ef3a) date=19841005 ;;                                               # DELBR.COM DELBRA.COM
+        10e5) date=19841221 ;;                                               # CRC.CMD 
+        
+        24c0) date=19840203 ;; f46e) date=19840601 ;; eb7c) date=19850118 ;; # USQ.CMD 
+        0caf) date=19850517 ;; 
+      esac
+      touch -d "$date" "$builddir/$i"      
+     }
+     done
   } 
   
 # ------------
@@ -512,6 +568,7 @@
                              [[ $(echo $((10#$vol))) -eq 104 ]] && expectedcrc=93AE
                              [[ $(echo $((10#$vol))) -ge 118 ]] && expectedcrc=1539
                              [[ $(echo $((10#$vol))) -ge 200 ]] && expectedcrc=D31C
+                             [[ $(echo $((10#$vol))) -eq 207 ]] && expectedcrc=1539
                              [[ $(echo $((10#$vol))) -ge 208 ]] && expectedcrc=15CA
                              [[ $(echo $((10#$vol))) -eq 243 ]] && expectedcrc=0C6F
                              [[ $(echo $((10#$vol))) -eq 253 ]] && expectedcrc=0C6F
@@ -548,36 +605,6 @@
 # ------------
     mountpoint -q $tempdir > /dev/null 2>&1 && sudo umount -l $tempdir > /dev/null 2>&1
     rm -rf $tempdir > /dev/null 2>&1
-  }
-  
-# ------------
-  rename () {
-# ------------
-    # To rename single files (each pair wrapped in quotations):
-    #   rename './oldname ./newname' './oldname ./newname'
-    
-    # To batch rename a wildcarded spec:
-    #   rename 'DU_*.*'
-
-    # NOTE: Use the wildcarded option only when you wish to
-    # replace _ with -. If you wish to replace _ with some
-    # other char, use single file format.
-    
-    cd $builddir >/dev/null 2>&1 
-    echo ""
-    echo "  Rename"
-    echo "    ----"
-    for i in "$@"; do 
-      echo "$i" | grep "*" > /dev/null && { 
-        for j in $i; do
-          echo "    $j $(echo $j | tr '_' '-')"
-          mv $j $(echo $j | tr '_' '-')
-          done
-        } || { echo "    $i"; mv $i; }
-    done
-    [[ -f "SIG-M.LIB" ]] && mv SIG-M.LIB SIG_M.LIB # In case SIG_M.LIB got caught up in any wildcard sweeps, name it back
-    echo "    ----"
-    cd - >/dev/null 2>&1 
   }
   
 # ------------
@@ -715,7 +742,7 @@
     while [[ ! -z $1 ]]; do
      for i in $1; do
        echo "    $i"
-       rm $builddir/$i > /dev/null 1>&2
+       rm --force $builddir/$i > /dev/null 1>&2
      done
      shift
     done 
@@ -975,7 +1002,7 @@
     169) copyfiles cpmdosgg ;                         rename "M7*"                                                                             ; pad ; datefiles; archives; checkcrc ;;
     170) copyfiles cpmdosgg ;                         rename "M7*" "M7AC-3.AQM M7AC+3.AQM"                                                     ; pad ; datefiles; archives; checkcrc ;;
     171) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
-    172) copyfiles cpmdosgg ; copyfiles sourdough disk3.asm; unix2dos $builddir/DISK3.ASM;      rename "DU_*" "OKI_*"                          ; pad ; datefiles; archives; checkcrc ;;
+    172) copyfiles cpmdosgg ; copyfiles sourdough disk3.asm; unix2dos $builddir/DISK3.ASM>/dev/null 2>&1;      rename "DU_*" "OKI_*"           ; pad ; datefiles; archives; checkcrc ;;
     173) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: JOIN.ACG 3 vers exist: 83e7, 9b11," "28a7. 9B11 expected but all sources have 83E7." ;;
     174) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
     175) copyfiles cpmdosgg ;                         rename "F47_*" "MODEM_*"                                                                 ; pad ; datefiles; archives; checkcrc ;;
@@ -997,22 +1024,22 @@
     191) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
     192) copyfiles cpmdosgg ;                         rename "SYS2*"                                                                           ; pad ; datefiles; archives; checkcrc ;;
     193) copyfiles cpmdosgg ;                         rename "PAF*"                                                                            ; pad ; datefiles; archives; checkcrc ;;
-    194) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
-    195) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "-CATALOG mis-lists DELBR.COM as DELRB.COM." ;;
+    194) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
+    195) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct." "-CATALOG mis-lists DELBR.COM as DELRB.COM." ;;
     196) copyfiles cpmdosgg ;                         rename "SD_*"                                                                            ; pad ; datefiles; archives; checkcrc ;;
     197) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "-CATALOG mis-lists DELBR.COM as DELIB.COM." ;;
-    198) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
-    199) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
-    200) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
-    201) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
+    198) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
+    199) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
+    200) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
+    201) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
     202) copyfiles cpmdosgg ;                         rename "RSA_*"                                                                           ; pad ; datefiles; archives; checkcrc ;;
-    203) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
+    203) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
     204) copyfiles cpmdosgg ;                         rename "F83_*"                                                                           ; pad ; datefiles; archives; checkcrc ;;
     205) copyfiles cpmdosgg ;                         rename "F83_*"                                                                           ; pad ; datefiles; archives; checkcrc ;;
     206) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
-    207) copyfiles cpmdosgg ; vol=177; copyfiles cpmdosgg sig_m.lib; vol=207; rename "LU86_*" "APC_DUMP.LBR APC-DUMP.LBR"                      ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG/M.LIB CRC is correct." ;;
-    208) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
-    209) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
+    207) copyfiles cpmdosgg ; vol=177; copyfiles cpmdosgg sig_m.lib; vol=207; rename "LU86_*" "APC_DUMP.LBR APC-DUMP.LBR"                      ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG/M.LIB CRC is correct. " ;;
+    208) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
+    209) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
     210) copyfiles cpmdosgg ;                         rename "CRC_64.AQ6 CRC-64.AQ6"                                                           ; pad ; datefiles; archives; checkcrc ;;
     211) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
     212) copyfiles cpmdosgg ;                         rename "CPM2__.LBR CPM2-+.LBR" "FIND_2.LBR FIND+2.LBR" "UNERA_.LBR UNERA+.LBR" "*_*"     ; pad ; datefiles; archives; checkcrc ;;
@@ -1024,55 +1051,55 @@
     218) copyfiles cpmdosgg ;                         rename "MX?_*"                                                                           ; pad ; datefiles; archives; checkcrc ;;
     219) copyfiles cpmdosgg ;                         rename "MX?_*"                                                                           ; pad ; datefiles; archives; checkcrc ;;
     220) copyfiles cpmdosgg ;                         rename "MX?_*" "MXO-R-10.AQM MXO-R+10.AQM"                                               ; pad ; datefiles; archives; checkcrc ;;
-    221) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
-    222) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
-    223) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
+    221) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
+    222) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
+    223) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
     224) copyfiles cpmdosgg ;                         rename "C80V_*"                                                                          ; pad ; datefiles; archives; checkcrc ;;
-    225) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
+    225) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
     226) copyfiles cpmdosgg ;                         rename "DRI_*"                                                                           ; pad ; datefiles; archives; checkcrc ;;
-    227) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
-    228) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
+    227) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
+    228) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
     229) copyfiles cpmdosgg ;                         rename "SAVE0_*" "APC_*"                                                                 ; pad ; datefiles; archives; checkcrc ;;
     230) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
     231) copyfiles cpmdosgg ;                         rename "CP_M_.LBR CP-M+.LBR"                                                             ; pad ; datefiles; archives; checkcrc ;;
     232) copyfiles cpmdosgg ;                         rename "M7BBS_.AQM M7BBS+.AQM"                                                           ; pad ; datefiles; archives; checkcrc ;;
     233) copyfiles cpmdosgg ;                         rename "BOY_*"                                                                           ; pad ; datefiles; archives; checkcrc  ; notes "CLEANUP.DQC not listed in -CATALOG." ;;
-    234) copyfiles cpmdosgg ; vol=233; copyfiles cpmdosgg crc.com; vol=234                                                                     ; pad ; datefiles; archives; checkcrc ;;
+    234) copyfiles cpmdosgg ; vol=233; copyfiles cpmdosgg crc.com; vol=234                                                                     ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
     235) copyfiles cpmdosgg ; vol=234; copyfiles cpmdosgg usq.com; vol=235; rename "BOKA_EI.BQS BOKA&EI.BQS" "FORTH_*"                         ; pad ; datefiles; archives; checkcrc ;;
-    236) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
+    236) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
     237) copyfiles cpmdosgg ;                         rename "PILOT_*"                                                                         ; pad ; datefiles; archives; checkcrc ;;
-    238) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
-    239) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
-    240) copyfiles cpmdosgg ;                         rename "DELBR.COM DELBRA.COM"                                                            ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: DELBRA.COM CRC is correct." "EPRINT.ZSM is unlisted in -CATALOG." ;;
-    241) copyfiles cpmdosgg ;                         rename "DELBR.COM DELBRA.COM"                                                            ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: DELBRA.COM CRC is correct." ;;
-    242) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
-    243) copyfiles oak      ; unix2dos $builddir/VISCOS1.DAT; unix2dos $builddir/GETNAME.PRO                                                   ; pad ; datefiles; archives; checkcrc ;;
+    238) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
+    239) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
+    240) copyfiles cpmdosgg ;                         rename "DELBR.COM DELBRA.COM"                                                            ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " "CRC false flag: DELBRA.COM CRC is correct." "EPRINT.ZSM is unlisted in -CATALOG." ;;
+    241) copyfiles cpmdosgg ;                         rename "DELBR.COM DELBRA.COM"                                                            ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " "CRC false flag: DELBRA.COM CRC is correct." ;;
+    242) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
+    243) copyfiles oak      ; unix2dos $builddir/VISCOS1.DAT>/dev/null 2>&1; unix2dos $builddir/GETNAME.PRO>/dev/null 2>&1                     ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
     244) copyfiles cpmdosgg ;                         rename "LPAK1?_*"                                                                        ; pad ; datefiles; archives; checkcrc ;;
     245) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
     246) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
     247) copyfiles cpmdosgg ;                         rename "DU_*" "Z19_*"                                                                    ; pad ; datefiles; archives; checkcrc ;;
-    248) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
-    249) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
-    250) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "Though VDO25.LBR is not listed in -CATALOG" "and seems out of place, it is retained.    " ;;
+    248) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
+    249) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
+    250) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " "Though VDO25.LBR is not listed in -CATALOG" "and seems out of place, it is retained.    " ;;
     251) copyfiles cpmdosgg ; vol=250; copyfiles cpmdosgg usq.com; vol=250; rename "DELBR.COM DELBRA.COM"                                      ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: DELBRA.COM's CRC is correct." ;;
-    252) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
-    253) copyfiles oak                                                                                                                         ; pad ; datefiles; archives; checkcrc ;;
+    252) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
+    253) copyfiles oak                                                                                                                         ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
     254) copyfiles cpmdosgg ;                         rename "DELBR.COM DELBRA.COM"                                                            ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: DELBRA.COM's CRC is correct." ;;
-    255) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
+    255) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
     256) copyfiles cpmdosgg ;                         rename "TFR_*" "TRANS_*"                                                                 ; pad ; datefiles; archives; checkcrc ;;
     257) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
-    258) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
+    258) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
     259) copyfiles oak                                                                                                                         ; pad ; datefiles; archives; checkcrc ;;
     260) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
-    261) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
-    262) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
+    261) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
+    262) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
     263) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
-    264) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
+    264) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
     265) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
-    266) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
+    266) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
     267) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
-    268) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
-    269) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
+    268) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
+    269) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
     270) copyfiles cpmdosgg ;                         rename "FS_*"                                                                            ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: LIB.LIB's CRC is correct."  ;; 
     271) copyfiles cpmdosgg ;                         rename "FP_*"                                                                            ; pad ; datefiles; archives; checkcrc ;;
     272) copyfiles cpmdosgg ;                         rename "*_*"                                                                             ; pad ; datefiles; archives; checkcrc ;;
@@ -1081,33 +1108,33 @@
     275) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
     276) copyfiles cpmdosgg ;                         rename "*_*"                                                                             ; pad ; datefiles; archives; checkcrc ;;
     277) copyfiles cpmdosgg                                                                                                                    ; pad ; datefiles; archives; checkcrc ;;
-    278) copyfiles oak                                                                                                                         ; pad ; datefiles; archives; checkcrc ;;
+    278) copyfiles oak                                                                                                                         ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
     279) copyfiles oak      ; copyfiles cpmdosgg comp.asm label.mac tail.asm                                                                   ; pad ; datefiles; archives; checkcrc ;;
-    280) copyfiles oak      ; unix2dos $builddir/MULTCOL.PAS >/dev/null                                                                        ; pad ; datefiles; archives; checkcrc ;;
-    281) copyfiles sourdough; for i in CMPCODE.DOC SNOOPY.FOR ZLOAD.DOC FORT07.DAT; do unix2dos $builddir/$i >/dev/null; done                  ; pad ; datefiles; archives; checkcrc ;;
-    282) copyfiles sourdough                                                                                                                   ; pad ; datefiles; archives; checkcrc ;;
-    283) copyfiles sourdough                                                                                                                   ; pad ; datefiles; archives; checkcrc ;;
-    284) copyfiles sourdough                                                                                                                   ; pad ; datefiles; archives; checkcrc ;;
-    285) copyfiles sourdough                                                                                                         ; padnull ; pad ; datefiles; archives; checkcrc ;;
-    286) copyfiles sourdough                                                                                                                   ; pad ; datefiles; archives; checkcrc ;;
-    287) copyfiles sourdough; copyfiles sourdough ../vol286/usq.com                                                                            ; pad ; datefiles; archives; checkcrc ;;
+    280) copyfiles oak      ; unix2dos $builddir/MULTCOL.PAS>/dev/null 2>&1                                                                    ; pad ; datefiles; archives; checkcrc ;;
+    281) copyfiles sourdough; for i in CMPCODE.DOC SNOOPY.FOR ZLOAD.DOC FORT07.DAT; do unix2dos $builddir/$i>/dev/null 2>&1; done              ; pad ; datefiles; archives; checkcrc ;;
+    282) copyfiles sourdough                                                                                                                   ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
+    283) copyfiles sourdough                                                                                                                   ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
+    284) copyfiles sourdough                                                                                                                   ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
+    285) copyfiles sourdough                                                                                                         ; padnull ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
+    286) copyfiles sourdough                                                                                                                   ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
+    287) copyfiles sourdough; copyfiles sourdough ../vol286/usq.com                                                                            ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
     288) copyfiles sourdough                                                                                                                   ; pad ; datefiles; archives; checkcrc ;;
-    289) copyfiles sourdough; unix2dos $builddir/RAMDSKRB.DOC >/dev/null                                                                       ; pad ; datefiles; archives; checkcrc ;;
-    290) copyfiles sourdough                                                                                                                   ; pad ; datefiles; archives; checkcrc ;;
+    289) copyfiles sourdough; unix2dos $builddir/RAMDSKRB.DOC>/dev/null 2>&1                                                                   ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
+    290) copyfiles sourdough                                                                                                                   ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
     291) copyfiles sourdough; x=../../../library_collections/dka_kaypro/900/913; copyfiles sourdough $x/CLOCK.LIB $x/CONCORD.PAS $x/DELIB.PAS $x/DIR.INC $x/DWS.PAS \
-         $x/ERRORS.PAS $x/FREEDIR.INC $x/FREE.INC $x/FUNCKEYS.PAS $x/IOERROR.PAS $x/../914/MLABELS.PAS $x/../914/OKI.PAS ../vol293/wipe.pas    ; pad ; datefiles; archives; checkcrc ;;
-    292) copyfiles sourdough; x=../../../library_collections/dka_kaypro/900/914; copyfiles sourdough $x/SIZE.PAS $x/STRIP8.PAS                 ; pad ; datefiles; archives; checkcrc ;;
-    293) copyfiles sourdough; remove WIPE.PAS                                                                                                  ; pad ; datefiles; archives; checkcrc  ; notes "WIPE.PAS not listed in -CATALOG. Identical to v291" "WIPE.PAS, so removed here." ;;
-    294) copyfiles sourdough                                                                                                                   ; pad ; datefiles; archives; checkcrc ;;
-    295) copyfiles sourdough                                                                                                                   ; pad ; datefiles; archives; checkcrc ;;
-    296) copyfiles sourdough                                                                                                                   ; pad ; datefiles; archives; checkcrc ;;
-    297) copyfiles sourdough                                                                                                                   ; pad ; datefiles; archives; checkcrc ;;
-    298) copyfiles sourdough                                                                                                                   ; pad ; datefiles; archives; checkcrc ;;
+         $x/ERRORS.PAS $x/FREEDIR.INC $x/FREE.INC $x/FUNCKEYS.PAS $x/IOERROR.PAS $x/../914/MLABELS.PAS $x/../914/OKI.PAS ../vol293/wipe.pas    ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
+    292) copyfiles sourdough; x=../../../library_collections/dka_kaypro/900/914; copyfiles sourdough $x/SIZE.PAS $x/STRIP8.PAS                 ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
+    293) copyfiles sourdough; remove WIPE.PAS                                                                                                  ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " "WIPE.PAS not listed in -CATALOG. Identical to v291" "WIPE.PAS, so removed here." ;;
+    294) copyfiles sourdough                                                                                                                   ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
+    295) copyfiles sourdough                                                                                                                   ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
+    296) copyfiles sourdough                                                                                                                   ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
+    297) copyfiles sourdough                                                                                                                   ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
+    298) copyfiles sourdough                                                                                                                   ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
     299) copyfiles sourdough;                         rename "KPHANDYP.LBR KPHANDY+.LBR"                                                       ; pad ; datefiles; archives; checkcrc  ; notes "-READ.ME not listed in -CATALOG." ;;
-    300) copyfiles sourdough                                                                                                                   ; pad ; datefiles; archives; checkcrc ;;
-    301) copyfiles sourdough                                                                                                                   ; pad ; datefiles; archives; checkcrc ;;
-    302) copyfiles sourdough;      remove CRCKLIST.CRC                                                                                         ; pad ; datefiles; archives; checkcrc ;;
-    303) copyfiles sourdough; vol=294; copyfiles sourdough crc.com; vol=303                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: CRC.COM is correct." ;;
+    300) copyfiles sourdough                                                                                                                   ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
+    301) copyfiles sourdough                                                                                                                   ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
+    302) copyfiles sourdough;                         remove CRCKLIST.CRC                                                                      ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " ;; 
+    303) copyfiles sourdough; vol=294; copyfiles sourdough crc.com; vol=303                                                                    ; pad ; datefiles; archives; checkcrc  ; notes "CRC false flag: SIG-M.LIB CRC is correct. " "CRC false flag: CRC.COM is correct." ;;
     304) copyfiles sourdough                                                                                                                   ; pad ; datefiles; archives; checkcrc ;;
     305) copyfiles sourdough                                                                                                                   ; pad ; datefiles; archives; checkcrc ;;
     306) copyfiles sourdough                                                                                                                   ; pad ; datefiles; archives; checkcrc ;;
