@@ -1,0 +1,84 @@
+
+	A new version of Ward Christensen's MODEM program is
+contained in the library file MODEM901.LBR. The files must be
+unloaded from the library with LU and the text files unsqueezed
+with USQ. The source files have been split into modules linkable
+with Christensen's LASM. LASM and MLOAD (an improved hex loader
+by Ron Fowler) are also included in the library. Documentation
+files are also provided including a 40 K user file.
+
+	Support is provided for the following UARTs and micros:
+
+	8250     -   Heath H89/90/8, Zenith Z89/90
+  	8251	 -   Intertec SuperBrain, DEC VT180
+	Z80-SIO  -   Big Board, Xerox 820, Kaypro II, Micom 2001
+
+The files are setup so the user can change baud rate, word length,
+parity, and number of stop bits. The exception this is the VT180
+which does not have the capability of baud rate setting under CPU
+control.
+
+The following is from the history file.
+
+05/05/83  Revised program as follows:
+	
+	1. Corrected erroneous attempt to do multifile transfers
+	   from command line,
+	2. Put telephone number library in START.ASM and the tele-
+	   phone library display routines in MAIN.ASM,
+	3. Made minor changes in setup routine for H89,
+	4. Added support for several new systems.
+							P.L.Kelley
+
+04/25/83  Revised program as follows:
+
+	1. Combined MODEM796.ASM and MODEM796.LIB and divided the
+	   resulting file into linked modules for use with the public
+	   domain assembler, LASM. This has the following advantages:
+		a. gives short, logically organized, easily edited
+		   modules,
+		b. minimal changes to a single module prior to assembly
+		   should allow most users to generate a working
+		   program for their system,
+		c. avoids use of MAC, which some users may not own,
+	2. Eliminated PMMI-only routines; this shortens the program
+	   considerably and results in most of the modules being
+	   system independent,
+	3. Introduced standard locations in low memory for user
+	   configurable tables and system dependent code,
+	4. Used many of the non-PMMI routines in MDM700-707
+	5. Made the following enhancements,
+		a. added toggle for sending/not sending end-of-file
+		   marker in terminal mode text file output,
+		b. added toggle for sending/not sending linefeed after
+		   carriage return in terminal mode file output, this
+		   allows use with either a mainframe or a micro which
+		   is capturing the file,
+		c. added toggle for waiting/not waiting until character
+		   echoed in terminal mode file output,
+		d. added separate menu for terminal mode file output
+		   flow control commands,
+		e. increased from 1 to 10 the number of user defined
+		   strings which can be transmitted in terminal mode,
+		   and added command for displaying list of strings
+		   (thanks to E. O. Stork for this idea),
+		f. added routines to reset word length, stop bits, and
+		   parity to H89 baud rate resetting routine, and
+		   included information on settings in current parameter
+		   information screen; 7 bit text transfers are now 
+		   possible. It should be relatively simple to modify
+		   these routines for another computer,
+		g. added routine to disconnect modem from telephone line
+		   if computer and modem allow this,
+		h. added routine to provide carrier detect status
+		   information,
+		i. added message on returning to terminal mode after
+		   Q (quiet) file transfer.
+
+	6. Used LU to put the ASM, DOC and HIS files together with LASM
+	   and MLOAD into a LIB file with the name MODEM900.LBR. Skipped
+	   the 8.xx version number sequence as that sequence has already
+	   been used for a system specific version.
+							P. L. Kelley
+r defined
+		   strings which can be transmitted in ter

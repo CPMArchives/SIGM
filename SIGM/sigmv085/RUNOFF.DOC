@@ -1,0 +1,833 @@
+.rem              *********************************
+.rem              *     Runoff User's Manual      *
+.rem              *        April 30, 1982         *
+.rem              *       Raymond E. Penley       *
+.rem              *********************************
+.rem
+.rem --------------------------- SETUP ----------------------------------
+.he RUNOFF User's Guide
+.lm 1
+.rm 78
+.nhd
+.nf
+
+.sp 22
+.c 4
+RUNOFF User's Guide
+CP/M VERSION 1.0
+RAYMOND E. PENLEY
+APRIL 30, 1982
+.np
+.rem --------------------------------------------------------------------
+.j
+.p 5
+This is a public domain program. You are encouraged to modify this program
+to make it better, add new features (but try not to make the executable
+code much over 20K), make changes, etc.  Please send your enhancements to
+the Pascal/Z Users Group.  Thank you.
+.sp 12
+CP/M (r) is a trademark of Digital Research.
+.hd
+.bp 1
+.np
+.rem --------------------------------------------------------------------
+.hl 1 INTRODUCTION:
+.j
+.p
+This is a version of RUNOFF a text formatting program.
+It is patterened somewhat after the RUNOFF for the DEC PDP-11.
+The commands available are a subset of those available in the
+original PDP-11 version.
+The command formats and actions are the same as the PDP-11 version.
+The underlying source code program for this version is written
+in Pascal.
+.p
+New commands include; .MES, prints message to the console; .WAIT,  a pause
+that waits for operator intervention; .SF and .CF, single sheet and continuous
+forms control; .REM, for remarks imbedded in the text; and .OUT <n>, to allow
+additional control over the printed output.
+.rem
+.rem
+.hl 2 HOW TO USE THIS GUIDE:
+.p
+There are a few notational conventions that are used throughout this
+manual.
+.sp
+.nf
+     <>  Symbol brackets. This space should be replaced by the
+         item described.
+     []  Optional brackets.  Symbols enclosed between brackets
+         are optional.
+    ...  Repetional ellipsis.  The preceding symbol may be
+         repeated.
+.j
+.rem --------------------------------------------------------------------
+.hl 2 SOURCE FILE FORMAT:
+.p
+Using your favorite text editor you create a file containing the text of the
+document. Under the CP/M operating system the normal file consists of a
+collection of characters stored under a file name on a diskette.  The file
+or document is a standard ASCII text file with the RUNOFF commands
+imbedded in the file. All lines starting with a period are taken to be
+commands; only one command per line is permitted. All other lines are
+considered as text to be formatted. There are no case control characters as in
+other versions of RUNOFF. Letters are output in whatever case they appear in
+the source file.
+.rem --------------------------------------------------------------------
+.hl 2 CAPABILITIES:
+.p
+Text is normally justified. Justified text has additional spaces inserted
+between the words to make the right end of each line in a paragraph come out
+exactly at the right margin; Ragged Right text does not have these spaces.
+Justification is on by default, but may be turned off to produce ragged right
+text. Some users prefer ragged right, e.g. for correspondence which they wish
+to appear hand-typed.
+.p
+Functions are available that can turn on/off line filling and justification.
+.p
+Text is automatically split up into consecutively numbered pages. Each
+page has a five line header margin. The title and page number appear on the
+second line of the header margin. Printing of either the title or page
+number or both is optional.
+.p
+Section headers of up to five numbers, i.e. i.j.k.l.m, plus section title
+may be specified. Section numbers will be incremented automatically
+whenever the section header command is encountered.
+.p
+Numbered lists are available and may be nested to five levels. List
+elements are indented from normal text and are filled and justified if
+fill is enabled.
+.rem --------------------------------------------------------------------
+.hl 2 INVOKING RUNOFF UNDER THE CP/M OPERATING SYSTEM:
+.p
+RUNOFF requires an input file and directs its output to one of the
+following devices: list (LST:); console (CON:); disk (d:filename).
+.nf
+.ls 2
+.p
+The command to execute RUNOFF takes one of the following forms:
+.TI 7
+RUNOFF [d:]sourcefile [d:]outputfile
+Directs the formatted output to the disk file "outputfile" name.
+.TI 7
+RUNOFF [d:]sourcefile    or    RUNOFF [d:]sourcefile LST:
+Directs the formatted output to the List device.
+.TI 7
+RUNOFF [d:]sourcefile CON:
+Directs the formatted output to the console device for previewing.
+.ls 1
+.j
+.p
+The source file and the output file may be on the same or different disk
+drives.  Simply by prefixing the file name with the drive identifier causes
+the program to read/write the file from the specified drive.
+.sp
+.TI 7
+RUNOFF sourcefile b:outputfile
+.sp
+.p
+Will process the file "sourcefile" from the currently logged in disk drive
+and send the output file to a file "outputfile" on drive B:.
+.rem --------------------------------------------------------------------
+.hl 1 TEXT FORMATTING COMMANDS:
+.p
+The following commands will be recognized if they are at the beginning of a
+line started with a period. Any line in the source file beginning with a period
+is assumed to be one of these commands. If it is not, an error diagnostic will
+be displayed on the console and the line will be ignored. Some commands take
+one or more decimal
+numbers following. These must be separated from the command by at least one
+space. RUNOFF commands take on one of the following forms:
+.nf
+.sp
+.ti 20
+ .AA
+.ti 20
+ .AA n
+.ti 20
+ .AA text
+.ti 0
+.sp
+where AA is a keyword and n is a value {which may be optional} depending on
+the command. The keyword may be in upper or lower case. A space is required
+before numeric or textual values.
+.rem
+.hl 2 INITIAL VALUES:
+.j
+.p
+Initial numeric values are assigned to various RUNOFF commands as follows:
+.nf
+.sp
+        .lm  =  0      left margin
+        .rm  = 60      right margin
+        .ls  =  1      line spacing
+        .p   =  5      paragraph
+        .cnp =  0      conditional new page
+        .pl  = 60      page length
+.rem
+.np
+.rem --------------------------------------------------------------------
+.hl 1 RUNOFF COMMANDS:
+.p
+The commands as listed here in alphabetical order.
+.sp 5
+       .BP n         Begin Page
+       .BR           Break
+       .C n          Center
+       .CF           Continuous Forms
+       .CNP n        Conditional New Page
+       .ELS          End Current List
+       .FI           Filling On
+       .HD           Header title on
+       .HE text      Header text
+       .HL n text    Heading Level and section header text
+       .J            Justify On
+       .LE           List element
+       .LJ           Left Justify
+       .LM n         Left Margin
+       .LS n         Line Spacing
+       .MES text     Text message to console
+       .NBP          No Page Numbering
+       .NF           No Fill
+       .NJ           No Justify
+       .NL n         Numbered list
+       .NP           New Page
+       .NPR          No Period
+       .OUT n        output control values
+       .P n m w      Paragraph Break
+       .PL n w       Page Length
+       .PR           Period flag
+       .REM text     Remark
+       .RM n         Right Margin
+       .SF           Single Forms
+       .SK n         Skip n * Line Spacing lines
+       .SP n         Space n Lines
+       .TI n         Temporary Indent n
+       .WAIT         Pause
+.np
+.hl 2 MARGINS:
+.nf
+.sp
+.ti 10
+LEFT MARGIN                    .LM <column>
+.j
+.p
+The LM command sets the margin to <column>  and causes a break.
+<column> must be less than the right margin but not less than 0.
+The default setting is 0. If indenting, the amount
+of any indent plus the left margin must not be less than 0.
+.nf
+.sp
+.ti 10
+RIGHT MARGIN                   .RM <COLUMN>
+.j
+.p
+The RM command sets the right margin to <column> and causes a break.
+<column> must be greter than the left margin. The default setting is 60.
+.p
+The number of characters on a line will be equal to or less than the right
+margin minus the left margin minus any indenting which may be specified. Even
+if filling has been disabled, lines will not be extended past the right margin.
+.rem
+hl 2 FILLING:
+.nf
+.sp
+.ti 10
+FILL                           .FI
+.j
+.p
+The FI command causes a break and specifies filling of following output
+lines. Justification is specified by the last setting of the .J or .NJ
+commands (DEFAULT=NO).
+.nf
+.sp
+.ti 10
+NO FILL                        .NF
+.j
+.p
+The NF command causes a break and prevents filling of all following output
+lines. Also, justification is disabled.
+.rem --------------------------------------------------------------------
+.hl 2 JUSTIFYING:
+.nf
+.sp
+.ti 10
+JUSTIFY                        .J
+.j
+.p
+The J command causes a break and forces justifiction of subsequent output
+lines (DEFAULT=ON).
+.nf
+.sp
+.ti 10
+LEFT JUSTIFY                   .LJ
+.j
+.p
+The LJ command causes a break and produces what is commonly called
+"ragged right" text.  Lines will be filled with words but justification is
+turned off. If a word will not fit on the current line it will be placed in
+the next line.
+.nf
+.sp
+.ti 10
+NO JUSTIFY                     .NJ
+.j
+.p
+The NJ causes a break and terminates justification of following lines of text.
+.rem
+.hl 2 CENTERING:
+.nf
+.sp
+.ti 10
+CENTER                         .C <count>
+.j
+.p
+The C command causes a break after which it centers the next <count>
+lines in the source file. Center will always center at least one line. The
+centering is between the left and right margins.
+.rem --------------------------------------------------------------------
+.hl 2 PARAGRAPHS:
+.nf
+.sp
+.ti 10
+PARAGRAPH                      .P [<indent> <skip> <cnp>]
+.rem
+.hl 3 COMMAND FORM
+.sp
+        (a)      .p <indent>
+        (b)      .p <indent> <skip>
+        (c)      .p <indent> <skip> <cnp>
+.j
+.p
+The P command causes a break, inserts (SP+1)/2 blank lines and indents
+the next line of text <indent> positions. The initial value for "indent"
+is 5 spaces. If command form (a) is used then indenting will take on
+the new value of <indent>. If command form (b) is used then the vertical
+spacing between paragraphs is set to <skip>.  If command form (c) is used
+then <cnp> sets an argument for a 'Conditional New Page' command just
+before the paragraph is begun.
+.nf
+.sp
+.ti 10
+TEMPORARY INDENT               .TI +-<count>
+.j
+.p
+The TI command causes a break and sets the next line to begin <count>
+spaces to the right of the left margin. <count> may be negative to cause the
+line to begin to the left of the left margin, it effectively created an
+"outdent" command. TI works with the LM command, for example:
+.nf
+.sp
+  .j
+  .lm 12
+  .ti -10
+  TEMPORARY INDENT
+  The TI command causes a break and sets the next line to begin
+  <count> spaces to the right of the left margin. <count> may
+  be negative to cause the line to begin to the left of the left
+  margin, it effectively created an "outdent" command.
+  .sp
+.sp
+would produce the following output:
+.j
+.sp
+.lm 12
+.ti -10
+TEMPORARY INDENT:
+The TI command causes a break and sets the next line to begin <count>
+spaces to the right of the left margin. <count> may be negative to cause the
+line to begin to the left of the left margin, it effectively created an
+"outdent" command.
+.sp
+.lm 1
+.ti 0
+.rem --------------------------------------------------------------------
+.hl 2 TABS:
+.j
+.p
+Unfortunately at the present time RUNOFF does not recognize the tab
+character and there is no way to set/reset tab stops.  Do not use the
+tab character in a RUNOFF file.
+.rem
+.hl 2 LINE SPACING:
+.nf
+.sp
+.ti 10
+SKIP                           .SK <lines>
+.j
+.p
+The SK command causes a break after which [ N * (line spacing) ] lines are
+left blank. If the skip would leave room for less than two printed lines on
+the page (i.e. if there are less than [ N + 2 * (line spacing) ] lines left),
+the output is advanced to the top of the next page. If the output is
+currently at the top of a new page no lines are skipped.
+.nf
+.sp
+.ti 10
+SPACE                          .SP <lines>
+.j
+.p
+The SP command inserts <lines> inton the output file. SPACE is to be used
+where space is to be left independent of the line spacing;
+SKIP is to be used where the space should be relative to the line spacing. If
+the output is currently at the top of a new page no lines are skipped.
+.nf
+.sp
+.ti 10
+BREAK                          .BR
+.j
+.p
+The BR command causes a break, i.e. the current line will be output with
+no justification, and the next word of the source text will be placed at the
+beginning of the next line according to the current line spacing.
+.rem --------------------------------------------------------------------
+.hl 1 PAGINATION COMMANDS:
+.rem
+.hl 2 HEADINGS AND FOOTINGS:
+.nf
+.sp
+.ti 10
+HEADER                         .HE <text>
+.j
+.p
+The HE command takes the remaining text on the line as the title.  This
+text will appear at the top of all subsequent pages, aligned with the left
+margin on the second line of the page.  The title is initially blank.
+.p
+The Header Margin is 3 by default and the Top Margin is 5 by default.  These
+values are presently locked into the program, however, since the source
+code is available it shouldn't be much trouble to make these margin settings
+user selectable.
+.nf
+.sp
+.ti 10
+HEAD Command                   .HD
+.j
+.p
+The HD command enables the printing of title and page number at the top of
+each new page.
+.nf
+.sp
+.ti 10
+No Head Command                .NHD
+.j
+.p
+The NHD command turns off the printing of title and page number at
+the top of each new page.
+.rem --------------------------------------------------------------------
+.hl 2 PAGE NUMBERING:
+.nf
+.sp
+.ti 10
+BEGIN PAGE                     .BP <number>
+.j
+.p
+The BP command turns on page numbering at page <number>.
+.nf
+.sp
+.ti 10
+NO PAGE NUMBERING              .NBP
+.j
+.p
+The NBP or omit page numbering command turns off page numbering.
+Pages will continue to be counted so that the normal page number will
+reappear if page numbering is resumed.
+.rem --------------------------------------------------------------------
+.hl 2 PAGINATION:
+.nf
+.sp
+.ti 10
+NEW PAGE                       .NP
+.j
+.p
+The NP command causes a break and an advance to a new page. It does
+nothing if the current page is empty.
+.nf
+.sp
+.ti 10
+CONDITIONAL NEW PAGE           .CNP <lines>
+.j
+.p
+The CNP PAGE command causes a break followed by a conditional
+page advance. If there are <lines> or more lines remaining on the current page
+then no advance is made, otherwise, the page is advanced as in the NP
+command. This command should be used to ensure that the following <lines>
+are all output on the same page.
+.nf
+.sp
+.ti 10
+LINE SPACING                   .LS <linespacing>
+.j
+.p
+The LS command causes a break after which the line spacing will be
+set to <linespacing>.  <linespacing> must be within the range 1 to 5. Single
+spacing is 1, double spacing is 2.  Default is single spacing.
+.nf
+.sp
+.ti 10
+PAGE LENGTH                    .PL <length> [<width>]
+.rem
+.hl 3 COMMAND FORM
+.sp
+          (a) .pl <length>
+          (b) .pl <length> <width>
+.j
+.p
+The PL command specifies the width of the page in columns and the
+length of the page in lines.  If values other than the default values are
+used, then this command should appear before any of the margin or heading
+commands.  Whenever RUNOFF begins printing a new page, the line count is
+initialized to a value of one.  As each line is printed the line count is
+incremented.  When the page length is reached, a sheet of paper is ejected
+from the printer and a new page is begun.  <length> is the number of lines on
+an entire page, including the top margin of 5 lines. The paper length must
+match the forms in use. The default is 60 lines or 11 inches. The <width> sets
+the paper width in columns; it acts like the RIGHT MARGIN command.
+.rem
+.hl 2 PRINTER CONTROL:
+.nf
+.sp
+        .OUT <value1> [<value2> ... <value8>]
+.j
+.p
+The OUT command allows direct access to printer controls.  <value> is the
+decimal value of the control code.  i.e. if the command to set your
+printer to 12 cpi is say escape + "A" then you would enter the command
+line as:
+.nf
+.sp
+        .OUT 27 65
+.sp
+.j
+.p
+Notice that the values are separated by spaces.  The maximum number of
+arguments that may be output is eight.
+.nf
+.sp
+        .WAIT
+.j
+.p
+The WAIT command puts the program in a pause mode awaiting for any input
+from the operator at the console.
+.rem
+.hl 2 REMARKS AND MESSAGE DISPLAY:
+.nf
+.sp
+        .REM [text]
+.j
+.p
+The REMARKS command may be used to separate paragraphs, put comments in
+the text for later use.
+.nf
+.sp
+        .MES <text>
+.j
+.p
+The MES or MESSAGE command sends the text string to the console for viewing.
+This command can be particularly useful in combination with the WAIT command.
+.rem
+.hl 2 MISCELLANEOUS:
+.nf
+.sp
+.ti 10
+PERIOD                         .PR
+.j
+.p
+The PERIOD command causes two spaces to be inserted after punctuation
+marks for proper spacing between sentences. The punctuation marks
+are: '.', '?', and '!'.
+.nf
+.sp
+.ti 10
+SINGLE SHEET                   .SF
+.j
+.p
+The SINGLE SHEET command causes the program to pause after each page allowing
+the operator time to change the paper in the printer.
+.nf
+.sp
+.ti 10
+CONTINUOUS FORMS               .CF
+.j
+.p
+The CONTINUOUS FORMS command sets the program up to use continuous paper.
+This is the default value.
+.nf
+.sp
+.ti 10
+HEADING LEVEL                  .HL <level> <text>
+.j
+.p
+The HEADING LEVEL command starts a section at the level specified by <level>
+and takes the text string as the header.  <level> must be specified as 1, 2,
+3, 4, or 5.  The sections are incremented by one automatically and the number
+is output in the form of i.j.k.l.m.  This command acts as a:
+.nf    
+        .BREAK .TEST PAGE 9 .BLANK 3
+followed by the section number, two spaces and the section name.
+.rem
+.hl 2 LIST ELEMENTS:
+.nf
+.sp
+.ti 10
+NUMBERED LIST                  .NL <lines>
+.j
+.p
+The NUMBERED LIST command causes a break and starts a numbered list.
+<lines> is the number of blank lines left between list elements.  The first
+list is indented 9 spaces from the left margin; subsequent nested lists are
+indented 4 more spaces.  There may be up to 5 levels of nested numbered lists.
+.nf
+.sp
+.ti 10
+LIST ELEMENT                   .LE
+.j
+.p
+The LIST ELEMENT command causes a break and starts a new list element.
+Elements are numbered sequentially and the numbers have a negative indent
+from the body of the list element.
+.nf
+.sp
+.ti 10
+END LIST                       .ELS
+.j
+.p
+The END LIST command causes a break and terminates the current list by
+re-adjusting the left margin.
+.rem
+.hl 1 EXAMPLES:
+.sp
+Following are examples of the effects of different commands.  After the
+examples is the section of RUNOFF source input that produced the
+examples.
+.rem
+.hl 1 FIRST LEVEL HEADER
+.nf
+.p
+This is unfilled and unjustified text.
+It comes out just as you
+put
+it in.  It can have paragraph spacing and indenting with
+the .P command if you like.  It doesn't line up with
+the right margin but it will never be allowed to extend beyond the right
+margin; the excess will be put on the next line. This command may be used
+for columnar work, tables, and address lists.
+For example:
+  .nf
+  South Fork Hospital
+  12 South Bend Ave.
+  Pine Blufs, IN 12345
+  .sp 3
+.LJ
+.hl 2 SECOND LEVEL HEADER
+.p
+This is left justified text. The line contains as many full words as will
+fit without running over the right margin. When FILL is enabled the PERIOD
+and NOPERIOD options come into effect. PERIOD inserts two spaces after the
+end-of-sentence punctuation; NOPERIOD inserts one blank.
+.rem
+.hl 3 THIRD LEVEL HEADER
+.j
+.p
+This is justified text. The line is filled with words and right justified by
+inserting spaces throughout the line. The blanks are added alternately on the
+left and right sides of the line; this is to avoid "rivers" of blank space
+running down the page. Since this program does not hyphenate words there may
+occasionally be lines with a large number of inserted blanks.
+.rem
+.hl 4 FOURTH LEVEL HEADER
+.p
+It should be noted that SKIP and SPACE have no effect at the top of a new
+page.  This is a bit inconvenient if, for example, you want to create a
+title page with a title block spaced part way down the page.  You can get
+around this problem by doing the following:
+.nf
+.sp
+   .NHD        -TURN OFF PAGE HEADER
+   .NF         -TURN OFF FILLING
+               -INSERT ONE BLANK LINE TO GET OFF TOP OF PAGE
+   .SP n       -SPACE DOWN n LINES
+   .C          -CENTER TITLE LINE(s)
+   this is my title line
+   .HD         -RESET FOR REGULAR PROCESSING
+   .BP 1       -BEGIN PAGE NUMBERING WITH PAGE 1
+   .FI         -TURN FILL ON
+   .NP         -NEW PAGE
+.rem
+.fi
+.hl 5 FIFTH LEVEL HEADER
+.p
+This is as far as you can go for header.
+.hl 4 BACK TO FOURTH LEVEL HEADER
+.hl 3 BACK TO THIRD LEVEL HEADER
+.hl 1 BACK TO FIRST LEVEL HEADER
+.hl 2 LISTS - NUMBERED
+.nl 1
+.le
+Here we have the first level of list.
+.nl 1
+.le
+The next level.
+.le
+A second element.
+.nl 1
+.le
+Third level list.
+.le
+And so on,
+.le
+And so on for two more levels of indenting.
+.els
+.els
+Back out to the outermost list.
+.els
+.np
+.rem --------------------------------------------------------------------
+.hl 1 LITERAL TEXT:
+.p
+Following is the literal source text that produced the above. It has been
+offset by one space so that the commands will be processed as normal text.
+.nf
+.rm 80
+.sp
+ .rem
+ .hl 1 FIRST LEVEL HEADER
+ .nf
+ .p
+ This is unfilled and unjustified text.
+ It comes out just as you
+ put
+ it in.  It can have paragraph spacing and indenting with
+ the .P command if you like.  It doesn't line up with
+ the right margin but it will never be allowed to extend beyond the right
+ margin; the excess will be put on the next line. This command may be used
+ for columnar work, tables, and address lists.
+ For example:
+   .nf
+   South Fork Hospital
+   12 South Bend Ave.
+   Pine Blufs, IN 12345
+   .sp 3
+ .LJ
+ .hl 2 SECOND LEVEL HEADER
+ .p
+ This is left justified text. The line contains as many full words as will
+ fit without running over the right margin. When FILL is enabled the PERIOD
+ and NOPERIOD options come into effect. PERIOD inserts two spaces after the
+ end-of-sentence punctuation; NOPERIOD inserts one blank.
+ .rem
+ .hl 3 THIRD LEVEL HEADER
+ .j
+ .p
+ This is justified text. The line is filled with words and right justified by
+ inserting spaces throughout the line. The blanks are added alternately on the
+ left and right sides of the line; this is to avoid "rivers" of blank space
+ running down the page. Since this program does not hyphenate words there may
+ occasionally be lines with a large number of inserted blanks.
+ .rem
+ .hl 4 FOURTH LEVEL HEADER
+ .p
+ It should be noted that SKIP and SPACE have no effect at the top of a new
+ page.  This is a bit inconvenient if, for example, you want to create a
+ title page with a title block spaced part way down the page.  You can get
+ around this problem by doing the following:
+ .nf
+ .sp
+    .NHD        -TURN OFF PAGE HEADER
+    .NF         -TURN OFF FILLING
+                -INSERT ONE BLANK LINE TO GET OFF TOP OF PAGE
+    .SP n       -SPACE DOWN n LINES
+    .C          -CENTER TITLE LINE(s)
+    title line text here
+    .HD         -RESET FOR REGULAR PROCESSING
+    .BP 1       -BEGIN PAGE NUMBERING WITH PAGE 1
+    .FI         -TURN FILL ON
+    .NP         -NEW PAGE
+ .rem
+ .fi
+ .hl 5 FIFTH LEVEL HEADER
+ .p
+ This is as far as you can go for header.
+ .hl 4 BACK TO FOURTH LEVEL HEADER
+ .hl 3 BACK TO THIRD LEVEL HEADER
+ .hl 1 BACK TO FIRST LEVEL HEADER
+ .hl 2 LISTS - NUMBERED
+ .nl 1
+ .le
+ Here we have the first level of list.
+ .nl 1
+ .le
+ The next level.
+ .le
+ A second element.
+ .nl 1
+ .le
+ Third level list.
+ .le
+ And so on,
+ .le
+ And so on for two more levels of indenting.
+ .els
+ .els
+ Back out to the outermost list.
+ .els
+.np
+.rem --------------------------------------------------------------------
+.nf
+.rm 80
+.ls 2
+.c
+APPENDIX A
+.c
+SUMMARY OF RUNOFF COMMANDS
+.ls 1
+Command
+Format          Function
+-------         --------------------------------------------------------
+.sp
+  .bp <number>  Begin page numbering at page <number>.
+  .br           Break - Stop filling and start a new line.
+  .c <count>    Center next <count> lines. Default=1.
+  .cf           Continuous Forms. Default=ON.
+  .cnp <lines>  Conditional New Page.  Starts a new page if there
+                are less then <lines> lines remaining.
+  .els          Terminate the current list.
+  .fi           Set Line Filling On.
+  .hd           Sets flag to turn on printing of header title and page #.
+  .he <text>    Set header title to text.
+  .hl <level> <text>
+                Set heading level and section header text.
+  .j            Justify lines by blank filling. Default=ON.
+  .le           Starts a new list element.
+  .lj           Left Justify lines. Produces "ragged right" lines.
+  .lm <c>       Set left margin to column <c>.
+  .ls <n>       Set line spacing to <n>. Default=1; Double spacing=2.
+  .nl <lines>   Starts a numbered list.
+  .mes <text>   Sends <text> message to console.
+  .nbp          Terminate page numbering.
+  .nf           Terminate Filling Lines.
+  .nj           No Justify - justify off.
+  .np           New Page.
+  .npr          Terminate spacing sentences.
+  .out <value1> [<value2> ... <value8>]
+                Directly output control values to the printer device.
+  .p [<indent> <skip> <cnp>]
+                Paragraph Break.
+                  <indent> = sets paragraph indenting spaces.
+                  <skip>   = sets vertical spacing between paragraphs.
+                  <cnp>    = sets argument for conditional new page.
+  .pl <lines> [<width>]
+                Set Page Length to <lines>.
+                Set right margin to <width>.
+  .pr           Period flag, set sentences spaced by 2 chars.
+  .rem [text]   Remark. Any comments may be placed on a remark line.
+  .rm <c>       Set right margin to column <c>.
+  .sf           Single Forms. Pause for operator intervention between pages.
+  .sk <lines>   Skips <lines> * (line spacing) lines.
+  .sp <lines>   Space <lines> lines exactly.
+  .ti +-<count> Temporary Indent <count> spaces.
+                  <count> may be negative for outdent (not less than 0)
+  .wait         Force program to wait for operator intervention.
+.rem --------------------------------------------------------------
+.np
+

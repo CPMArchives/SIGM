@@ -1,0 +1,29 @@
+
+LU301.OBJ is a patched version of Gary's LU300.OBJ
+
+The FIXes relate to the !!bloody!! liberties that the BDS-C libraries take
+with CP/M calls. Apparently someone at Digital Research back in version 1.4
+said that the L register on return from a CP/M BDOS call should contain a
+copy of A, ( and apparently B contain a copy of E) or something similar.
+
+The effect of this is that anybody who writes a DOS that doesnt follow that
+redundancy falls foul of this poorly documented 'feature' of CP/M 2.2
+
+In particular BDS-C tests the HL register contents on return from system calls
+(instead of the more common A register). This does not work with some CP/Ms
+(such as that on the DEC RAINBOW), or in IOS.
+
+In order to use this latest version of Gary's LU program I have painstakingly
+gone through the object code and removed the HL usages one by one.
+
+LU301.OBJ is the result.
+
+If you have any trouble with LU on YOUR system try this version. If it works
+let me know. I will coordinate the replies to Leor, who hopefully might be 
+persuaded to eliminate the problem in the next version of the BDC compiler.
+
+If LU300.OBJ already works on your system then LU301 offers nothing to you.
+
+....Trevor Marshall, SYSOP, Thousand Oaks Technical RCP/M (RIOS).
+			          (805) 492 5472  or voice (805) 492 3693
+

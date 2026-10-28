@@ -1,0 +1,92 @@
+                           ICE NOTES
+
+Thå  texô  editoò ió calleä ICE®   ICÅ standó foò "Iî  Contexô 
+Editor"®   Iô  ió  essentiallù á linå editoò thaô  presentó  á 
+windo÷  oveò á filå oî á CRÔ screeî witè thå editinç  commandó 
+mainlù operatinç oî thå bottoí linå oæ thå screen®   Iô ió noô 
+complete®   Thå maiî shortcominç ió thå pooò handlinç of files®  
+ICÅ  needó  á submiô filå (ICE.SUB© tï creatå anä  maintaiî  á 
+backuğ filå iî thå samå waù aó EÄ does®  Iô ió intendeä tï re-
+codå ICÅ iî C®   Ne÷ editinç commandó wilì bå addeä aó welì aó 
+addinç filå manipulatioî commands.
+ 
+Some notes regarding ICE:
+
+- ICÅ  haó  á fixeä sizå datá buffer®   Datá passeó  froí  thå 
+  inpuô filå througè thå datá buffeò tï thå outpuô  buffer®  Á 
+  windo÷  oveò thå datá buffeò ió presenteä oî thå screen®  Aó 
+  thå  windo÷  ió  moveä dowî thå filå  (towardó  higheò  linå 
+  numbers© datá flowó througè thå buffer®   Thå windo÷ caî  bå 
+  moveä  uğ thå filå onlù aó faò aó thå beginninç oæ thå  datá 
+  buffer.
+
+- Á  linå  consistinç  oæ á carriagå returî onlù  ió  useä  tï 
+  terminatå ICE'ó inpuô commands®  Á carriagå returî onlù linå 
+  alsï  denoteó aî emptù linå iî thå datá buffeò (eitheò lineó 
+  havå beeî deleteä oò datá haó neveò existeä there)®  Á nastù 
+  sidå  effecô oæ thió ió thaô carriagå returî onlù  lineó  iî 
+  thå  inpuô filå arå deleted®  Tï havå á blanë linå iî á filå 
+  onå oò morå spaceó oò tabó musô bå entered.
+
+- Thå datá buffeò ió aî arraù oæ strings®  Thå strinç sizå haó 
+  beeî seô tï 10° characteró iî thå hopå thaô thå majoritù  oæ 
+  fileó   editeä  wilì  noô  contaiî  lineó  longeò  thaî  10° 
+  characters®   Anù  lineó longeò thaî 10° characteró wilì  bå 
+  truncateä aó theù pasó througè ICE®  Onlù thå firsô 6´ oò 8° 
+  characteró  winä uğ oî thå screeî dependinç oî thå  terminaì 
+  used®   Actuallù  alì characteró iî á ro÷ arå displayeä  buô 
+  excesó characteró arå overwritteî wheî thå followinç linå ió 
+  written.
+
+- ICÅ  takeó  thå  namå oæ thå filå iô ió  tï  ediô  froí  thå  
+  commanä  line®   Iô  produceó  á filå witè aî  extensioî  oæ 
+  '%%%'®   Á  submiô  filå  calì ICE.SUÂ ió  useä  tï  dï  thå 
+  necessarù  deletå  anä renameó tï keeğ á backuğ oæ thå  filå 
+  beinç edited.
+
+- Youò attentioî ió drawî tï thå Morå anä Samå  commands®  Seå 
+  thå   Get_commanä   procedurå  anä  thå   commanä   executoò 
+  procedures®   Locatinç  typå commandó (e.g®  Find© arå saveä 
+  foò  recalì bù Morå anä actioî typå commandó  (e.g®  Change© 
+  arå saveä foò recalì bù Same.
+
+- Change and Line Change commands.
+  Examples:
+     c /xyz/abc		substitutes abc for xyzŠ     c /xyz		removes xyz from line
+     c //xyz		inserts xyz before first character of line
+     c /ab...cd/xyz	substitutes xyz for a string
+			starting with ab and ending with cd
+
+  Where:
+     /    representó  thå delimiteò - anù  printinç  characteò 
+          caî bå useä aó á delimiter.
+     ...  ió   ellipsió  whicè  indicateó  searcè  foò  strinç 
+          startinç witè characteró beforå ellipsió anä  endinç 
+          witè  characteró afteò ellipsis®   Eitheò oò botè oæ 
+          thå stringó associateä witè ellipsió maù bå omitted.
+
+  Thå  changå commanä substituteó foò thå firsô  occurencå  oæ 
+  thå keù string®   Linå Changå substituteó foò alì occurenceó 
+  oæ thå keù string.
+
+     lc ..!  would place ! between each of the characters
+                  of the original line.
+
+- Alì  oæ thå terminaì dependencieó arå isolateä iî á grouğ oæ 
+  procedureó aô thå enä oæ thå program® Aî ADM-3± supportó alì 
+  oæ thå requireä functions®  Scrolì uğ caî bå inplementeä  bù 
+  positioninç  thå  cursoò tï thå lasô linå oæ thå screeî  anä 
+  issuinç  á  linå feed®  Scrolì dowî caî  bå  implementeä  bù 
+  homeinç  thå  cursoò  anä  issuinç  aî  inserô  linå  escapå 
+  sequence®  Iô  does'ô matteò wherå scrolì uğ anä scrolì dowî 
+  leavå thå cursor.
+
+  Thå  PLÉ  ruî  timå systeí requireó á PUÔ SKIĞ  tï  bå  donå 
+  periodicallù sï aó tï keeğ itó outpuô bufferinç straight®  É 
+  puô thå puô skip'ó intï thå cursoò positioninç procedurå  aó 
+  thió  ió calleä frequently®   Wheî positioninç tï otheò thaî 
+  ro÷ ± á cursoò positioninç escapå sequencå tï thå linå abovå 
+  thå  desireä  linå  ió issueä anä thå  puô  skip'ó  carriagå 
+  returî anä linefeeä movå thå cursoò tï thå desireä line.
+
+

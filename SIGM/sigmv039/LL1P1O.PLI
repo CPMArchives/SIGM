@@ -1,0 +1,625 @@
+LL1P10: PROC;
+/****************************************************************
+*              LL(1) GRAMMAR ANALYZER - PHASE 1			*
+*PURPOSE:                                                       *
+*    THIS PROGRAM ANALYZES A LL(1) GRAMMAR GIVEN IN MODIFIED    *
+*    BNF FORMAT AND GENERATES THE INTERNAL FORM OF THE LAN-     *
+*    GUAGE FOR FURTHER PROCESSING.                              *
+*INPUT:                                                         *
+*OUTPUT:                                                        *
+*OUTLINE:                                                       *
+*REMARKS:                                                       *
+****************************************************************/
+
+/****************************************************************
+* * * * * * * * * * * COMMON DATA DEFINITIONS * * * * * * * * * *
+****************************************************************/
+
+/*	* * *  COMMON REPLACEMENTS  * * *	*/
+%REPLACE TRUE BY '1'B;
+%REPLACE FALSE BY '0'B;
+
+%INCLUDE 'LL1CMN.DCL';	/* GET COMMON AREAS. */
+
+/*	* * * SOURCE INPUT PARAMETERS * * *	*/
+          DCL  BGNCOL BIN(7) 		/* BEGINNING COLUMN NUMBER */
+               STATIC INITIAL(1);
+          DCL  ENDCOL BIN(7) 		/* ENDING COLUMN NUMBER */
+               STATIC INITIAL(80);
+          DCL  COLNUM BIN(7);		/* CURRENT COLUMN NUMBER */
+          DCL  LINNUM BIN(15);		/* CURRENT LINE NUMBER */
+          DCL  CURLIN CHAR(80) VARYING; /* CURRENT LINE */
+          DCL  NXTCOL BIN(7);           /* NEXT COLUMN NUMBER */
+	  DCL  ERRNUM BIN(15)		/* NUMBER OF ERRORS */
+	       STATIC INITIAL(0);
+
+/*	* * * TOKEN VARIABLES * * *		*/
+	  DCL  1 TOKEN_POSITION,	/* TOKEN POSITION IN TEXT */
+	         2 COL BIN(7),
+	         2 LIN BIN(15);
+	  DCL TOKEN_TYPE BIN(7);	/* TYPE OF TOKEN */
+					/* 01 - IDENTIFIER        */
+					/* 02 - STRING    	  */
+					/* 03 - ';'       	  */
+					/* 04 - '->'              */
+					/* 05 - EOF               */
+	  DCL TOKEN_STRING CHAR(10)	/* TOKEN STRING */
+			VARYING;
+	  DCL TOKEN_VOC BIN(15);	/* VOCABULARY PTR */
+	  DCL TOKEN_RHS BIT(1);		/* RIGHT HAND SIDE OF EQUATION */
+
+/*	* * * FILES * * *		*/
+	  DCL  SRC_FILE FILE;           /* OUTPUT LIST FILE       */
+          DCL  SRC_END BIT(1) STATIC    /*   "     "    "   INDICATOR */
+               INITIAL(FALSE);
+          DCL  SRC_OPEN BIT(1) STATIC   /*   "     "    "   INDICATOR */
+               INITIAL(FALSE);
+
+/****************************************************************
+* * * * * * * * * * * COMMON PROCUDURES * * * * * * * * * * * * *
+****************************************************************/
+
+%INCLUDE 'LL1PRC.DCL';
+
+CLOSE_SRC:   PROC ;
+/*THIS ROUTINE IS RESPONSIBLE FOR CLOSING THE INPUT FILE.    */
+
+/* CLOSE THE FILE. */
+          IF SRC_OPEN=TRUE THEN        /*OPEN FILE IF NECESSARY*/
+               DO;
+                    CLOSE FILE(SRC_FILE);
+                    SRC_OPEN=FALSE;
+               END;
+
+/* RETURN TO CALLER. */
+          END CLOSE_SRC;
+
+
+ENTER_VOC: PROC RETURNS(BIN(15));
+/* THIS ROUTINE IS RESPONSIBLE FOR ADDING THE CURRENT */
+/* TOKEN TO THE VOCABULARY IF IT ISN'T THERE ALREADY. */
+
+     DCL  I BIN(15);               /* LOOP INDEX */
+     DCL  J BIN(15);               /* LOOP INDEX */
+
+/*   SEARCH THE CURRENT VOCABULARY FOR THE TOKEN. */
+     J=0;			/* DEFAULT TO NOT FOUND. */
+     IF NUMVOC~=0 THEN		/**VOCABULARY EXISTS.**/
+          DO I=1 TO NUMVOC;
+             IF TOKEN_STRING=VOC(I) THEN
+                  DO;
+                     J=I;
+		     I=NUMVOC;
+                  END;
+          END;
+
+/*   ADD THE TOKEN IF IT WASN'T FOUND. */
+     IF J=0 THEN		/**DIDN'T EXIST**/
+          DO;
+	     NUMVOC=NUMVOC+1;
+	     VOC(NUMVOC)=TOKEN_STRING;
+             IF TOKEN_TYPE=1 THEN	/**IDENTIFIER**/
+                  DO;
+                     NTRM=NTRM || NUMCHR(NUMVOC);
+                  END;
+             IF TOKEN_TYPE=2 THEN	/**STRING**/
+                  DO;
+		     TRM=TRM || NUMCHR(NUMVOC);
+                  END;
+	     J=NUMVOC;		/*SET PTR TO IT.*/
+             IF TRACE1(2)=TRUE THEN
+                  DO;
+                     CALL PUTLST(0,'ADDED VOC:'||NUMVOC||' '||TOKEN_STRING);
+                  END;
+          END;
+
+/*   RETURN TO CALLER WITH ENTRY NUMBER. */
+     IF TRACE1(2)=TRUE THEN
+        DO;
+           CALL PUTLST(0,'ENTER_VOC:'||J);
+        END;
+     RETURN(J);
+     END  ENTER_VOC;
+
+
+ERROR:    PROC (ERROR_NUM,LINE_NUMBER,COL_NUMBER);
+/* THIS ROUTINE IS RESPONSIBLE FOR PUTTING ERRORS TO THE */
+/* SOURCE LISTING FILE AS THEY ARE FOUND.                */
+
+     DCL  ERROR_NUM BIN(15),       /* ERROR NUMBER */
+          LINE_NUMBER BIN(15),     /* LINE NUMBER FOR ERROR */
+          COL_NUMBER BIN(15);      /* COLUMN NUMBER FOR ERROR */
+     DCL  LINE_OUT CHAR(80) VARYING;
+     DCL  I FIXED;                 /* LOOP INDEX */
+
+/*   SET UP LINE SHOWING ERROR. */
+     LINE_OUT='';                  /* ZERO OUTPUT LINE. */
+     IF LINE_NUMBER=LINNUM THEN    /* INDICATE COLUMN NO. */
+          DO;
+               IF COL_NUMBER>1 THEN
+                  DO I=1 TO COL_NUMBER;
+                     LINE_OUT=LINE_OUT || ' ';
+                  END;
+               LINE_OUT=LINE_OUT || '!ERROR' || CHAR(ERROR_NUM);
+          END;
+     ELSE                          /* ERROR NOT ON CURRENT LINE */
+          DO;
+               LINE_OUT='ERROR' || CHAR(ERROR_NUM) || ' AT COL' ||
+                    CHAR(COL_NUMBER) || 'ON LINE' || CHAR(LINE_NUMBER);
+          END;
+
+/*   PUT THE LINE AND RETURN. */
+     CALL PUTLST(0,LINE_OUT);
+
+/*   BUMP ERROR COUNT AND QUIT IF TOO MANY. */
+     ERRNUM = ERRNUM +1;
+     IF ERRNUM>50 THEN
+          STOP;
+
+     END  ERROR;
+
+
+GETGMR:   PROC;
+/*THIS ROUTINE IS RESPONSIBLE FOR READING IN THE GRAMMAR.  */
+
+/* PROCESS THE GRAMMAR ACCORDING THE PRODUCTION RULES. */
+	  CALL PROD_GRMR;
+
+          END  GETGMR;
+
+
+GETLIN:   PROC;
+/*THIS ROUTINE IS RESPONSIBLE FOR GETTING THE NEXT LINE FROM   */
+/*THE SOURCE FILE.  LINES ARE PRINTED IF THE FLAG IS SET.      */
+/*COMMENTS ARE HANDLES AS WELL AS DOLLAR FLAGS.  BLANK LINES   */
+/*ARE MERELY PRINTED AND OTHERWISE DISREGARDED.                */
+
+/* RETURN IF EOF ALREADY. */
+          IF SRC_END=TRUE THEN
+             RETURN;
+
+/* HANDLE END OF FILE CONDITION. */
+          ON ENDFILE(SRC_FILE)
+               BEGIN;
+                    SRC_END=TRUE;
+               END;
+
+/* GET THE NEXT LINE OF INPUT. */
+READ_NEXT:
+          READ FILE(SRC_FILE) INTO (CURLIN);
+          IF SRC_END=FALSE THEN           /*REMOVE CP/M CR,LF. */
+               DO;
+                    CURLIN=SUBSTR(CURLIN,1,LENGTH(CURLIN)-2);
+               END;
+          ELSE
+               DO;
+                  CURLIN='';
+                  RETURN;
+               END;
+
+/* RESET PTRS. */
+          COLNUM=1;
+          LINNUM=LINNUM+1;
+
+/* PRINT THE LINE IF NECESSARY. */
+          IF FLAGS1(1)=TRUE THEN
+             CALL PUTLST(LINNUM,CURLIN);
+          IF CURLIN='' | SUBSTR(CURLIN,BGNCOL,1)='$' THEN
+             GOTO READ_NEXT;
+
+/* RETURN TO CALLER. */
+          END  GETLIN;
+
+
+GETTOK:   PROC;
+/*THIS ROUTINE IS RESPONSIBLE FOR GETTING THE NEXT TOKEN FROM  */
+/*THE SOURCE FILE.                                             */
+          DCL  I BIN(7);      /* INDEX */
+
+/* GET THE NEXT LINE IF NECESSARY. */
+          COLNUM=NXTCOL;
+GETTOK_NEWLINE:
+          IF COLNUM>LENGTH(CURLIN) THEN
+             CALL GETLIN;
+      
+/* IF END-OF-FILE, THEN RETURN. */
+          IF SRC_END=TRUE THEN
+             DO;
+                TOKEN_TYPE=5;
+		TOKEN_STRING='';
+                RETURN;
+             END;
+
+/* BYPASS LEADING BLANKS. */
+	DO WHILE(COLNUM<=LENGTH(CURLIN) & 
+		 SUBSTR(CURLIN,COLNUM,1)=' ');
+	   COLNUM=COLNUM+1;
+	END;
+        IF COLNUM>LENGTH(CURLIN) THEN
+           GOTO GETTOK_NEWLINE;
+
+/* SAVE TEXT POSITION. */
+	  TOKEN_POSITION.COL=COLNUM;
+	  TOKEN_POSITION.LIN=LINNUM;
+          IF TRACE1(1)=TRUE THEN
+             DO;
+                CALL PUTLST(0,'GETTOK:NEXT CHAR='||SUBSTR(CURLIN,COLNUM,1));
+                CALL PUTLST(0,'GETTOK:COLNUM='||COLNUM);
+             END;
+
+/*** CHECK FOR VARIOUS TYPES ***/
+/** COMMENTS OR FLAG LINES **/
+          IF SUBSTR(CURLIN,COLNUM,1)='$' THEN
+             DO;
+               IF LENGTH(CURLIN)>COLNUM+2 &
+		  SUBSTR(CURLIN,COLNUM+1,1)~=' ' THEN
+                  IF SUBSTR(CURLIN,COLNUM+1,1)='1' THEN
+                     FLAGS1(SUBSTR(CURLIN,COLNUM+2,1)-RANK('A')+1)=
+                         ~FLAGS1(SUBSTR(CURLIN,COLNUM+2,1)-RANK('A')+1);
+                  ELSE IF SUBSTR(CURLIN,COLNUM+1,1)='2' THEN
+                     FLAGS2(SUBSTR(CURLIN,COLNUM+2,1)-RANK('A')+1)=
+                         ~FLAGS2(SUBSTR(CURLIN,COLNUM+2,1)-RANK('A')+1);
+                COLNUM=LENGTH(CURLIN);   /* FORCE SCAN TO A NEW LINE. */
+		GOTO GETTOK_NEWLINE;
+             END;
+
+/** IDENTIFIER **/
+	  ELSE IF SUBSTR(CURLIN,COLNUM,1)='<' THEN
+	     DO;
+		I=INDEX(SUBSTR(CURLIN,COLNUM+1),'>');
+		IF I=0 THEN
+                   DO;
+                      CALL ERROR(21,LINNUM,TOKEN_POSITION.COL);
+                      CALL GETLIN;
+                      NXTCOL=1;
+                   END;
+                ELSE
+                   DO;
+                      I=I+COLNUM-1;
+                      IF TRACE1(1)=TRUE THEN
+                         CALL PUTLST(0,'GETTOK:IDENTIFIER_I='||I);
+                      TOKEN_STRING=SUBSTR(CURLIN,COLNUM,I-COLNUM+2);
+                      TOKEN_TYPE=01;
+                      NXTCOL=I+2;
+                   END;
+	     END;
+
+/** STRING **/
+	  ELSE IF SUBSTR(CURLIN,COLNUM,1)='''' THEN
+	     DO;
+                I=INDEX(SUBSTR(CURLIN,COLNUM+1),'''');
+		IF I=0 THEN
+                   DO;
+                      CALL ERROR(22,LINNUM,TOKEN_POSITION.COL);
+                      CALL GETLIN;
+                      NXTCOL=1;
+                   END;
+                ELSE
+                   DO;
+                      I=I+COLNUM-1;
+                      IF TRACE1(1)=TRUE THEN
+                         CALL PUTLST(0,'GETTOK:STRING_I='||I);
+                      TOKEN_STRING=SUBSTR(CURLIN,COLNUM,I-COLNUM+2);
+                      TOKEN_TYPE=02;
+                      NXTCOL=I+2;
+                   END;
+	     END;
+
+/** RULE SEPERATOR **/
+	  ELSE IF SUBSTR(CURLIN,COLNUM,1)=';' THEN
+	     DO;
+                TOKEN_STRING=';';
+                TOKEN_TYPE=03;
+                NXTCOL=COLNUM+1;
+	     END;
+
+/** ALTERNATIVE SEPERATOR **/
+	  ELSE IF SUBSTR(CURLIN,COLNUM,2)='->' THEN
+	     DO;
+                TOKEN_STRING='->';
+                TOKEN_TYPE=04;
+                NXTCOL=COLNUM+2;
+	     END;
+
+/** ERROR **/
+	  ELSE
+	     DO;
+                CALL ERROR(25,LINNUM,TOKEN_POSITION.COL);
+                CALL GETLIN;
+                NXTCOL=1;
+	     END;
+
+/* TRACE CALL IF NECESSARY. */
+          IF TRACE1(1)=TRUE THEN
+             DO;
+                CALL PUTLST(0,'GETTOK:TOKEN: '||TOKEN_STRING);
+                CALL PUTLST(0,'GETTOK:TOKEN TYPE: '||TOKEN_TYPE);
+             END;
+
+/* RETURN TO CALLER. */
+          END  GETTOK;
+
+
+OPEN_SRC:   PROC ;
+/*THIS ROUTINE IS RESPONSIBLE FOR OPENING THE OUTPUT LISTING */
+/* FILE.                                                     */
+
+/* OPEN THE FILE. */
+     OPEN FILE(SRC_FILE) INPUT TITLE('$1.GMR');
+     SRC_OPEN=TRUE;
+     SRC_END=FALSE;
+     LINNUM=0;
+
+/* RETURN TO CALLER. */
+          END OPEN_SRC;
+
+
+PRINT_TABLES: PROC;
+/*THIS ROUTINE IS RESPONSIBLE FOR PRINTING THE INTERNAL TABLES. */
+	DCL I BIN(15);
+	DCL J BIN(15);
+
+/* LIST THE VOCABULARY. */
+	CALL PUTLST(0,'*** VOCABULARY ***');
+	DO I=1 TO NUMVOC;
+	   CALL PUTLST(0,I||' '||VOC(I));
+	END;
+
+/* LIST THE TERMINAL TABLE. */
+	CALL PUTLST(0,'*** TERMINAL INDEX ***');
+	DO I=1 TO LENGTH(TRM);
+	   CALL PUTLST(0,I||' '||CHRNUM(SUBSTR(TRM,I,1)));
+	END;
+
+/* LIST THE NON-TERMINAL TABLE. */
+	CALL PUTLST(0,'*** NON-TERMINAL INDEX ***');
+	DO I=1 TO LENGTH(NTRM);
+	   CALL PUTLST(0,I||' '||CHRNUM(SUBSTR(NTRM,I,1)));
+	END;
+
+/* LIST THE PRODUCTION TABLE. */
+	CALL PUTLST(0,'*** PRODUCTION INDEX ***');
+	DO I=1 TO NUMPRD;
+	   CALL PUTLST(0,I||' '||CHRNUM(SUBSTR(LHS(I),1,1)));
+	   IF LENGTH(RHS(I))=0 THEN
+	      ;
+	   ELSE
+	      DO J=1 TO LENGTH(RHS(I));
+	         CALL PUTLST(0,'           '||CHRNUM(SUBSTR(RHS(I),J,1)));
+	      END;
+	END;
+
+          END  PRINT_TABLES;
+
+
+PUTLST:   PROC (CURRENT_LINE_NUMBER,LINE_OUT);
+/*THIS ROUTINE IS RESPONSIBLE FOR PUTTING A LINE TO THE SOURCE */
+/*LISTING FILE.                                                */
+          DCL  CURRENT_LINE_NUMBER BIN(15);
+          DCL  LINE_OUT CHAR(80) VARYING;
+
+          IF FLAGS1(1)=FALSE THEN         /*NO LISTING DESIRED*/
+               RETURN;
+
+          ON ENDPAGE(LSTFIL)         /*PRINT HEADING*/
+               BEGIN;
+                    PUT FILE(LSTFIL) PAGE;
+               END;
+
+          IF CURRENT_LINE_NUMBER=0 THEN
+               PUT FILE(LSTFIL) SKIP EDIT ('*****',LINE_OUT)
+                    (A(5),X(1),A);
+          ELSE
+               PUT FILE(LSTFIL) SKIP EDIT (CURRENT_LINE_NUMBER,LINE_OUT)
+                    (F(5),X(1),A);
+
+          END  PUTLST;
+
+
+/****************************************************************
+* * * * * * * * * * * GRAMMAR ANALYSIS PROCUDURES * * * * * * * *
+****************************************************************/
+
+PROD_GRMR:   PROC ;
+/*THIS ROUTINE IS RESPONSIBLE FOR HANDLING THE PRODUCTION    */
+/* RULE: <GRAMMAR> -> <RULES> '<EOF>';                       */
+
+/* HANDLE THE RULES. */
+          CALL PROD_RULES;
+
+/* HANDLE THE <EOF>. */
+          IF TOKEN_TYPE~=5 THEN
+             CALL ERROR(05,TOKEN_POSITION.LIN,TOKEN_POSITION.COL);
+
+/* RETURN TO CALLER. */
+          END PROD_GRMR;
+
+
+PROD_RULES:  PROC ;
+/*THIS ROUTINE IS RESPONSIBLE FOR HANDLING THE PRODUCTION    */
+/* RULE: <RULES> -> <RULE> <RULES> | <RULE> ;                */
+
+/* HANDLE THE RULE. */
+	  NUMPRD=0;
+          DO WHILE(TOKEN_TYPE=1);
+	     NUMPRD=NUMPRD+1;
+             CALL PROD_RULE;
+          END;
+
+/* RETURN TO CALLER. */
+          END PROD_RULES;
+
+
+PROD_RULE:  PROC ;
+/*THIS ROUTINE IS RESPONSIBLE FOR HANDLING THE PRODUCTION    */
+/* RULE: <RULE> -> <LP> <ALTS> ';' ;                         */
+
+/* HANDLE THE LP. */
+	  TOKEN_RHS=FALSE;	/*INDICATE GETTING LEFT PART.*/
+          CALL PROD_LP;
+
+/* HANDLE THE ALTS. */
+	  TOKEN_RHS=TRUE;	/*INDICATE GETTING RIGHT PART.*/
+          CALL PROD_ALTS;
+
+/* HANDLE THE ';'. */
+          IF TOKEN_TYPE=3 THEN  /**';'**/
+             DO;
+                CALL GETTOK;  /* READ IN THE NEXT TOKEN. */
+             END;
+          ELSE
+             CALL ERROR(03,TOKEN_POSITION.LIN,TOKEN_POSITION.COL);
+
+/* RETURN TO CALLER. */
+          END PROD_RULE;
+
+
+PROD_LP:  PROC ;
+/*THIS ROUTINE IS RESPONSIBLE FOR HANDLING THE PRODUCTION    */
+/* RULE: <LP> -> <NT> ;                                      */
+
+/* HANDLE THE NT. */
+          CALL PROD_NT;
+
+/* RETURN TO CALLER. */
+          END PROD_LP;
+
+
+PROD_ALTS:  PROC ;
+/*THIS ROUTINE IS RESPONSIBLE FOR HANDLING THE PRODUCTION    */
+/* RULE: <ALTS> -> <ALT> <ALTS> | <ALT>;                     */
+
+/* HANDLE THE ALT. */
+          DO WHILE(TOKEN_TYPE=4); /**'->'**/
+             CALL PROD_ALT;
+          END;
+
+/* RETURN TO CALLER. */
+          END PROD_ALTS;
+
+
+PROD_ALT:  PROC ;
+/*THIS ROUTINE IS RESPONSIBLE FOR HANDLING THE PRODUCTION    */
+/* RULE: <ALT> -> '->' <RP> ;                                */
+
+/* HANDLE THE '->'. */
+          IF TOKEN_TYPE=4 THEN  /**'->'**/
+             DO;
+                CALL GETTOK;  /* READ IN THE NEXT TOKEN. */
+             END;
+          ELSE
+             CALL ERROR(04,TOKEN_POSITION.LIN,TOKEN_POSITION.COL);
+
+/* HANDLE THE <RP>. */
+          CALL PROD_RP;
+
+/* RETURN TO CALLER. */
+          END PROD_ALT;
+
+
+PROD_RP:  PROC ;
+/*THIS ROUTINE IS RESPONSIBLE FOR HANDLING THE PRODUCTION    */
+/* RULE: <RP> -> <NT> <RP> | <NT> | <T> <RP> | <T> | ;       */
+
+/* HANDLE THE <NT> OR <T>. */
+          DO WHILE(TOKEN_TYPE=1 | TOKEN_TYPE=2);
+             IF TOKEN_TYPE=1 THEN
+                CALL PROD_NT;
+             ELSE IF TOKEN_TYPE=2 THEN
+                CALL PROD_T;
+          END;
+
+/* RETURN TO CALLER. */
+          END PROD_RP;
+
+
+PROD_NT:  PROC ;
+/*THIS ROUTINE IS RESPONSIBLE FOR HANDLING THE PRODUCTION    */
+/* RULE: <NT> -> '<IDENTIFIER>';                             */
+
+/* HANDLE THE '<IDENTIFIER>'. */
+          IF TOKEN_TYPE=1 THEN  /**'<IDENTIFIER>'**/
+             DO;
+		TOKEN_VOC=ENTER_VOC();  /*GET VOC INDEX FOR TOKEN.*/
+		IF TOKEN_RHS=TRUE THEN /**RIGHT PART**/
+		   DO;
+		      RHS(NUMPRD)=RHS(NUMPRD) || NUMCHR(TOKEN_VOC);
+		   END;
+		ELSE			/**LEFT PART**/
+		   DO;
+		      LHS(NUMPRD)=NUMCHR(TOKEN_VOC);
+		   END;
+                CALL GETTOK;  /* READ IN THE NEXT TOKEN. */
+             END;
+          ELSE
+             CALL ERROR(01,TOKEN_POSITION.LIN,TOKEN_POSITION.COL);
+
+/* RETURN TO CALLER. */
+          END PROD_NT;
+
+
+PROD_T:  PROC ;
+/*THIS ROUTINE IS RESPONSIBLE FOR HANDLING THE PRODUCTION    */
+/* RULE: <T> -> '<STRING>';                                  */
+	DCL K BIT(16);
+	DCL L CHAR;
+
+/* HANDLE THE '<STRING>'. */
+          IF TOKEN_TYPE=2 THEN  /**'<STRING>'**/
+             DO;
+		TOKEN_VOC=ENTER_VOC();  /*GET VOC INDEX FOR TOKEN.*/
+		K=UNSPEC(TOKEN_VOC);
+		UNSPEC(L)=SUBSTR(K,9,8);
+		IF TOKEN_RHS=TRUE THEN /**RIGHT PART**/
+		   DO;
+		      RHS(NUMPRD)=RHS(NUMPRD) ||L;
+		   END;
+		ELSE			/**LEFT PART**/
+		   DO;
+		      CALL ERROR(02,TOKEN_POSITION.LIN,TOKEN_POSITION.COL);
+		   END;
+                CALL GETTOK;  /* READ IN THE NEXT TOKEN. */
+             END;
+          ELSE
+             CALL ERROR(02,TOKEN_POSITION.LIN,TOKEN_POSITION.COL);
+
+/* RETURN TO CALLER. */
+          END PROD_T;
+
+
+/****************************************************************
+* * * * * * * * * * * MAIN LINE PROCEDURE * * * * * * * * * * * *
+****************************************************************/
+
+/* DO INITIALIZATION. */
+      PUT SKIP LIST('BEGINNING PHASE 1 PROCESSING.');
+      CALL OPEN_SRC;           /* OPEN GRAMMAR INPUT FILE. */
+      CALL GETLIN;             /* GET THE FIRST LINE. */
+      NXTCOL=01;               /* SET NEXT COLUMN FIRST TIME THRU. */
+
+/* PROCESS ALL INPUT LINES. */
+     CALL GETTOK;              /* GET THE FIRST TOKEN. */
+     CALL GETGMR;              /* READ IN THE GRAMMAR. */
+
+/* RETURN TO CALLER. */
+     CALL PUTLST(0,'NUMBER OF PRODUCTIONS:'||NUMPRD);
+     CALL PUTLST(0,'NUMBER OF TERMINALS:'||LENGTH(TRM));
+     CALL PUTLST(0,'NUMBER OF NON-TERMINALS:'||LENGTH(NTRM));
+     CALL PUTLST(0,'NUMBER OF ERRORS:'||ERRNUM);
+     CALL PUTLST(0,'INPUT OF GRAMMAR COMPLETE.');
+     IF FLAGS1(2)=TRUE THEN
+	CALL PRINT_TABLES;
+     CALL CLOSE_SRC;           /* CLOSE FILES. */
+	PUT SKIP LIST('NUMBER OF PRODUCTIONS:',NUMPRD);
+	PUT SKIP LIST('NUMBER OF TERMINALS:',LENGTH(TRM));
+	PUT SKIP LIST('NUMBER OF NON-TERMINALS:',LENGTH(NTRM));
+     IF ERRNUM>0 THEN          /* TERMINATE IF ERRORS. */
+        DO;
+	   PUT SKIP LIST(ERRNUM||' ERRORS ENCOUNTERED.');
+	   STOP;
+	END;
+     PUT SKIP LIST('PHASE 1 PROCESSING COMPLETE - NO ERRORS.');
+     END LL1P10;
+
+
+

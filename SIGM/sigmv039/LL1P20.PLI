@@ -1,0 +1,233 @@
+LL1P20: PROC;
+/****************************************************************
+*              LL(1) GRAMMAR ANALYZER - PHASE 2			*
+*PURPOSE:                                                       *
+*    THIS PROGRAM SORTS THE VOCABULARY AND PRINTS THE INTERNAL  *
+*    FORM OF THE LANGUAGE IN A BNF FORMAT.			*
+*INPUT:                                                         *
+*OUTPUT:                                                        *
+*OUTLINE:                                                       *
+*REMARKS:                                                       *
+****************************************************************/
+
+/****************************************************************
+* * * * * * * * * * * COMMON DATA DEFINITIONS * * * * * * * * * *
+****************************************************************/
+
+/*	* * *  COMMON REPLACEMENTS  * * *	*/
+%REPLACE TRUE BY '1'B;
+%REPLACE FALSE BY '0'B;
+
+%INCLUDE 'LL1CMN.DCL';	/* GET COMMON AREAS. */
+
+/****************************************************************
+* * * * * * * * * * * COMMON PROCUDURES * * * * * * * * * * * * *
+****************************************************************/
+
+
+%INCLUDE 'LL1PRC.DCL';
+
+
+/****************************************************************
+* * * * * * * * * * * GRAMMAR PRINT PROCUDURES * * * * * * * * **
+****************************************************************/
+
+PRINT_PRODUCTIONS: PROC;
+/*THIS ROUTINE IS RESPONSIBLE FOR PRINTING THE VOCABULARY. */
+	DCL I BIN(15);		/* INDEXES */
+	DCL J BIN(15);
+	DCL NUM_LINES BIN(15);	/* MAXIMUM NUMBER OF LINES */
+	DCL LHS_ENT CHAR(10) VARYING;
+	DCL RHS_ENT(5) CHAR(10) VARYING;
+
+/* OUTPUT THE HEADING. */
+	ON ENDPAGE(LSTFIL)
+	   BEGIN;
+	      PUT FILE(LSTFIL) PAGE;
+	      PUT FILE(LSTFIL) SKIP(3) 
+		  EDIT('*** PRODUCTION LISTING ***','PAGE',
+			PAGENO(LSTFIL)-1)
+		  (X(20),A(26),X(10),A(4),F(4));
+	      PUT FILE(LSTFIL) SKIP(1);
+	   END;
+	SIGNAL ENDPAGE(LSTFIL);
+
+/* PRINT THE REPORT LINES. */
+	PUT FILE(LSTFIL) SKIP(1)
+		  EDIT('STARTING SYMBOL: ',VOC(CHRNUM(STRSYM)))
+		  (X(14),A(17),A(10));
+	DO I=1 TO NUMPRD;
+	   LHS_ENT=VOC(CHRNUM(LHS(I)));
+	   DO J=1 TO 5;
+	      IF J>LENGTH(RHS(I)) THEN
+	         RHS_ENT(J)='';
+	      ELSE
+	         RHS_ENT(J)=VOC(CHRNUM(SUBSTR(RHS(I),J,1)));
+	   END;
+	   PUT FILE(LSTFIL) SKIP(1)
+	       EDIT(I,LHS_ENT,' -> ',(RHS_ENT(J) DO J=1 TO 5),';')
+		  (F(4),X(01),A,A(04),5(A,X(01)),A(1));
+	END;
+
+        END  PRINT_PRODUCTIONS;
+
+
+PRINT_VOCABULARY: PROC;
+/*THIS ROUTINE IS RESPONSIBLE FOR PRINTING THE VOCABULARY. */
+	DCL I BIN(15);		/* INDEXES */
+	DCL J BIN(15);
+	DCL NUM_LINES BIN(15);	/* MAXIMUM NUMBER OF LINES */
+	DCL TRM_ENT CHAR(10) VARYING;
+	DCL NTRM_ENT CHAR(10) VARYING;
+
+/* DETERMINE MAX LENGTH FOR LOOP. */
+	IF LENGTH(TRM)>LENGTH(NTRM) THEN
+	   NUM_LINES=LENGTH(TRM);
+	ELSE
+	   NUM_LINES=LENGTH(NTRM);
+
+/* OUTPUT THE HEADING. */
+	ON ENDPAGE(LSTFIL)
+	   BEGIN;
+	      PUT FILE(LSTFIL) PAGE;
+	      PUT FILE(LSTFIL) SKIP(3) 
+		  EDIT('*** VOCABULARY LISTING ***','PAGE',
+			PAGENO(LSTFIL)-1)
+		  (X(20),A(26),X(10),A(4),F(4));
+	      PUT FILE(LSTFIL) SKIP(1)
+		  EDIT('TERMINALS','NON-TERMINALS')
+		  (X(19),A(10),X(05),A(13));
+	      PUT FILE(LSTFIL) SKIP(1);
+	   END;
+	SIGNAL ENDPAGE(LSTFIL);
+
+/* PRINT THE REPORT LINES. */
+	DO I=1 TO NUM_LINES;
+	   IF I>LENGTH(TRM) THEN	/* GET TERMINAL ENTRY.*/
+	      TRM_ENT='';
+	   ELSE
+	      TRM_ENT=VOC(CHRNUM(SUBSTR(TRM,I,1)));
+	   IF I>LENGTH(NTRM) THEN	/* GET NON-TERMINAL ENTRY.*/
+	      NTRM_ENT='';
+	   ELSE
+	      NTRM_ENT=VOC(CHRNUM(SUBSTR(NTRM,I,1)));
+	      PUT FILE(LSTFIL) SKIP(1)
+		  EDIT(I,TRM_ENT,NTRM_ENT)
+		  (X(14),F(4),X(01),A(10),X(05),A(10));
+	END;
+
+          END  PRINT_VOCABULARY;
+
+
+SORT_VOCABULARY: PROC;
+/*THIS ROUTINE IS RESPONSIBLE FOR SORTING THE VOCABULARY. */
+/*IT SORTS:
+		1) NON-TERMINAL VS TERMINAL
+		   2) SYMBOL
+/*THEN IT UPDATES ALL THE TABLES TO REFLECT THE NEW ORDER. */
+
+	DCL I BIN(15);		/* INDEXES */
+	DCL J BIN(15);
+	DCL SORT_FLAG BIT(1);
+	DCL 1 VOC_INDEX(254),	/* SORT INDEX FOR VOCABULARY */
+	    2 TRM_IND BIT(1),	/* 0=NON-TERMINAL 1=TERMINAL */
+	    2 SYM_LEN BIN(7),   /* SYMBOL LENGTH */
+	    2 ORIG CHAR;	/* ORIGINAL ORDER */
+	DCL 1 TMP_INDEX,	/* TEMP AREA FOR BUBBLE SORT */
+	    2 TRM_IND BIT(1),	/* 0=NON-TERMINAL 1=TERMINAL */
+	    2 SYM_LEN BIN(7),   /* SYMBOL LENGTH */
+	    2 ORIG CHAR;	/* ORIGINAL ORDER */
+	DCL TMP_VOC(254) CHAR(10) VARYING;
+	DCL TMP_REORG(254) BIN(15);
+
+/* BUILD SORT INDEX. */
+	STRSYM=SUBSTR(NTRM,1,1); /*STARTING SYMBOL*/
+	DO I=1 TO NUMVOC;
+	   VOC_INDEX.TRM_IND(I)=ISTRM(NUMCHR(I));
+	   VOC_INDEX.SYM_LEN(I)=LENGTH(VOC(I));
+	   VOC_INDEX.ORIG(I)=NUMCHR(I);
+	END;
+
+/* BUBBLE SORT THE INDEX. */
+	SORT_FLAG=TRUE;
+	DO WHILE(SORT_FLAG=TRUE);
+	   SORT_FLAG=FALSE;
+	   DO I=1 TO NUMVOC-1;
+	      IF VOC_INDEX.TRM_IND(I)=TRUE &
+		 VOC_INDEX.TRM_IND(I+1)=FALSE THEN
+	         DO;
+		    TMP_INDEX=VOC_INDEX(I);
+		    VOC_INDEX(I)=VOC_INDEX(I+1);
+		    VOC_INDEX(I+1)=TMP_INDEX;
+		    SORT_FLAG=TRUE;
+		 END;
+	      ELSE
+		 IF VOC_INDEX.TRM_IND(I)=VOC_INDEX.TRM_IND(I+1) THEN
+		    IF VOC(CHRNUM(VOC_INDEX.ORIG(I))) >
+			VOC(CHRNUM(VOC_INDEX.ORIG(I+1))) THEN
+	               DO;
+		          TMP_INDEX=VOC_INDEX(I);
+		          VOC_INDEX(I)=VOC_INDEX(I+1);
+		          VOC_INDEX(I+1)=TMP_INDEX;
+		          SORT_FLAG=TRUE;
+		       END;
+	   END;
+	END;
+
+/* PUT THE VOCABULARY TABLE IN ORDER SPECIFIED BY THE SORT. */
+	DO I=1 TO NUMVOC;
+	   TMP_VOC(I)=VOC(CHRNUM(VOC_INDEX.ORIG(I)));
+	END;
+	DO I=1 TO NUMVOC;
+	   VOC(I)=TMP_VOC(I);
+	END;
+
+
+/* PUT THE NON-TERMINAL TABLE IN ORDER SPECIFIED BY THE SORT. */
+	NTRM='';
+	DO I=1 TO NUMVOC;
+	   IF VOC_INDEX.TRM_IND(I)=FALSE THEN
+	      NTRM=NTRM || NUMCHR(I);
+	END;
+
+/* PUT THE TERMINAL TABLE IN ORDER SPECIFIED BY THE SORT. */
+	TRM='';
+	DO I=1 TO NUMVOC;
+	   IF VOC_INDEX.TRM_IND(I)=TRUE THEN
+	      TRM=TRM || NUMCHR(I);
+	END;
+
+/* TRANSLATE THE PRODUCTIONS ARRAY TO THE NEW INDEX. */
+	DO I=1 TO NUMVOC;
+	   TMP_REORG(CHRNUM(VOC_INDEX.ORIG(I)))=I;
+	END;
+	DO I=1 TO NUMPRD;
+	   LHS(I)=NUMCHR(TMP_REORG(CHRNUM(LHS(I))));
+	   IF LENGTH(RHS(I))>0 THEN
+	      DO J=1 TO LENGTH(RHS(I));
+		 SUBSTR(RHS(I),J,1)=NUMCHR(TMP_REORG(CHRNUM(
+				    SUBSTR(RHS(I),J,1))));
+	      END;
+	END;
+	STRSYM=NUMCHR(TMP_REORG(CHRNUM(STRSYM))); /*STARTING SYMBOL*/
+
+/* RETURN TO CALLER. */
+          END  SORT_VOCABULARY;
+
+
+/****************************************************************
+* * * * * * * * * * * MAIN LINE PROCEDURE * * * * * * * * * * * *
+****************************************************************/
+
+/* DO INITIALIZATION. */
+      PUT SKIP LIST('BEGINNING PHASE 2 PROCESSING.');
+
+/* PRINT THE GRAMMAR. */
+     CALL SORT_VOCABULARY;
+     CALL PRINT_VOCABULARY;    /* PRINT THE VOCABULARY. */
+     CALL PRINT_PRODUCTIONS;   /* PRINT THE PRODUCTIONS. */
+
+/* RETURN TO CALLER. */
+     PUT SKIP LIST('PHASE 2 PROCESSING COMPLETE - NO ERRORS.');
+     END LL1P20;
+

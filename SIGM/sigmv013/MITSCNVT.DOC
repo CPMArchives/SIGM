@@ -1,0 +1,169 @@
+	Thió elemenô containó thå documentatioî foò MITSCNVT.
+
+MITSCNVÔ  ió á prograí whicè operateó undeò CP/Í anä enableó  thå 
+useò  tï  lisô thå directorù anä converô MITÓ ALTAIÒ  (TÍ  Perteã 
+Computeò  Corp© disë fileó tï CP/Í files®   Thå reasoî conversioî 
+ió  requireä ió thaô thå disë formató arå differenô anä thaô  thå 
+ALTAIÒ DISË ió á harä sectoreä disë whicè containó 3² sectoró  oæ 
+13· byteó eacè peò track® Á CP/Í compatablå disë ió sofô sectoreä 
+anä ió composeä oæ 2¸ sectoró oæ 12¸ oò 25¶ byteó eacè sector.
+
+Thå ALTAIÒ disë ió capablå oæ containinç á 25µ entrù directorù oî 
+eacè disë anä eacè directorù entrù "points¢ tï á threadeä lisô oæ 
+sectors®   Iî ordeò tï ensurå thå integritù oæ thå threadeä list¬ 
+eacè sectoò iî thå lisô containó á singlå bytå whicè ió thå "filå 
+number¢  - aî integeò calculateä froí thå locuó oæ thå  directorù 
+entry®   If¬  durinç  operationó  oî thå chain¬  thå filå  numbeò 
+changeó á 'filå linë error§ ió giveî anä thå prograí aborts®  Thå 
+calculatioî foò thå filå numbeò ió giveî erroneouslù iî thå  MITÓ 
+documentatioî anä ió correcteä here:
+
+	8*SECTOR+(SLOT+1)
+
+Wherå  SECTOÒ ió thå directorù sectoò numbeò (0-31© iî whicè  thå 
+filå  namå  ió founä anä SLOÔ ió thå grouğ  numbeò oæ á  1¶  bytå 
+widå directorù entrù oæ thå format:
+
+Bytes	Description
+------------------------------------------------------
+00-07	ASCII File Name - if the first character is a
+	zero (binary zero) the entry is ignored.  If
+	it is 0ff (all one bits) this is the last entry
+	in the directory.  An ignored entry  is the
+	result of deleting a file in the MITS directory.
+
+ 08	Track address of the first sector in the file.
+	Track 0-5 are never used as they are 'system'
+	tracks.  Track 70 is the directory track.
+
+ 09	Sector number of the first sector of the file.
+	Sectors are always 0,8,16 or 24.  Sectors are
+	allocated in groups of eight.  There is no
+	pattern for it, but, because of latency consid-
+	erations odd numbered sectors are 16+sector number
+	AND 1Fh away from the even sector in a logical
+	sense. My calculations indicate this is a poor
+	choice and if you have ever heard ALTAIR Disk
+	Extended Basic or DOS run, you'll know its not
+	too good.
+
+ 10	Flag to indicate file organization - 4=random
+	2=sequential
+
+11-15	Wasted bytes  NOTE: at one time or another the
+	program MITSCNVT uses these bytes to store some
+	information about each file -not  on the diskŠ	but in memory.
+
+----------------------------------------------------------
+	Aó   aî   examplå  leô  må  uså  thå  filå  &OCTBIÎ   foò 
+illustratioî purposes®   Iô - quitå arbitrarilù - wilì bå assumeä 
+tï starô iî tracë 7² sectoò 0®  Thió woulä bå itó directorù entrù 
+iæ iô werå á sequentiaì file:
+__________________________________________________________
+|  1  |  2  |  3  |  4  |  5  |  6  |  7  |  8  |  9  |....
+----------------------------------------------------------
+   &     O     C     T     B     I     N     b    72
+
+----------------------------------------------------------
+|  10 |  11 |  12 |  13 |  14 |  15 |  16 | byte number
+----------------------------------------------------------
+   0     2     unused bytes------------>
+
+Iæ thió werå thå 5tè entrù iî directorù sectoò zerï iô woulä filå 
+numbeò 5.
+
+	Movinç alonç iî thå examplå eacè datá filå beginó witè  á 
+formaô iî whicè thå datá arå embedded.
+
+The format is as follows:
+
+Byte	Description (For Sequential files)
+-----------------------------------------------------------
+00	Track number +80h.  This high order bit must be set
+	for every track number.  The physical track is
+	identified in every sector on that track in this
+	manner.
+
+01	Physical sector number of each sector.  Every sector
+	is identified this way. Sectors are numbered 0-31.
+
+02	File number.  If =0 then this sector is NOT in use
+	at this time.  (When a file is deleted you have to
+	wait for each sector in the chain to be rewritten so
+	that the file number can be set to zero).
+
+03	Number of data bytes written in this sector
+
+04	Checksum of all data in the sector except bytes 0,1,4
+	and 136.  Byte 135 is also not used in the checksum
+	calculation.  The checksum is the sum of all of the
+	data without regard to overlow as done in an eight bit
+	register.
+
+05	Track number of the NEXT data sector in the chain.
+
+06	Sector number of the next data sector in the chain.
+	If track and sector number are both zero there is no
+	more file (EOF).
+
+07-134	128 words of data.  If the first byte is ffh then theŠ	file is binary.  If the first byte is other than ffh
+	then the file is ASCII.  The first byte is the
+	first byte of the first sector of the file - not the
+	first byte of any sector.
+
+135	Check byte - always ffH.  This is used to ensure that
+	everything else in the sector was in the right place.
+
+--------------------------------------------------------------
+
+	Eacè  oæ  thå  byteó iî theså sectoró arå linkeä  tï  thå 
+otheò sectoró iî á "forward¢ directioî untiì byteó 5+¶ arå  zero®  
+Thió signaló thaô thå currenô datá blocë ió thå lasô blocë iî thå 
+file®   Thå  directorù  sectoró arå locateä iî  tracë  70®   Eacè 
+directorù  sectoò  beginó iî thå 8tè bytå oæ thå physicaì  sectoò 
+(thå firsô · byteó arå garbage).
+
+
+USE OF THE PROGRAM:
+__________________
+
+	Thå prograí acceptó twï typeó oæ input®   Thå firsô  typå 
+oæ  inpuô ió á disë numbeò prefixeä bù aî equaló sign®  Thió wilì 
+resulô  iî  recoverù oæ thå MITÓ directorù oî thaô disë  anä  thå 
+listinç oæ thaô directory®  Aó aî example:
+
+			=5
+
+wilì  resulô  iî  selectioî oæ disë µ anä  thå  recoverù  oæ  thå 
+directorieó oî thaô disë whicè wilì bå listed.
+
+	Thå  seconä typå oæ inpuô ió á CP/Í filå namå followeä bù 
+á filå type¬  aî equaì sigî anä á MITÓ filå namå anä disë number®  
+Thió wilì searcè thå directorù oî thå specifieä MITÓ disk¬ locatå 
+thå filå anä writå iô oî thå CP/Í disë specified®  Aó examples:
+
+  (1) CPMFILE.MIT=ZCTABLE,0
+  (2) DIET.BAS=DIET,0
+  (3) OCTOCT.ASM=&OCTOCT,2
+
+Iî  examplå (1© thå filå 'ZCTABLE§ locateä oî MITÓ disë  zerï  ió 
+copieä  ontï  thå  CP/Í disë aó filå CPMFILE.MIT®   Iî  thå  nexô 
+example¬  (2)¬  filå  DIEÔ  oî disë zerï ió copieä tï  CP/Í  filå 
+DIET.BAS®   Iî thå lasô example¬  MITÓ filå &OCTOCÔ oî MITÓ  disë 
+twï  ió copieä tï CP/Í filå OCTOCT.ASM®   Thuó thå MITÓ fileó arå 
+alwayó  oî thå righô sidå oæ thå equaló sigî anä thå  CP/Í  fileó 
+arå  oî thå lefô hanä side®   Notå thaô aî ambiguouó filå namå ió 
+noô permitteä becauså thå CP/Í fileó arå opeî foò writing.
+
+	Becauså thå fileó arå accepteä iî lisô form¬  thå prograí 
+maù bå useä aó á submiô job®   Problemó witè thió prograí maù  bå 
+submitteä  iî  writinç tï thå author®   Thå prograí ió  copyrighô 
+198±  bù  thå  author®  Uså  ió  permitteä  iî  á  non-commerciaì 
+environment®   Commerciaì  uså licenseó maù bå obtaineä froí  thå 
+authoò  aô  á  reasonablå cost®   Conversionó  caî  bå  performeä Šbetweeî  otheò harä sectoò formató anä cp/í format®   Contacô  uó 
+foò details.
+
+CP/Í IÓ Á TRADEMARË OÆ DIGITAÌ RESEARCH¬  PACIFIÃ GROVÅ CA® MITS¬ 
+ALTAIR¬  PCÃ  MAÙ  BÅ REGISTEREÄ TRADEMARKÓ  OÆ  PERTEÃ  COMPUTEÒ 
+CORP.¬ CHATSWORTÈ CA.
+

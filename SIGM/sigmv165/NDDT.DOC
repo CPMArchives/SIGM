@@ -1,0 +1,162 @@
+
+	------------------------------------------------------
+
+		       DDT(8080)/ICUAP
+		Universidad Autonoma de Puebla
+		       August 30, 1983
+
+	Harold  V.  McIntosh
+	------------------------------------------------------
+
+
+	A = assemble
+	B = bitmap
+	D = display
+	F = fill
+	G = go
+	H = hex sum, difference
+	I = initialize CCP command line
+	L = list program
+	M = move
+	R = read file
+	S = store
+	T = type registers
+	V = single step w/ call as 1 step
+
+
+
+	(A) Assemble 8080 code. <nAx> will assemble n lines
+	of code beginning at address x. Defaults are x=lorg,
+	while no limit is set if n is missing or zero.
+
+	(B)  Generate a bitmap of all bytes in the range
+	100H - (pmax) which could possibly be the address
+	of an instruction.
+
+
+	(D) Display the memory in groups of 16 bytes, both as
+	pairs of hexadecimal nibbles and as ASCII characters,
+	when the latter is appropriate. The command <nDa,b>
+	will display n lines, or else the interval between
+	hexadecimal addresses a and b; the interval takes
+	precedence but if a or b or both are null, the line
+	count helps determine the interval. When a is null the
+	display will usually continue from where it last ended,
+	but nD,b will display b-n up to b. In general:
+		nDa,b	a through b-1, n lines of 16 bytes
+		 Da,b   a through b-1, DP lines of 16 bytes
+		nDa,	a through a+n
+		nD,b	b-n through b
+		nD,	PC through PC+n
+		 Da,    a to the end
+		 Da	just line containing a
+		 D,b	PC through b
+		 D,	PC to the end
+		 D	just line beginning at PC
+
+
+	(F) Fill an interval. <Fx,y,a> will fill the interval
+	from x to y with the hexadecimal value a.
+
+
+	(G)  Go to the program for execution. The form <nG,a,b,c>
+	allows the insertion of up to two breakpoints, b and c,
+	before jumping to the address a. If a count n is also
+	included, the breakpoints will be traversed n times
+	before control is t returned to DDT. If the field a is
+	null, the program will continue from the point where
+	control was surrendered to DDT (or 100H if it is an
+	initial call.
+
+
+
+
+	(H) Display a hexadecimal sum and difference. <Hx,y>
+	will result in typing '+'x+y '-'x-y. Mainly used to
+	help patch CP/M during system generation.
+
+
+	(I) Input a command line, according to the same
+	criteria used by CCP; in other words a parameter
+	list can follow the file name.
+
+
+	(L) List the memory as 8080 operation codes. The
+	command <nLa,b> will list n lines of code between
+	the hexadecimal addresses a and b, with the interval
+	taking precedence over the number of lines, unless
+	either a or b is missing.
+
+
+	(M) Move part of the memory from one place to another.
+	<Mx,y,z> will move the interval x,y to begin at z. The
+	direction of movement compensates for possible overlap.
+
+
+	(R) Read into memory the file specified by TFCB.
+	It was probably defined by a preceding I command,
+	but might still be the program defined in the DDT
+	command line. <Rx> will start loading at TORG+x.
+
+
+
+	(S) Store hexadecimal bytes. <nSx> will store
+	n bytes starting at address x, read one by one
+	from the console. Missing n means indefinite
+	repetition, missing x means TORG. Confirmation
+	and progression is automatic while hexadecimal
+	bytes are being received; however, for
+		 -  go back one byte,
+		'x  deposit ASCII x,
+		^x  deposit ctl x,
+		CR  go on to next byte.
+	Any other input terminates the cycle.
+
+
+	(T)  Type the register status line while single-stepping
+	through the program. <nT> runs through n steps typing
+	each one, while <nT/> executes without typing. The option
+	V, with the same alternatives <nV> and <nV/> treats a
+	call or a conditional call as a single step, avoiding a
+	detailled examination of the interior contents of each
+	subroutine.
+
+
+
+	(V) A variant of T.
+
+
+	(X) Examine registers. Any one of the registers or
+	register pairs A, BC, HL, DE, SP, PC may be examined,
+	or one of the five flag bits C, Z, M, E, I, by typing
+	Xr, with r = czmeiabhdsp*, or =xxxx with a hexadecimal
+	address xxxx. The latter defines the register * at
+	first. A display line is typed, of the form
+	r=xxxx  xx ...  xx  ... xx  +++++  + +++++  ooo ooooo
+	where xxxx is the contents of register r, xx etc is
+	a window of hexadecimal bytes centered on xxxx, ++ etc
+	is a similar window of ASCII characters, and finally
+	ooo ooooo is the instruction, if meaningful, at xxxx.
+
+	Once an examination is underway, the window may be
+	moved by various operators:
+
+		*      indirect from window
+		^      indirect from instruction address
+		!      save value
+		?      recover value
+		/      next instruction
+		+      1 byte forward
+		-      1 byte backward
+		#      forward, stop at nonzero
+		@      backward, stop at nonzero
+		=xx    search for byte xx ('x or ^x also)
+		|xxxx  search for pair xxxx
+		>      forward half-window
+		<      backward half-window
+		.      type crlf - make new line
+
+
+
+
+

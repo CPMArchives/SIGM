@@ -1,0 +1,134 @@
+
+
+                ;
+                ;VRMAC --
+                ;  MACRO ASSEMBLER "RMAC" CHANGES TO DISABLE 8080 OPCODES FOR CROSS-ASSEMBLY
+                ;    WORK
+                ; THIS PATCH WAS ORIGINALLY SUPPLIED WITH MY MAC MANUAL -- RLC
+                ; MODIFIED FOR RMAC AND RESERVED WORD LIST 10/20/81 SHAWN EVERSON
+                ;
+                ;  THIS IS TO BE PATCHED INTO RMAC USING DDT.  AFTER THE PATCH IS COMPLETE,
+                ;    PERFORM A "SAVE 53 VRMAC.COM" TO CREATE VRMAC.COM.
+                ;
+ 0019 =         RT	EQU	25	; 8080 REGISTER NAME
+ 001A =         PT	EQU	26	; PSEUDO OPCODE TYPE
+ 0103 =         TAREA	EQU	103H	; FREE AREA (REDUNDANT COPYRIGHT NOTICE)
+ 0040 =         TRAIL	EQU	'@'	; CHAR. TO REPLACE LAST LETTER OF RESERVED WORDS WITH
+                 
+                ;
+ 2914           	ORG	2914H	; OVERLAY INXH - MOV B,M - RET
+ 2914 C30301    	JMP	TAREA
+                 
+                ;
+ 0103           	ORG	TAREA
+                 
+                ;  TYPE IS IN THE ACCUMULATOR
+ 0103 FE19      	CPI	RT	; BELOW RT IF ARITHMETIC OPERATOR
+ 0105 DA0B01    	JC	TYPEOK
+ 0108 FE1A      	CPI	PT	; PSEUDO OP?
+ 010A C0        	RNZ		; RETURN WITH NON-ZERO FLAG
+                 
+                ;  OTHERWISE, PSEUDO-OP OR ARITHMETIC OP
+                TYPEOK:
+ 010B 23        	INX	H
+ 010C 46        	MOV	B,M
+ 010D BF        	CMP	A	; SET ZERO FLAG
+ 010E C9        	RET
+                ;
+                ;LOCATION OF RESERVED WORD <IF>
+                ;
+ 2606           	ORG	2606H
+ 2606 4940      	DB	'I',TRAIL
+                ;
+                ;LOCATION OF RESERVED WORD <OR>
+                ;
+ 2610           	ORG	2610H
+ 2610 4F40      	DB	'O',TRAIL
+                ;
+                ;LOCATION OF RESERVED WORD <AND>
+                ;
+ 2623           	ORG	2623H
+ 2623 414E40    	DB	'AN',TRAIL
+                ;
+                ;LOCATION OF RESERVED WORD <END>
+                ;
+ 2641           	ORG	2641H
+ 2641 454E40    	DB	'EN',TRAIL
+                ;
+                ; LOCATION OF RESERVED WORD <LOW>
+                ;
+ 2659           	ORG	2659H
+ 2659 4C4F40    	DB	'LO',TRAIL
+                ;
+                ;LOCATION OF RESERVED WORD <MOD>
+                ;
+ 265F           	ORG	265FH
+ 265F 4D4F40    	DB	'MO',TRAIL
+                ;
+                ;LOCATION OF RESERVED WORD <NOR>
+                ;
+ 266B           	ORG	266BH
+ 266B 4E4F40    	DB	'NO',TRAIL
+                ;
+                ;LOCATION OF RESERVED WORD <SET>
+                ;
+ 2696           	ORG	2696H
+ 2696 534540    	DB	'SE',TRAIL
+                ;
+                ;LOCATION OF RESERVED WORD <ELSE>
+                ;
+ 26C9           	ORG	26C9H
+ 26C9 454C5340  	DB	'ELS',TRAIL
+                ;
+                ;LOCATION OF RESERVED WORD <HIGH>
+                ;
+ 26D1           	ORG	26D1H
+ 26D1 48494740  	DB	'HIG',TRAIL
+                ;
+                ;LOCATION OF RESERVED WORD <NAME>
+                ;
+ 26E1           	ORG	26E1H
+ 26E1 4E414D40  	DB	'NAM',TRAIL
+                ;
+                ;LOCATION OF RESERVED WORD <PAGE>
+                ;
+ 26E5           	ORG	26E5H
+ 26E5 50414740  	DB	'PAG',TRAIL
+                ;
+                ;LOCATION OF RESERVED WORD <LOCAL>
+                ;
+ 2718           	ORG	2718H
+ 2718 4C4F434140	DB	'LOCA',TRAIL
+                ;
+                ;LOCATION OF RESERVED WORD <MACRO>
+                ;
+ 271D           	ORG	271DH
+ 271D 4D41435240	DB	'MACR',TRAIL
+                ;
+                ;LOCATION OF RESERVED WORD <TITLE>
+                ;
+ 2727           	ORG	2727H
+ 2727 5449544C40	DB	'TITL',TRAIL
+                ;
+                ;LOCATION OF RESERVED WORD <COMMON>
+                ;
+ 272C           	ORG	272CH
+ 272C 434F4D4D4F	DB	'COMMO',TRAIL
+                ;
+                ;LOCATION OF RESERVED WORD <PUBLIC>
+                ;
+ 273E           	ORG	273EH
+ 273E 5055424C49	DB	'PUBLI',TRAIL
+                ;
+                ;LOCATION OF SIGNON MESSAGE <CP/M MACRO ASSEM 2.0>
+                ;
+ 319C           	ORG	319CH
+ 319C 43502F4D20	DB	'CP/M RMAC ASSEM 1.',TRAIL
+                ;
+                ; TYPE OF SOURCE FILE TO EXPECT
+                ;
+ 2A4E           	ORG	2A4EH
+ 2A4E 564F43    	DB	'VOC'
+                ;
+ 2A51           	END
+

@@ -1,0 +1,533 @@
+Creating ASM65.COM
+------------------
+Thå ASM6µ assembleò haó beeî builô aó aî overlaù tï Digitaì 
+Research'ó ASÍ assembleò foò 808° serieó processors® Tï protecô 
+youò CP/Í licencå froí Digitaì Research¬ ASM6µ ió supplieä onlù 
+iî .HEØ form¬ anä musô bå mergeä witè aî existinç copù oæ ASM.COÍ 
+usinç DDÔ oò á similaò 8080/Z8° debugger® Usinç DDT¬ thå 
+conversatioî tï creatå ASM65.COÍ ió aó follows:
+
+     A>ddt asm.com
+     DDT VERS 2.2
+     NEXT  PC
+     2100 0100
+     -iasm65.hex
+     -r
+     NEXT  PC
+     2300 0100
+     -^C
+     A>save 34 asm65.com
+
+
+
+ŠBackground
+----------
+ASM6µ ió á 650² cross-assembleò foò CP/Í systemó -- iî otheò 
+wordó iô useó 650² assemblù languagå tï creatå programó foò 6502-
+baseä systems¬ buô thå assembleò itselæ runó oî CP/Í systems¬ 
+allowinç thå uså oæ better-qualitù editoró sucè aó WordStaò anä 
+Spellbindeò tï creatå prograí source® Iô ió á fulì conditionaì 
+buô non-macrï assembleò supportinç alì 650² opcodeó anä 
+addressinç modeó (includinç thå extensionó supporteä oî thå GTÅ 
+65C0² processor© witè á gooä rangå oæ pseudo-operations® Iô doeó 
+NOT converô 8080/Z8° assemblù languagå programó tï 650² 
+equivalents.
+
+Wå assumå thaô yoõ arå familiaò witè assemblù languagå 
+programminç -- iæ not¬ wå woulä adviså readinç '650² Assemblù 
+Languagå Programming§ (Leventhal¬ Osborne/McGraw-Hill© oò aî 
+equivalenô iî conjunctioî witè theså notes® Wå alsï assumå thaô 
+yoõ havå á copù oæ thå Digitaì Researcè ASÍ manuaì tï hand¬ aó wå 
+wilì refeò tï iô foò descriptionó oæ pseudo-ops¬ erroò messageó 
+anä thå like.
+
+Iî general¬ thå assemblù languagå useä iî ASM6µ followó standarä 
+MOÓ Technologù syntax¬ buô therå arå somå deviationó froí thå 
+standarä (enforceä bù usinç aó corå aî assembleò designeä foò thå 
+8080/Z8° processoò family© whicè maù affecô portabilitù oæ 
+programó tï standarä 650² assemblers® Thå maiî differenceó arå iî 
+thå specificatioî oæ numeriã valueó (in suffixeó ratheò thaî 
+prefixeó arå useä tï distinguisè numbeò bases)» iî pseudo-oğ 
+names¬ whicè arå standarä ASÍ syntax; anä iî thå descriptioî oæ 
+indirecô addressinç modes® Bracketó arå useä tï encloså 
+arithmetiã expressionó iî ASÍ syntax¬ witè thå resulô thaô 
+indirecô addressinç modeó cannoô bå specifieä bù enclosinç thå 
+operanä iî bracketó aó peò MOÓ Technologù syntaø -- onå non-
+standarä opcodå (JMPI© anä slightlù differenô registeò mnemonicó 
+(IX¬ IÙ anä I© arå useä instead.
+
+Preparing source files
+----------------------
+Prograí creatioî witè ASM6µ ió á three-stagå process: editinç thå 
+sourcå filå witè á suitablå editoò oò word-processor» usinç ASM6µ 
+tï creatå á heø file» anä creatinç á binarù filå froí thå heø 
+filå witè LOAÄ oò CODE¬ oò sendinç iô direcô tï thå externaì 
+6502-baseä system® Thió parô oæ thå noteó ió concerneä onlù witè 
+the first stage, that of source-file creation.
+
+Programó caî bå createä usinç anù suitablå CP/Í editoò oò word-
+processoò (wå mainlù uså WordStar¬ whicè allowó uó sourcå fileó 
+oæ anù length)® Filenameó MUST uså thå extensioî .A6µ (e.g® 
+PROGRAM.A65)¬ otherwiså ASM6µ wilì noô finä thå filå -- thå erroò 
+message 'No source file present' will be printed in this case.
+
+As usual, assembly language statements take the form of:
+
+     <label:> opcode <operand> <;comment>
+
+-- eacè linå ends¬ oæ course¬ witè carriage-returî oò thå CR/LÆ 
+combination.Š
+Linå numberó shoulä noô bå useä (thougè seå thå ASÍ manuaì foò 
+more detail if you REALLY want to use line numbers).
+
+Labels
+------
+Labeló maù bå oæ anù length¬ althougè onlù 1¶ characteró arå 
+significant® Theù maù bå writteî aó eitheò uppeò oò loweò caså 
+letteró (lower-caså letteró arå converteä tï capó automaticallù 
+durinç assembly© anä numeraló (althougè thå firsô characteò oæ á 
+labeì musô bå á letter® Thå ':§ ió optional® Wherå á labeì referó 
+tï aî assignmenô (EQÕ oò SET© iô musô bå oî thå samå line» 
+otherwise¬ wherå iô referó tï codå (opcodeó oò code-creatinç 
+pseudo-opó sucè aó DB© iô doeó noô neeä tï bå oî thå samå line¬ 
+sï thaô multiplå labeló maù refeò tï thå samå codå location® Seå 
+the ASM manual for more detail.
+
+Multiple expressions
+--------------------
+Opcodeó anä operandó arå describeä iî detaiì below¬ anä wilì noô 
+bå discusseä here® Note¬ however¬ thaô severaì opcode/operanä 
+expressionó maù bå placeä oî thå samå line if separated by '!':
+
+     PHA ! TXA ! PHA ! TYA ! PHA   ;save registers
+
+-- onå side-effecô ió thaô '!§ maù noô bå useä iî comments¬ 
+otherwiså ASM6µ interpretó thå followinç texô aó sourcå 
+statements, with unpredictable results.
+
+Comments
+--------
+Á commenô ió precedeä bù ';'¬ anä runó tï thå enä oæ thå linå 
+(witè thå exceptioî oæ '!§ aó describeä above)® Therå ió nï 
+provisioî foò multiple-linå commentó -- eacè linå oæ commenô musô 
+bå precedeä bù ';§ -- althougè commentó maù starô aô anù positioî 
+in the line.
+
+Eacè parô oæ thå statemenô musô bå separateä bù aô leasô onå 
+spacå oò tab® Aparô froí this¬ spaceó anä tabó arå noô 
+significant¬ anä maù bå useä iî anù waù tï increaså thå 
+readability of the file.
+
+Opcodes
+-------
+ASM6µ supportó alì standarä MOÓ Technologù anä GTÅ (65C02© opcodå 
+mnemonics¬ witè onå exceptionº JMPÉ ió useä iî placå oæ JMĞ (..© 
+foò jump-indirect® Witè thaô exception¬ alì opcodå mnemonicó arå 
+three-letter» thå four-letteò mnemonicó ASLA¬ ROLA¬ LSRA¬ RORÁ 
+(anä INCA¬ DECÁ -- 65C0² only© maù alsï bå useä tï describeä 
+accumulator operations.
+
+Thå opcodå lisô belo÷ showó alì oæ thå opcodeó availablå witè 
+ASM65¬ includinç 65C0² extensions® Thå addressinç modeó availablå 
+foò eacè instructioî arå showî iî brackets¬ witè modeó availablå 
+onlù oî thå 65C0² indicateä bù aî asterisk® Thå modeó arå 
+repesented by:
+     (none)    implicit operation
+     A         accumulator only
+     #         immediate (8-bit value)Š     Z         zero page (8-bit address)
+     Abs       absolute (16-bit address)
+     Rel       relative (8-bit signed branch)
+     Z,X       zero page + X register
+     Z,Y       zero-page + Y register
+     Abs,X     absolute + X register
+     Abs,Y     absolute + Y register
+     IX        indirect from (zpage + X register)
+     IY        indirect from zpage, + Y register
+     I         indirecô froí zpagå (samå aó IÙ witè Y=0© (65C0² 
+               only)
+
+Implicit operations
+-------------------
+     PHA, PLA       push/pull accumulator
+     PHP, PLP       push/pull processor status flags
+     PHX, PLX       push/pull X register (65C02 only)
+     PHY, PLY       push/pull Y register (65C02 only)
+     TSX            move stack pointer to X register
+     TXS            set stack pointer from X register
+     TAX, TAY       load X, Y register from A
+     TXA, TYA       load A from X, Y register
+     SEC, SED, SEI  set carry, decimal, interrupt flags
+     CLC, CLD       clear carry, decimal flags
+     CLI, CLV       clear interrupt, overflow flags
+     RTS, RTI       return from subroutine, interrupt
+     BRK            break (software interrupt)
+     NOP            no-operation
+
+Call, Jump and Branch
+---------------------
+     JSR            call subroutine (Abs)
+     JMP            jump to new location (Abs)
+     JMPI           jumğ indirecô viá specifieä locatioî (Abs» 
+                    Abs,X*)
+     BPL, BMI       branch if sign clear/set (Rel)
+     BNE, BEQ       branch if zero flag clear/set (Rel)
+     BCC, BCS       branch if carry clear/set (Rel)
+     BVC, BVS       branch if overflow flag clear/set (Rel)
+     BRA            unconditional branch (Rel*)
+
+Test/Set/Reset memory
+---------------------
+     BIT            test memory bits (Z; Abs; Z,X*; Abs,X*; #*)
+     TRB            tesô anä reseô memorù againsô accumulatoò 
+                    (Z*» Abs*)
+     TSB            tesô anä seô memorù againsô accumulatoò (Z*» 
+                    Abs*)
+
+Rotate and Shift
+----------------
+     ASL            shift left (Z; Abs; Z,X; Abs,X; A)
+     ASLA           shift A left (same as ASL A)
+     LSR            shift right (Z; Abs; Z,X; Abs,X; A)
+     LSRA           shift A left (same as LSR A)
+     ROL            rotatå lefô -- 9-biô rotatå througè carrù (Z» 
+                    Abs» Z,X» Abs,X» A)
+     ROLA           rotate A left (same as ROL A)
+     ROR            rotatå righô -- 9-biô rotatå througè carrù Š                    (Z» Abs» Z,X» Abs,X» A)
+     RORA           rotate A right (same as ROR A)
+
+Decrement and Increment
+-----------------------
+     DEC            decrement (Z; Abs; Z,X; Abs,X; A*)
+     DECA           decrement A (same as DEC A*)
+     INC            increment (Z; Abs; Z,X; Abs,X; A*)
+     INCA           increment A (same as INC A*)
+     DEX, INX       decrement/increment X
+     DEY, INY       decrement/increment Y
+
+Accumulator operations
+----------------------
+     ORA            inclusivå OÒ witè accumulatoò (#» Z» Abs» 
+                    Z,X» Abs,X» Abs,Y» IX» IY» I*)
+     AND            binarù ANÄ witè accumulatoò (#» Z» Abs» Z,X» 
+                    Abs,X» Abs,Y» IX» IY» I*)
+     EOR            exclusivå OÒ witè accumulatoò (#» Z» Abs» 
+                    Z,X» Abs,X» Abs,Y» IX» IY» I*)
+     ADC            adä witè carrù tï accumulatoò (#» Z» Abs» 
+                    Z,X» Abs,X» Abs,Y» IX» IY» I*)
+     SBC            subtracô witè borro÷ froí accumulatoò (#» Z» 
+                    Abs» Z,X» Abs,X» Abs,Y» IX» IY» I*)
+
+Load and Store
+--------------
+     LDA            loaä Á registeò (#» Z» Abs» Z,X» Abs,X» 
+                    Abs,Y» IX» IY» I*)
+     STA            storå Á registeò (Z» Abs» Z,X» Abs,X» Abs,Y» 
+                    IX» IY» I*)
+     LDX            load X register (#; Z; Abs; Z,Y; Abs,Y)
+     STX            store X register (Z; Abs; Z,Y)
+     LDY            load Y register (#; Z; Abs; Z,X; Abs,X)
+     STY            store Y register (Z; Abs; Z,X)
+
+Compare registers
+-----------------
+     CMP            comparå accumulatoò (#» Z» Abs» Z,X» Abs,X» 
+                    Abs,Y» IX» IY» I*)
+     CPX            compare X (#; Z; Abs)
+     CPY            compare Y (#; Z; Abs)
+
+Addressing modes
+----------------
+(none)    implicit operation
+A         accumulator only
+               Useä wherå accumulatoò ió thå operand¬ e.g® ASÌ A® 
+               Alì Á addressinç optionó havå á 4-letteò matchinç 
+               opcode -- i.e. ASLA and ASL A are identical.
+#         immediate (8-bit value)
+               Nexô bytå ió thå operand® Exampleó arå LDÁ #20¬ 
+               LDØ #20h¬ CPØ #'i'® Aî erroò ió generateä iæ thå 
+               operand evaluates to greater than 0FFh.
+Z         zero page (8-bit address)
+               Nexô bytå ió thå low-ordeò addresó oæ thå operand® 
+               Selecteä automaticallù iæ thå operanä evaluateó tï 
+               lesó thaî 100h® Exampleó arå LDÁ 20¬ STØ 20h¬ anä 
+               ORA <address> where <address> is less than 100h.
+               Alì zero-pagå addresseó musô bå knowî oî thå firsô Š               pass¬ withouô forwarä references¬ otherwiså phaså 
+               erroró (seå ASÍ manual© maù occuò durinç thå 
+               second pass of the assembler.
+Abs       absolute (16-bit address)
+               Nexô bytå ió thå low-ordeò addresó oæ thå operand» 
+               followinç bytå ió thå high-ordeò address® Selecteä 
+               automaticallù iæ thå operanä evaluateó tï greateò 
+               thaî 0FFh¬ oò iæ zero-pagå modå ió noô available® 
+               Exampleó arå LDÁ 2000¬ STØ 200h¬ anä ORÁ <address> 
+               where <address> is greater than 0FFh.
+Rel       relative (8-bit signed branch)
+               Nexô bytå ió thå offseô tï á labeì relativå tï thå 
+               starô oæ thå NEXT instructioî (i.e® twï byteó 
+               afteò thå locatioî oæ thå brancè test)¬ givinç aî 
+               effectivå rangå oæ -12¶ tï +12¹ froí thå locatioî 
+               oæ thå brancè instruction® Iæ thå operanä 
+               evaluateó outsidå thió range¬ aî erroò wilì bå 
+               generated® Exampleó arå BRÁ label¬ BNÅ $-³ ('$§ ió 
+               the reserved name of the position counter).
+Z,X       zero page + X register
+               Aó foò Ú above¬ excepô thå contentó oæ thå Ø 
+               registeò arå addeä tï givå aî offseô withiî thå 
+               zero-page® Addresseó 'wrağ round§ WITHIN zero-
+               page. Example: AND address,X
+Z,Y       zero-page + Y register
+               Aó foò Z,Ø above¬ excepô thaô thå Ù registeò ió 
+               used. Example: STX 20h,Y
+Abs,X     absolute + X register
+               Aó foò Abó above¬ excepô thaô thå contentó oæ thå 
+               Ø registeò arå addeä tï givå aî offseô froí thå 
+               followinç two-bytå address® Addresseó dï noô 'wrağ 
+               round§ withiî thå currenô pagå -- wherå thå suí oæ 
+               thå low-ordeò addresó anä thå Ø registeò contentó 
+               exceedó 0FFh¬ thå high-ordeò addresó ió 
+               incremented. Example: SBC 2000h,X
+Abs,Y     absolute + Y register
+               Aó foò Abs,Ø above¬ excepô thaô thå Ù registeò ió 
+               used® Exampleº ADÃ address,Ù (wherå addresó ió 
+               greater than 0FFh).
+IX        indirect from (zpage + X register)
+               Thå followinç bytå ió thå lo÷ ordeò addresó withiî 
+               zero-pagå tï whicè thå Ø registeò ió addeä 
+               ('wrappinç round§ iæ necessary)® Thå effectivå 
+               operanä ió thå addresó pointeä tï by thå contentó 
+               oæ thå effectivå addresó generated® Iæ thå baså 
+               addresó doeó noô evaluatå tï aî 8-biô addresó 
+               (i.e® thå high-ordeò bytå ió greateò thaî zero© 
+               an error is generated. Example: LDA base,IX
+IY        indirect from zpage, + Y register
+               Similaò tï IX¬ excepô thaô thå contentó oæ thå Ù 
+               registeò arå addeä AFTER thå indirectioî -- thå 
+               contentó oæ thå Ù registeò arå addeä tï thå 
+               contentó oæ thå twï byteó aô 'address§ (withiî 
+               zero-page© tï creatå thå effectivå address® Iæ thå 
+               baså addresó doeó noô evaluatå tï aî 8-biô addresó Š               an error is generated. Example: CMP 20h,IY
+I         indirecô froí zpagå
+               Thå effectivå addresó ió thå contentó oæ thå twï 
+               byteó startinç aô thå followinç addresó iî zero-
+               page® Thió ió identicaì tï IÙ iî caseó wherå thå Ù 
+               register is zero. Example: AND flag,I
+
+Twï otheò addressinç modeó arå available¬ buô onlù witè thå JMĞ 
+instructionº absolutå indirect¬ anä absolutå indexeä indirect® 
+Theså arå availablå aó JMPÉ Abó anä JMPÉ Abs,Ø respectively» thå 
+JMP instruction has only the Abs addressing mode.
+
+Numeric values
+--------------
+(Noteº Thió ió NOT thå samå aó MOÓ Technologù syntax)® Fouò 
+numbeò baseó arå recognisedº binary¬ octal¬ decimaì anä 
+hexadecimal® Theså arå representeä bù thå followinç suffixes:
+
+     B         binary -- 011011b
+     O or Q    octal -- 377q
+     D         decimal (defaults to decimal) -- 100, 100d
+     H         hexadecimal -- 20h, 0FFh
+
+Alì numeriã valueó MUST starô witè á numbeò -- heø valueó abovå 
+9Fh must be prefixed by 0.
+
+Numeriã valueó arå treateä aó 16-biô unsigneä numbers» thå 
+addressinç modå useä checkó thaô thå numbeò ió withiî itó 
+required range.
+
+Arithmetic expressions
+----------------------
+Operandó maù includå arithmetiã expressionó oæ considerablå 
+complexity® Thå followinç ió á lisô oæ thå functionó anä 
+operatoró thaô maù bå useä withiî arithmetiã expressions®
+
+     * times
+     + plus
+     - minus
+     / divide
+     MOD remainder from divide
+     & binary AND (note -- not 'AND', which is a 6502 opcode)
+     OR binary inclusive-OR
+     XOR binary exclusive-OR
+     NOT binary negate
+     SHL binary shift-left
+     SHR binary shift-right   
+
+Alì arithmetiã operationó acô oî thå currenô valuå aó á 16-biô 
+unsigneä number® Bracketó -- ¨ © -- encloså theså expressionó anä 
+maù bå nesteä uğ tï siø deep» bracketó caî alsï bå useä tï forcå 
+thå ordeò oæ evaluatioî oæ aî expression® Seå thå ASÍ manuaì foò 
+morå details.
+
+Literal expressions
+-------------------
+Texô (oò individuaì letters© maù bå includeä iî operandó bù 
+enclosinç it in single quotes, e.g.:Š
+     CMP #'T'
+     db   'text'
+
+Wherå single-quoteó characteró arå tï bå included¬ theù musô bå 
+repeated:
+
+     db   'it''s a little confusing'
+     CMP #''''      ;is A single-quote?
+
+For more details, see the ASM manual.
+
+Pseudo-operations
+-----------------
+Pseudo-opó falì intï fivå groupsº defininç oò reservinç space¬ 
+defininç constantó oò variables¬ defininç thå locatioî counter¬ 
+delimitinç areaó foò conditionaì assembly¬ anä (aó yeô 
+unimplemented© expansioî instructions® Onlù á brieæ summarù ió 
+given here: for more detail refer to the ASM manual.
+
+Defining space
+--------------
+DB   definå bytå (equivalenô oæ .BYTÅ iî MOÓ Technologù syntax)® 
+     Reservå bytå orienteä spacå anä itó contents¬ sucè aó 
+     constants, variables or embedded text.
+     Examples:
+          db   0,0,0,0,22,105,0
+          db   'text',0
+     Iæ anù valuå evaluateó tï greateò thaî 0FFh¬ aî erroò wilì 
+     be generated.
+DW   definå worä (equivalenô oæ .WORÄ iî MOÓ Technologù syntax)® 
+     Reservå word-orienteä spacå anä itó contents¬ witè thå 
+     contentó storeä iî lo-hé order» typicallù useä tï definå 
+     address tables.
+     Example:
+          dw   word1,word2,0,0FFFFh
+DS   definå reserveä areá witè undefineä contents» typicallù useä 
+     to define scratchpad areas.
+     Example:
+          ds   255
+
+Defining constants or variables
+-------------------------------
+EQU  assigî á constanô valuå tï 'label§ (equivalenô oæ '=§ iî MOÓ 
+     Technologù syntax)® Thå labeì musô bå iî thå samå line® 
+     Valueó arå considereä tï bå 16-biô unsigneä numbers¬ anä maù 
+     bå addresses¬ characteò constants¬ oò 16- oò 8-biô valueó oæ 
+     anù kind® Iæ á constanô ió defineä morå thaî oncå usinç EQU¬ 
+     aî erroò wilì bå generated.
+     Example:
+          eof  EQU  1ah
+SET  assigî á variablå valuå tï 'label'® Thå samå aó EQU¬ excepô 
+     thaô nï erroò wilì bå generateä iæ iô ió redefined® 
+     Typicallù useä tï specifù variableó tï controì oò foò uså iî 
+     conditional assembly.
+     Example:
+          flag SET 1
+ŠDefining the location counter
+-----------------------------
+ORG  Defineó thå currenô locatioî counteò froí whicè addresseó 
+     wilì bå calculateä (samå aó '*=§ iî MOÓ Technologù syntax)® 
+     Maù bå defineä oò redefineä aô anù timå -- shoulä onlù bå 
+     defineä tï á higheò address¬ aó redefinitionó tï loweò 
+     addresseó thaî thå currenô addresó maù causå problemó aô 
+     finaì assembly.
+     Example:
+          org 0f000h
+END  Defineó thå enä oæ thå prograí aó faò aó assemblù ió 
+     concerned. Optional.
+
+Conditional assembly
+--------------------
+IF   Starô oæ sectioî whicè wilì bå assembleä onlù iæ thå 
+     followinç conditioî ió truå (non-zero)® Onlù onå leveì oæ 
+     conditional assembly is available.
+     Example:
+          testversion    equ  1
+          IF testversion
+                         jsr  printstatus
+          ENDIF
+          IF not testversion
+                         jsr clrstatus
+          ENDIF
+                         jmp mainloop
+ENDIF
+     Endó á sectioî oæ conditionaì assembly® Á missinç oò 
+     unmatched ENDIF will cause an error to be generated.
+
+Unimplemented instructions
+--------------------------
+Thå followinç instructionó arå treateä aó reserveä words¬ buô 
+arå noô yeô implementeä -- theiò uså wilì causå aî erroò tï bå 
+generated:
+     MACRO
+     ENDM
+     TITLE
+
+Error messages
+--------------
+Assemblù erroò messageó arå rudimentary¬ consistinç oæ á singlå 
+letteò iî thå firsô columî oæ thå listinç (.PRN© filå anä thå 
+displaù oî thå consolå oæ thå relevanô line® Wherå severaì erroró 
+occuò withiî thå samå line¬ onlù thå letteò oæ thå firsô erroò 
+wilì bå shown® Iî general¬ thå causå oæ aî erroò wilì bå aó 
+describeä iî thå lisô iî thå ASÍ manual» aî exceptioî ió thaô alì 
+illegaì addressinç modeó arå treateä aó 'R§ (register© errors¬ 
+foò whicè threå NOPó ('EAEAEA'© wilì bå generateä aó code®
+
+Aó witè ASM¬ assemblù continueó afteò alì errors¬ sometimeó 
+causinç otheò erroró lateò durinç assemblù aó á 'knock-on§ 
+effect.
+
+
+
+ŠUsing ASM65
+-----------
+Wå assumå thaô yoõ havå createä youò prograí oî á sourcå filå 
+calleä 'filename.A65'® (Notå thaô thå filå musô uså thå extensioî 
+'.A65')® ASM6µ caî creatå uğ tï twï additionaì fileó froí thå 
+sourcå fileº á '.HEX§ file¬ containinç machinå codå iî Inteì heø 
+format¬ and/oò á '.PRN§ listinç file» iô caî alsï lisô tï thå 
+console® Iî alì caseó sourcå lineó witè erroró wilì bå listeä tï 
+thå screeî and¬ iæ thå printeò ió enabled¬ tï thå printeò aó 
+well.
+
+Typical examples of assemblies are:
+
+     B>a:asm65 filename
+
+whicè assumeó á sourcå filå filename.A6µ oî thå Bº drive¬ anä 
+creates files filename.HEX and filename.PRN on the same drive.
+
+     B>a:asm65 filename.bbz
+
+which does the same, except that no .PRN file will be created.
+
+     B>a:asm65 filename.bzx
+
+whicè readó thå sourcå filå oî B:¬ doeó noô creatå á .HEØ file¬ 
+anä sendó thå listinç onlù tï thå screeî withouô creatinç á .PRÎ 
+file.
+
+Notå thaô á .PRÎ filå maù welì bå twicå thå sizå oæ youò originaì 
+sourcå fileº makå surå thaô yoõ havå enougè disë spacå beforå 
+allowing the assembler to create it!
+
+Foò fulì detailó oî thå actuaì assemblù procesó anä itó erroò 
+messages, refer to the ASM manual.
+
+
+Creating executable code
+------------------------
+ASM6µ doeó noô bù itselæ creatå executablå codå -- iô createó á 
+'.HEX§ filå containinç itó machinå codå aó loaä address¬ heø 
+valueó anä checksuí iî thå Inteì heø format® Thió musô bå 
+converted to executable code by a separate loader.
+
+Digitaì Research'ó LOAÄ prograí doeó thió foò 8080/Z8° programs¬ 
+anä wilì alsï bå suitablå foò non-ROMablå 650² code® Thå catcè 
+witè LOAÄ ió thaô iô alwayó createó á filå assuminç á loaä 
+addresó oæ 100h¬ whereaó ROMablå 650² codå wilì tenä tï residå 
+mucè higheò iî memory» LOAÄ thereforå tendó tï creatå aî oversizå 
+filå consistinç mainlù oæ garbage¬ witè thå actuaì codå uğ aô thå top® 
+Thå solutioî iî theså caseó ió tï pasó thå heø filå tï aî externaì 650² 
+systeí foò processinç it¬ oò uså thå  modifieä loader¬ CODE.COÍ (oî 
+thió disk)¬ whicè automaticallù generateó aî offseô tï storå ROMablå 
+codå iî thå minimuí sizå file® PROMLOAÄ oò somå otheò file-readeò caî 
+theî transfeò thå codå tï aî externaì systeí oò PROÍ programmer.
+

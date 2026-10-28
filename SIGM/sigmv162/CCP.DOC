@@ -1,0 +1,157 @@
+
+
+		Concurrent Pascal-S Implementation Notes
+		========================================
+
+	ALL PROGRAMS SHOULD BE WRITTEN IN lowercase!
+
+	Start CCP by typing    CCP sourcefilename.
+        ( i.e CCP DINPHIL.CCP)
+
+	The subset of Pascal compiled is:
+
+	1. simple types : integer, boolean, char.
+	2. arrays (may be multidimensional).
+	3. strings. just literals in write statements, e.g.
+		writeln('Leipzig');
+	4. operators:
+	     integer : +,-,*, div, mod.
+	     boolean : not, and, or.	 
+	5. relational operators
+	    =, <>, >, <, >=, <=
+	6. declarations:
+	    const, type, var, procedure, function.
+	7. statements:
+	   assignment
+	   if - then - else
+	   if - then -
+	   while - do -
+	   repeat - until -
+	   for - to - do -
+   	8. block structure : begin .... end;
+	9. concurrency: in the <main> program !
+	    cobegin p1; p2; p3;... coend.
+	    p1.. must be global procedures (= processes)..
+	    on execution of cobegin, all procedures are activated for
+	    concurrent execution. The main program continues after coend
+	    when all processes are terminated.
+	10. wait(s) and signal(s) are standard procedures. They operate on
+	    variables of type SEMAPHORE which is handled like an integer.
+	    No syntactic protection is provided. Semaphores should be
+	    initialized in the main program before any cobegin statement.
+
+BUGS:
+	Compiler will hang if source contains upper case characters. Feel
+	free to modify the scanner in file COMPILE.PAS to fix that.
+
+				------------------
+	Compilation is top-down by recursive descent. Be shure you have the
+	{$S+} (recursion on} compiler source code toggle on when compiling 
+	the compiler overlay!
+
+	The original source file as printed in Ben-Ari's book was too long to
+	compile in a single run (some 2800 lines). Therefore, it has been split
+	into four Pascal/MT 'modules' which are linked as overlays :
+
+	CCP.PAS
+
+ 	root segment, calls the initialization overlay and  the compiler 
+	overlay. If no errors occur, the interpreter overlay is called and 
+	execution begins. Otherwise, CCP gives <some> error messages and
+	returns to CP/M.
+	All compiler tables and the code array  are held in memory; therefore
+	you can't expect to compile very large programs.
+	
+	INIT.PAS
+
+	Enters reserved words and predefined identifiers into the compiler
+	tables. 
+
+	COMPILE.PAS
+
+	contains scanner, parser and code generation routines. There is no
+	provison for a listing of the generated code, but this could readily 
+	be added (maybe another overlay). Anybody interested to write this and 
+	a set of macros for M80 to have a full native code compiler ?
+	Jerry Holter's article in Byte Sept. 83,p.445
+	Add multiple tasks to your communication and control program
+	would be a good starting point.
+	If somebody does it, let me know.
+
+	INTERPRE.PAS
+
+	contains the interpreter for the extended P-code. Originally, this
+	was a huge CASE statement. Because of Pascal/MT limitations on the
+	procedure and CASE statement size, it has been split into 4 smaller
+	CASE statements contained in the procedures EXEC1..4.
+	A random number generator is used for dispatching of processes. It 
+	uses reals to generate quasi-random numbers between 0 and 1. As this
+	is a slow process and the resulting real is converted into an integer
+	anyway, this could be improved.
+	The constant PMAX contains the maximum number of concurrent processes
+	minus one (the main program also is a process). If you change it, you 
+	will have to  compile the root too and re-link >ALL< overlays, because
+	the root segment's symbol table (CCP.SYM) will change.
+	Currently, PMAX is 7.
+	If the interpreter stops, a table containing the processes' status
+	and a symbolic post mortem dump is displayed.
+
+
+	Almost all global data is declared in the root segment. This could be
+	improved, as a lot of externals result. However, I was too lazy to
+	find out which variable is used when & where.
+
+			--------------------
+
+	Other files:
+
+	MAKECCP.SUB
+
+	Submit file for compiling and linking all 4 parts. Could take half an
+	hour. I renamed MTPLUS to P, FPREALS to FP, PASLIB to PL, and 
+	LINKMT to L. A single overlay area is used, as the overlays do not
+	call each other.
+	
+	Example  programs:
+
+	DINPHIL.CCP
+
+	The classic dining philosophers problem (was it Dijkstra or God
+	himself?)
+
+	BOUND.CCP
+
+	The producer-consumer problem with buffersize 1. 
+
+	TRIO.CCP
+
+	three unsynchronized processes writing to the screen. Process 1 writes
+	very often; seemingly the random generator is'nt very good (anybody 
+	knows a >really< good random number algorithm for 16-bit arithmetic
+	(no reals please)?).
+
+
+EXTRA:
+
+	PLO.PAS
+
+	This is the PL/0 compiler from 
+
+		N. Wirth
+		Algorithms + Data Structures = Programs.
+
+	(well, almost.)
+	It should compile with Pascal/MT+ v 5.5 to produce PL0.COM.
+	RECREAD is a PL/0 sample  program. It reads integer numbers and
+	outputs them in the reverse order, if a zero is encountered.
+	This compilation also produces a file called RECREAD.MAC, which
+	contains the intermediate code generated by PL/0.
+
+
+
+
+
+  				Happy Deadlock !
+		
+				Michael Haberler
+

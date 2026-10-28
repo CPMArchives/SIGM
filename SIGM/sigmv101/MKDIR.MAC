@@ -1,0 +1,1050 @@
+;
+;  PROGRAM:  MKDIR
+;  VERSION:  1.2
+;  AUTHOR:  RICHARD CONN
+;  DATE:  17 Jan 83
+;  PREVIOUS VERSIONS:  1.1 (15 Jan 83), 1.0 (14 Jan 83)
+;
+VERS	EQU	12
+
+;
+;	MKDIR is used to create named directory files.  It allows the user
+; to read and edit them.  It is fully integrated into the ZCPR2 system.
+;
+;	Forms of the MKDIR command are:
+;		MKDIR			<-- Enter System
+;		MKDIR //		<-- Get Help
+;		MKDIR filename.typ	<-- Enter System with selected file
+;
+
+;
+;  CP/M Constants
+;
+cpm	equ	0	; base
+bdose	equ	cpm+5
+fcb	equ	cpm+5ch
+tbuff	equ	cpm+80h
+cr	equ	0dh
+lf	equ	0ah
+
+;
+;  SYSLIB Routines
+;
+	ext	print,zgpins,putud,getud,logud,retud,zfname,moveb
+	ext	cin,cout,crlf,caps,compb
+	ext	fi0$open,f0$get,fi0$close
+	ext	fo0$open,f0$put,fo0$close
+	ext	bbline,padc,initfcb,cline,zpfind,codend
+	ext	sort
+
+;
+;	This program is Copyright (c) 1982, 1983 by Richard Conn
+;	All Rights Reserved
+;
+;	ZCPR2 and its utilities, including this one, are released
+; to the public domain.  Anyone who wishes to USE them may do so with
+; no strings attached.  The author assumes no responsibility or
+; liability for the use of ZCPR2 and its utilities.
+;
+;	The author, Richard Conn, has sole rights to this program.
+; ZCPR2 and its utilities may not be sold without the express,
+; written permission of the author.
+;
+
+;
+;  Branch to Start of Program
+;
+	jmp	start
+
+;
+;******************************************************************
+;
+;  SINSFORM -- ZCPR2 Utility Standard General Purpose Initialization Format
+;
+;	This data block precisely defines the data format for
+; initial features of a ZCPR2 system which are required for proper
+; initialization of the ZCPR2-Specific Routines in SYSLIB.
+;
+
+;
+;  EXTERNAL PATH DATA
+;
+EPAVAIL:
+	DB	0FFH	; IS EXTERNAL PATH AVAILABLE? (0=NO, 0FFH=YES)
+EPADR:
+	DW	40H	; ADDRESS OF EXTERNAL PATH IF AVAILABLE
+
+;
+;  INTERNAL PATH DATA
+;
+INTPATH:
+	DB	0,0	; DISK, USER FOR FIRST PATH ELEMENT
+			; DISK = 1 FOR A, '$' FOR CURRENT
+			; USER = NUMBER, '$' FOR CURRENT
+	DB	0,0
+	DB	0,0
+	DB	0,0
+	DB	0,0
+	DB	0,0
+	DB	0,0
+	DB	0,0	; DISK, USER FOR 8TH PATH ELEMENT
+	DB	0	; END OF PATH
+
+;
+;  MULTIPLE COMMAND LINE BUFFER DATA
+;
+MCAVAIL:
+	DB	0FFH	; IS MULTIPLE COMMAND LINE BUFFER AVAILABLE?
+MCADR:
+	DW	0FF00H	; ADDRESS OF MULTIPLE COMMAND LINE BUFFER IF AVAILABLE
+
+;
+;  DISK/USER LIMITS
+;
+MDISK:
+	DB	4	; MAXIMUM NUMBER OF DISKS
+MUSER:
+	DB	31	; MAXIMUM USER NUMBER
+
+;
+;  FLAGS TO PERMIT LOG IN FOR DIFFERENT USER AREA OR DISK
+;
+DOK:
+	DB	0FFH	; ALLOW DISK CHANGE? (0=NO, 0FFH=YES)
+UOK:
+	DB	0FFH	; ALLOW USER CHANGE? (0=NO, 0FFH=YES)
+
+;
+;  PRIVILEGED USER DATA
+;
+PUSER:
+	DB	10	; BEGINNING OF PRIVILEGED USER AREAS
+PPASS:
+	DB	'chdir',0	; PASSWORD FOR MOVING INTO PRIV USER AREAS
+	DS	41-($-PPASS)	; 40 CHARS MAX IN BUFFER + 1 for ending NULL
+
+;
+;  CURRENT USER/DISK INDICATOR
+;
+CINDIC:
+	DB	'$'	; USUAL VALUE (FOR PATH EXPRESSIONS)
+
+;
+;  DMA ADDRESS FOR DISK TRANSFERS
+;
+DMADR:
+	DW	80H	; TBUFF AREA
+
+;
+;  NAMED DIRECTORY INFORMATION
+;
+NDRADR:
+	DW	00000H	; ADDRESS OF MEMORY-RESIDENT NAMED DIRECTORY
+NDNAMES:
+	DB	64	; MAX NUMBER OF DIRECTORY NAMES
+DNFILE:
+	DB	'NAMES   '	; NAME OF DISK NAME FILE
+	DB	'DIR'		; TYPE OF DISK NAME FILE
+
+;
+;  REQUIREMENTS FLAGS
+;
+EPREQD:
+	DB	0FFH	; EXTERNAL PATH?
+MCREQD:
+	DB	000H	; MULTIPLE COMMAND LINE?
+MXREQD:
+	DB	0FFH	; MAX USER/DISK?
+UDREQD:
+	DB	000H	; ALLOW USER/DISK CHANGE?
+PUREQD:
+	DB	000H	; PRIVILEGED USER?
+CDREQD:
+	DB	0FFH	; CURRENT INDIC AND DMA?
+NDREQD:
+	DB	0FFH	; NAMED DIRECTORIES?
+Z2CLASS:
+	DB	0	; CLASS 0
+	DB	'ZCPR2'
+	DS	10	; RESERVED
+
+;
+;  END OF SINSFORM -- STANDARD DEFAULT PARAMETER DATA
+;
+;******************************************************************
+;
+
+;
+;  Start of Program
+;
+start:
+	lxi	h,0	; save stack
+	dad	sp
+	shld	stack
+	xra	a	; A=0
+	sta	chflag	; set no changes
+	sta	flflag	; set no file loaded
+	sta	ecount	; set no entries
+	call	zgpins	; set up environ
+	call	print
+	db	'MKDIR  Version '
+	db	vers/10+'0','.',(vers mod 10)+'0',0
+	lda	fcb+1	; check for help
+	cpi	'/'
+	jnz	start1
+	call	print	; print help message
+	db	cr,lf,'	MKDIR is used to read and edit named directory files.'
+	db	cr,lf,'It is invoked by the following forms --'
+	db	cr,lf
+	db	cr,lf,'		MKDIR			<-- Enter System'
+	db	cr,lf,'		MKDIR dir:filename.typ	<-- Define File First'
+	db	cr,lf,'		MKDIR //		<-- Print this Help'
+	db	cr,lf,0
+	ret
+
+start1:
+	call	putud	; save current dir for quick return
+	call	retud	; get current user and disk
+	mov	a,b	; save disk
+	sta	cdisk
+	mov	a,c
+	sta	cuser
+	lxi	h,dnfile	; set default file name
+	lxi	d,dfcb+1	; copy into fcb
+	mvi	b,11	; 11 chars
+	call	moveb
+	lxi	h,tbuff	; save command line as string
+	call	cline
+	call	sblank	; skip to non-blank
+	ora	a	; no entry?
+	jz	mkdir	; enter system
+;
+;  Main Entry Point for Loading a File
+;
+loadfile:
+	lxi	sp,stack	; set stack
+	lxi	d,dfcb	; set up default file name
+	call	zfname	; extract info
+	jnz	start2
+	call	print
+	db	cr,lf,'Error in Disk or User -- Ignoring',0
+	lda	cdisk	; set current values
+	mov	b,a
+	lda	cuser
+	mov	c,a
+	jmp	start3
+start2:
+	mov	a,b	; check for current disk
+	cpi	0ffh	; current?
+	jnz	cutst
+	lda	cdisk	; get current disk
+	mov	b,a
+	inr	b	; add 1 for following decrement
+cutst:
+	dcr	b	; adjust disk to 0 to n-1
+	mov	a,c	; check for current user
+	cpi	0ffh	; current?
+	jnz	start3
+	lda	cuser	; get current user
+	mov	c,a
+start3:
+	call	logud	; log into UD to begin search
+;
+;  Entry Point for Loading File in DFCB
+;
+ffile:
+	lxi	sp,stack	; reset stack
+	mvi	b,0ffh	; search current first
+	lxi	d,dfcb	; pt to FCB
+	call	initfcb	; init it
+	call	zpfind	; look for file
+	jnz	start4
+	call	print
+	db	cr,lf,'File ',0
+	lxi	h,dfcb+1	; print name
+	call	prfn
+	call	print
+	db	' Not Found',0
+	jmp	mkdir
+start4:
+	call	logud	; log into dir of file
+	lxi	d,dfcb
+	call	initfcb
+	call	fi0$open	; open file for input
+	call	codend	; pt to scratch buffer
+	lda	ndnames	; get max entry count
+	mov	b,a	; ... in B
+readf:
+	call	getch	; get disk letter from file
+	sui	'A'	; convert to number from 0 to n-1
+	mov	m,a	; store disk number
+	inx	h	; pt to user number
+	call	getch	; get user number
+	mov	m,a	; store user number
+	inx	h	; pt to next
+	mvi	c,8	; store dir name
+readn:
+	call	getch	; get char
+	ora	a	; done?
+	jz	readn1
+	mov	m,a	; store char if not done
+	inx	h	; pt to next
+	dcr	c	; count down
+	jnz	readn
+	jmp	readn2
+readn0:
+	call	getch	; flush char
+readn1:
+	mvi	m,' '	; store spaces now
+	inx	h	; pt to next
+	dcr	c	; count down
+	jnz	readn0
+readn2:
+	call	getch	; flush 9th char
+	dcr	b	; count down
+	jnz	readf	; continue reading file entries
+	call	fi0$close	; close input file
+	call	getud	; return to current dir
+	call	dirpack	; pack dir
+	mvi	a,0ffh	; set file loaded flag
+	sta	flflag
+	jmp	mkdir1
+;
+;  Enter MKDIR System and Init Environ
+;	Enter at MKDIR if no file loaded, enter at MKDIR1 if file loaded
+;
+mkdir:
+	call	dinit0	; init directory
+	xra	a	; A=0
+	sta	ecount	; set no entries present
+	sta	flflag	; set no file loaded
+	sta	chflag	; set no changes
+mkdir1:
+	lxi	sp,stack	; set stack
+	call	print
+	db	cr,lf,'MKDIR Command (? for Help)? ',0
+	call	cin	; get command
+	call	caps	; capitalize
+	call	cout	; echo
+	lxi	d,mkdir1	; set ret address
+	push	d
+	lxi	h,ctable	; scan command table for it
+	mov	c,a	; command in C
+mkdir2:
+	mov	a,m	; get command letter
+	ora	a	; end of table?
+	jz	mkdirh
+	cmp	c	; match?
+	jz	mkdir3
+	inx	h	; skip over address
+	inx	h
+	inx	h
+	jmp	mkdir2
+mkdir3:
+	inx	h	; get address in HL
+	mov	a,m	; low
+	inx	h
+	mov	h,m
+	mov	l,a	; HL is address of routine
+	pchl		; "call" routine
+;
+;  Print MKDIR Command Help
+;
+mkdirh:
+	call	print
+	db	cr,lf,'MKDIR Commands are --'
+	db	cr,lf,'	C -- Change Directory (Add/Rename/Delete Entries)'
+	db	cr,lf,'	I -- Initialize Directory'
+	db	cr,lf,'	P -- Print Directory'
+	db	cr,lf,'	R -- Read Directory File'
+	db	cr,lf,'	S -- Status of MKDIR Environment'
+	db	cr,lf,'	W -- Write Directory File'
+	db	cr,lf,'	X -- Exit Program'
+	db	cr,lf,0
+	ret
+;
+;  Command Table
+;
+ctable:
+	db	'C'	; change directory
+	dw	change
+	db	'I'	; init directory
+	dw	dinit
+	db	'P'	; print directory
+	dw	dprint
+	db	'R'	; read file
+	dw	read
+	db	'S'	; status
+	dw	status
+	db	'W'	; write file
+	dw	write
+	db	'X'	; exit
+	dw	exit
+	db	0	; end of table
+;
+;  Status
+;
+status:
+	call	print
+	db	cr,lf,'** MKDIR Status **',cr,lf,cr,lf,0
+	lda	ecount	; print entry count
+	mov	b,a	; ... count in B for later
+	call	padc
+	call	print
+	db	' Entries in Directory',cr,lf,0
+	lda	ndnames	; get limit
+	sub	b	; subtract amount taken so far
+	call	padc
+	call	print
+	db	' Empty Entries Remaining'
+	db	cr,lf
+	db	cr,lf,'Working File Name: ',0
+	lxi	h,dfcb+1
+	call	prfn
+	call	crlf	; new line
+	call	crlf
+	lda	chflag	; changes made?
+	ora	a
+	jnz	stat1
+	call	print
+	db	'No ',0
+stat1:
+	call	print
+	db	'Changes made to Directory since Startup'
+	db	cr,lf,0
+	lda	flflag	; file loaded?
+	ora	a	; 0=no
+	jnz	stat2
+	call	print
+	db	'No ',0
+stat2:
+	call	print
+	db	'File has been loaded',cr,lf,0
+	ret
+
+;
+;  Init Directory
+;
+dinit:
+	call	print
+	db	cr,lf,'	Are you sure you want to Initialize the Directory '
+	db	'(Y/N/<CR>=N)? ',0
+	call	cin	; get response
+	call	caps
+	call	cout
+	call	crlf
+	cpi	'Y'	; Yes is only valid reply
+	rnz
+dinit0:
+	xra	a	; A=0
+	sta	ecount
+	mvi	a,0ffh
+	sta	chflag	; set change flag
+	call	codend	; pt to directory
+	lda	ndnames	; get entry count
+	mov	b,a	; ... in B
+dinit1:
+	mvi	m,0	; set double zero
+	inx	h
+	mvi	m,0
+	inx	h	; pt to name
+	mvi	c,8	; 8 chars
+dinit2:
+	mvi	m,' '	; store space
+	inx	h	; pt to next
+	dcr	c	; count down
+	jnz	dinit2
+	dcr	b	; count down
+	jnz	dinit1
+	ret
+;
+;  Read File
+;
+read:
+	call	getfname	; get file name
+	ora	a		; none?
+	jz	ffile		; just find default file and load it
+	jmp	loadfile	; parse entry and load file
+;
+;  Get File Name from User
+;
+getfname:
+	call	print
+	db	cr,lf,'Name of File (<RETURN> = ',0
+	lxi	h,dfcb+1	; print default name
+	call	prfn
+	call	print
+	db	')? ',0
+	mvi	a,0ffh	; capitalize
+	call	bbline	; get user input
+	call	sblank	; skip to non-blank
+	ora	a	; default?
+	ret
+;
+;  Write File
+;
+write:
+	call	getfname
+	jz	write1
+	lxi	d,dfcb	; parse into DFCB
+	call	zfname	; parse file name
+	jnz	write0
+	call	print
+	db	cr,lf,'Invalid Disk or User -- Using Current Directory',0
+	jmp	write1
+write0:
+	mov	a,b	; current disk?
+	cpi	0ffh
+	jnz	wutst
+	lda	cdisk	; select current disk
+	mov	b,a
+	inr	b	; add 1 for following decrement
+wutst:
+	dcr	b	; adjust disk to 0 to n-1
+	mov	a,c	; current user?
+	cpi	0ffh
+	jnz	wlog
+	lda	cuser	; select current user
+	mov	c,a
+wlog:
+	call	logud	; log into new dir
+write1:
+	lxi	d,dfcb	; open file for output
+	call	initfcb
+	call	fo0$open	; open file
+	ora	a	; OK?
+	jnz	werr	; write error and abort
+	call	print
+	db	cr,lf,'Writing Directory to Disk ... ',0
+	lda	ndnames	; save dir as loaded
+	mov	b,a	; count in B
+	call	codend	; pt to start of buffer
+writef:
+	mov	a,m	; get disk
+	adi	'A'	; convert to letter
+	call	putch	; write char
+	inx	h	; pt to user
+	mov	a,m	; get user
+	call	putch	; write char
+	inx	h	; pt to next
+	mvi	c,8	; write dir name to disk
+wf1:
+	mov	a,m	; get char
+	cpi	' '	; done?
+	jz	wf2
+	inx	h	; pt to next
+	call	putch	; write char to disk
+	dcr	c	; count down
+	jnz	wf1
+	jmp	wf3
+wf2:
+	xra	a	; write zeroes
+	inx	h	; skip next char
+	call	putch
+	dcr	c	; count down
+	jnz	wf2
+wf3:
+	xra	a	; write 9th zero
+	call	putch
+	dcr	b	; count down
+	jnz	writef
+	call	fo0$close	; close file
+	call	getud	; go home
+	xra	a	; A=0
+	sta	chflag	; set no changes flag
+	call	print
+	db	'Done',0
+	ret
+;
+;  Exit from MKDIR
+;
+exit:
+	lda	chflag	; check for any changes
+	ora	a	; 0=No
+	jz	exit1
+	call	print
+	db	cr,lf
+	db	cr,lf,'Directory has changed since last Write'
+	db	cr,lf,'Do you want to write Directory to Disk first '
+	db	'(Y/N/<CR>=Y)?',0
+	call	cin	; get response
+	call	caps
+	call	cout
+	call	crlf	; new line
+	cpi	'N'	; no?
+	cnz	write	; write if not No
+exit1:
+	lhld	stack	; return to OS
+	sphl
+	ret
+;
+;  Print Directory to User
+;
+dprint:
+	lda	ecount	; any entries?
+	ora	a	; 0=none
+	jnz	dpr1
+	call	print
+	db	cr,lf,'Empty Directory',0
+	ret
+dpr1:
+	call	codend	; pt to first element
+	lda	ecount	; get entry count
+	mov	b,a	; ... in B
+	mvi	c,'A'-1	; set disk type
+prloop:
+	inr	c	; next disk
+	call	print
+	db	cr,lf,'Disk ',0
+	mov	a,c	; print disk letter
+	call	cout
+	call	print
+	db	' --',0
+	mvi	a,0ffh	; set line count
+	sta	crcnt
+prl1:
+	mov	a,m	; get next disk
+	adi	'A'	; convert to alpha
+	cmp	c	; same as current?
+	jnz	prloop	; loop to next if not
+	lda	crcnt	; increment entry count
+	inr	a
+	sta	crcnt
+	ani	3	; new line?
+	cz	crlf
+	call	print
+	db	'   ',0	; space over
+	inx	h	; pt to user
+	mov	a,m	; get user number
+	call	padc	; print user number
+	call	print
+	db	': ',0
+	inx	h	; pt to name
+	mvi	d,8	; 8 chars
+prl2:
+	mov	a,m	; get char
+	inx	h	; pt to next
+	call	cout	; print char
+	dcr	d	; count down
+	jnz	prl2
+prl3:
+	dcr	b	; count down
+	jnz	prl1
+	call	crlf	; new line
+	lda	ecount
+	call	padc
+	call	print
+	db	' Entries in Directory',0
+	ret
+;
+;  Change Directory Contents
+;
+change:
+	call	print
+	db	cr,lf,'** MKDIR Change Mode **',0
+ch0:
+	call	print
+	db	cr,lf,'Directory Entry (?<RETURN> for Help)? ',0
+	mvi	a,0ffh	; caps
+	call	bbline	; get user input
+	call	sblank	; skip to non-blank
+	ora	a	; no input?
+	jz	chprint	; done, so print directory
+	mov	a,m	; get first char
+	cpi	'X'	; Exit?
+	jz	dsort	; if so, sort and then exit
+	cpi	'?'	; help?
+	jnz	ch1
+	call	print
+	db	cr,lf
+	db	cr,lf,'MKDIR Change Mode --'
+	db	cr,lf,'	You may issue the following commands at this point:'
+	db	cr,lf
+	db	cr,lf,'		DU:dirname	<-- Create/Rename Dir Entry'
+	db	cr,lf,'		DU:		<-- Delete Dir Entry'
+	db	cr,lf,'		<RETURN>	<-- Print Directory'
+	db	cr,lf,'		X		<-- Exit'
+	db	cr,lf,'		?		<-- Print this Help'
+	db	cr,lf,0
+	jmp	ch0
+chprint:
+	call	dsort	; use dsort routine
+	call	dprint	; use dprint routine
+	jmp	ch0	; continue
+ch1:
+	lxi	d,tfcb	; extract user and disk info as well as name
+	call	zfname	; get info
+	jnz	ch2
+	call	print
+	db	cr,lf,'Error in Disk or User',0
+	jmp	ch0
+ch2:
+	mov	a,b	; current disk?
+	cpi	0ffh
+	jnz	ch3
+	lda	cdisk	; set disk
+	mov	b,a
+	inr	b	; add 1 for following decrement
+ch3:
+	dcr	b	; adjust disk to 0 to n-1
+	mov	a,c	; current user?
+	cpi	0ffh
+	jnz	ch4
+	lda	cuser	; set user
+	mov	c,a
+ch4:
+	mov	a,b	; save as temp disk and user
+	sta	tdisk
+	mov	a,c
+	sta	tuser
+;
+;  Scan Directory for Temp Disk and User
+;
+	lda	ndnames	; get entry count
+	mov	b,a	; ... in B
+	call	codend	; pt to first entry
+scanud:
+	inx	h	; pt to name
+	inx	h
+	mov	a,m	; get first char of name
+	dcx	h
+	dcx	h	; pt to disk
+	cpi	' '	; deleted entry?
+	jz	scanud1
+	mov	d,m	; get disk
+	lda	tdisk	; compare it
+	cmp	d
+	jnz	scanud1
+	inx	h	; pt to user
+	mov	a,m	; get user
+	dcx	h	; pt back
+	cmp	c	; compare it
+	jz	udfound
+scanud1:
+	lxi	d,10	; pt to next
+	dad	d
+	dcr	b	; count down
+	jnz	scanud
+	lda	tfcb+1	; delete?
+	cpi	'?'	; ? if so
+	jnz	addname
+	call	print
+	db	cr,lf,'	-- DU not found for Delete -- No Change Made',0
+	jmp	ch0
+;
+;  Found Possible Directory Entry
+;
+udfound:
+	inx	h	; found existing entry
+	inx	h	; pt to name
+	lda	tfcb+1	; delete?
+	cpi	'?'	; ? if so
+	jz	delname
+;
+;  Rename Function
+;
+	xra	a	; clear add flag
+	sta	addflg
+	call	print
+	db	cr,lf,'	Renaming ',0
+	mvi	b,8	; 8 chars
+	push	h	; save ptr
+	call	prfn1	; print name
+	pop	h	; get ptr
+	mvi	m,' '	; space fill
+	jmp	putname
+;
+;  Add Function
+;
+addname:
+	mvi	a,0ffh	; set add flag
+	sta	addflg
+	call	print
+	db	cr,lf,'	Adding ',0
+	lxi	h,tfcb+1
+	mvi	b,8
+	call	prfn1
+	lda	ecount	; increment entry count
+	inr	a
+	sta	ecount
+putname:
+	lda	ndnames	; get entry count
+	mov	c,a	; ... in C
+	call	codend	; pt to first entry
+	inx	h	; pt to name
+	inx	h
+etest:
+	lxi	d,tfcb+1	; pt to new name
+	mvi	b,8	; 8 chars
+	call	compb	; compare
+	jnz	etest1
+	call	print
+	db	cr,lf,'	-- Error -- Duplicate Name Exists -- No Change Made',0
+	lda	addflg	; add?
+	ora	a	; 0=no
+	jz	ch0
+	lda	ecount	; count down
+	dcr	a
+	sta	ecount
+	jmp	ch0
+etest1:
+	lxi	d,10	; pt to next entry
+	dad	d
+	dcr	c	; count down
+	jnz	etest
+	mvi	a,0ffh	; change made
+	sta	chflag
+	lda	ndnames	; get entry count
+	mov	b,a	; ... in B
+	call	codend	; pt to first
+	inx	h	; pt to name
+	inx	h
+putn1:
+	mov	a,m	; valid entry?
+	cpi	' '	; empty?
+	jnz	putn2
+	dcx	h	; pt to disk
+	dcx	h
+	lda	tdisk
+	mov	m,a
+	inx	h
+	lda	tuser
+	mov	m,a
+	inx	h
+	lxi	d,tfcb+1	; pt to new name
+	xchg
+	mvi	b,8	; 8 chars
+	call	moveb
+	call	print
+	db	' -- ',0
+	lda	ecount	; print count
+	mov	b,a	; ... in B
+	call	padc
+	call	print
+	db	' Entries in Directory, Room for ',0
+	lda	ndnames
+	sub	b
+	call	padc
+	call	print
+	db	' More',0
+	jmp	ch0	; continue
+putn2:
+	lxi	d,10	; skip to next entry
+	dad	d
+	dcr	b	; count down
+	jnz	putn1
+	call	print
+	db	cr,lf,'** Directory Full **',0
+	lda	addflg	; adding?
+	ora	a	; 0=no
+	jz	ch0
+	lda	ecount	; count down
+	dcr	a
+	sta	ecount
+	jmp	ch0
+;
+;  Delete Function
+;
+delname:
+	mvi	a,0ffh	; change made
+	sta	chflag
+	call	print
+	db	cr,lf,'	Deleting ',0
+	mvi	b,8	; 8 chars
+	push	h	; save ptr
+	call	prfn1
+	pop	h	; get ptr
+	mvi	m,' '	; space fill
+	call	dirpack	; pack directory
+	call	print
+	db	' -- ',0
+	lda	ecount	; print remaining count
+	call	padc
+	call	print
+	db	' Entries Remaining',0
+	jmp	ch0	; continue
+;
+;  Sort Directory
+;
+dsort:
+	call	dirpack	; pack directory
+	lda	ecount	; number of elements
+	ora	a	; any?
+	rz		; done if none
+	sta	ssbcnt	; set count
+	call	codend	; pt to first element
+	shld	ssbstrt	; set starting address
+	lxi	d,ssb	; pt to sort specifiction block
+	call	sort	; sort
+	ret
+;
+;  Sort Compare Routine
+;
+compare:
+	push	h	; don't change regs
+	push	d
+	ldax	d	; compare disk
+	cmp	m
+	jnz	comp1
+	inx	h	; pt to user
+	inx	d
+	ldax	d	; compare user
+	cmp	m
+comp1:
+	pop	d	; restore regs
+	pop	h
+	ret
+
+;
+;  Utilities
+;
+
+;
+;  Read and Write Chars to Disk
+;
+getch:
+	call	f0$get	; get char
+	rz		; OK since no error
+	call	print
+	db	cr,lf,'File Read Error -- Aborting',0
+	jmp	mkdir1	; goto command level
+putch:
+	call	f0$put	; put char
+	rz		; OK since no error
+werr:
+	call	print
+	db	cr,lf,'Disk Write Error -- Aborting',0
+	call	getud	; return home
+	jmp	mkdir1
+;
+;  Pack Memory-Based Directory
+;
+dirpack:
+	call	codend	; get address of first entry
+	mov	d,h	; DE pts to it also
+	mov	e,l
+	lda	ndnames	; get max count
+	mov	b,a	; ... in B
+	mvi	c,0	; set entry count
+dirp0:
+	push	b	; save counts
+	inx	h	; pt to name
+	inx	h
+	mov	a,m	; get char
+	dcx	h	; pt back to disk
+	dcx	h
+	cpi	' '	; no entry if space
+	jz	dirp1
+	mvi	b,10	; copy 10 bytes
+dirpm:
+	mov	a,m	; copy HL to DE for B bytes
+	stax	d
+	inx	h	; pt to next
+	inx	d
+	dcr	b	; count down
+	jnz	dirpm
+	pop	b	; get counts
+	inr	c	; 1 more entry
+	jmp	dirp2
+dirp1:
+	push	d	; save new entry ptr
+	lxi	d,10	; pt to next entry
+	dad	d
+	pop	d
+	pop	b	; get counts
+dirp2:
+	dcr	b	; count down
+	jnz	dirp0
+	mov	a,c	; save count
+	sta	ecount
+	lda	ndnames	; make rest empty
+	sub	c	; number of entries remaining
+	mov	b,a	; ... in B
+	ora	a	; none?
+	rz
+	xchg		; HL pts to next entry
+	inx	h	; pt to name
+	inx	h
+	lxi	d,10	; prep to add 10
+dirp3:
+	mvi	m,' '	; set space as first char
+	dad	d	; pt to next
+	dcr	b	; count down
+	jnz	dirp3
+	ret
+;
+;  Skip until non-blank encountered
+;
+sblank:
+	mov	a,m	; get char
+	inx	h	; pt to next
+	cpi	' '	; skip space
+	jz	sblank
+	dcx	h	; pt to char
+	ret
+;
+;  Print file name pted to by HL
+;
+prfn:
+	push	b	; save regs
+	push	h
+	mvi	b,8	; 8 chars
+	call	prfn1
+	mvi	a,'.'
+	call	cout
+	mvi	b,3	; 3 chars
+	call	prfn1
+	pop	h	; get regs
+	pop	b
+	ret
+prfn1:
+	mov	a,m	; print chars
+	inx	h	; pt to next
+	call	cout
+	dcr	b	; count down
+	jnz	prfn1
+	ret
+
+;
+;  Sort Specification Block
+;
+ssb:
+ssbstrt:
+	ds	2	; start address of dir
+ssbcnt:
+	dw	0	; number of records to sort
+	dw	10	; 10 bytes/record
+	dw	compare	; compare routine
+	dw	0	; no ptr table
+	db	0,0	; don't use ptrs
+;
+;  Buffers
+;
+cdisk:
+	ds	1	; current disk
+cuser:
+	ds	1	; current user
+tdisk:
+	ds	1	; temp disk
+tuser:
+	ds	1	; temp user
+flflag:
+	ds	1	; file loaded flag
+chflag:
+	ds	1	; dir changed flag
+ecount:
+	ds	1	; entry count
+addflg:
+	ds	1	; add/rename flag
+crcnt:
+	ds	1	; new line count
+tfcb:
+	ds	36	; temp FCB
+dfcb:
+	ds	36	; Default FCB
+	ds	50	; 25-elt stack
+stack:
+	ds	2	; original stack ptr
+
+	end
+

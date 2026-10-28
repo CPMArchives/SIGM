@@ -1,0 +1,177 @@
+\ch Printing Utilities
+This chapter describes the utility programs PRINT and FF.
+Both of these programs assume that the printer is an I.D.S.`460G
+"Paper Tiger"; they can easily be adapted to other printers.
+
+\se PRINT
+\mr sysut
+PRINT is used to print files.
+It does not alter the line structure of a file by truncating or wrapping
+long lines, but it does paginate.
+It should not be used for files that are already paginated except with the
+"T" option.
+
+\pa Invoke PRINT either by typing \bd PRINT \ed or
+\bd PRINT filename parameters \ed
+If you use the first form, PRINT will first display the parameters that
+it accepts, and will then wait for you to enter a file name followed
+by parameters.
+If you use the second form, PRINT will print the file immediately
+without displaying the options.
+\pa If you do not give it any parameters, PRINT will print the file
+using 12 characters/inch, 6 lines/inch, and 60 lines/page.
+You can use parameters to change the format of the printed file;
+for example, the command
+\bd PRINT MOUSE.TEX B C16 N3 X2 \ed
+would print two copies (X2) of the file MOUSE.TEX in boldface type (B), with 
+16 characters/inch (C16), and line numbers of 3 digits (N3).
+Here is a complete list of the parameters that PRINT accepts.
+A parameter starts with a letter, and some parameters may be followed by
+a number or by two numbers.
+\sp 2 B \im 20 Boldface characters.  Note that boldface characters are
+twice the width of normal characters.  The default is
+'off', that is, normal weight characters.
+\sm 0 \sp 2 C <num> \im 20 <num> may be 10, 12, or 16; its value determines 
+the pitch (characters/inch) of the printing.  The default value is 
+12 characters/inch.
+\sm 0 \sp 2 E <m>,<n> \im 20 Print lines <m> through <n> inclusive from the 
+file. The default is to print the entire file.
+\sm 0 \sp 2 G <num> \im 20 Set tab positions every <num> columns.  The default
+value for <num> is 8, corresponding to the editor's default tab positions.
+\sm 0 \sp 2 L <num> \im 20 Set line spacing to <num>/48 inches.  The default
+value is <num> = 8, so the line spacing is 1/6 inches.
+\sm 0 \sp 2 M <num> \im 20 Set the left margin to <num> columns.  The default
+value is <num> = 0, so printing starts as close to the left as possible.
+\sm 0 \sp 2 N <num> \im 20 Print a line number of <num> digits at the start of
+each line.  If <num> = 0, the default value, line numbers are not printed.
+\sm 0 \sp 2 P <num> \im 20 Print <num> lines on each page.  The default value
+is <num> = 60.  If you use L to change the line spacing, use P accordingly.
+The parameter P0 has a special effect: it inhibits PRINT from transmitting 
+form-feeds at all.
+\sm 0 \sp 2 T <m>,<n> \im 20 Print pages <m> through <n> of a file which
+already contains form-feed characters; for example, a file created by 
+TP. 
+\sp 2 In this mode, TP calls the assembly language procedure _copy.
+For some reason that I have not figured out yet, _copy ignores the
+ETX/ACK protocol of the printer.
+Consequently the "T" mode does not work on my system.
+Any suggestions?
+\sm 0 \sp 2 V \im 20 Print with proportional spacing.
+The default is even spacing.
+\sm 0 \sp 2 X <num> \im 20 Print <num> copies.  The default is <num> = 1.
+\sm 0
+
+\se FF
+This command initializes the printer and may also send form feeds to it.
+The command
+\bd FF <num> \ed
+sends <num> form feeds to the printer, where <num> is a small positive
+number.
+Use the command
+\bd FF 2 \ed
+to remove a listing from the printer.
+\pa FF always sets the printer to 12 characters/inch, 6 lines/inch,
+and fixed space non-bold printing.
+
+\ch Pascal Development Utilities
+
+This chapter describes the programs PP and XREF.
+They are designed to work together, and they make certain assumptions about
+the way in which Pascal programs are developed.
+
+\se PP
+PP pretty-prints Pascal programs; it is a descendent of a program written
+by Ledgard et al [SIGPLAN Notices, _12, 7, July 1977, 101-5], but its authors
+would probably have difficulty recognizing it in its present form.
+The command \bd PP PROG \ed reads a Pascal program from the file PROG.PAS and
+writes a pretty-printed version of it to the file PROG.PPP.
+
+\pa PP is not idempotent: if you try to pretty-print a file that has
+already been pretty-printed, you may find that PP has inserted unnecessary
+blanks.
+Thus PP assumes the following programming convention: PAS files are
+maintained in a compact form with no indentation, several statements
+on a line, etc., and the PPP file is used for printing only.
+
+\pa PP changes all Pascal reserved words (BEGIN, END, WHILE, etc.)
+to upper case.
+XREF (described below) cross-references only symbols that begin with a
+lower case letter, and it will therefore not cross-reference reserved words 
+in files created by PP.
+
+\pa PP is a fairly "conservative" pretty-printer in that it gives you a
+certain amount of control over the final layout of the program.
+It does this not by means of embedded directives, but by retaining
+certain features of the input file.
+For example, PP will always ensure that a line beginning "PROCEDURE"
+is preceded by a blank line; if you always put three blank lines before a
+procedure declaration, PP will retain these blank lines.
+The same applies to spaces embedded in a line.
+Although PP usually tries to put each statement on a separate line,
+it is not ruthless about this.
+If you write "ELSE`IF`..." on one line, PP will not insert a line break
+between "ELSE" and "IF", for example.
+
+\pa The best way to understand PP is to look at its controlling loop, a
+_WHILE statement at the very end of the program.
+PP reads Pascal source and recognizes certain tokens, including some of the
+reserved words and some punctuation symbols.
+It associates three sets, _selected, _dindsym, and _terminators, with each
+special token, and the members of these sets control its actions.
+The formatting conventions that it follows can be altered by judiciously
+changing entries in the sets.
+
+\pa It is important to note that PP does not parse the program in any sense.
+This is both a strength and a weakness.
+A strength because PP is able to pretty-print programs with syntax errors,
+and it can therefore be used to track down errors such as mis-matched
+\nu /
+_BEGIN/END pairs.
+A weakness because there are certain situations which it cannot easily be made
+to recognize: the most important of these is an _ELSE clause in a _CASE
+statement.` (Why didn't Intersystems use _OTHERWISE like everybody else?)
+
+\se XREF
+XREF is a program that cross-references Pascal programs that have been
+pretty-printed.
+The command
+/bd XREF PROG /ed
+causes XREF to read from the file PROG.PPP and write to a new file
+called PROG.XRT. 
+\pa XREF does not cross-reference symbols inside comments of the form
+"{`...`}", symbols inside quoted strings, or symbols that do not start
+with a lower case letter.
+It does not write a listing of the program being cross-referenced,
+but the line numbers that it prints in the cross-reference table are
+consistent with those produced by PRINT.
+You can use the following submit file, called PP.SUB, to pretty-print 
+and cross-reference a Pascal program, print the results, 
+and delete the temporary files:
+\bd \rb
+PP $1
+XREF $1
+PRINT $1.PPP N4
+PRINT $1.XRT
+ERA $1.PPP
+ERA $1.XRT
+\ed \sb
+Note that the parameter $1 must not be given an extension.
+For example:
+\bd SUBMIT PP MYPROG \ed
+
+\pa XREF uses 26 binary trees to store user identifiers.
+The first letter of an identifier determines the tree in which it will
+be stored.
+An entry in the tree consists of the identifier, a pointer to a list of
+line numbers, and pointers to left and right subtrees.
+Line numbers are pushed onto the list as the program is scanned,
+and the list is reversed prior to printing.
+
+\pa The problem thta is most likely to beset XREF is memory space.
+It uses the assembly language function _space to check available memory
+before making each entry and it will stop scanning and print the report
+if the amount of available memory falls below 100 bytes.
+This has not actually happened so far; XREF seems to be capable of
+cross-referencing Pascal programs of several thousand lines while
+running in 58K.
+

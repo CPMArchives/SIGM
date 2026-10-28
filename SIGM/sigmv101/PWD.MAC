@@ -1,0 +1,527 @@
+;
+;  Program:  PWD
+;  Version:  1.1
+;  Author:  Richard Conn
+;  Date:  6 Jan 83
+;  Previous Versions:  1.0 (7 Dec 82)
+;  Derivation:  PWD.MAC was derived in concept from CD.MAC, Version 2.1
+;
+vers	equ	11
+
+;
+;	This program is Copyright (c) 1982, 1983 by Richard Conn
+;	All Rights Reserved
+;
+;	ZCPR2 and its utilities, including this one, are released
+; to the public domain.  Anyone who wishes to USE them may do so with
+; no strings attached.  The author assumes no responsibility or
+; liability for the use of ZCPR2 and its utilities.
+;
+;	The author, Richard Conn, has sole rights to this program.
+; ZCPR2 and its utilities may not be sold without the express,
+; written permission of the author.
+;
+
+
+;
+;	PWD is designed to allow the user to print his working directory
+; (PWD=Print Working Directory) and to find out what directories
+; are available to him to move to.
+; 	Intended to be small in size, PWD accepts a command of the
+; following forms:
+;
+;		PWD			<-- Print Current Info
+;		PWD DIR			<-- Print Directory Info
+;		PWD //			<-- Print Help Message
+;
+
+;
+;  CP/M Constants
+;
+cpm	equ	0	; Warm Boot Address
+entry	equ	cpm+5	; BDOS Entry Point
+fcb	equ	5ch	; Location of Default FCB
+tbuff	equ	80h	; Temporary Input Line Buffer
+cr	equ	0dh
+lf	equ	0ah
+
+;
+;  Externals
+;
+	ext	cline	; save current line as string
+	ext	zgpins	; init ZCPR2 buffers
+	ext	zdnfind	; used to determine directory user/disk
+	ext	retud	; return current user/disk
+	ext	print	; print routine
+	ext	zdname	; load directory names
+	ext	cout	; char output
+	ext	codend	; end of code
+	ext	padc	; print A as decimal
+	ext	madc	; print A in memory
+	ext	crlf	; new line
+	ext	cin	; char input
+
+;
+;  Branch to Start of Program
+;
+	jmp	start
+
+;
+;******************************************************************
+;
+;  SINSFORM -- ZCPR2 Utility Standard General Purpose Initialization Format
+;
+;	This data block precisely defines the data format for
+; initial features of a ZCPR2 system which are required for proper
+; initialization of the ZCPR2-Specific Routines in SYSLIB.
+;
+
+;
+;  EXTERNAL PATH DATA
+;
+EPAVAIL:
+	DB	0FFH	; IS EXTERNAL PATH AVAILABLE? (0=NO, 0FFH=YES)
+EPADR:
+	DW	40H	; ADDRESS OF EXTERNAL PATH IF AVAILABLE
+
+;
+;  INTERNAL PATH DATA
+;
+INTPATH:
+	DB	0,0	; DISK, USER FOR FIRST PATH ELEMENT
+			; DISK = 1 FOR A, '$' FOR CURRENT
+			; USER = NUMBER, '$' FOR CURRENT
+	DB	0,0
+	DB	0,0
+	DB	0,0
+	DB	0,0
+	DB	0,0
+	DB	0,0
+	DB	0,0	; DISK, USER FOR 8TH PATH ELEMENT
+	DB	0	; END OF PATH
+
+;
+;  MULTIPLE COMMAND LINE BUFFER DATA
+;
+MCAVAIL:
+	DB	0FFH	; IS MULTIPLE COMMAND LINE BUFFER AVAILABLE?
+MCADR:
+	DW	0FF00H	; ADDRESS OF MULTIPLE COMMAND LINE BUFFER IF AVAILABLE
+
+;
+;  DISK/USER LIMITS
+;
+MDISK:
+	DB	4	; MAXIMUM NUMBER OF DISKS
+MUSER:
+	DB	31	; MAXIMUM USER NUMBER
+
+;
+;  FLAGS TO PERMIT LOG IN FOR DIFFERENT USER AREA OR DISK
+;
+DOK:
+	DB	0FFH	; ALLOW DISK CHANGE? (0=NO, 0FFH=YES)
+UOK:
+	DB	0FFH	; ALLOW USER CHANGE? (0=NO, 0FFH=YES)
+
+;
+;  PRIVILEGED USER DATA
+;
+PUSER:
+	DB	10	; BEGINNING OF PRIVILEGED USER AREAS
+PPASS:
+	DB	'chdir',0	; PASSWORD FOR MOVING INTO PRIV USER AREAS
+	DS	41-($-PPASS)	; 40 CHARS MAX IN BUFFER + 1 for ending NULL
+
+;
+;  CURRENT USER/DISK INDICATOR
+;
+CINDIC:
+	DB	'$'	; USUAL VALUE (FOR PATH EXPRESSIONS)
+
+;
+;  DMA ADDRESS FOR DISK TRANSFERS
+;
+DMADR:
+	DW	80H	; TBUFF AREA
+
+;
+;  NAMED DIRECTORY INFORMATION
+;
+NDRADR:
+	DW	00000H	; ADDRESS OF MEMORY-RESIDENT NAMED DIRECTORY
+NDNAMES:
+	DB	64	; MAX NUMBER OF DIRECTORY NAMES
+DNFILE:
+	DB	'NAMES   '	; NAME OF DISK NAME FILE
+	DB	'DIR'		; TYPE OF DISK NAME FILE
+
+;
+;  REQUIREMENTS FLAGS
+;
+EPREQD:
+	DB	0FFH	; EXTERNAL PATH?
+MCREQD:
+	DB	0FFH	; MULTIPLE COMMAND LINE?
+MXREQD:
+	DB	0FFH	; MAX USER/DISK?
+UDREQD:
+	DB	0FFH	; ALLOW USER/DISK CHANGE?
+PUREQD:
+	DB	0FFH	; PRIVILEGED USER?
+CDREQD:
+	DB	0FFH	; CURRENT INDIC AND DMA?
+NDREQD:
+	DB	0FFH	; NAMED DIRECTORIES?
+Z2CLASS:
+	DB	0	; CLASS 0
+	DB	'ZCPR2'
+	DS	10	; RESERVED
+
+;
+;  END OF SINSFORM -- STANDARD DEFAULT PARAMETER DATA
+;
+;******************************************************************
+;
+
+;
+;  Start of Program
+;
+start:
+	call	zgpins	; install ZCPR2 variables
+
+	call	print	; print banner
+	db	'PWD, Version '
+	db	vers/10+'0','.',(vers mod 10)+'0',0
+
+	lxi	h,0	; set no loaded directory file
+	shld	ndfadr
+	xra	a	; set zero count
+	sta	ndfcnt
+	lxi	h,tbuff	; pt to input line
+	call	cline	; save and buffer input line
+
+;
+;  Skip to first non-blank and process if Help requested
+;
+sblank:
+	mov	a,m	; pt to char
+	inx	h	; pt to next
+	cpi	' '	; <sp>?
+	jz	sblank
+	dcx	h	; pt to first non-blank
+	ora	a	; print directory info?
+	jz	cwd
+	cpi	'D'	; dir option?
+	jz	pwd
+
+;
+;  Print Help Message
+;
+	call	print
+	db	cr,lf,'	PWD is a ZCPR2 named directory display utility'
+	db	cr,lf,'(PWD=Print Working Directory).  Command Forms are:'
+	db	cr,lf,'		PWD	<-- Print Current Info'
+	db	cr,lf,'		PWD DIR	<-- Print Available Directories'
+	db	cr,lf,'		PWD //	<-- Print Help Message'
+	db	cr,lf,0
+	ret
+
+;
+;  Print Directories and Current Working Directory
+;
+pwd:
+	call	retud	; get current disk/user
+	mov	a,b	; save current disk
+	sta	cdisk
+	mov	a,c	; save current user
+	sta	cuser
+	call	print
+	db	cr,lf,cr,lf,'** Directory Display **',cr,lf,0
+	lhld	ndradr	; check for named directory buffer
+	mov	a,l
+	ora	h	; HL=0 if none
+	jnz	pwdn
+	call	print
+	db	'** No Named Directory Buffer **',0
+	jmp	pwd0
+;
+;  Print contents of named directory buffer
+;
+pwdn:
+	inx	h	; pt to entry count
+	mov	c,m	; get count in C
+	mov	a,c	; check for any entries
+	ora	a
+	jz	pwd0
+	inx	h	; pt to first entry
+	call	print
+	db	cr,lf,'	** Named Directory Memory-Based Definitions **',0
+	call	prndir	; print named directory
+	call	print
+	db	cr,lf,cr,lf,'Strike Any Key to Continue - ',0
+	call	cin
+	call	crlf
+pwd0:
+	call	codend	; get end of code
+	call	zdname	; load names.dir entries
+	jnz	pwd1
+	call	print
+	db	cr,lf,'** No Directory Names File **',0
+	jmp	pwd2
+pwd1:
+	mov	a,c	; save count in buffer
+	sta	ndfcnt
+	shld	ndfadr	; save address in buffer
+	call	print
+	db	cr,lf,'	** Named Directory  Disk-Based  Definitions **',0
+	call	prndir	; print named directory
+pwd2:
+	call	print
+	db	cr,lf,cr,lf,'** Current Directory **',0
+	lhld	ndradr	; check named directory buffer
+	mov	a,h	; any buffer?
+	ora	l
+	jz	pwd3
+	inx	h	; pt to count
+	mov	c,m	; get count in C
+	inx	h	; pt to first entry
+	call	prcwd	; print current working dir
+	rnz		; found
+pwd3:
+	lhld	ndfadr	; get address of NAMES.DIR file in memory
+	lda	ndfcnt	; get entry count
+	mov	c,a	; ... in C
+	call	prcwd
+	rnz		; found
+	call	print
+	db	cr,lf,'	Noname',0
+	ret
+;
+;  Print Current Working Directory alone
+;
+cwd:
+	call	retud	; get current disk/user
+	mov	a,b	; save current disk
+	sta	cdisk
+	mov	a,c	; save current user
+	sta	cuser
+	call	codend	; get end of code
+	call	zdname	; load names.dir entries
+	jz	pwd2
+	mov	a,c	; save count in buffer
+	sta	ndfcnt
+	shld	ndfadr	; save address in buffer
+	jmp	pwd2
+
+;
+;  Print named directory pointed to by HL whose entry count is in C
+;
+prndir:
+	call	crlf	; new line
+	mov	a,c	; print total count
+	call	padc
+	call	print
+	db	' Directory Entries Total ',0
+	ora	a	; any entries?
+	rz
+	call	prpriv	; print privileged count
+	mvi	b,0	; set new line count
+	mvi	d,0ffh	; set last dir to empty
+	push	h	; save ptr to first entry
+	push	b	; save entry count
+prnd1:
+	call	dsel	; check for priv rights to see this entry
+	jz	prnd2	; do not see
+	call	diskck	; check for new disk
+	mov	a,b	; get flag
+	ani	3	; mask
+	cz	crlf	; new line
+	inr	b	; increment flag
+	call	pentry	; print entry
+	dcr	c	; count down
+	jnz	prnd1
+	pop	b	; get entry count
+	pop	h	; get ptr to first entry
+	ret
+prnd2:
+	call	add10	; pt to next entry (HL=HL+10)
+	dcr	c	; count down
+	jnz	prnd1
+	pop	b	; get entry count
+	pop	h	; get ptr to first entry
+	ret
+;
+;  Print Count of Privileged Directories
+;
+prpriv:
+	mvi	a,'('	; print text
+	call	cout
+	push	h	; save HL
+	push	b	; save BC
+	mvi	b,0	; set count
+prp1:
+	call	dsel	; priv dir?
+	jnz	prp2
+	inr	b	; increment count
+prp2:
+	call	add10	; HL=HL+10
+	dcr	c	; count down
+	jnz	prp1
+	mov	a,b	; get count
+	pop	b	; restore regs
+	pop	h
+	call	padc	; print decimal value
+	call	print
+	db	' Directories Hidden) --',0
+	ret
+
+;
+;  Print Current Directory
+;
+prcwd:
+	mov	a,c	; check for no entries
+	ora	a
+	rz
+	lda	cuser	; get current user
+	mov	e,a	; ... in E
+	lda	cdisk	; get current disk
+	mov	b,a	; ... in B
+prcwd1:
+	mov	a,m	; get disk
+	cmp	b	; compare disks
+	jnz	prcwd2
+	inx	h	; pt to user
+	mov	a,m	; get user
+	dcx	h	; pt back
+	cmp	e	; compare users
+	jnz	prcwd2
+	call	print
+	db	cr,lf,'	',0
+	mov	a,m	; get disk number
+	adi	'A'	; convert to letter
+	call	cout
+	call	pe0	; print entry without leading spaces
+	mvi	a,0ffh	; set OK flag
+	ora	a
+	ret
+prcwd2:
+	call	add10	; HL=HL+10 to pt to next entry
+	dcr	c	; count down
+	jnz	prcwd1
+	xra	a	; set not found flag
+	ret
+
+;
+;  Determine if user is priveleged, and, if not, then select only those
+;  directory entries he has access to without a password.  On return,
+;  Zero Flag Set (Z) if user should not see the entry pted to by HL
+;
+dsel:
+	push	b	; save BC
+	lda	cuser	; get current user
+	mov	c,a	; ... in C
+	lda	puser	; start of priveleged user areas
+	cmp	c	; compare current and priv users
+	jz	dselok	; OK if same
+	jc	dselok	; OK if current > priv
+	inx	h	; pt to user number
+	mov	c,m	; get user number
+	dcx	h	; pt to disk number
+	cmp	c	; compare entry and priv users
+	jz	dselno	; no select if entry is priv
+	jnc	dselok	; select is entry is not priv
+dselno:
+	pop	b	; restore BC
+	xra	a	; return not OK
+	ret
+dselok:
+	pop	b	; restore BC
+	mvi	a,0ffh	; return OK
+	ora	a
+	ret
+;
+;  Check to see if new disk, and, if so, print banner and set current disk
+;
+diskck:
+	mov	a,m	; get next disk number
+	cmp	d	; same as before?
+	rz
+	mov	d,a	; set new disk number
+	mvi	b,0	; reset entry/line flag
+	call	crlf	; new line
+	adi	'A'	; convert to letter
+	call	cout
+	call	print
+	db	' --',0
+	ret
+;
+;  HL=HL+10 to pt to next entry
+;
+add10:
+	mov	a,l	; add low
+	adi	10
+	mov	l,a
+	mov	a,h	; add high
+	aci	0
+	mov	h,a
+	ret
+;
+;  Print entry pted to by HL; on return, HL pts to next entry
+;
+pentry:
+	mvi	a,' '	; print leading spaces
+	call	cout
+	call	cout
+pe0:
+	push	d	; save DE
+	inx	h	; skip disk number
+	mov	a,m	; get user number
+	call	pusr	; print user number
+	inx	h	; pt to next char
+	mvi	d,8	; 8 chars
+pe1:
+	mov	a,m	; get char
+	call	cout	; print it
+	inx	h	; pt to next
+	dcr	d	; count down
+	jnz	pe1
+	pop	d	; restore de
+	ret
+;
+;  Print user number in A as 2 decimal digits with leading spaces
+;
+pusr:
+	push	d	; save DE
+	lxi	d,buff	; pt to buffer
+	push	d	; save ptr
+	call	madc	; load number into buffer as ASCII chars
+	pop	d	; get ptr
+	inx	d	; pt to 2nd letter (1st digit)
+	ldax	d	; get 1st digit
+	call	cout
+	inx	d	; pt to 2nd digit
+	ldax	d	; get it
+	call	cout
+	mvi	a,':'	; separator
+	call	cout
+	mvi	a,' '	; print space
+	call	cout
+	pop	d	; restore DE
+	ret
+;
+;  Buffers
+;
+buff:
+	ds	3	; number storage buffer
+cuser:
+	ds	1	; current user
+cdisk:
+	ds	1	; current disk
+ndfcnt:
+	ds	1	; named directory file entry count
+ndfadr:
+	ds	2	; named directory file load address
+
+	end
+

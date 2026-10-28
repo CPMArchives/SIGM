@@ -1,0 +1,45 @@
+	TITLE	'Function 47 Test'
+;
+;A quick test of CP/M-86 BDOS function call 47
+;extracted from a DRI applications note
+;by:
+;	Bill Bolton,
+;	SYSOP,
+;	Software Tools RCPM,
+;	Sydney,
+;	Australia
+;
+	CSEG
+
+CHAIN	EQU	47		;BDOS function 47, chain to program
+BDOS	EQU	224		;BDOS interupt entry point
+
+	DSEG
+
+	ORG	80H
+
+DEFAULT_DMA_BUFFER	RB	80H
+
+FILE_NAME		DB	'SID',0
+;				^^^^^^^^^^^^ put your own favourite
+;				CP/M-86 CMD file name and command line
+;				arguments in here
+;
+	CSEG	$
+
+	CLD
+	MOV	SI,Offset FILE_NAME	;Move file name into buffer
+	MOV	DI,Offset DEFAULT_DMA_BUFFER
+	MOV	CX,Length FILE_NAME + 1
+	PUSH	ES
+	MOV	AX,DS
+	MOV	ES,AX
+
+	REP	MOVSB
+
+	POP	ES
+	MOV	CL,CHAIN		;Chain to program
+	INT	BDOS			;We're off to see the wizard!
+
+	END
+

@@ -1,0 +1,61 @@
+;	FILE BITTER.SRC		CREATED 13-Nov-80
+;	d.a. steele
+;
+;	This routine is written to be linked with a Pascal/Z program
+;	and is to take a binary word (16 bits) and output it to the
+;	console in a series of ones and zeros.  I.E. 005AH would be
+;	printer as '         1011010'.  All leading zeros are supressed.
+;
+		NAME		BITTER
+		ENTRY		BITTER
+
+BIOS		EQU		5
+
+Start1:		MOV		A,B	;Get the number
+		ANA		D	;Check against the mask bit
+		JNZ		Itsset	;If it is set then print '1'
+		JMP		Itsnotset;Else print Theoutchar
+Start2:		RRAR		D	;Rotate to the next bit
+		JNZ		Start1	;And if it's not zero continue
+		RET
+
+Itsset:		MVI		E,'1'	;Prepair to output a '1'
+		PUSH		PSW	;Save the number
+		MVI		A,'0'	;Replace the leading space with a '1'
+		STA		Theoutchar
+		JMP		Outchar	;Then output the 1
+
+Itsnotset:	PUSH		PSW	;save the number
+		LDA		Theoutchar;Get the char to output ' ' or '0'
+		MOV		E,A	;Put it onto E for CP/M
+
+Outchar:	PUSH		H	;Get ready for call to BIOS
+		PUSH		B
+		MVI		C,2
+		CALL		BIOS
+		POP		B	;Restore everything
+		POP		H
+		POP		PSW
+		JMP		Start2	;Do the next bit
+
+
+Bitter:
+		POP		H	;Save return address
+		POP		D	;Get the number to be output
+		PUSH		H	;Restore the return vector
+		MVI		A,'#'	;Init. the lead character
+		STA		Theoutchar
+
+		MVI		D,80H	;Init. the mask bit
+		MOV		A,C	;Store the low byte of the test number
+		STA		Lobyte
+
+		CALL		Start1	;Process the high  byte
+		LDA		Lobyte	;now get the low byte
+		MOV		B,A	;Save it in the B reg.
+		MVI		D,80H	;Set the check bt again
+		CALL		Start1	;Process the low byteŠ		XRA		A	;Prepair to return to PascalZ
+		RET			;And return
+Theoutchar:	DS		1
+Lobyte:		DS		1
+

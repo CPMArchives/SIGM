@@ -1,0 +1,21 @@
+/* * *  OUTPUT A TELEPHONE NUMBER. * * */
+/* THIS ROUTINE FORMATS A TELEPHONE NUMBER FOR DISPLAY. */
+OUT_TEL: PROC (TEL) RETURNS(CHAR(14));
+	DCL	TEL CHAR(10);
+	DCL	WRKTEL CHAR(14);
+
+	WRKTEL=' ';
+	IF TEL=WRKTEL THEN	/* NULL INPUT */
+	   RETURN(WRKTEL);
+	IF SUBSTR(TEL,1,3)='   ' THEN	/* GET AREA CODE. */
+	   ;
+	ELSE
+	   WRKTEL='('||SUBSTR(TEL,1,3)||') ';
+
+	SUBSTR(WRKTEL,7,3)=SUBSTR(TEL,4,3); /* GET PREFIX. */
+	SUBSTR(WRKTEL,10,1)='-';
+	SUBSTR(WRKTEL,11,4)=SUBSTR(TEL,7,4); /* GET NUMBER. */
+	RETURN(WRKTEL);
+	END OUT_TEL;
+
+

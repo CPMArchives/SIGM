@@ -1,0 +1,107 @@
+LL1P60: PROC;
+/****************************************************************
+*               LL(1) GRAMMAR ANALYZER - PHASE 6		*
+*PURPOSE:                                                       *
+*    THIS PROGRAM ANALYZES A LL(1) GRAMMAR GIVEN IN MODIFIED    *
+*    BNF FORMAT AND FINDS THE RELATION, IS-FOLLOWED-DIRECTLY-   *
+*    BY, IS-DIRECT-END-OF AND IS-END-OF.			*
+*INPUT:                                                         *
+*    1) BASIC GRAMMAR TABLES					*
+*    2) NULLABLE NON-TERMINALS AND PRODUCTIONS TABLES		*
+*    3) ARRAY1 = THE IS-END-OF RELATION				*
+*OUTPUT:                                                        *
+*    1) ARRAY1 = THE FOLLOW SET FOR NON-TERMINALS		*
+*OUTLINE:                                                       *
+*REMARKS:                                                       *
+****************************************************************/
+
+/****************************************************************
+* * * * * * * * * * * COMMON DATA DEFINITIONS * * * * * * * * * *
+****************************************************************/
+
+/*	* * *  COMMON REPLACEMENTS  * * *	*/
+%REPLACE TRUE BY '1'B;
+%REPLACE FALSE BY '0'B;
+
+%INCLUDE 'LL1CMN.DCL';	/* GET COMMON AREAS. */
+
+
+/****************************************************************
+* * * * * * * * * * * COMMON PROCUDURES * * * * * * * * * * * * *
+****************************************************************/
+
+
+%INCLUDE 'LL1PRC.DCL';
+
+
+/****************************************************************
+* * * * * * * * * * GRAMMAR ANALYSIS PROCEDURES * * * * * * * * *
+****************************************************************/
+
+
+CALC_IFB: PROC;
+/*THIS ROUTINE IS RESPONSIBLE FOR CALCULATING THE RELATION*/
+/*IS-FOLLOWED-BY.  THIS RELATION IS THE PRODUCT OF THE    */
+/*IS-END-OF, IS-FOLLOWED-DIRECTLY-BY AND BEGINS-WITH RELA-*/
+/*TIONS. */
+
+/* CALCULATE THE RELATION. */
+	CALL RSTARY(ADDR(ARRAY2),'T03'); /*RESTORE IS-FOLLOWED-DIRECTLY-BY
+				  	   RELATION.*/
+	CALL MULREL;		/*ARRAY1=IS-FOLLOWED-DIRECTLY-BY *
+				  IS-END-OF */
+	CALL RSTARY(ADDR(ARRAY2),'T01'); /*RESTORE BEGINS-WITH
+				  	   RELATION.*/
+	CALL MULREL;		/*GET THE PRODUCT.*/
+
+/* RETURN TO CALLER. */
+	END CALC_IFB;
+
+
+CALC_IFB_A: PROC;
+/*THIS ROUTINE IS RESPONSIBLE FOR ADDING THE ENDMARKER TO THE*/
+/*RELATION,IS-FOLLOWED-BY.  THIS IS DONE BY APPENDING THE    */
+/*STARTING SYMBOL COLUMN OF THE IS-END-OF RELATION TO THE IS-*/
+/*FOLLOWED-BY RELATION. */
+	DCL I FIXED;
+	DCL J FIXED;
+
+/* ADD IT. */
+	CALL RSTARY(ADDR(ARRAY2),'T04'); /*RESTORE IS-END-OF 
+				  	   RELATION.*/
+	J=CHRNUM(STRSYM);	/*GET STARTING SYMBOL COLUMN.*/
+	DO I=1 TO NUMVOC;
+	   IF TSTBIT(I,J,ADDR(ARRAY2)) THEN
+	      CALL SETBIT(I,NUMVOC+1,ADDR(ARRAY1));
+	   ELSE
+	      CALL RSTBIT(I,NUMVOC+1,ADDR(ARRAY1));
+	END;
+
+/* RETURN TO CALLER. */
+	END CALC_IFB_A;
+
+
+/****************************************************************
+* * * * * * * * * * * MAIN LINE PROCEDURE * * * * * * * * * * * *
+****************************************************************/
+
+
+/* ANALYZE THE GRAMMAR. */
+	PUT SKIP LIST('BEGINNING PHASE 6 PROCESSING.');
+
+/* CALCULATE THE RELATION, IS-FOLLOWED-BY. */
+	PUT SKIP LIST('CALCULATING IS-FOLLOWED-BY...');
+	CALL CALC_IFB;		/*CALCULATE THE RELATION.*/
+	CALL PRTARY('*** IS-FOLLOWED-BY RELATION ***',TRUE,
+			 NUMVOC,NUMVOC,ADDR(ARRAY1));
+
+/* ADD THE ENDMARKER TO THE IS-FOLLOWED-BY RELATION. */
+	PUT SKIP LIST('ADDING ENDMARKER TO IS-FOLLOWED-BY...');
+	CALL CALC_IFB_A;	/*CALCULATE THE RELATION.*/
+	CALL PRTARY('*** IS-FOLLOWED-BY W/_|_ RELATION ***',TRUE,
+			 NUMVOC,NUMVOC+1,ADDR(ARRAY1));
+
+/* RETURN TO CALLER. */
+	PUT SKIP LIST('PHASE 6 PROCESSING COMPLETE.');
+	END LL1P60;
+

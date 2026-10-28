@@ -1,0 +1,33 @@
+LCRCK v1.10 Documentation
+
+El Paso, TX  01-24-84
+S. Kluger, El Paso RCPM
+
+
+LCRCK.ASM was written as a replacement for LCRCK.C (originally
+written 1-30-83 by myself). It is somewhat faster and quite a
+bit smaller than the C version.
+
+LCRCK, in the true spirit of all such RCPM programs, processes only
+one file at a time. It can be used to compute the "CRC" or Cyclic
+Redundancy Check of a member file inside a library. the resulting
+four-digit hex number will be the same as the one returned by
+CRCK44.COM run on the identical standalone file. Therefore, LCRCK
+can be used to verify the integrity of an individual member file
+transferred via the XMODEM L command.
+
+The program can be configured for maximum drive and user without
+reassembly, which is of advantage to those who do not have M80.
+At location 103, insert the maximum drive +1, i.e. A=2, B=3.
+At location 104, insert the maximum user number +1.
+
+The program uses the CRCK2 routines in SYSLIB. If the CRC2 calls are
+replaced with CRC calls to SYSLIB, the value returned is the same as
+the one computed and placed into the LBR directory by LU300.
+
+For those using the CHEK program instead of CRCK, a version of
+LCHEK is forthcoming.
+quite a
+bit smaller than the C version.
+
+LCRCK, in the

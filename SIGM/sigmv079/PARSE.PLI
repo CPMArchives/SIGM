@@ -1,0 +1,130 @@
+/* parse file name including wild cards: * or ? 
+	1 -> ptr to char(>=14) string with file name to be parsed
+	     terminated with a ' ' or 0
+	     WARNING:  be sure that this character string is not
+	     a character string varying or all blanks and must be
+	     terminated with a ' ' or 0
+	2 -> ptr to fcb to be filled
+   returns
+	1 -> ptr to next filename in string if retcode = 0
+	2 -> ptr to parsed fcb if successful
+	3 -> return code 0 = successful and more files
+	                 1 = successful, no more files
+	                 2 = invalid file */
+
+parse:proc(afsptr,(sfsptr),retcode);
+        /*
+        parse fcb including wild cards
+        Digital Research
+        Pacific Grove, California 93950
+        */
+
+        declare
+        (afsptr,sfsptr) ptr,
+        retcode bin fixed (7);
+
+        declare
+        1 bt80sfs based (sfsptr),
+          3 drv fixed(7),
+          3 file char (8),
+          3 type char (3);
+
+        declare
+        ptr ptr,
+        code bin fixed (7),
+        (i,j,k) bin fixed (6),
+        ii bin fixed (15),
+        chr13 char (13),
+        chr254b char (254) based,
+        chr1ab(13) char (1) based,
+        chr1b char (1) based,
+        chr13b char (13) based,
+        bf15b bin fixed (15) based,
+	qmarks char(8) static init('????????'),
+        illegal_chr(10) char (1) static init (
+          ':'  ,  '.'  ,  '='  ,  ';'  ,  '<'  ,  '>'  ,
+          '['  ,  ']'  ,  '('  ,  ')'   );
+ 
+        code = 2;
+        ptr = afsptr;
+ 
+	/* skip leading , */
+        if ptr->chr1b = ',' then ptr = addr(ptr->chr1ab(2));
+ 
+	/* deblank */
+        ii = verify(ptr->chr254b,' ');
+        if ii = 0 then 
+		go to return;
+        ptr = addr(ptr->chr1ab(ii));
+ 
+	/* check for drive */
+        if ptr->chr1ab(2) = ':' then do;
+          drv = rank(ptr->chr1b) - 64;    /* 1=A: */
+          ptr = addr(ptr->chr1ab(3));     /* skip drive */
+          end;
+        else drv = 0;
+ 
+        j = index(ptr->chr13b,' ');
+        k = index(ptr->chr13b,',');
+        i = index(ptr->chr13b,'^@');
+ 
+	if k ~= 0 then
+ 	    if j = 0 | j > k then
+	        j = k;
+	if i ~= 0 then
+	    if j = 0 | j > i then
+	        j = i;
+
+        i = index(ptr->chr13b,'.');
+
+	/* i is . & j is end + 1 */
+        if j < 2 then 
+		go to return;
+        if i > j then i = 0;
+
+	/* chr13 is filename */
+        chr13 = substr(ptr->chr13b,1,j-1);
+        if i ~= 0 then substr(chr13,i,1) = ' ';
+	  do k = 1 to 10;
+          if index(chr13,illegal_chr(k)) ~= 0 then 
+		go to return;
+          end;
+        if i = 0 then do;
+          if j > 9 then 
+		go to return;
+          file = chr13;
+          type = ' ';
+          end;
+        else do;
+          if i > 9 then 
+		go to return;
+          k = j - i - 1;
+          if k < 1 | k > 3 then 
+		go to return;
+          file = substr(chr13,1,i-1);
+          type = substr(chr13,i+1,k);
+          end;
+        ptr = addr(ptr->chr1ab(j));
+        code = 1;
+
+	/* deblank next file name */
+        if ptr->chr1b = ' ' then do;
+          ii = verify(ptr->chr254b,' ');
+          ptr = addr(ptr->chr1ab(ii));
+          end;
+        if ptr->chr1b = ',' then code = 0;
+        afsptr = ptr;
+
+	/* convert * to ???s */
+	i = index(file,'*');
+	if i > 0 then
+	    substr(file,i) = qmarks;
+	i = index(type,'*');
+	if i > 0 then
+	    substr(type,i) = qmarks;
+
+return:
+        retcode = code;
+        return;
+      end parse;
+

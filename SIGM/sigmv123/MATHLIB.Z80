@@ -1,0 +1,117 @@
+; MATHLIB: a 16 Bit Arithmetic Package for Z80
+; Sourced 26 Nov '80 by Trevor Marshall
+;			SYSOP, Thousand Oaks Tech RBBS
+;
+;
+MULTIPLY: ; 16 x 16 Bit multiplication
+; (may be truncated to 16 x n bits)
+;
+;result (HL) = multiplicand (DE) x multiplier (BC)
+;
+; The multiplicand is in DE
+; The multiplier is in BC
+; The result will be in HL
+; It overflows safely, but without indication
+; Registers are destroyed
+;
+;	Example: 5 x 3
+;		101
+;	     x  011
+;	----------------
+;		101	(Shifted LSBit=1)
+;	       101	(Shifted LSBit=1)
+;	      000	(Shifted LSBit=0,no add)
+;	----------------
+;	      01111	(Result)
+;
+;  Multiplier is in BC
+	LD	A,16	; Loop count in A
+;This count must be >= the number of bits used in BC
+;
+	LD	HL,0	;Clear result
+;
+ZZMULT:	
+; is multiplier LSBit = 1 ?
+	SRL	B	;Right shift multiplier MSB
+			; 0 -> MSBit, LSBit -> Carry
+	RR	C	;Rotate right multiplier LSB
+			;Carry -> MSBit, LSBit -> Carry
+	JR	NC,ZZNOADD ;LSBit not 1, Dont add
+;
+; Could test for overflow by using this here:
+;	CCF	;Carry will be 1, C -> 0
+;	ADC	HL,DE
+;	JR	C,OVERFLOW.ROUTINE
+; But will use the simpler
+	ADD	HL,DE	;LSBit = 1, so add multiplicand
+			;	to (shifted) result
+;
+ZZNOADD:
+;Now we shift left the multiplicand
+	SLA	E	; 0 -> LSBit, MSBit -> Carry
+	RL	D	; Carry -> LSBit, MSBit -> Carry
+;
+	DEC	A	;Loop cntr
+	JR	NZ,ZZMULT
+;
+	RET	; ***** DONE *****
+;
+;-------------------------------------------------------
+;
+DIVIDE:		;16 Bit by 16 Bit Integer Division
+;
+;			dividend (BC)
+;	result (BC) = --------------- + remainder (HL)
+;			divisor  (DE)
+;
+; The dividend is in BC, and the result returns in BC
+; The divisor is in DE
+; After the division HL contains the remainder
+;
+; The divisor is successively subtracted from the high 
+;   order bits of the dividend. After each subtraction 
+;   the result is used instead of the initial dividend
+; The result is increased by 1 each time.
+; When the result of the subtraction is negative the 
+;   partial result is restored by adding the divisor 
+;   back to it.
+; The result is simulataneously decremented by 1
+;
+;First check if divisor is 0
+	LD	A,D
+	OR	E
+	JR	Z,DIVIDE.BY.ZERO
+; Dividend is in BC
+;clear result
+	LD	HL,0
+;loop counter
+	LD	A,16	;DO NOT TRUNCATE
+;
+;Rotate Dividend left 
+;Carry has been zeroed by the OR E above
+ZZDIV1:	RL	C	;Carry -> LSBit, MSBit -> Carry
+	RL	B		;ditto
+;Rotate Remainder left
+	ADC	HL,HL	;Never sets carry,
+			;  ie RESETS carry
+;Trial subtraction of divisor from result
+	SBC	HL,DE	;Carry -> 0 if no borrow
+			;Carry -> 1 if borrow
+	JR	NC,ZZPOS
+;otherwise negative
+	ADD	HL,DE	;Restore dividend
+ZZPOS:	CCF	;Calc Result Bit, Z80 carry peculiar
+	DEC	A	;Loop counter
+	JR	NZ,ZZDIV1	;Loop for 16 Bits
+;
+	RL	C	;Shift in last result bit
+	RL	B
+; The result is in BC, the remainder in HL
+;
+	RET	; ***** DONE ****
+;
+DIVIDE.BY.ZERO: LD  BC,0FFFFH ;Infinity
+; Output a diagnostic message if desired
+	RET
+;
+

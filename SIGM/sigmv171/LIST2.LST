@@ -1,0 +1,723 @@
+Screen # 0
+
+ 0 ( M68K Cross compiler -- Copyright Notice )
+ 1 ;S
+ 2 FORTH based cross compiler for the Motorola 68000 microprocessor
+ 3 
+ 4 Copyright 1983 by   Raymond L. Buvel
+ 5                     Box 3071
+ 6                     Moscow, ID 83843
+ 7 
+ 8 All rights reserved except as stated below.
+ 9 
+10 This compiler may be distributed to anyone provided this
+11 copyright notice is included and the distribution is not for
+12 profit.  Contact me concerning royalties for commercial
+13 distribution.  There is no royalty on code produced with this
+14 compiler provided the compiler itself is not SOLD as an integral
+15 part of a software package.
+
+Screen # 8
+
+ 0 ( M68K Cross Compiler -- Vocabulary definition )
+ 1 VOCABULARY M68K IMMEDIATE
+ 2 M68K DEFINITIONS
+ 3 HEX
+ 4 -->
+ 5 Note.. the compilation words listed below are contained in
+ 6 the FORTH vocabulary and cause entries to be made in the
+ 7 M68K vocabulary.
+ 8 
+ 9 :M68K   :M68MAC M68VAR  M68DVAR M68CON  M68DCON
+10 M68ARY  M68DARY M68CARY
+11 
+12 
+13 
+14 
+15 
+
+Screen # 9
+
+ 0 ( M68K Cross Compiler -- Variable definitions )
+ 1 M68K DEFINITIONS
+ 2 ( Code pointer in M68000 -- note relative addressing ! )
+ 3 0 VARIABLE M68PCODE
+ 4 ( Variable pool pointer in M68000 -- relative to A5 )
+ 5 0 VARIABLE M68PVAR
+ 6 ( Entry point of the subroutine being defined )
+ 7 0 VARIABLE M68ENTRY
+ 8 ( Parameter field address [ in HOST ] of word being defined )
+ 9 0 VARIABLE M68PFA
+10 -->
+11 
+12 
+13 
+14 
+15 
+
+Screen # 10
+
+ 0 ( M68K Cross Compiler -- Variable definitions )
+ 1 M68K DEFINITIONS
+ 2 ( Error checking variables )
+ 3 0 VARIABLE M68?MAC ( True if in a MACRO definition )
+ 4 0 VARIABLE M68K?   ( True if in a SUBROUTINE definition )
+ 5 0 VARIABLE M68?PAIRS ( Count of incomplete branching ops. )
+ 6 -->
+ 7 
+ 8 
+ 9 
+10 
+11 
+12 
+13 
+14 
+15 
+
+Screen # 11
+
+ 0 ( M68K Cross Compiler -- Error checking )
+ 1 M68K DEFINITIONS
+ 2 : ?M68PAIRS ( Check for unbalanced control structures )
+ 3         M68?PAIRS @ IF
+ 4           ." Error! unbalanced control structure "
+ 5           0 M68?PAIRS ! ABORT ENDIF ;
+ 6 : ?M68K ( Check for errors in compiling a subroutine )
+ 7         M68K? @ 0= IF ( Check if compiling a subroutine )
+ 8           ." Error! not compiling a SUBROUTINE "
+ 9           ABORT ENDIF ;
+10 : ?M68MAC ( Check for errors in compiling a macro )
+11         M68?MAC @ 0= IF ( Check if compiling a macro )
+12           ." Error! not compiling a MACRO "
+13           ABORT ENDIF ;
+14 -->
+15 
+
+Screen # 12
+
+ 0 ( M68K Cross Compiler -- Compile constants )
+ 1 M68K DEFINITIONS
+ 2 ( n -- c )
+ 3 : HIGH-BYTE 8 SHIFT ;  ( Leave high byte of n on stack )
+ 4 ( n -- )
+ 5 : $CON  DUP HIGH-BYTE C, C, ; ( Compile const high-byte first )
+ 6 ( d -- )
+ 7 : $DCON $CON ( Compile high word )
+ 8         $CON ; ( Compile low word )
+ 9 -->
+10 Note.. to transport the compiler to other FORTH systems the
+11 word HIGH-BYTE must be written so that it takes the number off
+12 the top of the stack and leaves the high byte of that number.
+13 On some FORTH systems HIGH-BYTE may have to be a CODE
+14 definition.
+15 
+
+Screen # 13
+
+ 0 ( M68K Cross Compiler -- Compiling Words )
+ 1 M68K DEFINITIONS HEX
+ 2 ( address -- )
+ 3 : M68MAC ( Compile MACRO code into any definition )
+ 4         DUP @ SWAP 2+ OVER HERE SWAP CMOVE ALLOT ;
+ 5 : M68SUB ( Compile SUBROUTINE code into subroutine definition )
+ 6         ?M68K 61 C, 00 C,  ( BSR  addr )
+ 7         HERE M68PFA @ 2+ -  ( Compute code length )
+ 8         M68ENTRY @ + SWAP @ SWAP - ( Compute displacement )
+ 9         $CON ; ( Compile displacement )
+10 -->
+11 Note.. the memory image of a MACRO to be compiled is:
+12   addr    Number of bytes of code to compile
+13   addr+2  Bytes of code to be compiled.
+14 The memory image of a SUBROUTINE to be compiled is:
+15   addr    Address of subroutine relative to start of code
+
+Screen # 14
+
+ 0 ( M68K Cross Compiler -- MACRO Compiling Words  )
+ 1 FORTH DEFINITIONS
+ 2 ( Create header and set compiler variables )
+ 3 : :M68MAC ( Begin a MACRO definition )
+ 4         [COMPILE] M68K DEFINITIONS
+ 5         M68K 1 M68?MAC ! <BUILDS HERE M68PFA !
+ 6         0 , ( Initialize the number of bytes field )
+ 7         DOES> M68MAC ;
+ 8 M68K DEFINITIONS
+ 9 : ;M68MAC ( terminate a MACRO type definition )
+10         ?M68PAIRS ?M68MAC 0 M68?MAC ! ( Error check & reset )
+11         HERE M68PFA @ 2+ -  ( Compute code length )
+12         M68PFA @ !  ( Store in length field )
+13         [COMPILE] FORTH DEFINITIONS ;
+14 -->
+15 
+
+Screen # 15
+
+ 0 ( M68K Cross Compiler -- Compiling words - constants    )
+ 1 FORTH DEFINITIONS HEX
+ 2 : M68CON ( Define a single precision constant )
+ 3         :M68MAC 3D C, 3C C, ( MOVE.W #const,-[A6] )
+ 4         M68K $CON ( Compile constant )
+ 5         ;M68MAC ;
+ 6 FORTH DEFINITIONS
+ 7 : M68DCON ( Define a double precision constant )
+ 8         :M68MAC 2D C, 3C C, ( MOVE.L #const,-[A6] )
+ 9         M68K $DCON ( Compile double constant )
+10         ;M68MAC ;
+11 -->
+12 
+13 
+14 
+15 
+
+Screen # 16
+
+ 0 ( M68K Cross Compiler -- Compiling words - variables    )
+ 1 FORTH DEFINITIONS
+ 2 ( n -- )
+ 3 : M68ALLOT ( Allot n-bytes in variable pool )
+ 4         DUP 1 AND IF 1+ ENDIF ( Byte allign )
+ 5         M68K M68PVAR +! ; ( Update pointer )
+ 6 FORTH DEFINITIONS
+ 7 : M68VAR ( Define a single precision variable )
+ 8         M68K M68PVAR @ 2 M68ALLOT ( Get and update pointer )
+ 9         M68CON ( Define the address as a constant ) ;
+10 FORTH DEFINITIONS
+11 : M68DVAR ( Define a double precision variable )
+12         M68K M68PVAR @ 4 M68ALLOT ( Get and update pointer )
+13         M68CON ( Define the address as a constant ) ;
+14 -->
+15 
+
+Screen # 17
+
+ 0 ( M68K Cross Compiler -- SUBROUTINE Compiling Words  )
+ 1 FORTH DEFINITIONS
+ 2 ( Create header and set compiler variables )
+ 3 : :M68K ( Begin a SUBROUTINE definition )
+ 4         [COMPILE] M68K DEFINITIONS
+ 5         M68K 1 M68K? ! ( Set to compiling )
+ 6         <BUILDS HERE M68PFA ! M68PCODE @ DUP
+ 7         M68ENTRY ! , ( Store subroutine address )
+ 8         DOES> M68SUB ;
+ 9 -->
+10 Note.. a SUBROUTINE definition may call itself if there are
+11 no side effects.  This means that all data altered by the
+12 defined word should be on the stack, not stored in variables.
+13 
+14 
+15 
+
+Screen # 18
+
+ 0 ( M68K Cross Compiler -- Code output )
+ 1 M68K DEFINITIONS
+ 2 ( byte to be sent to code output file -- )
+ 3 : M68OUT ( Link to the code output file )
+ 4         BASE @ >R HEX . CR R> BASE ! ;
+ 5 -->
+ 6 Note.. the code in the above definition should be replaced
+ 7 with the appropriate words to send the compiler output to the
+ 8 code file of your choice.  This could be a disk file, a tape,
+ 9 your MC68000 computer, a printer, or any other output sink you
+10 may want to use.  The protocall is determined by your output
+11 word.  The compiler does not assume any protocall so it is a
+12 general purpose tool for generating MC68000 code.
+13 
+14 
+15 
+
+Screen # 19
+
+ 0 ( M68K Cross Compiler -- SUBROUTINE Compiling Words  )
+ 1 M68K DEFINITIONS HEX
+ 2 : ;M68K ( Terminate a SUBROUTINE definition )
+ 3         ?M68PAIRS ?M68K 0 M68K? ! ( Error check & reset )
+ 4         4E C, 75 C,  ( Compile an RTS instruction )
+ 5         HERE M68PFA @ 2+ -  ( Compute code length )
+ 6         DUP M68PCODE +! ( Update code pointer )
+ 7         M68PFA @ 2+ ( Start of compiled code )
+ 8         SWAP 0 DO
+ 9                 DUP C@ M68OUT 1+ ( Output a byte of code )
+10         LOOP DROP
+11         M68PFA @ 2+ DP ! ( Delete code from dictionary )
+12         [COMPILE] FORTH DEFINITIONS ;
+13 -->
+14 
+15 
+
+Screen # 20
+
+ 0 ( M68K Cross Compiler -- EXTERNAL )
+ 1 M68K DEFINITIONS
+ 2 : $EXTERNAL ( Define entry point as a constant in FORTH voc. )
+ 3         [COMPILE] FORTH DEFINITIONS
+ 4         M68ENTRY @ CONSTANT ;
+ 5 FORTH DEFINITIONS
+ 6 : EXTERNAL ( Compile an external reference )
+ 7         M68K M68K? @ M68?MAC @ OR
+ 8         IF ." Can't use EXTERNAL while compiling"
+ 9            CR ABORT ENDIF
+10         $EXTERNAL ;
+11 -->
+12 Note.. to send the external reference list somewhere else,
+13 replace $EXTERNAL with the appropriate word.  Make sure its
+14 function is equivalent to the above, i.e. it must take the
+15 next word in the input stream as the identifier.
+
+Screen # 21
+
+ 0 ( M68K Cross Compiler -- Words - literals )
+ 1 M68K DEFINITIONS HEX
+ 2 : LITERAL ( Define a single precision literal )
+ 3         3D C, 3C C, ( MOVE.W #const,-[A6] )
+ 4         $CON ; ( Compile constant )
+ 5 : DLITERAL ( Define a double precision literal )
+ 6         2D C, 3C C, ( MOVE.L #const,-[A6] )
+ 7         $DCON ; ( Compile double constant )
+ 8 : BYTES 0 DO 20 WORD HERE NUMBER DROP C, LOOP ;
+ 9 -->
+10 Note.. Used as n BYTES followed by bytes to be compiled into
+11 the HOST dictionary.  This word may be used within a :M68K
+12 or :M68MAC definition but NOT within a colon definition.
+13 
+14 
+15 
+
+Screen # 22
+
+ 0 ( M68K Cross Compiler -- Compiling words - arrays )
+ 1 M68K DEFINITIONS HEX
+ 2 ( adr -- )
+ 3 : $M68ARY ( Define code for a single precision array )
+ 4         :M68MAC 30 C, 3C C, ( MOVE.W #const,D0 )
+ 5         $CON ( Compile address )
+ 6         D0 C, 56 C, D1 C, 56 C,
+ 7         ;M68MAC ;
+ 8 ( adr -- )
+ 9 : $M68DARY ( Define code for a double precision array )
+10         :M68MAC 30 C, 3C C, ( MOVE.W #const,D0 )
+11         $CON ( Compile address )
+12         32 C, 16 C, E5 C, 41 C, D0 C, 41 C, 3C C, 80 C,
+13         ;M68MAC ;
+14 -->
+15 
+
+Screen # 23
+
+ 0 ( M68K Cross Compiler -- Compiling words - arrays )
+ 1 FORTH DEFINITIONS
+ 2 ( n -- )
+ 3 : M68ARY ( Define a single precision array n cells long )
+ 4         M68K M68PVAR @ ( Get base address )
+ 5         $M68ARY ( Define the referencing code )
+ 6         2* M68ALLOT ( Update variable pointer ) ;
+ 7 FORTH DEFINITIONS
+ 8 ( n -- )
+ 9 : M68DARY ( Define a double precision array n cells long )
+10         M68K M68PVAR @ ( Get base address )
+11         $M68DARY ( Define the referencing code )
+12         4 * M68ALLOT ( Update variable pointer ) ;
+13 -->
+14 
+15 
+
+Screen # 24
+
+ 0 ( M68K Cross Compiler -- Compiling words - arrays )
+ 1 M68K DEFINITIONS HEX
+ 2 ( adr -- )
+ 3 : $M68CARY ( Define code for a byte array )
+ 4         :M68MAC 30 C, 3C C, ( MOVE.W #const,D0 )
+ 5         $CON ( Compile address )
+ 6         D1 C, 56 C, ;M68MAC ;
+ 7 FORTH DEFINITIONS
+ 8 ( n -- )
+ 9 : M68CARY ( Define a byte array n cells long )
+10         M68K M68PVAR @ ( Get base address )
+11         $M68CARY ( Define the referencing code )
+12         M68ALLOT ; ( Update variable pointer )
+13 ;S
+14 
+15 
+
+Screen # 25
+
+ 0 ( M68K Cross Compiler -- Control error checking )
+ 1 M68K DEFINITIONS HEX
+ 2 ( Error checking codes )
+ 3 1 CONSTANT $ECD-IF
+ 4 2 CONSTANT $ECD-BEGIN
+ 5 3 CONSTANT $ECD-DO
+ 6 4 CONSTANT $ECD-WHILE
+ 7 : $ERR-?PAIRS ( Abort if no control structure is started )
+ 8         M68?PAIRS @ 0=
+ 9         IF ." No control structure! " ABORT CR ENDIF ;
+10 : $ERR-ABT ( Complete error message and abort )
+11         ." expected " CR ABORT ;
+12 : $ERR-IF ( Abort if no IF structure )
+13         $ERR-?PAIRS $ECD-IF -
+14         IF ." IF structure " $ERR-ABT ENDIF ;
+15 -->
+
+Screen # 26
+
+ 0 ( M68K Cross Compiler -- Control error checking )
+ 1 : $ERR-BEGIN ( Abort if no BEGIN structure )
+ 2         $ERR-?PAIRS $ECD-BEGIN -
+ 3         IF ." BEGIN structure " $ERR-ABT ENDIF ;
+ 4 : $ERR-DO ( Abort if no DO structure )
+ 5         $ERR-?PAIRS $ECD-DO -
+ 6         IF ." DO structure " $ERR-ABT ENDIF ;
+ 7 : $ERR-WHILE ( Abort if no WHILE structure )
+ 8         $ERR-?PAIRS $ECD-WHILE -
+ 9         IF ." WHILE structure " $ERR-ABT ENDIF ;
+10 -->
+11 
+12 
+13 
+14 
+15 
+
+Screen # 27
+
+ 0 ( M68K Cross Compiler -- Control structures )
+ 1 ( adr -- )
+ 2 : $FOR-RES ( Resolve a foreward branch )
+ 3         HERE OVER - ( Compute relative address )
+ 4         SWAP OVER HIGH-BYTE OVER C! ( Store high byte )
+ 5         1+ C! ; ( Store low byte )
+ 6 ( adr -- )
+ 7 : $BAK-RES ( Resolve a back branch )
+ 8         HERE - ( Compute relative address )
+ 9         $CON ; ( Compile address )
+10 -->
+11 
+12 
+13 
+14 
+15 
+
+Screen # 28
+
+ 0 ( M68K Cross Compiler -- Control structures )
+ 1 ( -- adr ecd )
+ 2 : IF    ( Compile IF structure, leave address to be resolved )
+ 3         ( and an error checking code )
+ 4         4A C, 5E C, 67 C, 00 C,
+ 5         HERE $ECD-IF 1 M68?PAIRS +!
+ 6         0 , ; ( Leave space for branch address )
+ 7 : ELSE  ( Compile an ELSE structure )
+ 8         $ERR-IF 60 C, 00 C,
+ 9         HERE SWAP ( Save current location and get IF adr )
+10         0 , ( Leave space for branch address )
+11         $FOR-RES ( Resolve IF branch )
+12         $ECD-IF ;
+13 : ENDIF ( Resolve an IF structure )
+14         $ERR-IF $FOR-RES -1 M68?PAIRS +! ;
+15 : THEN  ENDIF ;         -->
+
+Screen # 29
+
+ 0 ( M68K Cross Compiler -- Control structures )
+ 1 ( -- adr ecd )
+ 2 : BEGIN ( Compile a BEGIN structure )
+ 3         HERE $ECD-BEGIN 1 M68?PAIRS +! ;
+ 4 : UNTIL ( Resolve BEGIN .. UNTIL loop )
+ 5         $ERR-BEGIN 4A C, 5E C, 67 C, 00 C,
+ 6         $BAK-RES ( Resolve BEGIN branch )
+ 7         -1 M68?PAIRS +! ;
+ 8 : AGAIN ( Resolve BEGIN .. AGAIN loop )
+ 9         $ERR-BEGIN 60 C, 00 C,
+10         $BAK-RES ( Resolve BEGIN branch )
+11         -1 M68?PAIRS +! ;
+12 -->
+13 
+14 
+15 
+
+Screen # 30
+
+ 0 ( M68K Cross Compiler -- Control structures )
+ 1 : WHILE ( Compile WHILE section of loop )
+ 2         DUP $ERR-BEGIN 4A C, 5E C, 67 C, 00 C,
+ 3         HERE $ECD-WHILE 0 , ; ( Leave space for address )
+ 4 : REPEAT ( Resolve BEGIN .. WHILE .. REPEAT loop )
+ 5         $ERR-WHILE SWAP $ERR-BEGIN
+ 6         60 C, 00 C, ( Code for back branch )
+ 7         SWAP $BAK-RES ( Resolve BEGIN branch )
+ 8         $FOR-RES ( Resolve WHILE branch )
+ 9         -1 M68?PAIRS +! ;
+10 -->
+11 
+12 
+13 
+14 
+15 
+
+Screen # 31
+
+ 0 ( M68K Cross Compiler -- Control structures )
+ 1 : DO ( Compile a DO structure )
+ 2         2F C, 1E C,
+ 3         HERE $ECD-DO 1 M68?PAIRS +! ;
+ 4 : LOOP ( Terminate a DO .. LOOP )
+ 5         $ERR-DO  52 C, 57 C, 4C C, 97 C, 00 C, 03 C,
+ 6         B0 C, 41 C, 6D C, 00 C,
+ 7         $BAK-RES ( Resolve DO branch )
+ 8         58 C, 8F C,  ( Drop index and limit )
+ 9         -1 M68?PAIRS +! ;
+10 -->
+11 
+12 
+13 
+14 
+15 
+
+Screen # 32
+
+ 0 ( M68K Cross Compiler -- Control structures )
+ 1 : +LOOP ( Terminate a DO .. +LOOP )
+ 2         $ERR-DO  30 C, 1E C, D1 C, 57 C, 4C C, 97 C,
+ 3         00 C, 06 C, 4A C, 40 C, 6E C, 04 C, B4 C, 41 C,
+ 4         60 C, 02 C, B2 C, 42 C, 6D C, 00 C,
+ 5         $BAK-RES ( Resolve DO branch )
+ 6         58 C, 8F C,  ( Drop index and limit )
+ 7         -1 M68?PAIRS +! ;
+ 8 
+ 9 :M68MAC LEAVE 4 BYTES 3F 57 00 02 ;M68MAC
+10 -->
+11 
+12 
+13 
+14 
+15 
+
+Screen # 33
+
+ 0 ( M68K Cross Compiler -- Control structures )
+ 1 :M68MAC JSR.W 4 BYTES 30 5E 4E 90 ;M68MAC
+ 2 :M68MAC JSR.L 4 BYTES 20 5E 4E 90 ;M68MAC
+ 3 :M68MAC JMP.W 4 BYTES 30 5E 4E D0 ;M68MAC
+ 4 :M68MAC JMP.L 4 BYTES 20 5E 4E D0 ;M68MAC
+ 5 ;S
+ 6 
+ 7 
+ 8 
+ 9 
+10 
+11 
+12 
+13 
+14 
+15 
+
+Screen # 34
+
+ 0 ( M68K Cross Compiler -- Initialization words )
+ 1 M68K DEFINITIONS HEX
+ 2 ( d -- )
+ 3 : A5LD  ( Load variable pool pointer )
+ 4         2A C, 7C C, $DCON ;
+ 5 : A6LD  ( Load data stack pointer )
+ 6         2C C, 7C C, $DCON ;
+ 7 : A7LD  ( Load return stack pointer )
+ 8         2E C, 7C C, $DCON ;
+ 9 -->
+10 Note.. to create true modular programs there should be an
+11 operating system that loads the appropriate registers and then
+12 calls the module.  In that case these words should be discarded
+13 since the address is determined at compile time instead of run
+14 time.
+15 
+
+Screen # 35
+
+ 0 ( M68K Cross Compiler -- Arithmetic words )
+ 1 HEX
+ 2 :M68MAC + 4 BYTES 30 1E D1 56 ;M68MAC
+ 3 :M68MAC - 4 BYTES 30 1E 91 56 ;M68MAC
+ 4 :M68MAC * 6 BYTES 30 1E C1 D6 3C 80 ;M68MAC
+ 5 :M68MAC / 8 BYTES 4C 9E 00 03 83 C0 3D 01 ;M68MAC
+ 6 :M68MAC D+ 4 BYTES 20 1E D1 96 ;M68MAC
+ 7 :M68MAC D- 4 BYTES 20 1E 91 96 ;M68MAC
+ 8 :M68MAC */ A BYTES 32 1E 30 1E C1 D6 81 C1 3C 80 ;M68MAC
+ 9 :M68MAC /MOD 8 BYTES 42 80 32 1E 30 1E 80 C1
+10              4 BYTES 48 40 2D 00 ;M68MAC
+11 :M68MAC MOD 8 BYTES 42 80 32 1E 30 1E 80 C1
+12             4 BYTES 48 40 3D 00 ;M68MAC
+13 :M68MAC */MOD 8 BYTES 32 1E 30 1E C0 DE 80 C1
+14               4 BYTES 48 40 2D 00 ;M68MAC
+15 -->
+
+Screen # 36
+
+ 0 ( M68K Cross Compiler -- Arithmetic words )
+ 1 :M68MAC U* 6 BYTES 30 1E C0 DE 2D 00 ;M68MAC
+ 2 :M68MAC U/MOD A BYTES 32 1E 20 1E 80 C1 48 40 2D 00 ;M68MAC
+ 3 :M68MAC 1+ 2 BYTES 52 56 ;M68MAC
+ 4 :M68MAC 1- 2 BYTES 53 56 ;M68MAC
+ 5 :M68MAC 2+ 2 BYTES 54 56 ;M68MAC
+ 6 :M68MAC 2- 2 BYTES 55 56 ;M68MAC
+ 7 :M68MAC 2* 2 BYTES E1 D6 ;M68MAC
+ 8 :M68MAC 2/ 2 BYTES E0 D6 ;M68MAC
+ 9 :M68MAC NEGATE 2 BYTES 44 56 ;M68MAC
+10 :M68MAC MINUS NEGATE ;M68MAC
+11 :M68MAC DNEGATE 2 BYTES 44 96 ;M68MAC
+12 :M68MAC DMINUS DNEGATE ;M68MAC
+13 :M68MAC ABS 6 BYTES 4A 56 6C 02 44 56 ;M68MAC
+14 :M68MAC DABS 6 BYTES 4A 96 6C 02 44 96 ;M68MAC
+15 -->
+
+Screen # 37
+
+ 0 ( M68K Cross Compiler -- Stack manipulation )
+ 1 :M68MAC DROP 2 BYTES 54 8E ;M68MAC
+ 2 :M68MAC 2DROP 2 BYTES 58 8E ;M68MAC
+ 3 :M68MAC DUP 2 BYTES 3D 16 ;M68MAC
+ 4 :M68MAC 2DUP 2 BYTES 2D 16 ;M68MAC
+ 5 :M68MAC SWAP 6 BYTES 20 16 48 40 2C 80 ;M68MAC
+ 6 :M68MAC 2SWAP A BYTES 20 16 2C AE 00 04 2D 40 00 04 ;M68MAC
+ 7 :M68MAC OVER 4 BYTES 3D 2E 00 02 ;M68MAC
+ 8 :M68MAC 2OVER 4 BYTES 2D 2E 00 04 ;M68MAC
+ 9 :M68MAC >R 2 BYTES 3F 1E ;M68MAC
+10 :M68MAC R> 2 BYTES 3D 1F ;M68MAC
+11 :M68MAC I 2 BYTES 3D 17 ;M68MAC
+12 :M68MAC I' 4 BYTES 3D 2F 00 02 ;M68MAC
+13 :M68MAC J 4 BYTES 3D 2F 00 04 ;M68MAC
+14 -->
+15 
+
+Screen # 38
+
+ 0 ( M68K Cross Compiler -- Comparison operations )
+ 1 :M68MAC = 6 BYTES 30 1E 32 1E B2 40
+ 2           8 BYTES 57 C0 02 40 00 01 3D 00 ;M68MAC
+ 3 :M68MAC < 6 BYTES 30 1E 32 1E B2 40
+ 4           8 BYTES 5D C0 02 40 00 01 3D 00 ;M68MAC
+ 5 :M68MAC > 6 BYTES 30 1E 32 1E B2 40
+ 6           8 BYTES 5E C0 02 40 00 01 3D 00 ;M68MAC
+ 7 :M68MAC MIN 6 BYTES 30 1E 32 16 B0 41
+ 8             6 BYTES 6F 02 C1 41 3C 80 ;M68MAC
+ 9 :M68MAC MAX 6 BYTES 30 1E 32 16 B0 41
+10             6 BYTES 6C 02 C1 41 3C 80 ;M68MAC
+11 -->
+12 
+13 
+14 
+15 
+
+Screen # 39
+
+ 0 ( M68K Cross Compiler -- Comparison operations )
+ 1 :M68MAC D= 6 BYTES 20 1E 22 1E B2 80
+ 2            8 BYTES 57 C0 02 40 00 01 3D 00 ;M68MAC
+ 3 :M68MAC D< 6 BYTES 20 1E 22 1E B2 80
+ 4            8 BYTES 5D C0 02 40 00 01 3D 00 ;M68MAC
+ 5 :M68MAC D> 6 BYTES 20 1E 22 1E B2 80
+ 6            8 BYTES 5E C0 02 40 00 01 3D 00 ;M68MAC
+ 7 -->
+ 8 
+ 9 
+10 
+11 
+12 
+13 
+14 
+15 
+
+Screen # 40
+
+ 0 ( M68K Cross Compiler -- Comparison operations )
+ 1 :M68MAC 0= 2 BYTES 4A 5E
+ 2            8 BYTES 57 C0 02 40 00 01 3D 00 ;M68MAC
+ 3 :M68MAC NOT 0= ;M68MAC
+ 4 :M68MAC 0< 2 BYTES 4A 5E
+ 5            8 BYTES 5D C0 02 40 00 01 3D 00 ;M68MAC
+ 6 :M68MAC 0> 2 BYTES 4A 5E
+ 7            8 BYTES 5E C0 02 40 00 01 3D 00 ;M68MAC
+ 8 :M68MAC D0= 2 BYTES 4A 9E
+ 9             8 BYTES 57 C0 02 40 00 01 3D 00 ;M68MAC
+10 :M68MAC D0< 2 BYTES 4A 9E
+11             8 BYTES 5D C0 02 40 00 01 3D 00 ;M68MAC
+12 :M68MAC D0> 2 BYTES 4A 9E
+13             8 BYTES 5E C0 02 40 00 01 3D 00 ;M68MAC
+14 -->
+15 
+
+Screen # 41
+
+ 0 ( M68K Cross Compiler -- Comparison operations )
+ 1 :M68MAC AND 4 BYTES 30 1E C1 56 ;M68MAC
+ 2 :M68MAC OR  4 BYTES 30 1E 81 56 ;M68MAC
+ 3 :M68MAC XOR 4 BYTES 30 1E B1 56 ;M68MAC
+ 4 :M68MAC 1'S 2 BYTES 46 56 ;M68MAC
+ 5 -->
+ 6 
+ 7 
+ 8 
+ 9 
+10 
+11 
+12 
+13 
+14 
+15 
+
+Screen # 42
+
+ 0 ( M68K Cross Compiler -- Memory and I/O operations )
+ 1 :M68MAC ! 6 BYTES 30 1E 3B 9E 00 00 ;M68MAC
+ 2 :M68MAC @ 6 BYTES 30 16 3C B5 00 00 ;M68MAC
+ 3 :M68MAC 2! 6 BYTES 30 1E 2B 9E 00 00 ;M68MAC
+ 4 :M68MAC 2@ 6 BYTES 30 1E 2D 35 00 00 ;M68MAC
+ 5 :M68MAC +! 8 BYTES 30 1E 32 1E D3 75 00 00 ;M68MAC
+ 6 :M68MAC C! 8 BYTES 30 1E 32 1E 1B 81 00 00 ;M68MAC
+ 7 :M68MAC C@ A BYTES 30 16 42 41 12 35 00 00 3C 81 ;M68MAC
+ 8 :M68MAC FILL 8 BYTES 30 1E 32 1E 30 5E D1 CD
+ 9              8 BYTES 60 02 10 C0 51 C9 FF FC ;M68MAC
+10 -->
+11 
+12 
+13 
+14 
+15 
+
+Screen # 43
+
+ 0 ( M68K Cross Compiler -- Memory and I/O operations )
+ 1 :M68MAC AW! 4 BYTES 30 5E 30 9E ;M68MAC
+ 2 :M68MAC AW@ 4 BYTES 30 56 3C 90 ;M68MAC
+ 3 :M68MAC AL! 4 BYTES 20 5E 30 9E ;M68MAC
+ 4 :M68MAC AL@ 4 BYTES 20 5E 3D 10 ;M68MAC
+ 5 :M68MAC CAW! 6 BYTES 30 5E 30 1E 10 80 ;M68MAC
+ 6 :M68MAC CAW@ 8 BYTES 30 56 42 40 10 10 3C 80 ;M68MAC
+ 7 :M68MAC CAL! 6 BYTES 20 5E 30 1E 10 80 ;M68MAC
+ 8 :M68MAC CAL@ 8 BYTES 20 5E 42 40 10 10 3D 00 ;M68MAC
+ 9 :M68MAC 2AW! 4 BYTES 30 5E 20 9E ;M68MAC
+10 :M68MAC 2AW@ 4 BYTES 30 5E 2D 10 ;M68MAC
+11 :M68MAC 2AL! 4 BYTES 20 5E 20 9E ;M68MAC
+12 :M68MAC 2AL@ 4 BYTES 20 56 2C 90 ;M68MAC
+13 :M68MAC AFILL 8 BYTES 30 1E 32 1E 20 5E 60 02
+14               6 BYTES 10 C0 51 C9 FF FC ;M68MAC
+15 ;S
+
+Screen # 44
+
+ 0 ( Definitions required for FORTH-79 )
+ 1 : <BUILDS CREATE SMUDGE 0 , ;
+ 2 : ENDIF [COMPILE] THEN ; IMMEDIATE
+ 3 ;S
+ 4 Note.. the above definitions work on my system which is a
+ 5 combination fig FORTH and FORTH-79.  However, the definition
+ 6 of <BUILDS may not work with a true FORTH-79 system.  The
+ 7 compatability depends on how the word DOES> operates in your
+ 8 system.  For the system described in Leo Brodie's book Starting
+ 9 FORTH the definition would be:
+10 : <BUILDS CREATE ;
+11 You will need to write an appropriate definition for your
+12 system, the ones given above should serve as guides.
+13 
+14 
+15 
+will need to write an appropriate definition for your
+12 system, t

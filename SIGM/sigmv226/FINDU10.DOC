@@ -1,0 +1,107 @@
+DOCUMENTATION FOR FINDU v1.00 as of 05/23/84
+By S. Kluger
+
+
+FINDU is a FIND40.COM replacement. FINDU means "FIND with Unsqueeze"
+and the program will process both squeezed and unsqueezed files, as
+long as those files are on the same drive in the default user area.
+
+Proper usage:
+
+A>FINDU [D:]AFN STRING
+
+where [D:] is the optional drive designator, AFN is an ambiguous file
+name, and STRING is a string of characters not to exceed the length of
+the command line or 79 characters, whichever is shorter.
+
+Example: search all .A?M (ASM and AQM) files for "MOV":
+
+A>FINDU *.A?M MOV<RET>		(<...> means "hit that key")
+The above command will display all occurrences of "MOV" in all matching
+files. This of course, may turn up comment lines containing words which
+contain the character sequence "MOV" such as "MOVEMENT". Do the following
+to keep FINDU from turning those up:
+
+A>FINDU *.A?Q MOV<TAB><RET>
+In a properly formatted ASM file, there should be a TAB after MOV. You
+could, however, just as well search for "TAB " if you used spaces instead
+of TABs.
+
+A>FINDU *.T?T NOW IS THE TIME<RET>
+This command will find the string "NOW IS THE TIME" in all matching files.
+
+
+NOTE: FINDU will properly capitalize characters and strip their high bits
+      so they can be matched by upper case argument strings. This means that
+      FINDU can be used with WordStar files and others in which high bits
+      are set.
+
+
+FINDU OUTPUT:
+
+After opening a file, FINDU displays the file name and, if it is a squeezed
+file, the original name. For every match found, FINDU displays the line
+number in brackets, in an 8-character field, followed by the capitalized
+line in which the match was found. When finished, FINDU displays the total
+number of lines scanned. Example:
+
+A>FINDU SORT.AQ6 BYTE PTR<RET>
+
+FINDU v1.00 as of 05/23/84
+
+Now processing SORT.AQ6  (SORT.A86)
+
+[   17]         MOV	BYTE PTR FOO,BX
+[   33] ZOT:	MOV	DX,BYTE PTR FOO
+... (more lines)
+
+*** END OF FILE AFTER   156 LINES ***
+
+<<<END OF EXECUTION>>>
+
+A>
+
+
+KEYBOARD CONTROLS:
+
+
+^S	freezes program until any character is typed
+^C	immediately aborts to CP/M
+^X	immediately skips to the next file (if any)
+
+The control characters act instantly, even if there is no console
+output. If the program seems to be hung, hit a key to see if it
+resumes. You may panic if it continues to do nothing after ^X or ^C...
+
+
+MODIFICATION NOTES:
+
+Sorry 'bout the lack of comments. these days I write programs first, then
+hack up some documentation and save the commenting of the source file for
+the next revision.
+
+To assemble, you need:
+
+M80
+L80 or LINK (PREFERRED!)
+SYSLIB.REL	by Rick Conn
+USQBASE.REL	by Dave Rand
+WILDEX.REL	by yours truly
+
+Linking is not critical as long as you link SYSLIB last.
+With L80, do:
+A>l80 /p:0100,findu,usqbase,wildex,syslib/s,findu/n/e
+
+With LINK do:
+A>link findu,usqbase,wildex,syslib[s]
+Note that if you routinely use LINK (companion to RMAC), you might want to
+change SYSLIB.REL to SYSLIB.IRL for linking speed improvement.
+
+
+
+KEYBOARD CONTROLS:
+
+
+^S	freezes program until any character is typed
+^C	immediately aborts to CP/M
+^X	

@@ -1,0 +1,207 @@
+
+
+;	Intel SBC 80/30 Single board computer I/O equates.
+
+CNIN:	EQU	0ECh		;Console input channel
+CNOUT:	EQU	0ECh		;Console output channel
+CONSTS:	EQU	0EDh		;Console staus channel
+
+TRDY:	EQU	001h		;output status mask
+RBR:	EQU	002h		;Input staus mask
+
+PIT:	EQU	0DEh		;Programmable interval timmer
+;
+;
+;
+;
+;	C O N S O L   S T A T U S
+;
+;	This routine samples the Console status and returns the
+;	following values in the A register.
+;
+;	EXIT	A = 0 (zero), means no character
+;		currently ready to read.
+;
+;		A = FFh (255), means character
+;		currently ready to read.
+
+CONST:	IN	CONSTS		;Input from port
+	ANI	RBR		;Mask data available
+	RZ			;If data not available
+	ORI	0FFh
+	RET
+;
+;
+;
+;
+;	C O N S O L   I N P U T
+;
+;	Read the next character into the A register, clearing
+;	the high order bit.  If no character currently ready to
+;	read then wait for a character to arrive before returning.
+;
+;	EXIT	A = character read from terminal.
+
+CONIN:	IN	CONSTS		;get staus
+	ANI	RBR
+	JZ	CONIN		;If data not available
+	IN	CNIN		;Get data byte
+	ANI	7Fh
+	RET
+;
+;
+;
+;
+;	C O N S O L   O U T P U T
+;
+;	Send a character to the console.  If the console
+;	is not ready to receive a character wait until
+;	the console is ready.
+;
+;	ENTRY	C = ASCII character to output to console.
+
+CONOUT:	IN	CONSTS		;Get staus byte
+	ANI	TRDY
+	JZ	CONOUT		;If transmit buffer not empty
+	MOV	A,C
+	OUT	CNOUT
+	RET
+;
+;
+;
+;
+;	P u n c h   O u t p u t.
+;
+;	Send a character to the punch device.  If no punch
+;	device exists then immediately return.
+;
+;	ENTRY	C = ASCII character to output.
+
+PUNCH:
+	RET
+;
+;
+;
+;
+;	R e a d e r   I n p u t.
+;
+;	Read the next character from the currently assigned
+;	reader device into the A register.
+;
+;	EXIT	A = character read from the reader device.
+
+READER:
+	RET
+;
+;
+;
+;
+;	L i s t   O u t p u t.
+;
+;	Send a character to the list device.  If the list
+;	device is not ready to receive a character wait
+;	until the device is ready.
+;
+;	ENTRY	C = ASCII character to be output.
+
+LIST:
+	RET
+;
+;
+;
+;
+;	L i s t   S t a t u s.
+;
+;	Return the ready status for the list device.
+;
+;	EXIT	A = 0 (zero), list device is not ready to
+;		accept another character.
+;		A = FFh (255), list device is ready to accept
+;		a character.
+;
+LISTST:
+	XRA	A		;FORCE LIST NOT READY
+	RET
+;
+;
+;
+;   M P / M   F U N C T I O N S
+;
+;
+;
+SELMEMORY:
+POLLDEVICE:
+STARTCLOCK:
+STOPCLOCK:
+EXITREGION:
+MAXCONSOLE:
+SYSTEMINIT:
+IDLE:
+	RET
+;
+;
+;
+;
+;
+;
+;
+;
+;
+;
+;
+;	O P T I O N A L   N O N - S T A N D A R D   F U N C T I O N S
+;
+;
+;
+;
+;
+;	S E T   S E C T O R   C O U N T
+;
+;	Set the number of continuous sectors to transfer.
+;
+;	ENTRY	C = Number of sectors to transfer.
+;
+;	EXIT	NUMSEC = C
+
+SETNUM:
+	MOV	A,C
+	STA	NUMSEC
+	RET
+;
+;
+;
+;
+;	S E T   E X T E N D E D   B A N K
+;
+;	Set the extended bank data tranfer address.
+;
+;	ENTRY	C = Extended address bank.
+;
+;	EXIT	DMAADE = C.
+
+SETXAD:
+	MOV	A,C
+	STA	DMAADE
+	RET
+;
+;
+;
+;	COLD boot initialization
+;
+;Note: The label URINIT defines the beginning of data storage.
+;
+URINIT:	MVI	A,0B6h		;Set PIT for 9600 baud
+	OUT	PIT+1
+	MVI	A,008h
+	OUT	PIT+0
+	MVI	A,00
+	OUT	PIT+0
+	MVI	A,04Eh		;Setup serial port
+	OUT	CONSTS
+	MVI	A,037h
+	OUT	CONSTS
+	IN	CNIN
+	RET
+;
+;
+

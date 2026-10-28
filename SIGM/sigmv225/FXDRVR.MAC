@@ -1,0 +1,796 @@
+	TITLE	FXDRVR:  A Special WordStar Font Driver
+;
+;
+;   FXDRVR:  A Special Font Driver for WordStar and the Epson FX-80
+;
+; Copyright (c) 1982, 1983, 1984 by Paul J. Gans.  This version of
+;     FXDRVR.MAC is hereby placed into public domain.  Permission
+;     is granted to SIG/M to distribute this file freely for non-
+;     commercial personal use only.
+;
+;
+; Revision Record:
+;
+;    Version 1.0   January 15, 1982	Original version.
+;	     2.0   January 19, 1982	Auto program load added.
+;	     2.1   September 17, 1982	Emphasized graphics added.
+;            2.2   January 19, 1983     Updated to work with Epson
+;                                         Graphtrax Plus ROMs.
+;            3.0   December 19, 1984	Name changed to FXDRVR, Down-
+;					  load font used instead of
+;					  graphics.
+;
+; The current version is 3.0.0 of 12/19/1984.
+;
+        PAGE	58
+;
+; This  is a special font driver for WordStar.   It allows the  user  to 
+; print  special  characters in a WordStar document on an  Epson  FX-80.   
+; This  is  done by making use of the FX-80's ability to accept a  user- 
+; defined  character set.   Included with this font driver is a  set  of  
+; greek  upper  and lower case characters and some special  mathematical  
+; symbols.
+;
+; Before this program can be used with WordStar,  WordStar must be prop
+; erly set up to match the assumptions made by this program.   Configur
+; ation instructions for WordStar are given in the file FXDRVR.DOC.
+;
+; This  program is designed to be assembled with Microsoft's M80  assem
+; bler and follows the conventions of that program.   This assembler was 
+; chosen because most of the code below is designed to be executed at an 
+; address  other  than that into which it will be loaded   by  CP/M.   A 
+; suitable command sequence to assemble and link this program is:
+;
+;         >M80 =FXDRVR/L          <== the /L produces a .PRN file,
+;                                      omit it if not desired.
+;
+;         >L80 FXDRVR,FXDRVR/N/E
+;
+; After  FXDRVR  has been assembled and converted to a  .COM  file,  the 
+; character set to be downloaded must be appended to it.   The file con
+; taining  this character set must meet the assumptions of the  program.  
+; The  character  set  must  contain 12 byte  character  definitions  as 
+; specified in the Epson FX-80 manual.   They may start at an  arbitrary 
+; character position (as defined by the FFCHAR equate below) and may end 
+; at  an  arbitrary character position (as defined by the LFCHAR  equate 
+; below).  All characters between the first and last character inclusive 
+; MUST  be  present in the font.   Any or all of the characters  may  be 
+; blank; many of the characters are blank in the set included here.
+;
+; The character set file is appended to the font driver at its very end.  
+; To  make it easier to find the end of FXDRVR,  a line of 16  asterisks 
+; has been placed at the end of the program.   The first 16 bytes of the 
+; download font should overlay the asterisks.
+;
+;
+; The action of the driver is simple.  A set of control codes, presently 
+; the  numbers 81H through 86H,  cause the driver to instruct the  Epson
+; FX-80  to enter one or another of its printing modes.    Control codes 
+; are:
+;
+;	81H	downloaded font mode
+;	82H	italic mode
+;	83H	emphasized mode
+;	84H	condensed mode
+;	85H	elite mode
+;	86H	double strike mode
+;
+; These  control codes are sent by WordStar when the appropriate special 
+; characters  are  typed into a document by the user.   Just  how  these 
+; special characters are mapped into control codes is set by user  cust-
+; omization  of the printer area of WordStar.   A possible mapping is: 
+;
+;	^A	Enter elite mode
+;	^N	Leave elite mode
+;	^W	Toggle italic mode
+;	^E	Toggle emphasized mode
+;	^R	Toggle condensed mode
+;	^Y	Toggle MX-80 double strike mode
+;	^Q	Used downloaded font for next character
+;
+; It is suggested that condensed mode (the ^R toggle) not be used in new 
+; documents as future versions of this program may use the ^R toggle for
+; other purposes.
+;
+; When  the alternate font signal (^Q) is  recognized in the output from 
+; WordStar,  FXDRVR  outputs the control codes sequence 0x1b  0x25  0x01 
+; 0x00.  This puts the  FX-80 into  alternate  character set  mode  (the 
+; downloaded set).  FXDRVR then accepts  exactly one more character from 
+; WordStar,  transmits it to the  FX-80, and  then  transmits  the  code 
+; sequence 0x1b, 0x25, 0x00, 0x00 to the FX-80.  This last code sequence 
+; returns the FX-80 to the normal character set.
+;
+; The other  mode codes  function as  toggles.  Initially  all modes are 
+; off.   When a mode code is recognized  in  the input character stream,  
+; the corresponding  mode is toggled.  That is, if it was off, it is now 
+; turned on and vice versa.   When a mode is changed,  the corresponding 
+; string  of bytes to perform that action is sent to the printer by  the 
+; driver program.
+;
+; The  driver appears to the user as a normal .COM file.   It is invoked 
+; as:
+;
+;                        FXDRVR wsname [filename.ext]
+;
+; where wsname is the name of the WordStar file.  and filename.ext is an 
+; optional  file  name.   The special  driver relocates itself in  upper 
+; memory  and patches itself into  the normal BIOS call table.   It will 
+; then look for and load WordStar under the name WS.COM, first searching 
+; the default disk and then, if not found, the A drive.   Execution will 
+; then  be turned over to WordStar,  which will  then work in  a  normal 
+; fashion,  loading  filename.ext as a D mode file for editing if it  is 
+; specified.
+;
+; When  WordStar  finishes,  it will return control to the driver  which 
+; will reset all  pointers and  memory  locations that it  changed, thus 
+; restoring those locations to their original state.   FXRVR ends with a 
+; return statement.
+;
+;
+; Technical notes:
+;
+; There  is  nothing special about the font downloaded to  the  printer.  
+; The font can be edited, or other fonts created, with nothing more than 
+; the information provided by Epson in the FX-80 User's manual.
+;
+; This program has gone through a number of versions.   Versions 1 and 2 
+; were written for the Epson MX-80 with Graphtrax.   Changes were needed 
+; from  time to time as the codes used to control various printer  func
+; tions have sometimes changed as Epson has changed the Graptrax ROMs.
+;
+; The current version has been greatly restructured to take advantage of 
+; the  downloadable character set feature of the Epson FX-80.   Previous 
+; versions used the graphics capability of the MX-80;  this version uses 
+; a true character set.
+;
+;-----------------------------------------------------------------------------
+;
+        .Z80 
+;
+; The  definitions below should be changed to accomodate differing  font 
+; sizes.  FFCHAR is the decimal or hex equivalent of the first character 
+; to be downloaded,  LFCHAR is the decimal or hex equivalent of the last 
+; character to be downloaded.
+;
+FFCHAR	EQU	000H		;First font character
+LFCHAR	EQU	0FFH		;Last font character
+;
+FSIZE	EQU	12*(LFCHAR + 1 - FFCHAR)	;Font size
+DCOUNT	EQU	FSIZE + 5	;Font size plus Epson codes
+;
+FALSE	EQU	0
+TRUE	EQU	NOT FALSE
+;
+LF	EQU	0AH		;Line feed
+CR	EQU	0DH		;Carriage return
+ESCAPE	EQU	1BH		;Escape
+SPACE	EQU	20H		;Space
+;
+INCHR	EQU	01H		;CP/M character input
+OUTCHR	EQU	02H		;CP/M character output
+PCHAR	EQU	05H		;CP/M character print
+DSTRNG	EQU	09H		;CP/M display string at console
+CHRW	EQU	0BH		;CP/M character waiting
+OPEN	EQU	0FH		;CP/M open file
+READ	EQU	14H		;CP/M sequential read
+SETDMA	EQU	1AH		;CP/M set DMA function
+;
+LENTRY	EQU	05H		;BIOS list function entry number
+;
+WBOOT	EQU	0000H		;Normal warm boot entry point
+OPSYS	EQU	0005H		;CP/M call location
+TPATOP	EQU	0006H		;Where TPA top address is stored
+FCB	EQU	005CH		;Default file control block
+FCB2	EQU	006CH		;Secondary file control block
+BUFFER	EQU	0080H		;Input command line buffer
+TBASE	EQU	0100H		;Normal program load address
+;
+CCBASE	EQU	80H		;Control codes lie exclusively
+CCLAST	EQU	87H		;  between CCBASE and CCLAST
+;
+LENGTH	EQU	FIN-HMC+1	;Length of code to relocate
+;
+;
+	ASEG
+	ORG	100H
+;
+; First we display a logo.
+;
+START:	LD	SP,STACK	;Plan ahead, use a stack!
+	LD	DE,SIGNON	;Now for a short message
+	LD	C,DSTRNG	;  from our sponsor...
+	CALL	OPSYS
+	JR	DOWNL
+;
+SIGNON:	DB	'The Special Graphics Driver '
+	DB	CR,LF
+	DB	'Version 3.0  (c) 1982, 1983, 1984 by '
+	DB	'Paul J. Gans'
+        DB      CR,LF
+        DB      'All Commercial Rights Reserved.'
+	DB	CR,LF,'$'
+;
+; The next thing to do is to download the user-definable character  set.  
+; FXDRVR  expects  this set to be appended to the end of  this  program, 
+; starting at location FONT.  There should be exactly 3077 bytes at that 
+; location,  the first five of which are 0x1b,  0x26,  0x00, 0x00, 0xff, 
+; which  tell the FX-80 that 3072 bytes,  256 character code at 12 bytes 
+; per character, are to be downloaded.
+;
+DOWNL:	LD	BC,DCOUNT	;Set up a counter
+	LD	HL,FONT	        ;Source of bytes
+;
+DOWN1:	PUSH	BC		;Save counters and address
+	PUSH	HL
+	LD	E,(HL)		;Get a byte
+	LD	C,PCHAR
+	CALL	OPSYS		;Send it to the printer
+	POP	HL		;Regain address
+	POP	BC		;And counter
+	INC	HL		;Next address
+	DEC	BC
+	LD	A,B		;Check for zero
+	OR	C
+	JR	NZ,DOWN1	;Do it again
+;
+; The  actual  driver  code itself must be relocated to just  below  the 
+; BDOS,  the  LIST  entry  in the BIOS jump table changed  to  point  to 
+; FXDRVR, and the jump address in location 5 (TPATOP) must be lowered to 
+; protect the driver.
+;
+START2:	LD	HL,(TPATOP)	;Last available memory + 1
+	LD	(FXDRVR+1),HL	;For CP/M jumps
+	LD	BC,LENGTH	;Length to be relocated
+	XOR	A		;Clear carry
+	SBC	HL,BC		;Where to put first byte
+;
+	PUSH	HL		;Save first byte address
+	PUSH	HL		;  twice for good luck
+	LD	BC,FXDRVR-HMC	;Offset to protected area
+	ADD	HL,BC		;First protected address
+	EX	(SP),HL		;Swap first and one protected address
+;
+	LD	BC,HMC
+	SBC	HL,BC		;Compute offset
+	LD	(OFFSET),HL	;And save for later
+;
+; Fix the fixed addresses in FXDRVR.
+;
+	EX	DE,HL		;Offset
+	LD	HL,RTABLE
+AGAIN:	LD	C,(HL)		;BC is actual value
+	INC	HL
+	LD	B,(HL)
+	LD	A,C		;If it is zero, we are done
+	OR	B
+	JR	Z,FIXUP
+	LD	A,(BC)		;Low byte of address
+	ADD	A,E		;Low byte of offset
+	LD	(BC),A		;Put it back
+	INC	BC		;Next
+	LD	A,(BC)		;High byte of address
+	ADC	A,D		;High byte of offset
+	LD	(BC),A		;Put it back
+	INC	HL
+	JR	AGAIN
+;
+FIXUP:	LD	HL,(WBOOT+1)	;Get address of start of CCP
+	LD	BC,3*LENTRY-2	;Jump table offset to address
+	ADD	HL,BC		;Actual jump table entry address
+	LD	C,(HL)		;Low byte of list address
+	INC	HL
+	LD	B,(HL)		;High byte of list address
+	LD	(PR1+1),BC	;Save for later
+	DEC	HL
+	POP	BC		;Relocated first protected address
+	LD	A,C		;  plus 3 to accomodate
+	ADD	A,3		;  the relocated CP/M
+	LD	(HL),A
+	INC	HL
+	LD	A,B
+	ADC	A,0
+	LD	(HL),A		;Patch jump table entry
+	LD	(TPATOP),BC	;Reset top of available memory
+;
+	LD	HL,(WBOOT+1)	;Get and save warm-boot address
+	INC	HL		;Skip op code
+	LD	C,(HL)		;Load low byte
+	INC	HL
+	LD	B,(HL)		;Load high byte
+	LD	(WBOOTS),BC	;Save it
+;
+	LD	DE,(OFFSET)	;Get the offset
+	LD	BC,ATLAST	;Unrelocated where to go at the end
+	LD	A,C		;Add offset to the unrelocated
+	ADD	A,E		;  address of ATLAST
+	LD	C,A		;  because when we want to use it,
+	LD	A,B		;  its gonna be up there and not
+	ADC	A,D		;  down here!
+	LD	B,A
+	LD	(HL),B		;Store the relocated ATLAST address
+	DEC	HL		;  in the BIOS jump table
+	LD	(HL),C
+;
+MOVIT:	LD	BC,LENGTH	;Number of bytes to move
+	POP	DE		;Where to put the bytes
+	LD	HL,HMC		;Where to get first byte
+	LDIR			;Move it
+;
+HMC0:	JP	HMC		;Go save page 0 stuff and load program
+;
+OFFSET:	DW	0		;Temporary for offset
+;
+; Relocation table.
+;
+RTABLE:	DW	NOPROG+1
+	DW	NOPR1+1
+	DW	HMC0+1
+	DW	HMC+1
+	DW	ATLAST+1
+	DW	T00+1
+	DW	T01+1
+	DW	T02+1
+	DW	T03+1
+	DW	T04+1
+	DW	T05+1
+	DW	T06+1
+	DW	T07+1
+	DW	T08+1
+	DW	T09+1
+	DW	T10+1
+	DW	T11+1
+	DW	T12+1
+	DW	T13+1
+	DW	T14+1
+	DW	T15+1
+	DW	T16+1
+	DW	T17+1
+	DW	T18+1
+	DW	T19+1
+	DW	T20+1
+	DW	T21+1
+	DW	T22+1
+	DW	T23+1
+	DW	T24+1
+	DW	T25+1
+	DW	T26+1
+	DW	T27+1
+	DW	T28+1
+	DW	T29+1
+	DW	T30+1
+	DW	T31+1
+	DW	T32+1
+	DW	T33+1
+	DW	T34+1
+	DW	T35+1
+	DW	T36+1
+	DW	T37+1
+	DW	T38+1
+	DW	T39+1
+	DW	T40+1
+	DW	T41+1
+	DW	T42+1
+	DW	T43+1
+	DW	T44+2
+	DW	T45+2
+	DW	T46+1
+	DW	T47+1
+	DW	0
+;
+;
+;                           HIGH MEMORY CODE
+;
+; The code below is moved to high memory and executed there.   The first 
+; part of it is not part of the driver proper, but contains code to save 
+; page 0,  load the program,  and reset page 0.   The second part is the 
+; driver proper.
+;
+; Save the secondary FCB.
+;
+HMC:	LD	SP,HMC		;'Tis a fine thing we do!
+	LD	BC,16		;Length of FCB as set up
+T00:	LD	DE,FILE2	;Destination address
+	LD	HL,FCB2
+	LDIR			;Move it
+;
+; Set the file extension in the primary file control block to  .COM,  no 
+; matter what the user wants.
+;
+	LD	HL,FCB+9	;Point to the extension subfield
+	LD	A,'C'		;Do it
+	LD	(HL),A
+	INC	HL
+	LD	A,'O'
+	LD	(HL),A
+	INC	HL
+	LD	A,'M'
+	LD	(HL),A		;Done
+;
+; Save the input file buffer only if there is a second file name.
+;
+	LD	HL,BUFFER
+	LD	A,(HL)		;Buffer length count
+	CP      0
+	JR	Z,NOPROG	;Nothing, not even a program name
+;
+	LD	B,A		;Something is there.  First skip
+	INC	HL		;  any leading spaces
+SRCH1:	LD	A,(HL)		;  by looking for a non-space
+	INC	HL
+	CP	SPACE
+	JR	NZ,SRCH2	;Found a non-space
+	DJNZ	SRCH1		;Keep it up till out of buffer
+;
+; No program name exists at all.  Complain to the user.
+;
+NOPROG:	LD	DE,MSG1
+	LD	C,DSTRNG
+	CALL	OPSYS
+NOPR1:	CALL	REPR		;Reset printer
+	JP	WBOOT
+;
+MSG1:	DB	'No program name given.',CR,LF,'$'
+;
+SRCH2:	LD	A,(HL)		;We are scanning the first file name
+	CP	SPACE		;Keep looking for the first space char
+	JR	Z,SRCH3		;Found a space
+	INC	HL
+	DJNZ	SRCH2		;Repeat till out of buffer
+T01:	LD	HL,BUFFR2	;Show that there is nothing saved in
+	LD	(HL),B		;  the command line buffer
+	JR	LOADPR		;Then go load the program without args
+;
+SRCH3:	INC	B
+	LD	C,B		;Count of command line bytes to save
+	LD	B,0
+T02:	LD	DE,BUFFR2	;Where to save command line
+	EX	DE,HL
+	LD	(HL),C		;Save byte count first
+	INC	HL
+	EX	DE,HL
+	LDIR			;Then the rest of the string
+	JR	LOADPR		;Then go load the program
+;
+; There  is  a  program name present.   First check to see if  the  file 
+; exists on the logged in disk.   If not,  check the A disk.   If found, 
+; load the program at TBASE. If not found, complain bitterly.
+;
+LOADPR:	LD	DE,FCB		;First, open the file
+	LD	C,OPEN
+	CALL	OPSYS		;Returns FF on failure
+	INC	A		;Was it FF?
+	JR	NZ,LOAD1	;Jump if file found
+;
+	LD	HL,FCB
+	LD	A,01H		;Disk A flag
+	LD	(HL),A
+	EX	DE,HL		;Try again.  We even may have already
+	LD	C,OPEN		;  tried this disk, but no matter
+	CALL	OPSYS
+	INC	A
+	JR	NZ,LOAD1	;Got it this time
+;
+; The primary program file does not exist.  Complain.
+;
+T03:	LD	DE,MSG2
+	LD	C,DSTRNG
+	CALL	OPSYS
+	JP	WBOOT
+;
+MSG2:	DB	'File not found.',CR,LF,'$'
+;
+; Load  the primary file.   Though the code below is not  protected,  no 
+; normal  WordStar load ought to get this high in memory.   If it  does, 
+; bombs away!
+;
+LOAD1:	LD	DE,TBASE	;Initial load address
+	PUSH	DE		;Save it
+	LD	C,SETDMA
+	CALL	OPSYS
+;
+LOAD2:	LD	DE,FCB		;This is the primary loading loop.
+	LD	C,READ		;  A sector is read into sequential
+	CALL	OPSYS		;  memory until an endfile condition
+	POP	DE		;  is found.
+	OR	A		;This checks for the endfile
+	JR	NZ,SETUP	;Non-zero is endfile
+	LD	HL,128		;Update the DMA address
+	ADD	HL,DE
+	PUSH	HL		;And save it again
+	EX	DE,HL
+	LD	C,SETDMA
+	CALL	OPSYS
+	JR	LOAD2		;Repeat till done
+;
+; It now remains to reset the FCB and BUFFER.
+;
+SETUP:	LD	BC,16H		;Reset FCB from what was saved.
+	LD	DE,FCB
+T04:	LD	HL,FILE2
+	LDIR
+	LD	HL,FCB2		;Reset FCB2 to empty
+	LD	(HL),B		;  by storing a leading zero
+	LD	B,11		;  and 11 spaces
+	LD	A,SPACE
+SETUP1:	INC	HL
+	LD	(HL),A
+	DJNZ	SETUP1
+T05:	LD	HL,BUFFR2	;Reset the command line buffer if it
+	LD	A,(HL)		;  isn't empty
+	CP	0		;Is it empty
+	JP	Z,TBASE		;Yes, go RUN
+	INC	A		;So we move the count as well
+	LD	C,A		;Set count
+	LD	B,0
+	LD	DE,BUFFER
+	LDIR
+	JP	TBASE		;That's it!
+;
+; Storage for FILE2 and BUFFR2.
+;
+FILE2:	DS	16		;Secondary file control block
+BUFFR2:	DS	80H
+;
+;
+;                         THE WordStar DRIVER
+;
+; The driver proper is below.   The first location is a jump to the true 
+; start of CP/M.   A call to location 5 (the normal CP/M entry)  results 
+; in a jump to the first protected address in high memory.  That has now 
+; been changed so as to protect the driver.   Hence the jump below, fil-
+; led in by the relocator.
+;
+FXDRVR:	JP	0000H		;Jump to CP/M
+;
+	LD	HL,0		;Save the stack pointer
+	ADD	HL,SP		;Got it!
+T06:	LD	SP,STAK		;Set it to a local area
+	PUSH	HL		;  and save old SP on it
+T07:	LD	HL,RCVR		;Now we put the stack recovery routine
+	PUSH	HL		;  onto the stack so we can RET to it
+;
+T08:	LD	HL,MODES	;Array of mode flags
+	LD	A,(HL)		;Graphics mode flag
+	CP	0		;Are we in graphics mode?
+T09:	JP	NZ,DOMAP	;Jump if we are
+;
+	LD	A,C		;Character to A
+	CP	CCBASE		;Is it a mode toggle character?
+T10:	JP	C,PRINT		;If not, print it directly
+	CP	CCLAST		;Is it a weird character?
+	RET	NC		;If so, ignore it
+;
+	CP	81H		;Graphics character?
+	JR	Z,GRAF		;Jump if so
+;
+	INC	HL		;Giant case statement:
+	CP	82H		;  HL points to proper mode
+T11:	JP	Z,ITAL		;  flag
+	INC	HL
+	CP	83H
+T12:	JP	Z,EMPH
+	INC	HL
+	CP	84H
+T13:	JP	Z,COND
+	INC	HL
+	CP	85H
+T14:	JP	Z,ELIT
+	INC	HL
+	CP	86H
+T15:	JP	Z,DBLE
+;
+; We cannot get to this point in normal usage.  Thus:
+;
+	LD	DE,MSG3
+	LD	C,DSTRNG
+	CALL	OPSYS
+	HALT			;With prayers
+;
+MSG3:	DB	'HARD ERROR:  Failure in case statement.'
+	DB	CR,LF
+	DB	'System must be REBOOTED to continue'
+	DB	CR,LF,'$'
+;
+; The response to the various mode flags is coded below:
+;
+GRAF:	LD	(HL),A		;Set graphics mode
+	RET
+;
+ITAL:	LD	A,(HL)		;Get ITALICS mode flag
+	OR	A		;(A): 00=off, FF=on
+	CPL			;Does not change Z flag
+	LD	(HL),A		;Resave mode flag
+	LD	B,2		;Send two bytes to EPSON
+T16:	LD	HL,ONITAL
+T17:	JP	Z,PRINTS	;Turn ITALICS on
+T18:	LD	HL,OFITAL
+T19:	JP	PRINTS		;Turn ITALICS off
+;
+ONITAL:	DB	1BH, 34H	;ON ITALICS string
+OFITAL:	DB	1BH, 35H	;OFF ITALICS string
+;
+EMPH:	LD	A,(HL)		;Get EMPHASIZED mode flag
+	OR	A		;(A): 00=off, FF=on
+	CPL			;Does not change Z flag
+	LD	(HL),A		;Resave mode flag
+	LD	B,2		;Send two bytes to EPSON
+T20:	LD	HL,ONEMPH
+T21:	JP	Z,PRINTS	;Turn EMPHASIZED on
+T22:	LD	HL,OFEMPH
+T23:	JP	PRINTS		;Turn EMPHASIZED off
+;
+ONEMPH:	DB	1BH, 45H	;ON EMPHASIZED string
+OFEMPH:	DB	1BH, 46H	;OFF EMPHASIZED string
+;
+COND:	LD	A,(HL)		;Get CONDENSED mode flag
+	OR	A		;Set flag register as above
+	CPL			;Does not change Z flag
+	LD	(HL),A		;Resave mode flag
+	LD	B,1		;Send one byte to EPSON
+T24:	LD	HL,ONCOND
+T25:	JP	Z,PRINTS	;Turn CONDENSED on
+T26:	LD	HL,OFCOND
+T27:	JP	PRINTS		;Turn CONDENSED off
+;
+ONCOND:	DB	0FH		;ON CONDENSED string
+OFCOND:	DB	12H		;OFF CONDENSED string
+;
+ELIT:	LD	A,(HL)		;Get EXPANDED mode flag
+	OR	A
+	CPL
+	LD	(HL),A
+	LD	B,2		;Send two bytes to EPSON
+T28:	LD	HL,ONELIT
+T29:	JP	Z,PRINTS
+T30:	LD	HL,OFELIT
+T31:	JP	PRINTS
+;
+ONELIT:	DB	1BH, 4DH	;ON ELITE string
+OFELIT:	DB	1BH, 50H	;OFF ELITE string
+;
+DBLE:	LD	A,(HL)		;Get DOUBLE STRIKE mode flag
+	OR	A
+	CPL
+	LD	(HL),A
+	LD	B,2		;Send two bytes to EPSON
+T32:	LD	HL,ONDBLE
+T33:	JP	Z,PRINTS
+T34:	LD	HL,OFDBLE
+T35:	JP	PRINTS
+;
+ONDBLE:	DB	1BH, 47H	;ON DOUBLE STRIKE string
+OFDBLE:	DB	1BH, 48H	;OFF DOUBLE STRIKE string
+;
+; PRINT  simply  saves all registers and calls the CP/M BIOS print  rou-
+; tine.   The  proper address is stuffed into the call statement by  the 
+; setup code.
+;
+PRINT:	PUSH	AF		;Avoid trouble, save it all
+	PUSH	BC
+	PUSH	DE
+	PUSH	HL
+PR1:	CALL	0		;To be filled with the address
+	POP	HL		;  of the CP/M print routine
+	POP	DE
+	POP	BC
+	POP	AF
+	RET
+;
+; PRINTS will output the string of bytes whose start is pointed to by HL 
+; until B bytes are sent.
+;
+PRINTS:	LD	C,(HL)		;Get a byte
+T36:	CALL	PRINT		;Print the character
+	INC	HL		;Point to next byte
+	DJNZ	PRINTS		;Keep on if more
+	RET			;Else quit
+;
+; PRINTE will output the same bytes as PRINTS but in emphasized mode.
+;
+PRINTE:	LD	DE,0		;Clear DE
+PRE:	LD	D,(HL)		;Get new byte
+	LD	A,D		;Move it to A
+	OR	E		;Or in previous byte
+	LD	C,A		;Prepare to send it
+T37:	CALL	PRINT		;Then send it
+	INC	HL		;Point to next byte
+	LD	E,D		;Save old byte
+	DJNZ	PRE		;And repeat 12 times
+	RET			;Then quit
+;
+; DOMAP (called that for historical reasons) puts the Epson into  alter
+; nate character set mode,  outputs the character, and returns it to the 
+; ordinary (ROM) character set mode.
+;
+DOMAP:	XOR	A		;Clear register
+T38:	LD	(MODES),A	;And reset graphics mode
+	PUSH	BC		;Save character to be printed
+	LD	B,4		;Send 4 characters
+T39:	LD	HL,ONGR		;Start of sequence
+T40:	CALL	PRINTS		;Send sequence
+	POP	BC		;Regain character
+T41:	CALL	PRINT		;Print it
+	LD	B,4		;Send 4 characters
+T42:	LD	HL,OFFGR	;Start of sequence
+T43:	CALL	PRINTS		;Print it
+	RET
+;
+ONGR:	DB	1BH,25H,01H,00H	;Select alternate character set
+OFFGR:	DB	1BH,25H,00H,00H	;Select normal character set
+;
+RCVR:	POP	HL		;Before quitting, reset the stack
+	LD	SP,HL		;  to what it was when WordStar
+	RET			;  set the return address
+;
+; At  termination of WordStar various locations in the BIOS jump  vector 
+; and in low memory have to be reset to their initial values.  Note that 
+; initially, before the driver runs, locations 1 and 2 contain a jump to 
+; the  BIOS jump table warm boot entry.   When the driver runs,  the ad-
+; dress  in the table is stored in WBOOTS below and the address  of  the 
+; routine below substituted for it.   When WordStar warm boots, the rou-
+; tine  below  will be entered.   The routine will reset the BIOS  table 
+; address  to its original value,  reset the LIST entry to  its  initial 
+; value,  and  return  locations 5 and 6 in low memory to their  initial 
+; values.
+;
+ATLAST:	LD	HL,(FXDRVR+1)	;Original memory top
+	LD	(TPATOP),HL	;  now restored
+T44:	LD	BC,(WBOOTS)	;Saved BIOS warm boot entry
+	LD	HL,(WBOOT+1)	;Address for BIOS entry
+	INC	HL		;Point to address part of jump
+	LD	(HL),C
+	INC	HL
+	LD	(HL),B		;BIOS warm boot entry restored
+;
+	DEC	HL		;Address for BIOS entry
+	DEC	HL
+	LD	BC,3*LENTRY-2	;Jump table offset to address
+	ADD	HL,BC		;Actual jump table entry address
+T45:	LD	BC,(PR1+1)	;Saved BIOS list entry
+	LD	(HL),C
+	INC	HL
+	LD	(HL),B		;BIOS list entry restored
+;
+; One  last  thing remains.   The FX-80 should be reset to its  power-up 
+; configuration.  To that end a reset string is now sent to the printer.
+;
+REPR:	LD	B,2		;Two character string
+T46:	LD	HL,RESET	;Point to the string
+T47:	CALL	PRINTS		;Send it
+;
+	JP	WBOOT		;THAT'S IT, FOLKS!
+;
+RESET:  DB	1BH, 64H	;FX-80 master reset string
+;
+WBOOTS:	DW	0		;For original warm boot address
+	DS	01EH		;For a local stack
+STAK:
+;
+; The MODE bytes are stored here.
+;
+MODES:	DB	0		;Graphics mode flag
+	DB	0		;Italics mode flag
+MODEE:	DB	0		;Emphasized mode flag
+	DB	0		;Condensed mode flag
+	DB	0		;Expanded mode flag
+	DB	0		;Double strike mode flag
+;
+;
+	DS	20
+STACK:	DB	2		;Always use a stack
+FIN:
+;
+FONT:				;The download font follows
+        DB	1BH, 26H, 00H	;Code to cause the Epson to accept font
+	DB	FFCHAR		;First font character
+	DB	LFCHAR		;Last font character
+;
+; The  font to be downloaded is appended to this file.   FXDRVR  expects 
+; exactly  3072  bytes  here  and  that  is  the  number  that  will  be 
+; transmitted to the FX-80.
+;
+	DB	'********'	;To make finding the end-of-program
+	DB	'********'	;  easier.
+;
+	END
+

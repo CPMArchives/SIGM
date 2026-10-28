@@ -1,0 +1,113 @@
+ICE : procedure options(main);
+   
+/**************************************************/
+/*                                                */
+/*       IN CONTEXT EDITOR                        */
+/*                                                */
+/*        Re-implementation of ICE written by     */
+/*        P. G. Main in Ratfor.                   */
+/*                                                */
+/*        Paul Tilden  Aug 1981                   */
+/*                                                */
+/*  IMPORTANT:  To avoid confusion, the word      */
+/*  LINE is used exclusively to refer to lines    */
+/*  on the VDU screen, and ROW to refer to data   */
+/*  in the working buffer BUF.                    */
+/*                                                */
+/**************************************************/
+   
+%replace
+    true      by '1'b,
+    false     by '0'b;
+%replace
+    huge      by 32000,
+    linelen   by 100,    /* screen width */
+    scrlen    by 16,     /* screen length */
+    size      by 100;    /* nr. of rows in buf */
+%replace
+    escape    by 27,
+    line_feed by 10;
+   
+declare
+    (edt_in, edt_out, sysin, sysprint) file;
+declare
+    nextout   fixed,     /* next row to be output from buf */
+    lastin    fixed,     /* last row input to buf */
+    posn      fixed,     /* equal to rmod(crow - lastin) */
+    crow      fixed,     /* current row */
+    delrows   fixed,     /* nr. of rows to be deleted but
+                           not yet read */
+    inrow     fixed,     /* infile row nr. of lastin */
+    inopen    bit(1),    /* flag saying an input file is open */
+    file_end  bit(1),    /* eof on edt_in */
+    abort     bit(1),    /* abort edit */
+    scr_row   fixed,     /* screen row */
+    scr_col   fixed;     /* screen column */
+declare
+    1 buf(size),
+        2 buf_row character(linelen) varying;
+declare
+    upper character(26) static initial
+          ('ABCDEFGHIJKLMNOPQRSTUVWXYZ'),
+    lower character(26) static initial
+          ('abcdefghijklmnopqrstuvwxyz'),
+    digit character(10) static initial ('0123456789'),
+    blanks character(linelen) varying static;
+   
+   
+/********************************************************/
+/*                                                      */
+/*                MAIN PROCEDURE                        */
+/*                                                      */
+/********************************************************/
+   
+        /* initialization */
+    open file(sysprint) print pagesize(0) 
+         linesize(255)
+         title('$CON');
+        begin;
+        declare i fixed;
+        do i = 1 to size;
+            buf_row(i) = '';
+        end;
+        blanks = '';
+        do i = 1 to linelen;
+            blanks = blanks !! ' ';
+        end;
+        end;
+    call home_cursor;
+    call clear_screen;
+    nextout = 1;
+    lastin = size;
+    crow = lastin;
+    posn = size;
+    inrow = 0;
+    delrows = 0;
+    on undefinedfile(edt_in)
+        begin;
+        call diag('new file');
+        inopen = false;
+        file_end = true;
+        goto edtin_cont;
+        end;
+    open file(edt_in) input stream env(b(2048)) title('$1.$1');
+    inopen = true;
+    file_end = false;
+    revert undefinedfile(edt_in);
+    edtin_cont: ;
+    open file(edt_out) output stream pagesize(0) env(b(2048))
+         title('$1.%%%');
+    call get_row(lastin);
+    call spray(scrlen-2,scrlen-2);
+   
+        /* edit file */
+    call edit_file;
+   
+        /* file cleanup */
+    close file(edt_in);
+    close file(edt_out);
+   
+        /* end */
+    call diag('done');
+   
+

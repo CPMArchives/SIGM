@@ -1,0 +1,234 @@
+
+;CBIOS - Data Technology Corporation CP/M 2.2 CBIOS.
+;
+;	+-----------------------+
+;	|			|
+;	|	C B I O S 	|
+;	|			|
+;	+-----------------------+
+;
+;
+;
+;	Version number:	2.2B
+;	Version date:	October 27,1981
+;
+;
+;			. Corrections to the I/O deblocking
+;			routines.
+;			. Restructuring of code.
+;
+;	Update date:	November 24, 1980
+;
+;			.  Changed disk selection code to allow
+;			CP/M to reset a drive.
+;
+;	Update date:	November 30, 1980
+;
+;			.  Added conditional assembly for IEEE 796
+;			and 696 host adapters.
+;
+;			December 4, 1980
+;			.  Finished adapting for IEEE 796 host adapter.
+;			January 6, 1981
+;			.  Added MRX101D driver modifications
+;
+;	Update date:	March 16, 1981
+;
+;			.  Modified source files for ASM.
+;
+;	Update date:	March 27, 1981
+;
+;			.  Cold boot entry receives logical unit
+;			number of host in A regiser.
+;
+;	Update date:	April 28, 1981
+;			Modified for contoller timeout and maximum
+;			hard disk configuration.
+;
+;	Update date:	May 25, 1981
+;			Modified table expansion conditional assembly
+;			statements to get around ASM problem.
+;
+;	Update date:	May 28, 1981
+;			Modified table expansion for maximum of
+;			sixteen (16) logical disks.
+;	Update date:	June 4, 1981
+;			Modified code for new CONFIG parameters.
+;			Generate DPH, DSKMSK and DSKOFF tables
+;			during cold boot to allow arbitrary drive
+;			mix for four (4) logical units.  Logical
+;			drives are assigned to CP/M disk names
+;			(A,...,P) in the order of assending logical
+;			unit number.
+;
+;
+;	The following code is supplied to customers who
+;	purchase a hard/floppy disk system from DTC.
+;	The intent of the following code is to illustrate
+;	how to create a CBIOS for the user supplied
+;	CP/M 2.2.  The following CBIOS was developed and
+;	tested using the following hardware components.
+;
+;	Data Technology Corporation's 696 host adapter.
+;	CompuPro IEEE 696 chassis and motherboards.
+;	CompuPro IEEE 696 Z-80 CPU board.
+;	CompuPro IEEE 696 RAM XX boards (3).
+;	CompuPro IEEE 696 Interfacer I (assigned port 0 thru 3).
+;
+;	O R
+;
+;	Data Technology Corporation's 796 host adapter.
+;	Intel SBC 80/30 Single board computer.
+;	Intel SBC 86/12 Memory board.
+VERS:	EQU	22
+CBIOSV:	EQU	4		;CBIOS revision level
+
+
+
+CR:	EQU	0Dh
+LF:	EQU	0Ah
+
+
+	IF	NOT (MSIZE / (64+2))	;If absolute
+BIOS:	EQU	CBIOS		;START OF CP/M JUMP TABLE
+	ENDIF
+	IF	MSIZE / (64+1)	;If PRL generation
+BIOS:	EQU	(MSIZE*K+BIOSIZ) / K	;Start of CP/M jump table
+	ENDIF
+
+IOBYTE:	EQU	3		;Location of IOBYTE
+CDISK:	EQU	4		;Location of current disk
+DBUF:	EQU	80h
+
+
+;	CP/M to host disk constants
+
+CPMSIB:	EQU	1024/128	;Standard sectors in block
+BLKSIZ:	EQU	2048		;CP/M allocation size
+HSTSIB:	EQU	BLKSIZ/128	;Sectors in host block
+HSTSIZ:	EQU	128*(MAXSEC+1)	;host buffer size
+HSTSPT:	EQU	26		;host disk sectors/TRK
+HSTBLK:	EQU	HSTSIZ/128	;CP/M sects/host buff
+CPMSPT:	EQU	HSTBLK * HSTSPT	;CP/M sectors/track
+
+
+D2DSM:	EQU	((77-2)*2*CPMSPT/HSTSIB)-1
+
+
+;	BDOS constants on entry to write
+
+WRALL:	EQU	0		;write to allocated
+WRDIR:	EQU	1		;write to directory
+WRUAL:	EQU	2		;write to unallocated
+;	The following jump table defines the entry points
+;	into the CBIOS for use by CP/M and other external
+;	routines; therfore the order of these jump cannot
+;	be modified.  The location of these jumps can only
+;	be modified by 400h locations, which is a restriction
+;	of MOVCPM.
+
+	ORG	BIOS
+
+	JMP	CBOOT		;Cold boot
+	JMP	WBOOT		;Warm boot
+	JMP	CONST		;Console status (input)
+	JMP	CONIN		;Console input
+	JMP	CONOUT		;Console output
+	JMP	LIST		;List output
+	JMP	PUNCH		;Punch output
+	JMP	READER		;Reader input
+	JMP	HOME		;Set track to zero
+	JMP	SELDSK		;Select disk unit
+	JMP	SETTRK		;Set track
+	JMP	SETSEC		;Set sector
+	JMP	SETDMA		;Set Disk Memory Address
+	JMP	READ		;Read from disk
+	JMP	WRITE		;Write onto disk
+	JMP	LISTST		;List status (output)
+	JMP	SECTRN		;Translate sector number
+;
+;	THE FOLLOWING 8 ENTRIES ARE RESERVED FOR MP/M
+;
+	JMP	SELMEMORY	;SELECT MEMORY
+	JMP	POLLDEVICE	;POLL DEVICE
+	JMP	STARTCLOCK	;START CLOCK
+	JMP	STOPCLOCK	;STOP CLOCK
+	JMP	EXITREGION	;EXIT REGION
+	JMP	MAXCONSOLE	;MAXIMUM CONSOLE NUMBER
+	JMP	SYSTEMINIT	;SYSTEM INITIALIZATION
+	JMP	IDLE		;IDLE
+;
+;	The following 2 entries are non-standard CP/M
+;	and are optional.
+;
+	JMP	SETNUM		;Set number of sectors to read
+	JMP	SETXAD		;Set extended address bank.
+;
+;
+;	Drive Type table (indexed by CP/M unit #)
+;	Format:	DB	DPB type
+;		DB	Class 6, op code 0 type (or 0FFh)
+;
+DTYPE:
+	DS	2*NDSK
+;
+;
+;
+;
+;	Disk Parameter Header Blocks for disk drives
+;	The format of these blocks are as follows:
+;	16 bits = -> translation table.
+;	48 bits = Work area for CP/M.
+;	16 bits = -> DIRBUF.
+;	16 bits = -> Parameter block.
+;	16 bits = -> check vector.
+;	16 bits = -> allocation vector.
+
+DPH:			;Disk parameter header
+	DS	16*NDSK
+;
+;
+;
+;
+;	Sector Translation Tables.
+
+
+;	Standard CP/M Distribution Format
+XLTS:	DB	0,6,12,18,24,4,10,16,22,2,8,14,20
+	DB	1,7,13,19,25,5,11,17,23,3,9,15,21
+
+;
+;
+;
+;
+;	Disk selection masks.
+;		A   B   C   D   E   F   G   H
+DSKMSK:
+	DS	NDSK
+
+;		I   J   K   L   M   N   O   P
+;
+;
+;
+;
+;	Disk offsets (indexed by type).
+DSKOFF:
+	DS	3*NDSK
+
+;	Disk type definition blocks for each particular mode.
+;	The format of these areas are as follow:
+;	8 bit = disk type code
+;	16 bit = Sectors per track
+;	8 bit  = Block shift
+;	8 bit  = BS mask
+;	8 bit  = Extent mask
+;	16 bit = Disk allocation blocks - 1.
+;	16 bit = Directory size.
+;	16 bit = Allocation for directory.
+;	16 bit = check area size.
+;	16 bit = offset to first track.
+
+DPB:
+	DS	16*DPBLN
+
+

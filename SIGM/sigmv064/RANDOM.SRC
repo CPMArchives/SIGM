@@ -1,0 +1,149 @@
+F	SET		  0
+R	SET		  0
+S	SET		  0
+;function random( var seed: real ): real;
+;{ RETURNS RANDOM NUMBERS IN RANGE 0.0 - 1.0 }
+;{ GLOBAL:
+;   SEED: REAL;
+;}
+	NAME RANDOM
+	ENTRY RANDOM
+
+;CONST PI = 3.14159;
+;VAR	X: REAL;
+;	I: INTEGER;
+;begin
+RANDOM:
+	ENTR	D,2,6
+;  x := seed + PI;
+	LXI	H,-4
+	DADD	S
+	SPHL
+	XCHG
+	MOV	H,9(IX)
+	MOV	L,8(IX)
+	DCX	H
+	DCX	H
+	DCX	H
+	LXI	B,4
+	LDIR
+	LXI	H,612
+	LXI	D,-30745
+	PUSH	H
+	PUSH	D
+	DADD	D,-4
+	LXI	H,3
+	DADD	S
+	XCHG
+	PUSH	IX
+	POP	H
+	DCX	H
+	DCX	H
+	XCHG
+	LXI	B,4
+	LDDR
+	POP	H
+	POP	H
+;  x := exp(5.0 * ln(x));
+	LXI	H,-4
+	DADD	S
+	SPHL
+	LXI	H,848
+	MOV	D,A
+	MOV	E,A
+	PUSH	H
+	PUSH	D
+	LXI	H,-4
+	DADD	S
+	SPHL
+	LXI	H,-4
+	DADD	S
+	SPHL
+	XCHG
+	PUSH	IX
+	POP	H
+	LXI	B,-5
+	DADD	B
+	LXI	B,4
+	LDIR
+	CALL	L134
+	MULT	D,-4
+	CALL	L133
+	LXI	H,3
+	DADD	S
+	XCHG
+	PUSH	IX
+	POP	H
+	DCX	H
+	DCX	H
+	XCHG
+	LXI	B,4
+	LDDR
+	POP	H
+	POP	H
+;  seed := x - trunc(x);
+	LXI	H,-4
+	DADD	S
+	SPHL
+	XCHG
+	PUSH	IX
+	POP	H
+	LXI	B,-5
+	DADD	B
+	LXI	B,4
+	LDIR
+	LXI	H,-4
+	DADD	S
+	SPHL
+	XCHG
+	PUSH	IX
+	POP	H
+	LXI	B,-5
+	DADD	B
+	LXI	B,4
+	LDIR
+	CALL	L129
+	PUSH	D
+	CVTF	B
+	DSUB	D,-4
+	LXI	H,3
+	DADD	S
+	XCHG
+	MOV	H,9(IX)
+	MOV	L,8(IX)
+	XCHG
+	LXI	B,4
+	LDDR
+	POP	H
+	POP	H
+;  random := seed;
+	LXI	H,-4
+	DADD	S
+	SPHL
+	XCHG
+	MOV	H,9(IX)
+	MOV	L,8(IX)
+	DCX	H
+	DCX	H
+	DCX	H
+	LXI	B,4
+	LDIR
+	LXI	H,3
+	DADD	S
+	XCHG
+	PUSH	IX
+	POP	H
+	LXI	B,13
+	DADD	B
+	XCHG
+	LXI	B,4
+	LDDR
+	POP	H
+	POP	H
+;end{ of random };
+	EXIT	D,2
+;
+;
+D	S
+	XCHG
+	PUSH	IX

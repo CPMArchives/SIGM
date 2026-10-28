@@ -1,0 +1,486 @@
+  /* * * * * * * * * * * * * * * * * * * * * * * * * * * *
+   *                                                     *
+   *                       FCBs                          *
+   *                                                     *
+   *             COUNT ACTIVE FCBS ON DRIVE              *
+   *                                                     *
+   * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+	    /* COPYRIGHT 1981, Digital Research */
+
+/* fcbs - display and edit CP/M directory sectors */
+	fcbs: procedure options(main);
+	/* by Doug Huskey */
+	%replace
+	   TRUE           by '1'b,
+	   FALSE          by '0'b,
+	   VERDATE        by '02/23/81',
+	   CLEAR_SCRN     by '^[*^Z  ',
+	   HELP_CMD       by 'HELP    ',
+	   DUMP_CMD       by 'DUMP    ',
+	   DISPLAY_CMD    by 'DISPLAY ',
+	   VALID_DRIVES   by 'ABCDEFGHIJKLMNOP';
+
+	%include 'diomod.dcl';
+	%include 'plibios.dcl';
+
+
+	declare
+	   date       char(8) external static init(VERDATE);
+
+	declare
+	   1 search      based(dfcb0()),
+	     3 drive       fixed(7),
+	     3 name        char(8),
+	     3 type        char(3),
+	     3 ext         char(1);
+
+
+	declare
+	   1 default1      based(dfcb0()),
+	     3 space       fixed(7),
+	     3 command     char(8);
+
+
+	declare
+	   dirptr            pointer,
+	   1 dir_fcb(0:19)   based(dirptr),
+	     3 user          bit(8),
+	     3 fname         char(8),
+	     3 ftype         char(3),
+	     3 fext          fixed(7),
+	     3 fs1           bit(8),
+	     3 fs2           bit(8),
+	     3 frc           fixed(7),
+	     3 falloc(16)    bit(8);
+
+	declare
+	   1 dirm(0:19)      based(dirptr),
+	     3 user          fixed(7),
+	     3 fname(8)      bit(8),
+	     3 ftype         char(3),
+	     3 fext          fixed(7),
+	     3 fs1           bit(8),
+	     3 fs2           bit(8),
+	     3 frc           fixed(7),
+	     3 falloc(16)    bit(8);
+
+	declare
+	   usrfcbs(0:16)     fixed(15) static init
+	                     (0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
+
+
+	declare			/* disk parameter header mask */
+	   dphp	        ptr,
+	   1 dph_mask   based(dphp),
+	     2 xlt      ptr,
+	     2 space(3) bit(16),
+	     2 dirbuf   ptr,
+	     2 dpbptr   ptr,
+	     2 csvptr   ptr,
+	     2 alvptr   ptr;
+
+
+	declare			/* disk parameter block mask */
+	   dpbp        ptr,
+	   1 dpb_mask  based(dpbp),
+	     2 spt     fixed(15),
+	     2 blkshft fixed(7),
+	     2 blkmsk  fixed(7),
+	     2 extmsk  fixed(7),
+	     2 dsksiz  fixed(15),
+	     2 dirmax  fixed(15),
+	     2 fill    bit(16),
+	     2 checked fixed(15),
+	     2 offset  fixed(7);
+
+
+
+  /* * * * * * * * * * * * * * * * * * * * * * * * * * * *
+   *                                                     *
+   *                    MAIN PROGRAM                     *
+   *                                                     *
+   * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+
+
+
+	declare
+	   odump          entry(ptr,fixed),		/* hex dump */
+	   odrv           fixed(7),			/* original drive */
+	   drv            char(4) varying,
+	   dcnt           fixed(15) static init(0),	/* fcb # */
+	   dump           bit(1) static init(false),	/* hex dump */
+	   disp           bit(1) static init(false),	/* display  */
+	   numfcbs        fixed(15) static init(0),	/* # of fcbs */
+	   fcbx           fixed(7),		/* fcb index in cur_sec */
+	   i              fixed(7),
+	   cur_sec	  fixed(15);		/* current dir sector */
+
+	on error begin;
+	   declare
+	      errcode;
+
+	   errcode = oncode();
+	   if errcode < 80 then do;
+	      put skip list('Fatal Error #:',errcode);
+	      call reboot();
+	      end;
+	   go to brk;
+	   end;
+
+	/* INITIALIZATION */
+
+	allocate dir_fcb set (dirptr);
+	if break() then
+	    drv = rdcon();
+	odrv = curdsk();
+	call dselect(drive);
+	if substr(search.name,1,1) ~= ' ' then 
+	    if command = DUMP_CMD then
+	        dump = true;
+ 	    else if command = DISPLAY_CMD then
+	        disp = true;
+	    else if command = HELP_CMD then do;
+	        put skip list('FCBS - Display Number of Directory Entries');
+	        put skip(2) list('Command line options:');
+	        put edit('FCBS','FCBS d:','FCBS <filename>',
+			'FCBS HELP','FCBS DUMP','FCBS DISPLAY')
+				(skip(2),a);
+	        put skip(2);
+	        call reboot();
+	        end;
+	    else  do;
+	        call dir_search;
+	        go to brk;
+	        end;
+	call count_fcbs;
+brk:	
+	put skip(2);
+	    do i = 0 to 15;
+	    if usrfcbs(i) ~= 0 then
+	        put skip list(usrfcbs(i),'FCB(s) on user',deblank(char(i,10)));
+	    end;
+	if usrfcbs(16) ~= 0 then
+	        put skip(2) list(usrfcbs(16),
+	        'undefined (GARBAGE) FCB(s)');
+	drv = ascii(65+curdsk()) || ':';
+	put skip(2) list(numfcbs,'FCB(s) are assigned on',drv);
+	if substr(search.name,1,1) ~= ' ' then 
+	    put list(search.name||'.'||search.type);
+	put skip;
+	call select(odrv);
+	call reboot;
+
+  /* * * * * * * * * * * * * * * * * * * * * * * * * * * *
+   *                                                     *
+   *                    SUBROUTINES                      *
+   *                                                     *
+   * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+
+
+
+/* count_fcbs - count active fcbs on drive */
+	count_fcbs: procedure;
+	dcl 
+	    j fixed(7);
+
+	if disp then
+	    call header;
+	numfcbs = 0;
+	    do dcnt = 0 to dirmax by 20;
+	    call read_dir;
+	        do j = 0 to 19 while (cur_sec * 4 + j <= dirmax);
+	        call count(j);
+	        end;
+	    end;
+	end count_fcbs;
+
+/* dir_search - count matching fcb entries */
+	dir_search: proc;
+	dcl
+	    fnd   bit(1);
+
+	fnd = false;
+	numfcbs = 0;
+	if search_first() then
+	    call found;
+
+	    do while(search_next());
+	    call found;
+	    end;
+
+	found: proc;
+	    if ~fnd then do;
+	        fnd = true;
+	        call header;
+	        end;
+	    call count(fcbx);
+	    if ~disp & dirm(fcbx).user < 16 then
+	        call line(fcbx);
+	    end found;
+	end dir_search;
+
+/* search_first - search for first match in directory
+	     if found set dcnt and read dir */
+	search_first: procedure returns(bit(1));
+	
+	dcnt = 0;
+	call read_dir;
+	if sn(0) then 
+	    return(true);
+	else
+	    return(search_next());
+	end search_first; 
+
+/* search_next - search for next match in directory
+	     if found set dcnt and read dir */
+	search_next: procedure returns(bit(1));
+	dcl k fixed;
+
+	
+	k = fcbx + 1;
+	if sn(k) then 
+	    return(true);
+	else
+	    do k = dcnt+4 to dirmax by 20;
+	    dcnt = k;
+	    call read_dir;
+	    if sn(0) then
+	        return(true);
+	    end;
+	return(false);
+	end search_next; 
+
+/* sn - search for match in dir_fcb(j) to dir_fcb(19)
+	     if found set dcnt and read dir */
+	sn: procedure(j) returns(bit(1));
+	declare
+	        file        char(11),
+	        k           fixed(7),
+		(i,j)       fixed(15);
+	
+	declare
+	        1 smsk      based(dfcb0()),
+	          3 drv     fixed(7),
+	          3 msk     char(11);
+
+	    do i = j to 19 while (cur_sec * 4 + i <= dirmax);
+	    if disp then
+	        call line(i);
+	    file = dir_fcb(i).fname || dir_fcb(i).ftype;
+	        do k = 1 to 11;
+	        if substr(msk,k,1) = '?' then
+	            substr(file,k,1) = '?';
+	        end;
+	    if msk = file then do;
+	        dcnt = dcnt + i - fcbx;
+	        call read_dir;
+	        return(true);
+	        end;
+	    end;
+	return(false);
+	end sn; 
+
+
+/* read_dir - read 5 sectors of director into dir_fcb */
+	read_dir: proc;
+	dcl
+	   s fixed(15),
+	   i fixed(7);
+
+	call set_cursec;
+	i = 0;
+	   do s = cur_sec to cur_sec + 4;
+	   call read_sector(s, addr(dir_fcb(i)),dump);
+	   i = i + 4;
+	   end;
+	call break_test;
+	end read_dir;
+
+
+/* set_cursec - set up current directory parameters */
+	set_cursec: proc;
+
+	cur_sec = divide(dcnt,4,15);
+	fcbx = mod(dcnt,4);
+	end set_cursec;
+
+/* dselect - select disk drive */
+	dselect: procedure((d));
+	dcl d fixed(7);
+
+	if d = 0 then
+	    d = curdsk();
+	else
+	    d = d - 1;
+	call select(d);
+	dphp = seldsk(d);
+	dpbp = dpbptr;
+	end dselect;
+
+/* count - count fcb line j */
+	count: proc(j);
+	declare
+	    j        fixed(7);
+
+	if dir_fcb(j).user ~= 'E5'b4 then do;
+	    if dirm.user(j) < 16 then
+	        usrfcbs(dirm.user(j)) = usrfcbs(dirm.user(j)) + 1;
+	    else
+	        usrfcbs(16) = usrfcbs(16) + 1;
+	    numfcbs = numfcbs + 1;
+	    if disp | (dirm(j).user > 15) then 
+	        call line(j);
+	    end;
+	end count;
+
+
+/* header - display fcb line header */
+	header: proc;
+
+	put skip(2) edit('#','user','file name','extent')
+	                (x(5),a(2),a(6),a(17),a);
+	put skip;
+	end header;
+
+/* line - display fcb line i */
+	line: proc(j);
+	declare
+	    j        fixed(7);
+
+	put skip edit(numfcbs)(f(6));
+	if dir_fcb(j).user ~= '00'b4 then
+	    put edit (dir_fcb(j).user) (x(3),b4);
+	else
+	    put edit ('') (a(5));
+	put edit(dir_fcb(j).fname||'.'||dir_fcb(j).ftype)
+	    (x(2),a);
+	if dir_fcb(j).fext ~= 0 then
+	    put list(dir_fcb(j).fext);
+	if dirm(j).user > 15 then
+	    put list('	   * * * GARBAGE FCB * * *');
+	end line;
+
+
+/* read_sector - read logical record # to dma address
+	 - input: 1) logical record # 
+                  2) dma address  */
+	read_sector: procedure(s,a,d);
+	dcl 
+	   s   fixed(15),
+	   a   pointer,
+	   d   bit(1);
+
+	call settrk( track(s) );
+	call setsec( sector(s) );
+  	call setdma( a );
+	if d then 
+	    call sector_heading(s);
+	if rdsec() ~= 0 then 
+	    signal error(71);
+	if d then 
+	    call odump (a,128);
+	end read_sector;
+
+
+
+/* sector - convert logical record # to physical sector */
+	sector: procedure(i) returns(fixed);
+	dcl i fixed;
+
+	return(sectrn(mod(i,spt),xlt));
+	end sector;
+
+
+/* track  - logical record # to physical track */
+	track: procedure(i) returns(fixed);
+	dcl i fixed;
+
+	return(offset + divide(i,spt,15));
+	end track;
+
+
+/* block  - logical record # to physical block */
+	block: procedure(i) returns(fixed);
+	dcl i fixed;
+
+	return(divide(i,(blkmsk + 1),15));
+	end block;
+
+/* break_test - test for console break */
+	break_test: procedure;
+	dcl
+	    c char(1);
+
+   	if break() then do;
+	    c = rdcon();
+	    if c ~= '^S' then 
+	        signal error(80);
+	    end;
+	end break_test;
+
+
+
+/* sector_heading - display track, sector and block for absolute sector i */
+	sector_heading: proc(i);
+	declare
+	    i        fixed;
+
+	put skip(2) edit('Track:')(a);
+	call hex(track(i));
+	put edit('Sector:')(col(18),a);
+	call hex(sector(i));
+	put edit('Block:')(col(59),a);
+	call hex(block(i));
+	end sector_heading;
+
+/* hex - display hex of binary(15) value (v) 
+	hex: proc(v);
+	declare
+	    v        fixed,
+	    p        ptr,
+	    byte(2)  bit(8) based(p);
+
+	p = addr(v);
+	put edit(byte(2),byte(1))(x(2),b4,b4);
+	end hex; */
+
+
+/* hex - display hex of binary(15) value (v) */
+	hex: proc(v);
+	declare
+	    v        fixed,
+	    i        fixed(7),
+	    sig      bit(1),
+	    p        ptr,
+	    word     bit(16) based(p);
+
+	sig = false;
+	p = addr(v);
+	put list(' ');
+	    do i = 1 to 9 by 4;
+	    if substr(word,i,4) ~= '0'b4 | sig then do;
+	        sig = true;
+	        put edit(substr(word,i,4))(b4);
+	        end;
+	    else
+	        put list('');
+	    end;
+	    put edit(substr(word,13,4))(b4);
+
+	end hex;
+
+
+/* deblank - deblank integers in char(10) form */
+	deblank: proc(num) returns(char(10) varying);
+	declare
+	    num char(10);
+
+	return( substr(num, verify(num,' ')));
+	end deblank;
+
+	end fcbs;
+
+

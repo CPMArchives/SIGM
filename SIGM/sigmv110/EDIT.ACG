@@ -1,0 +1,85 @@
+* edit.cmd 03/15/83 by sml 
+
+* this program will edit the current record
+
+* store field variables into mem variables for editing
+
+STORE lastname TO mlastname
+STORE fname TO mfname
+STORE spouse TO mspouse
+STORE mr TO mmr
+STORE title TO mtitle
+STORE company1 TO mcompany1
+STORE company2 TO mcompany2
+STORE caddress TO mcaddress
+STORE suite TO msuite
+STORE ccity TO mccity
+STORE cst TO mcst
+STORE czip TO mczip
+STORE address TO maddress 
+STORE apt TO mapt
+STORE city TO mcity
+STORE st TO mst
+STORE zip TO mzip
+STORE ophone TO mophone
+STORE phone TO mphone
+STORE dear TO mdear
+STORE send TO msend
+STORE misc TO mmisc
+STORE cs1 TO mcs1
+STORE cs2 TO mcs2
+STORE cs3 TO mcs3
+STORE cs4 TO mcs4
+STORE cs5 TO mcs5
+STORE cs6 TO mcs6
+STORE UPDATE TO mupdate
+
+* set up screen and prompt for editing 
+SET FORMAT TO mod-rec 
+STORE 'Edit data' TO mode 
+STORE 'Enter the new or corrected information' TO prompt1 
+STORE ' ' TO prompt2
+STORE 'Control Q to end edit session' TO prompt3
+
+* let user enter data
+READ
+
+* reserved for editing routines
+
+* place the edited data back into the same record
+
+REPLACE lastname WITH mlastname, fname WITH mfname
+REPLACE spouse WITH mspouse, mr WITH mmr 
+REPLACE title WITH mtitle, company1 WITH mcompany1
+REPLACE company2 WITH mcompany2, caddress WITH mcaddress
+REPLACE suite WITH msuite 
+REPLACE ccity WITH mccity, cst WITH mcst 
+REPLACE czip WITH mczip, address WITH maddress
+REPLACE apt WITH mapt
+REPLACE city WITH mcity, st WITH mst 
+REPLACE zip WITH mzip, ophone WITH mophone
+REPLACE phone WITH mphone, dear WITH mdear 
+REPLACE send WITH msend, misc WITH mmisc
+REPLACE cs1 WITH mcs1, cs2 WITH mcs2
+REPLACE cs3 WITH mcs3, cs4 WITH mcs4
+REPLACE cs5 WITH mcs5, cs6 WITH mcs6
+REPLACE UPDATE WITH mupdate
+
+SET console off
+STORE # TO recordno
+SET INDEX TO lastname, company, zip
+  IF recordno = 0
+    GOTO 1
+  ELSE
+    GOTO recordno
+  ENDIF
+SET console on
+
+* release local variables 
+RELEASE ALL
+
+* restore original memory
+STORE '?' TO command
+STORE t TO more
+
+

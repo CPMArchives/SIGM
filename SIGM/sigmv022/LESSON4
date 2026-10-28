@@ -1,0 +1,138 @@
+^I ^I Input and Output; the complete program
+^P
+4.1 INPUT AND OUTPUT OF DATA
+^p
+So far we have seen how to write constant definitions, variable
+declarations and assignment statemments. The latter can be used
+to compute new values from values which have been computed
+previously and from constants. These program elements allow us
+to specify computations of a restricted kind but they provide
+no means to vary the data on which the commputations are
+performed.
+^p ^N
+Example 4.1
+^N ^N
+^I Assuming the variable declaration
+^p
+A, D, N, SUM : INTEGER
+^P
+the following statements, obeyed in sequence, compute the sum of
+the first N terms of the arithmetic series A, A+D, A+2*D, ....,
+given the values 1 for A, 2 for D and 10 for N:
+^p
+   A := 1 ^N
+^I D := 2 ; ^N
+^I N := 10 ; ^N
+^I SUM := N * (2*A + (N-1)*D DIV 2
+^p
+If we wish to compute the series sum for different values of A,
+D and N, we have no alternative but to modify the "program"
+itself, specifically its first three statements.
+^N ^N
+4.2 BASIC INPUT
+^P
+The role of an input instruction is to read an item of data and
+store it in a variable, so that subsequently it can be used in
+some computation.
+In PASCAL this role is performed by the READ statement.
+^N ^N
+Example 4.1 (continued)
+^P
+We can vary the data on which our "program" works by replacing
+the first three assignment statements by READ statements:
+^P
+   READ (A) ^N
+^I READ (D) ^N
+^I READ (N) ^N
+^I SUM := N * (2*A + (N-1)*D) DIV 2
+^P
+Now if we supply the following input data, for example:
+^P
+ -3 4 100<cr> ^N
+^P
+The data item -3 will be read and assigned to A, then the data
+4 will be read and assigned to D, then the data item 100 will
+be read and assigned to N. We can make the "program" perform
+a different calculation simply by running it again with different
+input.
+^P
+In general, the effect of the READ statement READ(V),
+where V is an INTEGER variable, is to scan forwards through
+the input data (skipping blank characters) until a data
+item (which must be an integer number, possible signed)
+is then assigned to V.
+^P
+The three consecutive READ statements in Example 4.1
+could be combined into a single READ statement with the
+same effect:
+^P
+READ (A, D, N)
+^P
+A, D and N are called parameters of the READ statement. A
+READ statement may have any number of parameters, all of
+which must be variables, and for each of these variables
+one data item is read.
+^N ^N
+4.3 BASIC OUTPUT
+^P
+The role of an output instruction is to get results out of
+the computer in some suitable form, eg. printed on paper or
+displayed on a screen.
+In PASCAL this role is performed by the WRITE statement.
+^N ^N
+Example 4.2
+^P
+Continuing from Example 4.1, we could write out the value
+of the series sum by the following WRITE statement:
+^P
+	WRITE (SUM)
+^P
+The following statements, executed in sequence, will
+read values for A, D and N, compute the series sum, and
+write out the values of A, D, N and the series sum:
+^P
+   READ (A, D, N) ^N
+^I SUM := N * (2*A + (N-1)*D) DIV 2 ^N
+^I WRITE (A, D, N, SUM)
+^P
+For example, if the input data is:
+^P
+10 -2 8<cr>
+^P
+then the output would look like this:
+^P
+........10........-2.........8........24
+^P
+Observe that a WRITE statement, like a READ statement,
+may have any number of parameters. However, each parameter
+of WRITE may be an expression, not necessarily a simple
+variable and it is the value of this expression which is
+written.
+^N ^N
+^P
+Assuming that M and N are INTEGER variables and that values have
+been assigned to them, the following statement writes the values
+of M and N followed by their sum, difference and product:
+^P
+WRITE (M, N, M+N, M-N, M*N) ^N
+^N ^N
+4.4 THE COMPLETE PROGRAM
+^p
+To buld a complete Pascal program, we must collect together all the
+necessary definitions, declarations and statements.
+^P ^N
+Example 4.4
+^P
+Here is an example of a complete Pascal program which performs a
+simple tax calculaton:
+^p ^n ^n
+^I PROGRAM COMPUETAX ;
+^p ^n ^n
+Now let us try Exercise 4.2 with a short program.
+^P
+^P
+You may terminate this exercise by entering
+9 9 9<cr>
+^N
+^N
+^$

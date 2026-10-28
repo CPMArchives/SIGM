@@ -1,0 +1,132 @@
+
+
+				RAMDSKRB.DOC
+
+	INTRODUCTION
+
+	RAMDSKRB.CMD is an enhanced version of MDRIVE.CMD, which is 
+	included as a utility program in DIGITAL EQUIPMENT CORPORATION's
+	releases of CP/M-86/80 V2.05 and V2.10.  To minimize possible
+	confusion and insure consistancy with DEC's manual, it is 
+	suggested that RAMDSKRB.CMD be renamed MDRIVE.CMD.
+
+	This enhancement extends MDRIVE from a maximum of 8) 64K blocks to
+	12) 64K blocks on Rainbow 100B's with 896K of ram or 11) 64K blocks
+	on Rainbow 100A's with 832K of ram.
+
+	GENERAL INFORMATION
+
+	RAMDSKRB.CMD was created directly from MDRIVE.CMD using DDT86 with
+	out the benefit of source code, hence, source code for RAMDSKRB.CMD
+	is not available.  Prior to this modification, I had no experience
+	in assembly language programming with any microprocessor.  My only
+	references were the DIGITAL RESEARCH CP/M-86 "System Guide" and
+	"Programmers Guide".  I, therefore, believe that those who feel
+	the need to have source code listings are sufficiently knowledgeable
+	to disassemble RAMDSKRB.CMD using DDT86.
+
+	Any comments, suggestions, complaints and especially pats on the
+	back are welcome.  Questions should be sent to me with a self-
+	addressed stamped envelope.
+
+				Joseph C. Gugel, Jr.
+				159 High St.
+				Nutley, N.J.  07110
+
+	or a message may be left, to my attention, on the NY-ACC BBS at
+	718-539-3338.
+
+	TECHNICAL
+
+	RAMDSKRB is Rainbow specific and will run only on CP/M-86/80
+	version 2.05 or later.  The operation of RAMDSKRB is functionally
+	identical to DEC's MDRIVE except as previously noted.
+
+	The minimum memory required to run RAMDSKRB is 192K and the maximum
+	available is 128K less than the total memory, 700K and 764K in fully
+	loaded 100A's and 100B's respectively.  Below 192K, (3 blocks)
+	RAMDSKRB requires 2K for the directory and above 192K, (4 blocks)
+	the directory requires 4K.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+				    Page 1
+
+
+
+				RAMDSKRB.DOC cont.
+
+
+	Following, is a listing of the major patch areas as viewed from DDT86:
+
+	     MDRIVE    |  RAMDSKRB   |           EXPLANATION
+	_______________|_____________|_______________________________________
+		       |	     |
+	1. 650:197-1AB | 650:197-1B1 |  Modified to accept 2 valid characters
+		       |	     |	(0 - 12) from the command line.
+		       |	     |
+	2. 650:1D1-1DD | 650:1D9-1E7 |	Modified to allowed the program to
+		       |	     |	prompt more than 8) 64K blocks
+		       |	     |	memory permitting.
+		       |	     |
+	3. 650:207-225 | 650:215-247 |	Modified to accept 2 valid characters
+		       |	     |	(0 - 12) from program prompting.
+		       |	     |
+	4. 650:229-23C | 650:248-26A |	Modified to configure the File Control
+		       |	     |	Block Extent (40:3FB4) to allow more
+		       |	     |	than 512K.
+		       |	     |
+	5. 650:5AD-5BD | 650:5D9-5E8 |	Modifies the message section to report
+		       |	     |	the 4 new blocks "disk" area.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+				    Page 2
+
+

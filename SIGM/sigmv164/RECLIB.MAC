@@ -1,0 +1,276 @@
+
+;	=======================================================
+;	Supplement to REC containing its library subroutines.
+;	Additional subroutines, far beyond the tolerance of the
+;	ASCII alphabet, may be incorporated into REC by placing
+;	them in this library collection.
+;
+;	The following operators and predicates are found in
+;	this module:
+;
+;	    X	call a subroutine with arguments and values
+;
+;	Additionally, this particular module contains the table
+;	of operators for the graphics subroutines for the Solid
+;	State Music VB1B board, or the Polymorphic VTI Video
+;	Terminal Interface.  They can also be used with the
+;	Vector Graphics dense graphic board.
+;
+;	Version prepared for the Summer School, 1980
+;
+;		 RECLIB -- Copyright (C) 1980
+;		Universidad Autonoma de Puebla
+;		     All Rights Reserved
+;
+;	    [Harold V. McIntosh,  28 August 1980]
+;
+;	8 July 1983 - x changed, moved to FXT.MAC
+;	=======================================================
+
+;	EXTERNAL references to subroutines lying in other REC
+;	modules.
+
+	ext	px,py,ucl,deld,noop
+	ext	miuc,mduc,aiuc,oiuc,xiuc,kiuc
+
+	ext	narg
+	ext	onel,twol
+
+;	Equivalences to entry points in BIOS for both console
+;	and disk subroutines permitting rapid access to these
+;	subroutines and even, should such an occasion present
+;	itself, the writing of a substitute for BDOS in REC.
+
+bios	equ	0B000H
+warm	equ	bios+00H
+cold	equ	bios+03H
+dhom	equ	bios+18H
+sdsk	equ	bios+1BH
+strk	equ	bios+1EH
+ssec	equ	bios+21H
+sdma	equ	bios+24H
+dire	equ	bios+27H
+diwr	equ	bios+2AH
+
+usos	equ	0B400H
+initi	equ	usos+00H
+const	equ	usos+03H
+conin	equ	usos+06H
+conou	equ	usos+09H
+listo	equ	usos+0CH
+punch	equ	usos+0FH
+readr	equ	usos+12H
+
+;	EXTERNAL references to one of the graphics subroutine
+;	packages.  As long as they all use the same names for
+;	their subroutines, any one of them can be substituted
+;	for any other by the linking loader L80.
+
+	ext	home,culi,cuex,cure,cuse
+	ext	xpl,xmi,ypl,ymi
+	ext	blak,whit,reve,cart,line
+	ext	ekspl,eksmi,wyepl,wyemi
+	ext	ee,ww,nn,ss,kk,ll,hh
+	ext	eas,wes,nor,sou
+	ext	doli,doex,xppl,xmmi,eksppl,eksmmi
+
+;	Pop the top three argumwents off the REC pushdown list
+;	and place them in the 8080 register pairs.  Creating
+;	them in the order (BC), (DE), (HL) will result in their
+;	being placed in just the registers indicated.  This
+;	subroutine would be suitable for a FORTRAN call with
+;	three arguments.
+
+thar:	call	gone
+	call	gone
+	call	gone
+	pop	b
+	pop	d
+	pop	h
+	ret
+
+;	Some REC auxiliaries would prefer to create arguments
+;	in the order (HL), (DE), (BC).
+
+raht:	call	gone
+	call	gone
+	call	gone
+	pop	h
+	pop	d
+	pop	b
+	ret
+
+;	Others want two arguments in the order (HL), (BC).
+
+twrg:	call	gone
+	call	gone
+	pop	h
+	pop	b
+	ret
+
+;	Pop one argument off the REC pushdown list and place it
+;	in (DE).
+
+dear:	call	gone
+	pop	d
+	ret
+
+;	Pop one one-byte argument off the REC pushdown list and
+;	place it in register C.  It can also be the low byte of
+;	a multi-byte argument.
+
+carg:	lhld	px
+	mov	c,m
+	jmp	ucl
+
+;	Pop one argument off the REC pushdown list and then
+;	transfer it to the 8080 stack.  Because of its usage
+;	of the 8080 instruction xthl, <call gone, ret> is not
+;	equivalent to <jmp gone>.  By the very nature of this
+;	subroutine it is supposed that it will only be used
+;	for two-byte arguments, or for the lowest two if there
+;	are more.
+
+gone:	lhld	px	;fetch pointer to top argument
+	mov	e,m	;pick up low byte
+	inx	h	;advance pointer
+	mov	d,m	;bring in high byte
+	xchg		;place the argument in (HL)
+	xthl		;transfer it to the 8080 stack
+	push	h	;but keep the return address
+	jmp	ucl	;pop the top argument off the PDL
+
+;	Prepare the REC pushdown list to receive a one-byte
+;	argument, such as might be returned in the accumulator
+;	after a subroutine call.
+
+onby:	lxi	b,01H
+	jmp	narg
+
+;	Deposit one byte on the REC pushdown list in the place
+;	previously prepared, taking it from the accumulator.
+
+ston:	lhld	px
+	mov	m,a
+	inx	h
+	shld	py
+	ret
+
+;	Call a subroutine with an argument in (DE).
+
+goa::	lhld	px
+	call	twol
+	pop	d
+	ret
+
+;	(X) - A subroutine numbered k with n arguments may be
+;	executed from REC by writing arg1, arg2, ..., argn,k,X.
+;	It will then leave m results on the pushdown list,
+;	supposing that provision for m and n have been made if
+;	forming the library table.
+
+libr::	call	deld	;load top argument into (DE), pop it
+	mov	l,e	;copy it into (HL)
+	mov	h,d	;
+	dad	h	;multiply it by two
+	dad	d	;add it in to get three
+	dad	h	;another factor two makes six
+	lxi	d,lib	;place base address in (DE)
+	dad	d	;add it to displacement
+	mov	e,m	;put address at that location in (DE)
+	inx	h	;...it is subroutine reporting values
+	mov	d,m	;
+	push	d	;keep for reference
+	inx	h	;next address also goes into (DE)
+	mov	e,m	;...it is execution subroutine
+	inx	h	;
+	mov	d,m	;
+	push	d	;keep it too
+	inx	h	;load the third address
+	mov	e,m	;...it is argument loading subroutine
+	inx	h	;
+	mov	d,m	;
+	xchg		;this one goes into (HL)
+	pchl		;for immediate execution
+
+;	Library table.  Each entry, consisting of six bytes,
+;	has the form  <dw  valu,subr,prep>  in which valu is a
+;	subroutine which leaves none or more results on the
+;	pushdown list, subr executes the subroutine, and prep
+;	loads the 8080's registers from the pushdown list as
+;	is necessary to transmit arguments to the subroutine.
+;	Normally prep and valu will be found here in the RECLIB
+;	module, while subr would have to be declared external
+;	and be fetched by the linking loader.
+
+	dw	noop,diwr,noop		;write next on disk
+	dw	noop,dire,noop		;read next from disk
+	dw	noop,sdma,dear		;set DMA address
+	dw	noop,ssec,carg		;set sector
+	dw	noop,strk,carg		;set track
+	dw	noop,sdsk,carg		;set disk unit
+
+	dw	noop,dhom,noop		;home read head
+	dw	ston,readr,onby		;paper tape reader
+	dw	noop,punch,carg		;paper tape punch
+	dw	noop,listo,carg		;printer output
+	dw	noop,conou,carg		;console output
+	dw	ston,conin,onby		;console input
+	dw	ston,const,onby		;console status
+	dw	noop,cold,noop		;cold start
+	dw	noop,warm,noop		;warm boot
+	dw	noop,initi,noop		;general initialization
+
+lib:	dw	noop,miuc,raht	;move by increment until count
+	dw	noop,mduc,raht	;move by decrement until count
+	dw	noop,aiuc,raht	;and  by increment until count
+	dw	noop,oiuc,raht	;or   by increment until count
+	dw	noop,xiuc,raht	;xor  by increment until count
+	dw	noop,kiuc,twrg	;complement by incr untl count
+
+	dw	0,0,0
+	dw	0,0,0
+	dw	0,0,0
+	dw	0,0,0
+
+	dw	noop,home,noop		;home the cursor
+	dw	noop,culi,noop		;light pixel at cursor
+	dw	noop,cuex,noop		;extinguish cursor
+	dw	noop,cure,noop		;reverse cursor
+	dw	ston,cuse,onby		;sense cursor
+	dw	noop,xpl,noop		;cursor right one pixel
+	dw	noop,xmi,noop		;cursor left one pixel
+	dw	noop,ypl,noop		;cursor up one pixel
+	dw	noop,ymi,noop		;cursor down one pixel
+	dw	noop,blak,noop		;make whole screen black
+
+	dw	noop,whit,noop		;make whole screen white
+	dw	noop,reve,noop		;reverse whole screen
+	dw	noop,cart,dear		;cursor to cart coord
+	dw	noop,line,dear		;line given increments
+	dw	noop,ekspl,noop		;rotate right one pixel
+	dw	noop,eksmi,noop		;rotate left one pixel
+	dw	noop,wyepl,noop		;rotate up one pixel
+	dw	noop,wyemi,noop		;rotate down one pixel
+	dw	noop,ee,noop		;LIFE cursor 2 pix right
+	dw	noop,ww,noop		;LIFE cursor 2 pix left
+
+	dw	noop,nn,noop		;life cursor 2 pix up
+	dw	noop,ss,noop		;life cursor 2 pix down
+	dw	noop,kk,noop		;extinguish life cell
+	dw	noop,ll,noop		;illuminate life cell
+	dw	noop,hh,noop		;one cycle of LIFE
+	dw	noop,eas,noop		;LIFE screen right
+	dw	noop,wes,noop		;LIFE screen left
+	dw	noop,nor,noop		;LIFE screen up
+	dw	noop,sou,noop		;LIFE screen down
+	dw	noop,doli,noop		;illuminate 2-pixel dot
+
+	dw	noop,doex,noop		;extinguish 2-pixel dot
+	dw	noop,xppl,noop		;fast right 2 pix
+	dw	noop,xmmi,noop		;fast left 2 pix
+	dw	noop,eksppl,noop	;fast screen right
+	dw	noop,eksmmi,noop	;fast screen left
+
+	end
+

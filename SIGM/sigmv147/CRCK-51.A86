@@ -1,0 +1,827 @@
+
+;    CRCK.ASM Version 5.1 (Originally by: Keith Petersen, W8SDZ)
+; 
+; CRCK  is  a  program to read any CP/M file and  print  a  cyclic-
+; redundancy-check number based on the CCITT standard polynominal:
+; 
+;           x^16 + x^15 + x^13 + x^7 + x^4 + x^2 + x + 1
+; 
+; Useful for checking accuracy of file transfers, and more accurate 
+; than a simple checksum.   Optionally will write an output file to 
+; the  default drive,  listing the CRC's of all files checked in  a 
+; single session.
+; 
+; Commands:   crck [drive:]<filename.filetype> [f]<cr>
+; 
+; Examples:
+; 
+; crck myfile.asm<cr>      (check only myfile.asm)
+; crck *.asm<cr>           (check all .asm files
+; crck *.* f<cr>           (check all files, make file of results)
+; 
+; 
+; Program  updates/fixes  (these  are written in reverse  order  to 
+; minimize reading time to find latest update):
+; 
+; 04/10/82 version 5.1, Kelly Smith 
+; 
+; Removed requirement for MAC.ASM and SEQIO.LIB for assembly
+; 
+; 11/27/81 version 5.0, Dave Barker
+; 
+; All  earlier  versions of CRCK.ASM (up to at least  Ver.  4.2  of 
+; 10/06/80)  seen by this writer (DAB) have a serious flaw  in  the 
+; algorithm  used to generate the CRC value.   Mr.  Petersen used a 
+; routine from "EDN" magazine,  June 5, 1979.  Although the routine 
+; published  in  EDN was a workable one,  the way in which  it  was 
+; applied in CRCK.ASM was incorrect (i.e.  the routine should  have 
+; been called 8 times per byte,  each time with only one bit of the 
+; message in the A register,  then,  at the end of the file, 2 null 
+; bytes  should  have  been processed as if they were part  of  the 
+; file). The method that is used in CRCK.ASM Version 5.0 is a table 
+; lookup method.  Instead of calling a routine 8 times each byte of 
+; the  message  is processed in one short piece  of  straight  line 
+; code.    The table that is used in this method is first generated 
+; during initialization.
+; 
+;                           - Validity -
+; 
+; Version 5.0 generates exactly the same CRC value that the earlier 
+; versions  would  have  generated if they had correctly  used  the 
+; algorithm.   The message (the file) is processed in the order: MS 
+; bit  of the MS byte first (if the file were to be processed as  a 
+; serial  data transmission,  then the LS bit of the MS byte  would 
+; come  first  --> the order in which it is transmitted  through  a 
+; UART).
+; 
+; Note:   Usually, the CRC of a message is appended to the end of a 
+; message  when it is sent.   This causes the resultant CRC at  the 
+; receiving  end  to be zero (this is the reason that the  2  dummy 
+; null  bytes are added to the end of the message when the  CRC  is 
+; generated or checked).
+;
+;
+; 
+; define true and false
+; 
+false	EQU	0
+true	EQU	not false
+; 
+; conditional assembly switches
+; 
+stdcpm	EQU	true			; true is standard cp/m
+altcpm	EQU	false			; true is h8 or trs-80
+nosys	EQU	false			; true if sys files not wanted
+;
+M	EQU	Byte Ptr 0[BX]
+; 
+; system equates
+; 
+base	EQU	0
+; 
+; define write buffer size (presently set for 8k)
+; 
+bsize	EQU	8*1024			; disk write buffer size
+; 
+; bdos equates
+; 
+rdcon	EQU	1
+wrcon	EQU	2
+print	EQU	9
+cstat	EQU	11
+open	EQU	15
+close	EQU	16
+srchf	EQU	17
+srchn	EQU	18
+delet	EQU	19
+read	EQU	20
+write	EQU	21
+make	EQU	22
+renam	EQU	23
+stdma	EQU	26
+stbas	EQU	51
+;
+bdos	EQU	base+5
+;
+fcb	EQU	base+5ch
+fcbext	EQU	fcb+12
+fcbrno	EQU	fcb+32
+fcb2	EQU	base+6ch
+;
+tbuf	EQU	base+80h		; temporary buffer (default) address
+buf@siz	EQU	80h			; buffer size (128 bytes)
+;
+crcfilesiz EQU	2000h
+;
+tab	EQU	09h			; tab character
+lf	EQU	0ah			; line feed character
+cr	EQU	0dh			; carriage return character
+eof	EQU	'Z'-40h			; end-of-file character
+;
+; CCIT CRC polynomial mask bytes
+;
+himsk	EQU	0a0h			; high mask byte
+lomsk	EQU	097h			; low mask byte
+; 
+;
+;
+; program starts here
+; 
+     ORG	base+100h
+; 
+begin:	MOV	SP,(offset stktop)	; make local stack
+	CALL	crlf			; turn up a new line
+	MOV	AL,Byte Ptr .fcb+1
+	CMP	AL,' '			; see if name there
+	JNZ	begin2			; yes, continue
+	CALL	erxit			; print msg, then exit
+	DB	'++No File Name Specified++',cr,lf,'$'
+; 
+begin2:	CALL	ilprt			; print:
+	DB	'--------- CRCK Ver 5.1 ---------'
+	DB	cr,lf
+	DB	'CTRL-S to Pause, CTRL-C to Abort'
+	DB	cr,lf,cr,lf,0
+;
+; generate the lookup table for fast crc
+;
+	MOV	BX,(Offset hitab)
+	MOV	CL,0			; the table index
+gloop:	XCHG	BX,DX
+	MOV	BX,0			; init the crc
+	MOV	AL,CL
+	CALL	lcrc
+	XCHG	BX,DX			; de now has the crc, hl pointing into table
+	MOV	M,DH			; store the high byte of crc
+	INC	BH
+	MOV	M,DL			; store the low byte
+	DEC	BH
+	INC	BX			; move to next table entry
+	INC	CL			; next index
+	JNZ	gloop
+	MOV	AL,Byte Ptr .fcb2+1	; get option
+	MOV	Byte Ptr fflag,AL	; save it for later
+	CMP	AL,'F'			; file wanted?
+	JZ	L_1	
+	JMP	again			; no, skip file init
+L_1:
+	XOR	AL,AL
+	MOV	Byte Ptr fcbcrcfile+12,AL	; clear extent
+	MOV	Byte Ptr fcbcrcfile+32,AL	; clear current record count
+	MOV	BX,crcfilesiz		; set buffer size
+	MOV	Word Ptr crcfilelen,BX
+	MOV	BX,0			; set next to fill
+	MOV	Word Ptr crcfileptr,BX
+	MOV	CL,delet		; delete file function
+	MOV	DX,(Offset fcbcrcfile)	; delete 'old' crcklist file
+	INT	224
+	MOV	CL,make			; make file function
+	MOV	DX,(Offset fcbcrcfile)	; make 'new' crcklist file
+	INT	224
+	INC	AL			; make ok?
+	JZ	L_2	
+	JMP	again
+L_2:
+	MOV	CL,print		; print string function
+	MOV	DX,(Offset dir@full)	; indicate that directory is full
+	INT	224
+	JMP	filerr
+;
+;
+;
+putcrcfile:
+;
+	LAHF				; save output character
+	XCHG	AL,AH
+	PUSH	AX
+	MOV	BX,Word Ptr crcfilelen	; get current buffer length
+	XCHG	BX,DX			; de has length
+	MOV	BX,Word Ptr crcfileptr	; load next to get/put to hl
+	MOV	AL,BL			; compute current length
+	SUB	AL,DL
+	MOV	AL,BH
+	SBB	AL,DH			; carry if next < length
+	JB	putcrc4			; carry if length > current
+	MOV	BX,0			; end of buffer, fill (empty) buffers	
+	MOV	Word Ptr crcfileptr,BX	; clear next to get/put
+;
+putcrc1:				; process next disk sector
+;
+	XCHG	BX,DX			; file pointer to de
+	MOV	BX,Word Ptr crcfilelen	; hl is maximum buffer length
+	MOV	AL,DL			; compute next length
+	SUB	AL,BL			; to get carry, if more fill
+	MOV	AL,DH
+	SBB	AL,BH
+	JNB	putcrc3
+	MOV	BX,Word Ptr crcfileadr	; got carry, more to fill yet
+	ADD	BX,DX			; hl is next buffer address
+	XCHG	BX,DX
+	MOV	CL,stdma		; set dma address
+	INT	224
+	MOV	CL,stbas		; set dma base
+	MOV	DX,DS
+	INT	224
+	MOV	DX,(Offset fcbcrcfile)	; fcb address to de
+	MOV	CL,write		; file write
+	INT	224
+	OR	AL,AL			; check return code
+	JNZ	putcrc2			; end-of-file yet?
+	MOV	DX,buf@siz		; not eof, increment length by 128
+	MOV	BX,Word Ptr crcfileptr	; next to fill
+	ADD	BX,DX
+	MOV	Word Ptr crcfileptr,BX	; save new pointer
+	JMPS	putcrc1			; process another sector
+;
+putcrc2:				; got end-of-file
+;
+	MOV	CL,print		; print string function
+	MOV	DX,(Offset dsk@full)	; disk is full
+	INT	224
+	POP	AX			; clean stack
+	XCHG	AL,AH
+	JMP	filerr			; file error, exit
+;
+putcrc3:				; end of buffer, reset dma and pointer
+;
+	MOV	DX,tbuf			; point to temporary buffer
+	MOV	CL,stdma		; set dma function
+	INT	224
+	MOV	CL,stbas		; set dma base
+	MOV	DX,DS
+	INT	224
+	MOV	BX,0			; reset pointer for next to get
+	MOV	Word Ptr crcfileptr,BX
+;
+putcrc4:				; process the next character
+;
+	XCHG	BX,DX			; index to get/put in de
+	MOV	BX,Word Ptr crcfileadr	; base of buffer
+	ADD	BX,DX			; address of character in hl
+	XCHG	BX,DX			; and swap to de
+	POP	AX			; get save character
+	XCHG	AL,AH
+	SAHF
+	MOV	DI,DX			; character to buffer
+	MOV	[DI],AL
+	MOV	BX,Word Ptr crcfileptr	; index to get/put
+	LAHF				; and update for next character
+	INC	BX
+	SAHF
+	MOV	Word Ptr crcfileptr,BX
+	RET
+; 
+again:	MOV	SP,(offset stktop)	; make local stack
+	CALL	mfname			; search for names
+	JNAE	L_3	
+	JMP	namtst			; another found, print name
+L_3:
+	MOV	AL,Byte Ptr mfflg1	; nothing found, check...
+	OR	AL,AL			; ... first time flag
+	JZ	done			; at least one was found
+	CALL	abexit			; print msg, then exit
+	DB	'++File Not Found++$'
+; 
+done:	MOV	AL,Byte Ptr fflag	; see if we're making file
+	CMP	AL,'F'
+	JNZ	done2			; no, skip the file stuff
+; 
+; close crcklist.$$$
+;
+closecrc:
+;
+	MOV	BX,Word Ptr crcfileptr
+	MOV	AL,BL
+	AND	AL,07fh
+	JNZ	close1
+	MOV	Word Ptr crcfilelen,BX
+close1:	MOV	AL,eof
+	LAHF
+	XCHG	AL,AH
+	PUSH	AX
+	XCHG	AL,AH
+	CALL	putcrcfile
+	POP	AX
+	XCHG	AL,AH
+	SAHF
+	JNZ	closecrc
+	MOV	CL,close
+	MOV	DX,(Offset fcbcrcfile)
+	INT	224
+	INC	AL
+	JNZ	erase
+	MOV	CL,print
+	MOV	DX,(Offset no@close)
+	INT	224
+; 
+; erase any existing old file
+;
+erase:	MOV	CL,delet
+	MOV	DX,(Offset fcbfinal)
+	INT	224
+; 
+; rename crcklist.$$$ to crcklist.crc
+;
+	MOV	BX,(Offset fcbcrcfile)
+	MOV	DX,(Offset fcbfinal)
+	PUSH	BX
+	MOV	CX,16
+	LAHF
+	ADD	BX,CX
+	RCR	SI,1
+	SAHF
+	RCL	SI,1
+;
+mov@name:
+;
+	MOV	SI,DX
+	MOV	AL,[SI]
+	MOV	M,AL
+	LAHF
+	INC	DX
+	SAHF
+	LAHF
+	INC	BX
+	SAHF
+	DEC	CL
+	JNZ	mov@name
+	POP	DX
+	MOV	CL,renam
+	INT	224
+; 
+; now exit to cp/m
+;
+done2:	CALL	erxit			; print done, then exit
+	DB	cr,lf,'Done$'
+; 
+; test for names to ignore
+; 
+namtst:	
+;
+	if	nosys			; if $SYS file, ignore it
+	MOV	AL,Byte Ptr .fcb+10	; get $SYS file attribute
+	AND	AL,080h			; is it $SYS?
+	JNZ	again			; yes, ignore this file
+	endif				; nosys 
+; 
+; ignore files with .$$$ filetype (they are usually
+; zero-length and clutter up our display.  we also
+; want to ignore our own crcklist.$$$ temporary file).
+; 
+	MOV	BX,fcb+9		; point to filetype in fcb
+	CALL	tstbad			; check for .$$$ files
+	JNZ	L_4	
+	JMP	again			; if zero flag, ignore them
+L_4:
+; 
+; move 8 characters from fcb+1 to fname
+;
+	MOV	BX,fcb+1
+	MOV	DX,(Offset fname)
+	MOV	CX,8
+	CALL	mover
+;
+; move 3 characters from fcb+9 to fname+9
+;
+	MOV	BX,fcb+9
+	MOV	DX,(Offset fname)+9
+	MOV	CX,3
+	CALL	mover
+;
+; now print filename.type
+;
+	CALL	ilprt			; print:
+;
+fname	DB	'xxxxxxxx.xxx',tab,'CRC = ',0
+; 
+; open the file
+;
+	MOV	DX,fcb
+	MOV	CL,open
+	INT	224
+	INC	AL
+	JNZ	rdinit
+	CALL	abexit
+	DB	'++Open Failed++$'
+; 
+; initialize crc to zero and set bufad to cause initial read
+;
+rdinit:	MOV	BX,0
+	MOV	Word Ptr rem,BX		; init remainder to zero
+	MOV	BX,base+100h
+	MOV	Word Ptr bufad,BX	; init buffer adrs
+; 
+; this is the read loop
+;
+readit:	MOV	BX,Word Ptr bufad
+	MOV	AL,BH			; time to read?
+	CMP	AL,base shr 8
+	JZ	nord			; no read
+	MOV	CL,cstat
+	INT	224			; check for operator abort
+	OR	AL,AL
+	JZ	read2			; nothing from operator
+	MOV	CL,rdcon
+	INT	224			; get character inputted
+	CMP	AL,'C'-40h		; control c?
+	JNZ	L_5	
+	JMP	abext2			; yes exit
+L_5:
+; 
+read2:	MOV	DX,fcb
+	MOV	CL,read			; read another sector of file
+	INT	224
+	OR	AL,AL			; check return code
+	JNZ	finish			; error or eof
+	MOV	BX,tbuf			; buffer location
+; 
+nord:	MOV	AL,M			; get file character
+	INC	BX
+	MOV	Word Ptr bufad,BX
+	MOV	BX,Word Ptr rem		; pick up the partial remainder
+; 
+; table lookup method for crc generation
+;
+	XCHG	BX,DX			; de now has the partial
+	MOV	CH,0
+	XOR	AL,DH
+	MOV	CL,AL
+	MOV	BX,(Offset hitab)
+	ADD	BX,CX
+	MOV	AL,M
+	XOR	AL,DL
+	MOV	DH,AL
+	INC	BH
+	MOV	DL,M
+	XCHG	BX,DX
+	MOV	Word Ptr rem,BX
+	JMPS	readit			; go read more characters
+; 
+;
+;
+finish:	CMP	AL,1			; normal end-of-file?
+	JNZ	filerr			; no, it was a read error
+	MOV	AL,Byte Ptr rem+1	; get msp of crc
+	CALL	hexo			; print it
+	MOV	AL,Byte Ptr rem		; get lsp of crc
+	CALL	hexo			; print it
+	CALL	crlf			; turn up new line
+	JMP	again			; see if more files to do
+; 
+filerr:	CALL	abexit			; abort because of file read error
+	DB	'++File Read Error++$'
+; 
+;  hl contains the partial, a the character to be crc'd
+; 
+lcrc:	PUSH	CX
+	MOV	CH,8
+	XOR	AL,BH
+	MOV	BH,AL
+loop:	SHL	BX,1
+	JNB	skip
+	MOV	AL,himsk
+	XOR	AL,BH
+	MOV	BH,AL
+	MOV	AL,lomsk
+	XOR	AL,BL
+	MOV	BL,AL
+skip:	DEC	CH
+	JNZ	loop
+	POP	CX
+	RET
+; 
+; hex output
+; 
+hexo:	LAHF				; save for right digit
+	XCHG	AL,AH
+	PUSH	AX
+	XCHG	AL,AH
+	RCR	AL,1			; right..
+	RCR	AL,1			; ..justify..
+	RCR	AL,1			; ..left..
+	RCR	AL,1			; ..digit..
+	CALL	nibbl			; print left digit
+	POP	AX			; restore right
+	XCHG	AL,AH
+; 
+nibbl:	AND	AL,0fh			; isolate digit
+	CMP	AL,10			; is is <10?
+	JB	isnum			; yes, not alpha
+	ADD	AL,7			; add alpha bias
+; 
+isnum:	ADD	AL,'0'			; make printable
+	JMPS	display			; print it, then return
+; 
+;
+;
+; inline print routine
+; 
+ilprt:	MOV	BP,SP			; save hl, get msg
+	XCHG	BX,[BP]
+; 
+ilplp:	MOV	AL,M			; get char
+	CALL	display			; output it
+	INC	BX			; point to next
+	MOV	AL,M			; test
+	OR	AL,AL			; ..for end
+	JNZ	ilplp
+	INC	BX			; bump pointer for return address
+	MOV	BP,SP			; restore hl, ret addr
+	XCHG	BX,[BP]
+	RET				; ret past msg
+; 
+;
+;
+; send carriage return, line feed to output
+; 
+crlf:	MOV	AL,cr			; carriage return
+	CALL	display
+	MOV	AL,lf			; line feed, fall into 'type'
+; 
+; send character in a register to output
+; 
+display:
+;
+	PUSH	CX
+	PUSH	DX
+	PUSH	BX
+	AND	AL,7fh			; strip parity bit
+	MOV	DL,AL
+	PUSH	DX
+	CALL	wrfile			; write to file if requested
+	POP	DX
+	MOV	CL,wrcon		; send character to console
+	INT	224
+	POP	BX
+	POP	DX
+	POP	CX
+	RET
+; 
+;
+;
+; write character in e register to output file
+; 
+wrfile:	MOV	AL,Byte Ptr fflag	; get file trigger
+	CMP	AL,'F'			; is it set?
+	JZ	L_6	
+	RET				; no, return
+L_6:
+	MOV	AL,DL			; get character back
+	CALL	putcrcfile
+	RET
+; 
+; multi-file access subroutine.  allows processing
+; of multiple files (i.e. *.asm) from disk.  this
+; routine builds the proper name in the fcb each
+; time it is called. carry is set if no more names
+; can be found.
+; 
+mfname:				; init dma addr and fcb
+	MOV	CL,stdma
+	MOV	DX,tbuf
+	INT	224
+	MOV	CL,stbas		; set dma base
+	MOV	DX,DS
+	INT	224
+	XOR	AL,AL
+	MOV	Byte Ptr .fcbext,AL
+	MOV	Byte Ptr .fcbrno,AL
+;
+; if first time
+;
+	MOV	AL,Byte Ptr mfflg1
+	OR	AL,AL
+	JZ	mfn01
+;
+; save the requested name
+;
+	MOV	BX,fcb
+	MOV	DX,(Offset mfreq)
+	MOV	CX,12
+	CALL	mover
+	MOV	AL,Byte Ptr .fcb
+	MOV	Byte Ptr mfcur,AL	; save disk in curr fcb
+;
+; srchf requested name
+;
+	MOV	BX,(Offset mfreq)
+	MOV	DX,fcb
+	MOV	CX,12
+	CALL	mover
+	MOV	CL,srchf
+	MOV	DX,fcb
+	INT	224
+;
+; else
+;
+	JMPS	mfn02
+; 
+mfn01:					; srchf current name
+	MOV	BX,(Offset mfcur)
+	MOV	DX,fcb
+	MOV	CX,12
+	CALL	mover
+	MOV	CL,srchf
+	MOV	DX,fcb
+	INT	224
+;
+; srchn requested name
+;
+	MOV	BX,(Offset mfreq)
+	MOV	DX,fcb
+	MOV	CX,12
+	CALL	mover
+	MOV	CL,srchn
+	MOV	DX,fcb
+	INT	224
+;
+; endif
+;
+mfn02:					; return carry if not found
+	INC	AL
+	STC
+	JNZ	L_7
+	RET
+L_7:
+;
+; move name found to current name
+;
+	DEC	AL
+	AND	AL,3
+	ADD	AL,AL
+	ADD	AL,AL
+	ADD	AL,AL
+	ADD	AL,AL
+	ADD	AL,AL
+	ADD	AL,81h
+	MOV	BL,AL
+	MOV	BH,0
+	PUSH	BX			; save name pointer
+	MOV	DX,(Offset mfcur)+1
+	MOV	CX,11
+	CALL	mover
+;
+; move name found to fcb
+;
+	POP	BX
+	MOV	DX,fcb+1
+	MOV	CX,11
+	CALL	mover
+;
+; setup fcb
+;
+	XOR	AL,AL
+	MOV	Byte Ptr .fcbext,AL
+	MOV	Byte Ptr .fcbrno,AL
+	MOV	Byte Ptr mfflg1,AL	; turn off 1st time sw
+	RET
+;
+;
+; 
+; check for .$$$ files
+; 
+tstbad:	CALL	testit			; check first one for '$'
+	JZ	L_8	
+	RET				; no, return
+L_8:
+	CALL	testit			; check second one
+	JZ	L_9	
+	RET				; no, return
+L_9:
+testit:	MOV	AL,M
+	AND	AL,7fh			; strip attribute
+	CMP	AL,'$'			; check for $ filetype
+	LAHF
+	INC	BX
+	SAHF
+	RET
+;
+;
+; 
+; move (bc) bytes from (hl) to (de)
+; 
+mover:	MOV	AL,M
+	MOV	SI,DX
+	MOV	[SI],AL
+	INC	BX
+	INC	DX
+	DEC	CX
+	MOV	AL,CH
+	OR	AL,CL
+	JNZ	mover
+	RET
+; 
+;
+;
+; aborted - print reason.  if making output file,
+; close the incomplete file to update cp/m's bit map,
+; then erase it.
+; 
+abexit:	POP	DX			; get msg adrs
+	MOV	CL,print
+	INT	224			; print msg
+; 
+abext2:	MOV	AL,Byte Ptr fflag	; see if we are making file
+	CMP	AL,'F'
+	JNZ	abext5			; no file, skip file stuff
+abext3:	MOV	BX,Word Ptr crcfileptr
+	MOV	AL,BL
+	AND	AL,07fh
+	JNZ	abext4
+	MOV	Word Ptr crcfilelen,BX
+abext4:	MOV	AL,eof
+	LAHF
+	XCHG	AL,AH
+	PUSH	AX
+	XCHG	AL,AH
+	CALL	putcrcfile
+	POP	AX
+	XCHG	AL,AH
+	SAHF
+	JNZ	abext3
+	MOV	CL,close
+	MOV	DX,(Offset fcbcrcfile)
+	INT	224
+	INC	AL
+	JNZ	era@crc
+	MOV	CL,print
+	MOV	DX,(Offset no@close)
+	INT	224
+;
+; erase incomplete file
+;
+era@crc:
+;
+	MOV	CL,delet
+	MOV	DX,(Offset fcbcrcfile)
+	INT	224
+; 
+abext5:	CALL	erxit			; print msg, exit
+	DB	cr,lf,cr,lf,'++Aborted++$'
+;
+; exit with message
+; 
+erxit:	POP	DX			; get msg
+	MOV	CL,print
+	INT	224
+; 
+; exit, via system warm boot
+; 
+exit:	mov	cl,0	; warm boot to cp/m
+	mov	dl,0
+	int 224
+;
+;
+;
+dir@full DB	cr,lf
+	DB	'++No Directory Space for CRC File++'
+	DB	'$'
+;
+dsk@full DB	cr,lf
+	DB	'++No Disk Space for CRC File++'
+	DB	'$'
+;
+no@close DB	cr,lf
+	DB	'++Cannot Close CRC File++'
+	DB	'$'
+
+; 
+; program storage area
+; 
+	RS	64		; 32 level local stack
+stktop	equ	$		; top of local stack
+;
+fflag	DB	0			; file write request flag
+rem	DW	0			; crc remainder storage
+mess	DB	0			; crc message char goes here
+mfflg1	DB	1			; 1st time switch
+mfreq	RS	12			; requested name
+mfcur	RS	12			; current name
+bufad	RS	2			; read buffer address
+;
+hitab	RS	512			; the 2 tables for crc lookup
+;
+crcfilelen	DW	crcfilesiz
+;
+crcfileptr	RS	2
+; 
+; build fcb for final name of crcklist.crc
+;
+fcbfinal	DB	0,'CRCKLISTCRC'
+		DB	0
+		RS	20
+;
+; 'declare' fcb for output file (temporarily named crcklist.$$$)
+;
+fcbcrcfile	DB	0,'CRCKLIST$$$'
+		DB	0
+		RS	20
+;
+crcfileadr	DW	crcfileadr+2	; buffer all crc file data here
+		RS	02000h		; force buffer area
+		DB	0		; tag 'end' for GENCMD
+;
+;
+; 
+	END
+

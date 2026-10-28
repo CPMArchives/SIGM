@@ -1,0 +1,2409 @@
+.HE                         ZUG VOL.2                               Page #
+.PO 0
+.MB 3
+.OP
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                            PCE SYSTEMS SOFTWARE
+
+
+
+                          PRELIMINARY USER'S MANUAL
+
+                                     for
+
+                             PCE SYSTEM MONITOR
+
+                              Releases A and B
+
+
+
+
+
+
+
+
+
+                                     by
+
+                                 PCE SYSTEMS
+
+                                 JUNE   1979
+
+
+
+
+
+
+
+
+
+
+                      COPYRIGHT 1979  PCE SYSTEMS INC.
+                    4782 Dewey Drive, Fair Oaks, CA 95628
+
+
+
+
+
+     PCÅ  SYSTEMÓ INC®  iî thå persoî oæ Mikå Colson¬  haó kindlù 
+donateä  thå  completå  sourcå foò thió Monitoò  Prograí  tï  thå 
+Pascal/Ú Useró Group®  Iô caî bå copied¬ altered¬ anä useä bù anù 
+member¬ aô theiò discretion¬ jusô aó lonç aó iô ió non-commerciaì 
+noò  profitable®   Iî  alì otheò caseó thå followinç  Copùrighô 
+applies.
+
+COPYRIGHÔ  ã 197¹ bù PCÅ SYSTEMÓ INC®  Alì rightó reserved®  Nï parô oæ  thió 
+publicatioî maù bå reproduced¬ storeä iî á retrievaì systeí oò transmitteä iî 
+anù forí oò bù anù meanó -- electronic¬  mechanical¬ photocopying¬ recording¬ 
+oò  otherwiså  -- withouô  thå prioò writteî permissioî oæ PCÅ  SYSTEMÓ  INC®  
+witè  thå  exceptioî  thaô  thå encloseä softwarå  maù  bå  copieä  intï  thå 
+purchaser'ó owî computeò systeí foò hió owî use.
+
+PCÅ SYSTEMÓ INC® assumeó nï responsibilitù foò thå uså oæ anù oæ thå encloseä 
+softwarå iî thå user'ó system.
+
+CREDITS:  Software written by Richard Lerseth of LEPAC SERVICES.
+
+Á  numbeò oæ companieó anä theiò tradå markó arå mentioneä iî thió  document® 
+Theså are:
+
+       DAJEN, TELETEK  -  TM of Teletek inc., Rancho Cordova, Ca.
+
+       CP/M  -  TM of Digital Research, Pacific Grove, Ca.
+
+       TARBELL  -  TM of Tarbell Electronics, Carson, Ca.
+
+       ZAPPLE  -  TM of Xitan Inc. (formerly TDL Inc.)
+
+
+
+
+                                  CONTENTS
+
+                                  ========
+
+
+
+1.0             Introduction
+
+2.0             Monitor command subsystem
+
+3.0             Console subsystem
+
+4.0             Cassette subsystem
+
+5.0             Disk subsystem
+
+6.0             I/O vector subsystem
+
+7.0             Implementation
+
+8.0             User written commands
+
+
+
+                                 APPENDICES
+
+
+
+A               Monitor Source listings
+B               Monitor Symbol table
+C               Sample Routine listings
+
+.HE USER'S MANUAL    ** PCE SYSTEM MONITOR **  Releases A and B **  Page #
+                             1.0 -- INTRODUCTION
+                             ===================
+
+
+PCÅ  SYSTEÍ  MONITOÒ  ió  á  completå Z-8° baseä  monitoò  whicè  supportó  á 
+keyboard¬  á videï display¬ á printer¬ cassettå I/O¬ anä Floppù disë I/O® Thå 
+monitoò comeó iî twï configurations¬  Releaså Á anä Releaså B®  Releaså Á  ió 
+supplieä  oî  á  cassettå tapå anä haó residenô cassettå tapå  I/Ï  routines® 
+Releaså Â ió supplieä oî á CP/Í compatiblå diskettå anä haó itó cassettå tapå 
+I/Ï routineó callablå aó transienô commandó whicè residå oî á  diskette®  Thå 
+monitoò  ió  á  modulaò  softwarå  packagå  whicè  haó  separatå  independenô 
+subsytems®  Theså areº  thå monitoò commanä subsystem¬ thå consolå subsystem¬ 
+thå disë I/Ï subsystem¬  anä thå I/Ï vectoò subsystem® Iî addition¬ Releaså Á 
+containó thå cassettå I/Ï subsystem® Eacè oæ thå separatå sectionó havå fronô 
+enä  vectoò linkageó whicè providå thå communicatioî pathó tï onå anotheò  aó 
+welì  aó entrieó foò useò writteî programs®  Iî particulaò thå Monitoò Vectoò 
+I/Ï subsyteí provideó INTEÌ standarä I/Ï vectoò linkageó foò thå fouò logicaì 
+devicesº console¬ reader¬ punch¬ anä list.
+
+Thå monitoò haó á "buffereä commanä processor¢ whicè allowó thå useò tï builä 
+hió commanä oî thå videï displaù usinç fulì texô editinç capabilitieó througè 
+keyboarä controì commands.
+
+Excludinç  thå  CP/Í BIOS¬  Releaså Á oæ thå monitoò occupieó 6Ë  oæ  memory» 
+Releaså  Â occupieó 5Ë oæ memory®  Thå majoò portioî oæ thå  monitoò  commanä 
+routineó residå iî thió memory®  Thå resô arå transient¬  oò virtuaì commandó 
+whicè  residå  oî  disë  memory¬  anä arå calleä uğ wheî  needeä  iî  overlaù 
+fashion® Thå transienô commandó arå accesseä viá thå COPÙ anä VERIFÙ commandó 
+whicè loaä thå specifieä filå anä vectoró tï it®  Thå filå namå musô  conforí 
+tï thå followinç format:
+
+                 COPYSD.SMC  -  for copy commands.
+                 VRFYSD.SMC  -  for verify commands.
+
+        wherå  [Sİ anä [Dİ arå thå sourcå anä destinatioî codeó aó defineä iî 
+        thå  detaileä descriptioî oæ theså commandó iî sectioî 2®  Notå  thaô 
+        thå  filå  namå musô conforí tï thå abovå formaô buô yoõ  maù  desigî 
+        youò custoí routineó tï dï otheò thaî copù oò verify.
+
+Thió manuaì wilì givå thå instructionó needeä tï implemenô anä uså youò newlù 
+acquireä monitor®  Thå differenceó betweeî Releaseó Á anä Â wilì bå explaineä 
+iî  thå  appropiatå  sectionó  oæ thió manuaì wheî anä  iæ  theù  affecô  thå 
+operatioî oæ youò monitor.
+
+Wå  hopå yoõ likå thió packagå anä thaô iô wilì improvå  youò  human/computeò 
+communicatioî  linkageó anä alì thoså gooä things® 
+
+                      2.0 -- MONITOR COMMAND SUBSYSTEM
+                      ================================
+
+
+2.1 -- GENERAL DESCRIPTION
+==========================
+
+Thå  monitoò haó thå capabilitù oæ havinç 2¶ primarù commandó - onå foò  eacè 
+letteò  oæ thå alphabet®  Iî addition¬  eacè primarù commanä allowó secondarù 
+optionó  whicè expanä thå commanä seô tï á mucè greateò number®  Withiî  thió 
+sectioî  ió  á commanä processoò whicè allowó yoõ tï builä  commandó  oî  thå 
+videï display® Thå monitoò firsô wilì prompô yoõ foò á ne÷ commanä bù sendinç 
+thå  messagå "ENTEÒ COMMAND¢ tï thå videï display®  Theî iô placeó thå cursoò 
+aô  thå beginninç oæ thå nexô videï line®  Iæ yoõ madå aî erroò iî  thå  lasô 
+command¬  thå  monitoò wilì senä aî erroò messagå defininç thå erroò anä theî 
+prompô yoõ foò anotheò commanä entry®  Yoõ havå aî optioî oæ movinç uğ tï thå 
+prioò commanä usinç cursoò controló anä correctinç youò mistake¬  oò yoõ  caî 
+enteò á ne÷ commanä aô thå presenô cursoò position.
+
+Aó thå commanä ió beinç entereä yoõ havå á numbeò oæ editinç commandó aô youò 
+disposal®  Somå oæ theså areº movå cursoò right¬ left¬ up¬ oò down» cleaò thå 
+line»  deletå  á  character»  bacë spacå anä deletå á character»  anä  inserô 
+spaces®  Tï  enä thå entrù procesó anä initiatå thå command¬  jusô presó  thå 
+RETURÎ keù foò á onå linå commanä oò thå CTRL-Ò foò á twï linå  command®  Thå 
+cursoò  caî bå anù positioî oî thå linå (toğ linå foò twï linå  command)®  Iî 
+processinç thå commanä thå monitoò firsô findó whicè videï linå thå cursoò ió 
+on¬  turnó  ofæ  thå  cursor¬  transferó thå totaì line(s© intï  thå  commanä 
+buffer¬  theî turnó oî thå cursoò again® Thå monitoò theî proceedó tï analyzå 
+commanä  iî thå buffer®  Firsô iô determineó thå significanô portioî  oæ  thå 
+command® Leadinç anä trailinç blankó (spaces© arå stripped¬ anä thå remaindeò 
+ió deblockeä intï subfieldó whicè arå delimiteä bù imbeddeä spaces¬  periods¬ 
+commas¬  semicolons¬  colons¬  pluó anä minuó signs¬  asterisks¬ slashes¬ anä 
+equaì signs.
+
+Whilå  thå monitoò ió processinç  anä executinç lengthù commands¬  thå ESCAPÅ 
+keù  caî bå presseä tï escapå froí thå commanä bacë intï commanä entrù  mode® 
+Aó  aî example¬  enteò thå commanä "Ä - "®  Thió commanä wilì displaù alì  oæ 
+memorù iî hexadecimaì formaô anä wilì takå somå timå tï complete®  Presó  thå 
+ESCAPÅ  keù  whilå thió ió happeninç anä yoõ wilì escapå froí thå procesó  oæ 
+displayinç memory.
+
+2.2 -- SUBSYSTEM INTERFACE
+==========================
+
+     Thå  subsysteí  interfacå  organizatioî aô thå fronô  oæ  thå  subsysteí 
+contains¬  iî order¬  threå entrù jumğ vectors¬ twï addresó pointeró foò worë 
+areá anä stack¬ á tablå oæ 2¶ primarù commanä vectoò addresses¬ á tablå oæ 3¶ 
+copù commanä vectoò addresses¬ anä á tablå oæ 1¶ verifù commanä addresses.
+
+     Entry jump table:
+
+                ORG     MBASE   ;BASE OF MONITOR
+        ENTRY1  JP      START   ;COLD START OF MONITOR
+        ENTRY2  JP      RESTRT  ;WARM START OF MONITOR
+        ENTRY3  JP      FMEM    ;MEMORY TEST FOR ZAPPLE
+
+     Variable work area and monitor stack pointer addresses:
+
+        MWORK   DEFW    WBASE   ;VARIABLE WORK AREA POINTER
+        STACK   DEFW    SBASE   ;MONITOR STACK POINTER
+
+     Primary Command vector address table of 26 addresses:
+
+        MJUMP   DEFW    ASSIGN  ;PRIMARY COMMAND A
+                 :        :        :        :    :
+                DEFW    NAVAIL  ;PRIMARY COMMAND Z
+
+     Copy Command vector address table of 36 addresses:
+
+        CJUMP   DEFW    CPM     ;COPYTT COMMAND
+                 :       :         :       :
+                DEFW    CPM     ;COPYUU COMMAND
+
+     Verify Command vector address table of 16 addresses:
+
+        VJUMP   DEFW    CPM     ;VRFYTT COMMAND
+                  :      :         :       :
+                DEFW    CPM     ;VRFYUU COMMAND
+
+     Thå  variablå worë spacå pointeò defineó thå monitoò  worë  space®  Thió 
+pointeò  musô bå thå samå foò alì thå subsystems®  Thå monitoò worë spacå  ió 
+defineä aó follows:
+
+        WBASE-77  -- IOBYTE ASSIGNMENT
+        WBASE-76  -- SUBFIELD PARAMETER TABLE
+                       TEN FOUR BYTE BLOCKS,
+                       WHERE FOR THE KTH BLOCK:
+                         K+0 -- DELIMITER CHAR
+                         K+1 -- SUBFIELD ADDR
+                         K+3 -- NO. OF BYTES IN SUBFIELD
+        WBASE-12  -- DECODED ADDRESS #1
+        WBASE-10  -- DECODED ADDRESS #2
+        WBASE-8   -- DECODED ADDRESS #3
+        WBASE-6   -- NUMBER OF ADDRESSES DECODED
+        WBASE-5   -- SUBFIELD BLOCK POINTER
+        WBASE-4   -- TOTAL NO. OF SUBFIELDS DEBLOCKED
+        WBASE-3   -- NO. OF SIGNIFICANT BYTES IN COMMAND
+        WBASE-2   -- ADDR OF 1ST SIGNIFICANT BYTE IN BUFFER
+        WBASE     -- START OF COMMAND LINE BUFFER AREA
+        WBASE+127 -- END OF COMMAND LINE BUFFER AREA
+
+2.3 -- COMMAND FORMATS
+======================
+
+The generalized form of the monitor command set is:
+
+            P####[.SD][.K####] [AAAA[-BBBB[-CCCC]]] [F..F]
+            ------------------ -------------------- ------
+                   //                 //             //
+        command field      1st parameter       2nd parameter
+                               field               field
+
+Thå  commanä  ió composeä oæ threå subfieldó whicè arå separateä bù  imbeddeä 
+spaces»  thå commanä field¬  thå 1sô paramenteò field¬  anä thå 2nä parameteò 
+field®  Subfieldó  encloseä iî bracketó [İ arå optionaì aó specifieä  bù  thå 
+individuaì commands.
+
+        2.3.± -- COMMANÄ FIELDº  Thå commanä fielä ió composeä oæ thå primarù 
+commanä  characteò [Pİ anä twï optionaì optioî subfieldó [.SDİ anä [.K]®  Thå 
+primarù commanä characteò musô bå aî alphabetiã characteò [A..Z]® Thió allowó 
+2¶  primarù commands®  Thå presenô versioî oæ thå monitoò doeó noô  implemenô 
+alì oæ these®  Unuseä primarù commandó caî bå useä bù yoõ foò youò owî custoí 
+routines®  Seå  sectioî 8.° oî ho÷ yoõ caî makå uså oæ them®  Anù  numbeò  oæ 
+arbitrarù alphanumeriã characteró (designateä bù ####© caî follo÷ thå primarù 
+commanä character®  Twï typeó oæ optioî subfieldó arå availablå tï expanä thå 
+commanä set®  Theså arå delimiteä bù á perioä iî thå commanä field® Thå firsô 
+optioî fielä [.SDİ ió useä onlù aó parô oæ thå COPÙ anä VERIFÙ commandó whicè 
+requirå  á SOURCE/DESTINATIOÎ codå tï allo÷ 3¶ typeó oæ copù anä 1¶ typeó  oæ 
+verifù  commands.Thió  subfielä  ió explaineä iî detaiì  undeò  thå  detaileä 
+explanatioî oæ thå twï commands¬  COPÙ anä VERIFY®  Thå seconä typå oæ optioî 
+subfielä  [.Kİ  actó  aó  secondarù commanä fielä tï  multiplù  eacè  primarù 
+commanä intï 2¶ additionaì commands® Aó witè thå primarù commanä subfielä anù 
+numbeò oæ arbitrarù alphanumeriã characteró caî follo÷ thå secondarù  commanä 
+character®  Copù anä verifù commandó requirå thå [.SDİ optioî beforå thå [.Kİ 
+option.
+        2.3.² -- FIRSÔ PARAMETEÒ FIELDº Thió fielä musô bå separateä froí thå 
+commanä  fielä bù onå spacå anä onå spacå only®  Manù oæ thå monitoò commandó 
+requirå  1,2¬  oò  ³  addresó oò bytå fieldó tï bå entereä  aó  parô  oæ  thå 
+command® Theså fieldó arå expecteä tï bå iî hexadecimaì formaô [0-9,A-F]® Thå 
+monitoò  processeó eacè addresó (byte© fielä untiì iô encounteró á  delimiteò 
+oò  á  hexadecimaì  error®  Iæ  thå addresó ió greateò thaî  fouò  legaì  heø 
+characteró [exº  10FEA2]¬ thå monitoò useó thå leasô significanô ´ characteró 
+[FEA2]® Á bytå fielä woulä reducå tï thå leasô significanô ² characteró [A2]® 
+Iæ  morå thaî onå addresó (byte© ió entered¬  eacè additionaì addresó  (byte© 
+fielä musô bå delimiteä froí thå prioò bù á dasè (minuó sign)® Therå musô noô 
+bå  anù otheò typå oæ embeddeä delimiteò iî thå field®  Yoõ maù  defaulô  thå 
+addresseó  (bytes© bù usinç thå dasè bù itselæ oò iî fronô oæ oò bacë oæ  thå 
+addresó  field®  Thå  firsô addresó fielä defaultó tï 0000H®  Thå seconä  anä 
+thirä defaultó tï FFFFH® Thió leadó tï á shorthanä waù oæ enterinç addresses.
+
+        Examples: 1.  [--]       =  [0000-FFFF-FFFF]
+                  2.  [-BBBB-]   =  [0000-BBBB-FFFF]
+                  3.  [AAAA-]    =  [AAAA-FFFF]
+
+Thå  presenô versioî oæ thå monitoò wilì onlù procesó uğ tï threå  addresses® 
+Theså  addresseó  arå  storeä awaù iî thå monitoò RAÍ worë  spacå  foò  lateò 
+processing®  Yoõ caî accesó theså bù knowinç wherå tï looë foò them®  Seå thå 
+sourcå  listinç oæ thå monitoò iî Appendiø  A¬  anä sectioî 8.° foò ideaó  iî 
+thå uså oæ these.
+
+        2.3.³ -- SECONÄ PARAMETEÒ FIELDº Thió fielä ió requireä bù thå SEARCÈ 
+command®  Á  detaileä  descriptioî oæ thió fielä aó useä bù  thå  commanä  ió 
+containeä iî thå explanatioî oæ thå SEARCÈ command.
+
+2.4 -- PRIMARY COMMAND LIST
+===========================
+
+
+ALPHA   COMMAND                         DESCRIPTION.
+
+  A     A#### AA               Assigî  Inteì  Standarä  I/Ï  Device¬   (Inteì 
+                               compatiblå IOBYTE).
+
+  B     B#### AA               Lockuğ  systeí witè keù codå AA®   AÁ musô  bå 
+                               entereä agaiî tï unlocë thå system.
+
+  C     C####.SD[.K] [F..F]    Copù  froí  sourcå  Ó tï destinatioî  Ä  usinç 
+                               parameteò [.Kİ oò fielä [F..Fİ wherå required.
+
+  D     D####.K AAAA-BBBB      Displaù memorù froí AAAÁ tï BBBÂ usinç  optioî 
+                               .Ë  wherå  .Ë ió .È foò  hexadecimal¬  .Á  foò 
+                               ASCII¬ .Ã foò combineä ASCIÉ ¦ hex¬ anä .Ô foò 
+                               Text.
+
+  E     E####.K AAAA           Enteò tï memorù startinç aô addresó AAAÁ usinç 
+                               optioî .Ë wherå .Ë ió .È foò hexadecimal¬  anä 
+                               .Ô foò TEXT.
+
+  F     F#### AAAA-BBBB[-CC]   Filì memorù froí AAAÁ tï BBBÂ witè CC,[00È  iæ 
+                               -CÃ noô present].
+
+  G     G#### AAAA             Jumğ  tï  addresó AAAÁ witè returî addresó  tï 
+                               thå monitoò pusheä oî thå stack.
+
+  H     H#### AAAA-BBBB        Hexadecimaì add/subtracô BBBÂ to/froí AAAA
+
+  I     I#### AA               Inpuô froí porô AA
+
+  J     J#### AAAA             Jumğ  tï addresó AAAÁ witè returî jumğ  vectoò 
+                               tï thå monitoò placeä aô addresó aô 0000
+
+  K     ***                    Undefined
+
+  L     L####.K AAAA-BBBB      Lisô oî printer¬ memorù froí AAAÁ tï BBBÂ witè 
+                               optioî  .K®  Optionó arå samå aó Ë iî  Displaù 
+                               command.
+
+  M     M#### AAAA-BBBB-CCCC   Movå memorù blocë AAAA-BBBÂ tï CCCC.
+
+  N     ***                    Undefined.
+
+  O     O#### AA-BB            Outpuô tï porô AÁ witè bytå BB.
+
+  P     P#### AAAA-BBBB-CCCC   Prograí  EPROÍ startinç aô addresó  CCCÃ  witè 
+                               memorù blocë AAAA-BBBB.
+
+  Q     ***                    Undefined.
+
+  R     Release A only - Release B uses C####.TM
+
+        R####                  Reaä cassettå absolute.
+        R#### AAAA             Reaä cassettå biased.
+        R#### AAAA-BBBB        Reaä cassettå specific.Š
+  S     S#### AAAA-BBBB F..F   Searcè  memorù  blocë AAAA-BBBÂ foò heø  fielä 
+                               F..F.
+        S#### AAAA-BBBB 'F..F  Searcè memorù blocë AAAA-BBBÂ foò ASCIÉ  fielä 
+                               F..F.
+
+  T     T####                  Finä firsô contiguouó blocë oæ RAÍ memory.
+        T####.K AAAA-BBBB      Tesô  RAÍ memorù blocë AAAA-BBBÂ witè tesô  .Ë 
+                               wherå  .Ë ió .Ñ foò quicë tesô foò harä memorù 
+                               errors¬  anä  Ã  foò  completå  tesô  foò  biô 
+                               patterî sensitivity
+
+  U     ***                    Undefined.
+
+  V     V####.SD [F..F]        Verifù  sourcå  Ó  witè  destinatioî  Ä  usinç 
+                               paramenteò fielä [F..Fİ wherå required.
+
+  W     Realease A only - Release B uses C####.MT
+
+        W#### AAAA-BBBB        Writå  tï  cassettå  memorù  blocë  AAAA-BBBB® 
+                               Checksummeä Teleteë [Dajenİ format.
+
+  X     ***                    Undefined.
+
+  Y     ***                    Undefined.
+
+  Z     ***                    Undefined.
+
+2.5 -- DETAILED DESCRIPTION OF THE COMMANDS
+===========================================
+
+
+.CP 15
+        ============
+2.5.1   A  :  ASSIGN
+        ============
+
+        FORMAT:         A#### AA
+
+        EXAMPLES:       ASSIGN 00
+                        A 34
+
+     Assigî  IOBYTE®  [AAİ  ió thå ne÷ [IOBYTEİ bytå  assignment®  Thió  bytå 
+defineó  thå logicaì tï physicaì devicå mappinç whicè followó thå  INTEÌ  I/Ï 
+vectoò standarä foò fouò logicaì I/Ï devicesº  console¬  reader¬  punch¬  anä 
+list®  Eacè  logicaì  devicå  caî  bå assigneä tï onå oæ  fouò  physicaì  I/Ï 
+devices®  Completå  descriptioî  oæ  thå IOBYTÅ assignmenô  ió  explaineä  iî 
+sectioî 6.0¬ "I/Ï VECTOÒ SUBSYSTEM."
+
+
+.CP 19
+        =========
+2.5.2   B  :  BYE
+        =========
+
+        FORMAT:         B#### AA
+
+        EXAMPLES:       BYE 34
+                        BYEBYE
+                        B 3FCD2
+
+     Locë  uğ  thå systeí undeò poweò tï keeğ thå computeò  froí  beinç  useä 
+temporarilù  tï  savå anù prograí iî memorù froí beinç  disturbeä  accidentlù 
+durinç  interruptions®  [AAİ  ió  thå hexadecimaì keù whicè wilì  unlocë  thå 
+systeí aô á lateò time®  Thå systeí wilì waiô iî á looğ untiì iô seeó thå keù 
+again®  Thå keù ió onå singlå byte®  So¬ iæ yoõ enteò á strinç oæ hexadecimaì 
+characteró  greateò  thaî  twï  characteró  long¬  theî  onlù  thå  lasô  twï 
+characteró  iî thå strinç arå useä foò thå key®  Iî thå thirä  examplå  abovå 
+[D2Hİ  ió thå key®  Iæ yoõ senä thå commanä iî thå seconä examplå above¬  thå 
+monitoò wilì assumå thå keù ió [00H].
+
+
+.CP 26Š        ==========
+2.5.3   C  :  COPY
+        ==========
+
+        FORMAT:         C####[.SD][.K####][F..F]
+
+        EXAMPLES:       C.MM 1000-2000-3000
+                        COPY.MC 1000-2000
+
+     Copù froí á sourcå tï á destination®  Thió commanä ió á generalizeä movå 
+oæ datá tï anä froí siø defineä mediums®  Theså areº  [Tİ - Tapå drive¬ [Dİ - 
+Disë drive¬  [Mİ - Memory¬  [Cİ - Consolå I/O¬  [Pİ - Printer¬ anä [Uİ - Useò 
+defineä medium®  Thå source/destinatioî codå [SDİ defineó thå mediá involved® 
+Thirtù siø combinationó arå possible®  Theså caî mosô readilù bå showî aó á ¶ 
+Ø ¶ matrix.
+
+                 T -   TT   DT   MT   CT   PT   UT
+                 D -   TD   DD   MD   CD   PD   UD
+     DESTINATION M -   TM   DM   MM   CM   PM   UM
+                 C -   TC   DC   MC   CC   PC   UC
+                 P -   TP   DP   MP   CP   PP   UP
+                 U -   TU   DU   MU   CU   PU   UU
+                       :    :    :    :    :    :
+                       T    D    M    C    P    U
+                                 SOURCE
+
+.CP 16
+     Thå twï characteò [SDİ codå ió decodeä intï aî indeø tï thå copù  vectoò 
+table®  Thå monitoò theî obtainó thå vectoò addresó iî thå tablå anä jumpó tï 
+thaô address® Thå tablå resideó jusô afteò thå primarù commanä vectoò table.
+
+     Onlù  somå oæ thå copù routineó residå permanentlù iî memorù aó parô  oæ 
+thå monitoò commanä subsystem®  Thå resô oæ thå copù routineó arå expecteä tï 
+residå  iî  CP/Í fileó aó transienô commands®  Á CP/Í filå routinå ió  loadeä 
+intï memorù aô [0100Hİ anä theî executed®  Thå transienô commanä wilì  vectoò 
+bacë tï thå monitoò wheî iô ió finished®  Thå copù commandó whicè arå defineä 
+aó  resident¬  vectoò  tï routineó whicè arå pointeä tï bù alternatå  primarù 
+commanä vectors®  Additionaì parameteró arå needeä foò eacè residenô  commanä 
+aó  specifieä bù itó alternatå primarù command®  Thió ió supplieä througè thå 
+fielä  [F..F]®  Thå fielä [F..Fİ musô bå identicaì tï thå  relateä  alternatå 
+primarù  command®  Thå  transienô commandó usuallù dï noô requirå  additionaì 
+parameteró aó parô oæ thå commanä line®  Theså routineó normallù wilì  prompô 
+yoõ foò thå additionaì informatioî required.
+
+.CP 19Š     The resident copy commands are:
+
+        1. COPY.TM [AAAA[-BBBB]]     READ Command (Release A only)
+        2. COPY.MT AAAA-BBBB         WRITE Command (Release B only)
+        3. COPY[.MM] AAAA-BBBB-CCCC  MOVE Command
+        4. COPY.MC[.K] AAAA-BBBB     DISPLAY Command
+        5. COPY.MP[.K] AAAA-BBBB     LIST Command
+        6. COPY.CM[.K] AAAA          ENTER Command
+
+        Subfieldó  encloseä  iî [İ arå optionaì anä  arå 
+        explaineä undeò thå specifieä residenô command.
+
+     Manù  oæ  thå  transienô copù commandó wilì  bå  availablå  aó  optionaì 
+routineó  foò  thå  monitor®  Thå  remaindeò  oæ thå  copù  commandó  maù  bå 
+implementeä bù you®  Sectioî 8.° outlineó thå procedureó needeä tï  implemenô 
+residenô  anä  CP/Í filå routineó foò ne÷ commands®  Iî addition¬  sincå  thå 
+residenô copù commandó poinô tï thå READ¬  WRITE¬  MOVE¬  DISPLAY¬  LISÔ  ANÄ 
+ENTEÒ  routines»  theî  thå Alphá primarù commandó [R,W,M,D,L,Eİ  whicè  alsï 
+poinô tï theså routineó caî bå useä foò youò owî custoí commands.
+
+
+.CP 40Š        =============
+2.5.4   D  :  DISPLAY
+        =============
+
+        FORMATS:        D####[.K] AAAA-BBBB
+                        C####.MC[.K] AAAA-BBBB
+
+        EXAMPLES:       DISPLAY 0000-2000
+                        D.A -
+                        DUMP.COMBINED 200-
+                        COPY.MC.TEXT 7000-7100
+
+     Displaù  memorù usinç formaô optioî [.K]®  Thió commanä wilì displaù  oî 
+thå  videï  screeî  thå  specifieä memorù blocë [AAAA-BBBBİ iî  onå  oæ  fouò 
+formató  [H,A,C,oò T]®  Iæ formaô fielä [.Kİ ió noô presenô iî  thå  command¬ 
+theî  thå  monitoò  defaultó  tï [.H]®  Á COPÙ commanä  ió  availablå  aó  aî 
+alternativå tï thå DISPLAÙ command.
+     Thå displaù formató arå aó follows:
+
+        [.Hİ  -  Hexadecimaì format® Contentó oæ memorù ió displayeä 1¶ byteó 
+        peò line¬ headeä bù thå addresó oæ thå firsô bytå oæ thå line.
+
+        [.Aİ   -  ASCIÉ format®  Thå contentó oæ memorù ió displayeä 3² byteó 
+        peò line¬  headeä bù thå addresó oæ thå firsô bytå oæ thå line® ASCIÉ 
+        controì  characteró  arå  displayeä  aó  periodó  [.]®  Iæ  thå  mosô 
+        significanô  biô ió higè theî thå ASCIÉ equivalenô wilì bå  displayeä 
+        iî reverså videï mode.
+
+        [.Cİ  -  Combineä format® Thå contentó oæ memorù ió displayeä ¸ byteó 
+        peò  line¬  firsô iî hexadecimaì format¬  theî iî ASCIÉ  format®  Thå 
+        addresó oæ thå firsô bytå oæ thå linå ió displayeä aô thå heaä oæ thå 
+        line.
+
+        [.Tİ   -  Texô  format®  Thå contentó oæ memorù  ió  displayeä  undeò 
+        completå  controì  oæ embeddeä ASCIÉ controì byteó withiî thå  memorù 
+        blocë beinç displayed®  Yoõ shoulä uså thió formaô oæ displaù onlù oî 
+        memorù whicè haó knowî textuaì content® Wilä thingó happeî iæ yoõ trù 
+        tï displaù nontextuaì memory®  Yoõ maù geô intï aî infinitå looğ  duå 
+        tï thå recursivå naturå oæ thå messagå macrï processoò oæ thå Consolå 
+        Subsystem® Seå sectioî 3.´ foò detaileä explanation.
+
+
+.CP 38Š        ===========
+2.5.5   E  :  ENTER
+        ===========
+
+        FORMATS:        E####[.K] AAAA
+                        C####.CM[.K] AAAA
+
+        EXAMPLES:       ENTER 3000
+                        E.A 4000
+                        COPY.CM.HEX 7000
+
+     Enteò datá tï memorù froí thå console®  Thió commanä allowó yoõ tï enteò 
+tï  memorù  oò  changå  thå contentó oæ memorù witè keyboarä  inpuô  datá  iî 
+hexadecimaì  formaô  [.H]¬  oò  ASCIÉ texô formaô [.Tİ  startinç  aô  addresó 
+[AAAA]® Iæ thå ENTEÒ formaô fielä [.Kİ ió noô presenô iî thå commanä theî thå 
+monitoò  defaultó tï [.H]®  Á COPÙ commanä ió availablå aó aî alternativå  tï 
+thå ENTEÒ command.
+
+     Thå ENTEÒ formató arå aó follows:
+
+        [.Hİ   -  Enteò Hexadecimalº  Thió formaô allowó yoõ tï  displaù  thå 
+        contentó oæ memorù onå bytå aô á timå startinç aô addresó [AAAA]® Yoõ 
+        maù   changå  thå  contentó  oæ  thå  memorù  locatioî  bù   enterinç 
+        hexadecimaì  characteró twï aô á timå (foò onå byte)®  Yoõ maù bypasó 
+        anù memorù locatioî bù pressinç thå SPACÅ BAR®  Iæ yoõ madå á mistakå 
+        iî  enterinç  á byte¬  yoõ maù bacë uğ tï thå  previouó  locatioî  bù 
+        pressinç  thå  BACË SPACÅ KEY®  Thå monitoò wilì repeaô  thå  presenô 
+        locatioî  anä  itó  contentó  iæ yoõ presó anù keù  whicè  ió  noô  á 
+        hexadecimaì key® Tï exiô froí thió commanä jusô presó thå RETURÎ KEY.
+
+        [.Tİ   -  Enteò TEXTº  Thió formaô allowó yoõ tï enteò thå fulì ASCIÉ 
+        characteò seô includinç thå controì characters® Aô present¬ therå arå 
+        nï editinç capabilitieó undeò thió format®  Thå ASCIÉ characteró  arå 
+        entereä  sequentiallù startinç aô addresó [AAAAİ aó yoõ keù theí intï 
+        youò keyboard® Tï exiô froí thió commanä presó thå [ctrl-Aİ keù pair® 
+        Thió ASCIÉ characteò ió thå lasô bytå entereä intï memorù beforå  thå 
+        terminatioî  oæ  thå  command®  Thå  addresó oæ  thå  lasô  entrù  ió 
+        displayeä foò youò convenience.
+
+
+.CP 13
+        ==========
+2.5.6   F  :  FILL
+        ==========
+
+        FORMAT:         F#### AAAA-BBBB[-CC]
+
+        EXAMPLES:       FILL 0-200
+                        F -7000-FF
+
+     Filì memorù blocë [AAAA-BBBBİ witè bytå [CC]¬  oò iæ [CCİ ió noô presenô 
+filì witè ZEROs.
+
+
+.CP 12Š        ==========
+2.5.7   G  :  GOTO
+        ==========
+
+        FORMAT:         G#### AAAA
+
+        EXAMPLES:       GOTO F000
+                        GO -
+
+     Jumğ tï memorù locatioî [AAAAİ anä begiî tï execute®  Thå addresó tï thå 
+restarô locatioî oæ thå monitoò ió pusheä ontï thå monitor'ó stack®  Á returî 
+instructioî iî thå vectoreä prograí wilì theî vectoò yoõ bacë tï thå monitor.
+
+
+.CP 13
+        =========
+2.5.8   H  :  HEX
+        =========
+
+        FORMAT:         H#### AAAA-BBBB
+
+        EXAMPLES:       HEXMATH 2000-3000
+                        H 3333-5555
+
+     Adä  anä subtracô hexadecimaì addresseó [AAAAİ anä [BBBB]®  Thå  answeró 
+wilì bå iî iî two'ó complemenô 1¶ bit-hexadecimaì format® Thå additioî resulô 
+oæ AAAÁ anä BBBÂ ió displayeä witè á pluó [+İ iî fronô oæ it® Thå subtractioî 
+oæ BBBÂ froí AAAÁ ió displayeä nexô witè á minuó [-İ iî fronô oæ it.
+
+
+.CP 15
+        ===========
+2.5.9   I  :  INPUT
+        ===========
+
+        FORMAT:         I#### AA
+
+        EXAMPLES:       INPUT 6C
+                        I 3
+
+     Inpuô  froí porô [AA]®  Thió commanä wilì immediatelù reaä porô [AAİ anä 
+displaù  thå  contentó  iî hexadecimal®  Thå monitoò wilì  theî  waiô  foò  á 
+keyboarä  entrù  oæ eitheò á SPACÅ BAÒ oò RETURN®  Thå SPACÅ BAÒ  entrù  wilì 
+causå  thå  monitoò tï rereaä thå porô anä agaiî displaù  thå  contents®  Thå 
+RETURÎ  entrù wilì leô thå monitoò exiô thió command®  Alì otheò keù  entrieó 
+arå ignored.
+
+
+.CP 14
+         ==========
+2.5.10   J  :  JUMP
+         ==========
+
+        FORMAT:         J#### AAAA
+
+        EXAMPLES:       JUMP B000
+                        J 0
+
+     Jumğ  tï adresó [AAAAİ anä starô executing®  Thå restarô addresó oæ  thå 
+monitoò  ió  loadeä  aó  á jumğ vectoò iî thå firsô  threå  memorù  locationó 
+startinç aô [0000Hİ aó C³ LÌ HÈ wherå LÌ anä HÈ arå thå lo÷ anä higè byteó oæ 
+thå  addresó  AAAA®  Á jumğ froí thå executeä prograí tï thió  locatioî  wilì 
+vectoò yoõ bacë tï thå monitor.Š
+
+.CP 3
+         ==============
+2.5.11   K  :  NOT USED
+         ==============
+
+
+.CP 16
+         ==========
+2.5.12   L  :  LIST
+         ==========
+
+        FORMATS:        L####[.K] AAAA-BBBB
+                        C####.MP[.K] AAAA-BBBB
+
+        EXAMPLES:       LIST 2000-4000
+                        L.C -
+                        COPY.MP.TEXT 5000-5100
+
+     Lisô  tï thå printeò memorù blocë [AAAA-BBBBİ usinç formaô optioî  [.K]® 
+Thió commanä ió identicaì tï thå DISPLAÙ commanä witè thå onlù exceptioî thaô 
+thå printeò ió turneä on®  Thå memorù contentó arå alsï routeä tï thå printeò 
+aó  welì  aó tï thå videï screen®  Aó witè thå DISPLAÙ commanä  therå  ió  aî 
+alternativå COPÙ commanä foò thió command.
+
+
+.CP 20
+         ==========
+2.5.13   M  :  MOVE
+         ==========
+
+        FORMATS:        M#### AAAA-BBBB-CCCC
+                        C####[.MM] AAAA-BBBB-CCCC
+
+        EXAMPLES:       MOVE 0-100-1000
+                        M -1000-2000
+                        COPY.MM F000-F3FF-A000
+
+     Movå memorù blocë [AAAA-BBBBİ tï á differenô memorù locatioî startinç aô 
+addresó  [CCCC]®  Thió commanä ió á standarä memorù blocë movå whicè haó  thå 
+capabilitù  oæ  overlayinç oveò thå originaì memorù blocë withouô  destroyinç 
+thå contentó beinç moved®  Thå movå ió noô automaticallù verifieä becauså  oæ 
+thå overlaù feature®  Iæ yoõ neeä tï verifù thå movå (assuminç á non-overlaiä 
+move© theî uså thå VERIFY.MÍ command®  Bå carefuì witè thió command¬ sincå iô 
+caî  overlaù  anù  memorù  fielä  sucè  aó  thå  monitor'ó  stacë  space®  Aî 
+alternativå copù commanä ió availablå foò thió command®  Thå copù [.SDİ fielä 
+maù bå lefô ouô oæ thå commanä field.
+
+
+.CP 3
+         ==============
+2.5.14   N  :  NOT USED
+         ==============
+
+
+.CP 14Š         ============
+2.5.15   O  :  OUTPUT
+         ============
+
+        FORMAT:         O#### AA[-BB]
+
+        EXAMPLES:       OUTPUT 6C-FF
+                        O 6D
+
+     Outpuô  tï porô [AAİ witè bytå [BB],[00È iæ [-BBİ ió noô presenô iî  thå 
+command]®  Thå  monitoò  immediatelù outputó thå bytå theî waitó foò  yoõ  tï 
+presó  onå  oæ twï keyó oî thå keyboard®  Pressinç thå SPACÅ BAÒ  causeó  thå 
+monitoò tï re-outpuô thå byte®  Pressinç thå RETURÎ KEÙ causeó thå monitoò tï 
+exiô thió command® Alì otheò keù entrieó arå ignored.
+
+
+.CP 16
+         =============
+2.5.16   P  :  PROGRAM
+         =============
+
+        FORMAT:         P#### AAAA-BBBB-CCCC
+
+        EXAMPLES:       PROGRAM 1000-2000-8000
+                        PROM -1000-D000
+
+     Prograí  EPROMó  startinç aô addresó [CCCCİ witè thå contentó oæ  memorù 
+blocë [AAAA-BBBB]® Thió commanä wilì looğ througè thå memorù blocë 12¸ times¬ 
+copyinç eacè bytå intï thå EPROM®  Thió commanä ió compatiblå witè Cromemco'ó 
+BYTESAVERó ± anä 2®  Yoõ maù ruî intï somå incompatiblitieó witè otheò  EPROÍ 
+progammeò modules.
+     Thå  EPROMó arå verifieä immediatelù afteò programming®  Yoõ maù  escapå 
+froí programminç bù pressinç thå ESCAPÅ key.
+
+
+.CP 3
+         ==============
+2.5.17   Q  :  NOT USED
+         ==============
+
+
+.CP 16
+         ==========
+2.5.18   R  :  READ     Release A only:
+         ==========
+
+        FORMATS:        R#### [AAAA[-BBBB]]
+                        C####.TM [AAAA[-BBBB]]
+
+        EXAMPLES:       READ
+                        R 1000
+                        READTAPE 8000-A000
+                        COPY.TM
+
+     Reaä  froí  cassettå tapå tï memory®   Thió commanä wilì reaä á  TELETEË 
+[DAJENİ  oò TARBELÌ formatteä cassettå tape®  Threå optionó arå availablå  tï 
+you»  reaä  absolute¬  reaä biased¬  anä reaä specific®  Thå presenô  versioî 
+controló onlù thå Teleteë UCRI®
+
+
+.CP 19Š     READ ABSOLUTE
+     =============
+
+     Thió  optioî ió thå standarä reaä commanä tï inpuô á  TELETEË  formatteä 
+     tapå file® Jusô enteò [R####İ oî thå commanä line® Thå TELETEË formatteä 
+     tapå  filå  containó thå informatioî needeä tï loaä thå tapå  filå  intï 
+     memory®  Thå firsô fouò byteó oî thå tapå filå arå thå beginninç addresó 
+     oæ memorù wherå thå filå ió tï bå loaded¬  anä thå numbeò oæ byteó tï bå 
+     loaded®  Thå beginninç addresó ió assumeä tï bå iî INTEÌ format¬ thaô ió 
+     thå  leasô significanô bytå firsô anä thå mosô significanô bytå  second® 
+     Thå  nexô  twï byteó arå thå numbeò oæ byteó iî thå filå tï  bå  loaded® 
+     Howeveò thå filå sizå ió assumeä tï bå ordereä witè thå mosô significanô 
+     bytå  firsô theî thå leasô significanô bytå second®  Thå monitoò obtainó 
+     theså fouò byteó anä setó uğ thå looğ indexing¬  theî continueó tï  reaä 
+     thå  resô  oæ thå filå untiì iô ió alì in¬  accordinç tï thå  fouò  bytå 
+     information®  Onå morå bytå ió theî read®  Thió ió thå checksuí byte® Iô 
+     ió  compareä  witè thå runninç checksuí thå monitoò calculateó whilå  iô 
+     readó thå file® Eitheò á completå oò checksuí erroò messagå ió displayeä 
+     dependinç oî thå resultó oæ thå compare.
+
+
+.CP 11
+     REAÄ BIASED
+     ===========
+
+     Thió  optioî allowó yoõ tï reaä aî absolutå TELETEË formatteä filå  intï 
+     memorù  aô  á differenô locatioî otheò thaî specifieä bù thå  tapå  filå 
+     information®  Thå commanä formaô ió [R###£ AAAA]® Thå 1¶ biô biaó [AAAAİ 
+     ió addeä tï thå tapå file'ó beginninç address®  Anù carrù overflo÷  froí 
+     thå  additioî  ió  ignored®  Tï determinå thå propeò biaó  uså  thå  HEØ 
+     ARITHMETIÃ command®  Foò example¬  iæ thå tapå filå beginninç addresó ió 
+     7000È anä yoõ wanteä tï loaä iô aô 5000H¬ theî usinç [È 5000-7000İ woulä 
+     givå yoõ [+C00°  -E000]® Thereforå thå biaó ió E000H.
+
+
+.CP 13
+     REAÄ SPECIFIC
+     =============
+
+     Thió  optioî  allowó  yoõ tï reaä á TARBELÌ compatiblå tapå  filå  oò  á 
+     TELETEË  formatteä tapå file®  Thå commanä formaô ió [R###£  AAAA-BBBB]® 
+     Thå  monitoò wilì reaä iî thå filå untiì thå memorù blocë [AAAA-BBBBİ ió 
+     filled®  Therå ió nï checksuí checkinç witè thió option®  Iæ yoõ attempô 
+     tï  reaä  á  TELETEË formatteä tapå  file¬  thå  tapå  filå  informatioî 
+     (beginninç  addresó anä filå size© ió reaä intï memory»  sï accounô  foò 
+     theí  wheî yoõ reaä iî thå file®  Iæ yoõ attempô tï reaä á filå whicè ió 
+     smalleò thaî thå specifieä memorù blocë [AAAA-BBBB]¬ yoõ maù locë uğ thå 
+     reaä  routine®  Iæ thió happenó jusô presó thå escapå keù tï  exiô  froí 
+     thió command.
+
+
+.CP 29Š         ============
+2.5.19   S  :  SEARCH
+         ============
+
+        FORMAT:         S#### AAAA-BBBB [']F..F
+
+        EXAMPLES:       SEARCH 1000-2000 DB-03
+                        S - 'MARY
+
+     Searcè  memorù blocë [AAAA-BBBBİ foò fielä [F..F]®  Iæ aî apostrophå ['İ 
+ió inserteä iî fronô oæ thå fielä [F..F]¬ thå fielä ió assumeä tï bå aî ASCIÉ 
+characteò field®  Otherwise¬  thå fielä ió assumeä tï bå á hexadecimaì field® 
+Thå fielä caî bå aó biç aó yoõ caî makå iô withiî thå confineó oæ thå commanä 
+line¬ oò twï lineó usinç thå alternatå return.
+
+     Thå  ASCIÉ fielä maù havå embeddeä blankó (oò spaces© buô á  blanë  musô 
+noô  enä  thå  field®  Thå commanä processoò ignoreó trailinç blankó  iî  thå 
+commanä line.
+
+     Thå  hexadecimaì  fielä  musô bå groupeä witè  bi-heø  characteò  fieldó 
+separateä bù minuó signó [-İ oò blankó Û ]®  (exº  DB-12-34-A³ 4µ 6· FF)®  Iæ 
+therå  arå  morå  thaî twï heø characteró peò minoò  field¬  theî  thå  leasô 
+significanô  twï characteró arå useä bù thå monitor®  Thå resô oæ  characteró 
+arå truncated® (exº DB69´ woulä bå reduceä tï 94).
+
+     Thå  monitoò  wilì  searcè thå specifieä memorù blocë  anä  displaù  thå 
+startinç addresó oæ anù matches®  Á searcè oæ entirå memorù foò anù onå  bytå 
+usuallù  takeó  lesó thaî 1° seconds®  Á shorô hanä waù oæ  searchinç  entirå 
+memorù ió [Ó - F..F]® Trù thió commandº [Ó - 00].
+
+
+.CP 32Š         ==========
+2.5.20   T  :  TEST
+         ==========
+
+        FORMAT:         T####[.K] [AAAA-BBBB]
+
+        EXAMPLES:       TEST
+                        TEST.Q 7000-8000
+                        T.C -3FFF
+
+     Tesô RAÍ memory® Threå optionó arå available® Theså areº [.F]-finä firsô 
+contiguouó blocë oæ RAÍ memory» [.Q]-quicklù tesô specifieä RAÍ memory» [.C]-
+completelù tesô specifieä RAÍ memory® Iæ thå optioî fielä [.Kİ ió noô presenô 
+iî thå commanä line¬ thå monitoò defaultó tï optioî [.F].
+
+     [.Fİ  - Finä thå firsô contiguouó blocë oæ RAÍ memory®  Thió optioî ió á 
+nondestructivå tesô whicè wilì displaù thå beginninç anä endinç addresseó  oæ 
+thå  memorù  blocë found®  Iî usinç thió optioî thå monitoò musô  noô  residå 
+withiî thå firsô contiguouó blocë areá iæ yoõ arå usinç á RAÍ versioî oæ thió 
+monitor® Thå addresó fielä [AAAA-BBBBİ ió ignoreä iî thió option.
+
+     [.Qİ  - Quicklù tesô thå specifieä RAÍ memorù blocë [AAAA-BBBBİ foò harä 
+memorù errors®  Thió optioî writeó [55Hİ theî [AAHİ intï eacè memorù locatioî 
+withiî thå specifieä blocë theî compareó thå locatioî tï thå writå bytå  [55È 
+oò AAHİ displayinç anù erroró found® Thió ió á destructivå test» thaô is¬ thå 
+origninaì contentó beforå thå tesô ió destroyed.
+
+     [.Cİ  - Completelù  tesô thå specifieä RAÍ memorù blocë [AAAA-BBBBİ  foò 
+biô  patterî sensitivity®  Thió optioî ió thå samå aó thå quicë  tesô  excepô 
+thaô alì 25¶ valueó oæ á bytå arå useä sequentiallù froí [00Hİ tï [FFH]® Thió 
+optioî  wilì takå somå timå tï complete¬  iæ yoõ arå testinç largå blockó  oæ 
+memory® Yoõ maù interrrupô thå tesô aô anù timå bù pressinç thå ESCAPÅ key.
+
+
+.CP 3
+         ==============
+2.5.21   U  :  NOT USED
+         ==============
+
+     Á  samplå  residenô  commanä routinå waó designeä tï  uså  thió  commanä 
+letteò aó aî examplå tï tï designinç youò residenô commands® Seå APPENDIØ C.
+
+
+.CP 34Š         ============
+2.5.22   V  :  VERIFY
+         ============
+
+        FORMAT:         V####.SD [F..F]
+
+        EXAMPLES:       VERIFY.MT
+                        V.MM 0000-0FFF-2000
+
+     Thió  commanä  allowó yoõ tï verifù datá residinç oî  differenô  mediumó 
+[tape¬    disk¬   memory¬   user-defined]®   Likå   thå   copù   command¬   á 
+source/destinatioî   codå  ió  useä  tï  definå  thå  mediá   involved®   Thå 
+source/destinatioî codå caî bå showî aó á ´ Ø ´ matrix:
+
+                  Ô -   TÔ   DÔ   MÔ   UT
+                  Ä -   TÄ   DÄ   MÄ   UD
+     DESTINATIOÎ  Í -   TÍ   DÍ   MÍ   UM
+                  Õ -   TÕ   DÕ   MÕ   UU
+                         º    º    º    :
+                         Ô    Ä    Í    U
+                              SOURCE
+
+     Thå  twï  characteò  [SDİ codå ió decodeä intï aî indeø  tï  thå  verifù 
+vectoò  table®   Thå monitoò theî obtainó thå vectoò addresó residinç aô  thå 
+specifieä positioî iî thå tablå anä jumpó tï thaô address®  Thå verifù vectoò 
+tablå  ió  locateä jusô afteò thå copù vectoò table®  Onlù onå [.SDİ codå  ió 
+implementeä aó á residenô command®  Thió commanä ió VERIFY.MÍ AAAA-BBBB-CCCC® 
+Thå inclusioî oæ thå [.MMİ codå ió optional®  Thió commanä wilì verifù memorù 
+blocë [AAAA-BBBBİ witè memorù blocë startinç aô [CCCC].
+
+     Thå  resô  oæ thå verifù optionó arå expecteä tï bå transienô  fileó  oî 
+CP/M¬ anä maù bå implementeä bù followinç thå directionó iî sectioî 8.0®  Thå 
+CP/Í filå routineó normallù wilì noô requirå secondarù fieldó iî thå  commanä 
+linå sincå theù shoulä prompô yoõ foò thå additionaì input® 
+
+
+.CP 30Š         ===========
+2.5.23   W  :  WRITE    :Release A only:
+         ===========
+
+        FORMATS:        W#### AAAA-BBBB
+                        C####.MT AAAA-BBBB
+
+        EXAMPLES:       WRITE 4000-4FFF
+                        W -2000
+                        COPY.MT 8000-AFFF
+
+     Writå  thå blocë oæ memorù [AAAA-BBBBİ ontï cassettå tape®  Thió commanä 
+ió implementeä iî Releaså Á onlù (However¬  Releaså Â containó thå  identicaì 
+routinå  iî á transienô commanä filå "COPYMT.SMC¢ anä caî bå accesseä viá thå 
+commanä "C####.MT¢ Iô wilì prompô yoõ foò alì oæ thå necessarù information.)® 
+Thió commanä createó á filå oî tapå whicè followó thå TELETEË [DAJENİ format® 
+Thå presenô versioî oæ thå monitoò controló onlù thå Teleteë UCRI® Thå formaô 
+ió aó follows:
+
+        1. 1/2 second of silent leader.
+        2. 4-1/2 seconds of NULL [00H] tone leader.
+        3. One clock byte [3CH].
+        4. One sync byte [E6H].
+        5. 1¶ biô beginninç memorù addresó oæ file¬ lo÷ ordeò theî higè ordeò 
+           addresó bytå iî INTEÌ style.
+        6. 1¶ biô filå size¬ higè ordeò bytå firsô theî lo÷ ordeò bytå next.
+        7. Memory block [AAAA-BBBB].
+        8. Checksum byte.
+        9. 1/2 second trailer of NULLs.
+       10. 1/2 second of silent trailer.
+
+
+.CP 3
+         ==============
+2.5.24   X  :  NOT USED
+         ==============
+
+
+.CP 3
+         ==============
+2.5.25   Y  :  NOT USED
+         ==============
+
+
+.CP 3
+         ==============
+2.5.26   Z  :  NOT USED
+         ==============
+
+2.6 -- COMMAND SUBSYSTEM UTILITY ROUTINES
+=========================================
+
+
+      Thå  Commanä Subsysteí haó á numbeò oæ utilitù routineó whicè  arå  noô 
+pointeä  tï  bù á seô oæ vectors®  Theså routineó arå oæ uså tï yoõ foò  youò 
+residenô  commandó whicè yoõ mighô build®  Thå routineó arå describeä iî  thå 
+ordeò theù arå listeä iî thå sourcå listinç iî APPENDIØ A® Yoõ musô determinå 
+thå  absolutå  addresó locatioî foò eacè oæ thå routineó bù addinç  thå  BASÅ 
+addresó tï thå addresó iî thå sourcå listing.
+
+
+2.6.1 -- REDUCE
+===============
+
+        Thió  routinå wilì converô loweò caså alphabetiã characteró tï  uppeò 
+caså characteró anä masë ofæ thå mosô significanô biô oæ thå byteó containinç 
+thå characteró iî thå inpuô buffeò pointeä tï bù thå IÙ register®  Notå  thaô 
+(IY-3©  shoulä contaiî thå numbeò oæ legaì characteró iî buffeò anä (IY-2© tï 
+(IY-1© ió thå startinç addresó oæ buffer® Iæ yoõ changå thå IÙ registeò valuå 
+yoõ  musô  eitheò  savå thå originaì valuå oò returî tï thå  controì  oæ  thå 
+monitoò  througè  RESTARÔ  oò START®  Thå IÙ registeò  containó  thå  monitoò 
+Variablå RAÍ Baså Address.
+
+
+2.6.2 -- DEBLOCK
+================
+
+        Thió  routinå  determineó thå startinç addresó  oæ  eacè  significanô 
+blocë oæ alphanumeriã characteró delimiteä bù thå speciaì characteró [blank]¬ 
+[.]¬  [,]¬  [;]¬ [:]¬ [-]¬ [+]¬ [*]¬ [/]¬ anä [=]® Thå routinå wilì determinå 
+aó manù aó 1° blockó anä wilì storå thå results¬  ´ byteó peò block¬ startinç 
+aô [MBASE-4CHİ anä loadinç uğ iî memory® Eacè ´ bytå blocë containó thå fronô 
+delimitinç chracter¬  thå blocë startinç address¬ anä thå numbeò oæ bytes¬ iî 
+thaô  order®  Iæ thå numbeò oæ byteó ió zerï theî nï alphanumeriã  characteró 
+werå encountereä betweeî thå fronô anä bacë delimitinç characters®  Agaiî thå 
+IÙ registeò pointó tï thå inpuô buffer.
+
+
+2.6.3 -- DELCK
+==============
+
+        Thió  routinå  determineó  iæ thå bytå iî registeò Á ió  á  delimiteò 
+characteò aó specifieä abovå iî DBLOCK® Thå ZERÏ flaç ió SEÔ iæ thió ió true.
+
+
+2.6.4 -- GETOPT
+===============
+
+        Thió  routinå  determineó  iæ thå bacë  delimiteò  oæ  thå  presentlù 
+pointeä  tï  blocë  ió á [.İ whicè implieó thaô aî optioî  ió  modifyinç  thå 
+primarù  command®  Thå  CARRÙ  flaç ió SEÔ iæ aî erroò  ió  encountereä  (thå 
+commanä  linå  haó onlù onå character)®  Thå ZERÏ flaç ió SEÔ iæ  aî  implieä 
+optioî  ió founä anä registeò Á containó [.]®  Iæ thå ZERÏ flaç ió CLEAÒ theî 
+registeò Á containó á [blank].
+
+
+2.6.5 -- GETADD
+===============Š
+        Thió  routinå wilì decodå thå nexô ° tï ³ BUFFEÒ blockó  intï  binarù 
+addresseó  oò  byteó anä loaä theí intï locationó  ADDR1¬  ADDR2¬  anä  ADDR³ 
+locateä aô MBASE-0CÈ tï MBASE-07H® MBASE-06È containó thå numbeò oæ addresseó 
+oò  byteó decoded®  Thå hexadecimaì addresó fielä ió expecteä tï bå delimiteä 
+internallù bù [-]'s®  Thå CARRÙ flaç ió SEÔ iæ anù non-hexadecimaì characteró 
+werå encountereä iî thå decodinç process.
+
+
+2.6.6 -- SETDBA
+2.6.7 -- INCDBA
+===============
+
+        SETDBÁ  routinå  wilì  seô  thå IØ registeò tï  poinô  tï  thå  firsô 
+deblockeä storeä information®  Itó companioî routinå INCDBÁ wilì incremenô tï 
+thå nexô block.
+
+
+2.6.8 -- HLIX
+2.6.9 -- IXHL
+=============
+
+        Theså routineó wilì respectivelù loaä anä storå registeò paiò HÌ froí 
+anä intï thå memorù locatioî pointeä tï bù registeò paiò IX.
+
+
+2.6.10 -- HLAD1
+2.6.11 -- HLAD2
+2.6.12 -- HLAD3
+===============
+
+        Theså  routineó  loaä  registeò paiò HÌ witè  thå  specifieä  decodeä 
+addresó oò byte
+
+
+2.6.13 -- DCDAD1
+2.6.14 -- DCDAD2
+================
+
+        Theså  routineó  decodå  á hexadecimaì addresó fielä  pointeä  tï  bù 
+registeò paiò HÌ anä fielä sizå pointeä tï bù [IX+3İ anä leavå thå addresó iî 
+registeò paiò HL®  Iæ [IX+3İ ió Zerï theî HÌ wilì contaiî [FFFFHİ foò  DCDAD± 
+anä  [0000Hİ  foò  DCDAD²  aó defaulô values®  Thå CARRÙ flaç  ió  SEÔ  iæ  á 
+hexadecimaì erroò waó encountered.
+
+
+2.6.15 -- VHEX
+==============
+
+        Thió  routinå wilì decodå aî ASCIÉ characteò iî registeò Á  intï  itó 
+binarù equivalenô hexadecimaì character®  Iæ thå characteò ió noô á legaì heø 
+characteò theî thå CARRÙ flaç ió SET.
+
+
+2.6.16 -- ESCAPE
+================
+
+        Thió  routinå  wilì  checë  thå  consolå inpuô  porô  foò  aî  escapå 
+characteò presenô [ESC,1BH]® Iæ therå ió one¬ thå CARRÙ flaç ió SET.
+Š
+2.6.17 -- GET2AD
+================
+
+        Thió routinå wilì decodå thå nexô twï blockó (iæ theù arå addresses)¬ 
+determinå  thå  differencå betweeî thå two¬  anä leavå thå firsô  addresó  iî 
+registeò paiò HÌ anä thå differencå iî registeò paiò DE® Iæ twï addresseó caî 
+noô  bå  decodeä oò á hexadecimaì erroò ió encountered¬  ERROÒ messagå  ³  ió 
+displayeä  anä thå monitoò ió restarted®  Iæ thå addresseó arå reverseä  (thå 
+negativå  difference)¬  ERROÒ  messagå  ´ ió displayeä  anä  thå  monitoò  ió 
+restarted.
+
+
+2.6.18 -- UPDATE
+================
+
+        Thió  routinå  incrementó HÌ anä decrementó DÅ anä testó foò zerï  iî 
+DE® Thå ZERÏ flaç ió SEÔ iæ so.
+
+
+2.6.19 -- OUT8HB
+================
+
+        Thió routinå wilì outpuô eighô byteó iî hexadecimaì formaô pointeä tï 
+bù registeò paiò HÌ anä counteä dowî bù registeò paiò DE®  Thå CARRÙ flaç  ió 
+SEÔ iæ morå byteó arå oî thå queue.
+
+
+2.6.20 -- OUT8AB
+================
+
+        Thió routinå wilì outpuô eighô ASCIÉ byteó pointeä tï bù thå registeò 
+paiò  HÌ anä counteä dowî bù thå registeò paiò DE®  Non-printablå  characteró 
+arå displayeä aó [.]'s®  Iæ thå mosô significanô biô ió higè thå bytå wilì bå 
+displayeä  aó á reverså fielä character®  Thå CARRÙ flaç ió SEÔ iæ morå byteó 
+arå oî thå queue.
+
+
+2.6.21 -- BTHEX
+===============
+
+        Thió  routinå  convertó  á  binarù  bytå  iî  registeò  Á  intï   twï 
+hexadecimaì characters® Thå mosô significanô nibblå ió returneä iî registeò Ã 
+anä thå leasô significanô iî registeò A.
+
+
+2.6.22 -- BTASC
+===============
+
+        Thió routinå wilì converô aî ASCIÉ bytå iî registeò Ã tï á [.İ iæ thå 
+bytå ió lesó thaî [20Hİ oò ió á [DELİ oò á [5FH]® Iæ thå mosô significanô biô 
+ió higè theî á [.]+[80Hİ ió returned® Thå resulô ió lefô iî C.
+
+
+2.6.23 -- OUTHAD
+================
+
+        Thió  routinå  wilì  outpuô  thå  addresó  iî  registeò  paiò  HÌ  iî 
+hexadecimaì format.
+Š
+2.6.24 -- OUTHBT
+================
+
+        Thió  routinå  wilì  outpuô  thå bytå iî registeò  Á  iî  hexadecimaì 
+format.
+
+
+2.6.25 -- OUTDOT, OUTSPC, OUTDSH, OUTEXP, CRLF, CRLFP, OUT3SP
+=============================================================
+
+        Theså routineó wilì outpuô respectivelù [.]¬ [space]¬ [-]¬ [!]¬ [CR]-
+[LF]¬ [CR]-[LF]-[>]¬ threå [space]'s.
+
+
+2.6.99 -- Special Purpose routines
+==================================
+
+        Therå arå á numbeò oæ routineó whicè residå witè thå primarù residenô 
+commanä routines®  Theså shoulä bå useä witè caution® But¬ whï knows¬ somå oæ 
+theí maù bå importanô tï you.
+
+                          3.0 -- CONSOLE SUBSYSTEM
+                          ========================
+
+
+.CP 23
+3.1 -- GENERAL DESCRIPTION
+==========================
+
+     Thå  CONSOLÅ  SUBSYSTEÍ  ió  á comprehensivå  Videï  Consolå  controlleò 
+packagå  whicè  wilì drivå anù onå oæ thå populaò memory-mappeä  64/1¶  videï 
+displaù moduleó foò thå Z-8° based¬  S-10° buó system®   Incorporateä iî  thå 
+packagå  arå alsï á keyboarä driveò anä á linå printeò driver®  Thå subsysteí 
+controló thå threå I/Ï deviceó aó aî integrateä packagå ablå tï stanä  alone¬ 
+independenô  oæ  thå otheò monitoò subsystems®   Iô haó fulì cursoò  control¬ 
+characteò orienteä screeî editing¬  buffereä inpuô anä outpuô froí anä tï thå 
+screen¬ recursivå messagå macrï processing¬ anä manù otheò capabilitieó whicè 
+makå thió packagå á powerfuì additioî tï youò software/firmwarå library® 
+
+     Thió  subsysteí incorporateó alì oæ thå videï commandó oæ  VIDEÏ  DRIVEÒ 
+1.0¬  whicè  haó  beeî  availablå froí PCÅ Electronicó sincå  Junå  oæ  1978® 
+However¬ thå placemenô oæ commandó oî thå keyboarä arå differenô tï makå rooí 
+foò thå additionaì commandó availablå undeò thió package®  Yoõ mighô saù thaô 
+iô ió á seconä generatioî VIDEÏ DRIVEÒ 1.0.
+
+     Sincå  thió  packagå  ió á statiã controlleò oæ threå I/Ï  deviceó  (onå 
+videï  displaù module¬  onå keyboard¬  anä onå linå  printer)¬  littlå  extrá 
+softwarå  ió  needeä  tï implemenô á compacô stand-alonå  intelligenô  remotå 
+terminaì subsystem.
+
+
+.CP 12
+3.2 -- SUBSYSTEM INTERFACE
+==========================
+
+     Thå consolå subsysteí haó 1² entries®   Thå firsô entrù initializeó  thå 
+package®   Thå nexô threå entrieó directlù obtaiî thå keyboarä status¬ obtaiî 
+ne÷ keù entrù upoî strobe¬ anä obtaiî datá aô thå keyboarä porô regardlesó oæ 
+keyboarä  status®  Thå nexô entrù tï thå packagå outputó á characteò directlù 
+tï  thå  printer®   Thå remaindeò oæ thå entrieó relatå tï thå  videï  driveò 
+interfacå  anä  buffereä  I/O®  Thå entrù vectoró arå aô  thå  fronô  oæ  thå 
+subsystem® Thå startinç addresó oæ thå subsysteí ió defineä aó [CBASE].
+
+     Eacè oæ theså entrieó ió fullù explaineä iî thå followinç subsections.
+
+.CP 14
+        =======
+3.2.1   ENTRY-1  Initialize the package. [CBASE+00H]
+        =======
+
+     Thió  entrù  initializeó  thå  package'ó RAÍ  worë  spacå  anä  internaì 
+variables®  Specifically¬ thå entry:
+
+        1. Clears the screen and homes the cursor.
+        2. Sets package to scroll mode.
+        3. Sets video to direct video mode.
+        4. Sets the scrolling to medium speed.
+        5. Turns off the printer.
+        6. Empties the input buffer.
+        7. Initializes the Processor Tech VDM, if it is used.
+
+
+.CP 7Š        =======
+3.2.2   ENTRY-2  Obtain the keyboard status. [CBASE+03H]
+        =======
+
+     Thió  entrù  obtainó thå keyboarä statuó anä returnó witè thå ZERÏ  flaç 
+cleaò anä thå Á registeò equaì tï [FFHİ iæ á ne÷ keù entrù ió waitinç iî  thå 
+keyboarä inpuô latch.
+
+
+.CP 8
+        =======
+3.2.3   ENTRY-3  Obtain keyboard entry/strobed. [CBASE+06H]
+        =======
+
+     Thió  entrù  calló  keyboarä  statuó  (ENRTY-2© untiì  á  keù  entrù  ió 
+indicated®   Therå upon¬  iô obtainó thå ne÷ keù entry¬  stripó ofæ thå  mosô 
+sigificanô  biô (BIT-7)¬  setó thå CARRÙ flaç iæ thå mosô significanô biô  ió 
+high¬ theî returnó tï caller.
+
+
+.CP 7
+        =======
+3.2.4   ENTRY-4  Obtain keyboard entry/unstrobed. [CBASE+09H]
+        =======
+
+     Thió  entrù ió thå samå aó ENTRY-³ excepô thaô keyboarä statuó (ENTRY-2© 
+ió  noô called®  Thió entrù obtainó thå datá presentlù oî thå keyboarä  latcè 
+anä immediatelù returnó tï thå caller.
+
+
+.CP 11
+        =======
+3.2.5   ENTRY-5  Output to the printer directly. [CBASE+0CH]
+        =======
+
+     Thió entrù wilì outpuô á characteò directlù tï thå printer®   Thå  ASCIÉ 
+bytå  ió  expecteä  tï  bå iî thå Ã register®  Somå  printeró  havå  internaì 
+buffers®  Iæ  youró does¬  theî á carriagå returî wilì usuallù  activatå  thå 
+printinç oæ thå linå anä thå clearinç oæ thå buffer®   Also¬ printeró sucè aó 
+thå Centronicó 77¹ wilì cleaò thå buffeò automaticallù iæ á linå feeä ió senô 
+beforå  á carriagå return®   Iî thió caså alì thaô woulä bå printeä woulä  bå 
+blanë lines.
+
+
+.CP 28Š        =======
+3.2.6   ENTRY-6  Screen edited, buffered input. [CBASE+0FH]
+        =======
+
+     Thió  entrù allowó yoõ tï ediô youò inpuô beforå sendinç thå inpuô  bacë 
+tï thå caller®   Yoõ caî senä onå oò twï videï lineó oæ data/informatioî bacë 
+tï thå caller®   Assuminç thå inpuô buffeò ió emptù thå followinç sequencå oæ 
+eventó takå place:
+
+1.   Enteò  intï screeî ediô mode®  Yoõ wilì staù iî thió modå untiì yoõ  arå 
+     satisfieä  witè  á  linå (oò twï lines© oæ information®  Yoõ  havå  fulì 
+     cursoò controì anä alì oæ thå ediô commandó aô youò disposal.
+
+2.   Wheî yoõ arå readù tï senä á linå oæ informatioî alì yoõ musô dï ió makå 
+     surå  thå cursoò characteò ió oî thå linå yoõ wanô tï send®  Iô  caî  bå 
+     anywherå  oî thå line®  Thå entirå 6´ characteò linå ió senô withouô thå 
+     cursor® Yoõ caî alternativelù senä twï lineó (12¸ characters© bù placinç 
+     thå  cursoò  oî  thå firsô linå tï bå sent®  Thå nexô linå  ió  senô  iî 
+     addition®   Tï senä onå linå presó thå RETURÎ key®   Tï senä twï  lines¬ 
+     presó  thå  CTRL-Ò  key®   Á notå aô thió pointº  Onlù  thå  significanô 
+     portioî oæ thå buffereä datá ió sent®   Thaô is¬ trailinç blankó arå noô 
+     sent® Howeveò thå leadinç blankó arå sent.
+
+3.   Oncå eitheò returî ió pressed¬  thå routinå wilì senä onå characteò aô á 
+     timå bacë tï thå calleò upoî eacè caller'ó entrù tï thió routine¬  untiì 
+     thå buffeò ió empty®  Afteò thå buffeò ió empty¬ thå routinå wilì senä á 
+     carriagå returî (0DH© tï thå caller¬  theî thå routinå reinitializeó  tï 
+     steğ #± above.
+
+
+.CP 17
+        =======
+3.2.7   ENTRY-7  Alternate screen edited, buffered input.
+        =======  [CBASE+12H] 
+
+     Thió  entrù ió thå samå aó ENTRY-¶ foò stepó ± anä 2®  Howeveò steğ ³ ió 
+noô  initiated®  Thå  datá  ió jusô transfereä tï thå inpuô  buffeò  anä  thå 
+significanô  portioî oæ thå line(s© ió determined®  Thió informatioî  caî  bå 
+accesseä bù knowinç wherå thå buffeò ió locateä iî memory.
+
+        Iæ [BUFFERİ ió thå startinç locatioî oæ inpuô buffer.
+        Then:   [BUFFER-3İ   containó  thå  bytå  counô  oæ   thå 
+                significanô portioî oæ thå BUFFER®   [BUFFER-2,1İ 
+                containó thå beginninç addresó oæ thå significanô 
+                portioî oæ thå BUFFER.
+
+Yoõ  musô understanä that¬  iî thió caså thå leadinç anä trailinç blankó  arå 
+noô considereä aó parô oæ thå significanô portioî oæ thå BUFFER.
+
+
+.CP 8
+        =======
+3.2.8   ENTRY-8  Obtain video cursor address. [CBASE+15H]
+        =======
+
+     Thió  entrù allowó yoõ tï obaiî thå cursoò addresó iî  twï  forms®  Upoî 
+returî  thå HÌ registeò paiò wilì contaiî thå absolutå addresó oæ thå cursor¬ 
+thå Â registeò wilì contaiî thå ro÷ address¬  anä thå Ã registeò wilì contaiî 
+thå columî address.
+
+
+.CP 11Š        =======
+3.2.9   ENTRY-9  Limited control video output (TTY mode).
+        =======  [CBASE+18H]
+
+     Thió  entrù  wilì  outpuô directlù tï thå  videï  screeî  undeò  limiteä 
+control®    Onlù   tabulation¬   cleaò   screen¬   delete¬   backspace¬   anä 
+backspace/deletå  arå alloweä foò linå editing®  Selectinç reverså videï modå 
+ió alloweä aó welì aó carriagå returî anä linå feed® Strictlù speaking¬ undeò 
+thió  entrù thå videï caî acô onlù aó á "Glasó Teletype"®  Thå  ASCIÉ  outpuô 
+bytå  ió  expecteä  tï bå iî thå Ã register®  Scrolì  modå  ió  automaticallù 
+assumeä undeò thió entry.
+
+
+.CP 8
+        ========
+3.2.10  ENTRY-10  Full control video output. [CBASE+1BH]
+        ========
+
+     Thió entrù allowó fulì cursoò anä screeî editinç output® Seå thå sectioî 
+3.³  foò  á  summarù  oæ thå availablå commands®  Thå ASCIÉ  outpuô  bytå  ió 
+expecteä  tï bå iî thå Ã register®  Pagå modå ió automaticallù assumeä  undeò 
+thió entry.
+
+
+.CP 13
+        ========
+3.2.11  ENTRY-11  Controlled video/printer output. [CBASE+1EH]
+        ========
+
+     Thió  entrù allowó yoõ tï outpuô tï thå videï screeî iî limiteä oò  fulì 
+controì  and/oò  outpuô  tï thå printer®  Switchinç  froí  limiteä  tï  fullù 
+controlleä  videï outpuô anä bacë agaiî ió accomplisheä bù sendinç thå scrolì 
+modå and/oò pagå modå commands®  Thå printeò caî bå turneä oî bù sendinç  thå 
+printeò  on/ofæ togglå command®  Thå printeò caî onlù bå activå undeò  scrolì 
+mode®  Resendinç  thå printeò togglå commanä wilì turî thå printeò off®  Wheî 
+yoõ seô pagå modå thå routinå wilì firsô senä á linå feeä tï thå printeò  anä 
+theî  wilì turî thå printeò off®  Thå ASCIÉ outpuô bytå ió expecteä tï bå  iî 
+thå Ã register.
+
+
+.CP 11
+        ========
+3.2.12  ENTRY-12  Buffered output. [CBASE+21H]
+        ========
+
+      Thió entrù ió thå mosô eleganô oæ alì thå entries®   Yoõ arå alloweä tï 
+senä á message¬  formeä iî memorù prioò tï entrù tï thió routine¬ directlù tï 
+thå videï screeî and/oò printer® Yoõ pasó thå startinç addresó oæ thå messagå 
+iî  thå  HÌ  registeò  pair®  Thå messagå musô enä witè á  NULÌ  (00H©  byte® 
+Startinç aô thå addresó iî thå HÌ registeò paiò thå routinå wilì procesó eacè 
+ASCIÉ  characteò  througè  ENRTY-1± untiì á NULÌ  bytå  ió  encountered®  Twï 
+additionaì macrï commandó arå availablå undeò thió entry® Theså are:
+
+.CP 7
+1.   Repeaô functionº   Thå commanä bytå (12H© signaló thaô á ASCIÉ bytå oò á 
+     submacrï ió tï bå repeated®  Threå byteó arå involved®  Thå firsô oæ thå 
+     functioî  seô ió thå commanä byte¬  thå seconä bytå ió thå repeaô  counô 
+     (1-255)¬ thå thirä ió thå ASCIÉ bytå oò thå submacrï commanä byte® Iæ iô 
+     ió  thå  submacrï  commanä bytå theî thå  repeaô  functioî  expectó  thå 
+     remaindeò  oæ thå submacrï functioî seô tï bå includeä immediatelù afteò 
+     thå thirä bytå oæ thå repeaô functioî set.
+
+.CP 11Š2.   Submacrï functionº   Thå commanä bytå (01H© signaló tï thå routinå  thaô 
+     onå oò morå setó oæ ASCIÉ characteró arå tï bå processed®  Followinç thå 
+     submacrï  commanä  bytå ió thå macrï seô counô bytå (1-255)®  Afteò  thå 
+     counô  byte¬  á  paiò  oæ  byteó  foò  eacè  seô  specifieä  ió  entereä 
+     sequentially®  Thió  bytå  paiò  containó thå startinç  addresó  oæ  thå 
+     submacro® Eacè anä everù submacrï musô havå á NULÌ bytå [00Hİ oî thå enä 
+     oæ thaô submacro®  Á cautioî musô bå madå aô thió pointº  Sincå yoõ  caî 
+     recursivelù  calì uğ messagå macroó froí otheò macros¬  yoõ musô bå verù 
+     carefuì iî noô causinç cycling® Thaô is¬ á macrï musô noô envokå á macrï 
+     whicè ió alreadù iî thå linkage®  Aó yoõ caî see¬  aî infinitå looğ wilì 
+     bå created¬ oò yoõ wilì ruî ouô oæ stacë space¬ oò both.
+
+3.3 -- CONSOLE KEYBOARD COMMAND SET
+===================================
+
+
+     Almosô  alì oæ thå ASCIÉ controì characteró werå useä foò thå  subsysteí 
+controì commands® Onlù CTRL-Z¬ X¬ C¬ anä Õ werå noô used® Theså keyó arå useä 
+á greaô deaì iî CP/Í functionó aó welì aó iî á numbeò oæ programó  compatiblå 
+tï  CP/M®  Thió  waó thå onlù reasoî foò noô usinç theså keyó  foò  commands® 
+Sectioî 3.2.± summarizeó alì oæ thå commands.
+
+3.3.1 -- COMMAND SET SUMMARY
+
+.CP 14
+                               CURSOR COMMANDS
+                               ===============
+
+DEFINED FUNCTION                           KEY   ASCII NOTES
+
+Cursor left                          shift [,]    1CH   #6
+Cursor right                         shift [.]    1DH   #6
+Cursor down                          shift [/]    1EH   #6
+Cursor up                            shift [-]    1FH   #6
+Cursor home                                [K]    0BH
+Cursor bottom left                         [B]    02H
+Clear screen & cursor home                 [L]    0CH
+Cursor on                                  [N]    0EH
+Cursor off                                 [O]    0FH
+
+
+.CP 13
+                                EDIT COMMANDS
+                                =============
+
+Back space                           BS or [H]    08H
+Horizontal tabulation               TAB or [I]    09H
+Delete a character on a line               DEL    7FH
+Back space then delete a char.       shift DEL    5FH   #6
+Delete a character globally                [G]    07H
+Insert a blank character on a line         [D]    04H
+Insert a blank character globally          [F]    06H
+Clear a line                         LF or [J]    0AH   #1
+Delete a line                              [Y]    19H
+Insert a blank line                        [T]    14H
+
+
+.CP 8
+                           SCREEN CONTROL COMMANDS
+                           =======================
+
+Direct video mode                          [V]   16H
+Reverse video mode                         [E]   05H
+Page mode                                  [Q]   11H
+Scroll mode                                [W]   17H
+Speed control                              [S]   13H    #2
+
+
+.CP 10Š                           MISCELLANEOUS COMMANDS
+                           ======================
+
+Printer toggle                             [P]   10H
+Line feed                            LF or [J]   0AH
+Send a line                          CR or [M]   0DH    #3
+Send two lines                             [R]   12H    #4
+Message macro flag                         [A]   01H    #5
+End of message flag                        [@]   00H    #5
+Repeat byte or macro flag                  [R]   12H    #5
+
+#1   Onlù undeò BUFFER-IÎ oò BUILÄ mode® Normaì LÆ otherwise.
+
+#2   Onlù whilå thå screeî ió activelù scrolling®  Thió commanä wilì stoğ thå 
+     scrolling®  Pressinç  ± - · wilì restarô thå scrollinç aô thå  specifieä 
+     speed®   ± ió thå slowest¬  · ió thå fastest®  Pressinç ° wilì causå thå 
+     scrolì tï gï intï singlå steğ mode»  thereafter¬  pressinç thå spacå baò 
+     wilì singlå steğ thå scroll®  Pressinç eitheò oæ ± - · wilì causå  auto-
+     scrollinç tï continuå aô thå choseî speed.
+
+#3   Onlù undeò BUFFER-IÎ oò BUILÄ mode® Normaì CÒ otherwise.
+
+#4   Undeò BUFFER-IÎ oò BUILÄ mode.
+
+#5   Undeò BUFFER-OUÔ mode.
+
+#6   Control-shifô  keù  aó  implementeä  oî thå  3rä  Generatioî  Electroniã 
+     Warehouså Keyboarä (Polleä Matriø TTL).
+
+3.3.2 -- PLACEMENT OF COMMANDS ON KEYBOARD.
+
+     Thå  keyboarä layouô oæ thå commandó foò thå 3rä  Generatioî  Electroniã 
+Warehouså Keyboarä (Polleä Matriø TTL© ió showî below® 
+
+NOTES: 
+
+*(1)  -  RETURN FROM ENTER-TEXT COMMAND
+*(2)  -  SCROLL SPEED CONTROL WHILE SCROLLING
+*(3)  -  CTRL-SHIFT GIVES BACK SPACE AND DELETE
+*(4)  -  UNCOMMITTED CONTROLS (CP/M USES THESE)
+##    -  MUST CTRL-SHIFT TO OBTAIN FUNCTION
+
+
+LEFT SIDE
+
++---------+---------+---------+---------+---------+---------+
+|         |         |         |         |         |         |
+| ESCAPE  |    1    |    2    |    3    |    4    |    5    |
+|         |         |         |         |         |         |
++---------+------+--+------+--+------+--+------+--+------+--+
+|                |        Q|        W|        E|        R|
+|    HORIZONTAL  |  PAGE   | SCROLL  | REVERSE | 2 LINE  |
+|       TAB      |  MODE   |  MODE   |  VIDEO  | RETURN  |
++---------+------+--+------+--+------+--+------+--+------+--+
+|         |         |        A|        S|        D|        F|
+|  CTRL   |  SHIFT  |  *(1)   |  *(2)   | INSERT  | INSERT  |
+|         |  LOCK   |         |         |  CHAR   | GLOBAL  |
++---------+---------+-----+---+-----+---+-----+---+-----+---+
+|         |               |        Z|        X|        C|
+|   NULL  |     SHIFT     |  *(4)   |  *(4)   |  *(4)   |
+|         |               |         |         |         |
++---------+---------------+---+-----+---------+---------+
+                              |
+                              |
+                              |
+                              +---------------------------
+
+CENTER
+
+    +---------+---------+---------+---------+---------+
+    |         |         |         |         |         |
+    |    6    |    7    |    8    |    9    |    0    |
+    |         |         |         |         |         |
+ +--+------+--+------+--+------+--+------+--+------+--+
+ |        T|        Y|        U|        I|        O|
+ | INSERT  | DELETE  |  *(4)   |   TAB   | CURSOR  |
+ |  LINE   |  LINE   |         |         |  OFF    |
+ +--+------+--+------+--+------+--+------+--+------+--+
+    |        G|        H|        J|        K|         |
+    | DELETE  |  BACK   |  CLEAR  |  HOME   |  CLEAR  |
+    | GLOBAL  |  SPACE  |   LINE  |         |  SCREEN |
++---+-----+---+-----+---+-----+---+-----+---+-----+---+
+|        V|        B|        N|        M|   ##   ,|
+| DIRECT  | BOTTOM  | CURSOR  | RETURN  | CURSOR  |
+|  VIDEO  | CURSOR  |   ON    |         |  LEFT   |
++---------+---------+---------+---------+---------+
+
+                   SPACE    BAR
+
+---------------------------------------------------
+
+
+RIGHT SIDE
+
+    +---------+---------+---------+---------+---------+
+    |   ##   -|        :|        ~|         |         |
+    | CURSOR  |         |         |  BACK   |  BREAK  |
+    |   UP    |         |         |  SPACE  |         |
+ +--+------+--+------+--+------+--+------+--+------+--+
+ |        P|        [|        ||         |         |
+ |  PRINT  |         |         |  LINE   |  DELETE |
+ |  TOGGLE |         |         |  FEED   |   *(3)  |
+ +--+------+--+------+--+------+--+------+---------+---+
+    |        ;|        @|        ]|                    |
+    |         |         |         |       RETURN       |
+    |         |         |         |                    |
++---+-----+---+-----+---+---------++---------+---------+
+|   ##   .|   ##   /|              |         |         |
+| CURSOR  | CURSOR  |    SHIFT     | REPEAT  |         |
+|  RIGHT  |  DOWN   |              |         |         |
++---------+---------+--------------+---------+---------+
+          |
+          |
+          |
+----------+
+
+3.4 -- DESCRIPTION OF THE MESSAGE MACRO PROCESSOR
+=================================================
+
+
+     Incorporateä  iî  thå  CONSOLÅ SUBSYSTEÍ ió á  messagå  macrï  processoò 
+(accesseä  througè  ENTRY-12© whicè allowó yoõ tï havå completå controì  oveò 
+youò  videï screeî and/oò printeò througè packetó oæ ASCIÉ characteró  calleä 
+messagå macros®  Thå messagå macrï processoò (hereafteò calleä MMP© useó  thå 
+controlleä outpuô processoò whicè yoõ caî accesó througè ENTRY-11® 
+
+     Upoî  entrù througè ENTRY-1² thå MMĞ expectó thå startinç addresó oæ thå 
+primarù macrï tï bå iî thå HÌ registeò pair®  MMĞ theî startó tï procesó  thå 
+macrï anä continueó untiì iô encounteró á NULÌ (00H© byte® Iô theî returnó tï 
+thå caller.
+
+     Eacè  macrï ió á packeô oæ ASCIÉ printablå anä controì characteró  endeä 
+witè á NULÌ ASCIÉ byte®  Aî asidå aô thió pointº   Therå arå á numbeò oæ wayó 
+whicè  yoõ  coulä signaì thå enä oæ á message®  Á populaò onå ió settinç  thå 
+mosô  significanô  biô  oæ á bytå high®  Thió saveó  onå  bytå  peò  message» 
+however¬  yoõ arå limiteä tï onlù thå legaì 12¸ ASCIÉ characters® Manù oæ yoõ 
+havå  reverså videï oò graphicó optionó availablå oî youò videï  controllers® 
+settinç  biô · higè woulä negatå youò uså oæ theså options®  CP/Í  recognizeó 
+thió  probleí bù usinç thå dollaò sigî [$İ aó aî enä oæ messagå signal®  But¬ 
+thió  meanó  thaô yoõ cannoô uså dollaò signó iî youò messagå  -- á  definitå 
+hindrancå iî writinç businesó software®  Thå NULÌ bytå ió seldoí availablå oî 
+ASCIÉ keyboardó anä ió verù seldoí useä iî populaò software® Thå NULÌ bytå iî 
+ouò opinioî ió thå mosô innocuouó choice.
+
+     MMĞ  haó twï maiî functionó availablå tï you¬  whicè wilì leô  yoõ  makå 
+fulì  uså  oæ thå controì commandó iî á repeatablå and/oò recursivå  way®  Iî 
+usinç  thå  submacrï functioî yoõ caî inserô otheò messagå macroó  intï  youò 
+primarù message® Yoõ caî repeaô anù ASCIÉ bytå oò submacrï througè thå repeaô 
+function.
+
+3.4.1 -- SUBMACRO FUNCTION
+         =================
+
+     Thå submacrï functioî ió á recursivå routinå whicè allowó yoõ tï  inserô 
+macroó withiî macroó withiî macros¬  etc®  Whaô doeó thió reallù mean¿  Well¬ 
+yoõ  no÷  havå thå capabilitù tï add¬  mix¬  oò matcè wordó oò  phraseó  intï 
+intelligenô messageó froí á limiteä word/phraså dictionarù oò list®  Alì thaô 
+ió necessarù is:
+
+[1]- First¬  builä  á  grouğ  oæ word/phraså macros¬  eacè pointeä tï  bù  aî 
+addresó label¬ sucè as:
+
+                WD01    DEFM    'COMMAND '
+                        DEFB    NULL
+                WD02    DEFM    'ERROR '
+                        DEFB    NULL
+                WD03    DEFM    '; REENTER '
+                        DEFB    NULL
+
+[2]- Next, build the primary macro, such as:
+
+                MSG1    DEFB    1,4
+                        DEFW    WD01,WD02,WD03,WD01
+                        DEFM    'AGAIN '
+                        DEFB    NULL
+
+[3]- Last, just send the message to the console subsystem, such as:
+
+                        LD      HL,MSG1
+                        CALL    VIDPRO
+
+Thå  firsô linå oæ MSG± contaiî thå Submacrï Functioî Commanä anä thå  numbeò 
+oæ  Submacroó tï bå imbedded®  Thå nexô linå containó thå addresseó oæ thå  ´ 
+respectivå  submacroó tï bå imbedded®  Linå threå containó thå primarù  macrï 
+characters® Thå lasô linå ió thå nulì bytå requireä tï enä thå message.
+
+Thå abovå examplå woulä say¬ "COMMANÄ ERROÒ » REENTEÒ COMMAND"®  Thió messagå 
+ió 3± characteró long®  Iô tooë 1· byteó tï builä thå primarù macro®  Iæ  yoõ 
+definå  submacroó  whicè  arå useä morå thaî once¬  yoõ caî realizå  á  greaô 
+savingó iî memory®  Yoõ havå aî oveò heaä oæ ± NULÌ bytå anä ² addresó  byteó 
+peò  submacrï  use®  Á submacrï messagå shoulä bå aô leasô siø byteó lonç  tï 
+realizå á savingó afteò thå firsô uså oæ thå submacro.
+
+3.4.2 -- REPEAT FUNCTION
+         ===============
+
+     Thió  functioî allowó yoõ tï repeaô á numbeò oæ identicaì ASCIÉ  displaù 
+oò controì bytes®  Iô alsï allowó yoõ tï repeaô á grouğ oæ submacroó á numbeò 
+oæ timeó aó well®  Thå repeaô functioî commanä ió á CTRL-R¬  [12H]®  Thå bytå 
+followinç immediatelù afteò thå commanä bytå ió thå repeaô counô byte® Iæ thå 
+bytå  followinç  thå counô bytå ió thå submacrï command¬  theî  thå  functioî 
+assumeó  thå  specifieä imbeddeä submacroó arå tï bå repeateä  thå  specifieä 
+numbeò  oæ  times®  Otherwise¬  thå functioî repeató thå bytå  specifieä  thå 
+specifieä numbeò oæ times.
+
+Example 1:
+
+               MSG2    DEFB    HOME,RPT,N1,CDN,RPT,N2,CRT,NULL
+
+Thió examplå wilì movå thå cursoò tï anù positioî oî thå screeî bù usinç onlù 
+¸ bytes®  Where:
+
+        HOME - Home cursor to upper right corner of screen.
+        RPT  - Repeat function command.
+      N1,N2  - Number of repeats specified (binary).
+        CDN  - Cursor down command.
+        CRT  - Cursor right command.
+
+
+Example 2:
+
+        MSG3    DEFB    CR,RPT,64,SPACE,PAGE,CUP,SCROLL,NULL
+
+Thió examplå wilì cleaò á linå whilå undeò scrolì mode®  Where:
+
+        CR   - Carriage return command.
+        PAGE - Set page mode command.
+      SCROLL - Set scroll mode command.
+        CUP  - Cursor up command.
+
+Aó yoõ caî seå thå functioî caî givå yoõ completå controì oveò thå screeî  oæ 
+youò  video®  Coupleä  witè  thå submacrï commanä yoõ havå  á  verù  powerfuì 
+animatioî controì oveò youò screeî witè minimaì efforô anä memorù usage.
+
+                          4.0 -- CASSETTE SUBSYSTEM
+                          =========================
+                              (RELEASE A ONLY)
+
+
+4.1 -- GENERAL DESCRIPTION
+==========================
+
+
+     Thå  CASSETTÅ SUBSYSTEÍ giveó yoõ tapå I/Ï usinç cassettå magnetiã tape® 
+Iô  wilì  drivå  thå TELETEË (DAJEN© Universaì  Cassettå  Recordeò  Interfacå 
+(UCRI)® Thå subsysteí wilì creatå TELETEË anä ZAPPLÅ formatteä fileó anä wilì 
+reaä TELETEK¬  TARBELL¬ anä ZAPPLÅ formatteä files® Thå subsysteí ió composeä 
+oæ threå sectionsº  Corå cassettå driveò routines¬  TELETEË I/Ï drivers¬  anä 
+thå ZAPPLÅ I/Ï drivers.
+
+     Thió  Subsysteí  ió onlù includeä iî Releaså Á versioî oæ  thå  monitor® 
+Releaså Â doeó noô requirå thió subsysteí sincå iô haó itó cassettå  routineó 
+builô  aó transienô commandó whicè residå oî CP/Í disë files®  However¬  thió 
+sectioî  oæ  thå  manuaì wilì helğ yoõ understanä thå  cassettå  routineó  oæ 
+Releaså Â sincå theiò actioî arå essentiallù identicaì tï Releaså A.
+
+4.2 -- SUBSYSTEM INTERFACE
+==========================
+
+
+     Foò inter-subsysteí communicationó thå CASSETTÅ SUBSYSTEÍ containó aî 1± 
+entrù  jumğ  table¬  á ² calì jumğ tablå tï thå consolå  subsystem¬  anä  onå 
+addresó pointinç tï thå subsysteí variablå worë space® Theså arå aô thå fronô 
+oæ thå subsystem® Thå entrieó arå aó follows:
+
+                  ORÇ     TBASE
+          ENTRY±  JĞ      TINIÔ   ;INITIALIZÅ THÅ SUBSYSTEM
+          ENTRY²  JĞ      ZSAVÅ   ;ZAPPLÅ WRITÅ CASSETTE
+          ENTRY³  JĞ      ZLOAÄ   ;ZAPPLÅ REAÄ CASSETTE
+          ENTRY´  JĞ      WRITÅ   ;TELETEË WRITÅ CASSETTE
+          ENTRYµ  JĞ      REAÄ    ;TELETEË REAÄ CASSETTE
+          ENTRY¶  JĞ      WROPEÎ  ;CORÅ OPEÎ WRITÅ CASSETTE
+          ENTRY·  JĞ      WRBYTÅ  ;CORÅ WRITÅ Á BYTE
+          ENTRY¸  JĞ      WRCLÓ   ;CORÅ CLOSÅ WRITÅ CASSETTE
+          ENTRY¹  JĞ      RDOPEÎ  ;CORÅ OPEÎ REAÄ CASSETTE
+          ENTRY1° JĞ      RDBYTÅ  ;CORÅ REAÄ Á BYTE
+          ENTRY1± JĞ      RDCLÓ   ;CORÅ CLOSÅ REAÄ CASSETTE
+
+The external calls are as follows:
+
+                  ORÇ     TBASE+21H
+          XCALL±  JĞ      CBASE+09È       ;UNSTROBEÄ KEÙ ENTRY
+          XCALL²  JĞ      CBASE+21È       ;BUFFEREÄ MESSAGÅ OUT
+
+     Thå   variablå   worë  spacå  beginninç  addresó  [TWORKİ   resideó   aô 
+[TBASE+27H]® Thió allowó yoõ tï changå thå worë spacå positioî withouô havinç 
+tï reassemblå thå subsystem®  Thå subsysteí obtainó thió addresó eacè timå aî 
+entrù  ió madå tï thå subsysteí anä storeó iô iî thå indeø registeò  IY®  Alì 
+thå variableó arå accesseä viá thå indeø register®  Thå variablå storagå  mağ 
+ió aó follows:
+
+          USEÄ IÎ THÅ CORÅ ROUTINÅ SECTION
+
+          TWORK+00È       SYNÃ    ;Syncronizatioî byte
+
+          USEÄ IÎ CORÅ ANÄ ZAPPLÅ SECTIONS
+
+          TWORK+01È       MODÅ    ;CASSETTÅ MODE
+                                       [00H]-writå mode
+                                       [01H]-reaä mode
+                                       [02H]-idlå mode
+
+                  USEÄ IÎ THÅ ZAPPLÅ SECTION
+
+          TWORK+02È       LASÔ    ;Lasô bytå writteî oò read
+          TWORK+03È       FCTÒ    ;[FFHİ counter
+          TWORK+04È       FENÄ    ;EOÆ flag
+
+4.³ -- CORÅ CASSETTÅ ROUTINES
+=============================
+
+
+     Theså  routineó arå thå primarù driveró whicè providå thå interfacå froí 
+thå  TELETEË  UCRÉ  tï thå monitoò anä  useò  routines®  Theså  routineó  arå 
+completelù  independenô  oæ externaì controì excepô througè calì  entrieó  tï 
+them®  Theù  caî  bå  useä foò buildinç additionaì cassettå  I/Ï  driveró  oò 
+cassettå operatioî systemó independenô oæ thå monitoò anä itó subsystems.
+
+     Thå  opeî  anä closå routineó wilì seô thå variablå [MODEİ tï [00Hİ  foò 
+writå cassette¬  [01İ foò reaä cassette¬ anä [02İ foò idle® Thió variablå caî 
+bå  useä tï optimizå youò I/Ï driveò routines®  Iô ió useä iî thå ZAPPLÅ  I/Ï 
+driveò section®  Upoî returî froí theså routineó thå carrù flaç ió seô iæ  aî 
+erroò conditioî oò aî aborô conditioî exists® Thå calleò ió expecteä tï reacô 
+appropriately.
+
+     Therå arå eighô corå routines®  Theså are:
+
+          CTINĞ  -  Inpuô á bytå froí thå cassette®  Oî return¬  thå carrù ió 
+          seô iæ aî aborô ió senseä (escapå keù ió pressed)®  Thå resô oæ thå 
+          entrieó belo÷ alsï uså thå samå returî condition.
+
+          CTOUÔ  -  Outpuô á bytå tï thå cassette.
+
+          OPINĞ  -  Seô MODÅ tï input¬  starô thå cassette¬ looë foò á propeò 
+          level¬  wheî  founä initializå thå UARÔ tï looë foò thå SYNÃ  byte¬ 
+          anä theî return.
+
+          OPOUÔ  -  Seô MODÅ tï output¬  starô thå cassette¬  outpuô one-halæ 
+          seconä oæ silence¬  outpuô 4-1/² seconä leadeò oæ NULLó (00H)¬  anä 
+          outpuô thå SYNÃ byte.
+
+          CLINĞ  -  Seô MODÅ tï idle¬ calì OFFCAS¬ theî return.
+
+          CLOUÔ  -  Seô MODÅ tï idle¬ outpuô one-halæ seconä oæ NULLs¬ outpuô 
+          one-halæ seconä oæ silence¬ theî stoğ thå cassette.
+
+          OFFCAÓ -  Coasô foò á halæ á seconä theî stoğ thå cassette.
+
+          ERROÒ  -  Calì CLINP¬ seô carrù flag¬ theî return.
+
+4.4 -- TELETEK I/O DRIVER SECTION
+=================================
+
+
+     Thå  TELETEË  I/Ï driveò sectioî wilì creaô oò writå  TELETEË  formatteä 
+fileó  anä reaä TARBELÌ oò TELETEË formatteä files®  Iô wilì writå thå entirå 
+filå  aó specifieä bù thå BÃ anä HÌ registeò pairs®  Iô wilì reaä thå  entirå 
+filå aó specifieä bù thå Á registeò anä thå BÃ anä HÌ registeò pairs® 
+
+        4.4.± -- Writinç á fileº  Thå HÌ registeò paiò ió expecteä tï contaiî 
+thå beginninç addresó oæ thå filå iî memory® Thå BÃ registeò paiò ió expecteä 
+tï contaiî thå filå sizå iî bytes® Thå filå ió writteî oî thå cassettå iî onå 
+blocë iî thå TELETEË formaô whicè ió aó follows:
+
+1.      1/² seconä oæ silenô leader.
+2.      ´ anä 1/² seconä leadeò oæ NULLó [00H].
+3.      ± clocë bytå [3CH].
+4.      ± synã bytå [E6H].
+5.      1¶ biô beginninç addresó oæ file¬ lo÷ ordeò bytå firsô theî 
+        thå higè ordeò byte¬ INTEÌ style.
+6.      1¶ biô filå sizå count¬  higè ordeò bytå firsô theî thå lo÷ 
+        ordeò bytå next.
+7.      Totaì memorù file.
+8.      Checksuí bytå oæ thå cassettå filå includinç thå thå twï 1¶ 
+        biô variables.
+9.      1/² seconä traileò oæ NULLs.
+10.     1/² seconä silenô trailer.
+
+        4.4.² -- Readinç á fileº  Twï optionó arå available®  Theså arå  REAÄ 
+TELETEË anä REAÄ TARBELL®  Registeò Á ió expecteä tï contaiî thå optioî byteº 
+[00Hİ - REAÄ TELETEK¬ [01Hİ - REAÄ TARBELL.
+
+     REAÄ TELELEË wilì expecô thå firsô fouò byteó oî thå cassettå filå tï bå 
+thå  beginninç memorù addresó anä thå filå sizå iî byteó accordinç tï TELETEË 
+format¬ anä expectó á 1¶ biô BIAÓ tï bå iî thå HÌ registeò pair® Thió BIAÓ ió 
+addeä  oî thå beginninç addresó oæ thå cassettå file®  Á runninç checksuí  ió 
+kepô whilå thå filå ió beinç reaä iî anä ió checkeä againsô thå cassettå filå 
+checksum® Iæ theù arå differenô theî á checksuí erroò messagå wilì bå senô tï 
+thå console.
+
+     REAÄ  TARBELÌ wilì expecô thå beginninç memorù addresó tï bå iî  thå  HÌ 
+registeò  paiò anä thå filå sizå tï bå iî thå BÃ registeò pair®  Thió  optioî 
+wilì  continuå  tï  reaä  thå cassettå untiì thå specifieä  memorù  blocë  ió 
+filled®  Yoõ shoulä bå cautioneä thaô iæ yoõ attempô tï reaä á cassettå  filå 
+smalleò thaî thå specifieä memorù block¬  thå routinå coulä locë up® Pressinç 
+thå ESCAPÅ keù wilì cleaò thå lock.
+
+4.5 -- THE ZAPPLE I/O DRIVER SECTION
+====================================
+
+
+     Thió sectioî wilì savå anä loaä ZAPPLÅ files® Writinç anä readinç ZAPPLÅ 
+fileó  createó  á  probleí whicè ió noô easilù solved®  Thå  cassettå  driveò 
+routinå  haó tï contenä witè knowinç wheî á filå ió starteä anä wheî  iô  haó 
+ended® ZAPPLÅ softwarå waó baseä oî TTÙ papertapå readeò anä puncè files® Thå 
+softwarå  sendó nï indicatioî oî thå starô anä enä oæ thå filå excepô thaô iô 
+useó eighô MARË byteó [FFHİ iî á sequencå foò thå beginninç anä endinç oæ thå 
+file®  Tï  alleviatå thå problem¬  thå driveò waó designeä tï anticipatå  thå 
+beginninç anä endinç oæ thå fileó bù thå followinç scheme:
+
+1.        Prioò  tï  encounterinç thå firsô calì  froí  thå  caller¬  (ZAPPLÅ 
+          software© thå cassettå driveò shoulä havå beeî properlù seô tï IDLÅ 
+          MODE® 
+
+2.        Upoî encounterinç thå firsô calì tï thå driver¬ thå driveò wilì seô 
+          thå  MODÅ tï REAÄ oò WRITÅ dependinç oî whicè calì entry¬  LOAÄ  oò 
+          SAVE.
+
+3.        Iæ  thå firsô bytå ió noô á MARË byte¬  theî aî aborô ió  initiateä 
+          (cassettå ió turneä off¬  thå driveò ió reseô tï IDLÅ MODE¬ anä thå 
+          carrù flaç ió seô upoî return).
+
+4.        Thå  driveò  wilì continuå tï receivå oò senä (savå oò load©  byteó 
+          untiì iô encounteró thå seconä seô oæ MARË bytes®  Thå driveò  theî 
+          turnó  ofæ thå recordeò afteò á fe÷ housekeepinç chores¬  resetó tï 
+          IDLÅ MODE¬ anä returnó foò thå finaì time.
+
+     Yoõ  musô  understanä  thaô thå onlù communicatioî tï  anä  froí  ZAPPLÅ 
+softwarå  ió viá thå byteó passeä tï anä froí thå I/Ï driver®  Nï  otheò  I/Ï 
+avenueó  arå established®  Thió presentó á probleí iî thå evenô thaô iæ  youò 
+ZAPPLÅ softwarå crasheó anä iî doinç sï leaveó youò cassettå recordeò on®  Tï 
+reinitializå  thå I/Ï driveò withouô wipinç youò program¬  presó thå reseô oî 
+youò  system®   Thió  wilì  reinitializå  thå  monitoò  whicè  iî  turî  wilì 
+reinitializå  thå  cassettå subsystem®  Yoõ theî caî rebooô  tï  youò  ZAPPLÅ 
+softwarå  througè itó warí rebooô vector®  Thió methoä wilì onlù worë iæ  yoõ 
+havå á systeí witè power-oî jumğ vectoring.
+
+                             5.0 DISK SUBSYSTEM
+                             ==================
+
+
+5.1 -- GENERAL DESCRIPTION
+==========================
+
+     Thió  subsysteí  tieó  CP/M¬  thå  disë operatinç  systeí  froí  Digitaì 
+Researcè  oæ  California¬  intï thå Systeí Monitoò sï thaô theù botè  acô  iî 
+concerô witè eacè other®  Wheî thå commandó COPÙ anä VERIFÙ arå envoked¬  thå 
+Systeí  Monitoò  wilì  booô  uğ CP/M¬  loaä  thå  specifieä  COPÙ  oò  VERIFÙ 
+subcommand¬  anä  theî  executå thå subcommand®  Iî ordeò tï dï thió  withouô 
+changinç  oò alterinç CP/M¬  á fe÷ trickó werå pulled®  Theså  arå  explaineä 
+below®  Essentially¬ thå Systeí Monitoò interceptó thå consolå status¬ input¬ 
+anä  outpuô  vectoró  aó welì aó thå printeò outpuô vectoò  anä  incorporateó 
+theså dynamicallù intï thå Systeí Monitoò Consolå I/Ï subsystem.
+
+
+5.2 -- SUBSYSTEM INTERFACE
+==========================
+
+     Thå subsysteí haó twï entries:
+
+        ENTRY1  JP      DINIT   ;DISK SUBSYSTEM INITIALIZATION
+        ENTRY2  JP      DMAIN   ;DISK MAIN ENTRY
+
+5.3 -- TRANSIENT COMMAND EXECUTION PROCESS
+==========================================
+
+     Thå Systeí Monitoò wilì activatå thå Disë Subsysteí tï loaä á  transienô 
+commanä  residinç  iî  á  CP/Í  disë filå wheî yoõ enteò  á  COPÙ  oò  VERIFÙ 
+subcommanä noô residenô iî memory® Thå executioî procesó ió aó follows:
+
+1.   Thå Disë Subsysteí bootó iî CP/M'ó secondarù booô residinç iî thå  firsô 
+     sectoò oæ tracë zerï oæ drivå [A]® Iô theî overlayó á returî vectoò bacë 
+     tï thå Disë Subsysteí oveò thå originaì CP/Í vectoò tï itó CCĞ executioî 
+     address®  Thå  Disë Subsysteí wilì theî jumğ tï thå loadeä booô whicè iî 
+     turî loadó iî thå resô oæ thå CP/Í system.
+
+2.   Afteò  bootinç  iî CP/Í anä returninç bacë tï thå  Disë  Subsystem¬  thå 
+     subsysteí theî determineó wherå CP/Í waó loadeä intï memorù bù obtaininç 
+     CP/M'ó BDOÓ executioî addresó whicè ió storeä aô memorù addresó [0006H].
+
+3.   Thå subsysteí theî trieó tï finä thå requesteä COPÙ oò VERIFÙ subcommanä 
+     utilitù filå oî thå disk®  Iæ noô successfuì theî thå erroò messagå "NOÔ 
+     FOUND¢  ió  displayeä oî thå consolå anä thå Systeí Monitoò  returnó  tï 
+     commanä entrù mode.
+
+4.   Iæ  thå  subcommanä utilitù ió found¬  thå  utilitù  ió  loaded¬  Systeí 
+     Monitoò  restarô  ió  pusheä ontï thå stack¬  anä thå  utilitù  ió  theî 
+     executeä bù jumpinç tï locatioî [0100H].
+
+
+5.4 -- SUBSYSTEM BOOT ROUTINE
+=============================
+
+     Thå subsysteí booô routinå ió identicaì tï thå CP/Í primarù booô routinå 
+residinç  iî  itó BIOÓ section¬  witè thå exceptioî thaô iô changeó thå  exiô 
+vectoò  oæ  thå  secondarù booô tï poinô bacë tï thå  subsyteí  aó  explaineä 
+above®  Thå booô iî thå presenô releaså oæ thió Systeí Monitoò ió  compatiblå 
+tï thå S.D® Saleó Versafloppù Controller® Iæ yoõ havå á differenô controller¬ 
+theî yoõ musô replacå thå booô witè yours®  Seå sectioî 7.° oî implementatioî 
+foò detaileä instructions.
+
+                          6.0 I/O VECTOR SUBSYSTEM
+                          ========================
+
+
+6.1 -- GENERAL DESCRIPTION
+==========================
+
+     Thió  subsysteí  implementó  thå INTEÌ I/Ï  vectoò  assignmenô  standarä 
+througè  thå "IOBYTE¢ function®  Thå subsysteí allowó yoõ tï flexiblù  assigî 
+anä  reassigî  physicaì  I/Ï  deviceó tï  logicaì  I/Ï  oæ  youò  applicatioî 
+software® Thå monitoò itselæ doeó noô uså thå "IOBYTE¢ function¬ howeveò thió 
+subsysteí wilì supporô fouò typeó oæ logicaì I/Ï deviceó defineä bù thå INTEÌ 
+I/Ï  assignmenô standard®   Theså arå thå console¬  reader¬  punch¬  anä lisô 
+devices®   Eacè oæ theså iî turî caî bå anù onå oæ fouò physicaì I/Ï devices® 
+Thå  subsysteí  presentlù  supportó á keyboarä anä á  videï  displaù  aó  thå 
+consolå device¬ anä á linå printeò aó thå lisô device® Iî addition¬ Releaså Á 
+oæ  thå  monitoò  supportó cassettå inpuô aó thå readeò devicå  anä  cassettå 
+outpuô aó thå puncè device®  Releaså Â wilì immediatelù returî tï thå  calleò 
+witè  thå  CARRÙ flaç SEÔ foò botè readeò anä puncè  devices®  Thå  subsysteí 
+containó  á  vectoò tablå foò additionaì deviceó yoõ maù wanô  tï  add®  Thió 
+allowó yoõ tï havå 1¶ differenô combinationó oæ assigneä devices.
+     Sincå  thå  otheò subsystemó oæ thió monitoò dï noô uså thió  subsystem¬ 
+yoõ  maù  deletå  iô  froí thå monitoò packagå  iæ  yoõ  sï  desire®  Iô  waó 
+implementeä  foò youò benifit®  However¬  thió subsysteí pointó tï I/Ï driveò 
+routineó  iî  thå consolå anä cassettå (Releaså Á only©  subsystemó  anä  thå 
+memorù  tesô routinå oæ thå monitoò commanä subsystem®  Therefore¬  yoõ  musô 
+keeğ thoså subsystemó intacô iæ yoõ uså thió subsystem.
+
+
+6.2 -- SUBSYSTEM INTERFACE
+==========================
+
+     Thå  subsysteí implementó thå XITAÎ (formerlù TDL© I/Ï vectoò jumğ tablå 
+formaô  anä ió compatiblå tï ZAPPLÅ software®  Thió tablå ió locateä  aô  thå 
+fronô oæ thå subsystem® Thå tablå is:
+
+                ORG     IOBASE
+        ENTRY0  JP      START   ;COLD START OF THE MONITOR
+        ENTRY1  JP      CINP    ;CONSOLE INPUT
+        ENTRY2  JP      RINP    ;READER INPUT
+        ENTRY3  JP      COUT    ;CONSOLE OUTPUT
+        ENTRY4  JP      POUT    ;PUNCH OUTPUT
+        ENTRY5  JP      LOUT    ;LIST OUTPUT
+        ENTRY6  JP      CSTA    ;CONSOLE STATUS
+        ENTRY7  JP      IOCH    ;I/O CHECK
+        ENTRY8  JP      IOST    ;I/O SET
+        ENTRY9  JP      MTST    ;MEMORY TEST
+        ENTRY10 JP      RESTRT  ;WARM START OF THE MONITOR
+
+6.3 -- DYNAMIC PERIPHERAL ALLOCATION
+====================================
+
+      "IOFLAG¢ ió composeä oæ fouò two-biô fieldó whicè designatå thå typå oæ 
+peripheraì devicå requesteä foò thå specifiã I/Ï required®  Thå propeò IOFLAÇ 
+bytå caî bå obtaineä iî binarù forí asº [LLPPRRCC]
+
+        Where,
+
+        CC  -  Console device two bit code
+                00  -  TTY I/O
+                01  -  Keyboard/CRT I/O
+                10  -  Batch I/O
+                11  -  User defined I/O
+
+        RR  -  Reader  device two bit code
+                00  -  TTY Papertape
+                01  -  Cassette
+                10  -  Hi-speed Tape
+                11  -  User defined
+
+        PP  -  Punch   device two bit code
+                00  -  TTY Papertape
+                01  -  Cassette
+                10  -  Hi-speed Tape
+                11  -  User defined
+
+        LL  -  List    device two bit code
+                00  -  TTY Print
+                01  -  CRT Display
+                10  -  Line Printer
+                11  -  User defined
+
+     Thå  monitor'ó  defaulô modå ió [10010101İ oò [95H]®  Thió  defineó  thå 
+keyboarä anä videï aó console¬  cassettå inpuô aó reader¬  cassettå outpuô aó 
+punch¬  anä  linå  printeò aó list®  Aî examplå oæ ho÷ yoõ caî reassigî  youò 
+systeí  configuratioî ió aó follows®  Supposå yoõ requirå ASÒ TTÙ  I/O®  Theî 
+settinç CÃ ½ 00¬ RÒ ½ 00¬ PĞ ½ 00¬ anä LÌ ½ 0° giveó yoõ 00È aó thå IOBYTE.
+
+
+6.4 -- NEW I/O DRIVERS
+======================
+
+     Tï adä ne÷ I/Ï driveró oò reconfigurå thå existinç oneó yoõ musô  changå 
+thå  I/Ï  driveò addresó tablå tï reflecô thå changes®  Thå tablå ió  locateä 
+jusô afteò thå ZAPPLÅ jumğ vectoró anä is:
+
+                ORG     IOBASE+23H
+        ;CONSOLE INPUT
+                DEFW    KEYIN   ;TTY INPUT
+                DEFW    KEYIN   ;KEYBOARD INPUT
+                DEFW    KEYIN   ;BATCH INPUT
+                DEFW    KEYIN   ;USER DEFINED INPUT
+        ;READER INPUT (Release A only)
+                DEFW    CASSIN  ;TTY READER INPUT
+                DEFW    CASSIN  ;HI-SPEED TAPE INPUT
+                DEFW    CASSIN  ;CASSETTE INPUT
+                DEFW    CASSIN  ;USER DEFINED READER INPUT
+        ;CONSOLE OUTPUT
+                DEFW    VIDOUT  ;TTY OUTPUT
+                DEFW    VIDOUT  ;VIDEO OUTPUT
+                DEFW    PRTOUT  ;BATCH OUTPUT
+                DEFW    VIDOUT  ;USER DEFINED OUPUT
+        ;PUNCH OUTPUT (Release A only)
+                DEFW    CASOUT  ;TTY OUTPUT
+                DEFW    CASOUT  ;HI-SPEED TAPE OUTPUT
+                DEFW    CASOUT  ;CASSETTE OUTPUT
+                DEFW    CASOUT  ;USER DEFINED PUNCH OUTPUT
+        ;LIST OUTPUT
+                DEFW    PRTOUT  ;TTY OUTPUT
+                DEFW    VIDOUT  ;VIDEO OUTPUT
+                DEFW    PRTOUT  ;PRINTER OUTPUT
+                DEFW    PRTOUT  ;USER DEFINED LIST OUTPUT
+        ;CONSOLE STATUS
+                DEFW    CSTAT   ;TTY STATUS
+                DEFW    CSTAT   ;KEYBOARD STATUS
+                DEFW    CSTAT   ;BATCH STATUS
+                DEFW    CSTAT   ;USER DEFINED INPUT STATUS
+
+     Alì oæ thå addresó pointeró arå assigneä tï existinç I/Ï driveò routineó 
+sï thaô youò softwarå doeó noô locë uğ iæ yoõ assigneä aî IOBYTÅ whicè pointó 
+tï  á  physicaì  devicå  thaô  ió noô availablå yet®  Iô  ió  uğ  tï  yoõ  tï 
+reconfigurå thå addresseó tï youò ne÷ I/Ï drivers.
+
+     Bå awarå thaô aî addresó pointeò [WBASEİ existó betweeî thå ZAPPLÅ  jumğ 
+tablå  anä thå I/Ï addresó pointeò table®  Thió addresó [IOBASE+21Hİ  defineó 
+thå  monitoò  variablå worë spacå baså address®  Thió subsysteí needó  iô  tï 
+poinô tï thå IOBYTÅ storagå location® Thå IOBYTÅ storagå locatioî ió expecteä 
+tï bå aô [WBASE-4DH].
+
+                            7.0 -- IMPLEMENTATION
+                            =====================
+
+
+7.1 -- GENERAL DESCRIPTION
+==========================
+
+     Thió  sectioî  describeó  thå implementioî oæ thå  Systeí  Monitor®  Thå 
+Systeí Monitoò ió implementeä bù usinç á statiã loader®  Thió loadeò containó 
+thå  monitoò mappeä aô pagå zero®  Thå loadeò alsï containó á biô  mağ  whicè 
+pointó  tï alì oæ thå pagå addresseó (thå higè bytå oæ thå 1¶ biô address© iî 
+thå  monitoò whicè changå wheî thå monitoò ió mappeä aô á differenô  locatioî 
+otheò thaî pagå zero.
+
+     Systeí  Monitor¬  Releaså  A¬  comeó  oî  á  Tarbell/Teleteë  compatiblå 
+cassette®  Systeí Monitor¬ Releaså Â comeó oî á CP/Í compatiblå diskette® Thå 
+loadinç procedurå ió thå samå iî eitheò caså excepô aó explaineä  below®  Thå 
+loadeò  allowó  yoõ tï changå thå prograí baså location¬  thå videï RAÍ  baså 
+location¬  thå variablå RAÍ baså location¬  consolå I/Ï port¬  polarity¬  anä 
+masë  parameters¬  anä thå cassettå I/Ï porô numberó (Releaså Á  only)®  Thió 
+giveó  yoõ  completå flexibilitù iî implementinç thå  monitor®  Iæ  yoõ  havå 
+Releaså  B¬  yoõ  musô  changå thå cassettå porô numberó  separatelù  iî  thå 
+transienô commanä fileó "COPYMT.SMC¢ anä "COPYTM.SMC"
+
+
+7.2 -- RELEASE A LOADING PROCEDURE
+==================================
+
+     Tï  loaä thå cassettå filå yoõ musô havå á Tarbelì oò Teleteë compatiblå 
+cassettå  loadeò alreadù available®  Reaä Sectioî  4.0¬  CASSETTÅ  SUBSYSTEM¬ 
+prioò tï attemptinç tï loaä thå file®  Thå filå ió iî Teleteë format®  Iæ yoõ 
+havå á Tarbelì loadeò yoõ musô bypasó thå firsô fouò byteó oî thå file¬  thaô 
+is¬  yoõ  musô  loaä  thå filå startinç aô [00FCHİ insteaä  oæ  [0100H]®  Thå 
+Tarbelì loadinç procedurå ió thå samå aó thå monitor'ó Teleteë loaä  specifiã 
+procedurå  aó  explaineä iî sectioî 4.0®  Theså fouò byteó specifù  thå  baså 
+addresó  anä thå numbeò oæ byteó tï loaä foò automatiã loadinç undeò  Teleteë 
+loadinç  procedures®  Aó  witè  thå CP/Í versioî thió loadeò  ió  loadeä  anä 
+executeä  aô [0100H]®  Twï pairó oæ copieó oæ thå cassettå versioî ió oî  thå 
+cassettå  tape®  Thå  firsô paiò ió recordeä aô Tarbelì standarä speeä  [150° 
+baudİ anä thå seconä ió recordeä aô Teleteë standarä speeä [250°  baud]®  Thå 
+copieó werå recordeä iî pairó foò redundency.
+ 
+     Thå  cassettå versioî requireó twï I/Ï vectoró tï communicatå witè  you® 
+Thå  CP/Í versioî useó thå BDOÓ I/Ï commandó buô thå cassettå versioî  cannoô 
+assumå  that®  So¬  yoõ  musô  patcè theså vectoró intï thå loadeò  prioò  tï 
+executinç it® Thå vectoró arå locateä at:
+
+        0103    JP      CONINP  ; CONSOLE INPUT
+        0106    JP      CONOUT  ; CONSOLE OUTPUT
+
+Consolå  inpuô assumeó thå inpuô bytå ió iî registeò A®  Thå  consolå  outpuô 
+sendó  thå outpuô bytå iî registeò C®  Thå loadeò assumeó thaô onlù  registeò 
+pairó AÆ anä BÃ change® 
+     Oncå  thå loadeò ió loadeä anä patcheä yoõ maù executå iô bù jumpinç  tï 
+locatioî [0100H].
+
+7.2 -- RELEASE B LOADING PROCEDURE
+==================================
+
+     Alì  thaô  ió necessarù ió tï executå filå "SYSMON.COM¢ whicè ió oî  thå 
+CP/Í diskettå thaô comeó witè thå monitor®  Thå filå wilì prompô yoõ foò  thå 
+necessarù informatioî aó explaineä iî sectioî 7.´ below.
+
+
+7.4 -- EXECUTION OF LOADER
+==========================
+
+     Thå LOADEÒ wilì prompô yoõ foò á numbeò oæ parameters¬ eacè oæ whicè haó 
+á  defaulô  value®  Iæ  yoõ  wanô thå defaulô tï stanä theî  jusô  presó  thå 
+[RETURNİ key® Iæ yoõ makå aî inpuô erroò iî anù oæ thå parameters¬ thå loadeò 
+wilì  reprompô  you®  Thå LOADEÒ wilì asë foò thå parameteró iî  sequencå  aó 
+follows:
+
+        PROGRAM BASE PAGE ADDRESS
+
+        BIAS ADDRESS
+
+        VIDEO RAM BASE ADDRESS
+
+        MONITOR RAM WORK BASE ADDRESS
+
+        CONSOLE INPUT PARAMENTERS
+           STATUS PORT NUMBER
+           STATUS POLARITY
+           STATUS MASK
+           DATA PORT NUMBER
+           DATA PORT POLARITY
+
+        PRINTER OUTPUT PARAMETERS
+           STATUS PORT NUMBER
+           STATUS POLARITY
+           STATUS MASK
+           DATA PORT NUMBER
+           DATA POLARITY
+        ASKS IF THERE IS A PRINTER BUSY/OFF-LINE PORT
+        IF SO THEN ASKS FOR:
+           BUSY PORT NUMBER
+           BUSY POLARITY
+           BUSY MASK
+
+        CASSETTE I/O PORT BASE (Release A only)
+
+        COMPLETION JUMP ADDRESS
+
+7.4.± -- Prograí baså pagå address.
+
+     Thå  monitoò  caî  onlù  bå loadeä oî pagå  boundarieó  becauså  oæ  thå 
+requirementó oæ thå statiã loader®  Onlù á twï characteò hexadecimaì  addresó 
+ió allowed®  Eÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿloaä thå monitoò tï aî  areá  otheò 
+thaî thå mappeä location® Therå arå á numbeò oæ advantageó iî doinç this® Thå 
+primarù onå ió thaô iæ yoõ wanteä tï mağ thå monitoò intï thå spacå wherå thå 
+statiã loadeò resideó [0100È tï 2100H]¬  iô woulä noô bå possiblå withouô thå 
+bias¬  aó  thå  procesó oæ mappinç woulä destroù thå loadeò oò thå zerï  pagå 
+copù oæ thå monitor®  Thå biaó ió á positivå bias¬ thaô is¬ thå biaó ió addeä 
+tï thå mappeä addresses®  Exampleº  Iæ thå monitoò ió tï bå mappeä aô  1000H¬ 
+anä thå biaó addresó [6000Hİ waó entered¬ theî thå relocateä monitoò woulä bå 
+aô  [7000H]®  Negativå  biasinç  ió  easilù accomplisheä bù  usinç  thå  twoó 
+complemenô oæ thå absolutå bias®  Exampleº  Iæ thå monitoò ió tï bå mappeä aô 
+[D000H]¬  anä yoõ wanteä thå relocateä copù tï bå aô [8000H]¬ theî thå propeò 
+biaó woulä bå [B000H].
+
+
+7.4.3 -- Video RAM base address.
+
+     Thå  loadeò  wilì patcè iî thå baså addresó afteò thå monitoò  haó  beeî 
+relocated® Thió patcè locatioî ió iî thå fronô enä oæ thå consolå subsystem.
+
+
+7.4.4 -- Variable RAM base address.
+
+     Thå  variablå  RAÍ  baså addrgÿÿÿÿÿÿÿÿÿÿÿÿÿÿ  biô  address®  Thå  loadeò 
+patcheó thå variablå RAÍ baså addresó pointeró foò eacè respectivå subsystem® 
+Thå  baså  addresó  pointeró residå iî eacè subsysteí jusô  afteò  thå  entrù 
+vectors® Seå thå sourcå listinç iî Appendiø A.
+
+Thå monitoò mapó itó variablå locationó aó follows:
+
+        BASE:   0000H   ; START OF VARIABLE RAM AREA
+                        ; AND END OF STACK AREA
+        STACK:  0040H   ; STACK BASE ADDRESS
+        MBASE:  0090H   ; COMMAND SUBSYSTEM BASE ADDRESS
+                        ; AND INPUT BUFFER BASE ADDRESS
+        CBASE:  0110H   ; CONSOLE SUBSYSTEM BASE ADDRESS
+        TBASE:  0120H   ; CASSETTE SUBSYSTEM BASE ADDRESS
+        DBASE:  0130H   ; DISK SUBSYSTEM BASE ADDRESS
+        END:    013FH   ; END OF VARIABLE RAM AREA
+
+Thå  detaileä  mappinç foò eacè subsysteí ió describeä  iî  theiò  respectivå 
+subsysteí sections® Makå surå thaô yoõ havå enougè rooí foò thå STACË area.
+
+
+7.4.5 -- Console input and printer parameters.
+
+     Thå  consolå  inpuô  anä printeò parameteò specificatioî allowó  yoõ  tï 
+patcè  iî youò keyboarä anä printeò withouô resortinç tï writinç aî  assemblù 
+patcè  anä movinç iô intï thå monitoò area®  Thå LOADEÒ relieveó yoõ oæ  thió 
+chore® Jusô enteò thå informatioî aó specifieä anä yoõ shoulä havå thå propeò 
+setup® 
+
+     Port Number - Enter the port number in hexadecimal.
+     Polarity    - Enter a "P" for positive polarity.
+                   Enter an "N" for negative polarity.
+     Mask        - Enter the mask in hexadecimalŠ     Questions   - Answer questions with "Y" or "N" for
+                   yes and no respectively.
+
+
+7.4.6 -- Cassette port base.
+
+    Thió LOADEÒ inpuô requesô ió foò Releaså Á only® Jusô enteò thå porô baså 
+oæ youò UCRÉ iî hexadecimal.
+
+
+7.4.7 -- Completion jump address.
+
+     Thió  addresó  ió thå exiô addresó whicè thå loadeò wilì jumğ  tï  afteò 
+completioî oæ thå loadinç oæ thå monitor.
+
+
+7.5 -- FINAL NOTE
+=================
+
+     Iæ  yoõ arå havinç problemó loadinç anä runninç thå monitor¬  makå  surå 
+yoõ arå mappinç thå monitoò properly¬  anä havå reaä alì oæ thå documentatioî 
+oæ  thió USER'ó MANUAL®  Theî seå youò distributoò oò givå uó á linå oî  youò 
+problem® Wå wilì solvå youò probleí aó expeditiouslù aó possible®
+
+                        8.0 -- USER WRITTEN COMMANDS
+                        ============================
+
+
+8.1 -- GENERAL DESCRIPTION
+==========================
+
+     Twï typeó oæ commandó arå useä iî thå monitor»  memorù residenô commandó 
+anä  disë  filå transienô commands®  Yoõ maù creatå ne÷ commandó  foò  eitheò 
+type®  Thå  monitoò  waó designeä sï thaô yoõ woulä havå minimaì problemó  iî 
+linkinç theså routineó intï thå monitor®  Belo÷ arå instructionó anä cautionó 
+oî implementinç botè typeó oæ commanä routines.
+
+
+8.2 -- RESIDENT COMMANDS
+========================
+
+     Thå  residenô commanä routineó arå mosô likelù thå hardesô  routineó  tï 
+desigî anä incorporate® Yoõ musô properlù inserô thå routinå ontï thå bacë oæ 
+thå  monitoò  prograí space®  Yoõ theî musô patcè thå monitoò commanä  vectoò 
+table® Iæ yoõ havå commanä entrù subfields¬ yoõ musô follo÷ thå commanä inpuô 
+protocoì whicè implieó thaô yoõ musô kno÷ thå monitoò prograí intimately.
+
+     Alì oæ thå subsystems¬ witè thå exceptioî oæ thå commanä subsystem¬ havå 
+fronô  enä  entrù  vectors®  Theså arå explaineä iî eacè  oæ  thå  respectivå 
+subsysteí  sections®  Thå commanä subsysteí haó á numbeò oæ usablå  routines¬ 
+toï  numerouó tï incorporatå intï á vectoò table®  Theså routineó arå  listeä 
+anä explaineä iî SECTIOÎ 2.6® Á samplå residenô routinå "UNLOAD¢ ió listeä iî 
+APPENDIØ  Ã  tï sho÷ ho÷ yoõ caî implemenô youò own®  Alì wå caî  saù  ió  tï 
+experimenô anä dï youò owî thing.
+
+     Oncå  yoõ  havå  youò routinå writteî anä loadeä ontï thå  bacë  oæ  thå 
+monitoò  alì  thaô  ió lefô ió tï patcè thå entrù tï youò  routinå  intï  thå 
+primarù  commanä  table®  Referencå thå commanä subsysteí sourcå  listinç  iî 
+APPENDIØ Á foò thå actuaì location.
+
+     Yoõ  maù  wanô tï takå advantagå oæ thå COPÙ anä VERIFÙ  commanä  vectoò 
+tableó insteaä oæ thå primarù commanä table®  Yoõ maù alteò theså iî thå samå 
+waù  aó thå primarù commanä table®  Reaä thå subsectioî [2.5.³ oò 2.5.22İ  oî 
+theså  commandó  beforå attemptinç tï dï so®  Again¬  referencå  thå  monitoò 
+commanä subsysteí listinç iî APPENDIØ A.
+
+
+8.3 -- TRANSIENT COMMANDS
+=========================
+
+     Thoså  oæ yoõ whï havå á disë systeí witè thå CP/Í Disë Operatinç Systeí 
+oò  onå  oæ itó derivativeó havå aî alternativå methoä oæ  incorporatinç  ne÷ 
+commandó  intï  thå monitor®  Thió allowó yoõ tï brinç  iî  routineó  withouô 
+permanentlù  usinç uğ memorù space¬  anä alsï allowó yoõ tï takå advantagå oæ 
+thå CP/Í BDOÓ I/Ï commands®  Youò routineó caî bå essentiallù independenô  oæ 
+thå  monitoò  sincå thå monitoò onlù requireó thaô yoõ havå á  filå  NAME.TYĞ 
+whicè  ió compatiblå tï thå COPÙ oò VERIFÙ commanä set®  Thå monitoò wilì trù 
+tï finä thå specifieä transienô file¬  anä iæ found¬ iô wilì loaä anä executå 
+iô jusô aó thå CP/Í CCĞ would®  Tï returî tï thå monitor¬ jusô issuå á REÔ aó 
+thå  lasô  assemblù  instructioî  oæ thå routinå  (assuminç  yoõ  kepô  stacë 
+integrity).
+
+     Releaså  Á  oæ thå monitoò doeó noô comå witè  anù  transienô  commands® ŠTheså wilì becomå availablå undeò separatå purchase®  Iæ yoõ havå thå Releaså 
+Â versioî oæ thå monitor¬ á samplå routinå witè thå filå namå "COPYTT.SMC¢ ió 
+oî  thå  diskettå witè thå loadeò "SYSMON.COM"®  Uså thió filå tï checë  youò 
+disë  interfacing®  Enteò  thå commanä [C.TTcr]®  Thå filå  shoulä  loaä  anä 
+executå witè thå message:
+
+        SAMPLE EXECUTION FILE FOR PCE SYSTEM MONITOR
+        USING COPY COMMAND [C.TT]
+        IF YOU HAVE GOTTEN THIS FAR, YOU HAVE SUCCESSFULLY
+        EXECUTED A TRANSIENT FILE
+        PRESS <RETURN> KEY TO RETURN TO MONITOR
+
+     Thå samplå transienô commanä sourcå ió listeä iî APPENDIØ C.
+

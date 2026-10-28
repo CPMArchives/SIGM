@@ -1,0 +1,445 @@
+Sig/M volume 21		miscellaneous Pascal Z utilities
+
+	(original materials from Pascal Z User Group volume 3)
+	
+	-CATALOG.021		contents of Sig/M volume 21
+	ABSTRACT.021		comments on Sig/M volume 21	
+	CRCKFILE.021		CRC of Sig/M volume 21
+
+	Name		Size	Description
+
+21.1	AUTHOR.PAS	10K	general purpose "keyword in text"
+21.2	AUTHOR.COM	11K	   /
+21.2a	ADDRESS		 1K	  /
+21.2b	BYTE.MAG	 1K	 /
+21.2c	S100.MAG	 1K	/
+21.3	CALC.PAS	12K	calculator mode program
+21.4	CALC.COM	16K	/
+21.5	CPLOT.PAS	 2K	simple banner program
+21.6	CPLOT.COM	 5K	/
+21.7	DELAY.PAS	 1K	general Pascal Z utilities
+21.8	DELAY.REL	 1K	       /
+21.9	DELAY.SRC	 1K	      /
+21.10	INPORT.REL	 1K	     /
+21.11	INPORT.SRC	 1K	    /
+21.12	OUTPORT.REL	 1K	   /
+21.13	OUTPORT.SRC	 1K	  /
+21.14	KEYIN.REL	 1K	 /
+21.15	KEYIN.SRC	 1K	/
+21.16	NAD.PAS		10K	permuted keyword index program
+21.17	NAD.COM		11K	/
+21.18	TDIABLO.MAC	 6K	driver for Diablo w/Teletek FDC-1
+21.19	TDIABLO.COM	 1K	/
+21.20	DIABLO.Z80	 5K	driver for Diablo w/SD Systems S100
+21.21	DIABLO.COM	 1K	/
+21.22	RANDOM.PAS	 2K	Fibonacci random number generator
+21.23	RANDOM.REL	 1K	 /
+21.24	RANDOM.SRC	 4K	/
+21.25	REBOOT.COM	 1K	rebooting desired file  
+21.26	STRLIB.LIB	12K	Pascal Z library
+21.27	WUMPUS.PAS	12K	Wumpus game in Pascal Z
+21.28	WUMPUS.COM	15K	      /
+21.29	WUMPUS.DOC	 4K	     /
+21.30	CAVE0		 1K	    /
+21.31	CAVE1		 1K	   /
+21.32	CAVE2		 1K	  /
+21.33	CAVE4		 1K	 /
+21.34	CAVE5		 1K	/
+21.35	ENTRY.PAS	 6K	creating SRC files
+21.36	ENTRY.COM	 9K	 /
+21.37	ENTRY.DOC	 6K	/
+21.38	PEEK.PAS	 2K	peek and poke in Pascal Z
+21.39	POWERI.PAS	 1K	demo program on powers of numbers
+21.40	POWERI.COM	 7K	 /
+21.41	POWERI.REL	 2K	/
+21.42	RDR.PAS		 7K	an alpha-numeric numbers conversion program
+21.43	DU.Z80		29K	updated disk utility using Z80 code
+21.44	DU.COM		 4K	 /
+21.45	DU.DOC		 1K	/
+
+
+
+
+  ThingÛ havÂ beeÓ goinÁ sÔ fasÙ thaÙ thÂ diskÛ havÂ beeÓ rollinÁ ç
+ouÙ beforÂ an˘ feed-bacÎ haÛ beeÓ receivedÆ  SÔ aÛ oÊ no˜ … don'Ù ç
+kno˜ iÊ anyonÂ likeÛ whaÙ wÂ goÙ oÚ notÆ  BuÙ aÛ lonÁ aÛ yoı ç
+folkÛ wilÏ sen‰ mÂ stufÊ … wilÏ ediÙ iÙ an‰ publisË itÆ   IÙ ç
+lookÛ likÂ volumÂ #¥ shoul‰ bÂ · littlÂ slowerÆ  BuÙ … havÂ somÂ ç
+peoplÂ … haven'Ù aske‰ yeÙ foÚ donationÛ sÔ whÔ knowÛ whaÙ I'lÏ ç
+bÂ ablÂ tÔ draÁ ouÙ oÊ thÂ woodwork.
+     …† waÛ goinÁ tÔ havÂ · Read.MÂ filÂ oÓ eacË disÎ buÙ … foun‰ ç
+thaÙ unlesÛ … ha‰ · loÙ tÔ sa˘ iÙ waÛ jusÙ noÙ neededÆ  SÔ unlesÛ ç
+something special comes along I'll just stick to this format.
+
+
+1.   AUTHOR.PAS/COM--A general purpose "keyword in context"
+                     program. Includes samples.
+
+2.   CALC.PAS--Here is your built in calculator adapted to 
+               Pascal/Z.  The number crunchers among us should
+               take this and expand it to its limit.  But its
+               got good potential as is, now just patch it so
+               the results go to either the printer or the
+               disk and then you'll have a permenent record.
+
+3.   CPLOT.PAS/COM--A simple banner idea but useful for simple
+                    designs, just to be different.
+
+4.   DELAY.PAS/REL/SRC--Ray Penley tells me I goofed by not
+     INPORT.REL/SRC     including these in with the volume #1.
+     OUTPORT.REL/SRC    So here they are and let me know of any
+     KEYIN.REL/SRC      other goofs.
+
+5.   NAD.PAS/COM--A general purpose "Permuted keyword index"
+                  program. A good start but needs to be up
+                  gradeds to become classy.
+
+6.   TDIABLO.MAC/COM--Driver for Diablo which works for the
+                      Teletek FDC-1 board.
+
+7.   DIABLO.Z80/COM--Driver for Diablo which works for the
+                     SD System S-100.
+
+8.   RANDOM.PAS/COM--This random generator implements the
+                     Fibonacci series approach.
+
+9.   REBOOT.COM--In volume #1 I included a Autoboot program.
+                 This is an example of ideas breeding ideas.ä                 Tim Oleseo saw it and said there is a
+                 better way. In this one you type----
+                    REBOOT yourfilesdesire cr
+                 and that's it. To remove an entry---
+                    REBOOT cr
+                 Simple huh!
+    
+10.  STRLIB.LIB--The begining of a library, some good stuff.
+
+11.  WUMPUS.PAS/COM/DOC--Nothing need to be said about this
+     CAVES               game but it is Pascal 3.0 and also
+                         it has Caves that can be added to,
+                         so for you game freaks, get hot and
+                         put your ideas in some strange
+                         caves.
+12.  ENTRY.PAS/COM/DOC--Tutorial on how to make external
+                         SRC files with examples. Needed by
+                         all of us beginners.
+13.  PEEK.PAS--A peek and poke in Pascal/Z yet.  Who knows
+               you might need it.
+14.  POWERI.PAS/REL/COM--A demo, but useful program for 
+                         powers of numbers.
+15.  RDR.PAS--A Alpha-numeric numbers conversion program.
+
+Documentation of various original programs written
+by Ward Christensen
+
+		----DU.ASM----
+OVERVIEW:
+	Originally written to reconstruct erased directories,
+or directories where info was overlaid.  Thus allows dumping,
+by group, track, sector, filename, etc. and patching.  Allows
+ascii or hex scan of the disk.  Maps the location of files
+on the disk by group.  You should know the format of a CP/M
+disk if you're going to diddle with DU.
+
+USAGE:
+	DU.ASM provides an overview of the file.  DU has a
+built in help function ? which tells the format of all
+commands.
+
+DEPENDENCIES:
+	"Standard CP/M 8" disks" - i.e. 77 tracks,
+directory at track 2.  Standard CP/M scramble factor
+(but could be changed in the .ASM file) etc.  It also works
+on such disks as Northstar CP/M 1.4 which the excellent
+Lifeboat BIOS make "look" like full sized disks in terms of
+sector/track etc.
+
+
+            Documentation For Program ENTRY.COM
+
+                             by
+                      Robert H. Harsch
+                     ph: (916) 487-2216
+             2362 American River Dr., Suite 311
+                   Sacramento, Ca. 95825.
+                    All rights reserved.
+
+    A utility program to "automatically" insert entry points
+into SRC extenstion files for PASCAL/Z programs; thus, making
+easier the process of linking seperately compilied external
+pascal procedure/functions to main programs.
+
+DIRECTIONS FOR USE OF PROGRAM WITH EXAMPLE:
+
+1. Create the main calling program.  For example
+   file MAINPRG.PAS:
+
+    PROGRAM MAINPRG;
+    TYPE
+	VECTORTYPE = ARRAY [ 1..10 ] OF INTEGER;
+    
+    PROCEDURE SUM( VAR RESULT: INTEGER; VAR V: VECTORTYPE);	EXTERNAL; { external procedure reference, functions
+		    may also be used accordingly }
+    VAR
+	I, RESULT: INTEGER;
+	VEC: VECTORTYPE;
+
+    BEGIN { of main program }
+	FOR I:= 1 TO 10 DO
+		VEC[ I ]:= I; { initialize vector for example }
+	SUM(RESULT, VEC); { call external routine }
+	WRITELN(RESULT) { prints 55 as the answer }
+    END.
+
+
+
+
+2. Create the external routine(s) from the text editor.
+   To continue the above example lets say we create
+   the file EXTERN.PAS:
+
+    PROGRAM EXTERN; { external program procedure }
+    TYPE VECTORTYPE = ARRAY [ 1..10 ] OF INTEGER;
+	{ parameters must be passed through the
+	  procedure/function heading, not through global
+	  variables }
+	PROCEDURE SUM( VAR RESULT: INTEGER; VAR V: VECTORTYPE);
+	VAR I: INTEGER;
+			{$i+ see complier directives, puts
+			     next line of source into file
+			     EXTERN.SRC after compliation }
+			{@SUM -- name of external routine }
+			{$i- turn off complier directive }
+		BEGIN
+			RESULT:= 0;
+			FOR I:= 1 TO 10 DO
+				RESULT:= RESULT + V[I]
+		END; { of procedure sum }
+    BEGIN
+		{ Dummy BEGIN and END exist only
+		for syntax purposes of compilation.
+		Never a main body of statements to execute. }
+    END.
+
+2. Type:
+	PASCAL EXTERN
+   compliation will proceed normally thus creating
+   files EXTERN.SRC, EXTERN.LST, but unfortunatley
+   there will be no entry points created for linking
+   the procedure heading declaration of the main program
+   with the externally called procedure sum.
+
+3. But since we compilied the file with the following inserted 
+   before the BEGIN of procedure sum (the entry point):
+		{$i+ }
+		{@SUM}
+		{$i- }
+   typing:
+	ENTRY EXTERN
+  executes the program and copies file EXTERN.SRC into
+  EXTERN.ZZZ, and adds the needed entry points into the
+  external routine so that assembly and linkage can
+  properly take place.
+
+3. Continuing with the example we type:
+	ERA EXTERN.SRC
+	REN EXTERN.SRC=EXTERN.ZZZ
+
+4. The EXTERN.SRC is now in proper form for assembly
+   (to produce EXTERN.REL) and linkage to produce the
+   executable COM file.
+
+
+
+
+
+
+SUMMARY OF DIRECTIONS USING THE ABOVE EXAMPLE.
+
+1. Create main calling module with declarations, as an example
+   here refered to as file MAINPRG.PAS.
+
+2. Create the external module to be called, as an example
+   here refered to as file EXTERN.PAS.
+
+3. Insert the following before the BEGIN of procedure sum in
+   file EXTERN.PAS:
+		{$i+ }
+		{@SUM}
+		{$i- }
+
+4. Type the following commands while in CP/M monitor or set up
+   a SUBMIT file:
+   A. Compile main calling program and produce files
+      mainprg.rel, mainprg.lst:
+		PASCAL MAINPRG
+		ASMBL MAIN,MAINPRG/REL
+
+   B. Compile the external called program and set up entry
+      points, producing files extern.rel, extern.lst:
+		PASCAL EXTERN
+		ENTRY EXTERN
+		ERA EXTERN.SRC
+		REN EXTERN.SRC=EXTERN.ZZZ
+		ASMBL EMAIN,EXTERN/REL
+
+   C. Link the main program with the external program,
+      producing the executable file mainprg.com:
+		LINK MAINPRG,EXTERN /N:MAINPRG /E
+
+   D. Finally, typing the following will execute the program:
+		MAINPRG
+
+
+
+ALGORITHM FOR ENTRY.COM:
+	1. Create an open file name.ZZZ as a file to write to
+	   (will destroy an existing file name.ZZZ if present).
+	2. Open for reading the file name.SRC.
+	3. Print to monitor the names of files opened.
+	4. Read a line from file name.SRC.
+	5. If the line has the string '{@' followed by an 
+	   identifier (the external procedure name) the
+	   following two lines are written to file name.ZZZ:
+				ENTRY	identifier
+		identifier:
+	   An identifier is a alphabetic letter (a thru z, or
+	   A thru Z) followed by zero or more alphanumeric
+	   characters (a thru z, A thru Z, or 0 thru 9).  If
+	   the identifier is greater than 6 character, the
+	   identifier is then truncated to 6 characters and
+	   convert lower-case characters to upper-case.
+		It is wise to make the external procedure name
+	   (identifier) from one to six characters in length,
+	   in upper-case, to avoid possible confusion.
+	   	Avoid conflict with labels or external libary
+	   routines used by the compilier in the assembling 
+	   process.  (Avoid all labels in the form L<digit(s)>,
+	   e.g. L99, and labels referenced as external library 
+	   routines, e.g. DIVD, by file MAIN.SRC).
+	   The assembler will give you an error diagnostic
+	   when you have made this mistake.
+		The external procedure name should not have the
+	   the characters '_' or '$' in the identifier, even
+	   though the compiler permits this the assembler does
+	   not.  (The assembler will give you an error
+	   diagnostic).
+
+	6. If (4.) true above then print to monitor the
+	   external procedure/function name.
+
+	5. If (4.) above untrue then copy the line from file
+	   name.SRC to file name.ZZZ.
+
+	6. Repeat (2.) thru (5.) above until the label L99 is
+	   found indicating the main body of program statements
+	   between BEGIN END have been found, which we do not
+	   want to copy (assembly with EMAIN will cause
+	   errors).
+
+ 
+ 
+ 
+          Welcome to 'Hunt the Wumpus'
+ 
+The Wumpus lives in a cave of 20 rooms.  Each room has 3 tunnels leading 
+to other rooms.  There are several caves that you can play in.  With only a
+small change in the program, you can even invent you own cave!
+ 
+Hazards:
+ 
+Bottomless Pits - Two rooms have bottomless pits in them.  If you go there,  
+you fall into the pit and lose!
+ 
+Super Bats - Two rooms have super bats.  If you go there, a bat grabs you and 
+takes to some other room at random.  (which mignt be troublesome)
+ 
+Wumpus:
+ 
+The Wumpus is not bothered by the hazards (he has sucker feet and is too 
+big for a super bat to lift).  Usually he is asleep.
+Two things wake him up:
+$pause
+ 
+ 
+
+    your entering his room or your shooting an arrow.
+ 
+ If the Wumpus wakes he moves (p=.75) one room or stays still (p=.25).  
+ After that, if he is where you are, he eats you up and you lose!
+ 
+ You:
+ 
+ Each turn you can move or shoot a crooked arrow.
+ 
+Moving:		You can go one room (thru one tunnel).
+ 
+Arrows:
+	You have 5 arrow.  You lose when you run out.
+  Each arrow can go from 1 to 5 rooms.  You aim by telling the computer 
+  the room numbers you want the arrow to go to.  If the arrow can't go
+  that way (ie. no tunnel) it moves at random to the next room.  If the
+  arrow hits the Wumpus, you win.  If the arrow hits you, you lose.
+$pause
+ 
+Warnings:
+ 
+When you are one room away from the Wumpus or a hazard, the cumputer says:
+ 
+ Wumpus - 'I smell a Wumpus'
+ Bat    - 'Bats nearby'
+ Pit    - 'I feel a draft'
+$pause
+ 
+Caves:
+ 
+All caves have have 20 rooms and 3 tunnels leading from one room
+to other rooms.  The caves are: 
+ 
+ 
+ 0 - Dodecahedron 
+ The rooms of this cave are on a 12-sided object, each forming a pentagon.
+ The rooms are at the corners of the pentagons.  Each room has tunnels that 
+ lead to 3 other rooms.  
+ 
+ 1 - Mobius Strip
+ This cave is two rooms wide and 10 rooms around (like a belt).  You will 
+ notice that there is a half twist somewhere.
+ 
+ 2 - String of Beads
+ Five beads in a circle.  Each bead is a diamond with a virtical cross-
+ bar.  The right and left corners lead to neighboring beads. (This one is 
+ difficult to play)
+$pause
+ 
+ 3 - Toroidal Hex Network
+ Imagine a hex tile floor.  Take a rectangle with 20 points (inter-
+ sections) inside (4 X 4).  Join right and left sides to make a cylinder.
+ Then join top and bottom to form a torus (doughnut).  Have fun imagining
+ this one!
+ 
+ Caves 0-3 are regular in the sense that each room goes to three other rooms
+ and each tunnel allows two-way traffic.  Caves 4 and 5 do not have these
+ properties.
+ 
+ 4 - Dendrite with Degeneracies
+ Pull a plant from the ground.  The roots and branches form a Dendrite.
+ There are no looping paths.  Degeneracy means that some rooms connect to
+ themselves and some rooms have more than one tunnel to the same other room.
+ 
+ 5 - One Way Latice
+ Here all tunnels go one way only.  To return to the room you just left,
+ you must go all the way around the cave (only 5 moves).
+ 
+ GOOD LUCK - HAPPY WUMPUS HUNTING!
+$pause
+
+
+
+
+
+
+
+
+
+
+

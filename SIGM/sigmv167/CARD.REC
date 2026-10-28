@@ -1,0 +1,80 @@
+
+[CARD.REC]
+[Program to generate pin layouts for STD bus printed
+ circuit cards using the STD-VGR graphics controller.]
+[Harold V. McIntosh, 22 April 1983]
+ 
+[26$ - macro library]
+[27$ - byte cursor]
+[28$ - bit cursor]
+[29$ - pen position]
+[30$ - input FCB]
+[31$ - output FCB]
+ 
+{
+[create input FCB]   ('5C'H12w3b
+                     'PCB'EJQmw30$r12wDnIw30$r15k
+                     ''(128c26k30$r20K0=L|:LL;)L'80'H26k
+                     pw'<'FzqL26$S
+                     ('>'E;qLm'<'2aQT|'='|FzqLnY2afLz:)w;
+                     ' 'Ew;w;)A
+[byte, east]	     (27$r1+27$S;)E
+[zero FCB]           ($m33cmpw0%(f:;)wnnS;)F
+[byte, north]	     (27$r64-,27$S;)N
+[count, operator]    (1RT(O);&L(RTO&10*+:;);)R
+[byte, south]	     (27$r64+27$S;)S
+[byte, west]	     (27$r1-,27$S;)W
+[northeast]      (d 28$r(0=7@E;1=2;2=5@N@E;3=0@N;
+				4=3;5=6;6=1@N;7=4@N;;)28$S@p :;)a
+[northwest]      (d 28$r(0=3;1=6;2=1@N;3=4@N;
+				4=7;5=2@W;6=5@N;7=0@N@W;;)28$S@p :;)b
+[southwest]      (d 28$r(0=3@S;1=6@S;2=1;3=4;
+				4=7@S;5=2@S@W;6=5;7=0@W;;)28$S@p :;)c
+[southeast]      (d 28$r(0=7@S@E;1=2@S;2=5@E;3=0;
+				4=3@S;5=6@S;6=1;7=4;;)28$S@p :;)d
+[east]           (d 28$r(0=5@E;1=0;2=7@E;3=2;4=1;5=4;6=3;7=6;;)28$S@p :;)e
+[make a grid]	 (@o2@e'21(v5sus42(v5eue)v5sus42(v5wuw));'pL@mo;)g
+[make a border]	 (@o 'u255e239s255w239n;' pL@m;)h
+[rd, cat macro]  (R26%[^Z]='';T(127%[ro]=)(@j|;L@j;);)j
+[execute macro]  (@r@=:L;)m
+[north]          (d 28$r(0=2;1=3;2=0@N;3=1@N;4=6;5=7;6=4@N;7=5@N;;)28$S@p :;)n
+[seek origin]	 ('4000'H,27$S 7,28$S 0,29$S;)o
+[move "pen"]     (29$r 0=;L 28$r
+			(0=1;1=2;2=4;3=8;4=16;5=32;6=64;7=128;;)
+			27$r 1G \+% 27$rS;)p
+[read memory]    ((1&uT(O); m&n &L&(uTO m&n &10*+&:;);) m&n ':'=$r&uT m&n ;;)r
+[south]          (d 28$r(0=2@S;1=3@S;2=0;3=1;4=6@S;5=7@S;6=4;7=5;;)28$S@p :;)s
+[raise pen]      (1 29$ S;)u
+[lower pen]      (0 29$ S;)v
+[west]           (d 28$r(0=1;1=4;2=3;3=6;4=5;5=0@W;6=7;7=2@W;;)28$S@p :;)w
+[clear screen]	 ('4000'H'2000'Hw00(f:L;)w;)z
+[cr,lf]          (2573TL;)&
+ 
+ 
+[menu]	(
+	'n' [north] =	@n;
+	's' [south] =	@s;
+	'e' [east] =	@e;
+	'w' [west] =	@w;
+	'a' [neast] =	@a;
+	'b' [nwest] =	@b;
+	'c' [swest] =	@c;
+	'd' [seast] =	@d;
+	'g' [grid] =	L@z@h@g;
+	'u' [up] =	L@u;
+	'v' [down] =	L@v;
+	'm' [macro] =	(2*26$r+r@m;);
+	'o' [origin] =  L@o;
+	'z' [clear] =	L@z;
+	'(' [lparen] =	(d&pG m&n ;(@r')'=L;LL:););
+	')' [rparen] =	L(&d&L&pG m&n ;&L;);
+	';' [exit] (=)	LL;
+	L)=
+ 
+[main]	(
+	[0,14k] 30@F [31@F] @A '' '' ''  @z @o
+	(@&'card> 'TL @R'('=#'('|(@j|;:)';'|pL@m:@=:);)
+	}
+
+[end]
+

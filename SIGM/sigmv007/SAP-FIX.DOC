@@ -1,0 +1,30 @@
+
+		SAP-FIX.DOC as of 5/22/80
+		 by Keith Petersen, W8SDZ
+
+   If you are using CP/M-2 and have SAP.COM on your system,
+you probably have noticed that the directory sorting gets
+confused by the file attributes used in CP/M-2.  This can
+be easily fixed by modifying your COMP1 routine to read as
+seen below.  This fix applies to all versions of SAP, whether
+you have single or double density.
+
+;
+COMP1:	MOV	A,M		;GET NEXT BYTE
+	ANI	7FH		;REMOVE ATTRIBUTES
+	MOV	B,A		;SAVE IN B
+	LDAX	D
+	ANI	7FH		;REMOVE ATTRIBUTES
+	CMP	B		;COMPARE CHARACTER
+	RNZ			;RETURN IF NOT EQUAL
+	INX	D
+	INX	H
+	DCR	C		;LOOP THRU FIRST 13 BYTES
+	JNZ	COMP1
+	XRA	A		;CLEAR FLAGS AND EXIT
+	RET
+;
+
+END OF SAP-FIX.DOC
+
+

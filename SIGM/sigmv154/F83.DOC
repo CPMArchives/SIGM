@@ -1,0 +1,223 @@
+.PO 3
+
+	WELCOME TO FORTH  
+
+     This   is  a  public  domain  system,  and  may  be   freely 
+distributed  and copied, as long as the authors are given  credit 
+and  no copyright notice is placed upon it.  If we catch  someone 
+selling this system as their own proprietary product, with  their 
+copyright notice , we will do our best to make them regret it for 
+the rest of their lives.  You have been warned!!
+
+	These disks contain the following files:
+EXTEND80.BLK
+CPU8080.BLK
+UTILITY.BLK
+META80.BLK
+DIRECT.BLK
+KERNEL.COM
+F83.COM
+
+To regenerate the system,
+first copy everything to a large disk on (for example) drive B,
+then do the following:
+
+B>F83 META80.BLK  ( run F83 on META80.BLK )
+OK   ( loads meta compiler and generates KERNEL.COM )
+BYE  ( return to CP/M )
+B>KERNEL EXTEND80.BLK  ( run KERNEL on EXTEND80.BLK )
+START  ( loads all extensions )
+BYE    ( return to CP/M )
+B>SAVE xx F83.COM  ( create new version of F83.COM )
+
+You can have a printout of these instructions by using Control P
+and entering  TYPE FORTH.DOC
+
+     In  what  follows the <CR> symbol  represents  the  carriage 
+return  key  on  your terminal.  To enter  Forth  from  the  CP/M 
+environment,  insert  the disk containing the F83.COM  file  into 
+drive A of your computer, (after booting it of course) and  type 
+F83<CR>
+
+     Forth will reply with:
+
+8080 Forth 83 Model 1.0.0
+Modified 16Oct83
+
+
+Forth is about ten years old now (1983) but some of the  features 
+of F83 are relatively new to the Public Domain Forth Model.
+  
+     The  VIEW command is one of the best. VIEW <word> <CR>  will 
+find  the screen that contains the code for the <word>,  provided 
+that  the  file that contains <word> is on the  currently  logged 
+disk  drive.  If you can fit all of the source code on  a  single 
+drive,  VIEW works great, and takes care of opening the file  and 
+displaying the screen for you.  
+
+     We  have  also  tried to make extensive use  of  the  shadow 
+screen  concept.  In this regard, the word A moves you  from  the 
+current screen  to  it associated  shadow  screen.   The  SHADOW 
+vocabulary  contains  a  bunch  of  words  that  are  helpful  in 
+maintaining  shadow screens.  COPY allows you to copy not only  a 
+screen, but also its associated shadow.  SHOW allows you to  list 
+each source screen across from its shadow when you want to  print 
+them.   Finally CONVEY allows you to move groups of  screens  and 
+their  associated shadows.  To see what words are in  the  SHADOW 
+vocabulary simply type SHADOW WORDS<CR>
+
+     There  is  also  a decompiler  present  which  reverses  the 
+compiling  process, producing source code from object code.   The 
+user  interface to it is the word SEE <name> where <name> is  the 
+name  of  a  Forth  word  you  wish  to  decompile.   While   the 
+information  SEE  gives you is not as complete as that  given  by 
+VIEW,  a  least it is always available, and  not  dependent  upon 
+whether  or  not  the correct file is present  on  the  currently 
+logged in disk drive.  For a real experience try decompiling  the 
+words STATUS,  which is a DEFERred word,  ie an execution vector.  
+SEE  calls  itself recursively in this case and tracks  down  the 
+definition.  This can be quite handy.
+
+     To  see a list of the words that are in the dictionary  type 
+WORDS.   You will see lots of words.  Each is a command and  each 
+can be VIEWed.  Let's look at the word SHOW by typing VIEW  SHOW.   
+Assuming  all is well you will see a Forth screen containing  the 
+definition  of SHOW along with some other words. Type  A  L  (cr)  
+and  you will be rewarded with the Shadow screen that  goes  with 
+it.   A  L  (cr)  will Alternate List you back  to  the  original 
+screen of code.  Look at it and when you see a word that  doesn't 
+seem fully self evident, VIEW it and read the shadow screen.  The 
+word  SHOW  and its source code that we have been viewing,  is  a 
+command  that  prints out three source screens along  with  three 
+shadows  for  a total of six screens per  page.   There  are  two 
+versions of SHOW.   The vocabulary you are in determines how SHOW 
+will print out.  If you are in the SHADOW vocabulary, six screens 
+of code and shadows will print.   If you are in FORTH six screens 
+of code will be printed.
+
+     Now  for  some more commands.    N is next screen and  L  is 
+list.   N L  lists the next screen and  B L lists the next screen 
+back.   N ED will edit the next screen etc.  Now lets printout  a 
+few  screens that will detail some of the editor  commands.  Most 
+are from Starting Forth but some are new ones.  
+
+Type this: EDITOR VIEW JOIN<CR>
+
+You are looking at a screen of editing commands.   Lets go to the 
+shadow  with the  A L  command and do some exploring.   While  we 
+are  in  the  shadows lets look at the next five  or  six  shadow 
+screens  that should be editor words.   Use N L.   If you have  a 
+printer  you may print these screens now as follows.   Type  VIEW 
+WIPE  for example.    If wipe is the first of 6 screens of editor 
+words remember the screen number.  If for instance it was 80 then 
+type  80 85 SHADOW SHOW<CR> 
+
+     If  you  are new to Forth your best bet is to  purchase  the 
+book  STARTING  FORTH by LEO BRODIE.   It costs  about  seventeen 
+dollars  and is available at most large book stores.   On page 84 
+you  will find the commands for the line editor.   The F83  model 
+follows both the book and the Forth 83 standard.
+
+     The Forth Interest Group ( FIG ) has chapters in many areas. 
+In  the  San Francisco Bay Area,  meetings are held  on  the  4th 
+Saturday  of each month,  currently at Chabot College in Hayward, 
+CA.   Call  the  FIG  hot line if you wish to  double  check  the 
+location ph 962-8653 or the FIG Tree BBS (300 baud) at 538-3580.
+
+
+Henry Laxen                                  Mike Perry
+1259 Cornell Avenue                          1125 Bancroft Way
+Berkeley, CA 94706                           Berkeley, CA 94702
+.pa
+
+             System Memory Map  
+     The  memory map will vary somewhat with CPU,  and  operating 
+system,  and  options.  For CP/M on the 8080 with 64K of  memory, 
+with four block buffers and all utilities, it is as follows:
+     ( all addresses in hexadecimal)
+
+     0100      Jump to cold start
+     0104      Jump to warm start
+     0108 ----
+
+               Dictionary with all utilities loaded.
+
+     5E75 ---- HERE
+
+               Free space.
+
+     D10E ---- SP0, TIB
+
+               | Text Input Buffer
+               V
+                            ^
+               Return Stack |
+
+     D1D6 ---- RP0, >BUFFERS
+
+               Block Buffer Pointer Table
+
+     D200 ---- FIRST
+
+               Block Buffers
+
+     E200 ---- LIMIT
+
+
+.PA
+             Standard System Documentation Requirement
+
+1.  The  system  dictionary space is CPU  dependant  and  can  be 
+determined by typeing HERE U. <CR>
+
+2. The application dictionary space is also CPU dependant and  is 
+the  difference  between  the  top  of  the  dictionary  and  the 
+beginning of the parameter stack.  The location of the  parameter 
+stack  varies depending on the amount of memory available to  the 
+machine.   The application dictionary space can be determined  by 
+typing SP@ HERE - U. <CR>
+
+3. The data stack space is the same as the dictionary space.
+
+4.  The return stack space was arbitrarily set at 256 bytes.   It 
+can be altered by remeta-compiling the system.
+
+5.  No  mass  storage block ranges are reserved  by  the  system, 
+other than the contents of the files that are distributed.
+
+6. The user has available to him blocks 0 thru 65534.  Note  that 
+block  0  may  not be used for loading.  Block  number  65535  is 
+reserved to indicate the buffer is missing.
+
+7. Any ascii terminal should work with this system.  If the  user 
+has  a  cursor  addressable terminal, the editor  can  be  easily 
+modified to take advantage of the terminal's characteristics.
+
+8. System action taken upon error conditions:
+
+     ' <name> ['] <name>  not found results in ? error message
+     
+     */ */MOD / /MOD MOD UM/MOD  all division by 0 errors  result      
+     in a 0 quotient
+
+     : in the case of an error, a ? error message will be printed
+
+     DO if a nesting error occurs, the system will crash. (if you 
+     are lucky)
+
+     EXECUTE  if  addr is not a compilation address,  the  system 
+     will crash. see DO
+
+     EXIT if the top of the return stack does not contain a valid 
+     return point, the system will crash.  see DO
+
+     FORGET <name>  if <name> is not found, a ? error message  is 
+     printed.   If the compilation vocabulary is  forgotten,  the 
+     system will crash. see DO
+
+     FORTH-83  if the error condition occurs,  that this is not a  
+     standard  system,  I don't want to hear about it and I  hope 
+     the system not only crashes, but burns.
+
+     LOAD if u is zero, the system will crash.  see DO
+

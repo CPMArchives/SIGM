@@ -1,0 +1,391 @@
+
+
+
+ The CHECKS program was written for my personal use and is 
+ placed  in  the  public domain for anyone who wants  to  use  it.  
+ (No business use please) Since it is a 'freeby',  don't  complain 
+ about  the  organization  of  the  program,  but  if  you  should 
+ encounter any bugs,  please notify me by letter and I will try to 
+ fix  them.   Several restrictions are inherent in the program and 
+ you  must be able to live with them.   If you can't,  then  don't 
+ bother with the program.
+
+ RESTRICTION #1
+
+ The  maximum  value  which the math  package  can  handle 
+ without  overflowing  is $83886.07.   Amounts which  exceed  this 
+ value   will  be displayed as the amount in excess of  $83886.08. 
+ Overflow will occur if you have more than this amount of money in 
+ your account at any point in the year,  or if the total value  of 
+ the  checks  exceed this amount when listing out the  checks.  No 
+ error  message is printed out if overflow should occur.    If you 
+ exceed  this  amount,  you  can afford to  buy  something  better 
+ anyway.
+
+ RESTRICTION # 2
+
+ The  program will only allow 255 different check names in 
+ any  year's  file.   The  checks program was  translated  from  a 
+ program I had written for my 6500 system,  and made extensive use 
+ of  the indexed instruction.    I had a lot of check data that  I 
+ wanted  to continue using with the Z80 system,  so I  merely  re-
+ coded   the   assembly  language  program  and  used   the   same 
+ organization of the data in the files.
+
+ RESTRICTION # 3
+
+ The  program  requires the user to enter check  names  as 
+ three  character  mnemonics,  although it keeps in the  file  the 
+ entire check name for later listing.  For example, when I enter a 
+ check to Fidelity National Bank, I would use the mnemonic FNB for 
+ the check name.   You quickly learn how to choose a good mnemonic 
+ for  the  check name,  and can always get a listing of  mnemonics 
+ which you have used previously in case you should forget one.
+
+ If  you  feel that you can live with these  restrictions, 
+ then give the program a try.   The features and operating ease of 
+ this program will quickly make you ignore these limitations.
+
+ A little more about the program before we get down to the 
+ nitty-gritty.   Checks  will run on either CP/M 1.4 or  2.2.  The 
+ program  keeps track of two data files with the name  types  .CHK 
+ and .NAM.   The filename.CHK file has all the data for the actual 
+ checks.   Each check entry is packed into eight bytes of code and 
+ the  distribution  copy  allocates  8 kbytes of  memory  for  the 
+ checks.   This  gives you the ability to handle 1024 checks in  a 
+ given year.  The .NAM file contains the name mnemonics and a list 
+ of  the  corresponding full check names.   Full check  names  are 
+ limited  to  a 32 character string.
+
+
+ The  user may specify the disk on which the .CHK and .NAM 
+ files are located.   If no name is given for the .NAM  file,  the 
+ program  will  assign the same filename for the .NAM file as  was 
+ specified  for the .CHK file.   I use the filename 1981  for  the 
+ check  file  for  year  1981 which  automatically  assigns  files 
+ 1981.CHK and 1981.NAM for use.   Other people who have used  this 
+ program  find that they normally write checks to the same  people 
+ year  after  year and do not overflow the 255  name  restriction.  
+ For  this reason,  you can save a lot of typing by using the same 
+ name  file  year after year.   To do this,  one might  type  1981 
+ (space) NAMES which would assign files 1981.CHK and NAMES.NAM  as 
+ the  files to be used.   Note that the user does not specify  the 
+ filename  extension because the program does it for you.   If you 
+ should try it, the program will issue an error message.
+
+ Because  my  wife  and  I both share  the  same  checking 
+ account,  but  she  has her own checks which might  duplicate  my 
+ check numbers,  the program allows you to set a 'W' flag to  keep 
+ to two entries separate.  The program  also has other flags which 
+ the user can set upon entry,  and yes,  as you might expect,  you 
+ can get a listing of checks depending on the flag set.  The flags 
+ which can be set on the distribution copy,  and the meaning which 
+ I place on them are as follows:
+ 
+ W  Wife's checks
+ R  Returned check
+ I  Income tax deductible
+
+ All  three  of the above flags may co-exist in  the  same 
+ check entry plus one of the following:
+
+ C  Car expenses
+ D  Doctor bills
+ E  Entertainment expenses
+ F  Food
+ G  Gasoline
+ H  Housing expenses
+ M  Medicine
+ P  Parts for computer
+ S  School expenses
+ U  Utility bills
+  
+ Five  spare flags are also available,  but have not  been 
+ defined  during the assembly.   The method of setting or changing 
+ these flags will be discussed later. A check might have the flags 
+ IWRS set,  which means an income tax deductible check, written by 
+ my wife which has returned from the bank for some school  related 
+ expense.
+
+
+ The  program  enables you to list all checks  written  to 
+ some mnemonic name,  to list a monthly balance sheet,  to compute 
+ the check balance,  to compute the bank balance at the end of the 
+ month  after  returned checks are entered,  to  list  outstanding 
+ checks,  to  list checks,  deposits,  and withdrawals  from  your 
+ account  for  any  month,  or for the year and to  fix  erroneous 
+ entries for a check,  deposit,  withdrawal,  or change a mnemonic 
+ name or a full check name.
+
+ Thats  enough about what can be done,  now lets get  down 
+ how to do it.    Let's assume it is the start of the year, and we 
+ are opening up a new years record for say 1981.
+
+ A>CHECKS 1981 [NAMES]  [optional entry]
+
+ This  will load CHECKS from the A drive and try to read a  
+ file  for 1981 from the default drive.   Naturally  nothing  will 
+ exist,  and  the program will tell you that it could not load the 
+ check  file,  and will go to the command mode.   The program  has  
+ assigned  the  names for the .NAM and .CHK files should  data  be 
+ entered  and  saved.  All  commands begin  with  a  single  alpha 
+ character  and  will  immediately execute unless an  argument  is 
+ required.  In this case,  the program waits for the argument  and 
+ the  carriage return before execution.    If you type a ?  ,  the 
+ program will display all the command characters,  their  meaning, 
+ and print the number of names in the current name file.
+
+ The  first thing to enter is the balance in your  account 
+ at the beginning of the year.   Enter this value as a deposit  by 
+ hitting the D key.  The program will display the prompts for your 
+ entry  and  show  you  that this is  deposit  #1.   Deposits  and 
+ Withdrawals  are  automatically numbered with  255  deposits  and 
+ withdrawals  permitted in a years record.   If you hit the  space 
+ bar,  the  cursor is automatically tabbed to the next entry.  The 
+ month  is  1-12,  the date 1-31,  the amount assumed  in  dollars 
+ unless a decimal point is entered. Do not specify $ in the amount 
+ entry.   Legal  check  ,  deposit ,  or withdrawal values are  as 
+ follows:
+ 
+     10000
+     234.12
+     1
+     .23
+
+     123.1   is not legal
+
+ For the mnemonic, you might consider STB
+
+
+ When  you hit the carriage return,  the program  analyzes 
+ the entry, and looks up STB in the name file to see if it exists. 
+ Since it does not,  it will ask you if this is a new name.   Type 
+ 'Y'  to  indicate that it is and fill in the full  name  STARTING 
+ BALANCE when it prompts you for the full name.   When you now hit 
+ the carriage return,  your first deposit will be entered, and the 
+ mnemonic  STB and the full name STARTING BALANCE will be  entered 
+ into the name file.
+
+ Now  hit B.    The program computes the balance by adding 
+ all  deposits from the beginning of the file and subtracting  the 
+ value of all checks and withdrawals from the account. Yes you now 
+ have a balance of the value which you entered.  Now hit  V.  This 
+ command  is  similar to the balance command except only  returned 
+ checks  are  subtracted.   The result is the bank  balance  which 
+ should agree with your bank statement after entering all returned 
+ checks  at the end of the month.   A check is returned by  typing 
+ the command R and entering in the check number.  Since no  checks 
+ have been written,  the bank thinks you have the same amount.
+
+ Suppose  your first check is for cash.   Hit C to enter a 
+ check.   The check prompt now appears.   Check numbers 1-9999 are 
+ valid  check numbers.   Fill in the data with the  mnemonic  CAS.  
+ Use the full name CASH when it comes time to do this.
+
+ Now try the B and V commands again.  Yes, the new balance 
+ is  the difference between the check and the starting balance but 
+ the  V command still shows the starting balance.   As far as  the 
+ program  is concerned,  the check is still outstanding.  You  can 
+ verify  this by typing the command O,  which shows the  check  to 
+ still be outstanding.  
+
+ Type  the command M and specify CAS when it asks for  the 
+ check  mnemonic.   The M command lists all checks which Match the 
+ mnemonic name written during the year.
+
+ Now try to return the check by typing the command R. When 
+ it  asks  for  the check number,  enter the one  which  you  have 
+ entered.   Now re-try the B,  V, and O commands.  The check is no 
+ longer  outstanding  and the bank balance and check book  balance 
+ now agree.  You can still find the check using the M command.  
+
+ When you are typing in any command and make a mistake,  a 
+ control  X will abort the command and return you to  the  command 
+ mode.  You  can use backspace (ctrl H) to correct mistakes on any 
+ entry.
+
+ Since  returning  the check set the R flag,  you can  now 
+ find  the check using the interrogate command I.  If you  specify 
+ the R flag, you can now see that a listing of all returned checks 
+ is possible.   The I command will list all checks which have  the 
+ specified  flag set.   (a handy way to find income tax deductible 
+ checks)
+
+Suppose
+ I  do,  then  you  can use the W flag in  the  flag  column  when 
+ entering  the check.   Another way is to precede the check number 
+ with the letter W.  Thus W123 is wife's check 123 while 123 is my 
+ check  123.   You can print all your wife's checks by  using  the 
+ interrogate  command  (I) and telling the program to  use  the  W 
+ flag.   All other flags may only be specified in the flag column.  
+ So  to flag all your utility bills for example set the U flag  in 
+ the flag column when entering the check.
+
+ Withdrawals are amounts automatically deducted from  your 
+ checking  account  each  month for say a car  payment.    Do  not 
+ confuse withdrawals with the W flag which is the wife  flag.   To 
+ enter a withdrawal, hit the command W.  Unlike a check entry, the 
+ withdrawal  will automatically be deducted from the bank  balance 
+ at the same time it is  deducted from the check book balance. 
+
+ The  A command begins auto-numbering of check entries and 
+ may  be auto-numbered either with and without the wife  flag.  To 
+ auto-number wife's checks, type W(check number) when prompted. Do 
+ not put a space between the W and the check number.   The control 
+ X command cancels the auto-number mode.
+
+ The  L command is used to list out  checks,  withdrawals, 
+ deposits,  or  the  names which you have used.   In the  case  of 
+ checks,  withdrawals,  or  deposits,  the program will ask  which 
+ month to list.   You can enter a month 1-12 for a specific month, 
+ or enter a 0 to list the entire year's  activity.  
+
+ The  T  command  lists  a monthly balance  sheet  on  the  
+ console.   The month also is entered as 1-12 or a 0 for a  yearly 
+ record
+
+ The  P command toggles the output to the printer for  the 
+ next command.  Thus command P followed by T will list the balance 
+ sheet  on  the printer.   A command P followed by command M  will 
+ list on the printer all checks to a specific mnemonic name.   The 
+ print mode is toggled off at the completion of each command.
+
+ The M command is one of the most valuable commands. In my 
+ case,  all  my  electric power bills are to AEP  for  Appalachian 
+ Electric Power.   Thus at the end of the year the command M  with 
+ the  mnemonic AEP will show the year's total for electric  bills.  
+ In  a similar fashion,  C&P shows telephone bills,  TEX my Texaco 
+ gasoline bills, etc. The I command with the G flag will print out 
+ all gasoline expenses to all companies during the year.
+
+
+ More  about the L command.   The L command will also  let 
+ you  list  the mnemonic names and the full names which  you  have 
+ used.   This is handy in case you forget one.  Type command L and 
+ specify N for names.  When it asks for the mnemonic name, you can 
+ hit  an  immediate carriage return to show all the names  in  the 
+ file.   If  you should just type A followed by a carriage return, 
+ it will show all mnemonic names starting with the letter A.  In a 
+ similar  fashion typing CA will show all mnemonics starting  with 
+ the two letters CA.   It is pretty easy to at least remember  the 
+ most  logical  first letter of the mnemonic which you might  have 
+ used for the name.
+
+
+ Now  it  is time to save the file away after  an  editing 
+ session.   You can type Q to go to CP/M or S to save the  current 
+ file  but stay in the checking routine.  The Q command will first 
+ ask you if you want to save the checks away before  exiting.   If 
+ you  have  made any changes,  you had better do it or  everything 
+ which you have added will be lost.   The old file on the disk was 
+ copied into memory at the beginning of the editing session and is 
+ still there on the disk.  If you type Y for yes, it will show you 
+ the  names under which it will be saved.   If you want to  change 
+ the  names  type N after it asks you if the file names  are  OK?.  
+ You can use anything like the following
+
+
+ B:1981  checks and names file on B drive
+ B:1981 A:NAMES  checks under name 1981 on B drive
+     names under NAMES on the A drive
+
+ One word of warning.   Do not get the checks for one year 
+ mixed up with the name file for another year.  The program has no 
+ way  of telling that you have mixed things up and the names  will 
+ be  all  mixed  up on your check  file.   For  this  reason,  use 
+ 1981.CHK  and  1981.NAM so no possibility exists for this  error.  
+ Nothing  disastrous  happens if you get them mixed up  until  you 
+ make a new entry in the file.   Check names are numbered as  they 
+ are  entered  and  the  check  data  file  only  has  the  number 
+ corresponding to the check name used.  
+
+ The  S command saves the current check and name files  on 
+ the disk and stays in the checking routine.   This permits you to 
+ use  the  G  command  which gets a  different  years  record  for 
+ observation or modification.   You can use the G command to  look 
+ for  various  years  activities  without  modifying  any  of  the 
+ contents on the disk.
+
+ To  keep the bank people honest,  at the end of the month 
+ when my checks return,  I return all the checks enclosed with  my 
+ statement and hit the V command.   The balance shown should agree 
+ with  the  bank  as long as no deposits have been made  into  the 
+ account which do not show in the bank statement.
+
+
+ Naturally  you  will make some  typing  mistake  sometime 
+ during  the  use  of the program.   The F command allows  you  to 
+ retrieve a check, deposit, or withdrawal from the records and fix 
+ it.  When  you  enter the number of the item  to  be  fixed,  the 
+ display will show the entry as it has been typed.   The entry may 
+ be  fixed up as shown on the console display using the control  H 
+ for backspace,  the control A will add a space at the cursor, and 
+ the control D will delete the character at the cursor.  A control 
+ B  will  set  the  cursor to the beginning  of  the  entry  being 
+ displayed for added convenience.  You may hit the carriage return 
+ with  the  cursor at any position in the display and  the  entire 
+ contents  of  the  display will be entered as  shown.  Using  the 
+ prompts,  you  may change a name mnemonic,  or the full name  for 
+ typing error.   Suppose you can't remember a mnemonic because you 
+ used a poor one the first time you entered it.   By changing  the 
+ mnemonic, all entries in the file will now show the new mnemonic.
+
+ Yes, I can guarantee that sometime or other you will type 
+ the  same check number in twice for two different  entries.  When 
+ you try to find the check to return it, only the first entry will 
+ be  displayed  and the second check with the duplicate entry  can 
+ not be returned.   And as Mr.  Murphy would have it,  the  second 
+ entry  had the wrong check number.    The only way to fix this is 
+ to  fix the number on the first check to some fake  number  which 
+ has  not been used,  then fix the wrong check and then re-fix the 
+ first check back to the correct number.  Sorry,  but that is  the 
+ way it works.  The only way to find this kind of error is to list 
+ the checks and hunt for that duplicate check number.
+  
+  Modifications:
+
+  The  size  of  the check and name files may be  enlarged  by 
+ changing  the  address   at the equate NFILE.    The  check  file 
+ starts  loading  at  the address set by the equate at  CFILE  and 
+ memory  space  is available up to the address  at  NFILE.   Names 
+ begin at NFILE and the rest of memory up to CCPBAS  is available.  
+ Each name entry requires 5 bytes of code,  three for the mnemonic 
+ and two bytes for a pointer to the full name.   Since the maximum 
+ name  entry is 32 bytes long,  the longest name file possible  is 
+ 9435  bytes.   Be  sure you update CCPBAS to point to  the  first 
+ location  before  the  base  of your CCP to  insure  you  do  not 
+ overwrite the CCP.   CCPBAS has been arbitrarily defines as $8000 
+ in the distribution copy.
+
+  Five  additional  flags may be defined by  replacing  the  % 
+ characters at the DEFB string at the label CAT:  with the desired 
+ flag character.  The flag characters N,W,I,R are reserved for use 
+ in the program and may not be doubly defined.  
+
+
+  Cursor  control  characters  which may vary  with  different 
+ video  displays  are  defined  at the  beginning  of  the  source 
+ listing.   The program may be warm started by jumping to 100H  in 
+ case  you should forget to save the data on the disk and returned 
+ to  CP/M.   You can do this by executing GO 100 if you are  using 
+ CCPZ  or by previously saving a zero length file using  the  CP/M 
+ save command with the name GO and typing GO when you are in CP/M.
+
+  Checks is only a 9k program, and will run in systems with as 
+ little as 16k of memory. To be safe,  you should  re-assemble 
+ the  program after redefining CCPBAS to insure the name file does 
+ not  overflow  the CCP,  and redefine NFILE to 4500H  to  give  a 
+ little more space for the name file.  
+   
+
+ Yes,  the program has its limitations but it works and it 
+ puts a lot of power at a few keystrokes once you learn how to use 
+ it.  I am willing to listen to all suggestions how to improve it. 
+
+  Ralph Sherman
+  15 Hydaway drive
+  Forest, Va.
+  24551
+  (804)-525-3167
+
+

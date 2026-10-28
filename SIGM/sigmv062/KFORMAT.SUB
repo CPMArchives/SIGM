@@ -1,0 +1,23 @@
+: this submit file will compile and link the kformat program
+: assumes =
+:   drive "A" contains all *.lib and *.top files and asl.rel
+:   drive "B" contains kformat, stdio, docomm, and dotext source
+pascal kformat.bbxb
+asmbl main,kformat.bb/rel
+era b:kformat.src
+:
+pascal stdio.bbxb
+asmbl emain,stdio.bb/rel
+era b:stdio.src
+:
+pascal dotext.bbxb
+asmbl emain,dotext.bb/rel
+era b:dotext.src
+:
+pascal docomm.bbxb
+asmbl emain,docomm.bb/rel
+era b:docomm.src
+:
+link /n:b:kformat b:kformat/v b:stdio b:dotext b:docomm asl/s lib/s/e
+:
+

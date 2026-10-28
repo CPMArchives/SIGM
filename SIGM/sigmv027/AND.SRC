@@ -1,0 +1,32 @@
+;FILE AND.SRC       WRITTEN 9-23-80     BY D.A. STEELE
+
+     ;THIS ROUTINE WILL TAKE TWO NUMBERS PASSED TO IT AND DO A
+     ;LOGICAL AND OF THEM.  TRUE WILL BE RETURNED IF THE RESULT
+     ;IS NOT ZERO (I.E. IF THE TEST BIT WAS SET).  THIS WILL ALLOW THE 
+     ;PROGRAMER TO CHECK FOR ONE BIT SET OR NOT.  IF THE TEST BIT IS
+     ;NOT SET THEN FALSE IS RETURNED.
+
+          NAME ANDEM
+          ENTRY ANDEM
+
+ANDEM:    POP       H         ;SAVE RETURN ADDRESS
+          POP       D         ;GET THE PARAMATERS
+          POP       B         ;GET THE SECOND OPERAND
+          PUSH      H         ;REPLACE THE RETURN ADDRESS
+          MOV       A,E
+          ANA       C         ;CHECK THE LOW BYTES
+          JNZ       TRUE
+          
+          MOV       A,B
+          ANA       D         ;CHECK THE HIGH BYTES
+          JNZ       TRUE
+
+FALSE:    XRA       A         ;ZERO A - RESET CARY FLAG
+          RET                 ;RETURN TO PASCAL
+
+TRUE:     XRA       A         ;ZERO A
+          STC                 ;SET THE CARRY
+          RET                 ;RETURN TO PASCAL
+
+
+

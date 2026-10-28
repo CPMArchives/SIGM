@@ -1,0 +1,48 @@
+;PROCEDURE HALT(message: S$255);
+;
+;USE THIS PROCEDURE ONLY FOR FATAL ERROS OR TOTAL
+;DISASTERS. NO FILES WILL BE CLOSED. RETURN IS TO THE
+;CP/M CCP.
+;
+;DECLARE IN YOUR PASCAL PROGRAM AS:
+;TYPE	S$255 = STRING 255;
+;	PROCEDURE HALT(MESSAGE:S$255);EXTERNAL;
+;
+;CALL AS:
+;	HALT('Halted in procedure X');
+;
+	NAME HALT
+	ENTRY HALT
+;begin
+HALT:
+	ENTR	D,2,0
+;  writeln(message);
+	LXI	H,1793
+	PUSH	H
+	LXI	B,256
+	PUSH	B
+	LXI	H,-256
+	DADD	S
+	SPHL
+	XCHG
+	PUSH	IX
+	POP	H
+	LXI	B,8
+	DADD	B
+	LXI	B,256
+	LDIR
+	LXI	B,260
+	CALL	L109
+;(*
+	mvi c,0 ;CP/M code to restart
+	call 5	;There is NO return from this call!
+;*)
+;end;
+	EXIT	D,256
+	B,260
+	CALL	L109
+;(*
+	mvi c,0 ;CP/M code to restart
+	call 5	;There is NO return from this call!
+;*)
+;en

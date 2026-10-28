@@ -1,0 +1,576 @@
+*
+*********************************************** TOOLSLIB.DOC
+*						08.20.84
+*
+*	   THE SOFTWARE TOOLS STRING LIBRARY
+*	   =================================
+*	Software Tools for dBASEII requires ver. 2.4 
+*	for full implementation
+*	The Tools defined below are a loose adaptation of
+*	the tools developed by Kernighan and Plauger in
+*	"Software Tools" and "Software Tools in Pascal"
+*	(one of these should be in any beginning programmers
+*	library) and the common and almost identical library
+*	functions found in most implementations of C.
+*	We acknowledge the above authors and Dennis Ritchie,
+*	co-author of "The C Programming Language" whose
+*	original work created these tools.
+*
+********************************************************
+*						TOOLHEAD.CMD
+*						08.01.84
+*	SOFTWARE TOOLS STRING FUNCTION LIBRARY
+*	TOOLINIT initialises the primitive Software tools
+*	file and prepares memory for a call to TOOLCASE
+*	TOOLHEAD includes a get FUNCTION and stubbed get string
+*
+*	TOOLINIT does not contain this get but simply initialises
+*	the variables for invocation as macros
+*	TOOLCASE contains additional compound functions
+*	that cannot be nested.
+*
+*	NOTES ON USAGE
+*	==============
+*	TOOLINIT is dumb and requires calling program to pass all parameters
+*	Don't say    if WRKSTR = &ISNULL
+*	Just say     if &ISNULL
+*	note that added Parens to isnull, isupper, islower to avoid problem
+*	with statements like ".not. &ISNULL" which contains an .and.
+*	and would cause and parsing problem otherwise
+*	See Replace header for comments on trim and accept
+*
+********************************************************
+*
+*
+*
+erase
+store "        " to FUNCTION
+*** WRKSTR is equivalent of Kern. and Plauger newline
+*** PUTSTRING is equiv to PUTLINE ( output the line)
+store "                                 " to WRKSTR, PUTSTRING
+
+set talk off
+
+*** create the position of character
+store 1 to POS
+*** in calling program
+
+*** create the current character
+store "$( WRKSTR, POS, 1)" to c
+
+*** move the characterposition of character
+store "store 1 to POS" to FIRSTC
+store "store POS +1 to POS" to NEXTC
+store "store len( WRKSTR) to POS" to LASTC
+
+*** look for EOS
+store "POS > len(trim( WRKSTR))" to EOS
+
+*** look for empty string
+store "(len(trim( WRKSTR)) =1 .and. WRKSTR = ' ')" to ISNULL
+
+*** look for different characters
+store "&c = ' '" to ISSPACE
+store "&c $ '0123456789'"  to ISDIGIT	
+store "(&c >= 'A' .and. &c <= 'Z')" to ISUPPER
+store "(&c >= 'a' .and. &c <= 'z')" to ISLOWER
+store "&c $ '.?!'"	   to  ISENDSENT
+
+*** case conversion
+store "chr(rank( &c) +32)"     to TOLOWER
+store "!( &c)"		       to TOUPPER
+store "store !($( WRKSTR,1,1) + $( WRKSTR,2) to WRKSTR" to CAPFIRST
+
+*** build a newstring
+store "store &c to PUTSTRING"	to PUTNWSTR
+store "store PUTSTRING + &c to PUTSTRING" to CHARCAT
+
+
+
+
+
+
+
+
+
+
+?
+?
+*** @ 22,05 say "Enter string to operate on ->" GET WRKSTR
+@ 23,05 say "What Function to call      ->" GET FUNCTION PICTURE "!!!!!!!!"
+READ
+
+
+*>>> Delete these later
+if FUNCTION = "WORD" .OR. FUNCTION = "WRAP" 
+store "XXXX is an EXTREMELY long string for testing the capacity of wrap;
+to perform its menial little but somewhat important task.  In short its ;
+a test!  Testing, testing?" to WRKSTR
+else
+    store "This is a test of a TEST TTTTT   isIS  " to WRKSTR
+endif
+*<<<
+if &ISNULL
+   @ 22,05 say "Enter string operand       ->" GET WRKSTR
+   read
+endif 
+*
+*** end of TOOLHEAD ***************************************
+*
+*
+
+*
+*
+*********************************************** TOOLINIT.CMD
+*********************************************** 08/01/84  * 
+*
+*	Software Tools functions named to follow C function
+*	conventions.  Not all functions are necessary but
+*	program development can be increased with use of 
+*	the standard functions
+*
+*
+*
+*
+********************************************************
+*
+*** TOOLINIT **
+*
+erase
+store "        " to FUNCTION
+store "                                 " to WRKSTR, PUTSTRING
+
+set talk off
+
+*** create theposition of character
+store 1 to POS
+*** in calling program
+
+*** create the current character
+store "$( WRKSTR, POS, 1)" to c
+
+*** move the characterposition of character
+store "store 1 to POS" to FIRSTC
+store "store POS +1 to POS" to NEXTC
+store "store len( WRKSTR) to POS" to LASTC
+
+*** test for End of string - EOS
+store "POS > len(trim( WRKSTR))" to EOS
+
+*** test for empty string
+store "(len(trim( WRKSTR)) =1 .and. WRKSTR = ' ')" to ISNULL
+
+*** test for type of character
+store "&c = ' '" to ISSPACE
+store "&c $ '0123456789'"  to ISDIGIT	
+store "(&c >= 'A' .and. &c <= 'Z')" to ISUPPER
+store "(&c >= 'a' .and. &c <= 'z')" to ISLOWER
+store "&c $ '.?!'"	   to  ISENDSENT
+
+*** case conversion
+store "chr(rank( &c) +32)"     to TOLOWER
+store "!( &c)"		       to TOUPPER
+store "store !($( WRKSTR,1,1) + $( WRKSTR,2) to WRKSTR" to CAPFIRST
+
+*** build a newstring
+store "store &c to PUTSTRING"	to PUTNWSTR
+store "store PUTSTRING + &c to PUTSTRING" to CHARCAT
+?
+?
+*** @ 22,05 say "Enter string to operate on ->" GET WRKSTR
+*** @ 23,05 say "What Function to call      ->" GET FUNCTION PICTURE "!!!!!!!!"
+*** READ
+
+
+*>>> Delete these later
+if FUNCTION = "WORD" .OR. FUNCTION = "WRAP" .OR. FUNCTION = "JUSTIFY"
+store ;
+"XXXX is an EXTREMELY long string for testing the capacity of text processing;
+code to perform its menial little but somewhat important task.	In short its ;
+a test!  Testing, testing?  Is this going to be it?" to WRKSTR
+else
+    store "This is a test of a TEST is a TTTT is a isIS  " to WRKSTR
+endif
+*<<<
+if &ISNULL
+   @ 22,05 say "Enter string operand       ->" GET WRKSTR
+   read
+endif 
+
+*** end of TOOLINIT ***************************************
+*
+*
+
+*
+*
+*********************************************** TOOLSLIB.CMD 
+*						  08.05.84
+*	    dBASEII tools
+*	    following the functions
+*	    in K and R Software Tools and C Function library
+*  
+*  
+*
+************************************************************ 
+*
+*** build a concatenated string
+*** store "store TRIM( WRKSTR) + NEWSTR" to STRCAT
+*
+
+*** breakdown a string
+*** store "store $(WRKSTR,POS,POS1)" to GETSTRG
+*** store "store $(WRKSTR, 1,@(ISSPACE,WRKSTR) to PUTSTRING" to GETWORD
+
+***   check for other types of character
+***   tab 
+store "chr(rank( &C )) = '09'" to ISTAB
+
+***   is an ASCII character
+store "chr(rank( &C )) < '128'" to ISASCII
+
+***   is a control character
+store "chr(rank( &C )) => '0' .and. chr(rank( &C )) => '32'" to ISCNTRL
+
+***   CP/M needs these
+***   carriage return 
+store "chr(rank( &C )) = '13'" to ISCR
+***   line feed
+store "chr(rank( &C )) = '10'" to ISLF
+***   <RET> carriage return and line feed
+store "chr(rank( &C )) = '10' .and. chr(rank( &NEXTC )) => '13' .or. chr(rank( &C )) = '13' .and. chr(rank( &NEXTC )) => '10'" to ISRET
+
+***   text punctuation
+*     WARNING the following 2 functions are apt to upset some word processors!!
+*
+store "&C $ (,.?!'"();:`-) .or. store "chr(rank( &C )) => '40' .or. ;
+store "chr(rank( &C )) => '41'" to ISPUNCT
+
+***   all keyboard punctuation i.e. .not. alphanumeric or control (incl <RET>)
+store "&C = ISPUNCT .OR &C $ (@#$%^&*][_+=~|\}{/.<) to ISKYPNCT
+
+***   any printable character
+store "chr(rank( &C )) => '32' .or. chr(rank( &C )) < '128'" to ISPRINT
+
+***   an alphabetic character
+store "chr(rank( &C )) => '65' .and. chr(rank( &C )) <= '90' .or. chr(rank( &C )) => '97' chr(rank( &C )) =< '122'"	   to ISALPHA
+
+***   isalphanumeric character
+store "ISALPHA .OR. ISDIGIT" to ISALPHNM
+
+*
+**** end of STRFLIB.CMD ********************************
+*
+*
+*
+*\NP
+*
+*
+*******************************************************
+*********************************************** TOOLCASE.CMD
+*						  08.01.84
+*
+*	  STRING FUNCTION LIBRARY CASE
+*	  incorporating the Software Tools
+*
+*	  NOTES ON USAGE
+*	  ==============
+*	  This file requires obtaining of the parameters 
+*	  from a calling program
+*	  it also requires that TOOLINIT be run to initialise memory
+*	  Don't say    if WRKSTR = &ISNULL
+*	  Just say     if &ISNULL
+*	  Added Parens to empty, isupper, islower to avoid problem
+*	  with statements like ".not. &ISNULL" which contains an .and.
+*	  See Replace header for comments on trim and accept
+*
+*	  Functions implemented are:
+*	  LOWER   LTRIM   REPLACE 
+*	  WORD	  WRAP	  CENTER
+*
+********************************************************
+*
+*
+store "        " to FUNCTION
+*>>> Delete these later
+if FUNCTION = "WORD" .OR. FUNCTION = "WRAP" .OR. "JUSTIFY"
+store "XXXX is an EXTREMELY long string for testing the capacity of wrap;
+to perform its menial little but somewhat important task.  In short its ;
+a test!  Testing, testing?" to WRKSTR
+else
+    store "This is a test of a TEST TTTTT   isIS  " to WRKSTR
+endif
+*<<<
+if &ISNULL
+   @ 22,05 say "Enter string operand       ->" GET WRKSTR
+   read
+endif 
+
+*** start of case 
+
+do case
+	case FUNCTION="LOWER"
+
+*\NP
+**********************************************	LOWER.CMD
+***						  07.30.84
+***	  Convert string to lowercase
+*
+*********************************************************
+*
+*** start newstring
+*
+set talk ON
+
+
+&FIRSTC
+if &ISUPPER
+   store &TOLOWER to PUTSTRING
+ELSE
+   &PUTNWSTR
+endif
+
+
+*** convert each char until eos
+
+&NEXTC
+do while .NOT. &EOS
+
+   if &ISUPPER
+      stor PUTSTRING + &TOLOWER to PUTSTRING
+   else
+      &CHARCAT
+   endif
+
+   &NEXTC
+enddo
+
+return
+
+*** end lower ******************************************
+
+		case FUNCTION = "LTRIM"
+*\NP
+*********************************************** LTRIM.CMD
+***						  07.30.84
+***	  LTRIM
+***	  strips leading blanks that may occur from 
+***	  conversion from numeric to string
+*
+***********************************************************
+*
+*
+*** start at first char
+&FIRSTC
+
+*** move past blank chars
+do while &ISSPACE
+	&NEXTC
+enddo
+
+*** get rest of string
+store $( WRKSTR, POS) to PUTSTRING
+*
+*** end
+
+NOTE POS with no LEN arg pointing to blank is like WRKSTR from POS
+NOTE to the EOS
+
+*** end ltrim **************************************************
+
+		case FUNCTION = "REPLACE"
+
+stor WRKSTR to PUTSTRING
+*\NP
+*********************************************** REPLACE.CMD
+***						  08.01.84
+***	  grep?
+***	  REPLACE search and replace patterns 
+***	  Uses 3 arguments
+***	  string, oldpattern, newpattern
+***	  stor trim( NEWPATTERN) would prohibit newpattern 
+***	  with a space!
+***	  note - use of Accept preferred which allows for a 
+***	  space at end of string
+***	  get would leave a 'tail' so a compare to a trimmed 
+***	  string would fail
+*
+*******************************************************************
+*
+*
+
+*** make a copy of the string to work with
+&FIRSTC
+*** process string while oldpattern
+*** is still found inside newstring
+do while !( OLDPATTERN) $ !($( PUTSTRING, POS)) .AND. ;
+		.not. &EOS
+*** get the starting position of the old pattern
+stor @(!( OLDPATTERN), !($( PUTSTRING, POS))) + POS-1 TO POSITION
+
+*** rebuild newstring without old pattern
+if POSITION = 1
+   stor NEWPATTERN + $( PUTSTRING, LEN( OLDPATTERN)) to PUTSTRING
+else
+   stor $( PUTSTRING,1, POSITION-1) + NEWPATTERN + $( PUTSTRING,POSITION + LEN(OLDPATTERN)) to PUTSTRING
+? PUTSTRING
+endif
+
+*** move cpointer past newpattern
+stor POSITION + LEN( NEWPATTERN) to POS
+
+enddo
+
+*** erase
+
+rele OLDPATTERN, NEWPATTERN, POSITION
+*
+*** end replace *************************************************
+
+		case FUNCTION ="WORD"
+*\NP
+*********************************************** WORD.CMD
+***						  07.30.84
+***	  getword - extract the next word
+***	  See WORDWR for version with a wrapper "Testword"
+***	  Changed Empty to contain the parens else must use  
+***	  the syntax ".not. (&ISNULL)" to avoid problem with not/and/and
+***	  in the wrapper (does not apply with bare bones word 
+*
+*** word *******************************************************
+*
+*
+*** look for next non-blank char
+stor F to INWORD
+do while .not. INWORD .and. .not. &EOS
+
+    if .not. &ISSPACE
+	* a char has been found so start newstring
+	stor T to INWORD
+	&PUTNWSTR
+    endif
+
+    &NEXTC
+enddo
+
+*** add the rest of the chars to newstring
+do while INWORD .and. .not. &EOS
+
+    if .not. &ISSPACE
+	&CHARCAT
+	&NEXTC
+	Stor T to flag5
+    * stop when a blank is reached
+    else
+	stor F to INWORD
+    endif
+
+enddo
+
+rele inword
+
+*** end word ************************************
+*
+
+		case FUNCTION = "WRAP"
+*\NP
+************************************************* WRAP.CMD
+***						    07.30.84
+***	  WRAP a line 
+***	  word wrap function requires parameter (MAXLINE)
+***	  to be passed for length of line
+*
+************************************************** 
+*
+*
+*** start a new print line
+?
+
+
+*** set the printing position of character to start of line
+stor 0 to printed
+
+*** process the string
+&FIRSTC
+do while .not. &EOS
+
+    *  get the next word
+    DO WORD
+
+    * if word won't fit start a new line
+    if LEN( PUTSTRING) + PRINTED > MAXLINE
+       ?
+       STORE 0 TO PRINTED
+    endif
+
+    * print the word without <RET>
+    ?? PUTSTRING
+
+	* increase the printing position of character
+	stor LEN( PUTSTRING) + PRINTED +1 to PRINTED
+enddo
+
+rele PRINTED, PUTSTRING, MAXLINE
+
+*** end wrap ***********************************
+*
+		case FUNCTION = "CENTER"
+
+*\NP
+************************************************ CENTER.CMD
+***						   07.30.84
+*
+*
+***	  center a string
+*
+***	  requires parameter maxline to be passed
+*
+************************************************
+*
+*
+store "                                            " TO BLNKS
+
+*** trim off the leading spaces
+do LTRIM
+
+*** calculate blanks before sting is printed
+stor ( MAXLINE - len(trim( PUTSTRING))) /2 TO LEFTFILL
+
+if LEFTFILL >0
+    ? $( BLNKS, 1, LEFTFILL) + PUTSTRING
+else
+    ? PUTSTRING
+endif
+
+rele maxline, leftfill, blanks
+*
+*** end center *********************************
+*
+		otherwise
+eras
+?
+?
+?
+ACCE "&FUNCTION is not a valid function call on this system - try again  -> " to FUNCTION
+
+endcase
+
+return
+*
+*** end toolslib function lirary *******************
+*
+
+***  spare parts for functions
+*
+***
+*** store "&C               "	to   
+*** store "&C               "	to   
+*
+*** store "chr(rank( &C )) => '65' .and. chr(rank( &C )) <= '90' .or. chr(rank( &C )) => '97' chr(rank( &C )) =< '122'"        to 
+*** store "chr(rank( &C )) => '65' .and. chr(rank( &C )) <= '90' .or. chr(rank( &C )) => '97' chr(rank( &C )) =< '122'"        to 
+*** 
+*** store "chr(rank( &C )) => 
+*** store "chr(rank( &C )) => 
+*** 
+****************************************************** END
+ store "chr(rank( &C )) => 
+*** store "chr(rank( &C )) 

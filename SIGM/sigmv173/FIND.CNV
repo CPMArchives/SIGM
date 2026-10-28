@@ -1,0 +1,50 @@
+
+[FIND.CNV]
+[Harold V. McIntosh, 22 March 1984]
+
+[[look through files for a reference]]
+
+
+
+[transcribe file]
+(()()(0 1)(
+  [separator at end]	((^Z),);
+  [write, read line]	((and,<--><6>,<0>)<1>,(%W,TTY:,(C)(K)(T): <0><1>(|))(R)):
+			(,(, (K) )(R)):
+  )) a
+
+[main loop - run through files]
+(()( ((%R,<7>:<8>.<9>)) R ((%R,CTR:LINE)) K ((^MJ)) |
+	((, (%R,CTR:CASE) )) C ((, (%R,CTR:TOTL) )) T )(0 8 9)(
+
+  [avoid.COM files]	(<[9]>COM<[20]><0>,<0>):
+  [parse filename]	(<[1]>(and,<[8]>,<8>)(and,<[3]>,<9>)<[20]><0>,<<
+    [initialize counter]	>>(%W,CTR:LINE,1,1)<<
+    [initialize instance]	>>(%Or,CTR:CASE)<<
+    [open file]			>>(%Or,<7>:<8>.<9>)<<
+    [type filename]		>>(%W,TTY:,(|)-----> File: <7>:<8>.<9>(|))<<
+    [scan file]			>>(a,(R))<<
+    [close file]		>>(%C,<7>:<8>.<9>)<<
+    [report instances]		>>(, (%T,Lines Found: (%R,CTR:CASE)) )<<
+    [go to next]		>><0>):
+  )) x
+
+[form file list]
+(()()(0)( (Not Found<0>,<0>); (<0>,(%A,<7>:<8>)<0>): )) y
+
+[bind search phrase, look for file]
+(()()(6)( (<6>,(x,(y,(%S,<7>:<8>)))); )) z
+
+[main program]
+(()()(7 8)(
+	(<7>:<8>,<<
+		>>(%Or,CTR:LINE)<<
+		>>(%Or,CTR:TOTL)<<
+		>>(, (%T,Search phrase?) )<<
+		>>(z,(%R,TTY:))<<
+		>>(, (%T,Total Lines Found: (%R,CTR:TOTL)) )<<
+		>>);
+	(<8>,@:<8>): ))
+
+[end]
+

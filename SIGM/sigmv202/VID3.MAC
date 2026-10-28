@@ -1,0 +1,45 @@
+;
+; VLIB Module Name:  VID3
+; Author:  Richard Conn
+; VLIB  Version Number:  1.0
+; Module Version Number:  1.0
+; Module Entry Points:
+;	STNDOUT
+; Module External References:
+;	VIDPTR	VIDOUT	VIDSKP
+;
+	ext	vidptr,vidout,vidskp
+;
+; Begin Standout Mode
+;	Return with A=0 and Zero Flag Set if not done
+;
+stndout::
+	push	h	;save regs
+	push	d
+	lhld	vidptr	;pt to environment
+	mov	a,m	;no terminal?
+	cpi	' '+1
+	jc	err
+	lxi	d,17h	;pt to cls string
+	dad	d
+	mvi	d,0	;no delay
+	call	vidskp	;skip over CL string
+	call	vidskp	;skip over CM string
+	call	vidskp	;skip over CE string
+	mov	a,m	;get first char of SO string
+	ora	a	;if no string, error
+	jz	err
+	call	vidout	;output string with delay
+	pop	d	;done
+	pop	h
+	xra	a	;return NZ
+	dcr	a
+	ret
+err:
+	pop	d	;done
+	pop	h
+	xra	a	;return Z
+	ret
+
+	end
+

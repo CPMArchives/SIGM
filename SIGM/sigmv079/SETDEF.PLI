@@ -1,0 +1,97 @@
+setdef:
+	proc;
+	%replace
+		true  by '1'b,
+		false by '0'b,
+		key_f by 0,  /* principal key field */
+		qty_f by 1,  /* quantity field */
+		prc_f by 2,  /* price field */
+		unk_f by 3;  /* unknown field */
+
+	%include 'attrib.dcl';
+
+	dcl
+		def   file;
+	dcl
+		prc_start fixed ext,
+		prc_len   fixed ext,
+		qty_start fixed ext,
+		qty_len   fixed ext,
+		sales_tax dec(4,2) ext;
+	dcl
+		start     fixed,
+		finish    fixed,
+		last_fin  fixed,
+		i         fixed;
+
+
+	on undefinedfile(def)
+		begin;
+		put skip list('Missing or Empty DEF.DAT File');
+		stop;
+		end;
+
+	open file(def) stream;
+
+	on error(1)
+		begin;
+		put list('Invalid Data Item in DEF.DAT, line',
+			lineno(def));
+		stop;
+		end;
+
+	on endfile(def)
+		go to end_def;
+
+	att_cnt = 0;
+	get file(def) list(sales_tax);
+
+		do while (att_cnt <= max_att);
+		i = att_cnt + 1;
+		if i > max_att then
+			i = 1;
+		get file(def) list
+		(att_chars(i), att_type(i), att_start(i), att_finish(i));
+		att_cnt = att_cnt + 1;
+		if att_cnt > max_att then
+			do;
+			put list('More than ',max_att,
+				'Fields in DEF.DAT');
+			stop;
+			end;
+		end;
+	end_def:
+	if att_cnt = 0 then
+		signal undefinedfile(def);
+
+	prc_start = 0;
+	qty_start   = 0;
+	/* validate fields, check for price and qty fields */
+	last_fin = 0;
+		do i = 1 to att_cnt;
+		start  = att_start(i);
+		finish = att_finish(i);
+		if start <= last_fin |
+		   start > finish |
+		   finish > max_siz then
+			signal error(1);
+		last_fin = finish;
+		if att_type(i) = qty_f then
+			do;
+			qty_start = start;
+			qty_len   = finish - start + 1;
+			end;
+		if att_type(i) = prc_f then
+			do;
+			prc_start = start;
+			prc_len   = finish - start + 1;
+			end;
+		end;
+	if prc_start = 0 | qty_start = 0 then
+		do;
+		put skip list('Missing Price or Quantity in DEF.DAT');
+		stop;
+		end;
+
+	end setdef;
+

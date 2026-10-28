@@ -1,0 +1,32 @@
+********************************************************************
+
+*                          MESIJ                                   *
+
+********************************************************************
+
+                  name mesij
+                  entry mesij
+                  ext chrout
+
+;FUNCTION:prints on console the message whose start address
+;         is transmitted to MESIJ in X.
+;CALLS: CHROUT
+
+mesij:            push psw        ;
+                  push x          ;
+                  push h          ;
+loop:             mov a,0(x)      ;put i'th byte in A.
+                  cpi 24h          ;24('$')=end/message.
+                  jz fini         ;
+                  call CHROUT    ;output byte,
+                  inx x           ;bump pointer,
+                  jmp loop        ;& repeat.
+fini:             pop h           ;
+                  pop x           ;
+                  pop psw         ;
+                  ret
+
+                  end mesij
+
+********************************************************************
+

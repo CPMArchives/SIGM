@@ -1,0 +1,155 @@
+remake:
+    proc options(main);
+
+/****************************************************************
+*                                                               *
+*    Compiler manager Revision 1.1. Makes $$$.SUB file with     *
+*      unnecessary compiles, libs and links commented out.      *
+*                 Written by Les Bell, 3/21/83                  *
+*                                                               *
+*       Revised to 1.2, with separate procedures 3/28/83        *
+*    Rev 1.3 fixed a few phurphies, made word2 more elegant     *
+*                                                               *
+****************************************************************/
+
+    %replace
+        true   by '1'b,
+        false  by '0'b,
+        nfiles by 10,
+        ndels  by 8,
+        vernum by 1.2;
+
+    dcl
+        filename(1:nfiles) char (15) var static,
+        upper char(36) static initial
+            ('ABCDEFGHIJKLMNOPQRSTUVWXYZ '),
+        lower char(36) static initial
+            ('abcdefghijklmnopqrstuvwxyz '),
+        delims (ndels) char (1) static initial
+            (' ','[','=',',','<','(','.','^M');
+
+    dcl
+        linbuf char(128) var;
+
+    dcl
+        (count,lastword) fixed;
+
+    dcl
+        sysin file,
+        (infile,outfile) file,
+        eofile bit (1) static init (false);
+
+    put skip list ('Compiler Manager Revision',vernum);
+
+    call getnames;
+    call pass1;
+    call pass2;
+
+    getnames:
+        proc;        /* Get list of altered filenames */
+
+        dcl eoinp bit (1) static init (false);
+
+        on endfile (sysin) eoinp = true;
+
+        put skip list ('Input list of altered files, then ^^Z;');
+        put skip;
+        do lastword = 1 repeat (lastword + 1) while (^eoinp);
+            get list (filename(lastword));
+            filename(lastword) =
+                    translate(filename(lastword),upper,lower);
+        end;
+    end getnames;
+
+    pass1:
+        proc;
+
+        /* First pass through file, count lines */
+
+        open file (infile) input stream title ('$1.SUB');
+        on endfile (infile) eofile = true;
+
+        read file (infile) into (linbuf);
+        do count = 0 repeat (count + 1) while(^eofile);
+            read file (infile) into (linbuf);
+        end;
+        close file (infile);
+        eofile = false;
+    end pass1;
+
+    pass2:
+        proc;
+
+        /* Second pass reads .SUB file and writes output file backwards */
+
+    dcl
+        sector char(128) static;
+
+    dcl
+        (i,j) fixed binary (15);
+
+    dcl
+        commtd bit (1) static init (false);
+
+        open file (infile) input stream title ('$1.SUB');
+        open file (outfile) direct output env (f(128)) title ('$$$.SUB');
+        do count = count-1 to 0 by -1 while (^eofile);
+            read file (infile) into (linbuf);
+            commtd = true;
+            linbuf = translate(linbuf,upper,lower);
+            do i = 1 to lastword - 1 while (commtd);
+                j = index(linbuf,filename(i));
+                if (j ~= 0 & isdelim(substr(linbuf,j+length(filename(i)),1)))
+                        then do;
+                    commtd = false;
+                    call word2;
+                    if filename(lastword) = filename(i) then go to same;
+                    put skip list ('File affected:',filename(lastword));
+                    lastword = lastword + 1;
+same:
+                end;
+            end;
+            if commtd = true then
+                linbuf = ';' || linbuf;
+            linbuf = substr(linbuf,1,length(linbuf)-2);
+            substr(sector,1) = substr(linbuf,0);
+            do i = length(linbuf) + 2 to 128;
+                substr(sector,i,1) = ascii(0);
+            end;
+            write file (outfile) from (sector) keyfrom (count);
+        end;
+        close file (outfile);
+    end pass2;
+
+    word2:
+        proc;
+
+        dcl
+            (i,st,fin,fint) fixed binary (7);
+
+        fin = 15;
+        st = index(linbuf,' ');
+        do i = 1 to ndels;
+            fint = index(substr(linbuf,st+1),delims(i));
+            if fint ~= 0 then fin = min(fin,fint);
+        end;
+        filename(lastword) = substr(linbuf,st+1,fin-1);
+
+    end word2;
+
+    isdelim:
+        proc (c) returns (bit(1));
+        dcl c char (1);
+
+        dcl
+            i fixed binary (7);
+
+        do i = 1 to ndels;
+            if c = delims(i) then return (true);
+        end;
+        return (false);
+
+    end isdelim;
+
+end remake;
+

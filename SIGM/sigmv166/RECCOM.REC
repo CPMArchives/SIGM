@@ -1,0 +1,139 @@
+
+[RECCOM.REC]
+[CNVRT compiler for REC]
+[a version which compiles "assembler" code]
+[Harold V. McIntosh, 28 April 1982]
+[Harold V. McIntosh, 2 June 1983]
+[Harold V. McIntosh, 28 December 1983]
+
+[[]]
+
+{
+   				{
+    [find/make FCB]		(Jj'TTY:'EQZD;(':'UQD':'ED\64-%;0%;)
+				 ('.'U<(8a;@b;)Q|D>;Z'.DAT'IJj:)
+				  '.'FJDZ(3a;@b;)Q|JZDI
+				 32(dpGm$r0=npGpGd0&$Sm@znpGQ&$rrS0;
+				 r12wQmwnEn;n:)D;) f
+    [blank fill by count]	(Zz(d' 'I:;)JZ;) b
+    [zero fill]			(cmpw0%(f:;)w;) 0
+    [zero FCB & buffer]		($m33@0130@0nn&0||pLnS;) z
+    [set default input file]	(0,30$S'5C'H12wA' 'Ew4@0n0|0|pL31$S
+				 'TTY:'31$rrS; B9aQD(3a'   'E
+				 'DAT';Q;)|mw31@zn31$rrS31@r;) i
+    [open for read]		(@hr15K(255='NO FILE'I;L;)L;) r
+    [open for write]		(@hpGpG4+1&SrpG19k22k^^r128&S;) w
+    [set DMA address]		($rpG^^r^^26k;) h
+    [open]			(m@f0=n@@;nLL;) O
+    [read]			(''(AL@f(0=pG@r;'TTY:'(='T');))
+				 ('T'='';L31pG$rr12w'TTY:'Ew;w)
+				 L@&'> 'TL(@#I;:);
+				 $r(pG^^rpGmr(0=(npGpGm128&S^^26kpGr
+				 20K0=L;LL1npGpGm129+26%&SS;)npGmr;;)
+				 pG130&-n+&dm(u13%=;10%(=)pGI(26%=;
+				 L);ndm:)L^^rn&S;LpG^^r0&S:);) R
+    [write]			(Jj'='U<(A@f'TTY:'(=)(0=pG@w;;))>'='ED
+				 ZqtD; >'='EDZ<@g;) W
+    [write to disk]		($r(pG^^rpGpGmrpGm- 130+n&maQD>Z<nSn^^
+				 26kpGr21kpG^^r128&S:JZQD>nSnSL;);) g
+    [close all files]		(31pGm($r0=;pG4+r(0=L;LJj26%I<npGm@gpG
+				 ^^rpGr127(N^^26kpGr21k;L;)r16k;)ndpGm:)
+				 nL;;) c
+    [PVR]			(pG@&#'= '|TL$r(0='undef';yG;)TL;) _
+    [cr, lf]			(2573TL;)&
+    [insert cr, lf]		(2573I;)|
+    [read console]		(R13%='';08%(=)(T@#|;08%T' 'TLTLL@#;);)#
+    [type comment]		(@TD;)C
+    [display at logon]		('
+Compile a REC expression into a very stylized assembly
+language program, which can nevertheless be assembled
+by a specialized assembler. Either type an expression
+to be compiled, using parentheses and braces, or two
+file names, as =INPUT,OUTPUT. If INPUT.DAT has a REC
+program, it will be compiled and placed in OUTPUT.DAT.
+Only one file may be processed in a given session, but
+several examples may be input from the console. Type a
+single carriage return to quit.
+'TL@&;)D
+    [write workspace]		(@&JZqt;)T
+				(@@;) }%
+    [integer arithmetic]	{(+;)+ (-;)- (*;)* (/&L;)/
+				(pGm/L1=nL1;0=n;n&:)|
+				 ((pGmJj(U);QD(O)I;npGmEDZQD(O)IjnpGmI;
+				 n@@#I)nLJZ;;) } #
+    [save & init variables]	(pGpGm$rm0&$S;) (
+    [reinitialize variable]	(pG$r0=L;LnL0&$S;) :
+    [undefine variable]		($r0=;LnL;) )
+    [compare/define variable]	(pG$r0=ZQzml&$S;&LyGEz;) ]
+    [body of variable search]	(pG$r(0=)yG(E;&L)z&L@=L;pG$r(0=;LL)
+				  Z<((&pGm&n(F;''mZz<)jJQmpGl&$S
+				  zZ<@=>;J>);nLA:0&$SL>)>LL;) >
+    [body of variable search]	(pG$r(0=)yGEz@=L;pG$r(0=;LL)
+				  Z<((jJQmpGl&$S
+				  zZ<@=>;J>);nLA:0&$S>)>L;) <
+    [insert variable]		($ryGI;) [
+				
+[individual cases]
+{(0@( 1@( {(0@: 1@: ;); (
+		@;(J2573TL'A:'TLZqtj()JZD;);
+		@;(J(A)JZD;);
+  [space, <,>]  @;(J [or] Z<(' 'Ez; J','Ez;>)> [or] 0@]JZD0@[;):
+  [number]	@;(J [and] Z<(@c jJ><0@](A);>)> [and] 1@]JZD'/call NU/db   'I39%I0@[39%Iz<1@[@AZ>;);
+  [quote]	@;(J [and] Z<( [or] Z<(@e; J@f;>)> [or]  jJ><0@](A);>)> [and] 1@]JZD'/call QU/db   'I0@[z<1@[@AZ>;);
+  [arroba]	@;(J'@'Ez [and] Z<(1(a;L)z jJ><0@](A);>)> [and] 1@]JZD'/call AR/db   'I39%I0@[39%Iz<1@[@AZ>;);
+  [comment]	@;(J@d0@]JZD0@[;):
+  [operator]	@;(J [and] Z<(@o jJ><0@](A);>)> [and] 1@]JZD'/call op$'I0@[z<1@[@AZ>;);
+  [predicate]	@;(J [and] Z<(@p jJ><0@](A);>)> [and] 1@]JZD'/call pr$'I0@['/jmp  #'Iz<1@[@AZ>;);
+  [colon]	@;(J':'Ez1@]JZD'/jmp  %/#:'Iz<1@[@AZ>;);
+  [semicolon]	@;(J';'Ez1@]JZD'/jmp  $/#:'Iz<1@[@AZ>;);
+  [parenthesis]	@;(J [and] Z<(@i jJ><'('Ez {[vbl] (')'Ez(A);) = (0@<;)}[vbl] (A);>)> [and] 1@]JZD'/%:'Iz<0@[@AZ>'/jmp  ##/$:/#:'Iz<1@[@AZ>;);
+  [brace]	@;(J [and] Z<(@j jJ><'{'Ez {[vbl] ('}'Ez;) = ('}'0@>;)}[vbl] (A);>)> [and] 1@]JZD'/call main/jmp  #/jmp  $'Iz<'[]'I0@[@BZ>z<1@[@AZ>'/$:'I;);
+  [more source] @;(J0@]JZD0@[z<z<@RZ>@CZ>;):
+  ;)} 0@) 1@)   nn$S nn$S;)} A
+
+[string of definitions inside braces]
+{(0@( 1@( 2@( 3@( {(0@: 1@: 2@: 3@: ;); (
+		@;(J2573TL'B:'TLZqtj()JZD;);
+  [main]	@;(J'['Ez {[vbl] (']'Ez [and] Z<( [or] Z<(@i; J@j;>)> [or]  jJ><1@](A);>)> [and] ' 'Ez [and] Z<(@a jJ><2@](A);>)> [and] ' 'Ez3@];) = (']'0@>;)}[vbl] JZD'/'I2@[':'Iz<1@[@AZ>z<@EZ>z<'['I0@[z<2@[@pZ>']'I3@[@BZ>z<2@[@qZ>;);
+  [subroutines]	@;(J'['Ez {[vbl] (']'Ez [and] Z<( [or] Z<(@i; J@j;>)> [or]  jJ><1@](A);>)> [and] ;) = (']'0@>;)}[vbl] JZD'/pprg:'Iz<1@[@AZ>z<@EZ>'/main:'I0@['/call pprg'Iz<@rZ>;);
+  ;)} 0@) 1@) 2@) 3@)   nn$S nn$S nn$S nn$S;)} B
+
+[exclude the portion of a file following ^Z]
+{(0@( {(0@: ;); (@;(J {[vbl] (26%Ez;) = (0@<;)}[vbl] JZD0@[;);;)} 0@)   nn$S;)} C
+
+[push macro]
+{(0@( {(0@: ;); (@;(J0@]JZD'/lhld t$'I0@['/xthl/push h/lxi  h,'I0@[':/shld t$'I0@[;);;)} 0@)   nn$S;)} p
+
+[pop macro]
+{(0@( {(0@: ;); (@;(J0@]JZD'/pop  h/xthl/shld t$'I0@[;);;)} 0@)   nn$S;)} q
+
+[macro to transfer skip to stack]
+{(((JJZD'/jmp  $$/xthl/inx  h/inx  h/inx  h/xthl/$$:'I;);;) ;)} r
+
+[main program]
+{
+  [alfanum]  ( [and] Z<(1(a;L)z jJ><' ''~'Mz(A);>)> [and] ;) a
+  [numeric]  ( [and] Z<(1(a;L)z jJ><'0''9'Mz(A);>)> [and] ;) b
+  [number]   ( [or] Z<('-'Ez; J;>)> [or] @b([ITR] Z<@b>:J>;)[ITR] ;) c
+  [comment]  ('['Ez([ITR] Z< [or] Z<(@d; J [and] Z<(1(a;L)z jJ><[not] (Z<  [or] Z<('['Ez; J']'Ez;>)> [or] J>)J>[not] Zz(A);>)> [and] ;>)> [or] >:J>;)[ITR] ']'Ez;) d
+  [s-quote]  (39%Ez([ITR] Z< [or] Z<(@e; J@f; J [and] Z<(1(a;L)z jJ><[not] (Z<  [or] Z<(39%Ez; J34%Ez;>)> [or] J>)J>[not] Zz(A);>)> [and] ;>)> [or] >:J>;)[ITR] 39%Ez;) e
+  [d-quote]  (34%Ez([ITR] Z< [or] Z<(@e; J@f; J [and] Z<(1(a;L)z jJ><[not] (Z<  [or] Z<(39%Ez; J34%Ez;>)> [or] J>)J>[not] Zz(A);>)> [and] ;>)> [or] >:J>;)[ITR] 34%Ez;) f
+	     ( [or] Z<(@c; J@d; J@e; J@f; J'@'Ez1(a;L)z; J@i; J@j;>)> [or] ;) g
+	     ( [and] Z<(1(a;L)z jJ><[not] (Z<  [or] Z<('('Ez; J')'Ez; J'{'Ez; J'}'Ez; J'['Ez; J']'Ez; J'@'Ez; J39%Ez; J34%Ez;>)> [or] J>)J>[not] Zz(A);>)> [and] ;) h
+  [paren]    ('('Ez([ITR] Z< [or] Z<(@g; J@h;>)> [or] >:J>;)[ITR] ')'Ez;) i
+  [brace]    ('{'Ez([ITR] Z< [or] Z<(@g; J@h;>)> [or] >:J>;)[ITR] '}'Ez;) j
+  [oper]     ( [or] Z<('!'Ez; J'#'Ez; J'$'Ez; J'%'Ez; J'&'Ez; J'*'Ez; J'+'Ez; J'/'Ez; J'<'Ez; J'>'Ez; J'D'Ez; J'G'Ez; J'I'Ez; J'J'Ez; J'K'Ez; J'L'Ez; J'P'Ez; J'Q'Ez; J'R'Ez; J'S'Ez; J'T'Ez; J'W'Ez; J'X'Ez; J'Z'Ez; J'\'Ez; J'^'Ez; J'_'Ez; J'c'Ez; J'g''z'Mz; J'|'Ez; J'~'Ez;>)> [or] ;) o
+  [pred]     ( [or] Z<('='Ez; J'?'Ez; J'A'Ez; J'B'Ez; J'C'Ez; J'E'Ez; J'F'Ez; J'H'Ez; J'M'Ez; J'O'Ez; J'U'Ez; J'V'Ez; J'`'Ez; J'a'Ez; J'b'Ez; J'd'Ez; J'e'Ez; J'f'Ez;>)> [or] ;) p
+
+  
+	     (z<8@['R'@%Z>;) R
+	     ('/skip/#:/ret'I;) E
+  (0@( 8@( 9@( {(0@: 8@: 9@: ;); (
+	@;(J [or] Z<((A); J';'Ez;>)> [or] JZD'goodbye'I;);
+	@;(J'='Ez {[vbl] (','Ez9@];) = (8@<;)}[vbl] JZDz<8@['r''O'@%Z>z<9@['w''O'@%Z>z<9@['='Iz<z<z<@RZ>z<@RZ>@AZ>z<@EZ>'T'@%Z>'W'@%Z>z<'c'@%Z>;);
+	@;(J0@]JZDz<z<0@[@AZ>z<@EZ>'C'@%Z>z<'R'@%Z>;):
+  ;)} 0@) 8@) 9@)   nn$S nn$S nn$S;)} ~
+('i'@%'D'@%'R'@%@~JZqt'c'@%;)  }
+
+[end]
+

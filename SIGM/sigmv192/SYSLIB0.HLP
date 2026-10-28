@@ -1,0 +1,356 @@
+Introduction to SYSLIB 3
+Comments on Software Engineering
+Definitions of Terms
+Parameter-Passing Conventions
+Overview of SYSLIB 3 Routines
+:Introduction to SYSLIB 3
+
+     SYSLIÂ ³ ió aî integrateä tooì seô whicè ió designeä tï 
+assisô  thå  assemblù  languagå programmeò  iî  writinç  hió 
+application®   Iô ió intendeä tï placå hií aô á higheò leveì 
+oæ abstractioî thaô allowó hií tï concentratå oî thå probleí 
+aô hanä withouô havinç tï concerî himselæ witè thå low-leveì 
+implementatioî  detailó oæ thå operatinç  systeí  interface¬ 
+input/output¬   texô  parsinç  anä  evaluation¬   math¬  anä 
+sorting.
+
+     Tï illustratå thió point¬ consideò aî assemblù languagå 
+programmeò  whï  needó  tï accesó  á  disë  directory®   Thå 
+applicatioî  hå  ió writinç ió onå whicè displayó  á  sorteä 
+disë directorù tï thå user.
+
+     Withouô SYSLIÂ ³ oò á librarù likå it¬  thå  programmeò 
+woulä  havå tï writå á relativelù sophisticateä bodù tï codå 
+tï accesó thå directory¬  loaä iô intï memory¬  sorô it¬ anä 
+displaù iô tï thå user.
+
+
+     Witè SYSLIÂ 3¬  however¬  thå programmeò haó á hosô  oæ 
+tooló  hå  caî calì oî tï perforí somå oæ thå  morå  tediouó 
+functions®   Onå oæ theså tools¬ DIRF¬ loadó thå elementó oæ 
+á  disë  directorù  whicè matcè á filå speã  intï  á  memorù 
+buffeò foò him.
+
+     Buô  morå thaî jusô providinç á seô oæ tools¬  SYSLIÂ ³ 
+waó   designeä  witè  structureä  programminç  anä  softwarå 
+engineerinç iî mind®   Thå basiã goaì iî softwarå desigî  ió 
+thaô thå programó meeô thå stateä requirements®  Iî applyinç 
+softwarå  engineering¬  wå wanô morå thaî jusô this®   Amonç 
+other things, we want the program to be:
+
+          o Modifiable             o Efficient
+          o Reliable               o Understandable
+
+     SYSLIÂ  ³ offeró á significanô seô oæ facilitieó  whicè 
+caî helğ tï achievå theså goals.
+
+:Comments on Software Engineering
+
+     Wå arå experiencinç á SOFTWARÅ CRISIÓ today¬  thå basió 
+oæ  whicè  ió  simplù  thaô iô ió morå  difficulô  tï  builä 
+reliablå softwarå systemó thaô wå thinë iô shoulä  be®   Alì 
+too often, the symptoms of the SOFTWARE CRISIS are seen:
+
+          o Cost - unpredictable and judged excessive
+          o Efficiency - time and space utilitization are
+               not efficient
+          o Modifiability - software is difficult to change
+          o Reliability - software often fails
+          o Responsiveness - user needs are not met
+          o Timeliness - software is not delivered on time
+          o Transportability - software used on one system
+               may not be used on another
+
+
+     Thå  bottoí linå iî thå desigî oæ á softwarå systeí  ió 
+thaô  thå softwarå shoulä meeô itó stateä requirements®   Tï 
+achievå  thió  end¬  thå fielä oæ SOFTWARÅ  ENGINEERINÇ  haó 
+arisen.  The goals of SOFTWARE ENGINEERING are:
+
+     1®  Modifiabilitù - Softwarå shoulä bå easù tï  change¬ 
+anä softwarå shoulä bå designeä witè lateò changå iî mind.
+
+     2®   Efficiencù  - Thå softwarå systeí shoulä  uså  itó 
+availablå resourceó iî aî optimaì manner.
+
+     3®  Reliabilitù - Thå softwarå shoulä perforí accordinç 
+tï specificatioî anä recoveò safelù froí failurå durinç use.
+
+     4®  Understandabilitù - Softwarå shoulä bå easù tï reaä 
+anä follow®  Understandabilitù ió thå tooì useä tï pasó froí 
+á particulaò probleí spacå tï á solution.
+
+
+     SYSLIÂ  ³  attemptó tï helğ thå programmeò achievå  thå 
+goaló oæ Softwarå Engineerinç bù applyinç thå principleó  oæ 
+Softwarå Engineering®  Theså principleó are:
+
+     1®   Abstractioî  anä Informatioî Hidinç  - Unnecessarù 
+detaiì  ió  hiddeî froí thå user®   Foò  example¬  thå  DIRÆ 
+routinå loadó thå contentó oæ á disë directorù intï á memorù 
+buffer®  Ho÷ thió loaä ió donå ió hiddeî froí thå programmeò 
+-- alì hå needó tï kno÷ ió thaô thå loaä waó donå anä hå no÷ 
+haó á vectoò oæ directorù entrieó tï worë with.
+
+     2®   Modularitù  - SYSLIÂ ³ ió verù modulaò iî  design®  
+Eacè  routinå  iî  thå  librarù performó onå  anä  onlù  onå 
+function¬  anä thå documentatioî provideó completå detaiì aó 
+tï  whaô thaô functioî is¬  whaô itó inpuô  parameteró  are¬ 
+whaô  itó outpuô parameteró are¬  whaô itó sidå effectó are¬ 
+anä otheò data.
+
+
+     3®   Localizatioî anä Looså Couplinç - SYSLIÂ ³ moduleó 
+arå   looselù   coupleä  -- eacè  modulå  maù   bå   treateä 
+independentlù oæ thå others®   Additionally¬ thå moduleó arå 
+stronglù  cohesivå  -- thå  componentó oæ  eacè  modulå  arå 
+intimatelù  relateä tï eacè otheò buô noô tï  componentó  oæ 
+otheò modules.
+
+     4®   Uniformitù  - Thå callinç conventionó betweeî  thå 
+variouó SYSLIÂ ³ moduleó arå consistenô witè eacè other¬ anä 
+iô  ió  frequentlù thå caså thaô thå outpuô parameteró  froí 
+onå  modulå  maù  bå directlù useä aó  inpuô  parameteró  tï 
+another.
+
+     5®   Completenesó  - Eacè  modulå oò grouğ  oæ  relateä 
+moduleó arå functionallù complete®   Nï additionaì functionó 
+are required.
+
+     6®   Confirmabilitù - Á prograí writteî usinç SYSLIÂ  ³ 
+modules can be readily decomposed for incremental testing.
+:Definitions of Terms
+
+     Somå  termó  arå  useä  frequentlù  iî  thå  SYSLIÂ   ³ 
+documentation®  Theså termó arå defineä below.
+
+     1®   Buffeò  - Á contiguouó vectoò oæ byteó iî  memory®  
+Thå  buffeò  ió knowî bù itó startinç addresó anä  sizå  (iî 
+bytes)®  Example:
+
+          bufferº   DÓ   4°   » 40-bytå buffer
+
+     2®   Characteò  - Á  one-bytå (8-bit© value®   Á  valuå 
+rangå  withiî  thå ASCIÉ characteò seô (á  7-biô  value©  ió 
+implieä buô noô required¬  sï á characteò coulä havå á valuå 
+oæ 81H.
+
+
+     3®   Directorù - Aî indeø tï thå fileó oî thå disk®  Aî 
+entrù  iî á directorù containó thå namå oæ á file¬  thå useò 
+numbeò iô resideó in¬  ho÷ largå thå filå is¬  anä wherå thå 
+filå ió locateä oî thå disk®   Thå informatioî loadeä bù thå 
+SYSLIÂ  directorù  routineó doeó noô includå  filå  locatioî 
+information¬  buô doeó includå everythinç else®   Iî anotheò 
+sense¬  thå terí directorù ió useä tï refeò tï á  particulaò 
+disë anä useò areá (sucè aó A´ oò B31).
+
+     4®   FCÂ (Filå Controì Block© - Á 36-bytå buffeò  whicè 
+correspondó  tï  thå fulì definitioî oæ á CP/Í Filå  Controì 
+Block®   SYSLIÂ ³ FCB'ó arå ALWAYÓ 3¶ byteó long®   Iî  manù 
+cases¬ wheî á routinå requireó á user-supplieä FCB¬ thå useò 
+neeä onlù filì iî thå filå namå anä typå fieldó (byteó 1-11© 
+anä  neeä  noô concerî himselæ witè thå resô oæ thå  fields®  
+Thå INITFCÂ routinå storeó zerï iî alì byteó excepô byteó 1-
+1± oæ thå FCB.
+
+
+     5®   Filå - Anù CP/Í file¬  whicè maù bå eitheò texô oò 
+binary®   SYSLIÂ  ³ makeó nï distinctioî betweeî  theså  twï 
+typeó oæ files.
+
+     6®    Strinç   - Anù   sequencå  oæ  ASCIÉ   characteró 
+terminateä bù á <NULL¾ character¬  whicè ió á bytå oæ  valuå 
+0®  Exampleó oæ stringó are:
+
+          DB   'This is a string',0
+          DB   1,2,3,'This is also',0
+
+
+:Parameter-Passing Conventions
+
+     SYSLIÂ  ³ ió verù consistenô iî  itó  parameter-passinç 
+conventions®   Iî  alì cases¬  parameteró arå passeä tï  anä 
+froí thå SYSLIÂ ³ routineó iî registers®  Iæ morå valueó arå 
+requireä  thaî therå arå availablå registers¬  thå  registeò 
+valueó  arå  pointeró tï specificatioî blockó whicè  contaiî 
+thå  desireä  parameteró  (seå thå FXn$xxxxø  anä  thå  SORÔ 
+routines).
+
+     Iî  mosô  cases¬  thå  followinç generaì  ruleó  apply®  
+Therå  wilì  alwayó  bå exceptionó  tï  thå  rule¬  buô  thå 
+followinç statementó arå true¬ by-and-large.
+
+
+Uses of the HL Register Pair --
+
+     1®   HÌ  ió useä aó á buffeò pointer»  foò example¬  HÌ 
+containó thå addresó oæ thå buffeò useä bù DIRF
+
+     2®   HÌ ió useä aó á strinç pointer»  foò  example¬  HÌ 
+containó  thå addresó oæ thå firsô bytå oæ á strinç foò  thå 
+EVAÌ routine
+
+     3®   HÌ  ió useä tï contaiî thå firsô operanä foò  matè 
+routines» foò example¬ DIVHÄ divideó HÌ bù DE
+
+
+Uses of the DE Register Pair --
+
+     1®   DÅ  ió useä tï poinô tï aî FCB»  foò  example¬  DÅ 
+containó thå addresó oæ thå FCÂ useä bù DIRF
+
+     2®   DÅ  ió useä tï contaiî thå seconä operanä foò matè 
+routines» foò example¬ SUBHÄ subtractó DÅ froí HL
+
+     3®   DÅ  ió useä tï poinô tï speciaì  blockó  (buffers© 
+useä  bù SYSLIÂ ³ routines»  foò example¬  DÅ pointó tï  thå 
+Sorô Specificatioî Blocë foò thå SORÔ routine
+
+
+Uses of the BC Register Pair --
+
+     1®  BÃ ió useä tï contaiî á DÕ form¬ wherå Â containó á 
+disë numbeò (A=0© anä Ã containó á useò number
+
+
+
+Uses of the A Register --
+
+     1®   Á ió useä tï contaiî aî inpuô flag» foò example¬ Á 
+containó thå selectioî flaç useä bù DIRF
+
+     2®   Á ió useä tï contaiî aî erroò returî code»  iæ thå 
+valuå oæ thió codå ió 0¬  thå Zerï Flaç (Z© ió alsï set¬ anä 
+vice-versa»  foò  example¬  Á containó á TPÁ overflo÷  erroò 
+flaç returneä bù thå DIRÆ routine
+
+     3®   Á  ió useä tï contaiî á characteò inpuô oò  outpuô 
+froí  á  SYSLIÂ  ³  routine»  foò  example¬  CIÎ  returnó  á 
+character in A and COUT outputs a character in A
+
+:Overview of SYSLIB 3 Routines
+
+     SYSLIÂ  ³  containó  many¬  manù  routines¬  anä  theså 
+routineó arå groupeä intï thå followinç functionaì areas:
+
+     1®  Directorù Manipulatioî Routines
+          Theså  routineó deaì witè directorù  access®   Thå 
+entrieó  oæ  á disë directorù caî bå loadeä  intï  á  memorù 
+buffer¬  selecteä againsô aî FCB¬ sorted¬ anä manipulateä bù 
+theså routines.
+
+     2®  Numeriã Strinç Evaluatioî Routines
+          Theså  routineó converô characteò stringó intï 16-
+biô binarù values®  Stringó likå thoså belo÷ arå processed:
+
+               DB   '123',0   ; value is 123 decimal
+               DB   '5AH',0   ; value is 5A hexadecimal
+               DB   '110B',0  ; value is 110 binary
+               DB   '77Q',0   ; value is 77 octal
+
+
+     3®  Byte-Orienteä Filå Input/Outpuô Routines
+          Theså  routineó  supporô inpuô anä outpuô  tï  anä 
+froí fileó oî thå basió oæ á bytå aô á  time®   FX$GET¬  foò 
+example¬ returnó thå nexô bytå froí thå currenô filå iî A.
+
+     4®  CP/Í Filå Input/Outpuô Routines
+          Theså  routineó  supporô inpuô anä outpuô  tï  anä 
+froí  fileó  oî  thå basió oæ á 128-bytå blocë  aô  á  time®  
+Facilitieó  arå alsï provideä foò deletinç  files¬  renaminç 
+files¬ anä computinç filå sizes.
+
+     5®  User/Disë Manipulatioî Routines
+          Theså  routineó allo÷ thå prograí tï finä ouô whaô 
+disë anä useò areá iô ió iî anä tï movå betweeî directories.
+
+
+     6®  Filå Namå Strinç Parser
+          Thió  routinå ió useä tï converô á filå namå  texô 
+strinç  intï  aî acceptablå forí anä placå iô intï  aî  FCB®  
+Foò example¬ thå followinç conversioî caî bå done:
+
+               DB   'MYFILE.TXT',0      ; string
+
+               DB   0                   ; ... converted to
+               DB   'MYFILE  '
+               DB   'TXT'
+               DS   24
+
+     7®  Inpuô Linå Editors
+          Theså routineó accepô useò inpuô witè editinç  anä 
+returî  á  pointeò  tï thå firsô bytå oæ thå useò  inpuô  iî 
+strinç forí (terminateä bù á binarù 0).
+
+
+     8®  Strinç Outpuô Routines
+          Theså  routineó senä stringó tï  variouó  devices®  
+Routineó  arå provideä tï senä stringó oæ characteró tï  thå 
+consolå   oò  printeò  witè  oò  withouô   control-characteò 
+processing.
+
+     9®  Numeriã Outpuô Routines
+          Theså  routineó converô binarù valueó tï characteò 
+sequenceó anä outpuô theí tï variouó devices®  Outpuô tï thå 
+consolå anä printeò ió provided¬ anä thå outpuô ió eitheò iî 
+thå forí oæ decimaì oò hexadecimaì numbers.
+
+     10®  Strinç anä Valuå Comparisoî Routines
+          Theså    routineó   providå   variouó   comparisoî 
+functionó foò botè stringó anä numbers®   Onå strinç maù  bå 
+compareä  againsô  anotheò strinç oò á substrinç oæ  anotheò 
+string.  Two 16-bit numbers can be compared.
+
+
+     11®  Character-Orienteä Input/Outpuô Routines
+          Theså  routineó providå inpuô anä outpuô  serviceó 
+oî á character-for-characteò basió tï á varietù oæ  devices®  
+Outpuô  tï thå consolå anä thå printeò ió  provided®   Also¬ 
+devicå  status¬  sucè aó consolå inpuô status¬  routineó arå 
+available.
+
+     12®  Matè Routines
+          Theså  routineó perforí mathematicaì  calculationó 
+oî  16-biô quantities®   Add¬  subtract¬  multiply¬  divide¬ 
+rotate¬  shift¬ logicaì AND¬ logicaì OR¬ anä logicaì XOÒ arå 
+somå oæ thå functionó provided.
+
+     13®  CRÃ Routines
+          Theså   routineó  supporô  computatioî  oæ  Cycliã 
+Redundancù  Checë  valueó foò bytå  streams®   Á  numbeò  oæ 
+differenô   CRÃ  calculatioî  routineó  arå  availablå   foò 
+differenô CRÃ polynomials.
+
+
+     14®  Randoí Numbeò Generatoò Routines
+          Theså  routineó  providå  á  pseudo-randoí  numbeò 
+generator®   Thå seeä valuå foò thió generatoò maù bå feä tï 
+it¬  therebù  generatinç  thå samå sequencå foò  eacè  giveî 
+seed¬  oò  iô  maù bå computeä  somewhaô  randomly®   Randoí 
+numberó arå 8-biô quantities.
+
+     15®  Sorô Routines
+          Theså routineó providå á fast¬ general-purposå in-
+memorù  sorô  capability®    Thå  sorô  algorithí  ió   verù 
+efficienô  (á  shelì sort)¬  anä maù bå performeä  bù  usinç 
+elemenô  pointeró  oò  noô usinç pointeró (uså  oæ  pointeró 
+costó morå memorù buô speedó uğ thå sorô eveî further).
+
+
+     16®  Capitalizatioî anä Characteò Test/Skiğ Routines
+          Theså  routineó arå usefuì foò  texô  parsing®   Á 
+varietù oæ evaluatioî routineó arå provideä tï determinå thå 
+typå  oæ  characteò  beinç dealô witè (sucè  aó  alphabetic¬ 
+numeric¬ hexadecimal¬ space¬ punctuation¬ etc)®  Botè strinç 
+anä  individuaì  characteò capitalizatioî  capabilitieó  arå 
+provided also.
+
+     17®  Memorù Allocatioî Routines
+          Theså routineó providå á dynamiã memorù allocatioî 
+mechanisí  thaô constantlù checkó foò TPÁ  overflow®   Afteò 
+defininç thå boundó oæ á memorù buffer¬  requestó foò  spacå 
+from this area may be issued on a byte-for-byte basis.
+
+
+

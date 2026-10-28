@@ -1,0 +1,26 @@
+;***********************************************************
+
+*                    CLRHOM
+
+;***********************************************************
+
+                   NAME CLRHOM
+                   entry clrhom
+                   ext mesij
+
+;FUNCTION: Clears the screen and homes the cursor.
+;CALLS: MESIJ
+
+clrhom:            push x
+                   lxi x,clear
+                   call MESIJ
+                   pop x
+                   ret
+clear:             db 1Ah,1Eh,24h ;1A=ASCII for clear screen
+                                  ;1E   "    "  home cursor
+                                  ;24   "    "  end/MESIJ.
+
+                   END CLRHOM
+
+;****************************************************************
+

@@ -1,0 +1,128 @@
+
+        Cross is a program that will take a Pascal program, indent it and
+produce a cross reference of the indented copy.  To use cross type
+
+        CROSS
+        Input file:<Old-Name>
+        Output file:<New-Name>
+        Cross file:<Listing Name>
+
+Where <Old-Name> is the name of your Pascal program.  <New-name> is the
+name the name the file you want the indented program sent to and
+<Listing-Name> is the file that the cross reference listing will be
+sent to. (LST: is suggested).
+
+Cross will try to properly indent your program.  Since many screen editors
+will not edit lines longer than 80 characters, Cross will not indent
+lines past column 75 if possible.  This leaves 5 characters for changes
+to the lines.  The listing will be properly indented even if the source
+has to be moved to the left to avoid column 80.
+
+If CROSS sees a comment beginning with %E it will start a new page.
+{%E} is used by Cross the same way {$L+} is used by the Pascal/Z
+compiler.
+
+This listing file will contain your Pascal program with line number and
+annotation added to it.  The annotation will look something like this
+
+B   5           120     Begin
+I   6           121       If X>5
+        T   6   122        Then
+B   7           123         Begin
+                124           X:=6;Y:=2;
+        E   7   125         End
+        S   6   126       Else
+
+The B at the left margin signals the start of BEGIN number 5.  It will
+match end number 5.  The I signals the start of IF number 6.  It matches
+THEN number 6 and ELSE number 6.  The other letters are
+
+B       Begin
+C       Case
+E       End
+I       If
+R       Repeat
+S       Else
+T       Then
+U       Until
+
+At the end of your listing there will be a section titled
+
+Cross listing of identifiers
+
+This section will contain all the identifiers used by your program and
+were they are used.  The where part is of the form <Line number>/<Page number>.
+
+The next section will show a list of your proredures and who calls whom.
+
+The final section will show your procedure nesting.
+
+
+Known bugs and restrictions:
+
+        Cross does not know about Include files.  This will not be a problem
+as long as your include files do not contain part of a block structure.
+(Such as a single END statement).
+
+        Cross considers 10 characters significant for variable names.  The
+Pascal/Z compiler considers only 8.
+
+        Cross likes to right justify comments.  If you have a comment of the
+form
+
+{*------------------------------------------------------*
+                        Text
+ *------------------------------------------------------*}
+
+Cross will write it as
+
+{*------------------------------------------------------*
+ Text
+ *------------------------------------------------------*}
+
+You should write your comments as:
+
+{*------------------------------------------------------*
+ *                      Text                            *
+ *------------------------------------------------------*}
+
+to avoid this problem.
+
+
+
+Notes on the Cross source.
+
+1)Good luck.  Cross orginally came from the univeristy of Hamburg.  It
+is commented in Germain.  Have fun.  Also the orignal source was made
+for a Dec-10 which allowed long lines to be edited.  When it was
+moved to the Z80 the lines had to be shortened and they were split up
+badly.  This poses a problem with reading the source.
+
+2)The file CROSS.SUB will make the program CROSS from the sources.
+It assumes that the sources and Pascal are on drive A and that
+drive B contains a scratch disk.
+
+3)The following paramters can be changed to suit the user.
+These are defined in the procedure Options which is located at
+the end of the program.
+
+R       Right Margin.  Cross will try to keep text from going past
+        this margin.
+I       Indention.  This parameter is the number of spaces that Cross
+        will indent for every block.
+P       Printer width.  This is the size of the printer in columns.
+        Cross will cause the listing lines to wrap around if they
+        go past this margin.
+S       The number of lines of program text to be listed per page.
+
+4)The following are dummy procedures that you can define if you have
+some sort of clock.
+
+P$Time  Returns the time as 8 characters.
+P$Date  Returns the date as 8 characters.
+the
+form
+
+{*------------------------------------------------------*
+                        Text
+ *------------------

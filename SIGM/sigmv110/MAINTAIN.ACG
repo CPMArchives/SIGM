@@ -1,0 +1,66 @@
+* maintain.cmd 02/08/83 sml
+* files maintenance menu
+
+* set up loop
+STORE t TO more
+DO WHILE more
+  
+  * set up screen
+  SET FORMAT TO maintain
+  
+  *find out what to do next
+  STORE '?' TO command
+  READ
+  
+  * perform desired function
+  DO CASE
+      
+    CASE command = '1' 
+      * check for duplicates
+      DO dupcheck.acg
+      
+    CASE command = '2' 
+      * verify new records
+      DO verifnew.acg
+      
+    CASE command = '3' 
+      * verify deleted records
+      DO verifdel.acg
+      
+    CASE command = '4' 
+      * remove records marked for deletion
+      DO purge.acg
+      
+    CASE command = '5' 
+      * add new data entry default values
+      DO defaults.acg
+      
+    CASE command = '6' 
+      * backup the disk
+      DO backup.acg
+      
+    CASE command = '7' 
+      * re-initialize index files
+      	ERASE
+      @ 7,22 SAY 'Re-initializing index files' 
+      USE acg
+      INDEX ON !(lastname) TO lastname
+      INDEX ON !(company1) TO company
+      INDEX ON zip TO zip
+      USE acg INDEX lastname, company, zip
+      
+    CASE command = '8' 
+      * set up the loop to exit
+      STORE f TO more
+      
+  ENDCASE 
+  
+  * loop back again
+ENDDO WHILE more 
+
+* release local variables
+RELEASE more
+
+* restore original data
+STORE '?' TO command
+

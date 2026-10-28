@@ -1,0 +1,187 @@
+                                                      311 Stanford Avenue
+                                                      Menlo Park, CA 94025
+                                                      August 11th, 1981
+ 
+Dear Packet Radio Enthusiast,
+ 
+     Thanks very much for the letter of inquiry which you sent me.  The re-
+sponse I've received to the initial publicity about the packet repeater has
+been very enthusiastic, and I have been deluged with requests from hams, both
+locally and from various points around the country, for more information about
+the repeater, for schematics, for listings, specifications, modems, proms,
+SDLC chips, Vancouver boards, and for talks at clubs.  Needless to say, all
+this activity, plus continuing development on the packet hardware and software
+has kept me very busy, and I apologize for the long delay in responding to
+your letter.  Let me bring you up to date on what has happened, or is happen-
+ing, since the initial announcement of the repeater, which went on the air in
+December of 1980.
+ 
+     In the early months of this year, the packet repeater was operating out
+of my residence, and was still an experimental machine.  Since then, we have
+installed a couple of upgrades to the control software, we have used a better
+CPU card, increased the power level, moved the repeater to 700 feet elevation,
+and integrated its operation to be 100% compatible with the protocol used by
+the Vancouver Digital Communications Group (VADCG).  The repeater has changed
+from being a laboratory curiosity to a major Bay Area repeater heard from
+Berkeley to south San Jose, and the user community has grown from a couple of
+stations to a network of some 30 users.  The packet system here now has a
+mailbox on-line 24 hours a day, several on-line personal computers, and net-
+work links (courtesy of a commercial packet network) to the other active pack-
+et radio centers in Vancouver and Ottawa.  We have also just installed an HF
+port on 20 Meters, and are beginning some experiments aimed at establishing
+connection with AMRAD in Washington and with equipment located at W1AW.
+ 
+     Most of the original packet radio experiments were done in Canada (in
+part due to the Canadians' pioneering communications spirit, and in part due
+to less restrictive regulations up there), and three main centers were at
+work:  Montreal, Ottawa and Vancouver.  The technology employed by each of
+these groups differed, and each approach has its own merits.  My thinking and
+ideas very closely paralleled the work started by Doug Lockhart, VE7APU, and I
+can best report on what is happening with groups which have adopted HDLC (High
+-level Data Link Control) framing as the basis of their protocol.  The HDLC/
+SDLC frame is a new, universally accepted standard in the data communications
+industry, and Doug and I feel it offers a good starting point on which to
+build a packet radio network.  As it turns out, groups in Washington D.C., Los
+Angeles, El Paso, Denver, Sacramento, and Hamilton have also taken up this
+technology, and it is likely that we already have a sufficient number of
+people using this technique that it will become the defacto standard in the
+amateur radio community.
+ 
+     It would be impossible for me to completely describe the protocol and
+equipment being used in this letter, so I will briefly cover some of the top-
+ics and give you some pointers on where to find additional information.  As
+you might guess, this is a new area for amateur radio, and tutorial material
+and handbooks simply do not yet exist.  Many issues and problems remain to be
+discussed, and there is opportunity to make substantial contributions to the
+state of the art.
+ 
+     The Protocol - The basis for our technology is the HDLC frame, which is
+simply a way of encapsulating a series of bits into a message block.  This
+type of message framing offers a high degree of error detection, data trans-
+parency, NRZI encoding, and a comprehensive set of standards for its use in a
+point-to-point protocol.  Source documents for HDLC/SDLC and protocol are the
+following:
+            IBM Synchronous Data Link Control, General Information, GA27-3093
+ 
+            This manual is available through your company's IBM comp center
+            or over-the-counter at most major IBM offices.
+ 
+            Advanced Data Communications Control Procedures, ANSI X3.66-1979
+ 
+            This is the American standard or HDLC. Write ANSI, 1430 Broadway
+            New York, New York, 10018 for current price information.
+ 
+     For easier to get references, most recent books on data communications
+have chapters on "bit-oriented-protocols".  These are some sources available:
+ 
+            IEEE Transactions on Communications, COM-28 No. 4, April 1980
+            (Special issue on Computer Network Architectures and Protocols)
+ 
+            IEEE Proceedings, Vol. 66, No. 11, pp 1301-1588, November 1978
+            (Special issue on Packet Communications Networks)
+ 
+            Technical Aspects of Data Communications by John E. McNamara,
+            Digital Press (See Chapter 19 on Bit Oriented Protocols)
+ 
+            Communications Architecture for Distributed Systems by R.J. Cypser
+            Addison Wesley (See Chapter 11 on Data Link Control)
+ 
+            NCC (National Computer Conference) Proceedings, 1975,
+            AFIPS Press (Many excellent articles on packet radio concepts)
+ 
+     Doug Lockhart's initial implementation of the protocol is a subset of the
+IBM SDLC standard.  The enclosed notes document the type of frames used.
+ 
+     HDLC Chips - Quite a few manufacturers are now making HDLC/SDLC VLSI
+chips.  Of the half-dozen or so available, only two have all the hardware re-
+quired for easy use in an amateur radio environment.
+ 
+The special features required are NRZI encoding and an on-board digital phase-
+locked loop for timing recovery.  The two chips which have been used by ama-
+teurs are the Intel 8273 and the Western Digital 1933.  The Intel component
+data sheet has a brief summary of HDLC framing.  In quanity purchase the Intel
+part is about $35, and the Western Digital part is $30.
+ 
+     Repeater Hardware - The repeater hardware is based on STD bus cards.  The
+STD bus uses 56-pin  4 1/2" x 6" cards and is very popular for industrial
+process control applications. There are now many manufacturers supplying cards
+for this bus, and the repeater uses the Z-80/CPU-2 card from Mostek, which
+costs about $195. There is no reason why S-100 Z80 cards could not be used for
+a repeater.  The STD card is very compact, and does not have unneeded extra
+circuitry which is typically found on more versatile personal system CPU cards
+A WD1933 chip was breadboarded onto a Vector STD board, and one additional
+card to control the transmitter is all that was required.  The software, writ-
+ten in PASCAL/Z and assembler fits into two 2716 EPROMS, and 2K bytes of RAM
+memory is required.  The repeater can store up to 8 128-byte packets.  The
+software and schematics will be available from me for a fee.  Write or call if
+you are seriously interested in duplicating this equipment.  The radio is an
+FT202 handheld transceiver with a 20 Watt power amplifier.  Since this repeat-
+er runs simplex, problems associated with full-duplex repeaters (desense, etc)
+are not encountered, and exotic remedies, such as duplexers, dual antennas,
+and so forth, are not required.
+ 
+     The repeater serves to increase geographic range due to its advantageous
+location, it digitally regenerates the packet, providing all stations with a
+uniform signal, it selectively repeats only those packets addressed to it,
+allowing the possibility of multiple repeaters on the same frequency (an ad-
+vantage instead of a curse!), and its beacon and packet-repeat facilities
+allow stations to do full-loopback testing, an invaluable resource in bringing
+up new equipment and checking out hardware/software modifications.
+ 
+     The VADCG Terminal Node Controller - Doug's group designed a low cost,
+8085 based circuit board which uses the Intel 8273, and which has proven to be
+a very easy way to get started in packet radio.  The hardware/software does an
+excellent job and many are in use here in SF. Most people ask "why can't I put
+this software onto my personal computer?" First, HDLC I/O interfaces are not
+commonly found on personal computers.  Next, the VADCG TNC acts as a dedicated
+peripheral controller, handling the radio link protocol, and thus off-loads
+this responsibility from the home system.  The personal computer can go off
+reading/writing its disks while packets are coming in over the air.  Handling
+two full-duplex I/O paths at high speeds is a non-trivial programming job and
+is above the skill level of many amateurs.  The current program is about 30
+pages of assembly language, and is not particularly easy to transport to other
+8080/Z80 environments because of the interrupt handling required.  We have
+managed to support a wide variety of different home systems with one software
+package, and an upgrade to the program requires replacing some EPROMs, not
+rewriting the software for 30 different DOS's.
+ 
+Thus, for newcomers I would highly recommend buying a pair of TNC's, as the
+cost of the bare board is only about $35.  Total cost fully loaded is around
+$200.  The software is available from several sources around the country.  The
+TNC could also be programmed to be a packet repeater, with relatively simple
+modifications to the existing code.
+ 
+     Modems - The Bell 202 modem is a voice frequency 1200 bits-per-second
+modem which is ideal for radio work at 2 meters and which can now be found at
+reasonable prices through various surplus outlets, or which can be fabricated
+using EXAR chips or op-amps.  This modem has become standard for amateur radio
+use at this Baud rate.  At one time I had a good supply of these modems for
+$75-$90, but I'm totally sold out at present.  There are as yet no standards
+for higher speeds or direct digital modulation of an RF carrier.  This is an
+area which needs more experimentation.
+ 
+     Newsletters - Our group does not have a newsletter.  However, the follow-
+ing organizations periodically publish very fine newsletters which deal with
+packet radio:
+                AMRAD, 1524 Springvale Avenue, McLean  VA  22101
+ 
+                VADCG, 818 Rondeau Street, Coquitlam, B.C., Canada,  V3J 5Z3
+ 
+                Hamilton Area Packet Net, Stu Beal, Editor, 2391 Arnold
+                Crescent, Burlington, Ontario, Canada,  L7P 4J2
+ 
+     Networking - Most active packet users agree that the real driving force
+behind packet is the ability to interconnect geographical areas through net-
+works.  Electronic mail, digitized imagery, networking games, computer con-
+ferences and other unthought of applications remain to be explored.  The next
+year should bring some heavy-duty activity in the areas of defining network
+protocols and standards.  A conference to discuss these issues has been arran-
+ged by AMRAD, and will be held on October 16th in Gaithersburg, MD.  Try to be
+there, if you can.
+ 
+     Thanks again for your interest.  See you on the net.
+ 
+Best regards,
+ 
+Hank Magnuski, KA6M
+

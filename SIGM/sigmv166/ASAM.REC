@@ -1,0 +1,155 @@
+
+[ASAM.REC]
+[some sample programs for CNVRT]
+[28 March 1982]
+
+[[]]
+
+{
+   				{
+    [find/make FCB]		(Jj'TTY:'EQZD;(':'UQD':'ED\64-%;0%;)
+				 ('.'U<(8a;@b;)Q|D>;Z'.DAT'IJj:)
+				  '.'FJDZ(3a;@b;)Q|JZDI
+				 32(dpGm$r0=npGpGd0&$Sm@znpGQ&$rrS0;
+				 r12wQmwnEn;n:)D;) f
+    [blank fill by count]	(Zz(d' 'I:;)JZ;) b
+    [zero fill]			(cmpw0%(f:;)w;) 0
+    [zero FCB & buffer]		($m33@0130@0nn&0||pLnS;) z
+    [set default input file]	(0,30$S'5C'H12wA' 'Ew4@0n0|0|pL31$S
+				 'TTY:'31$rrS; B9aQD(3a'   'E
+				 'DAT';Q;)|mw31@zn31$rrS31@r;) i
+    [open for read]		(@hr15K(255='NO FILE'I;L;)L;) r
+    [open for write]		(@hpGpG4+1&SrpG19k22k^^r128&S;) w
+    [set DMA address]		($rpG^^r^^26k;) h
+    [open]			(m@f0=n@@;nLL;) O
+    [read]			(''(AL@f(0=pG@r;'TTY:'(='T');))
+				 ('T'='';L31pG$rr12w'TTY:'Ew;w)
+				 L@&'> 'TL(@#I;:);
+				 $r(pG^^rpGmr(0=(npGpGm128&S^^26kpGr
+				 20K0=L;LL1npGpGm129+26%&SS;)npGmr;;)
+				 pG130&-n+&dm(u13%=;10%(=)pGI(26%=;
+				 L);ndm:)L^^rn&S;LpG^^r0&S:);) R
+    [write]			(Jj'='U<(A@f'TTY:'(=)(0=pG@w;;))>'='ED
+				 ZqtD; >'='EDZ<@g;) W
+    [write to disk]		($r(pG^^rpGpGmrpGm- 130+n&maQD>Z<nSn^^
+				 26kpGr21kpG^^r128&S:JZQD>nSnSL;);) g
+    [close all files]		(31pGm($r0=;pG4+r(0=L;LJj26%I<npGm@gpG
+				 ^^rpGr127(N^^26kpGr21k;L;)r16k;)ndpGm:)
+				 nL;;) c
+    [PVR]			(pG@&#'= '|TL$r(0='undef';yG;)TL;) _
+    [cr, lf]			(2573TL;)&
+    [insert cr, lf]		(2573I;)|
+    [read console]		(R13%='';08%(=)(T@#|;08%T' 'TLTLL@#;);)#
+    [type comment]		(@TD;)C
+    [display at logon]		('
+A demonstration of CNVRT programs. The choices are
+        bsum - sum two strings of binary digits
+        merge - combine two lists into one
+        reverse - reverse a list
+        split - split a list into alternate elements
+        list - recognize typical list elements
+        word - some fancy word forms
+        quit - end the demonstration
+        ? - list the choices
+'TL@&;)D
+    [write workspace]		(@&JZqt;)T
+				(@@;) }%
+    [integer arithmetic]	{(+;)+ (-;)- (*;)* (/&L;)/
+				(pGm/L1=nL1;0=n;n&:)|
+				 ((pGmJj(U);QD(O)I;npGmEDZQD(O)IjnpGmI;
+				 n@@#I)nLJZ;;) } #
+    [save & init variables]	(pGpGm$rm0&$S;) (
+    [reinitialize variable]	(pG$r0=L;LnL0&$S;) :
+    [undefine variable]		($r0=;LnL;) )
+    [compare/define variable]	(pG$r0=ZQzml&$S;&LyGEz;) ]
+    [body of variable search]	(pG$r(0=)yG(E;&L)z&L@=L;pG$r(0=;LL)
+				  Z<((&pGm&n(F;''mZz<)jJQmpGl&$S
+				  zZ<@=>;J>);nLA:0&$SL>)>LL;) >
+    [body of variable search]	(pG$r(0=)yGEz@=L;pG$r(0=;LL)
+				  Z<((jJQmpGl&$S
+				  zZ<@=>;J>);nLA:0&$S>)>L;) <
+    [insert variable]		($ryGI;) [
+				
+[binary sum]
+{(0@( 1@( 2@( {(0@: 1@: 2@: ;); (
+	@;(J2573TL'b 'TLZqtj()JZD;);
+	@;(J'+=0'Ez2@]JZD'+='I2@[;):
+	@;(J'+='Ez2@]JZD2@[;);
+	@;(J {[vbl] ('+='Ez2@];) = ('+='0@>;)}[vbl] JZD0@['+0='I2@[;):
+	@;(J'+'Ez {[vbl] ('='Ez2@];) = ('='1@>;)}[vbl] JZD'0+'I1@['='I2@[;):
+	@;(J {[vbl] ('+*'Ez2@];) = ('+*'0@>;)}[vbl] JZD0@['+1'I2@[;):
+	@;(J {[vbl] ('+'Ez {[vbl] ('0*'Ez2@];) = ('0*'1@>;)}[vbl] ;) = ('+'0@>;)}[vbl] JZD0@['+'I1@['1'I2@[;):
+	@;(J {[vbl] ('+'Ez {[vbl] ('1*'Ez2@];) = ('1*'1@>;)}[vbl] ;) = ('+'0@>;)}[vbl] JZD0@['+'I1@['*0'I2@[;):
+	@;(J {[vbl] ('0+'Ez {[vbl] ('0='Ez2@];) = ('0='1@>;)}[vbl] ;) = ('0+'0@>;)}[vbl] JZD0@['+'I1@['=0'I2@[;):
+	@;(J {[vbl] ('0+'Ez {[vbl] ('1='Ez2@];) = ('1='1@>;)}[vbl] ;) = ('0+'0@>;)}[vbl] JZD0@['+'I1@['=1'I2@[;):
+	@;(J {[vbl] ('1+'Ez {[vbl] ('0='Ez2@];) = ('0='1@>;)}[vbl] ;) = ('1+'0@>;)}[vbl] JZD0@['+'I1@['=1'I2@[;):
+	@;(J {[vbl] ('1+'Ez {[vbl] ('1='Ez2@];) = ('1='1@>;)}[vbl] ;) = ('1+'0@>;)}[vbl] JZD0@['+'I1@['*=0'I2@[;):
+  ;)} 0@) 1@) 2@)   nn$S nn$S nn$S;)} b
+
+[merge two strings into a single string]
+{(0@( 1@( 2@( 3@( 4@( {(0@: 1@: 2@: 3@: 4@: ;); (
+	@;(J'['Ez {[vbl] (' 'Ez {[vbl] (']['Ez {[vbl] (' 'Ez {[vbl] (']['Ez {[vbl] (']'Ez;) = (']'4@>;)}[vbl] ;) = (']['3@>;)}[vbl] ;) = (' '2@>;)}[vbl] ;) = (']['1@>;)}[vbl] ;) = (' '0@>;)}[vbl] JZD'['I1@[']['I3@[']['I4@[' 'I0@[' 'I2@[']'I;):
+	@;(J'['Ez {[vbl] (' 'Ez {[vbl] (']['Ez {[vbl] (']['Ez {[vbl] (']'Ez;) = (']'4@>;)}[vbl] ;) = (']['2@>;)}[vbl] ;) = (']['1@>;)}[vbl] ;) = (' '0@>;)}[vbl] JZD4@[' 'I0@[' 'I2@[' 'I1@[;);
+	@;(J'['Ez {[vbl] (']['Ez {[vbl] (']['Ez {[vbl] (']'Ez;) = (']'4@>;)}[vbl] ;) = (']['2@>;)}[vbl] ;) = (']['0@>;)}[vbl] JZD4@[' 'I0@[' 'I2@[;);
+  ;)} 0@) 1@) 2@) 3@) 4@)   nn$S nn$S nn$S nn$S nn$S;)} m
+
+[reverse a list]
+{(0@( 1@( 2@( {(0@: 1@: 2@: ;); (
+	@;(J'['Ez {[vbl] (' 'Ez {[vbl] (']['Ez {[vbl] (']'Ez;) = (']'2@>;)}[vbl] ;) = (']['1@>;)}[vbl] ;) = (' '0@>;)}[vbl] JZD'['I1@[']['I0@[' 'I2@[']'I;):
+	@;(J'['Ez {[vbl] (']['Ez {[vbl] (']'Ez;) = (']'2@>;)}[vbl] ;) = (']['0@>;)}[vbl] JZD0@[' 'I2@[;);
+  ;)} 0@) 1@) 2@)   nn$S nn$S nn$S;)} r
+
+[split a string into evens and odds]
+{(0@( 1@( 2@( 3@( 4@( {(0@: 1@: 2@: 3@: 4@: ;); (
+	@;(J'['Ez {[vbl] (' 'Ez {[vbl] (' 'Ez {[vbl] (']['Ez {[vbl] (']['Ez {[vbl] (']'Ez;) = (']'4@>;)}[vbl] ;) = (']['3@>;)}[vbl] ;) = (']['2@>;)}[vbl] ;) = (' '1@>;)}[vbl] ;) = (' '0@>;)}[vbl] JZD'['I2@[']['I0@[' 'I3@[']['I1@[' 'I4@[']'I;):
+	@;(J'['Ez {[vbl] (' 'Ez {[vbl] (']['Ez {[vbl] (']['Ez {[vbl] (']'Ez;) = (']'4@>;)}[vbl] ;) = (']['3@>;)}[vbl] ;) = (']['1@>;)}[vbl] ;) = (' '0@>;)}[vbl] JZD0@[' 'I3@[z<'|'@%Z>1@[' 'I4@[;);
+	@;(J'[]['Ez {[vbl] (']['Ez {[vbl] (']'Ez;) = (']'4@>;)}[vbl] ;) = (']['3@>;)}[vbl] JZD3@[z<'|'@%Z>4@[;);
+	@;(J'['Ez {[vbl] (']['Ez {[vbl] (']['Ez {[vbl] (']'Ez;) = (']'4@>;)}[vbl] ;) = (']['3@>;)}[vbl] ;) = (']['0@>;)}[vbl] JZD0@[' 'I3@[z<'|'@%Z>4@[;);
+  ;)} 0@) 1@) 2@) 3@) 4@)   nn$S nn$S nn$S nn$S nn$S;)} s
+
+[word types]
+{ 
+(1@( 2@(  {(1@: 2@: ;); (
+  @;(J {[vbl] ( {[vbl] ( {[vbl] ((A);) = (1@<;)}[vbl] ;) = (1@<;)}[vbl] ;) = (1@<;)}[vbl] JZD'tripled word :'I1@[':'Iz<'|'@%Z>z<1@[@wZ>;);
+  @;(J {[vbl] ( {[vbl] ((A);) = (1@<;)}[vbl] ;) = (1@<;)}[vbl] JZD'doubled word :'I1@[':'Iz<'|'@%Z>z<1@[@wZ>;);
+  @;(J [and] Z<(1(a;L)z jJ><1@](A);>)> [and]  {[vbl] ( {[vbl] ((A);) = (1@<;)}[vbl] ;) = (2@<;)}[vbl] JZD'sandwich :'I1@[':^:'I2@[':^:'I1@[':'Iz<'|'@%Z>z<2@[@wZ>;);
+  @;(J(('1'(Fz;Zz<)Z<(('2'(Fz;Zz<)Z<(('3'(Fz;Zz<)Z<(('4'(Fz;Zz<)Z<(('5'(Fz;Zz<)Z<((Z<>;J>);A:)>;J>);A:)>;J>);A:)>;J>);A:)>;J>);A:)>;J>);A:)JZD'five in order'I;);
+  @;(J((Z< [and] Z<(3(a;L)z jJ><1@](A);>)> [and] ((Z< {[vbl] (((Z< {[vbl] (((Z<>;J>);A:);) = (1@<;)}[vbl] >;J>);A:);) = (1@<;)}[vbl] >;J>);A:)>;J>);A:)JZD'triple triple :'I1@[':'I;);
+  @;(J((Z< [and] Z<(3(a;L)z jJ><1@](A);>)> [and] ((Z< {[vbl] (((Z<>;J>);A:);) = (1@<;)}[vbl] >;J>);A:)>;J>);A:)JZD'repeated triple :'I1@[':'I;);
+  @;(J((Z< [and] Z<(2(a;L)z jJ><1@](A);>)> [and] ((Z< {[vbl] (((Z<>;J>);A:);) = (1@<;)}[vbl] >;J>);A:)>;J>);A:)JZD'repeated pair   :'I1@[':'I;);
+  @;(J((Z< [and] Z<(1(a;L)z jJ><1@](A);>)> [and] ((Z< {[vbl] (((Z<>;J>);A:);) = (1@<;)}[vbl] >;J>);A:)>;J>);A:)JZD'repeated letter :'I1@[':'I;);
+  @;(J1@]JZD'nothing word: 'I1@[;);
+   ;)} 1@) 2@)   nn$S nn$S;)} w
+
+[list types]
+{ 
+  [letter]	( {[AND] ( {(>(<;<);) ` (jJ><[not] (Z<  {[OR] (;) \ (Z<(' 'Ez@\; J'('Ez@\; J')'Ez@\;)>;>)} [OR] J>)J>[not] Zz(A)@`;)} ;) ` (Z<1(a;L)z@`>;>)}[AND] ;) a
+  [atom]	( {[OR] (;) \ (Z<(@a@b@\; J@a@\;)>;>)} [OR] ;) b
+  [goodparen]	( {[OR] (;) \ (Z<(' 'Ez@\; J@b@\; J@e@\;)>;>)} [OR] ;) c
+  [goodseq]	( {[OR] (;) \ (Z<(@c@d@\; J@\;)>;>)} [OR] ;) d
+  [list]	('('Ez@d')'Ez;) e
+   
+( (
+  (J@a(A)JZD'letter'I;);
+  (J@b(A)JZD'atom'I;);
+  (J@e(A)JZD'list'I;);
+  (J@d(A)JZD'good sequence'I;);
+  (JJZD'not typical'I;);
+   ;) ;)} x
+
+{ ( (
+   (J'word'EzJZDz<z<z<'R'@%Z>@wZ>'C'@%Z>z<'R'@%Z>;):
+   (J'list'EzJZDz<z<z<'R'@%Z>@xZ>'C'@%Z>z<'R'@%Z>;):
+   (J'bsum'EzJZDz<z<z<'R'@%Z>'+'Iz<'R'@%Z>'='I@bZ>'C'@%Z>z<'R'@%Z>;):
+   (J'merge'EzJZDz<z<'['Iz<'R'@%Z>']['Iz<'R'@%Z>'][]'I@mZ>'C'@%Z>z<'R'@%Z>;):
+   (J'quit'EzJZD;);
+   (J'reverse'EzJZDz<z<'['Iz<'R'@%Z>'][]'I@rZ>'C'@%Z>z<'R'@%Z>;):
+   (J'split'EzJZDz<z<'['Iz<'R'@%Z>'][][]'I@sZ>'C'@%Z>z<'R'@%Z>;):
+   (J'??'EzJZDz<'D'@%Z>z<'R'@%Z>;):
+   (J'?'EzJZDz<' bsum merge reverse split word list quit'I'C'@%Z>z<'R'@%Z>;):
+   (JJZDz<'quit to exit, ? for menu'I'C'@%Z>z<'R'@%Z>;):
+   ;) ;)} ~
+('i'@%'D'@%'R'@%@~JZqt'c'@%;)  }
+
+[end]
+

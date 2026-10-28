@@ -1,0 +1,142 @@
+
+
+
+
+
+	(************************************************)
+	(*						*)
+	(*		STRING LIBRARY			*)
+	(*						*)
+	(************************************************)
+
+
+
+
+(*	Version 3.0  31 May 1980/Raymond E. Penley *)
+
+	(************************************************)
+
+
+
+FUNCTION INDEX(SOURCE,Pattern) : INTEGER ; EXTERNAL;
+	(*---this is a Pascal/Z extension---*)
+
+	Returns the position of the first occurrence of the
+Pattern in SOURCE to be scanned. The integer value of the
+position of the first character in the matched pattern will
+be returned. If no match occurred then zero will be returned.
+
+  If for example the string THIS contained:
+	'Today is the first day.'
+	PATTERN := 'is';
+	N := INDEX(THIS,pattern);
+	writeln(N);
+
+	would write:	7
+
+	(****************************************)
+	(*	UCSD PASCAL			*)
+	(*					*)
+	(* 	K := POS(Pattern,SOURCE);	*)
+	(*					*)
+	(* NOTE that Pascal/Z is 180 degrees	*)
+	(* out of wack!				*)
+	(****************************************)
+
+	(************************************************)
+
+
+
+PROCEDURE PRINT(STRING);
+
+  Prints to the console the string passed; does NOT issue a
+  carriage-return/line-feed. 
+
+	PRINT(This);	  	{no CR/LF	}
+	PRINT(This);writeln;	{with CR/LF	}
+	PRINT(A[5]);write('    ');PRINT(Newstr);writeln;
+
+	(************************************************)
+
+
+
+PROCEDURE COPY(New_string,Source,POS,COUNT);
+
+	COPY(<NEW> := <SOURCE>,<starting at>,<# of chars>);
+	COPY(Newstr,Title,1,9);
+
+	Returns a string containing count <chars> starting at
+	<POS> position in SOURCE.
+
+	(*****************************************)
+	(*	UCSD PASCAL			 *)
+	(*					 *)
+	(* New_string := COPY(Source,POS,COUNT); *)
+	(*					 *)
+	(*****************************************)
+
+	(************************************************)
+
+
+
+PROCEDURE CONCAT(New_string,arg1_string,arg2_string);
+
+	CONCAT(Newstr,ThisString, ThatString);
+
+	This CONCAT works in the same fashion as CPM's PIP does.
+  That is:
+		CONCAT( New String := Arg1, Arg2 );
+
+  There may be only two arguments. A string is returned which is
+  the concatenation of both strings passed provided that the 
+  combined length of all strings does not exceed the max length
+  allowed for strings.
+
+	(********************************************)
+	(*	UCSD PASCAL			    *)
+	(*					    *)
+	(* New_string := CONCAT(arg1,arg2,...argn); *)
+	(*					    *)
+	(********************************************)
+
+	(************************************************)
+
+
+
+PROCEDURE REPLACE(Source, Destination, INDEX);
+
+	REPLACE(Main,Next,N);
+	PRINT(Next);
+
+	Replaces the characters in Destination with those
+  from the substring Source starting at position INDEX.
+
+
+	(*****************************************)
+	(*	UCSD PASCAL			 *)
+	(*					 *)
+	(* INSERT(SOURCE,DESTINATION,INDEX);	 *)
+	(*					 *)
+	(*****************************************)
+
+	(************************************************)
+
+
+
+PROCEDURE GetLine(STRING,count);
+
+	Returns a string and the strings length input
+ from the console. The string must be a valid ASCII
+ character. Returns a length of zero if an error is
+ made.
+
+  For example:
+
+	GetLine(BUFFER,12);
+
+	Gets characters from the console into the String 'BUFFER'
+  but up to a max of 12 characters.
+
+	(***********************************************)
+
+

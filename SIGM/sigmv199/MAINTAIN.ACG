@@ -1,0 +1,177 @@
+* DATE 08/27/84  12:44
+* maintain.ag
+STOR t TO more
+DO WHIL more
+ STOR CHR(PEEK(063)) TO dr
+ ERAS
+ STOR '?' TO command
+ @ 02,00 SAY '---------------------'
+ @ 02,20 SAY '---------------------'
+ @ 02,40 SAY '---------------------'
+ @ 02,60 SAY '--------------------'
+ @ 02,19 SAY '> > > F I L E  M A I N T E N A N C E < < <'
+ @ 04,22 SAY '1. Find duplicate records'
+ @ 06,22 SAY '2. Verify and merge new entries'
+ @ 08,22 SAY '3. Verify deleted entries'
+ @ 10,22 SAY '4. Purge deleted entries from file'
+ @ 12,22 SAY '5. Backup data file'
+ @ 14,22 SAY '6. Re-index the records'
+ @ 16,22 SAY '7. Use browse command'
+ @ 18,22 SAY '8. Return to main menu'
+ @ 21,00 SAY '--------------------'
+ @ 21,20 SAY '--------------------'
+ @ 21,40 SAY '--------------------'
+ @ 21,60 SAY '--------------------'
+ @ 22,22 SAY 'What next'
+ @ 22,33 GET command picture '!'
+ READ
+ DO CASE
+ CASE command = '1'
+  ERAS
+  @ 07,22 SAY'Looking for duplicate records'
+  DO dupcheck.acg
+ CASE command = '2'
+  ERAS
+  @ 07,22 SAY'Looking for un-verified new records'
+  DO verifnew.acg
+ CASE command = '3'
+  ERAS
+  @ 07,22 SAY'Looking for records marked for deletion'
+  DO verifdel.acg
+ CASE command = '4'
+  DO purge.acg
+ CASE command = '5'
+  STOR 'Y' TO doit
+  ERAS
+  @ 01,05 SAY 'This module makes a backup of the DATA File to another disk'
+  @ 03,05 SAY 'Do you want to do a backup of the DATA File (Y/N) ?'
+  @ 03,59 GET doit PICTURE '!'
+  READ
+* if they do want to backup the files
+  IF doit = 'Y'
+   @ 03,00
+   @ 07,05 SAY 'The DATA File is on drive '+dr+' and you normally backup to drive B'
+   @ 09,05 SAY 'Make sure the backup disk is in the drive selected for backup'
+   STOR 'A' TO bdr
+   @ 13,05 SAY 'Which drive selected for backup DATA File ? ' GET bdr PICTURE '!'
+   READ
+   DO WHIL @(bdr,'AB') = 0
+    @ 13,05 SAY 'Which drive selected for backup DATA File ? ' GET bdr PICTURE '!'
+    READ
+   ENDD
+   IF bdr <> dr
+    @ 17,05 SAY 'Now copying DATA File from drive '+dr+' to drive '+bdr+ ' '
+    COPY TO &bdr.:acgbak
+   ELSE
+    @ 17,05 SAY 'Cant backup to same drive - Aborting'
+    @ 23,00 SAY 'Hit RETURN to Continue'
+    SET CONSOLE OFF
+    WAIT
+    SET CONSOLE ON
+   ENDI not same drive
+  ENDI do backup
+ CASE command = '6'
+  ERAS
+  @ 5,00 SAY 'Please be patient as reindexing takes a little time. I will keep '
+  @ 6,00 SAY 'you posted as I go along.'
+  @ 6,00 SAY ' '
+  SET ECHO ON
+  SET TALK ON
+  REIN
+  SET TALK OFF
+  SET ECHO OFF
+ CASE command = '7'
+  ERAS
+  @ 01,12 SAY '***WARNING***  ***WARNING***  ***WARNING***'
+  @ 03,13 SAY 'Changes made will be written to the File'
+  @ 04,12 SAY 'On the Displaywriter "CODE" is CTRL'
+  @ 06,12 SAY 'CTRL-C write current record & go down'
+  @ 07,12 SAY 'CTRL-R write current record & go up'
+  @ 08,12 SAY 'CTRL-Z/B pans screen left or right'
+  @ 09,12 SAY 'CTRL-V toggles Insert on or off'
+  @ 10,12 SAY 'CTRL-G Delete character under cursor'
+  @ 11,12 SAY 'CTRL-U Delete or Recall current record'
+  @ 12,12 SAY 'CTRL-Q exit Dont Write Current record'
+  @ 13,12 SAY 'CTRL-W exit and Save all changes'
+* get a starting point in file
+  STOR 'A' TO stletter
+  @ 22,00
+  @ 22,12 SAY 'At what letter of alphabet to start browsing'
+  @ 22,57 Get stletter PICTURE '!'
+  READ
+  FIND &stletter
+  DO WHIL # = 0
+   STOR 'ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ' TO ALPHABET
+   STOR @(stletter,ALPHABET) + 1 TO NEXL
+   STOR $(ALPHABET,NEXL,1) TO stletter
+   FIND &stletter
+   RELE alphabet
+  ENDD
+  SET ESCAPE OFF
+  BROW fields lastname, fname, dear, send
+  SET escape ON
+ CASE command = '?'
+  ERAS
+TEXT
+
+             M A I N T E N A N C E   M E N U   H E L P   S C R E E N 
+
+        Thank you for asking me to help you.    At this point you can find 
+    duplicate record, verify and merge new entries, etc. Let us go through 
+    them one at a time. 
+
+    Find duplicate record  - I will search by index number for duplicates.  
+
+    Verify and merge new entries -  everytime you create a file - I make a 
+    mark in it that says  'This is a new file.'   This part of the program 
+    lets you look at all the new entries. If you 'Accept' the entry - then  
+    the new mark gets taken out. 
+
+    Verify deleted entries - if you have marked a record for deletion - it   
+    searches for it  - gives you a chance to make sure what records are to    
+    be deleted. Deleted records do not appear in reports.
+
+                             
+                                     Please hit any key to continue
+
+
+ENDT
+  SET CONSOLE OFF
+  WAIT
+  SET CONSOLE ON
+  ERAS
+TEXT
+
+    Purge deleted entries - this permanently removes from the file all entries 
+    marked for deletion and then reindexes the file.    Use this carefully and 
+    only purge after you have made a backup of the file.
+ 
+    Backup data file - I hate to say this, but computers goof and disks are so 
+    so delicate. ALWAYS ALWAYS ALWAYS never let a week go by without a backup-
+    so all you lose is one week (do it every day if you want).    This program 
+    makes an automatic backup of the data to the program disk if you have sep-
+    arate program and data disks.   Otherwise, it requires a blank disk in 'B' 
+    drive for backup.  In addition, there should always be another copy of the
+    program and data disk.  Use your disk copy program to do this as it is the
+    fastest way to copy the entire contents of a disk.                        
+
+    Reindex -this is necessary if you are going to search for a file using the 
+    search by index command. 
+
+    Use browse - browse is there for the expert user.   It allows you to write
+    directly into the records. If you do not know what you are doing NEVER use
+    browse. 
+
+                           Please press any key to return to the menu......... 
+ENDT
+  SET CONSOLE OFF
+  WAIT
+  SET CONSOLE ON
+  ERAS
+ CASE (command = '8' .OR. command = 'Q')
+  STOR f TO more
+ ENDC
+ENDD
+RELE ALL
+STOR t TO first
+

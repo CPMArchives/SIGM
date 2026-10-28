@@ -1,0 +1,375 @@
+;    FILE CPUTST.SRC          VER 1.0
+;    CREATED   10-01-80
+;    LAST UPDATE              WRITTEN BY D.A. STEELE
+;
+;    THIS PROCEDURE WILL EXECUTE AND CHECK RESULTS OF SEVERAL
+;    INSTRUCTIONS IN EACH LOGICAL GROUP.  ALL Z-80 INSTRUCTIONS
+;    WILL NOT BE TESTED NOR WILL ALL REGISTERS OF FLAGS BE TESTED
+;    FOR EACH INSTRUCTION EXECUTES.  
+;
+;    THERE ARE SOME INSTRUCTION GROUPS WHICH ARE USED SO OFTEN
+;    BY THE OPERATING SYSTEM THAT IT DOES NOT SEEM NECESSARY TO
+;    TEST THEM.  THESE WOULD INCLUDE 'PUSH', 'POP', 'IN', 'OUT'.
+;
+;    THIS MODULE SHOULD BE DECLARED EXTERNAL IN THE PASCAL MONITOR
+;    PROGRAM.
+;
+;    FUNCTION CPUTST : INTEGER; EXTERNAL;
+;
+;
+          NAME      CPUTST
+          ENTRY     CPUTST
+
+CPUERR    DS        2
+
+;===============================================================
+;    ERROR ROUTINE TO BE CALLED
+ERROR:    MVI       A,1
+          STA       CPUERR
+          RET
+
+
+;===============================================================
+;    ERROR ROUTINE TO BE JUMPED TO
+JERROR:   MVI       A,1
+          STA       CPUERR
+          RET                 ;ALL THE WAY TO THE BACKGROUND
+
+;===============================================================
+;    THIS TEST WILL TEST THE FLAGS AS WELL AS THE CONDITIONAL
+;    CALL OPCODES
+;
+CALLT:    XRA       A         ;RESET C,S   SET Z,P
+          CNZ       ERROR     ;AS CALLS ARE DEPENDENT ON THE
+          CC        ERROR     ;STACK THESE TESTS AS WELLL AS
+          CNV       ERROR     ;OTHERS WILL DEPEND IN PART ON RAM
+          CM        ERROR
+          MVI       B,11111110B
+          XRA       B         ;SET S,P   RESET C,Z
+          CZ        ERROR
+          CP        ERROR
+          CPE       ERROR
+          RET                 ;TO THE BACKGROUND
+
+
+;===============================================================Š;    THIS IS TO TEST THE CONDITIONAL RETURNES
+;
+RETT:     LDA       CPUERR
+          INR       A
+          STA       CPUERR
+          XRA       A         ;RESET C,P,S   SET Z
+          RNZ
+          RC
+          RNV
+          RM
+          MVI       B,11111110B
+          XRA       B         ;SET S,P RESET C,Z
+          RZ
+          RPE
+          RC
+          RP
+          LDA       CPUERR
+          DCR       A
+          STA       CPUERR
+          RET
+
+
+
+;===============================================================
+;    THIS WILL TEST THE CONDITIONAL JUMPS
+;
+JMPT:     XRA       A
+          JNZ       JERROR
+          JC        JERROR
+          JNV       JERROR
+          JM        JERROR
+          MVI       B,11111110B
+          XRA       B
+          JZ        JERROR
+          JP        JERROR
+          JPE       JERROR
+
+          RET
+
+;===============================================================
+;    THIS WILL TEST SOME OF THE ROTATE AND SHIFT INSTRUCTIONS
+;
+
+ROTT:     XRA       A         ;ZERO CARRY
+          BSET      0,A
+ROTT1:    RAR
+          CNC       ERROR
+          ORA       A
+          CNZ       ERROR
+          STC
+          RAR
+          CC        ERROR
+          ORA       A
+          CPI       80H
+          CNZ       ERRORŠ          RAR                 ;0100 0000
+          RAR                 ;0010 0000
+          RAR                 ;0001 0000
+          RAR                 ;0000 1000
+          CPI       8
+          CNZ       ERROR
+          RLC
+          RLC
+          RLC
+          RLC
+          CPI       80H
+          CNZ       ERROR
+          RET
+;===========================================================
+;    THIS IS A COMPARE ROUTINE TO CPMPARE A STRING OF BITS
+;    THE LENGTH OF WHICH IS IN BC AND IS POINTED TO BY HL
+;    WITH ANOTHER STRING POINTED TO BY DE.
+
+COMP:
+          PUSH      PSW
+COMP1:    MOV       A,M       ;GET ONE OF THE FIRST BYTES
+          XCHG
+          CCI                 ;COMPAIR A WITH MEMORY. INX HL
+                              ;AND DCX BC.
+          CNZ       ERROR     ;IF THE BYTES ARE NOT EQUAL ERROR
+          XCHG
+          INX       H         ;INCREMENT THE OTHER POINTER
+          MOV       A,B       ;IS IT THE END OF THE STRING
+          ORA       C
+          NOP                 ;MAINTAIN CODE SIZE         
+          JNZ       COMP1     ;IF NOT END DO IT AGAIN
+          POP       PSW
+          RET
+
+
+;===============================================================
+;    TEST THE BLOCK MOVE AND SEARCH FUNCTIONS
+;
+ST1       DS        25
+ST2       DS        25
+
+BMT:      XRA       A
+
+BMT1:     STA       ST1
+          LXI       H,ST1
+          LXI       D,ST1+1
+          LXI       B,25
+          LDIR
+
+          LXI       H,ST1+24
+          LXI       D,ST2+24
+          LXI       B,25
+          LDDR
+
+          LXI       H,ST1Š          LXI       D,ST2
+          LXI       B,25
+          CALL      COMP
+
+          INR       A
+          JRNZ      BMT1
+          RET
+
+;===============================================================
+;    TEHT VARIOUS MOVE INSTRUCTIONS
+;
+MOVS      DS        1
+
+MOVT:     MVI       A,0
+MOVT1:    MOV       H,A
+          MOV       L,H
+          MOV       D,L
+          MOV       E,D
+          MOV       B,E
+          MOV       C,B
+          LXI       H,MOVS
+          MOV       M,C
+          MOV       B,M
+          CMP       B
+          CNZ       ERROR
+          INR       A
+          JRNZ      MOVT1
+          RET
+
+;===============================================================
+;    TEST LOADS AND STORES
+;
+LDATAX    DB        0,55H
+LDATAY    DB        0AAH,0
+LDATAZ    DB        55H,0AAH
+LDATA0    DB        0,0
+LDATA1    DS        2
+LDATA2    DS        2
+
+CMPX:     PUSH      PSW
+          LXI       H,LDATAX
+          LXI       D,LDATA0
+          LXI       B,6
+          CALL      COMP
+          POP       PSW
+          RET
+
+LOADT:    LXI       B,LDATA0
+          LDAX      B
+          LXI       B,LDATA1
+          STAX      B
+          LDA       LDATA0
+          MOV       B,A
+          LDA       LDATA1
+          CMP       BŠ          CNZ       ERROR
+          INR       A
+          STA       LDATA0
+          JRNZ      LOADT
+
+LOADT1:   LHLD      LDATAX
+          LBCD      LDATAY
+          LDED      LDATAZ
+          SHLD      LDATA0
+          SBCD      LDATA1
+          SDED      LDATA2
+          CALL      CMPX
+
+          INR       A
+          STA       LDATAX
+          STA       LDATAX+1
+          STA       LDATAX+2
+          STA       LDATAX+3
+          STA       LDATAX+4
+          STA       LDATAX+5
+          JRNZ      LOADT1
+          RET
+
+;===============================================================
+;    TEST DOUBBLE REGISTER ADD AND SUBTRACT
+;
+DADT:     LXI       H,5555H
+          LXI       B,0AA00H
+          LXI       D,00AAH
+          DADC      B
+          DADC      D
+          CC        ERROR          ;SHOULD NOT GET CARRY
+
+          MVI       A,0FFH
+          CMP       H
+          CNZ       ERROR
+          CMP       L
+          CNZ       ERROR
+          RET
+
+;===============================================================
+;    TEST REGISTER INCREMENT AND DECREMENT
+;
+INCT:     LXI       H,0FF00H
+          INX       H
+          INX       H
+          INX       H              ; = FF03
+          DCR       H
+          DCR       H
+          DCR       H              ; = FC03
+          INR       L
+          INR       L
+          INR       L              ; = FC06
+          DCX       H
+          DCX       HŠ          DCX       H              ; = FC03
+
+INCT1     MVI       B,0FFH
+INCT11    INX       H
+          DJNZ      INCT11         ; = FD02
+
+INCT2     MVI       B,0FDH
+INCT21    DCR       H
+          DJNZ      INCT21         ; = 00
+
+          MOV       A,H
+          CPI       0
+          CNZ       ERROR
+          RET
+
+;===============================================================
+;    TEST ACCUMULATOR INSTRUCTIONS
+;
+ACCT:     MVI       A,10101010B
+          ADI         10101010B    ; SET CF AND = 01010100
+          CNC       ERROR
+          ACI       0              ; SHOULD ADD 1 01010101
+          CC        ERROR
+          CPI       01010101B
+          CNZ       ERROR
+          MVI       A,00111010B    ;                 00111010
+          STC
+          SBI       7CH            ; 2'SC =          10000100
+                                   ; 2'SC OF CARRY = 11111111
+                                   ;RESULT =         10111101
+          CPI       0BDH
+          CNZ       ERROR
+
+          MVI       A,10101010B
+          ANI         10100000B    ; = 10100000
+          MVI       B,01010101B
+          ORA       B              ; = 11110101
+          MVI       B,10011111B
+          XRA       B              ; = 01101010
+          SUB       B              ; = 11001011
+          CPI         11001011B
+          CNZ       ERROR
+          RET
+;===============================================================
+;    THIS IS A 1 MILISECOND DELAY TO ALLOW THE UART TIME TO ACT
+;
+DELAY:    PUSH      B
+          MVI       B,222
+DELAY1:   ORA       A
+          DCR       B
+          JNZ       DELAY1
+          POP       B
+          RET
+
+;===============================================================Š;    TIMING TEST
+;
+TIME:     
+          MVI       E,'S'
+          MVI       C,2
+          CALL      5
+          LXI       B,15000   ;DELAY OF 15 SEC
+TIME1:    CALL      DELAY
+          DCX       B
+          MOV       A,B
+          ORA       C
+          JNZ       TIME1
+          
+          MVI       E,'F'
+          MVI       C,2
+          CALL      5
+          RET
+
+;===============================================================
+;    CPU TEST BACKGROUND 
+;===============================================================
+;
+CPUTST;   XRA       A
+          STA       CPUERR
+          STA       CPUERR+1
+
+          CALL      CALLT          ;TEST CALLS AND FLAGS
+          CALL      RETT           ;TEST RETURNS ABD FLAGS
+          CALL      JMPT           ;TEST JUMPS AND FLAGS
+          CALL      ROTT           ;  "  ROTATES AND SHIFTS
+          CALL      BMT            ;  "  BLOCK MOVES
+          CALL      MOVT           ;  "  MOVES
+          CALL      LOADT          ;  "  LOADS AND STORES
+          CALL      DADT           ;  "  DOUBBLE ADDS AND SUBS.
+          CALL      INCT           ;  "  REG. INC. AND DEC.
+          CALL      ACCT           ;  "  ACCUMULATOR INSTRUCTIONS
+          CALL      TIME           ; TIMING TEST
+          
+
+XIT:      XRA       A              ;PREPAIR TO RETURN TO PASCAL-Z
+          LXI       H,CPUERR       ;GET THE ADDRESS OF ERROR FLAG
+          MOV       E,M  
+          INX       H
+          MOV       D,M
+          RET        
+
+
+
+
+
+

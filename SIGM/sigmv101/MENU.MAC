@@ -1,0 +1,1106 @@
+;
+;  PROGRAM:  MENU
+;  AUTHOR:  RICHARD CONN
+;  VERSION:  1.4
+;  DATE:  16 Jan 83
+;  PREVIOUS VERSIONS:  1.3 (9 Jan 83)
+;  PREVIOUS VERSIONS:  1.2 (6 Jan 83), 1.1 (13 Dec 82), 1.0 (11 DEC 82)
+;
+VERS	EQU	14
+
+;
+;	This program is Copyright (c) 1982, 1983 by Richard Conn
+;	All Rights Reserved
+;
+;	ZCPR2 and its utilities, including this one, are released
+; to the public domain.  Anyone who wishes to USE them may do so with
+; no strings attached.  The author assumes no responsibility or
+; liability for the use of ZCPR2 and its utilities.
+;
+;	The author, Richard Conn, has sole rights to this program.
+; ZCPR2 and its utilities may not be sold without the express,
+; written permission of the author.
+;
+
+
+;
+;	MENU is the ZCPR2 Menu Processor.  It loads, looks for the MENU.CPR
+; file, and then displays it to the user (optionally) and prompts him for
+; a single-character command.  The ZCPR2 Multiple Command Line Buffer must
+; be installed for MENU to work, and MENU uses this buffer to chain to the
+; programs selected by the user and return to itself at the proper place.
+;
+;	MENU supports multiple menus within one MENU.CPR file.  When a command
+; is invoked, MENU returns to the menu the command came from.
+;
+;	MENU will ONLY RUN on ZCPR2 systems with the Multiple Command Line
+; Buffer Option enabled.
+;
+
+;
+;  Menu Constants
+;
+
+;  1 Special Menu Command Chars
+RNM		EQU	'>'		;NEXT MENU
+RNMP		EQU	'.'		;NEXT MENU PRIME (ALTERNATE)
+RLM		EQU	'<'		;LAST MENU
+RLMP		EQU	','		;LAST MENU PRIME (ALTERNATE)
+RFM		EQU	'*'		;FIRST MENU
+RSM		EQU	'$'		;SYSTEM MENU (PASSWORD REQUIRED)
+					; THIS IS SAME AS CONTROL CHAR
+;  2 Internal Menu Control Chars
+MCMD		EQU	':'		;COMMAND TO JUMP TO ANOTHER MENU
+PCHAR		EQU	'"'		;INDICATES AUTO PROMPT FOR SPECIFIC CMD
+MINDIC		EQU	'#'		;MENU SECTION INDICATOR
+MFIRST		EQU	'%'		;FIRST MENU INDICATOR
+GOPTION		EQU	'-'		;GLOBAL OPTION INDICATOR
+WOPTION		EQU	'!'		;ACTIVATES WAIT UPON RETURN
+WAITCH		EQU	'W'		;CHAR IN COMMAND LINE TO CAUSE WAIT
+
+;  3 Menu Option Chars
+COPTION		EQU	'C'		;DISPLAY COMMAND LINE TO USER
+DOPTION		EQU	'D'		;DISPLAY MENU TO USER
+POPTION		EQU	'P'		;PAGE OUT MENU DISPLAY TO USER
+XOPTION		EQU	'X'		;DISABLE CP/M RETURN
+
+;  4 Miscellaneous
+CMDSEP		EQU	';'		;ZCPR2 COMMAND SEPARATOR
+NLINES		EQU	24		;NUMBER OF LINES ON USER'S CRT
+
+;
+;  CP/M CONSTANTS
+;
+wboot	equ	0
+bentry	equ	5
+fcb	equ	5ch
+tbuff	equ	80h
+CR	equ	0dh
+LF	equ	0ah
+CTRLC	equ	'C'-'@'
+TAB	equ	'I'-'@'
+CTRLZ	equ	'Z'-'@'
+
+;
+;  Externals from SYSLIB
+;
+	ext	print
+	ext	cin
+	ext	cout
+	ext	caps
+	ext	crlf
+	ext	madc
+	ext	bline
+	ext	initfcb
+	ext	f$open
+	ext	f$close
+	ext	f$read
+	ext	codend
+	ext	hmovb
+;
+;  Branch to Start of Program
+;
+	.z80			;Zilog Z80 Mnemonics
+	jp	start
+
+;
+;******************************************************************
+;
+;  SINSFORM -- ZCPR2 Utility Standard General Purpose Initialization Format
+;
+;	This data block precisely defines the data format for
+; initial features of a ZCPR2 system which are required for proper
+; initialization of the ZCPR2-Specific Routines in SYSLIB.
+;
+
+;
+;  EXTERNAL PATH DATA
+;
+EPAVAIL:
+	DB	0FFH	; IS EXTERNAL PATH AVAILABLE? (0=NO, 0FFH=YES)
+EPADR:
+	DW	40H	; ADDRESS OF EXTERNAL PATH IF AVAILABLE
+
+;
+;  INTERNAL PATH DATA
+;
+INTPATH:
+	DB	0,0	; DISK, USER FOR FIRST PATH ELEMENT
+			; DISK = 1 FOR A, '$' FOR CURRENT
+			; USER = NUMBER, '$' FOR CURRENT
+	DB	0,0
+	DB	0,0
+	DB	0,0
+	DB	0,0
+	DB	0,0
+	DB	0,0
+	DB	0,0	; DISK, USER FOR 8TH PATH ELEMENT
+	DB	0	; END OF PATH
+
+;
+;  MULTIPLE COMMAND LINE BUFFER DATA
+;
+MCAVAIL:
+	DB	000H	; IS MULTIPLE COMMAND LINE BUFFER AVAILABLE?
+MCADR:
+	DW	0FF00H	; ADDRESS OF MULTIPLE COMMAND LINE BUFFER IF AVAILABLE
+
+;
+;  DISK/USER LIMITS
+;
+MDISK:
+	DB	4	; MAXIMUM NUMBER OF DISKS
+MUSER:
+	DB	31	; MAXIMUM USER NUMBER
+
+;
+;  FLAGS TO PERMIT LOG IN FOR DIFFERENT USER AREA OR DISK
+;
+DOK:
+	DB	0FFH	; ALLOW DISK CHANGE? (0=NO, 0FFH=YES)
+UOK:
+	DB	0FFH	; ALLOW USER CHANGE? (0=NO, 0FFH=YES)
+
+;
+;  PRIVILEGED USER DATA
+;
+PUSER:
+	DB	10	; BEGINNING OF PRIVILEGED USER AREAS
+PPASS:
+	DB	'chdir',0	; PASSWORD FOR MOVING INTO PRIV USER AREAS
+	DS	41-($-PPASS)	; 40 CHARS MAX IN BUFFER + 1 for ending NULL
+
+;
+;  CURRENT USER/DISK INDICATOR
+;
+CINDIC:
+	DB	'$'	; USUAL VALUE (FOR PATH EXPRESSIONS)
+
+;
+;  DMA ADDRESS FOR DISK TRANSFERS
+;
+DMADR:
+	DW	80H	; TBUFF AREA
+
+;
+;  NAMED DIRECTORY INFORMATION
+;
+NDRADR:
+	DW	00000H	; ADDRESS OF MEMORY-RESIDENT NAMED DIRECTORY
+NDNAMES:
+	DB	64	; MAX NUMBER OF DIRECTORY NAMES
+DNFILE:
+	DB	'NAMES   '	; NAME OF DISK NAME FILE
+	DB	'DIR'		; TYPE OF DISK NAME FILE
+
+;
+;  REQUIREMENTS FLAGS
+;
+EPREQD:
+	DB	000H	; EXTERNAL PATH?
+MCREQD:
+	DB	0FFH	; MULTIPLE COMMAND LINE?
+MXREQD:
+	DB	000H	; MAX USER/DISK?
+UDREQD:
+	DB	000H	; ALLOW USER/DISK CHANGE?
+PUREQD:
+	DB	0FFH	; PRIVILEGED USER?
+CDREQD:
+	DB	000H	; CURRENT INDIC AND DMA?
+NDREQD:
+	DB	000H	; NAMED DIRECTORIES?
+Z2CLASS:
+	DB	0	; CLASS 0
+	DB	'ZCPR2'
+	DS	10	; RESERVED
+
+;
+;  END OF SINSFORM -- STANDARD DEFAULT PARAMETER DATA
+;
+;******************************************************************
+;
+
+;
+;  This is the FCB which defines the default name of the MENU.CPR file
+;
+menufcb:
+	db	0		;FCB for MENU.CPR
+	db	'MENU    '
+	db	'CPR'
+	ds	4
+scratch:			;this doubles as a scratch area
+	ds	16		;buffer definition is at end of program
+	ds	4		;36 bytes total
+
+;
+;  Start of Program
+;
+start:
+	call	print
+	db	'MENU  Version '
+	db	(vers/10)+'0','.',(vers mod 10)+'0',0
+
+	ld	a,(mcavail)	;multiple command lines must be available
+	or	a		;0=no
+	jr	nz,start0
+	call	print
+	db	' - MC',0
+	ret
+start0:
+	ld	hl,fcb+1	;check for menu number
+	ld	a,(hl)		;check first char for delay
+	cp	WAITCH		;wait?
+	jr	nz,start1	;go ahead with number if no wait
+	call	sak		;Strike Any Key
+	inc	hl		;pt to char after W
+start1:
+	call	eval		;extract number (will return 0 if none there)
+	ld	(reentry),a
+
+	call	crlf		;new line
+	ld	de,menufcb	;pt to MENU.CPR FCB
+	call	initfcb		;init fcb
+	call	f$open		;open file
+	ret	nz		;abort if no menu
+
+;
+;  Load MENU.CPR from disk
+;
+	call	codend		;get address of buffer for menu load
+	ld	(mladr),hl	;set menu load address ptr
+
+mload:
+	ld	de,menufcb	;pt to FCB
+	call	f$read		;read in next block
+	or	a		;error?
+	jr	nz,mloaddn	;load done if error
+	ld	de,tbuff	;copy from TBUFF into memory pted to by HL
+	ex	de,hl		;HL is source, DE is dest
+	ld	b,128		;128 bytes
+	call	hmovb
+	ld	hl,(bentry+1)	;get address of top of TPA
+	ld	a,h		;set to bottom of ZCPR2
+	sub	10
+	cp	d		;about to overflow ZCPR2?
+	jr	nc,mload1	;continue if not
+	call	print
+	db	cr,lf,'Full',0
+	ret
+mload1:
+	ex	de,hl		;HL pts to next byte to load to
+	jr	mload		;continue load
+
+
+;
+;  Init Flags and Clear MSB of all bytes in Menu File
+;
+mloaddn:
+	call	f$close		;close input file
+	ld	(hl),CTRLZ	;ensure EOF mark
+	xor	a		;A=0
+	ld	(cflag),a	;turn off command display
+	ld	(dflag),a	;turn off menu display
+	ld	(pflag),a	;disallow paging
+	ld	(cpmok),a	;turn off CP/M return flag
+	ld	(menuno),a	;set menu number to start at
+	ld	hl,(mladr)	;pt to beginning of file
+	push	hl		;save ptr
+menul1:
+	ld	a,(hl)		;get byte
+	and	7FH		;mask out MSB
+	ld	(hl),a		;put byte
+	inc	hl		;pt to next
+	cp	CTRLZ		;EOF?
+	jr	nz,menul1	;continue if not
+;
+;  Mark all Menu Sections
+;
+	pop	hl		;HL pts to first byte of menu
+	ld	b,0FFH		;set menu counter
+;
+;  Skip to Next Menu
+;
+menul2:
+	ld	a,(hl)		;get byte
+	cp	CTRLZ		;error?
+	jp	z,mstrerr	;structure error if so
+	cp	MINDIC		;menu indicator (start of menu?)
+	jr	nz,menul4
+	or	80H		;beginning of menu found -- set MSB
+	ld	(hl),a		;put byte
+	inc	b		;increment menu count
+	inc	hl		;pt to next
+	ld	a,(hl)		;get byte
+	cp	MINDIC		;menu indicator (end of menu?)
+	jr	z,menul5	;done if so
+	cp	CTRLZ		;error?
+	jp	z,mstrerr
+	cp	RSM		;system menu indicator?
+	jr	nz,menul3
+	ld	a,b		;set system menu number
+	ld	(smeno),a
+	ld	a,0FFH		;set flag
+	ld	(smenfl),a	;system menu present
+	dec	hl		;back up to beginning of menu
+	ld	(smenadr),hl	;start address
+	inc	hl		;pt to RSM
+;
+;  Skip out Menu Display
+;
+menul3:
+	call	lskipt		;skip to beginning of next line
+	jr	z,menul4	;found menu indicator
+	cp	CTRLZ		;error?
+	jp	z,mstrerr
+	jr	menul3		;continue if not
+;
+;  Skip to Next Menu
+;
+menul4:
+	call	lskip		;skip to beginning of next menu
+	jr	menul2
+;
+;  Check Menu Options
+;
+menul5:
+	ld	hl,(mladr)	;pt to beginning of file
+	ld	a,(hl)		;check for option
+	cp	goption		;global option char?
+	jp	nz,mfile	;if no global option, scan for menu files
+	inc	hl		;pt to option char
+option:
+	ld	a,(hl)		;get option char
+	call	caps		;capitalize
+	inc	hl		;pt to next
+	cp	cr		;done?
+	jr	z,optdn
+	cp	COPTION		;display command?
+	jr	z,optc
+	cp	DOPTION		;display menu?
+	jr	z,optd
+	cp	POPTION		;paging?
+	jr	z,optp
+	cp	XOPTION		;exit OK?
+	jp	nz,mstrerr	;option error if not
+;
+;  Disable Exit to CP/M
+;
+	ld	a,0FFH		;turn flag off
+	ld	(cpmok),a
+	jr	option
+;
+;  Process Paging Option
+;
+optp:
+	ld	a,0FFH		;set flag
+	ld	(pflag),a
+	jr	option
+;
+;  Process Display Menu Option
+;
+optd:
+	ld	a,0FFH		;set flag
+	ld	(dflag),a
+	jr	option
+;
+;  Process Display Command Option
+;
+optc:
+	ld	a,0FFH		;set flag
+	ld	(cflag),a
+	jr	option
+
+;
+;  Option Processing Done
+;
+optdn:
+	inc	hl		;skip LF
+
+;
+;  Check for Menu Display
+;
+mfile:
+	ld	a,(hl)		;get first byte
+	and	7FH		;mask
+	cp	MINDIC		;start of menu?
+	jp	nz,mstrerr
+
+;
+;  Check and Set First Menu
+;
+	ld	(mstart),hl	;save start address of first menu item
+	ld	(hl),mfirst+80H	;set first char of first menu
+
+;
+;  Entry Point for Menu Display
+;	On entry, HL pts to first byte of current menu
+;
+dmenu:
+	ld	a,(reentry)	;get reentry flag
+	or	a		;0=no
+	jp	nz,mchc0	;skip to proper menu
+	ld	(cstart),hl	;save start address of current menu
+	ld	a,(cflag)	;copy display command flag for temp use
+	ld	(cpflag),a
+	ld	a,(dflag)	;copy display menu flag for temp use
+	ld	(dpflag),a
+	ld	a,(pflag)	;copy paging flag for temp use
+	ld	(ppflag),a
+	inc	hl		;pt to first char after menu indicator char
+dispm1:
+	ld	a,(hl)		;get char
+	call	caps		;capitalize
+	inc	hl		;pt to next
+	cp	cr		;end of options?
+	jr	z,dispm2
+	cp	RSM		;system menu?
+	jr	z,dispm1	;ok if so
+	cp	COPTION		;command display?
+	jr	z,dispmc
+	cp	DOPTION		;display?
+	jr	z,dispmd
+	cp	POPTION		;paging?
+	jr	z,dispmp
+	cp	XOPTION		;CP/M return?
+	jp	nz,mstrerr	;error if not
+;
+;  Toggle CP/M Return Option
+;
+	ld	a,(cpmok)	;get flag
+	cpl			;toggle
+	ld	(cpmok),a
+	jr	dispm1
+;
+;  Toggle Paging Option
+;
+dispmp:
+	ld	a,(ppflag)	;get flag
+	cpl			;toggle
+	ld	(ppflag),a
+	jr	dispm1
+;
+;  Toggle Display Menu Option
+;
+dispmd:
+	ld	a,(dpflag)	;get flag
+	cpl			;toggle
+	ld	(dpflag),a
+	jr	dispm1
+;
+;  Toggle Display Command Option
+;
+dispmc:
+	ld	a,(cpflag)	;get flag
+	cpl			;toggle
+	ld	(cpflag),a
+	jr	dispm1
+;
+;  Done with Menu-Specific Option Processing
+;
+dispm2:
+	call	lskip		;skip to LF
+	ld	a,(dpflag)	;display menu?
+	or	a		;0=no
+	jr	z,dispm8	;skip over menu if not
+	ld	a,NLINES-1	;number of lines
+	ld	(pagcnt),a	;set count
+	call	crlf		;new line
+;
+;  Print Next Line of Menu if not Starting with ESCAPE Char (MINDIC)
+;
+dispm3:
+	ld	a,(hl)		;get first char of line
+	and	7FH		;mask
+	cp	MINDIC		;done?
+	jr	z,dispm4
+	call	lprintx		;print line pted to by HL ending in <CR>
+	jr	dispm3
+;
+;  Done with Menu Display -- Page it out
+;
+dispm4:
+	call	lskip		;skip to first char of next line (option char)
+	ld	(optstrt),hl	;set start address of options
+	ld	a,(pagcnt)	;number of remaining lines
+	ld	b,a		;count in B
+	or	a		;ok?
+	jr	z,dispm6	;don't do anything if already there
+	ld	a,(ppflag)	;page?
+	or	a		;0=No
+	jr	z,dispm6
+;
+;  Page Loop for Menu Display
+;
+dispm5:
+	call	crlf		;new line
+	djnz	dispm5
+;
+;  Determine if Another Menu Follows
+;
+dispm6:
+	xor	a		;A=0
+	ld	(nmenfl),a	;set for no next menu
+	ld	a,(hl)		;ok?
+	and	7FH		;mask
+	cp	CTRLZ		;error if EOF
+	jp	z,mstrerr
+	cp	MINDIC		;next menu?
+	jr	nz,dispm7
+	inc	hl		;double indicator if end
+	ld	a,(hl)
+	cp	MINDIC		;end?
+	jr	z,dispm9
+	cp	RSM		;system menu = no next menu
+	jr	z,dispm9
+	ld	a,0FFH		;set next menu
+	ld	(nmenfl),a
+	jr	dispm9
+dispm7:
+	call	lskip		;skip to next line
+	jr	dispm6
+
+;
+;  Skip over current menu so it is not displayed
+;
+dispm8:
+	call	lskipt		;skip to beginning of command
+	jr	nz,dispm8
+	call	lskip		;skip over end of display indicator
+	ld	(optstrt),hl	;set pointer to options
+	jr	dispm6		;determine if next menu available
+dispm9:
+
+;
+;  Ready for Option Input
+;    The following Flags/Values are now set:
+;	CPFLAG -- Display Command Flag (0=No, 0FFH=Yes)
+;	DPFLAG -- Display Menu Flag (0=No, 0FFH=Yes)
+;	OPTSTRT -- Address of First Menu Option
+;	NMENFL -- 0 if no next menu, 0FFH if next menu
+;	MSTART -- Start Address of MINDIC Before Menu Display
+;	  (MSTART)=MFIRST with MSB Set
+prompt:
+	ld	a,0ffh
+	ld	(pagcnt),a	;turn off paging
+	ld	(dpflag),a	;turn on future menu displays
+	call	print
+	db	'Command (<CR>=Menu',0
+	ld	a,(cpmok)	;OK to return to CP/M?
+	or	a		;0=No
+	call	nz,prmptc
+	ld	hl,(cstart)	;pt to first char
+	ld	a,(hl)		;get it
+	and	7FH		;mask
+	cp	MFIRST
+	call	nz,prmptf	;print previous menu prompt if not first menu
+	ld	a,(nmenfl)	;next menu available?
+	or	a		;0=No
+	call	nz,prmptn		;print next menu prompt
+	call	print
+	db	') - ',0
+	call	cin		;get response
+	call	caps		;capitalize
+	call	cout		;echo
+	ld	b,a		;result in B
+
+;
+;  Check for CR
+;
+	cp	CR		;<CR>?
+	jp	z,dispm2	;reprint menu if so
+
+;
+;  Check for Reboot
+;
+	ld	a,(cpmok)	;ok to abort?
+	or	a		;0=No
+	jr	z,prmpt0
+	ld	a,b		;get command
+	cp	CTRLC		;reboot?
+	ret	z		;return to CP/M if so
+
+;
+;  Check for Command to Return to First Menu
+;
+prmpt0:
+	ld	a,(hl)		;get it
+	and	7FH		;mask
+	cp	MFIRST
+	jr	z,prmpt1
+	ld	a,b		;get command
+	cp	RFM		;return to first menu?
+	jr	nz,prmpt1
+	ld	hl,(mstart)	;pt to first menu
+	xor	a		;A=0
+	ld	(menuno),a
+	jp	dmenu		;resume processing
+
+;
+;  Check for Command to go to Next Menu
+;
+prmpt1:
+	ld	a,(nmenfl)	;next menu available?
+	or	a		;0=No
+	jr	z,prmpt2
+	ld	a,b		;get command
+	cp	RNMP		;goto next menu?
+	jr	z,rnmx
+	cp	RNM		;goto next menu?
+	jr	nz,prmpt2
+rnmx:
+	ld	a,(menuno)	;increment menu number
+	inc	a
+	ld	(menuno),a
+	ld	hl,(optstrt)	;pt to first option
+nxtmnu:
+	ld	a,(hl)		;get next char
+	and	80H		;mask
+	jp	nz,dmenu	;process next menu
+	call	lskip		;goto beginning of next line
+	jr	nxtmnu
+
+;
+;  Check for Command to go to Last Menu
+;
+prmpt2:
+	ld	a,(hl)		;get menu char
+	and	7FH		;at first menu?
+	cp	MFIRST
+	jr	z,prmpt3	;skip if at first menu
+	ld	a,b		;get command
+	cp	RLMP		;goto last menu?
+	jr	z,lstmnu
+	cp	RLM		;goto last menu?
+	jr	nz,prmpt3
+lstmnu:
+	dec	hl		;back up
+	ld	a,(hl)		;get char
+	and	80H		;look for MSB
+	jr	z,lstmnu
+	ld	a,(menuno)	;decrement menu number
+	dec	a
+	ld	(menuno),a
+	jp	dmenu		;process menu
+
+;
+;  Check for Command to goto System Menu
+;
+prmpt3:
+	ld	a,(smenfl)	;system menu available?
+	or	a		;0=No
+	jr	z,prmpt4
+	ld	a,b		;get command
+	cp	RSM		;system menu?
+	jr	nz,prmpt4
+	call	password	;prompt for and get password
+	jp	nz,prompt	;reprompt if error
+	ld	hl,(smenadr)	;get address of system menu
+	ld	a,(smeno)	;set system menu number
+	ld	(menuno),a
+	jp	dmenu		;process menu
+;
+;  This is where additional functions may be added
+;
+prmpt4:
+
+;
+;  Check for Option Letter
+;
+	ld	hl,(optstrt)	;pt to first option char
+prmptx:
+	ld	a,(hl)		;get it
+	call	caps		;capitalize
+	cp	MINDIC		;at next menu?
+	jr	z,prmpter
+	cp	b		;match user selection?
+	jr	z,prmptd
+	call	lskip		;skip to next line
+	jr	prmptx
+
+;
+;  Invalid Option
+;
+prmpter:
+	call	print
+	db	cr,lf,'Invalid Option',cr,lf,0
+	jp	prompt
+
+;
+;  Process Option
+;
+prmptd:
+	xor	a		;set no wait
+	ld	(wait),a
+	inc	hl		;pt to first letter of command
+	ld	a,(hl)		;get it
+	cp	MCMD		;invoke other menu?
+	jp	z,mchcmd	;menu change command
+	cp	WOPTION		;turn on wait?
+	jr	nz,prmptg
+	ld	a,0FFH		;turn on wait
+	ld	(wait),a
+	inc	hl		;skip option char
+prmptg:
+	ex	de,hl		;DE pts to command letter
+	ld	hl,(mcadr)	;get address of multiple command buffer
+	ld	b,h		;... in BC also
+	ld	c,l
+	ld	a,4		;HL=HL+4 for address of first char
+	add	a,l
+	ld	l,a
+	ld	a,h
+	adc	a,0
+	ld	h,a
+	ld	a,l		;store address
+	ld	(bc),a
+	inc	bc
+	ld	a,h
+	ld	(bc),a
+cmdcpy:
+	ld	a,(de)		;get command letter
+	call	caps		;capitalize it
+	cp	cr		;done?
+	jr	z,ccpyd
+	cp	PCHAR		;prompt?
+	jr	z,ccpyp
+	ld	(hl),a		;store it
+	inc	hl		;pt to next
+	inc	de
+	jr	cmdcpy
+ccpyd:
+	ld	(hl),CMDSEP	;store command separator
+	inc	hl		;pt to next char
+	ld	de,menucmd	;now store menu command to chain to when done
+ccpd:
+	ld	a,(de)		;get char
+	or	a		;done?
+	jr	z,ccpd1
+	ld	(hl),a		;put char
+	inc	hl		;pt to next
+	inc	de
+	jr	ccpd
+ccpd1:
+	ld	a,(wait)	;wait upon return?
+	or	a		;0=No
+	jr	z,ccpd2
+	ld	(hl),WAITCH	;set letter in command line
+	inc	hl		;pt to next char
+ccpd2:
+	ld	a,(menuno)	;get number of current menu
+	ld	de,tnum		;buffer for number
+	push	de		;save ptr
+	call	madc		;store number
+	pop	de
+	ld	b,3		;3 chars max
+ccpd3:
+	ld	a,(de)		;get char
+	inc	de		;pt to next
+	cp	' '		;skip space
+	jr	z,ccpd4
+	ld	(hl),a		;put char
+	inc	hl		;pt to next
+ccpd4:
+	djnz	ccpd3		;continue until all digits stored
+	ld	(hl),0		;store ending zero
+	jp	cmddisp		;optionally display command
+;
+;  Prompt User for Input and Accept It
+;
+ccpyp:
+	inc	de		;pt to first char of prompt
+	ex	de,hl		;HL pts to prompt char, DE pts to buffer
+	call	crlf		;new line
+	call	lprint		;print prompt
+	ld	a,0ffh		;capitalize input from user
+	ld	hl,ibuff	;input line buffer
+	call	dots
+	call	bline		;get input from user
+	ex	de,hl		;HL pts to buffer, DE pts to user input
+cmdlp:
+	ld	a,(de)		;get char from user
+	or	a		;end of input?
+	jr	z,ccpyd		;store rest of line
+	ld	(hl),a		;store char
+	inc	hl		;pt to next
+	inc	de
+	jr	cmdlp
+
+;
+;  Check for Display of Loaded Command and Do So if Set
+;
+cmddisp:
+	ld	a,(cpflag)	;display command?
+	or	a		;0=No
+	ret	z		;return to OS if so to run command
+	call	crlf		;new line
+	ld	hl,(mcadr)	;pt to first char
+	ld	e,(hl)		;get low-order address
+	inc	hl
+	ld	d,(hl)		;get high-order address
+	ex	de,hl		;HL pts to first char
+cmdd1:
+	ld	a,(hl)		;get char
+	cp	CMDSEP		;done if command separator
+	ret	z
+	inc	hl		;pt to next
+	call	cout		;print char
+	jr	cmdd1
+
+;
+;  Menu Change Command -- Jump to Specified Menu
+;
+mchcmd:
+	inc	hl		;pt to menu number
+	call	eval		;convert to decimal number in A
+;
+;  Entry Point if MENU is Reinvoked
+;
+mchc0:
+	ld	(menuno),a
+	ld	b,a		;menu number in B
+	xor	a		;turn off reentry flag
+	ld	(reentry),a
+	inc	b		;add 1 for initial offset
+	ld	hl,(mstart)	;pt to first menu
+mchc1:
+	dec	b		;count down
+	jp	z,dmenu		;found menu -- process it
+mchc2:
+	call	lskipt		;skip to next line
+	jr	nz,mchc2	;continue if not end of menu display
+mchc3:
+	call	lskipt		;skip to next line
+	jr	nz,mchc3	;continue if not at end of menu commands
+	inc	hl		;end of MENU.CPR?
+	ld	a,(hl)		;yes if double MINDIC
+	and	7FH		;mask
+	cp	MINDIC
+	jp	z,mstrerr	;error if so
+	dec	hl		;pt to first char
+	jr	mchc1		;continue
+
+;
+;  Print Line pted to by HL Ending in <CR>
+;    Decrement PAGCNT
+;
+lprintx:
+	call	lprint		;print without <CR>
+	jp	crlf		;do <CR> <LF>
+;
+;  Print Line Pted to by HL; Decrement PAGCNT
+;
+lprint:
+	ld	b,0		;set tab counter
+lprnt0:
+	ld	a,(hl)		;get char
+	inc	hl		;pt to next
+	and	7FH		;mask MSB
+	cp	TAB		;tabulate?
+	jr	z,lprnt2
+	cp	cr		;done?
+	jr	z,lprnt1
+	call	cout		;print
+	inc	b		;incr tab counter
+	jr	lprnt0
+lprnt1:
+	inc	hl		;pt to first char of next line
+	ld	a,(pagcnt)	;count down pages
+	dec	a
+	ld	(pagcnt),a
+	ret	nz
+	ld	a,NLINES-1	;reset paging count
+	ld	(pagcnt),a
+	call	print
+	db	cr,lf,'Pause -',0
+	jr	sak
+lprnt2:
+	ld	a,' '		;print <SP>
+	call	cout
+	inc	b		;incr tab counter
+	ld	a,b		;done?
+	and	7		;every 8
+	jr	nz,lprnt2
+	jr	lprnt0
+
+;
+;  Strike Any Key Message
+;
+sak:
+	call	print
+	db	' Strike Any Key - ',0
+	call	cin		;get response
+	ret
+
+;
+;  Prompt for, input, and check password (only one chance)
+;    If accepted, return with Zero Flag Set; if not, return with NZ
+;
+password:
+	call	print
+	db	cr,lf,'Pass? ',0
+	ld	hl,ibuff	;pt to input line buffer
+	call	dots
+	xor	a		;don't capitalize user input
+	call	bline		;get line from user
+	ld	de,ppass	;pt to system password
+pass1:
+	ld	a,(de)		;get sys pass char
+	cp	(hl)		;ok?
+	jr	nz,passerr	;error if no match
+	inc	hl		;pt to next
+	inc	de
+	or	a		;end of strings?
+	jr	nz,pass1
+	ret			;return with zero set to show match
+passerr:
+	call	print
+	db	cr,lf,'Pass Err',0
+	call	sak		;strike any key
+	call	crlf
+	ld	a,0FFH		;set no zero
+	or	a
+	ret
+
+;
+;  Skip to Beginning of Next Line and Test First Char for Menu Indicator
+;
+lskipt:
+	call	lskip		;skip
+	ld	a,(hl)		;get char
+	and	7FH		;mask
+	cp	MINDIC		;test
+	ret
+
+;
+;  Skip to Beginning of Next Line
+;
+lskip:
+	ld	a,(hl)		;get char
+	and	7FH		;mask out MSB
+	inc	hl		;pt to next
+	cp	lf
+	jr	nz,lskip
+	ret
+
+;
+;  Print CP/M Return Prompt
+;
+prmptc:
+	call	print
+	db	', ^C=ZCPR2',0
+	ret
+;
+;  Print First/Last Menu Chars
+;
+prmptf:
+	call	print
+	db	', ',RFM,'=1st Menu, ',RLM,'=Prev Menu',0
+	ret
+;
+;  Print next menu message
+;
+prmptn:
+	call	print
+	db	', ',RNM,'=Next Menu',0
+	ret
+
+;
+;  Menu Structure Error -- FATAL
+;    This message is printed to indicate an error in the structure of
+; the MENU.CPR file.
+;
+mstrerr:
+	call	print
+	db	'Str Err',0
+	ret
+
+;
+;  Convert char string pted to by HL into decimal number in A
+;	On Entry, HL pts to first digit char
+;	On Exit, HL pts to after last digit char and A=number
+;
+eval:
+	push	bc		;save BC
+	ld	b,0		;set value
+eval1:
+	ld	a,(hl)		;get digit
+	sub	'0'		;convert to binary
+	jr	c,eval2
+	cp	10		;range?
+	jr	nc,eval2
+	inc	hl		;pt to next digit
+	ld	c,a		;new digit in C
+	ld	a,b		;multiply B by 10
+	add	a,a		;*2
+	add	a,a		;*4
+	add	a,b		;*5
+	add	a,a		;*10
+	add	a,c		;add in new digit
+	ld	b,a		;result in B
+	jr	eval1
+eval2:
+	ld	a,b		;result in A
+	pop	bc		;restore ptr
+	ret
+
+;
+;  Print Dots to Indicate Buffer Size
+;
+dots:
+	push	bc		;save BC
+	ld	a,(ibuff)	;get count
+	ld	b,a		;... in B
+	ld	c,a		;... in C
+	ld	a,'.'		;dot
+dots1:
+	call	cout		;print dot
+	djnz	dots1
+	ld	a,8		;back space
+	ld	b,c		;count in B
+dots2:
+	call	cout		;print back space
+	djnz	dots2
+	pop	bc		;restore BC
+	ret
+
+;
+;  Buffers
+;
+menucmd:
+	db	'MENU ',0	;MENU command line
+;
+;  These buffers overlay the scratch area to save space
+;
+wait	equ	scratch		;Wait Upon Return Flag
+optstrt	equ	wait+1		;Address of First Option in Current Menu
+mstart	equ	optstrt+2	;Address of First Menu
+cstart	equ	mstart+2	;Address of Current Menu
+smenfl	equ	cstart+2	;System Menu Available Flag (0=No)
+smeno	equ	smenfl+1	;System Menu Number
+smenadr	equ	smeno+1		;Address of First Byte of System Menu
+nmenfl	equ	smenadr+2	;Next Menu Available Flag (0=No)
+mladr	equ	nmenfl+1	;Menu Load Address (1st byte of menu in memory)
+menuno	equ	mladr+2		;Number of Menu
+pagcnt	equ	menuno+1	;Paging Counter
+cflag	equ	pagcnt+1	;Display Command Line Flag
+dflag	equ	cflag+1		;Display Menu Flag
+pflag	equ	dflag+1		;Paging Flag
+cpflag:
+	ds	1		;Temp Display Command Line Flag
+dpflag:
+	ds	1		;Temp Display Menu Flag
+ppflag:
+	ds	1		;Temp Paging Flag
+reentry:
+	ds	1		;Menu Reentry Flag and Number
+cpmok:
+	ds	1		;OK to Return to CP/M (0=No)
+ibuff:
+	db	40		;40 chars in buffer
+	db	0		;buffer char count
+tnum:
+	ds	41		;space for chars and ending 0
+
+	end
+

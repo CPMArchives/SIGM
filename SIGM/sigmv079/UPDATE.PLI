@@ -1,0 +1,67 @@
+update:
+	proc;
+	/* update mode */
+	%replace
+		true  by '1'b,
+		false by '0'b;
+
+	%include 'attrib.dcl';
+
+	%include 'key.dcl';
+
+	dcl
+		data  file,
+		sysin file,
+		rec   char(max_siz);
+	dcl
+		i fixed,
+		answer char(2) var;
+	dcl
+		open_data   entry,
+		close_data  entry,
+		input_key   entry(char(max_siz)),
+		locate_key  entry(char(max_siz)) returns(bit),
+		alter_rec   entry(char(max_siz)),
+		att_len     entry(fixed) returns(fixed),
+		hdr_out     entry(fixed),
+		att_out     entry(fixed,char(max_siz)),
+		att_in      entry(fixed,char(max_siz)) returns(bit),
+		att_err     entry;
+
+	on endfile(sysin)
+		go to end_upd;
+
+	call open_data();
+
+	put edit('Update Mode','')(skip,a);
+		do while(true);
+		/* read next request */
+		put skip;
+		call input_key(rec);
+		if locate_key(rec) then
+			do;
+				do i = 2 to att_cnt;
+				change_field:
+					proc;
+						do while(true);
+						call hdr_out(i);
+						call att_out(i,rec);
+						if att_in(i,rec) then
+							return;
+						call att_err();
+						end;
+					end change_field;
+				call change_field();
+				end;
+			put edit('Ok to Change (y/n)?')
+				(column(4),a);
+			get list(answer);
+			if answer = 'y' then
+				call alter_rec(rec);
+			end;
+		end;
+
+	end_upd:
+	call close_data();
+	end update;
+

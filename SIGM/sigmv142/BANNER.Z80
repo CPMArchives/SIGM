@@ -1,0 +1,1311 @@
+
+;********************************************************
+;*							*
+;*  Program to do BIG banners in a 12x7 matrix		*
+;*  -----------------------------------------		*
+;*   Barrie Hall  , 4th November 1982			*
+;*   Macro-80 format for a Z80 CPU.			*
+;*							*
+;*							*
+;*  Features:						*
+;*		- Full 96 characters.			*
+;*		- 12x7 matrix.				*
+;*		- Lower case DESCENDERS.		*
+;*		- Command tail OR Interactive mode.	*
+;*							*
+;*   This program prints banners on the CP/M console.	*
+;*  To get the banner on your printer, use ^P before	*
+;*  you use BANNER.					*
+;*   The characters are stored as a series of 9 bytes	*
+;*  which represent a 9x7 matrix, this matrix is shifted*
+;*  down three rows for lower case descenders, if there	*
+;*  are no descending chars in the current line, the	*
+;*  program does three line feeds.			*
+;*   For most chars, the fill charcater used is the 	*
+;*  actual char itself, BUT some ('!"(){}[]/) chars are	*
+;*  illegible so the program will use an X IFF the char	*
+;*  appears in the lookup table at the end of the prog.	*
+;*							*
+;*   If you type:					*
+;*		A>banner hello fred			*
+;*  ,the program will print the banner, HELLO FRED, in	*
+;*  upper case on the console, (CP/M translates all char*
+;*  in its command line to UPPER CASE.			*
+;*  If you type:					*
+;*		A>banner				*
+;*  ,the program will give a prompt (>), now you can 	*
+;* up to a thousand characters and as many lines as you	*
+;* at up to 15 chars a line (limit with 15" paper).	*
+;*  When you have finished your message, type '\' on a	*
+;* line by it's self (i.e. >\ ). The program will banner*
+;* print the lines you have typed in.			*
+;*							*
+;*			   Barrie Hall, 15th Nov 82	*
+;*							*
+;* Please send bugs, comments, abuse etc to: 		*
+;*							*
+;*		Sydney RCPM on (02)997-1836		*
+;*		OR verabally on (02)80-2200		*
+;*							*
+;*   All commercial rights reservered by author.	*
+;*	(c) 1982					*
+;*							*
+;********************************************************
+
+	aseg
+	.z80
+	org	0100h
+lines	equ	12
+fdos	equ	0005h
+fcb	equ	005ch
+fcbcr	equ	fcb+32
+cmdbuf	equ	80h	   ;cpm command line tail
+true	equ	0
+false	equ	not true	;a lie???
+cr	equ	0dh
+lf	equ	0ah
+
+;This routine prints the CP/M command tail as a 9x7 banner
+;on the console OR gets lines from console and buffer them
+;up until we get a \ on a line by itself.
+
+; The format is 9 lines by 7 columns, the columns are the
+;Bits in the byte, each byte represents a line of the char.
+; SO we scan a byte for each char in each line.
+	ld	(stack),sp
+	ld	sp,dtem		;space for stack
+;dont print leading spaces in the command tail
+	ld	a,(cmdbuf)	;length byte
+	cp	0
+	jr	z,inter1	;no command line, give prom
+	add	a,81h		;address of last+1 char
+	ld	h,0
+	ld	l,a
+	ld	(hl),00		;so prog terminates!!
+	ld	hl,cmdbuf+1
+nxtf::	ld	a,(hl)
+	inc	hl
+	cp	' '
+	jr	z,nxtf
+	cp	09h
+	jr	z,nxtf
+	cp	00h
+	jp	z,gsys		;no message
+	dec	hl
+	ld	(messg),hl
+	call	bigchar	
+	ld	sp,(stack)	;restore stack and
+	ret			;go to the CCP.
+;interactive mode, give a prompt and read a line, store
+;it in the buffer and get another line from the console.
+;if the first char on the line is slosh '\', go and print
+;the buffer in banner format and return to CP/M.
+
+
+inter1::
+	ld	hl,bffer
+	ld	(bptr),hl
+inter2::
+	call	crlf
+dff::	ld	e,'>'
+	call	cout
+	ld	a,15	;max char with 130 columns
+	ld	(80h),a
+	ld	de,80h
+	call	lchin
+	ld	a,(81h)
+	ld	b,a
+	cp	0
+	jr	z,inter2	;no chars typed...
+;move what was typed to the main buffer and zero terminate
+;it.
+	ld	a,(82h)
+	cp	'\'		;terminate??
+	jr	z,prt44		;go and print the buffer
+	ld	a,b
+	ld	de,(bptr)	;get pointer to main text
+	push	de		;buffer..save for later
+	push	af		;set up block move
+	ld	c,a		;length
+	ld	b,0
+	ld	hl,82h		;first byte of text
+	ldir			;block move to the main buffer
+	pop	af
+	pop	hl
+	ld	c,a
+	ld	b,0
+	add	hl,bc		;update buffer pointer
+	ld	(hl),0		;zero terminate
+	inc	hl
+	ld	(bptr),hl
+	jr	inter2		;do again
+
+prt44::
+	ld	hl,(bptr)
+	ld	(hl),0ffh	;message terminate
+;now, print a line at a time , when there is an 0ffh after
+;a zero(end of line), return to CP/M
+	ld	hl,bffer
+nxmss1::
+	ld	(messg),hl
+	push	hl
+	call	bigchar		;do one line.
+	pop	hl
+zrlp::	ld	a,(hl)
+	inc	hl
+	cp	0
+	jr	nz,zrlp
+	ld	a,(hl)
+	cp	0ffh
+	jr	nz,nxmss1
+;else exit to cpm
+	ld	sp,(stack)
+	ret
+
+bigchar::
+; this routine prints out the banner line
+;using the data table. The chars come from the CP/M
+;command tail OR the interactive data buffer.
+
+	ld	a,false
+	ld	(desflg),a
+	ld	b,0	;line ZERO
+netlin::
+	ld	ix,(messg)
+nxtchr::
+	ld	a,(ix)
+	inc	ix
+	cp	00
+	jr	z,nxtln
+	cp	' '
+	jr	z,spce
+	cp	09h
+	jr	z,spce
+	push	bc
+;check for lower case descenders
+;g,j,p,q,y
+	cp	'g'
+	jr	z,des
+	cp	'j'
+	jr	z,des
+	cp	'p'
+	jr	z,des
+	cp	'q'
+	jr	z,des
+	cp	'y'
+	jr	z,des
+	ld	d,a
+	ld	a,b
+	cp	9
+	jr	c,nwrs
+	ld	a,(desflg)
+	cp	true
+	jr	nz,ext11	;no descenders
+	jr	spps		;do some lf's and leave.
+nwrs::	ld	a,d
+bopo::	call	biglne
+aftr::
+	pop	bc
+	jr	nxtchr
+des::
+;set descenders this line flag
+;and print 7 spaces if line < 3
+	ld	d,a
+	ld	a,true
+	ld	(desflg),a
+	ld	a,b
+	sub	3
+	cp	0
+	ld	b,a
+	jp	m,spps
+	ld	a,d
+	jr	bopo
+spps::
+	ld	e,' '
+	ld	b,9
+spss1::
+	call	cout
+	djnz	spss1
+	jr	aftr
+
+nxtln::
+	inc	b
+	ld	a,b
+	cp	lines	;12 lines
+	jr	z,gsys
+	call	crlf
+	jr	netlin
+
+spce::
+	push	bc
+	ld	b,9
+spc11::
+	ld	e,' '
+	call	cout
+	djnz	spc11
+	pop	bc
+	jr	nxtchr
+
+ext11::
+;do 3 crslfs and go to CP/M
+	pop	bc
+	ld	b,3
+lflop::
+	call	crlf
+	djnz	lflop
+gsys::
+	ld	e,cr
+	call	cout
+	ret
+
+
+biglne::
+;this routine prints out line N of char in A reg on the
+;console
+
+;work out mask for matrix from 01 to 80
+	ld	(chr),a
+	sub	21h
+	ret	m
+;line number is passed in B reg
+;multiply A by 9 to get offset, add base address
+;9A can be up to 1192 (lots) so use 16 bit arith
+	ld	l,a
+	ld	h,0
+	push	hl
+	pop	de
+	add	hl,hl		;x2
+	add	hl,hl		;x4
+	add	hl,hl		;x8
+	add	hl,de		;+1=9
+	ld	de,graf		;add table offset
+	add	hl,de
+	ld	c,b		;byte offset THIS LINE
+	ld	b,0
+	add	hl,bc	;got address of byte for this line
+;now move the AND mask through the LINE byte and print
+;out the chars and spaces.
+	ld	a,(hl)	;byte for line number B.
+	ld	d,a	;remeber A reg
+	ld	b,7
+	ld	c,40h	;initial mask
+chrpp::
+	ld	a,d
+	push	hl
+	push	bc
+	and	c
+	jr	z,blk
+	ld	a,(chr)		;decide between an 'X'
+	ld	hl,lup1
+	ld	b,lup2-lup1	;length of look up table
+lupps::
+	cp	(hl)
+	inc	hl
+	jr	z,xxss		;its in table of bad print chrs
+	djnz	lupps
+;not in table print it verbatim (hope not!)
+	ld	e,a
+	call	cout		;matrix fill char.
+ljj::	pop	bc
+	pop	hl
+	srl	c
+	djnz	chrpp
+	ld	e,' '	;inter..
+	call	cout	;character..
+	call	cout	;spacing..
+	ret
+xxss::
+	ld	e,'X'
+	call	cout
+	jr	ljj
+blk::
+	ld	e,' '
+	call	cout
+	jr	ljj
+
+;cpm routines
+
+crlf:	ld	e,0ah
+	call	cout
+	ld	e,0dh
+	call	cout
+	ret
+;	
+cout:	push	bc
+	push	de
+	push	hl
+	ld	c,2
+	jr	cpm
+;
+chin:	push	bc
+	push	de
+	push	hl	
+	ld	c,1	
+	jr	cpm
+;
+lchin::	push	bc
+	push	de
+	push	hl
+	ld	c,10
+	jr	cpm
+
+
+pmess::	push	bc
+	push	de
+	push	hl
+	ld	c,9
+	jr	cpm
+
+open::	push	bc
+	push	de
+	push	hl
+	ld	c,15		;open cp/m file code
+	jr	cpm
+
+read::	push	bc
+	push	de
+	push	hl
+	ld	c,20		;read cp/m file code.
+	jr	cpm
+
+
+setdma::
+	push	bc
+	push	de
+	push	hl
+	ld	c,26		;set dma address code.
+	jr	cpm
+
+cpm::	call	fdos		;go to cp/m
+	pop	hl		;restore all registers pushed
+	pop	de
+	pop	bc
+	ret			;back to the main program
+
+;table for the Banner characters....
+graf::
+;1 byte per line - 9 lines per character
+
+;!
+	db	0001000b
+	db	0001000b
+	db	0001000b
+	db	0001000b
+	db	0001000b
+	db	0
+	db	0
+	db	0001000b
+	db	0001000b
+;"
+	db	0100100b
+	db	0100100b
+	db	0100100b
+	db	0,0,0,0,0,0
+;#
+	db	0010100b
+	db	0010100b
+	db	0010100b
+	db	1111111b
+	db	0010100b
+	db	1111111b
+	db	0010100b
+	db	0010100b
+	db	0010100b
+;$
+	db	0001000b
+	db	0111111b
+	db	1001000b
+	db	1001000b
+	db	0111110b
+	db	0001001b
+	db	0001001b
+	db	1111110b
+	db	0001000b
+;%
+	db	0100000b
+	db	1010001b
+	db	0100010b
+	db	0000100b
+	db	0001000b
+	db	0010000b
+	db	0100010b
+	db	1000101b
+	db	0000010b
+;&
+	db	0111000b
+	db	1000100b
+	db	1000100b
+	db	0101000b
+	db	0010000b
+	db	0101001b
+	db	1000110b
+	db	1000110b
+	db	0111001b
+;'
+	db	0001100b
+	db	0001100b
+	db	0001000b
+	db	0010000b
+	db	0,0,0,0,0
+;(
+	db	0000100b
+	db	0001000b
+	db	0010000b
+	db	0010000b
+	db	0010000b
+	db	0010000b
+	db	0010000b
+	db	0001000b
+	db	0000100b
+;)
+	db	0010000b
+	db	0001000b
+	db	0000100b
+	db	0000100b
+	db	0000100b
+	db	0000100b
+	db	0000100b
+	db	0001000b
+	db	0010000b
+;*
+	db	0001000b
+	db	1001001b
+	db	0101010b
+	db	0011100b
+	db	1111111b
+	db	0011100b
+	db	0101010b
+	db	1001001b
+	db	0001000b
+;+
+	db	0
+	db	0001000b
+	db	0001000b
+	db	0001000b
+	db	1111111b
+	db	0001000b
+	db	0001000b
+	db	0001000b
+	db	0
+;,
+	db	0,0,0,0
+	db	0011000b
+	db	0011000b
+	db	0010000b
+	db	0100000b
+	db	0
+;-
+	db	0,0,0,0
+	db	1111111b
+	db	0,0,0,0
+;.
+	db	0,0,0,0,0,0,0
+	db	0011000b
+	db	0011000b
+;/
+	db	0
+	db	0000001b
+	db	0000010b
+	db	0000100b
+	db	0001000b
+	db	0010000b
+	db	0100000b
+	db	1000000b
+	db	0
+;0
+	db	0111110b
+	db	1000001b
+	db	1000011b
+	db	1000101b
+	db	1001001b
+	db	1010001b
+	db	1100001b
+	db	1000001b
+	db	0111110b
+;1
+	db	0001000b
+	db	0011000b
+	db	0101000b
+	db	0001000b
+	db	0001000b
+	db	0001000b
+	db	0001000b
+	db	0001000b
+	db	0111110b
+;2
+	db	0111110b
+	db	1000001b
+	db	0000001b
+	db	0000010b
+	db	0011100b
+	db	0100000b
+	db	1000000b
+	db	1000000b
+	db	1111111b
+;3
+	db	0111110b
+	db	1000001b
+	db	0000001b
+	db	0000001b
+	db	0011110b
+	db	0000001b
+	db	0000001b
+	db	1000001b
+	db	0111110b
+;4
+	db	0000010b
+	db	0000110b
+	db	0001010b
+	db	0010010b
+	db	0100010b
+	db	1000010b
+	db	1111111b
+	db	0000010b
+	db	0000010b
+;5
+	db	1111111b
+	db	1000000b
+	db	1000000b
+	db	1111100b
+	db	0000010b
+	db	0000001b
+	db	0000001b
+	db	1000010b
+	db	0111100b
+;6
+	db	0011110b
+	db	0100000b
+	db	1000000b
+	db	1000000b
+	db	1111110b
+	db	1000001b
+	db	1000001b
+	db	1000001b
+	db	0111110b
+;7
+	db	1111111b
+	db	1000001b
+	db	0000010b
+	db	0000100b
+	db	0001000b
+	db	0010000b
+	db	0010000b
+	db	0010000b
+	db	0010000b
+;8
+	db	0111110b
+	db	1000001b
+	db	1000001b
+	db	1000001b
+	db	0111110b
+	db	1000001b
+	db	1000001b
+	db	1000001b
+	db	0111110b
+;9
+	db	0111110b
+	db	1000001b
+	db	1000001b
+	db	1000001b
+	db	0111111b
+	db	0000001b
+	db	0000001b
+	db	0000010b
+	db	0111100b
+;:
+	db	0
+	db	0
+	db	0
+	db	0011000b
+	db	0011000b
+	db	0
+	db	0
+	db	0011000b
+	db	0011000b
+;;
+	db	0011000b
+	db	0011000b
+	db	0
+	db	0
+	db	0011000b
+	db	0011000b
+	db	0010000b
+	db	0100000b
+	db	0
+;<
+	db	0000100b
+	db	0001000b
+	db	0010000b
+	db	0100000b
+	db	1000000b
+	db	0100000b
+	db	0010000b
+	db	0001000b
+	db	0000100b
+;=
+	db	0,0,0
+	db	0111110b
+	db	0
+	db	0111110b
+	db	0,0,0
+;>
+	db	0010000b
+	db	0001000b
+	db	0000100b
+	db	0000010b
+	db	0000001b
+	db	0000010b
+	db	0000100b
+	db	0001000b
+	db	0010000b
+;?
+	db	0011110b
+	db	0100001b
+	db	0100001b
+	db	0000001b
+	db	0000110b
+	db	0001000b
+	db	0001000b
+	db	0
+	db	0001000b
+;@
+	db	0011110b
+	db	0100001b
+	db	1001101b
+	db	1010101b
+	db	1010101b
+	db	1011110b
+	db	1000000b
+	db	0100000b
+	db	0011110b
+;A
+	db	0011100b
+	db	0100010b
+	db	1000001b
+	db	1000001b
+	db	1000001b
+	db	1111111b
+	db	1000001b
+	db	1000001b
+	db	1000001b
+;B
+	db	1111110b
+	db	0100001b
+	db	0100001b
+	db	0100001b
+	db	0111110b
+	db	0100001b
+	db	0100001b
+	db	0100001b
+	db	1111110b
+;C
+	db	0011110b
+	db	0100001b
+	db	1000000b
+	db	1000000b
+	db	1000000b
+	db	1000000b
+	db	1000000b
+	db	0100001b
+	db	0011110b
+;D
+	db	1111100b
+	db	0100010b
+	db	0100001b
+	db	0100001b
+	db	0100001b
+	db	0100001b
+	db	0100001b
+	db	0100010b
+	db	1111100b
+;E
+	db	1111111b
+	db	1000000b
+	db	1000000b
+	db	1000000b
+	db	1111000b
+	db	1000000b
+	db	1000000b
+	db	1000000b
+	db	1111111b
+;F
+	db	1111111b
+	db	1000000b
+	db	1000000b
+	db	1000000b
+	db	1111000b
+	db	1000000b
+	db	1000000b
+	db	1000000b
+	db	1000000b
+;G
+	db	0011110b
+	db	0100001b
+	db	1000000b
+	db	1000000b
+	db	1000000b
+	db	1001111b
+	db	1000001b
+	db	0100001b
+	db	0011110b
+;H
+	db	1000001b
+	db	1000001b
+	db	1000001b
+	db	1000001b
+	db	1111111b
+	db	1000001b
+	db	1000001b
+	db	1000001b
+	db	1000001b
+;I
+	db	0111110b
+	db	0001000b
+	db	0001000b
+	db	0001000b
+	db	0001000b
+	db	0001000b
+	db	0001000b
+	db	0001000b
+	db	0111110b
+;J
+	db	0011111b
+	db	0000100b
+	db	0000100b
+	db	0000100b
+	db	0000100b
+	db	0000100b
+	db	0000100b
+	db	1000100b
+	db	0111000b
+;K
+	db	1000001b
+	db	1000010b
+	db	1000100b
+	db	1001000b
+	db	1010000b
+	db	1101000b
+	db	1000100b
+	db	1000010b
+	db	1000001b
+;L
+	db	1000000b
+	db	1000000b
+	db	1000000b
+	db	1000000b
+	db	1000000b
+	db	1000000b
+	db	1000000b
+	db	1000000b
+	db	1111111b
+;M
+	db	1000001b
+	db	1100011b
+	db	1010101b
+	db	1001001b
+	db	1001001b
+	db	1000001b
+	db	1000001b
+	db	1000001b
+	db	1000001b
+;N
+	db	1000001b
+	db	1100001b
+	db	1010001b
+	db	1001001b
+	db	1000101b
+	db	1000011b
+	db	1000001b
+	db	1000001b
+	db	1000001b
+;O
+	db	0011100b
+	db	0100010b
+	db	1000001b
+	db	1000001b
+	db	1000001b
+	db	1000001b
+	db	1000001b
+	db	0100010b
+	db	0011100b
+;P
+	db	1111110b
+	db	1000001b
+	db	1000001b
+	db	1000001b
+	db	1111110b
+	db	1000000b
+	db	1000000b
+	db	1000000b
+	db	1000000b
+;Q
+	db	0011100b
+	db	0100010b
+	db	1000001b
+	db	1000001b
+	db	1000001b
+	db	1001001b
+	db	1000101b
+	db	0100010b
+	db	0011101b
+;R
+	db	1111110b
+	db	1000001b
+	db	1000001b
+	db	1000001b
+	db	1111110b
+	db	1001000b
+	db	1000100b
+	db	1000010b
+	db	1000001b
+;S
+	db	0111110b
+	db	1000001b
+	db	1000000b
+	db	1000000b
+	db	0111110b
+	db	0000001b
+	db	0000001b
+	db	1000001b
+	db	0111110b
+;T
+	db	1111111b
+	db	0001000b
+	db	0001000b
+	db	0001000b
+	db	0001000b
+	db	0001000b
+	db	0001000b
+	db	0001000b
+	db	0001000b
+;U
+	db	1000001b
+	db	1000001b
+	db	1000001b
+	db	1000001b
+	db	1000001b
+	db	1000001b
+	db	1000001b
+	db	1000001b
+	db	0111110b
+;V
+	db	1000001b
+	db	1000001b
+	db	1000001b
+	db	0100010b
+	db	0100010b
+	db	0010100b
+	db	0010100b
+	db	0001000b
+	db	0001000b
+;W
+	db	1000001b
+	db	1000001b
+	db	1000001b
+	db	1000001b
+	db	1001001b
+	db	1001001b
+	db	1010101b
+	db	1100011b
+	db	1000001b
+;X
+	db	1000001b
+	db	1000001b
+	db	0100010b
+	db	0010100b
+	db	0001000b
+	db	0010100b
+	db	0100010b
+	db	1000001b
+	db	1000001b
+;Y
+	db	1000001b
+	db	1000001b
+	db	0100010b
+	db	0010100b
+	db	0001000b
+	db	0001000b
+	db	0001000b
+	db	0001000b
+	db	0001000b
+;Z
+	db	1111111b
+	db	0000001b
+	db	0000010b
+	db	0000100b
+	db	0001000b
+	db	0010000b
+	db	0100000b
+	db	1000000b
+	db	1111111b
+
+
+;[
+	db	0111100b
+	db	0100000b
+	db	0100000b
+	db	0100000b
+	db	0100000b
+	db	0100000b
+	db	0100000b
+	db	0100000b
+	db	0111100b
+;\
+	db	0000000b
+	db	1000000b
+	db	0100000b
+	db	0010000b
+	db	0001000b
+	db	0000100b
+	db	0000010b
+	db	0000001b
+	db	0000000b
+;]
+	db	0111100b
+	db	0000100b
+	db	0000100b
+	db	0000100b
+	db	0000100b
+	db	0000100b
+	db	0000100b
+	db	0000100b
+	db	0111100b
+;^
+	db	0001000b
+	db	0010100b
+	db	0100010b
+	db	1000001b
+	db	0
+	db	0
+	db	0
+	db	0
+	db	0
+;_
+	db	0,0,0,0,0,0,0,0
+	db	1111111b
+;`
+	db	0011000b
+	db	0011000b
+	db	0001000b
+	db	0000100b
+	db	0,0,0,0,0
+;a
+	db	0
+	db	0
+	db	0
+	db	0111100b
+	db	0000010b
+	db	0111110b
+	db	1000010b
+	db	1000010b
+	db	0111101b
+;b
+	db	1000000b
+	db	1000000b
+	db	1000000b
+	db	1011100b
+	db	1100010b
+	db	1000010b
+	db	1000010b
+	db	1100010b
+	db	1011100b
+;c
+	db	0
+	db	0
+	db	0
+	db	0111100b
+	db	1000010b
+	db	1000000b
+	db	1000000b
+	db	1000010b
+	db	0111100b
+;d
+	db	0000010b
+	db	0000010b
+	db	0000010b
+	db	0111010b
+	db	1000110b
+	db	1000010b
+	db	1000010b
+	db	1000110b
+	db	0111010b
+;e
+	db	0
+	db	0
+	db	0
+	db	0111100b
+	db	1000010b
+	db	1111110b
+	db	1000000b
+	db	1000000b
+	db	0111100b
+;f
+	db	0001100b
+	db	0010010b
+	db	0010000b
+	db	0010000b
+	db	1111100b
+	db	0010000b
+	db	0010000b
+	db	0010000b
+	db	0010000b
+;g
+	db	0111010b
+	db	1000110b
+	db	1000010b
+	db	1000110b
+	db	0111010b
+	db	0000010b
+	db	0000010b
+	db	1000010b
+	db	0111100b
+;h
+	db	1000000b
+	db	1000000b
+	db	1000000b
+	db	1011100b
+	db	1100010b
+	db	1000010b
+	db	1000010b
+	db	1000010b
+	db	1000010b
+;i
+	db	0
+	db	0001000b
+	db	0	
+	db	0011000b
+	db	0001000b
+	db	0001000b
+	db	0001000b
+	db	0001000b
+	db	0011100b
+;j
+	db	0000110b
+	db	0000010b
+	db	0000010b
+	db	0000010b	
+	db	0000010b
+	db	0000010b
+	db	0000010b
+	db	0100010b
+	db	0011100b
+;k
+	db	1000000b
+	db	1000000b
+	db	1000000b
+	db	1000100b
+	db	1001000b
+	db	1010000b
+	db	1101000b
+	db	1000100b
+	db	1000010b
+;l
+	db	0011000b
+	db	0001000b
+	db	0001000b
+	db	0001000b
+	db	0001000b
+	db	0001000b
+	db	0001000b
+	db	0001000b
+	db	0011100b
+;m
+	db	0
+	db	0
+	db	0
+	db	1110110b
+	db	1001001b
+	db	1001001b
+	db	1001001b
+	db	1001001b
+	db	1001001b
+;n
+	db	0
+	db	0
+	db	0
+	db	1011100b
+	db	1100010b
+	db	1000010b
+	db	1000010b
+	db	1000010b
+	db	1000010b
+;o
+	db	0
+	db	0
+	db	0
+	db	0111100b
+	db	1000010b
+	db	1000010b
+	db	1000010b
+	db	1000010b
+	db	0111100b
+;p
+	db	1011100b
+	db	1100010b
+	db	1000010b
+	db	1000010b
+	db	1100010b
+	db	1011100b
+	db	1000000b
+	db	1000000b
+	db	1000000b
+;q
+	db	0111010b
+	db	1000110b
+	db	1000010b
+	db	1000010b
+	db	1000110b
+	db	0111010b
+	db	0000010b
+	db	0000010b
+	db	0000011b
+;r
+	db	0
+	db	0
+	db	0
+	db	1011100b
+	db	1100010b
+	db	1000000b
+	db	1000000b
+	db	1000000b
+	db	1000000b
+;s
+	db	0
+	db	0
+	db	0
+	db	0111100b
+	db	1000010b
+	db	0110000b
+	db	0001100b
+	db	1000010b
+	db	0111100b
+;t
+	db	0
+	db	0010000b
+	db	0010000b
+	db	1111100b
+	db	0010000b
+	db	0010000b
+	db	0010000b
+	db	0010010b
+	db	0001100b
+;u
+	db	0
+	db	0
+	db	0
+	db	1000010b
+	db	1000010b
+	db	1000010b
+	db	1000010b
+	db	1000110b
+	db	0111010b
+;v
+	db	0
+	db	0
+	db	0
+	db	1000001b
+	db	1000001b
+	db	1000001b
+	db	0100010b
+	db	0010100b
+	db	0001000b
+;w
+	db	0
+	db	0
+	db	0
+	db	1000001b
+	db	1001001b
+	db	1001001b
+	db	1001001b
+	db	1001001b
+	db	0110110b
+;x
+	db	0
+	db	0
+	db	0
+	db	1000010b
+	db	0100100b
+	db	0011000b
+	db	0011000b
+	db	0100100b
+	db	1000010b
+;y
+	db	1000010b
+	db	1000010b
+	db	1000010b
+	db	1000010b
+	db	1000110b
+	db	0111010b
+	db	0000010b
+	db	1000010b
+	db	0111100b
+;z
+	db	0
+	db	0
+	db	0
+	db	1111110b
+	db	0000100b
+	db	0001000b
+	db	0010000b
+	db	0100000b
+	db	1111110b
+;{
+	db	0001110b
+	db	0010000b
+	db	0010000b
+	db	0010000b
+	db	0100000b
+	db	0010000b
+	db	0010000b
+	db	0010000b
+	db	0001110b
+;|
+	db	0001000b
+	db	0001000b
+	db	0001000b
+	db	0
+	db	0
+	db	0001000b
+	db	0001000b
+	db	0001000b
+	db	0
+;}
+	db	0111000b
+	db	0000100b
+	db	0000100b
+	db	0000100b
+	db	0000010b
+	db	0000100b
+	db	0000100b
+	db	0000100b
+	db	0111000b
+;~
+	db	0110000b
+	db	1001001b
+	db	0000110b
+	db	0,0,0,0,0,0
+
+;THE END
+	db	0
+	db	0
+	db	0
+;these are chars which dont show up very well if they are
+;typed in the banner as themselves, SO we use an 'X' to
+;make up the matrix instead.
+lup1::	db	'!','"','%','.',';',',','/','\','`','*'
+	db	'(',')','~','^','|',':',27h,'-','='
+;dummy label
+lup2::
+messg::
+	dw	0080h
+stack::	dw	0000h	;temp for CCP stack pointer
+chr::	db	0
+desflg::
+	db	false
+bptr::	dw	bffer
+bffer::	ds	1000
+dtem	equ	$+64	;stack space
+	end
+
+
+

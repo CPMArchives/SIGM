@@ -1,0 +1,339 @@
+* DATE 08/26/84  13:27
+* statement module
+STOR CHR(PEEK(063)) TO dr
+SELE PRIMARY
+USE &dr.:account
+SET index TO &dr.:account
+REST from coname additive
+ERAS
+STOR t TO more2
+DO WHIL more2
+ STOR 'Y' TO printer
+ STOR 'N' TO disk
+ STOR '        ' TO filename
+ STOR 0 TO rec:no
+ STOR '?' TO comm
+ STOR 'N' TO nowprint
+TEXT
+ >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+ *   Please select one of the above options. You may also leave this menu    *
+ *   by typing 'Q' and get on-line HELP by typing '?'.                       *
+ >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+ENDT
+ @ 3,04 SAY coname + ' -  STATEMENT PRINTING MENU'
+ @ 3,65 SAY date()
+ @ 7,11 SAY "A.  Prepare a new Trial Balance"
+ @ 8,11 SAY "B.  Prepare a new Balance Sheet and Profit & Loss Statement"
+ @ 9,11 SAY "C.  Print a previously prepared Trial Balance"
+ @ 10,11 SAY "D.  Print a previously prepared Balance Sheet and P&L Statement"
+ @ 11,11 SAY "E.  Return to main accounting menu"
+ @ 13,23 SAY "PLEASE SELECT ONE OF THE OPTIONS"
+ @ 13,58 GET comm PICTURE '!'
+ READ
+ DO WHIL @(COMM, 'ABCDE?Q') = 0
+  STOR '?' TO comm
+  @ 13,58 GET comm PICTURE '!'
+  READ
+ ENDD WHILE @(comm)
+ DO CASE
+ CASE comm = 'A' .OR. comm = 'B'
+  STOR DATE() TO stdate
+  STOR '12' TO mfyr
+  STOR '99' TO build1
+  STOR ',' TO bl
+  STOR bl TO mcode1
+  STOR bl TO mcode2
+  STOR bl TO mcode3
+  STOR bl TO mcode4
+  STOR bl TO mcode5
+  STOR bl TO mcode6
+  STOR bl TO mcode7
+  STOR bl TO mcode8
+  STOR bl TO mcode9
+  STOR bl TO mcode0
+  STOR bl TO mcodea
+  STOR 'N' to stub1
+  STOR '        ' TO stubdate
+  STOR t TO maybe
+  @ 13,00 SAY " *****************************************************************************"
+  @ 14,00 SAY " *                   What is the statement date ?                            *"
+  @ 14,58 GET stdate PICTURE '99/99/99'
+  READ
+  STOR $(stdate,7,2) + $(stdate,1,2) + $(stdate,4,2) TO stdat
+  @ 15,00 SAY " *        What is the ending month of the fiscal or calendar year ?          *"
+  @ 15,68 GET mfyr PICTURE '99'
+  READ
+  IF comm = 'B'
+   @ 16,00 SAY " *        Do you want a one month report included ?                          *"
+   @ 16,60 GET stub1 PICTURE '!'
+   READ
+  ENDI comm= 'B'
+  IF stub1 = 'Y'
+   STOR t TO stub
+   STOR bl TO mcode6a
+   STOR bl TO mcode7a
+   STOR bl TO mcode8a
+   STOR bl TO mcode9a
+   STOR bl TO mcode0a
+   STOR bl TO mcodeaa
+   IF $(stdat,3,2) = '01'
+    STOR (VAL(stdat) -10000)  TO stdat1
+    STOR STR(stdat1,6) TO stdat
+    STOR $(stdat,1,2) + '12' + $(stdat,5,2) TO stubdate
+   ELSE
+    STOR (VAL(stdat) -100) TO stdat1
+    STOR STR(stdat1,6) TO stubdate
+   ENDI $(stdat)
+  ELSE
+   STOR f TO stub
+  ENDI stub1
+  @ 17,00 SAY " *        What building shall we do ('99' for all) ?                         *"
+  @ 17,60 GET build1 PICTURE '99'
+  READ
+  @ 18,00 SAY " *        Do you want to print the statement now ?                           *"
+  @ 18,60 GET nowprint PICTURE '!'
+  READ
+  STOR 1 TO countit
+  @ 17,00 SAY " *                                                                           *"
+  @ 18,00 SAY " *                                                                           *"
+  @ 14,00 SAY " *                                                                           *"
+  @ 15,00 SAY " *       This will take a while - so please be patient                       *"
+  @ 16,00 SAY " *       I am examining record number.......                                 *"
+  @ 16,40 SAY countit
+  STOR 0 TO tempamt
+  STOR 0 TO tempamt1
+  GO top
+  STOR $(data,7,4) TO tempcr
+  STOR $(data,5,2) TO build
+  STOR t TO range
+  STOR t TO more
+  STOR 1 TO planct
+  STOR '10115220321323425530640750856957060A' TO plan
+  DO WHIL more
+*******************************************************************************
+*  NOTE - if you change the ranges in the Chart of Accounts the three         *
+*  number groupings in 'plan' may require changing to caculate the statements *
+*  'plan' appears again later on under IF STUB                                *
+*******************************************************************************
+   STOR t TO LOOPING
+   DO WHIL looping
+    STOR $(plan,planct,3) TO nu
+    STOR $(nu,1,2) TO nu1
+    STOR $(nu,3,1) TO nu2
+    IF range .AND. planct = 19
+     STOR # TO rec:no
+     STOR f TO range
+     STOR tempcr TO tempcr1
+    ENDI range
+    IF $(tempcr,1,2) = '&nu1'
+     DO WHIL $(data,7,2) = '&nu1' .AND. (.NOT. EOF)
+      IF (build1 = '99' .OR. build1 = build) .AND. date <= stdat
+       STOR $(data,7,4) TO cr
+       IF tempcr = cr
+        STOR t TO maybe
+        STOR tempamt + amount TO tempamt
+       ELSE
+        STOR STR(tempamt,12,2) TO tempam
+        STOR 0 TO tempamt
+        STOR 1 TO blank
+        DO WHIL $(tempam,blank,1)=' '
+         STOR blank+1 TO blank
+        ENDD
+        STOR $(tempam,blank) TO tempam
+        STOR (tempcr +',' + tempam +',') TO mtemp
+        STOR (mcode&nu2 + mtemp) TO mcode&nu2
+        STOR cr TO tempcr
+        STOR f TO maybe
+       ENDI tempcr = cr
+      ELSE
+       SKIP
+      ENDI build1
+      IF maybe
+       SKIP
+       STOR countit + 1 TO countit
+       @ 16,40 SAY countit
+      ENDI maybe
+     ENDD WHILE $(data,7,2) = nu2
+     STOR STR(tempamt,12,2) TO tempam
+     STOR 1 TO blank
+     DO WHIL $(tempam,blank,1)=' '
+      STOR blank+1 TO blank
+     ENDD
+     STOR $(tempam,blank) TO tempam
+     STOR (tempcr +',' + tempam +',') TO mtemp
+     STOR (mcode&nu2 + mtemp) TO mcode&nu2
+     STOR $(data,7,4) TO tempcr
+     STOR 0 TO tempamt
+    ENDI $(tempcr,1,2) = nu1
+    STOR planct + 3 TO planct
+    IF nu2 = 'A' .OR. EOF
+     STOR f TO looping
+    ENDI nu2
+   ENDD while looping
+   IF stub
+    GO rec:no
+    STOR 0 TO tempamt
+    STOR tempcr1 TO tempcr
+    STOR 1 TO planct
+    STOR '306a407a508a569a570a60Aa' TO plan
+    STOR t TO LOOPING
+    DO WHIL looping
+     STOR $(plan,planct,4) TO nu
+     STOR $(nu,1,2) TO nu1
+     STOR $(nu,3,2) TO nu2
+     IF $(tempcr,1,2) = '&nu1'
+      DO WHIL $(data,7,2) = '&nu1' .AND. (.NOT. EOF)
+       IF (build1 = '99' .OR. build1 = build) .AND. date <= stdat
+        STOR $(data,7,4) TO cr
+        IF tempcr = cr
+         STOR t TO maybe
+         STOR tempamt + amount TO tempamt
+        ELSE
+         STOR STR(tempamt,12,2) TO tempam
+         STOR 0 TO tempamt
+         STOR 1 TO blank
+         DO WHIL $(tempam,blank,1)=' '
+          STOR blank+1 TO blank
+         ENDD
+         STOR $(tempam,blank) TO tempam
+         STOR (tempcr +',' + tempam +',') TO mtemp
+         STOR (mcode&nu2 + mtemp) TO mcode&nu2
+         STOR cr TO tempcr
+         STOR f TO maybe
+        ENDI tempcr = cr
+       ELSE
+        SKIP
+       ENDI build1
+       IF maybe
+        SKIP
+        STOR countit + 1 TO countit
+        @ 16,40 SAY countit
+       ENDI maybe
+      ENDD WHILE $(data,7,2) = nu2
+      STOR STR(tempamt,12,2) TO tempam
+      STOR 1 TO blank
+      DO WHIL $(tempam,blank,1)=' '
+       STOR blank+1 TO blank
+      ENDD
+      STOR $(tempam,blank) TO tempam
+      STOR (tempcr +',' + tempam +',') TO mtemp
+      STOR (mcode&nu2 + mtemp) TO mcode&nu2
+      STOR $(data,7,4) TO tempcr
+      STOR 0 TO tempamt
+     ENDI $(tempcr,1,2) = nu1
+     STOR planct + 4 TO planct
+     IF $(nu2,1,1) = 'A' .OR. EOF
+      STOR f TO looping
+     ENDI nu2
+    ENDD while looping
+   ENDI stub
+   STOR f TO more
+  ENDD while more
+  SELE SECONDARY
+  USE &dr.:statemnt
+  IF stub
+   APPE BLANK
+   REPL date WITH stdate, fyr WITH mfyr, bld WITH build1
+   REPL code6 WITH mcode6a, code7 WITH mcode7a, code8 WITH mcode8a
+   REPL code9 WITH mcode9a, code0 WITH mcode0a, codea WITH mcodeaa
+   REPL stubs WITH t
+  ENDI stub
+  APPE BLANK
+  REPL date WITH stdate, fyr WITH mfyr, bld WITH build1
+  REPL code1 WITH mcode1, code2 WITH mcode2, code3 WITH mcode3
+  REPL code4 WITH mcode4, code5 WITH mcode5, code6 WITH mcode6
+  REPL code7 WITH mcode7, code8 WITH mcode8, code9 WITH mcode9
+  REPL code0 WITH mcode0, codea WITH mcodea
+  IF stub
+   REPL stubs WITH t
+  ENDI stub
+  IF nowprint = 'Y'
+   STOR stdate TO daya
+   RELE stdate, mfyr, mcode1, mcode2, mcode3, mcode4, mcode5
+   RELE mcode6, mcode7, mcode8, mcode9, mcode0,mcodea, bl, maybe, cr
+   RELE mcode6a, mcode7a, mcode8a, mcode9a, mcode0a, mcodeaa
+   RELE countit, tempcr, blank, tempam, mtemp, more, account
+   RELE command, build1, tempamt, stub1
+   SAVE TO temp
+   CLEA
+   REST from temp
+   IF comm = 'A'
+    STOR 'C' TO com1
+   ELSE
+    STOR 'D' TO com1
+   ENDI comm
+   DO statemp.acc
+  ELSE
+   ERAS
+   CLEA
+   STOR CHR(PEEK(063)) TO dr
+   SELE PRIMARY
+   USE &dr.:account
+   SET INDEX TO &dr.:account
+   REST from coname additive
+   STOR t TO more2
+  ENDI nowprint
+ CASE comm = 'C' .OR. comm = 'D'
+  IF comm = 'C'
+   STOR 'C' TO com1
+  ELSE
+   STOR 'D' TO com1
+  ENDI comm
+  DO statemp.acc
+ CASE comm = '?'
+  ERAS
+TEXT
+
+          S T A T E M E N T   P R I N T I N G   H E L P   M E N U
+
+    This module calculates a trial balance and an income statement and
+    a balance sheet.  It will also prepare a one month 'stub' income
+    statement.
+
+    You can print the statement at the time of the calculation, or at
+    any later time. It will always print the last statement prepared
+    under a particular date.  If you initially asked for the stub 
+    statement, it will always print the stub statement in addition to
+    the full statement.
+
+    If you elect to print the statement, you can send it to both the
+    screen and the printer or just the screen.  You can also send the
+    output to a disk file where you can edit it further before printing.
+
+    It will take a few minutes for the calculations, so please be patient
+    while it runs.
+
+
+                    Please hit any key to return to the menu
+ENDT
+  SET CONSOLE OFF
+  WAIT
+  SET CONSOLE ON
+  ERAS
+  STOR t TO more2
+ CASE comm = 'E' .OR. comm = 'Q'
+  STOR f TO more2
+ ENDC
+ENDD WHILE more2
+RELE ALL
+STOR t TO account
+

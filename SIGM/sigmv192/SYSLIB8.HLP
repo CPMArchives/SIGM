@@ -1,0 +1,172 @@
+Disk/User Manipulation Routines
+GETUD -- restore the disk/user saved by PUTUD
+GUA   -- get current user area in A
+LOGUD -- log into a specified disk/user
+PUTUD -- save away the current disk/user
+RETUD -- return the current disk/user
+SUA   -- set user area to value in A
+:Disk/User Manipulation Routines
+
+     Thió  ió á seô oæ siø routineó whicè allo÷ thå useò  tï 
+readilù  movå  arounä betweeî diskó anä useò  areas®   Theså 
+routineó are:
+
+       GETUD -- to restore the disk/user saved by PUTUD
+       GUA   -- to return the current user
+       LOGUD -- to log the user into a specified disk/user
+       PUTUD -- to save away the current disk/user
+       RETUD -- to return the current disk/user
+       SUÁ   -- tï loç thå useò intï á specifieä useò area
+
+     PUTUÄ  anä  GETUÄ  arå designeä tï bå useä aó  á  placå 
+markeò anä returî combination®  Theù arå intendeä tï bå useä 
+iî codå sequenceó likå thå following:
+
+          CALL PUTUD     ; Mark current location
+          < move around on disks/users >
+          CALL GETUD     ; Return to marked location
+
+
+     RETUÄ  anä LOGUÄ arå tï bå useä tï finä ouô  wherå  thå 
+prograí  ió  (RETUD© anä tï enteò á specifiã disk/useò  areá 
+(LOGUD).
+
+     For example:
+
+          CALL RETUD     ; Find out where we are
+          PUSH B         ; Save Disk/User
+          < move around on disks/users >
+          POP  B         ; Get Disk/User
+          CALL LOGUD     ; Log into Disk/User
+
+
+     GUÁ  anä SUÁ arå tï bå useä tï finä ouô whaô useò  areá 
+thå  prograí  ió iî (GUA© anä tï enteò á specifiã useò  areá 
+(SUA).
+
+     For example:
+
+          CALL GUA       ; Find out current user
+          PUSH PSW       ; Save it
+          < move around on other user areas>
+          POP  PSW       ; Get current user
+          CALL SUA       ; Log into User
+
+     GUÁ  anä  SUÁ  arå  usefuì  iî  conjunctioî  witè   thå 
+automatiã disë logginç featurå oæ CP/M¬ wherå thå firsô bytå 
+oæ thå FCÂ indicateó á disë tï autoloç intï (1=A¬ 2=B¬ etc.¬ 
+0=default).
+
+:Restore Disk/User Saved by PUTUD
+     Routine Name:  GETUD
+
+     Functionº
+
+     GETUÄ  restoreó  thå  currenô useò anä disë  whicè  waó 
+saveä  bù  PUTUD®   Thå valuå oæ thå currenô useò  anä  disë 
+saveä  bù  PUTUÄ  ió storeä internallù  tï  thå  GETUD/PUTUÄ 
+modulå anä ió noô availablå tï thå user.
+
+     Inputs:  None
+
+     Outputs:  None
+
+     Registers Affected:  None
+
+     SYSLIB Routines Called:  BDOS
+
+     Speciaì  Erroò Conditionsº  None
+
+:Return Current User Area
+     Routine Name:  GUA
+
+     Functionº
+
+     GUÁ  returnó  thå currenô useò areá iî thå Á  register®  
+Therå arå nï erroò codeó associateä witè thió function.
+
+     Inputs:  None
+
+     Outputs:  A = User Area (0-31)
+
+     Registers Affected:  PSW
+
+     SYSLIB Routines Called:  None
+
+     Speciaì  Erroò Conditionsº  NoneŠ
+:Log Into a Disk/User
+     Routine Name:  LOGUD
+
+     Functionº
+
+     LOGUÄ logó iî thå disë specifieä bù thå Â registeò (B=° 
+foò Disë A© anä thå useò specifieä bù thå Ã register.
+
+     Inputs:  B=Disk (B=0 for Disk A), C=User
+
+     Outputs:  None
+
+     Registers Affected:  None
+
+     SYSLIB Routines Called:  BDOS
+
+     Speciaì  Erroò Conditionsº  None
+
+:Save Away Disk/User
+     Routine Name:  PUTUD
+
+     Functionº
+
+     PUTUÄ saveó thå currenô useò anä disë numberó awaù  foò 
+lateò  retrievaì bù GETUD®   PUTUÄ anä GETUÄ arå intendeä tï 
+bå useä tï savå anä restorå thå currenô disë anä useò arounä 
+somå  seô  oæ operationó iî  anotheò  user/disë  area®   Thå 
+valueó  saveä bù PUTUÄ arå storeä iî bufferó internaì tï thå 
+GETUD/PUTUÄ modulå anä arå noô availablå tï thå user.
+
+     Inputs:  None
+
+     Outputs:  None
+
+     Registers Affected:  None
+
+     SYSLIB Routines Called:  RETUD
+     Speciaì  Erroò Conditionsº  None
+:Return the Current Disk/User
+     Routine Name:  RETUD
+
+     Functionº
+
+     RETUÄ  returnó thå numberó oæ thå currenô useò iî Ã anä 
+currenô disë iî Â (B=° foò disë A).
+
+     Inputs:  None
+
+     Outputs:  B=Disk (B=0 for disk A), C=User
+
+     Registers Affected:  BC
+
+     SYSLIB Routines Called:  BDOS
+Š     Speciaì  Erroò Conditionsº  None
+
+:Set User Area
+     Routine Name:  SUA
+
+     Functionº
+
+     SUÁ logó thå prograí intï thå useò areá representeä  bù 
+thå low-ordeò µ bitó oæ thå Á registeò (valuå 0-31)®   Therå 
+arå nï erroò codeó associateä witè thió function.
+
+     Inputs:  A = User Area (0-31)
+
+     Outputs:  None
+
+     Registers Affected:  None
+
+     SYSLIB Routines Called:  None
+
+     Speciaì  Erroò Conditionsº  None
+
+
+

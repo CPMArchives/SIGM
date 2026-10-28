@@ -1,0 +1,431 @@
+CROMEMCO Z80 Macro Assembler version 03.07   Nov 30, 1980  20:15:46   Page 0001
+*** CDOSSAP *** 
+
+                  0001  ;	SAP - SORT AND PACK DISK DIRECTORY
+                  0002  ;
+                  0003  ; Originally coded for CP/M by L.E. Hughes  8080SDC
+                  0004  ;	Modified 5/30/78 BY B.R. Ratoff
+                  0005  ;		1) PICK UP VECTORS FOR ANY SIZE SYSTEM
+                  0006  ;		2) HANDLE NULL EXTENTS OF NON-NULL FILES
+                  0007  ;			PROPERLY
+                  0008  ; 
+                  0009  ; Modified by Trevor MARSHALL 18/10/79
+                  0010  ;	add SAP B:,etc AND ATTRIBUTE HIDE
+                  0011  ; 
+                  0012  ;
+                  0013  ; Rewritten by Trevor MARSHALL, 13 Apr 80
+                  0014  ;		Elec Eng Dept
+                  0015  ;		Uni W.A.
+                  0016  ; to be compatible with all disks supported by CDOS 2.17
+                  0017  ; by including the 'READ SYSTEM DIRECTORY' feature 
+                  0018  ; of the CDOS
+                  0019  ;
+                  0020  ; Modified 31 Oct '80 to handle the large files of
+                  0021  ;  CDOS 2.36 by adding double precision pointer bumping
+                  0022  ;
+                  0023  ;********** WARNING ********* Do not use with hard disks
+                  0024  ; (not tested other than with floppies)
+                  0025  ;
+      (0005)      0026  BDOS:	EQU	5
+      (005C)      0027  FCB:	EQU	5CH
+                  0028  ;
+      (0100)      0029  	ORG	100H
+                  0030  ;
+0100  316F04      0031  SAP:	LD	SP,STACK+64
+0103  0E19        0032  	LD	C,19H	;WHAT DSK IS CURRENT?
+0105  CD0500      0033  	CALL	BDOS
+0108  327604      0034  	LD	(DSKSAV),A
+010B  3A5C00      0035  	LD	A,(FCB)	;DSK REQUEST PRESENT?
+010E  320E04      0036  	LD	(SYSDIR),A ;Set up 'SYS   DIR' FCB
+0111  327704      0037  	LD	(DSK),A	   ;Save it for write
+                  0038  ; Now check CDOS ver 1 or higher is in use
+0114  0E8D        0039  	LD	C,8DH
+0116  CD0500      0040  	CALL	BDOS
+0119  78          0041  	LD	A,B
+011A  FE01        0042  	CP	1
+011C  300B        0043  	JR	GE,NEXT21
+011E  11FC02      0044  	LD	DE,CDOSERR ;Must be incompatible sys
+0121  0E09        0045  	LD	C,9 ;Write error msg and exit
+0123  CD0500      0046  	CALL	BDOS
+0126  C30000      0047  	JP	0
+0129  0E0F        0048  NEXT21:	LD	C,0FH	;Open SYS  DIR
+012B  110E04      0049  	LD	DE,SYSDIR
+012E  CD0500      0050  	CALL	BDOS
+0131  FEFF        0051  	CP	A,0FFH	;Error?
+0133  200B        0052  	JR	NZ,NEXT
+0135  112603      0053  	LD	DE,OPENERROR ;Yes
+0138  0E09        0054  	LD	C,9	;Print the message
+013A  CD0500      0055  	CALL	BDOS
+013D  C30000      0056  	JP	0
+0140  11DE03      0057  NEXT:	LD	DE,MSG1	;.....reading
+0143  0E09        0058  	LD	C,9
+0145  CD0500      0059  	CALL	BDOS
+                  0060  ;
+0148  3E00        0061  	LD	A,0	;Initialize
+CROMEMCO Z80 Macro Assembler version 03.07   Nov 30, 1980  20:15:46   Page 0002
+*** CDOSSAP *** 
+
+014A  327104      0062  	LD	(SECTORCOUNT),A ;the sector count
+014D  118004      0063  	LD	DE,BUF-80H ;prepare for DMA increment
+0150  217104      0064  LP1:	LD	HL,SECTORCOUNT
+0153  34          0065  	INC	(HL)	;Incr the sectorcount
+0154  218000      0066  	LD	HL,80H	;Need to increment bffr pointer
+0157  19          0067  	ADD	HL,DE
+0158  EB          0068  	EX	DE,HL
+0159  0E1A        0069  	LD	C,1AH	;Set DMA address to buffer
+015B  D5          0070  	PUSH	DE	;Save it
+015C  CD0500      0071  	CALL	BDOS
+015F  0E14        0072  	LD	C,14H	;Read next record
+0161  110E04      0073  	LD	DE,SYSDIR ;Point at 'FCB'
+0164  CD0500      0074  	CALL	BDOS
+0167  D1          0075  	POP	DE	;Fetch buffer DMA addr
+0168  FE00        0076  	CP	A,0	;Any errors?
+016A  28E4        0077  	JR	Z,LP1	;No, get more sectors
+016C  FE01        0078  	CP	1
+016E  280B        0079  	JR	Z,NEXT1 ;End of file OK
+0170  114903      0080  	LD	DE,READERROR ;All else are errors
+0173  0E09        0081  	LD	C,9
+0175  CD0500      0082  	CALL	BDOS
+0178  C30000      0083  	JP	0
+017B  217104      0084  NEXT1:	LD	HL,SECTORCOUNT
+017E  35          0085  	DEC	(HL)	;As we musn't pass the EOF
+                  0086  ; We have now read in the directory. The number of
+                  0087  ; records read is in sectorcount.
+                  0088  ; Now calculate the directory memory image length.
+017F  7E          0089  	LD	A,(HL)
+0180  6F          0090  	LD	L,A
+0181  2600        0091  	LD	H,0
+                  0092  ; How long are the sectors?
+                  0093  ; We may have to use a system call to find out
+0183  118000      0094  	LD	DE,80H	;Presently 80H
+0186  0E89        0095  	LD	C,89H	;Multiply DE = DE * HL
+0188  CD0500      0096  	CALL	BDOS
+                  0097  ;
+018B  210005      0098  	LD	HL,BUF	;Add the buffer base addr
+018E  19          0099  	ADD	HL,DE
+018F  227804      0100  	LD	(BUFEND),HL ;Save end addr in BUFEND
+                  0101  ;
+0192  CD1002      0102  	CALL	CLEAN	     ;CLEAN THE DIRECTORY
+                  0103  ;
+0195  11EE03      0104  	LD	DE,MSG2	;.....Sorting
+0198  0E09        0105  	LD	C,9
+019A  CD0500      0106  	CALL	BDOS
+                  0107  ;
+019D  CD8702      0108  	CALL	SORT	     ;SORT THE DIRECTORY
+                  0109  ; I have deleted PACK as it is assumed that single disk 
+			systems
+                  0110  ; will not be used under CDOS. User may modify as requir
+			ed
+                  0111  ;	CALL	PACK	     ;PACK THE DIRECTORY
+                  0112  ;
+                  0113  ; Now we must write the directory to the disk	
+01A0  11FE03      0114  WRITE:  LD	DE,MSG3	;.....Writing
+01A3  0E09        0115  	LD	C,9
+01A5  CD0500      0116  	CALL	BDOS
+                  0117  ;
+01A8  3A7704      0118  	LD	A,(DSK)
+01AB  320E04      0119  	LD	(SYSDIR),A ;Poke byte 1 of FCB
+01AE  0E0F        0120  	LD	C,0FH	;Open SYS  DIR
+CROMEMCO Z80 Macro Assembler version 03.07   Nov 30, 1980  20:15:46   Page 0003
+*** CDOSSAP *** 
+
+01B0  110E04      0121  	LD	DE,SYSDIR
+01B3  CD0500      0122  	CALL	BDOS
+01B6  FEFF        0123  	CP	A,0FFH	;Error?
+01B8  200B        0124  	JR	NZ,NEXT2
+01BA  116B03      0125  	LD	DE,WRITEERROR ;Yes
+01BD  0E09        0126  	LD	C,9	;Print the message
+01BF  CD0500      0127  	CALL	BDOS
+01C2  C30000      0128  	JP	0
+01C5  3E01        0129  NEXT2:	LD	A,1	;Initialize
+01C7  327004      0130  	LD	(SECTORSWRITTEN),A
+01CA  210E04      0131  	LD	HL,SYSDIR
+01CD  CBBE        0132  	RES	7,(HL) ;Reset the 'read only' atribute
+01CF  118004      0133  	LD	DE,BUF-80H ;prepare for DMA increment
+01D2  217004      0134  LP11:	LD	HL,SECTORSWRITTEN
+01D5  34          0135  	INC	(HL) ;increment the count of sectors
+01D6  218000      0136  	LD	HL,80H	;Need to increment bffr pointer
+01D9  19          0137  	ADD	HL,DE
+01DA  EB          0138  	EX	DE,HL
+01DB  0E1A        0139  	LD	C,1AH	;Set DMA address to buffer
+01DD  D5          0140  	PUSH	DE	;Save it
+01DE  CD0500      0141  	CALL	BDOS
+01E1  0E15        0142  	LD	C,15H	;Write next record
+01E3  110E04      0143  	LD	DE,SYSDIR ;Point at 'FCB'
+01E6  CD0500      0144  	CALL	BDOS
+01E9  D1          0145  	POP	DE	;Fetch buffer DMA addr
+01EA  FE00        0146  	CP	A,0	;Any errors?
+01EC  200B        0147  	JR	NZ,WERR	;Yes
+                  0148  ; Now see if we have finished write
+01EE  3A7104      0149  	LD	A,(SECTORCOUNT)
+01F1  217004      0150  	LD	HL,SECTORSWRITTEN
+01F4  BE          0151  	CP	(HL) ;Have we written enough?
+01F5  30DB        0152  	JR	NC,LP11	;No, get more sectors
+01F7  180B        0153  	JR	NEXT12
+01F9  116B03      0154  WERR:	LD	DE,WRITEERROR ;All else are errors
+01FC  0E09        0155  	LD	C,9
+01FE  CD0500      0156  	CALL	BDOS
+0201  C30000      0157  	JP	0
+                  0158  NEXT12:	
+                  0159  ; We have now written the directory.
+0204  3A7604      0160  	LD	A,(DSKSAV) ;Restore logged disk
+0207  5F          0161  	LD	E,A
+0208  0E0E        0162  	LD	C,0EH
+020A  CD0500      0163  	CALL	BDOS
+020D  C30000      0164  	JP	0	;And exit to CDOS
+                  0165  ;
+                  0166  ;
+0210  010000      0167  CLEAN:	LD	BC,0	     ;III = 0
+0213  ED437204    0168  CLEAN1:	LD	(III),BC
+0217  CDF002      0169  	CALL	INDEX2	     ;HL = BUF + 16 * III
+021A  E5          0170  	PUSH	HL
+                  0171  ; HL now contains the addr of the buffer entry
+                  0172  ; we want to return if it is beyond BUFEND
+021B  AF          0173  	XOR	A	;Clear carry
+021C  ED5B7804    0174  	LD	DE,(BUFEND) 
+0220  ED52        0175  	SBC	HL,DE	;HL = HL - DE - CY
+                  0176  ; DE should be  > HL, if not, return
+0222  E1          0177  	POP	HL
+0223  D0          0178  	RET	NC
+                  0179  ;
+                  0180  ; Continue
+0224  7E          0181  	LD	A,(HL)	     ;JUMP IF THIS IS A DELETED 
+CROMEMCO Z80 Macro Assembler version 03.07   Nov 30, 1980  20:15:46   Page 0004
+*** CDOSSAP *** 
+
+			FILE
+0225  FEE5        0182  	CP	0E5H
+0227  CA4602    R 0183  	JP	Z,CLEAN2
+022A  7D          0184  	LD	A,L	     ;HL = HL + 12
+022B  C60C        0185  	ADD	12
+022D  6F          0186  	LD	L,A
+022E  D23202    R 0187  	JP	NC,$+4
+0231  24          0188  	INC	H
+0232  7E          0189  	LD	A,(HL)	     ;CHECK EXTENT FIELD
+0233  B7          0190  	OR	A
+0234  C24F02    R 0191  	JP	NZ,CLEAN4    ;SKIP IF NOT EXTENT ZERO
+0237  23          0192  EXTENT0: INC	HL	     ;POINT TO RECORD COUNT FIEL
+			D
+0238  23          0193  	INC	HL
+0239  23          0194  	INC	HL
+023A  7E          0195  	LD	A,(HL)	     ;CHECK RECORD COUNT FIELD
+023B  B7          0196  	OR	A
+023C  C24F02    R 0197  	JP	NZ,CLEAN4    ;JUMP IF NON-ZERO
+023F  ED4B7204    0198  	LD	BC,(III)	;Clear all 32 bytes
+0243  CDF002      0199  	CALL	INDEX2
+0246  0E20        0200  CLEAN2:	LD	C,32
+0248  36E5        0201  CLEAN3:	LD	(HL),0E5H
+024A  23          0202  	INC	HL
+024B  0D          0203  	DEC	C
+024C  C24802    R 0204  	JP	NZ,CLEAN3
+024F  ED4B7204    0205  CLEAN4:	LD	BC,(III) ; III = III + 1
+0253  03          0206  	INC	BC
+0254  C31302    R 0207  	JP	CLEAN1
+0257  C9          0208  	RET	
+                  0209  ;
+0258  ED4B7204    0210  COMP:	LD	BC,(III) ;;HL = BUF + 16 * III
+025C  CDF002      0211  	CALL	INDEX2
+025F  E5          0212  	PUSH	HL
+0260  ED4B7404    0213  	LD	BC,(J)	     ;HL = BUF + 16 * J
+0264  CDF002      0214  	CALL	INDEX2
+0267  EB          0215  	EX	DE,HL
+0268  E1          0216  	POP	HL
+                  0217  ; Need to allocate highest priority to disk label
+0269  1A          0218  	LD	A,(DE) ;Is 2nd entry a label?
+026A  FE81        0219  	CP	81H	;The label's attribute
+026C  2002        0220  	JR	NZ,NEXT56 ;NZ=> not a label
+026E  37          0221  	SCF		;Must be a disk label
+026F  C9          0222  	RET		;Swap them
+0270  7E          0223  NEXT56:	LD	A,(HL) ;Is 1st entry a label?
+0271  FE81        0224  	CP	81H
+0273  2003        0225  	JR	NZ,NEXT57
+0275  37          0226  	SCF
+0276  3F          0227  	CCF	;Dont swap
+0277  C9          0228  	RET
+0278  23          0229  NEXT57: INC	HL
+0279  13          0230  	INC	DE	;POINT PAST ATRIBUTES
+027A  0E0C        0231  	LD	C,12	     ;NUMBER OF BYTES TO COMPARE
+027C  1A          0232  COMP1:	LD	A,(DE)	     ;COMPARE NEXT BYTE
+027D  BE          0233  	CP	(HL)
+027E  C0          0234  	RET	NZ	     ;RETURN IF NOT EQUAL
+027F  13          0235  	INC	DE
+0280  23          0236  	INC	HL
+0281  0D          0237  	DEC	C	     ;LOOP THRU FIRST 13 BYTES
+0282  C27C02    R 0238  	JP	NZ,COMP1
+0285  AF          0239  	XOR	A	     ;CLEAR FLAGS AND EXIT
+0286  C9          0240  	RET	
+CROMEMCO Z80 Macro Assembler version 03.07   Nov 30, 1980  20:15:46   Page 0005
+*** CDOSSAP *** 
+
+                  0241  	
+0287  010000      0242  SORT:	LD	BC,0	     ;III = 0
+028A  ED437204    0243  	LD	(III),BC
+028E  ED4B7204    0244  SORT1:	LD	BC,(III)	     ;J = III + 1 
+0292  03          0245  	INC	BC
+0293  ED437404    0246  	LD	(J),BC
+0297  CD5802      0247  SORT2:	CALL	COMP	     ;IF NAME(J)<NAME(III), SWAP
+029A  DCD102      0248  	CALL	C,SWAP
+029D  ED4B7404    0249  	LD	BC,(J)	     ;J = J + 1
+02A1  03          0250  	INC	BC
+02A2  ED437404    0251  	LD	(J),BC
+                  0252  ;
+                  0253  ; See if J beyond BUFEND
+02A6  CDF002      0254  	CALL	INDEX2
+                  0255  ; HL now contains the addr of the buffer entry
+                  0256  ; we want to jump if it is not beyond BUFEND
+02A9  AF          0257  	XOR	A	;Clear carry
+02AA  ED5B7804    0258  	LD	DE,(BUFEND) 
+02AE  1B          0259  	DEC	DE ;Make end addr not inclusive
+02AF  ED52        0260  	SBC	HL,DE	;HL = HL - DE - CY
+                  0261  ; DE should be  > HL 
+02B1  38E4        0262  	JR	C,SORT2
+                  0263  ;
+02B3  ED4B7204    0264  	LD	BC,(III)  ;III = III + 1
+02B7  03          0265  	INC	BC
+02B8  ED437204    0266  	LD	(III),BC
+                  0267  ;
+                  0268  ; See if I beyond BUFEND - 10H
+02BC  CDF002      0269  	CALL	INDEX2
+02BF  E5          0270  	PUSH	HL
+                  0271  ; HL now contains the addr of the buffer entry
+                  0272  ; we want to jump if it is not beyond BUFEND-20H
+02C0  ED5B7804    0273  	LD	DE,(BUFEND) 
+02C4  1B          0274  	DEC	DE ;Make end addr not inclusive
+02C5  21E0FF      0275  	LD	HL,-20H
+02C8  19          0276  	ADD	HL,DE
+02C9  EB          0277  	EX	DE,HL ;Now have end addr - 10H
+02CA  AF          0278  	XOR	A	;Clear carry
+02CB  E1          0279  	POP	HL
+02CC  ED52        0280  	SBC	HL,DE	;HL = HL - DE - CY
+                  0281  ; DE should be  > HL 
+02CE  38BE        0282  	JR	C,SORT1
+                  0283  ;
+02D0  C9          0284  	RET	
+                  0285  ;
+                  0286  ;	
+02D1  ED4B7204    0287  SWAP:	LD	BC,(III)
+02D5  CDF002      0288  	CALL	INDEX2
+02D8  E5          0289  	PUSH	HL
+02D9  ED4B7404    0290  	LD	BC,(J)
+02DD  CDF002      0291  	CALL	INDEX2
+02E0  EB          0292  	EX	DE,HL
+02E1  E1          0293  	POP	HL
+02E2  0E20        0294  	LD	C,32
+02E4  1A          0295  SWAP1:	LD	A,(DE)
+02E5  47          0296  	LD	B,A
+02E6  7E          0297  	LD	A,(HL)
+02E7  12          0298  	LD	(DE),A
+02E8  70          0299  	LD	(HL),B
+02E9  13          0300  	INC	DE
+02EA  23          0301  	INC	HL
+CROMEMCO Z80 Macro Assembler version 03.07   Nov 30, 1980  20:15:46   Page 0006
+*** CDOSSAP *** 
+
+02EB  0D          0302  	DEC	C
+02EC  C2E402    R 0303  	JP	NZ,SWAP1
+02EF  C9          0304  	RET	
+                  0305  	
+                  0306  ; Bump index in double precision
+02F0  C5          0307  INDEX2:	PUSH	BC	;Get BC
+02F1  E1          0308  	POP	HL	;into HL
+02F2  29          0309  	ADD	HL,HL	; X 2
+02F3  29          0310  	ADD	HL,HL	; X 4
+02F4  29          0311  	ADD	HL,HL
+02F5  29          0312  	ADD	HL,HL
+02F6  29          0313  	ADD	HL,HL	; X 32
+02F7  110005      0314  	LD	DE,BUF
+02FA  19          0315  	ADD	HL,DE
+02FB  C9          0316  	RET	
+                  0317  	
+                  0318  ;PACK:	LD	BC,0	     ;III = 0
+                  0319  ;	LD	(III),BC
+                  0320  ;PACK1:	LD	BC,(III)
+                  0321  ;	CALL	INDEX2	     ;HL = BUF + 16 * I
+                  0322  ;	LD	A,L	     ;HL = HL + 9
+                  0323  ;	ADD	9
+                  0324  ;	LD	L,A
+                  0325  ;	JP	NC,$+4
+                  0326  ;	INC	H
+                  0327  ;	LD	A,(HL)	     ;JUMP IF FILETYPE NOT 'X$$'
+                  0328  ;	SUB	'0'	     ;  WHERE 0.LE.X.LE.9
+                  0329  ;	JP	C,PACK2
+                  0330  ;	CP	10
+                  0331  ;	JP	NC,PACK2
+                  0332  ;	LD	(J),A	;  ?????
+                  0333  ;	INC	HL
+                  0334  ;	LD	A,(HL)
+                  0335  ;	CP	'$'
+                  0336  ;	JP	NZ,PACK2
+                  0337  ;	INC	HL
+                  0338  ;	LD	A,(HL)
+                  0339  ;	CP	'$'
+                  0340  ;	JP	NZ,PACK2
+                  0341  ;	INC	HL	     ;SET EXTENT NUMBER TO X
+                  0342  ;	LD	A,(J)	; ????
+                  0343  ;	LD	(HL),A
+                  0344  ;	DEC	HL	     ;SET FILETYPE TO '$$$'
+                  0345  ;	LD	(HL),'$'
+                  0346  ;	DEC	HL
+                  0347  ;	LD	(HL),'$'
+                  0348  ;	DEC	HL
+                  0349  ;	LD	(HL),'$'
+                  0350  ;PACK2:	LD	BC,(III)	     ;I = I + 1
+                  0351  ;	INC	BC
+                  0352  ;	LD	(III),BC
+                  0353  ;
+                  0354  ; See if I beyond BUFEND
+                  0355  ;	CALL	INDEX2
+                  0356  ; HL now contains the addr of the buffer entry
+                  0357  ; we want to jump if it is not beyond BUFEND
+                  0358  ;	XOR	A	;Clear carry
+                  0359  ;	LD	DE,(BUFEND) 
+                  0360  ;	SBC	HL,DE	;HL = HL - DE - CY
+                  0361  ; DE should be  < HL 
+                  0362  ;	JR	C,PACK1
+CROMEMCO Z80 Macro Assembler version 03.07   Nov 30, 1980  20:15:46   Page 0007
+*** CDOSSAP *** 
+
+                  0363  ;	RET	
+                  0364  ;
+                  0365  ; ERROR MESSAGES
+                  0366  ;
+02FC  0A0D496E    0367  CDOSERR:   DB	0AH,0DH,'Incompatible with this version 
+			of CDOS.$'
+0326  0A0D4572    0368  OPENERROR: DB	0AH,0DH,'Error in opening directory file
+			.$'
+0349  0A0D4572    0369  READERROR: DB	0AH,0DH,'Error whilst reading directory.
+			$'
+036B  0A0D4572    0370  WRITEERROR: DB	0AH,0DH,'Error whilst writing directory.
+			'
+038C  0A0D5468    0371  	    DB	0AH,0DH,'The image starts in memory at 5
+			00 H'
+03B1  0A0D5361    0372  	    DB	0AH,0DH,'Save it on a BLANK disk (allow 
+			40 Blocks).$'
+03DE  0A0D2E2E    0373  MSG1:	DB	0AH,0DH,'......Reading$'
+03EE  0A0D2E2E    0374  MSG2:	DB	0AH,0DH,'......Sorting$'
+03FE  0A0D2E2E    0375  MSG3:	DB	0AH,0DH,'......Writing$'
+                  0376  ;
+                  0377  ;	DATA AREA
+                  0378  ;
+040E  00535953    0379  SYSDIR:	DB	0,'SYS     DIR',0,0,0,0,0,0,0,0,0,0,0,0,
+			0,0,0,0,0,0,0,0,0
+                  0380  ;
+042F  (0040)      0381  STACK:	DEFS	64
+046F  (0001)      0382  SECNO:	DEFS	1
+0470  (0001)      0383  SECTORSWRITTEN: DS 1
+0471  (0001)      0384  SECTORCOUNT: DS	1
+0472  (0002)      0385  III:	DEFS	2
+0474  (0002)      0386  J:	DEFS	2
+0476  (0001)      0387  DSKSAV: DS	1
+0477  (0001)      0388  DSK:	DS	1
+0478  (0002)      0389  BUFEND:	DS	2
+      (0500)      0390  	ORG	500H
+0500  (2000)      0391  BUF:    DEFS    8192
+                  0392  ;
+2500  (0100)      0393  	END	100H
+
+Errors		   0
+Range Count	   8
+Parity Count	   0
+
+

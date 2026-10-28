@@ -1,0 +1,39 @@
+********************************************************************
+
+*                          KBDIN                                   *
+
+********************************************************************
+
+                  name kbdin
+                  entry kbdin
+                  ext charin
+
+BIOS equ 5
+CHECK equ 0Bh   ;BIOS function code for check-console-keyboard
+
+;FUNCTION:checks the keyboard.If a key has been struck
+;returns with ASCII in A,else A=0.
+
+;CALLS:CHARIN
+
+KBDIN:            push h
+                  push d
+                  push b
+                  mvi c,CHECK
+                  call BIOS   ;now if a key was
+                              ;struck,A(0)=1
+                  rrc         ;so rotate A(0) into
+                              ;carry & check.
+                  jrc yes 
+                  xra a       ;if not,clear A
+kbdex:            pop b       ;& depart.
+                  pop d
+                  pop h
+                  ret  
+yes:              call CHARIN ;ifso get ASCII
+                  jmpr kbdex
+
+                  end kbdin
+
+********************************************************************
+

@@ -1,0 +1,271 @@
+* DATE 08/27/84  12:57
+* add.prg
+STOR CHR(PEEK(063)) TO dr
+SET INDEX TO
+ERAS
+STOR t TO first
+STOR t TO more
+DO WHIL more
+ IF first
+  STOR 'Add Records Module' TO mode
+  STOR 'Enter as many records as you want.' TO prompt1
+  STOR 'When done, enter blank for last name' TO prompt2
+  STOR 'Or Control (CODE) Q to end session' TO prompt3
+  @ 1,25 SAY mode
+  @ 2, 0 SAY "+---------------------------------------"
+  @ 2,39 SAY "---------------------------------------+"
+  @ 3, 3 SAY "Lastname"
+  @ 3,46 SAY "First & MI"
+  @ 4, 5 SAY "Spouse"
+  @ 4,46 SAY "Address as"
+  @ 6, 6 SAY "Title"
+  @ 7, 1 SAY "Company #1"
+  @ 8, 9 SAY "#2"
+  @ 9, 0 SAY "Co. Address"
+  @ 9,51 SAY "Suite"
+  @ 10, 7 SAY "City"
+  @ 10,36 SAY "ST"
+  @ 10,53 SAY "Zip"
+  @ 12, 2 SAY "Home Addr"
+  @ 12,53 SAY "Apt"
+  @ 13, 7 SAY "City"
+  @ 13,36 SAY "ST"
+  @ 13,53 SAY "Zip"
+  @ 14, 2 SAY "Telephone  Office"
+  @ 14,46 SAY "Home phone"
+  @ 15, 1 SAY "Salutation"
+  @ 15,42 SAY "Send to office"
+  @ 16, 3 SAY "Codes 1-"
+  @ 16,20 SAY "2-"
+  @ 16,31 SAY "3-"
+  @ 16,42 SAY "4-"
+  @ 16,54 SAY "5-"
+  @ 16,65 SAY "6-"
+  @ 17,50 SAY "Update"
+  @ 18, 0 SAY "+---------------------------------------"
+  @ 18,39 SAY "---------------------------------------+"
+  @ 19,12 SAY prompt1
+  @ 20,12 SAY prompt2
+  @ 21,12 SAY prompt3
+ ENDI first
+ STOR f TO first
+ STOR '                                   ' TO BLNKS
+ STOR $(blnks,1,25) TO mlastname
+ STOR $(blnks,1,20) TO mfname
+ STOR $(blnks,1,15) TO mspouse
+ STOR $(blnks,1,14) TO mmr
+ STOR blnks TO mtitle
+ STOR blnks TO mcompany1
+ STOR blnks TO mcompany2
+ STOR blnks TO mcaddress
+ STOR $(blnks,1,10) TO msuite
+ STOR $(blnks,1,20) TO mccity
+ STOR $(blnks,1,2) TO mcst
+ STOR $(blnks,1,5) TO mczip
+ STOR blnks TO maddress
+ STOR $(blnks,1,10) TO mapt
+ STOR $(blnks,1,20) TO mcity
+ STOR $(blnks,1,2) TO mst
+ STOR $(blnks,1,5) TO mzip
+ STOR $(blnks,1,13) TO mophone
+ STOR $(blnks,1,13) TO mphone
+ STOR $(blnks,1,22) TO mdear
+ STOR $(blnks,1,1) TO msend
+ STOR $(blnks,1,3) TO mcs1
+ STOR $(blnks,1,3) TO mcs2
+ STOR $(blnks,1,3) TO mcs3
+ STOR $(blnks,1,3) TO mcs4
+ STOR $(blnks,1,3) TO mcs5
+ STOR $(blnks,1,3) TO mcs6
+ STOR $(blnks,1,8) TO mupdate
+ IF $(DATE(),1,2) <> '00' .AND. mupdate =  '  '
+  STOR DATE() to mupdate
+ ENDI
+ @ 1,74 SAY #
+ @ 3,12 GET mlastname
+ @ 3,57 GET mfname
+ @ 4,12 GET mspouse
+ @ 4,57 GET mmr
+ @ 6,12 GET mtitle
+ @ 7,12 GET mcompany1
+ @ 8,12 GET mcompany2
+ @ 9,12 GET mcaddress
+ @ 9,57 GET msuite
+ @ 10,12 GET mccity
+ @ 10,40 GET mcst picture '!!'
+ @ 10,57 GET mczip picture '99999'
+ @ 12,12 GET maddress
+ @ 12,57 GET mapt
+ @ 13,12 GET mcity
+ @ 13,40 GET mst picture '!!'
+ @ 13,57 GET mzip picture '99999'
+ @ 14,20 GET mophone picture '(999)999-9999'
+ @ 14,57 GET mphone picture '(999)999-9999'
+ @ 15,12 GET mdear
+ @ 15,57 GET msend picture '!'
+ @ 16,12 GET mcs1 PICTURE '!!!'
+ @ 16,23 GET mcs2 PICTURE '!!!'
+ @ 16,34 GET mcs3 PICTURE '!!!'
+ @ 16,45 GET mcs4 PICTURE '!!!'
+ @ 16,57 GET mcs5 PICTURE '!!!'
+ @ 16,68 GET mcs6 PICTURE '!!!'
+ @ 17,57 GET mupdate picture '99/99/99'
+ READ
+ CLEA GETS
+ IF mlastname <> ' '
+  DO CASE
+  CASE mfname = ' '
+   STOR t TO error
+  CASE mmr = ' '
+   STOR t TO error
+  CASE mdear = ' '
+   STOR t TO error
+  CASE .NOT. (msend = 'Y' .OR. msend = 'N')
+   STOR t TO error
+  OTHE
+   STOR f TO error
+  ENDC
+  IF error
+   @ 01,00
+   @ 19,00
+   @ 20,00
+   @ 21,00
+   @ 1,18 SAY 'Please Correct the Indicated Data'
+   STOR t to an:error
+   DO WHIL an:error
+    DO CASE
+    CASE mfname = ' '
+     @ 20,15 SAY 'Must add a First Name                                  '
+     @ 03,57 GET mfname
+     READ
+    CASE mmr = ' '
+     @ 20,15 SAY 'Must have Mr. or Miss. etc                             '
+     @ 04,57 GET mmr
+     READ
+    CASE mdear = ' '
+     @ 20,15 SAY 'Must have a salutation for Dear.....                   '
+     @ 15,12 GET mdear
+     READ
+    CASE .NOT. (msend = 'Y' .OR. msend = 'N')
+     @ 20,15 SAY 'Must answer "Y" or "N" to send letter to office   '
+     @ 15,57 GET msend picture '!'
+     READ
+    OTHE
+     STOR f TO an:error
+    ENDC
+   ENDD while an:error
+   STOR 'N' TO command
+   @ 20,15 SAY 'Are there any more changes ?                        '
+   @ 20,48 GET command picture '!'
+   READ
+   IF command = 'Y'
+    @ 3,12 GET mlastname
+    @ 3,57 GET mfname
+    @ 4,12 GET mspouse
+    @ 4,57 GET mmr
+    @ 6,12 GET mtitle
+    @ 7,12 GET mcompany1
+    @ 8,12 GET mcompany2
+    @ 9,12 GET mcaddress
+    @ 9,57 GET msuite
+    @ 10,12 GET mccity
+    @ 10,40 GET mcst PICTURE '!!'
+    @ 10,57 GET mczip picture '99999'
+    @ 12,12 GET maddress
+    @ 12,57 GET mapt
+    @ 13,12 GET mcity
+    @ 13,40 GET mst PICTURE '!!'
+    @ 13,57 GET mzip picture '99999'
+    @ 14,20 GET mophone picture '(999)999-9999'
+    @ 14,57 GET mphone picture '(999)999-9999'
+    @ 15,12 GET mdear
+    @ 15,57 GET msend picture '!'
+    @ 16,12 GET mcs1 PICTURE '!!!'
+    @ 16,23 GET mcs2 PICTURE '!!!'
+    @ 16,34 GET mcs3 PICTURE '!!!'
+    @ 16,45 GET mcs4 PICTURE '!!!'
+    @ 16,57 GET mcs5 PICTURE '!!!'
+    @ 16,68 GET mcs6 PICTURE '!!!'
+    @ 17,57 GET mupdate picture '99/99/99'
+    READ
+    CLEA GETS
+   ENDI command = 'Y'
+   STOR 'Add Records Module' TO mode
+   STOR 'Enter as many records as you want.' TO prompt1
+   STOR 'When done, enter blank for last name' TO prompt2
+   STOR 'Or Control (CODE)  Q to end session' TO prompt3
+   @ 01,00
+   @ 19,00
+   @ 20,00
+   @ 21,00
+   @ 1,27 SAY mode
+   @ 19,12 SAY prompt1
+   @ 20,12 SAY prompt2
+   @ 21,12 SAY prompt3
+  ENDI error
+  APPE BLANK
+  REPL lastname WITH mlastname, fname WITH mfname
+  REPL spouse WITH mspouse, mr WITH mmr
+  REPL title WITH mtitle, company1 WITH mcompany1
+  REPL company2 WITH mcompany2, caddress WITH mcaddress
+  REPL suite WITH msuite, ccity WITH mccity
+  REPL cst WITH mcst, czip WITH mczip
+  REPL address WITH maddress, apt WITH mapt
+  REPL city WITH mcity, st WITH mst
+  REPL zip WITH mzip, ophone WITH mophone
+  REPL phone WITH mphone, dear WITH mdear
+  REPL send with msend
+  REPL cs1 WITH mcs1, cs2 WITH mcs2
+  REPL cs3 WITH mcs3, cs4 WITH mcs4
+  REPL cs5 WITH mcs5, cs6 WITH mcs6
+  REPL update WITH mupdate
+  REPL new WITH t
+  STOR t TO more
+ ELSE
+  STOR f TO more
+ ENDI there is an empty record
+ENDD while more
+STOR 'Y' TO command
+ERAS
+TEXT
+
+
+
+     The  newly added RECORDS will  NOT appear to in the files until they are
+     RE-INDEXED and this will take some time......        
+
+     You may re-index now or by using Maintenance Menu Function number 7.
+
+     If you do decide to index, I will keep you posted as I go along, but you
+     will have to be patient.
+
+
+
+
+
+
+
+
+
+
+
+
+ENDT
+@ 10,10 SAY  'Do you wish to RE-INDEX records NOW (Y/N)'
+@ 10,52 GET   command PICTURE '!'
+READ
+IF command = 'Y'
+ STOR CHR(PEEK(063)) TO dr
+ SET INDEX TO &dr.:lastname
+ SET ECHO ON
+ SET TALK ON
+ REIN
+ SET TALK OFF
+ SET ECHO OFF
+ELSE
+ STOR CHR(PEEK(063)) TO dr
+ SET INDEX TO &dr.:lastname
+ENDI command = Y
+RELE ALL
+STOR t TO first
+

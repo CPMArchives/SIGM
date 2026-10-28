@@ -1,0 +1,310 @@
+; Byte add/subtract procedures for new floating point package
+
+; function byteadd( var carry: carrytyp; a, b: byte ): byte; external;
+
+	entry   byteadd
+
+byteadd pop	h		; hl := return address
+	pop	b		; b := first operand, c := second operand
+	inx	s		; Skip over length byte.
+	pop	d		; de := address of the carry flag
+	ldax	d		; a := carry flag
+	cpi	1
+	cmc			; carry := not carry
+	mov	a,b
+	adc	c		; a := a + c + carry
+	mov	b,a
+	mvi	a,0
+	jrnc	NoCarry 	; Branch if carry = 0
+	mvi	a,1
+NoCarry stax	d		; Set passed carry flag to correct value.
+	xra	a
+	mov	d,a
+	mov	e,b
+	pchl
+
+; function bytesub( var carry: carrytyp; a, b: byte ): byte; external;
+
+	entry   bytesub
+
+bytesub pop     h
+	pop	b		; b := first operand, c := second operand
+	inx	s		; Skip over length byte.
+	pop	d		; de := address of the carry flag
+	ldax	d		; a := carry flag
+	cpi	1
+	cmc			; carry := not carry
+	mov	a,b
+	sbb	c		; a := a - c - carry
+	mov	b,a
+	mvi	a,0
+	jrnc	NoCar		; Branch if carry = 0
+	mvi	a,1
+NoCar	stax	d		; Set passed carry flag to correct value.
+	xra	a
+	mov	d,a
+	mov	e,b
+	pchl
+
+; Byte type 1 mult procedure for new floating point package
+
+;function byt1mul(var carr : byte; mcand, mlier : byte) : byte; external;
+
+haddr11:equ	12		; high byte of carry address
+laddr11:equ	11		; low byte of carry address
+;length of call-by-ref carry stored in position 10
+mcand1:	equ	 9
+mlier1:	equ	 8
+result:	equ	 2
+
+	entry	byt1mul
+byt1mul:entr	d,2,0
+	mov	h,a
+	mov	l,mcand1(ix)
+	mov 	d,a
+	mov	e,mlier1(ix)
+
+	mvi	a,9		; only do 9 shifts
+	mov	d,e
+	mov	b,h		; copy hl -> bc
+	mov	c,l
+	lxi	h,0		; clear result
+
+mloop1:	dcr	a		; check shift counter
+	jrz	mdone1
+	dad	h		; shift partial result
+	slar	e		; shift multiplier
+	rlar	d
+	jrnc	mloop1		; next shift
+	dad	b		; add in multiplicand
+	jr	mloop1
+
+mdone1:	mov	d,haddr11(ix)	; get hi byte of carry addr
+	mov	e,laddr11(ix)	; get lo byte of carry addr
+	ldax 	d		; get carry
+	mvi 	d,0
+	mov	e,a
+	dad	d		; add in carry
+
+	mov	result(ix),l	; store result
+
+	mov	d,haddr11(ix)	; get hi byte of carry addr
+	mov	e,laddr11(ix)	; get lo byte of carry addr
+	mov	a,h
+	stax	d		; store carry
+
+	exit	d,5		; done, five bytes of parameters
+
+; Byte mult procedure for new floating point package
+
+;procedure bytemul(var carr, pprod : byte; mcand, mlier : byte); external;
+
+haddr1:	equ	15		; high byte of carry address
+laddr1:	equ	14		; low byte of carry address
+;length of call-by-ref carry stored in position 13
+haddr2:	equ	12		; high byte of partial product addr
+laddr2:	equ	11		; low byte of partial product addr
+;length of call-by-ref partial prod stored in position 10
+mcand:	equ	 9		; multiplicand byte
+mlier:	equ	 8		; multiplier byte
+
+	entry	bytemul
+bytemul:entr	d,2,0
+	mov	h,a
+	mov	l,mcand(ix)
+	mov 	d,a
+	mov	e,mlier(ix)
+
+	mvi	a,9		; only do 9 shifts
+	mov	d,e
+	mov	b,h		; copy hl -> bc
+	mov	c,l
+	lxi	h,0		; clear result
+
+mloop:	dcr	a		; check shift counter
+	jrz	mdone		
+	dad	h		; shift partial result
+	slar	e		; shift multiplier
+	rlar	d
+	jrnc	mloop		; next shift
+	dad	b		; add in multiplicand
+	jr	mloop
+
+mdone:	mov	d,haddr2(ix)	; get hi byte of pproduct addr
+	mov	e,laddr2(ix)	; get lo byte of pproduct addr
+	ldax	d		; get partial product
+	mvi	d,0
+	mov	e,a
+	dad	d		; add in partial product
+
+	mov	d,haddr1(ix)	; get hi byte of carry addr
+	mov	e,laddr1(ix)	; get lo byte of carry addr
+	ldax 	d		; get carry
+	mvi 	d,0
+	mov	e,a
+	dad	d		; add in carry
+
+	mov	d,haddr2(ix)	; get hi byte of pproduct addr
+	mov	e,laddr2(ix)	; get lo byte of pproduct addr
+	mov	a,l
+	stax 	d		; store partial product
+
+	mov	d,haddr1(ix)	; get hi byte of carry addr
+	mov	e,laddr1(ix)	; get lo byte of carry addr
+	mov	a,h
+	stax	d		; store carry
+
+	exit	d,8		; done, eight bytes of parameters
+
+;BYTE MARK 1 DIV PROCEDURE FOR NEW FLOATING POINT PACKAGE
+;REPRESENTS A MODIFICATION OF BYTEDIV TO SUIT THE PROCEDURE DIVD
+;NEEDS CAREFUL EVALUATION FOR APPLICABILITY TO OTHER CONTEXTS
+
+;PROCEDURE BYT1DIV(VAR REM2, QUOT2 : BYTE; NUM1, NUM2, DEN : BYTE);
+;EXTERNAL;
+
+HADRR2:	EQU	16		; HIGH BYTE OF REM2 ADDRESS
+LADRR2:	EQU	15		; LOW BYTE OF REM2 ADDRESS
+;LENGTH OF CALL-BY-REF REM2 STORED IN POSITION 14
+HADRQ2:	EQU	13		; HIGH BYTE OF QUOT2 ADDRESS
+LADRQ2:	EQU	12		; LOW BYTE OF QUOT2 ADDRESS
+;LENGTH OF CALL-BY-REF QUOT2 STORED IN POSITION 11
+NUMER1:	EQU	10
+NUMER2:	EQU	 9
+DENOM:	EQU	 8
+
+	ENTRY	BYT1DIV
+BYT1DIV:ENTR	D,2,0
+	MOV	H,NUMER1(IX)
+	MOV	L,NUMER2(IX)
+	MOV	D,A
+	MOV	E,DENOM(IX)
+
+;NORMALIZE THE DIVISOR, KEEPING COUNT OF THE NUMBER
+;OF SHIFTS REQUIRED TO ACCOMPLISH THIS
+
+	XCHG		;IT'S EASIER TO SHIFT HL
+CKNM2:	BIT	6,H
+	JRNZ	NORMAL
+	INR	A
+	DAD	H	;SHIFT DIVISOR LEFT ONE BIT
+	JMP	CKNM2
+
+NORMAL: XCHG		;RESTORE DIVISOR TO DE
+	LXI	B,0H
+	INR	A
+
+;DIVIDE LOOP
+DIVLOOP:ORA	A	;CLEAR CARRY
+	DSBC	D	;ATTEMPT SUBTRACTION
+	CMC
+	JC	PASSED	;CARRY MEANS WE SHIFT A ONE
+	DAD	D	;FAIL -- RESTORE DIVIDEND, CARRY <- 0
+	ORA	A
+PASSED:	RLAR	C	;SHIFT 0 OR 1 INTO QUOTIENT
+	RLAR	B
+	SRAR	D	;SHIFT DIVISOR
+	RRAR	E
+	DCR	A
+	JNZ	DIVLOOP
+
+;DONE DIVISION IS COMPLETE
+;THE MAGNITUDE OF THE REMAINDER IS IN HL
+;THE MAGNITUDE OF THE ANSWER IS IN BC
+
+	MOV	D,HADRR2(IX)	;GET HI BYTE OF REM2 ADDRESS
+	MOV	E,LADRR2(IX)	;GET LO BYTE OF REM2 ADDRESS
+	MOV	A,L
+	STAX	D		;STORE REM2
+
+	MOV	D,HADRQ2(IX)	;GET HI BYTE OF QUOT2 ADDRESS
+	MOV	E,LADRQ2(IX)	;GET LO BYTE OF QUOT2 ADDRESS
+	MOV	A,C
+	STAX	D		;STORE QUOT2
+
+	EXIT	D,9		;DONE, NINE BYTES OF PARAMETERS
+;BYTE DIV PROCEDURE FOR NEW FLOATING POINT PACKAGE
+;ASSUMES THE DIVIDEND TO BE A TWO-BYTES NUMBER AND THE DIVISOR A 
+;ONE-BYTE NUMBER
+
+;PROCEDURE BYTEDIV(VAR REM1, REM2, QUOT1, QUOT2 : BYTE;
+;NUM1, NUM2, DEN : BYTE); EXTERNAL;
+
+HADDRR1:EQU	22		; HIGH BYTE OF REM1 ADDRESS
+LADDRR1:EQU	21		; LOW BYTE OF REM1 ADDRESS
+;LENGTH OF CALL-BY-REF REM1 STORED IN POSITION 20
+HADDRR2:EQU	19		; HIGH BYTE OF REM2 ADDRESS
+LADDRR2:EQU	18		; LOW BYTE OF REM2 ADDRESS
+;LENGTH OF CALL-BY-REF REM2 STORED IN POSITION 17
+HADDRQ1:EQU	16		; HIGH BYTE OF QUOT1 ADDRESS
+LADDRQ1:EQU	15		; LOW BYTE OF QUOT1 ADDRESS
+;LENGTH OF CALL-BY-REF QUOT1 STORED IN POSITION 14
+HADDRQ2:EQU	13		; HIGH BYTE OF QUOT2 ADDRESS
+LADDRQ2:EQU	12		; LOW BYTE OF QUOT2 ADDRESS
+;LENGTH OF CALL-BY-REF QUOT2 STORED IN POSITION 11
+NUM1:	EQU	10
+NUM2:	EQU	 9
+DEN:	EQU	 8
+
+	ENTRY	BYTEDIV
+BYTEDIV:ENTR	D,2,0
+	MOV	H,NUM1(IX)
+	MOV	L,NUM2(IX)
+	MOV	D,A
+	MOV	E,DEN(IX)
+
+;NORMALIZE THE DIVISOR, KEEPING COUNT OF THE NUMBER
+;OF SHIFTS REQUIRED TO ACCOMPLISH THIS
+
+	XCHG		;IT'S EASIER TO SHIFT HL
+CKNM1:	BIT	6,H
+	JRNZ	NORM
+	INR	A
+	DAD	H	;SHIFT DIVISOR LEFT ONE BIT
+	JMP	CKNM1
+
+NORM:	XCHG		;RESTORE DIVISOR TO DE
+	LXI	B,0H
+	INR	A
+
+;DIVIDE LOOP
+DIVLOP:	ORA	A	;CLEAR CARRY
+	DSBC	D	;ATTEMPT SUBTRACTION
+	CMC
+	JC	PASS	;CARRY MEANS WE SHIFT A ONE
+	DAD	D	;FAIL -- RESTORE DIVIDEND, CARRY <- 0
+	ORA	A
+PASS:	RLAR	C	;SHIFT 0 OR 1 INTO QUOTIENT
+	RLAR	B
+	SRAR	D	;SHIFT DIVISOR
+	RRAR	E
+	DCR	A
+	JNZ	DIVLOP
+
+;DONE DIVISION IS COMPLETE
+;THE MAGNITUDE OF THE REMAINDER IS IN HL
+;THE MAGNITUDE OF THE ANSWER IS IN BC
+
+	MOV	D,HADDRR1(IX)	;GET HI BYTE OF REM1 ADDRESS
+	MOV	E,LADDRR1(IX)	;GET LO BYTE OF REM1 ADDRESS
+	MOV	A,H
+	STAX	D		;STORE REM1
+
+	MOV	D,HADDRR2(IX)	;GET HI BYTE OF REM2 ADDRESS
+	MOV	E,LADDRR2(IX)	;GET LO BYTE OF REM2 ADDRESS
+	MOV	A,L
+	STAX	D		;STORE REM2
+
+	MOV	D,HADDRQ1(IX)	;GET HI BYTE OF QUOT1 ADDRESS
+	MOV	E,LADDRQ1(IX)	;GET LO BYTE OF QUOT1 ADDRESS
+	MOV	A,B
+	STAX 	D		;STORE QUOT1
+
+	MOV	D,HADDRQ2(IX)	;GET HI BYTE OF QUOT2 ADDRESS
+	MOV	E,LADDRQ2(IX)	;GET LO BYTE OF QUOT2 ADDRESS
+	MOV	A,C
+	STAX	D		;STORE QUOT2
+
+	EXIT	D,15		;DONE, FIFTEEN BYTES OF PARAMETERS
+
+

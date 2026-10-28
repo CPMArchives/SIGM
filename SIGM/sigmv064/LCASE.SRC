@@ -1,0 +1,214 @@
+;TYPE
+;$STRING0 = STRING 0;
+;$STRING80 =STRING 80;
+;$STRING255 = STRING 255;
+;
+;VAR
+;DATA:$STRING80;
+;FUNCTION LENGTH(x:$STRING255):INTEGER;EXTERNAL;
+	EXTD	L156,LENGTH  
+;PROCEDURE SETLENGTH(VAR X:$STRING0; Y:INTEGER);EXTERNAL;
+	EXTD	L157,SETLENGT
+;
+;{function to convert a string "x" to all lower case characters and then
+;return this converted string..
+;corresponds to the BASIC command LCASE$(A$)..}
+;
+;
+;FUNCTION LCASE(X:$STRING255):$STRING255;
+;LABEL 1;
+;VAR
+;I,LEN,ASCII:INTEGER;
+;LCASEX:$STRING80;
+;
+;BEGIN
+L158
+	NAME LCASE
+	ENTRY LCASE
+LCASE:
+	ENTR	D,2,87
+;SETLENGTH(LCASEX,0);
+	STMT	D,1
+	PUSH	IX
+	POP	H
+	LXI	B,-6
+	DADD	B
+	PUSH	H
+	MOV	H,A
+	MOV	L,A
+	PUSH	H
+	CALL	L157
+;LEN:=LENGTH(X);
+	STMT	D,2
+	PUSH	IX
+	POP	H
+	LXI	B,263
+	DADD	B
+	SPSH	S,255
+	CALL	L156
+	STMT	M,2
+	MOV	-4(IX),D
+	MOV	-5(IX),E
+;IF (LEN = 0) OR (LEN > 255)  THEN GOTO 1;
+	STMT	D,3
+	MOV	L,-5(IX)
+	MOV	H,-4(IX)
+	MOV	D,A
+	MOV	E,A
+	DSB1	D,0
+	JZ	L186
+	MOV	L,-5(IX)
+	MOV	H,-4(IX)
+	LXI	D,255
+	GRET	D,0
+	JNC	L185
+L184
+L186	EQU	L184
+	STMT	D,4
+	CTRL	M,4
+	JMP	L159
+L185
+;
+;FOR I:=1 TO LEN DO
+	STMT	D,5
+	MOV	-2(IX),A
+	MVI	-3(IX),1
+	PUSH	IX
+	POP	H
+	DCX	H
+	DCX	H
+	PUSH	H
+	MOV	L,-5(IX)
+	MOV	H,-4(IX)
+	XTHL
+L213
+	MOV	D,M
+	DCX	H
+	MOV	E,M
+	XTHL
+	PUSH	H
+	GE	D,0
+	JNC	L214
+;	
+;	IF (ORD(X[I]) > 64) AND (ORD(X[I]) < 91) THEN 
+	STMT	D,6
+	MOV	L,-3(IX)
+	MOV	H,-2(IX)
+	RCHK	H,1,255
+	XCHG
+	LXI	H,263
+	ADDR	IX
+	MOV	D,A
+	MOV	E,M
+	STMT	M,6
+	LXI	H,64
+	XCHG
+	GRET	D,0
+	JNC	L225
+	MOV	L,-3(IX)
+	MOV	H,-2(IX)
+	RCHK	H,1,255
+	XCHG
+	LXI	H,263
+	ADDR	IX
+	MOV	D,A
+	MOV	E,M
+	STMT	M,6
+	LXI	H,91
+	XCHG
+	LESS	D,0
+;	APPEND(LCASEX,CHR(ORD(X[I])+32)) ELSE
+	JNC	L222
+	STMT	D,7
+	PUSH	IX
+	POP	H
+	LXI	B,-6
+	DADD	B
+	PUSH	H
+	LXI	H,80
+	PUSH	H
+	MOV	L,-3(IX)
+	MOV	H,-2(IX)
+	RCHK	H,1,255
+	XCHG
+	LXI	H,263
+	ADDR	IX
+	MOV	D,A
+	MOV	E,M
+	STMT	M,7
+	LXI	H,32
+	DADD	D,0
+	STMT	M,7
+	INR	H
+	PUSH	H
+	LXI	H,2
+	PUSH	H
+	CALL	L137
+;	APPEND(LCASEX,X[I]);
+	JMP	L294
+L222
+L224	EQU	L222
+L225	EQU	L224
+	STMT	D,8
+	PUSH	IX
+	POP	H
+	LXI	B,-6
+	DADD	B
+	PUSH	H
+	LXI	H,80
+	PUSH	H
+	MOV	L,-3(IX)
+	MOV	H,-2(IX)
+	RCHK	H,1,255
+	XCHG
+	LXI	H,263
+	ADDR	IX
+	MOV	D,A
+	MOV	E,M
+	INR	D
+	PUSH	D
+	LXI	H,2
+	PUSH	H
+	CALL	L137
+L294
+	CTRL	M,8
+	POP	H
+	XTHL
+	INR	M
+	INX	H
+	JRNZ	L313
+	INR	M
+	JV	L314
+L313
+	JMP	L213
+L214
+	POP	D
+L314
+	POP	D
+;
+;{97 represents a little 'a' and 122 a little 'z'..32 is the offset between
+;  a capital and a little letter in ascii code}
+;
+;LCASE:=LCASEX;
+	STMT	D,9
+	PUSH	IX
+	POP	H
+	LXI	B,-6
+	DADD	B
+	RCHK	S,255
+	XCHG
+	PUSH	IX
+	POP	H
+	LXI	B,519
+	DADD	B
+	XCHG
+	LXI	B,256
+	LDDR
+;1: {immediate exit upon fatal error}
+	STMT	D,10
+L159
+;
+;END;
+	STMT	D,11
+	EXIT	D,256
+

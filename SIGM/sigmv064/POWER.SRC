@@ -1,0 +1,347 @@
+;TYPE
+;BYTE = 0..255;
+;VAR
+;RAISE:BYTE;
+;NUMBER:REAL;
+;
+;{function to raise a number "x" to a power "y"...x must be real and y must be
+;an integer...greater than zero.  This corresponds to the BASIC arithematic
+;command ** as in A = x**2 .}
+;
+;
+;FUNCTION POWER (X:REAL; Y:BYTE):REAL;
+;LABEL 1;
+;VAR
+;I:INTEGER;
+;CALC:REAL;
+;
+;BEGIN
+L150
+	NAME POWER
+	ENTRY POWER
+POWER:
+	ENTR	D,2,6
+;	CALC:=1.0;
+	STMT	D,1
+	LXI	H,320
+	MOV	D,A
+	MOV	E,A
+	PUSH	H
+	PUSH	D
+	LXI	H,3
+	DADD	S
+	XCHG
+	PUSH	IX
+	POP	H
+	DCX	H
+	DCX	H
+	XCHG
+	LXI	B,4
+	LDDR
+	POP	H
+	POP	H
+;
+;	IF Y < 0 THEN GOTO 1;
+	STMT	D,2
+	MOV	H,A
+	MOV	L,8(IX)
+	MOV	A,L
+	CMPI	D,0
+	MOV	A,H
+	JNC	L159
+	STMT	D,3
+	CTRL	M,3
+	JMP	L151
+L159
+;	
+;	CASE Y OF
+	STMT	D,4
+;	1: BEGIN
+	MOV	H,A
+	MOV	L,8(IX)
+	MOV	A,L
+	CMPI	D,1
+	JNZ	L176
+L178
+	XRA	A
+	STMT	D,5
+;		CALC:=X;
+	STMT	D,6
+	LXI	H,-4
+	DADD	S
+	SPHL
+	XCHG
+	PUSH	IX
+	POP	H
+	LXI	B,9
+	DADD	B
+	LXI	B,4
+	LDIR
+	LXI	H,3
+	DADD	S
+	XCHG
+	PUSH	IX
+	POP	H
+	DCX	H
+	DCX	H
+	XCHG
+	LXI	B,4
+	LDDR
+	POP	H
+	POP	H
+;		GOTO 1;
+	STMT	D,7
+	CTRL	M,7
+	JMP	L151
+;	   END;
+	STMT	D,8
+;	
+;	0: GOTO 1;
+	JMP	L177
+L176
+	CMPI	D,0
+	JNZ	L197
+L198
+	XRA	A
+	STMT	D,9
+	CTRL	M,9
+	JMP	L151
+; 
+;        end; {of case}
+L197
+	XRA	A
+L177
+;
+;IF X = 1.0 THEN
+	STMT	D,10
+	LXI	H,-4
+	DADD	S
+	SPHL
+	XCHG
+	PUSH	IX
+	POP	H
+	LXI	B,9
+	DADD	B
+	LXI	B,4
+	LDIR
+	LXI	H,320
+	MOV	D,A
+	MOV	E,A
+	PUSH	H
+	PUSH	D
+	EQUL	D,-4
+;		BEGIN
+	JNC	L209
+	STMT	D,11
+;		CALC:=X*Y;
+	STMT	D,12
+	LXI	H,-4
+	DADD	S
+	SPHL
+	XCHG
+	PUSH	IX
+	POP	H
+	LXI	B,9
+	DADD	B
+	LXI	B,4
+	LDIR
+	MOV	H,A
+	MOV	L,8(IX)
+	PUSH	H
+	CVTF	B
+	MULT	D,-4
+	LXI	H,3
+	DADD	S
+	XCHG
+	PUSH	IX
+	POP	H
+	DCX	H
+	DCX	H
+	XCHG
+	LXI	B,4
+	LDDR
+	POP	H
+	POP	H
+;		GOTO 1;
+	STMT	D,13
+	CTRL	M,13
+	JMP	L151
+;		END;
+	STMT	D,14
+L209
+;
+;IF X = 0.0 THEN
+	STMT	D,15
+	LXI	H,-4
+	DADD	S
+	SPHL
+	XCHG
+	PUSH	IX
+	POP	H
+	LXI	B,9
+	DADD	B
+	LXI	B,4
+	LDIR
+	MOV	H,A
+	MOV	L,A
+	MOV	D,A
+	MOV	E,A
+	PUSH	H
+	PUSH	D
+	EQUL	D,-4
+;		BEGIN
+	JNC	L229
+	STMT	D,16
+;		CALC:=0.0;
+	STMT	D,17
+	MOV	H,A
+	MOV	L,A
+	MOV	D,A
+	MOV	E,A
+	PUSH	H
+	PUSH	D
+	LXI	H,3
+	DADD	S
+	XCHG
+	PUSH	IX
+	POP	H
+	DCX	H
+	DCX	H
+	XCHG
+	LXI	B,4
+	LDDR
+	POP	H
+	POP	H
+;		GOTO 1;
+	STMT	D,18
+	CTRL	M,18
+	JMP	L151
+;		END;
+	STMT	D,19
+L229
+;
+;
+;
+;IF (Y > 1) AND ( X <> 1.0) THEN 
+	STMT	D,20
+	MOV	H,A
+	MOV	L,8(IX)
+	MVI	A,1
+	CMP	L
+	MOV	A,H
+	JNC	L252
+	LXI	H,-4
+	DADD	S
+	SPHL
+	XCHG
+	PUSH	IX
+	POP	H
+	LXI	B,9
+	DADD	B
+	LXI	B,4
+	LDIR
+	LXI	H,320
+	MOV	D,A
+	MOV	E,A
+	PUSH	H
+	PUSH	D
+	NEQL	D,-4
+;		for  I:= 1 TO Y DO  CALC:=CALC*X;  
+	JNC	L249
+	STMT	D,21
+	MOV	0(IX),A
+	MVI	-1(IX),1
+	PUSH	IX
+	MOV	H,A
+	MOV	L,8(IX)
+	XTHL
+L274
+	MOV	D,M
+	DCX	H
+	MOV	E,M
+	XTHL
+	PUSH	H
+	GE	D,0
+	JNC	L275
+	STMT	D,22
+	LXI	H,-4
+	DADD	S
+	SPHL
+	XCHG
+	PUSH	IX
+	POP	H
+	LXI	B,-5
+	DADD	B
+	LXI	B,4
+	LDIR
+	LXI	H,-4
+	DADD	S
+	SPHL
+	XCHG
+	PUSH	IX
+	POP	H
+	LXI	B,9
+	DADD	B
+	LXI	B,4
+	LDIR
+	MULT	D,-4
+	LXI	H,3
+	DADD	S
+	XCHG
+	PUSH	IX
+	POP	H
+	DCX	H
+	DCX	H
+	XCHG
+	LXI	B,4
+	LDDR
+	POP	H
+	POP	H
+	CTRL	M,22
+	POP	H
+	XTHL
+	INR	M
+	INX	H
+	JRNZ	L288
+	INR	M
+	JV	L289
+L288
+	JMP	L274
+L275
+	POP	D
+L289
+	POP	D
+L249
+L251	EQU	L249
+L252	EQU	L251
+;1:
+	STMT	D,23
+L151
+;POWER:=CALC;
+	STMT	D,24
+	LXI	H,-4
+	DADD	S
+	SPHL
+	XCHG
+	PUSH	IX
+	POP	H
+	LXI	B,-5
+	DADD	B
+	LXI	B,4
+	LDIR
+	LXI	H,3
+	DADD	S
+	XCHG
+	PUSH	IX
+	POP	H
+	LXI	B,16
+	DADD	B
+	XCHG
+	LXI	B,4
+	LDDR
+	POP	H
+	POP	H
+;END;
+	STMT	D,25
+	EXIT	D,5
+

@@ -1,0 +1,287 @@
+ program test_clock_lib;
+
+(******************************************************************)
+(*   CLOCK.LIB  Ver 1.1  Oct. 3, 1985  by  Clarence C. Rudd       *)
+(*    Added suport for Kaypro 4/84 and (modified) Kaypro 2/84     *)
+(*    set constant KAYPRO := true for Kaypro & false for Z-Timer  *)
+(*                                                                *)
+(*   CLOCK.LIB  Ver 1.0  June 2, 1985  by  Clarence C. Rudd       *)
+(*                                                                *)
+(*   Clock.LIB is a file that contains several clock routines     *)
+(*   for use with the Z-Timer clock board from Alan Percy at      *)
+(*   Kenmore Computer Tech.  Kenmore, NY                          *)
+(*                                                                *)
+(*   To use this libaray load it into your file and then delete   *)
+(*   the routines not needed.                                     *)
+(*                                                                *)
+(*   NOTE: All of the user routines in this libaray are in the    *)
+(*   form of function calls. Example of use would be:             *)
+(*                                                                *)
+(*        String_variable := Date_1 + '  ' + Time_12;             *)
+(*                                                                *)
+(*    The String_variable would now contain the date & time       *)
+(*        i.e. 06/02/85  1:31:15 PM                               *)
+(*                                                                *)
+(******************************************************************)
+
+
+(******************************************************************)
+(*                                                                *)
+(*    The following declarations and constants plus the           *)
+(*    Procedure Read_Clock must be in your program to use         *)
+(*    any of the time & date Functions.                           *)
+
+const
+  Kaypro = false;  {now set for Z-Timer}
+  year = '85';
+  clock_base = $E0; {base address of Z-Timer clock board}
+
+type
+  str8  = string[8];
+  str11 = string[11];
+  str17 = string[17];
+  str28 = string[28];
+  str30 = string[30];
+
+
+procedure Read_Clock(var month, day, week_day, hour, min, sec: byte);
+
+(*  This is the main procedure called by all of the time & date   *)
+(*  It reads the info from the clock as two BCD digits per byte   *)
+(*  and converts to integer and stores it in the following global *)
+(*  variables in the form of:                                     *)
+(*                            month in range 1(Jan)..12(Dec)      *)
+(*                            day in range 1..length of month     *)
+(*                            hour in 0..23 (24-hr clock)         *)
+(*                            minute and second in 0..59          *)
+(*                            and week_day in 1(Sun)..7(Sat)      *)
+(*                                                                *)
+(*  NOTE: the variables are of type Byte to save space.           *)
+
+
+  var
+    temp: byte;
+
+  function bcd_to_dec(bcd: byte): byte;
+  {Converts 2-digit/byte BCD to decimal}
+
+    begin
+      bcd_to_dec := (bcd and 15) + 10 * (bcd div 16);
+    end;
+
+  function Inport(location: byte): byte;
+  {Reads data from clock register at port(location)}
+    begin
+      if Kaypro
+        then
+          begin {of Inport for Kaypro}
+            port[$20] := location;
+            Inport := bcd_to_dec(port[$24]);
+          end  {of Inport for Kaypro}
+        else
+          begin {of Inport for Z-Time}
+            Inport := bcd_to_dec(port[clock_base + location]);
+          end; {of Inport for Z-Time}
+    end; {of Inport }
+
+  procedure Setup_Clock; {used for Kaypro only}
+  {Sets Kaypro internal I/O port to address clock}
+
+    var
+      junk: byte;
+
+    begin
+      port[$22] := $CF;
+      port[$22] := $E0;
+      port[$22] := $03;
+      junk := Inport($14);
+    end;
+
+
+  begin  { of Read_clock }
+      if Kaypro then Setup_Clock;
+      repeat
+        sec        := Inport(2);
+        min        := Inport(3);
+        hour       := Inport(4);
+        week_day   := Inport(5);
+        day        := Inport(6);
+        month      := Inport(7);
+        temp       := Inport(2);
+      until temp = sec; {Make sure clock hasn't changed during reading}
+  end;
+(*                                                                *)
+(*               End of procedure Read_Clock                      *)
+(******************************************************************)
+
+(******************************************************************)
+(*   Date_1  returns 8-character srting i.e. (06/02/85)           *)
+(*                                                                *)
+
+function Date_1: str8;
+
+  var
+    tempm, tempd : string[2];
+    month, day, week_day, hour, min, sec : byte;
+
+  begin
+    Read_Clock(month, day, week_day, hour, min, sec);
+    str(month:1,tempm);
+    if length(tempm) = 1 then tempm := '0' + tempm; {add leading 0 ?}
+    str(day:1,tempd);
+    if length(tempd) = 1 then tempd := '0' + tempd; {add leading 0 ?}
+    Date_1 := tempm + '/' + tempd + '/' + year;
+  end;
+
+(*                                                                *)
+(*                 End of Function Date_1                         *)
+(******************************************************************)
+
+(******************************************************************)
+(*   Date_2 returns 17-characater string i.e. (Sun  Jun 02, 1985) *)
+(*                                                                *)
+
+function Date_2: str17;
+
+  const
+    week_days:   array [1..7] of string[3] =
+                 ('Sun','Mon','Tue','Wen','Thu','Fri','Sat');
+    months:      array [1..12] of string[3] =
+                 ('Jan','Feb','Mar','Apr','May','Jun',
+                  'Jul','Aug','Sep','Oct','Nov','Dec');
+
+  var
+    tempd : string[2];
+    month, day, week_day, hour, min, sec : byte;
+
+  begin
+    Read_Clock(month, day, week_day, hour, min, sec);
+    str(day:1,tempd);
+
+  {delete the next line if you don't want leading zero on day of month}
+    if length(tempd) = 1 then tempd := '0' + tempd; {add leading 0 ?}
+
+    Date_2 := week_days[week_day] + '  ' + months[month]  + ' '
+                                   + tempd + ', 19' + year;
+  end;
+
+(*                                                                *)
+(*                  End of Function Date_2                        *)
+(******************************************************************)
+
+(******************************************************************)
+(*   Date_3 returns a string with a max length of 28 characters   *)
+(*   i.e. (Sunday  June 02, 1985)                                 *)
+(*        (Saturday  December 28, 1985)                           *)
+(*                                                                *)
+
+function Date_3: str28;
+
+  const
+    week_days:   array [1..7] of string[9] =
+                 ('Sunday','Monday','Tuesday','Wendesday','Thursday',
+                  'Friday','Saturday');
+    months:      array [1..12] of string[9] =
+                 ('Janurary','February','March','April','May','June',
+                  'July','August','September','October','November','December');
+
+  var
+    tempd : string[2];
+    month, day, week_day, hour, min, sec : byte;
+
+  begin
+    Read_Clock(month, day, week_day, hour, min, sec);
+    str(day:1,tempd);
+
+  {delete the next line if you don't want leading zero on day of month}
+    if length(tempd) = 1 then tempd := '0' + tempd; {add leading 0 ?}
+
+    Date_3 := week_days[week_day] + '  ' + months[month]  + ' ' +
+                                          tempd + ', 19' + year;
+  end;
+
+(*                                                                *)
+(*                     End of Function Date_3                     *)
+(******************************************************************)
+
+(*                START OF THE TIME FUNCTIONS                     *)
+(******************************************************************)
+(*   Time_12 returns 11-character string i.e. (12:01:00 AM)       *)
+(*                                                                *)
+
+function Time_12: str11;
+
+  var
+    pm : boolean;
+    temp : string[11];
+    temps, tempm, temph: string[2];
+    month, day, week_day, hour, min, sec : byte;
+
+  begin
+    Read_Clock(month, day, week_day, hour, min, sec);
+    str(sec:1,temps);
+    str(min:1,tempm);
+    if length(temps) = 1 then temps := '0' + temps;
+    if length(tempm) = 1 then tempm := '0' + tempm;
+
+    if hour >= 12 then begin {if after 12 PM convert from military time}
+      pm := true;
+      if hour > 12 then hour := hour - 12;
+    end
+    else begin
+      pm := false;
+      if hour = 0 then hour := 12;   {if 12 AM}
+    end;
+
+    str(hour:2,temph);
+    temp :=  temph + ':' + tempm + ':' + temps;
+
+    if pm then temp := temp + ' PM'
+    else temp := temp + ' AM';
+    Time_12 := temp;
+  end;
+
+(*                                                                *)
+(*                   End of Function Time_12                      *)
+(******************************************************************)
+
+(******************************************************************)
+(*   Time_24 returns  8-character string i.e. (23:01:00)          *)
+(*                                                                *)
+
+function Time_24: str8;
+
+  var
+    temp : string[11];
+    temps, tempm, temph: string[2];
+    month, day, week_day, hour, min, sec : byte;
+
+  begin
+    Read_Clock(month, day, week_day, hour, min, sec);
+    str(sec:1,temps);
+    str(min:1,tempm);
+    str(hour:1,temph);
+    if length(temps) = 1 then temps := '0' + temps;
+    if length(tempm) = 1 then tempm := '0' + tempm;
+    if length(temph) = 1 then temph := '0' + temph;
+
+    Time_24 :=  temph + ':' + tempm + ':' + temps;
+  end;
+
+(*                                                                *)
+(*                   End of Function Time_24                      *)
+(******************************************************************)
+
+
+
+  begin {of main program test_clock_lib }
+    writeln('This is the output of Date_1 ',Date_1);
+    writeln('This is the output of Date_2 ',Date_2);
+    writeln('This is the output of Date_3 ',Date_3);
+    writeln('This is the output of Time_12 ',Time_12);
+    writeln('This is the output of Time_24 ',Time_24);
+  end.  {of program test_clock_lib }
+
+
+
+                                                                        

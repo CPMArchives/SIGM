@@ -1,0 +1,130 @@
+* DATE 07/20/84  17:25
+STOR t TO account
+DO WHIL account
+ REST from coname additive
+ STOR '?' to command
+ ERAS
+TEXT
+ >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+ *   Please select one of the above options. You may also leave this menu    *
+ *   by typing 'Q' and get on-line HELP by typing '?'.                       *
+ >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+ENDT
+ @ 3,04 SAY coname + '  -  MAIN ACCOUNTING MENU'
+ @ 3,65 SAY DATE()
+ @ 7,17 SAY "A. Enter checks (Cash Disbursements Journal)"
+ @ 8,17 SAY "B. Enter deposits (Cash Receipts Journal)"
+ @ 9,17 SAY "C. Other journal entries (General Journal)"
+ @ 10,17 SAY "D. Post tenant payments & monthly rent accruals"
+ @ 11,17 SAY "E. Print or display Journals or General Ledger"
+ @ 12,17 SAY "F. Prepare financial statements"
+ @ 13,17 SAY "G. Reindex accounting records"
+ @ 14,17 SAY "H. Go to Accounting Maintenance Menu"
+ @ 15,17 SAY "I. Exit to the Operating System"
+ @ 16,17 SAY "J. Return to any prior menu"
+ @ 18,23 SAY "PLEASE SELECT ONE OF THE OPTIONS"
+ @ 18,58 GET command PICTURE '!'
+ READ
+ DO WHIL @(COMMAND, 'ABCDEFGHIJQ?') = 0
+  STOR '?' TO command
+  @ 18,58 GET command PICTURE '!'
+  READ
+ ENDD
+ CLEA GETS
+ DO CASE
+ CASE command = 'A'
+  DO checks.acc
+ CASE command = 'B'
+  DO depos.acc
+ CASE command = 'C'
+  DO journ.acc
+ CASE command = 'D'
+  DO postit.acc
+ CASE command = 'E'
+  DO jourp.acc
+ CASE command = 'F'
+  DO statem.acc
+ CASE command = 'G'
+  STOR CHR(PEEK(063)) TO dr
+  SET TALK ON
+  SET ECHO ON
+  INDE ON $(data,7,4) + date+ $(data,5,2) TO &dr.:account
+  SET TALK OFF
+  SET ECHO OFF
+ CASE command = '?'
+  ERAS
+TEXT
+
+          M A I N   A C C O U N T I N G   H E L P   M E N U
+
+    Items 'A', 'B' and 'C' are books of original entry.  To print out or  
+    display these books or the General Ledger, select the 'E' option. To
+    post tenant payments to their records or to accrue the monthly rent,
+    use the 'D' option.
+
+    The actual ultimate financial statements are prepared with the 'F'
+    option.  These include a trial balance, the balance sheet and the   
+    profit and loss statement.  Before you prepare these statements you
+    must reindex. We have provided for this at a number of points including
+    option 'G'.
+
+    Option 'H' takes you the accounting maintenance menu.  On that menu you  
+    can adjust the Chart of Accounts, browse through the accounting records,
+    etc. See the Accounting Maintenance HELP menu for more information.
+
+
+                    please hit any key to continue.....
+
+
+ENDT
+  SET CONSOLE OFF
+  WAIT
+  SET CONSOLE ON
+ CASE command = 'H'
+  DO maintain.acc
+ CASE command = 'I'
+  STOR 'N' TO comman
+  @ 18,00 SAY ' *          ARE YOU SURE YOU WANT TO EXIT TO THE OPERATING SYSTEM ?          *'
+  @ 18,69 GET comman PICTURE '!'
+  READ
+  IF comman = 'Y'
+   ERAS
+   SET CONSOLE OFF
+   QUIT
+  ELSE
+   RELE comman
+   STOR '?' TO command
+   @ 18,00 SAY " *                  HIT ANY KET TO RETURN TO THE ACCOUNTING MENU             *"
+   SET CONSOLE OFF
+   WAIT
+   SET CONSOLE ON
+  ENDI comman = 'Y'
+ CASE command = 'J' .OR. command = 'Q'
+  STOR f TO account
+ OTHE
+  STOR t TO ACCOUNT
+ ENDC
+ENDD WHILE account
+STOR t TO keepitup
+STOR 0 TO box
+RETU
+

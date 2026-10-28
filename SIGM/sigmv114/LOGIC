@@ -1,0 +1,77 @@
+MENU FOR LOGIC RELATED OPERATORS:
+copyright (C) 1983 by E. E. Bergmann
+words described in alphabetical(ASCII) order.
+explanation of TFT NTT TOS
+:
+::
+*********************************************************
+*							*
+* PISTOL-Portably Implemented Stack Oriented Language	*
+*			Version 2.0			*
+* (C) 1983 by	Ernest E. Bergmann			*
+*		Physics, Building #16			*
+*		Lehigh Univerisity			*
+*		Bethlehem, Pa. 18015			*
+*							*
+* Permission is hereby granted for all reproduction and *
+* distribution of this material provided this notice is *
+* included.						*
+*							*
+*********************************************************
+:
+::
+
+..	TFT NTT TOS --> TRUE|FALSE, cyclic range check.
+	If NTT<=TOS the test is "TFT in [NTT..TOS]",
+	else the test is "(NTT<=TFT) OR (TFT<=TOS)".
+	{This definition is equivalent for both signed and
+	 unsigned arithmetic! }
+
+EQ	NTT TOS --> TRUE, if NTT is numerically equals TOS
+		--> FALSE, otherwise
+
+EQZ	TOS --> TRUE, if TOS is zero
+	    --> FALSE, otherwise
+
+FALSE	--> 0
+
+GE	NTT TOS --> (NTT>=TOS)
+
+GT	NTT TOS --> (NTT>TOS)
+
+GTZ	TOS --> (TOS>0)
+
+LAND	NTT TOS --> (NTT<>0)AND(TOS<>0), "Logical AND"
+
+LE	NTT TOS --> (NTT<=TOS)
+
+LNOT	TOS --> (TOS==FALSE), "Logical NOT"
+
+LOR	NTT TOS --> (NTT<>0)OR(TOS<>0), "Logical OR"
+
+LT	NTT TOS --> (NTT<TOS)
+
+LTZ	TOS --> (TOS<0)
+
+OFF	TOS -->
+	Sets word pointed to by TOS to FALSE.
+
+ON	TOS -->
+	Sets word pointed to by TOS to TRUE.
+
+TRUE	--> -1, actually any nonzero value would be acceptable,
+	but -1 is represented by all 1's on many systems.
+
+:
+::
+
+	TOS - "Top Of Stack"
+
+	NTT - "Next To Top" of stack
+
+	TFT - "Third From Top" of stack
+
+:
+FT NTT TOS --> TRUE|FALSE, cyclic range check.
+	If NTT<=TOS the test is "TFT in [NTT..TOS]",
+	else the test

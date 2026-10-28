@@ -1,0 +1,144 @@
+* search.cmd 02/12/83
+
+* loop until finished searching
+STORE t TO more
+DO WHILE more
+  
+  * set up screen and prompts
+  SET FORMAT TO SAY-rec
+  STORE 'Search for file by <L>ast name, <C>ompany name or <Z>ipcode' TO prompt1
+  STORE '<B>ackward, <F>orward, <D>elete/Recall' TO prompt2
+  STORE '<E>dit or <Q>uit searching' TO prompt3
+  STORE 'Search Menu' TO mode
+  STORE 'L' TO command
+  
+* DO delcheck.acg
+  IF *
+     STORE 'Deleted' TO deleted
+  ELSE
+     STORE ' ' TO deleted
+  ENDIF * 
+
+  * read the current record and find out what to do
+  READ
+  * perform selected functions
+  DO CASE
+      
+    CASE (command = 'B' .OR. command = ',' )
+      * move backwards one record
+      SKIP -1
+      
+    CASE command = 'D'
+      * DO delete.acg
+
+      IF *
+         RECALL
+      ELSE
+         DELETE
+      ENDIF * 
+
+    CASE (command = 'F' .OR. command = '.' )
+      * move forward one record
+      SKIP
+      
+    CASE command = 'E' 
+      STORE # TO recordno
+      SET INDEX TO
+      GOTO recordno
+      RELEASE recordno
+      RECALL 
+      DO EDIT.acg
+      
+    CASE command = 'C' 
+      ERASE
+      ACCEPT "Please enter Company name" TO name
+      * convert name to upper case for searching
+      STORE !(name) TO name
+      
+      * look for matching record
+      SET INDEX TO company, lastname, zip 
+      FIND &name
+      
+      * if it isn ' t in the files
+      IF # = 0
+        
+        * clear the screen and say that name can ' t be found
+        ERASE
+        ?
+        ?
+        ? name, ' is not in the file' 
+        ?
+        ? 'Press any key to return to search menu' 
+        
+        SET console OFF
+        WAIT
+        SET console ON
+        
+      ENDIF # = 0 
+      
+      
+      
+    CASE command = 'L' 
+      ERASE
+      ACCEPT "Please enter last name " TO name
+      * convert name to upper case for searching
+      STORE !(name) TO name
+      
+      * look for matching record
+      SET INDEX TO lastname, company, zip 
+      FIND &name
+      
+      * if it isn ' t in the files
+      IF # = 0
+        
+        * clear screen and say no can find
+        ERASE
+        ?
+        ?
+        ?
+        ? name, ' is not in the file' 
+        ? 'press any key to return to search menu' 
+        SET console OFF
+        WAIT
+        SET console ON
+      ENDIF # = 0 
+      
+      
+    CASE command = 'Q' 
+      * leave loop
+      SET INDEX TO lastname, company, zip
+      STORE f TO more
+      
+    CASE command = 'Z' 
+      ERASE
+      ACCEPT "Please enter Zipcode for home address " TO name
+      * convert name to upper case for searching
+      STORE !(name) TO name
+      
+      * look for matching record
+      SET INDEX TO zip, lastname, company 
+      FIND &name
+      
+      * if it isn ' t in the files
+      IF # = 0
+        
+        * clear screen and say no can find
+        ERASE
+        ?
+        ?
+        ?
+        ? name, ' is not in the file ' 
+        ? 
+        ? 'press any key to return to search menu ' 
+        SET console OFF
+        WAIT
+        SET console ON
+      ENDIF # = 0 
+      
+  ENDCASE 
+  
+  RELEASE name
+  * loop back again
+  
+ENDDO WHILE more 
+

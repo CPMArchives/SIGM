@@ -1,0 +1,595 @@
+ZXLOAD                                 SD SYSTEMS Z80 ASSEMBLER PAGE 0001 
+ ADDR  CODE      STMT SOURCE STATEMENT
+
+                 0001         NAME    ZXLOAD
+                 0003 ;
+                 0004 ; THIS ROUTINE IS A RELOCATING LOADER FOR ZX65.
+                 0005 ; WHEN LINKED WITH ZX65R V 2.1, THIS LOADER ALLOWS THAT
+                 0006 ; PROGRAM TO ACCOMODATE ANY SIZE CPM SYSTEM
+                 0007 ;
+                 0008         GLOBAL  RELBAS
+                 0009         PSECT   ABS
+                 0010 ;
+ >F0FD           0011 OFFSET  EQU     0F0FDH
+ >0F00           0012 LNGTH   EQU     0F00H
+                 0013 ;
+                 0014 ; FIND ABSOLUTE BASE FOR ZX65
+                 0015 ;
+ >0100           0016         ORG     100H            ; FOR CPM
+ 0100  310001    0017 LDE     LD      SP,LDE
+ 0103  2A0100    0018         LD      HL,(1)          ; WS VECTOR BIOS+3
+ 0106  11FDF0    0019         LD      DE,OFFSET       ; CMP OFFSET
+ 0109  19        0020         ADD     HL,DE
+ 010A  E5        0021         PUSH    HL              ; SAVE ABSBAS
+ 010B  3F        0022         CCF
+ 010C  11FFFF    0023         LD      DE,RELBAS
+ 010F  D5        0024         PUSH    DE              ; SAVE RELBAS
+ 0110  ED52      0025         SBC     HL,DE
+ 0112  EB        0026         EX      DE,HL           ; DE=XFRBAS
+                 0027 ;
+                 0028 ; ADJUST ALL INSTRUCTIONS TO ABSBAS
+                 0029 ;
+ 0113  DD216601  0030 AREL    LD      IX,REL2         ; 2-BYTE VALUES
+ 0117  FD210D01  0031 ALP     LD      IY,RELBAS
+ 011B  CD4901    0032         CALL    IXFER
+ 011E  20F7      0033         JR      NZ,ALP-$
+                 0034 ;
+ 0120  DD21B401  0035 BREL    LD      IX,REL3         ; 3-BYTE INSTRS
+ 0124  FD211901  0036 BLP     LD      IY,RELBAS
+ 0128  FD23      0037         INC     IY
+ 012A  CD4901    0038         CALL    IXFER
+ 012D  20F5      0039         JR      NZ,BLP-$
+                 0040 ;
+ 012F  DD213004  0041 CREL    LD      IX,REL4         ; 4-BYTE INSTRS
+ 0133  FD212601  0042 CLP     LD      IY,RELBAS
+ 0137  FD23      0043         INC     IY
+ 0139  FD23      0044         INC     IY
+ 013B  CD4901    0045         CALL    IXFER
+ 013E  20F3      0046         JR      NZ,CLP-$
+                 0047 ;
+                 0048 ; MOVE PGM TO ABSBAS AND JUMP TO IT
+                 0049 ;
+ 0140  E1        0050         POP     HL              ; RETRV RELBAS
+ 0141  D1        0051         POP     DE              ; RETRIEVE ABSBAS
+ 0142  D5        0052         PUSH    DE
+ 0143  01000F    0053         LD      BC,LNGTH
+ 0146  EDB0      0054         LDIR
+ 0148  C9        0055         RET
+                 0056 ;
+ 0149  DD4601    0057 IXFER   LD      B,(IX+1)
+ 014C  DD4E00    0058         LD      C,(IX+0)        ; BC=PGM OFFSET
+ 014F  79        0059         LD      A,C
+
+
+
+
+
+ZXLOAD ZXLD  VER 2.1  9/80  RMK        SD SYSTEMS Z80 ASSEMBLER PAGE 0002 
+ ADDR  CODE      STMT SOURCE STATEMENT
+
+ 0150  3D        0060         DEC     A
+ 0151  C8        0061         RET     Z
+ 0152  FD09      0062         ADD     IY,BC           ; IY = INSTRUCTION
+ 0154  FD6601    0063         LD      H,(IY+1)
+ 0157  FD6E00    0064         LD      L,(IY+0)        ; HL = REL TGT ADDR
+ 015A  19        0065         ADD     HL,DE           ; HL = ABS TGT ADDR
+ 015B  FD7401    0066         LD      (IY+1),H
+ 015E  FD7500    0067         LD      (IY+0),L
+ 0161  DD23      0068         INC     IX
+ 0163  DD23      0069         INC     IX
+ 0165  C9        0070         RET
+                 0071 ;
+                 0072 ;
+                 0073 ; RELOCATION TABLES FOR ZX65
+                 0074 ; **** NOTE **** IF YOU MAKE ANY CHANGES IN ZX65R THAT
+                 0075 ; AFFECT THE LOCATION OF ANY NON-RELOCATABLE INSTRUCTION
+                 0076 ; THIS LOADER WILL NO LONGER WORK!!!
+                 0077 ;
+ 0166  620D      0078 REL2    DEFW    0D62H           ; 2-BYTE LABELS
+ 0168  640D      0079         DEFW    0D64H
+ 016A  660D      0080         DEFW    0D66H
+ 016C  680D      0081         DEFW    0D68H
+ 016E  6A0D      0082         DEFW    0D6AH
+ 0170  6C0D      0083         DEFW    0D6CH
+ 0172  6E0D      0084         DEFW    0D6EH
+ 0174  700D      0085         DEFW    0D70H
+ 0176  720D      0086         DEFW    0D72H
+ 0178  740D      0087         DEFW    0D74H
+ 017A  760D      0088         DEFW    0D76H
+ 017C  780D      0089         DEFW    0D78H
+ 017E  7A0D      0090         DEFW    0D7AH
+ 0180  7C0D      0091         DEFW    0D7CH
+ 0182  7E0D      0092         DEFW    0D7EH
+ 0184  800D      0093         DEFW    0D80H
+ 0186  820D      0094         DEFW    0D82H
+ 0188  840D      0095         DEFW    0D84H
+ 018A  860D      0096         DEFW    0D86H
+ 018C  880D      0097         DEFW    0D88H
+ 018E  8A0D      0098         DEFW    0D8AH
+ 0190  8C0D      0099         DEFW    0D8CH
+ 0192  8E0D      0100         DEFW    0D8EH
+ 0194  900D      0101         DEFW    0D90H
+ 0196  920D      0102         DEFW    0D92H
+ 0198  940D      0103         DEFW    0D94H
+ 019A  960D      0104         DEFW    0D96H
+ 019C  980D      0105         DEFW    0D98H
+ 019E  9A0D      0106         DEFW    0D9AH
+ 01A0  9C0D      0107         DEFW    0D9CH
+ 01A2  9E0D      0108         DEFW    0D9EH
+ 01A4  A00D      0109         DEFW    0DA0H
+ 01A6  A20D      0110         DEFW    0DA2H
+ 01A8  A40D      0111         DEFW    0DA4H
+ 01AA  A60D      0112         DEFW    0DA6H
+ 01AC  A80D      0113         DEFW    0DA8H
+ 01AE  AA0D      0114         DEFW    0DAAH
+ 01B0  AC0D      0115         DEFW    0DACH
+ 01B2  0100      0116         DEFW    0001
+                 0117 ;
+
+
+
+
+
+ZXLOAD ZXLD  VER 2.1  9/80  RMK        SD SYSTEMS Z80 ASSEMBLER PAGE 0003 
+ ADDR  CODE      STMT SOURCE STATEMENT
+
+                 0118 ; THREE-BYTE INSTRUCTIONS
+                 0119 ;
+ 01B4  0000      0120 REL3    DEFW    0000H
+ 01B6  0500      0121         DEFW    0005H
+ 01B8  0800      0122         DEFW    0008H
+ 01BA  0F00      0123         DEFW    000FH
+ 01BC  1200      0124         DEFW    0012H
+ 01BE  1500      0125         DEFW    0015H
+ 01C0  1900      0126         DEFW    0019H
+ 01C2  1C00      0127         DEFW    001CH
+ 01C4  1F00      0128         DEFW    001FH
+ 01C6  2400      0129         DEFW    0024H
+ 01C8  2900      0130         DEFW    0029H
+ 01CA  3600      0131         DEFW    0036H
+ 01CC  3B00      0132         DEFW    003BH
+ 01CE  4C00      0133         DEFW    004CH
+ 01D0  5100      0134         DEFW    0051H
+ 01D2  5600      0135         DEFW    0056H
+ 01D4  5B00      0136         DEFW    005BH
+ 01D6  6000      0137         DEFW    0060H
+ 01D8  6500      0138         DEFW    0065H
+ 01DA  6A00      0139         DEFW    006AH
+ 01DC  7300      0140         DEFW    0073H
+ 01DE  7600      0141         DEFW    0076H
+ 01E0  7E00      0142         DEFW    007EH
+ 01E2  8100      0143         DEFW    0081H
+ 01E4  8400      0144         DEFW    0084H
+ 01E6  8700      0145         DEFW    0087H
+ 01E8  8D00      0146         DEFW    008DH
+ 01EA  9C00      0147         DEFW    009CH
+ 01EC  9F00      0148         DEFW    009FH
+ 01EE  A600      0149         DEFW    00A6H
+ 01F0  B500      0150         DEFW    00B5H
+ 01F2  BA00      0151         DEFW    00BAH
+ 01F4  C100      0152         DEFW    00C1H
+ 01F6  C400      0153         DEFW    00C4H
+ 01F8  C900      0154         DEFW    00C9H
+ 01FA  D000      0155         DEFW    00D0H
+ 01FC  D700      0156         DEFW    00D7H
+ 01FE  DE00      0157         DEFW    00DEH
+ 0200  E100      0158         DEFW    00E1H
+ 0202  E400      0159         DEFW    00E4H
+ 0204  F300      0160         DEFW    00F3H
+ 0206  F600      0161         DEFW    00F6H
+ 0208  FC00      0162         DEFW    00FCH
+ 020A  FF00      0163         DEFW    00FFH
+ 020C  0201      0164         DEFW    0102H
+ 020E  1401      0165         DEFW    0114H
+ 0210  1B01      0166         DEFW    011BH
+ 0212  2201      0167         DEFW    0122H
+ 0214  2501      0168         DEFW    0125H
+ 0216  5301      0169         DEFW    0153H
+ 0218  6B01      0170         DEFW    016BH
+ 021A  7201      0171         DEFW    0172H
+ 021C  7801      0172         DEFW    0178H
+ 021E  7F01      0173         DEFW    017FH
+ 0220  8601      0174         DEFW    0186H
+ 0222  8E01      0175         DEFW    018EH
+
+
+
+
+
+ZXLOAD ZXLD  VER 2.1  9/80  RMK        SD SYSTEMS Z80 ASSEMBLER PAGE 0004 
+ ADDR  CODE      STMT SOURCE STATEMENT
+
+ 0224  9301      0176         DEFW    0193H
+ 0226  9601      0177         DEFW    0196H
+ 0228  9901      0178         DEFW    0199H
+ 022A  9E01      0179         DEFW    019EH
+ 022C  A301      0180         DEFW    01A3H
+ 022E  AD01      0181         DEFW    01ADH
+ 0230  B201      0182         DEFW    01B2H
+ 0232  B701      0183         DEFW    01B7H
+ 0234  BC01      0184         DEFW    01BCH
+ 0236  BF01      0185         DEFW    01BFH
+ 0238  C901      0186         DEFW    01C9H
+ 023A  CE01      0187         DEFW    01CEH
+ 023C  D101      0188         DEFW    01D1H
+ 023E  DD01      0189         DEFW    01DDH
+ 0240  E201      0190         DEFW    01E2H
+ 0242  E501      0191         DEFW    01E5H
+ 0244  EB01      0192         DEFW    01EBH
+ 0246  F001      0193         DEFW    01F0H
+ 0248  F301      0194         DEFW    01F3H
+ 024A  FA01      0195         DEFW    01FAH
+ 024C  0502      0196         DEFW    0205H
+ 024E  0902      0197         DEFW    0209H
+ 0250  1E02      0198         DEFW    021EH
+ 0252  2102      0199         DEFW    0221H
+ 0254  2702      0200         DEFW    0227H
+ 0256  5F02      0201         DEFW    025FH
+ 0258  6602      0202         DEFW    0266H
+ 025A  6B02      0203         DEFW    026BH
+ 025C  7102      0204         DEFW    0271H
+ 025E  7E02      0205         DEFW    027EH
+ 0260  8B02      0206         DEFW    028BH
+ 0262  9102      0207         DEFW    0291H
+ 0264  9602      0208         DEFW    0296H
+ 0266  9902      0209         DEFW    0299H
+ 0268  A302      0210         DEFW    02A3H
+ 026A  A902      0211         DEFW    02A9H
+ 026C  AC02      0212         DEFW    02ACH
+ 026E  B702      0213         DEFW    02B7H
+ 0270  BD02      0214         DEFW    02BDH
+ 0272  C002      0215         DEFW    02C0H
+ 0274  CD02      0216         DEFW    02CDH
+ 0276  E802      0217         DEFW    02E8H
+ 0278  1303      0218         DEFW    0313H
+ 027A  1E03      0219         DEFW    031EH
+ 027C  3203      0220         DEFW    0332H
+ 027E  3903      0221         DEFW    0339H
+ 0280  6403      0222         DEFW    0364H
+ 0282  6B03      0223         DEFW    036BH
+ 0284  7103      0224         DEFW    0371H
+ 0286  7403      0225         DEFW    0374H
+ 0288  7E03      0226         DEFW    037EH
+ 028A  8C03      0227         DEFW    038CH
+ 028C  9003      0228         DEFW    0390H
+ 028E  9303      0229         DEFW    0393H
+ 0290  9903      0230         DEFW    0399H
+ 0292  9C03      0231         DEFW    039CH
+ 0294  A203      0232         DEFW    03A2H
+ 0296  A503      0233         DEFW    03A5H
+
+
+
+
+
+ZXLOAD ZXLD  VER 2.1  9/80  RMK        SD SYSTEMS Z80 ASSEMBLER PAGE 0005 
+ ADDR  CODE      STMT SOURCE STATEMENT
+
+ 0298  AB03      0234         DEFW    03ABH
+ 029A  B103      0235         DEFW    03B1H
+ 029C  B403      0236         DEFW    03B4H
+ 029E  E303      0237         DEFW    03E3H
+ 02A0  1504      0238         DEFW    0415H
+ 02A2  1804      0239         DEFW    0418H
+ 02A4  2E04      0240         DEFW    042EH
+ 02A6  3504      0241         DEFW    0435H
+ 02A8  3804      0242         DEFW    0438H
+ 02AA  3D04      0243         DEFW    043DH
+ 02AC  4004      0244         DEFW    0440H
+ 02AE  4A04      0245         DEFW    044AH
+ 02B0  4D04      0246         DEFW    044DH
+ 02B2  5104      0247         DEFW    0451H
+ 02B4  5404      0248         DEFW    0454H
+ 02B6  5E04      0249         DEFW    045EH
+ 02B8  6F04      0250         DEFW    046FH
+ 02BA  7604      0251         DEFW    0476H
+ 02BC  7B04      0252         DEFW    047BH
+ 02BE  7E04      0253         DEFW    047EH
+ 02C0  8404      0254         DEFW    0484H
+ 02C2  8704      0255         DEFW    0487H
+ 02C4  8B04      0256         DEFW    048BH
+ 02C6  8E04      0257         DEFW    048EH
+ 02C8  9804      0258         DEFW    0498H
+ 02CA  9E04      0259         DEFW    049EH
+ 02CC  A404      0260         DEFW    04A4H
+ 02CE  AA04      0261         DEFW    04AAH
+ 02D0  B404      0262         DEFW    04B4H
+ 02D2  BA04      0263         DEFW    04BAH
+ 02D4  C004      0264         DEFW    04C0H
+ 02D6  C604      0265         DEFW    04C6H
+ 02D8  D004      0266         DEFW    04D0H
+ 02DA  D404      0267         DEFW    04D4H
+ 02DC  D704      0268         DEFW    04D7H
+ 02DE  E104      0269         DEFW    04E1H
+ 02E0  E504      0270         DEFW    04E5H
+ 02E2  E804      0271         DEFW    04E8H
+ 02E4  EE04      0272         DEFW    04EEH
+ 02E6  F104      0273         DEFW    04F1H
+ 02E8  F904      0274         DEFW    04F9H
+ 02EA  FE04      0275         DEFW    04FEH
+ 02EC  0405      0276         DEFW    0504H
+ 02EE  1405      0277         DEFW    0514H
+ 02F0  1C05      0278         DEFW    051CH
+ 02F2  2F05      0279         DEFW    052FH
+ 02F4  4205      0280         DEFW    0542H
+ 02F6  4E05      0281         DEFW    054EH
+ 02F8  5505      0282         DEFW    0555H
+ 02FA  6105      0283         DEFW    0561H
+ 02FC  6805      0284         DEFW    0568H
+ 02FE  7405      0285         DEFW    0574H
+ 0300  7F05      0286         DEFW    057FH
+ 0302  8705      0287         DEFW    0587H
+ 0304  9805      0288         DEFW    0598H
+ 0306  AB05      0289         DEFW    05ABH
+ 0308  B105      0290         DEFW    05B1H
+ 030A  B705      0291         DEFW    05B7H
+
+
+
+
+
+ZXLOAD ZXLD  VER 2.1  9/80  RMK        SD SYSTEMS Z80 ASSEMBLER PAGE 0006 
+ ADDR  CODE      STMT SOURCE STATEMENT
+
+ 030C  BD05      0292         DEFW    05BDH
+ 030E  C305      0293         DEFW    05C3H
+ 0310  CD05      0294         DEFW    05CDH
+ 0312  D705      0295         DEFW    05D7H
+ 0314  5A06      0296         DEFW    065AH
+ 0316  E906      0297         DEFW    06E9H
+ 0318  EC06      0298         DEFW    06ECH
+ 031A  EF06      0299         DEFW    06EFH
+ 031C  F306      0300         DEFW    06F3H
+ 031E  F606      0301         DEFW    06F6H
+ 0320  F906      0302         DEFW    06F9H
+ 0322  FC06      0303         DEFW    06FCH
+ 0324  1507      0304         DEFW    0715H
+ 0326  1807      0305         DEFW    0718H
+ 0328  1B07      0306         DEFW    071BH
+ 032A  2207      0307         DEFW    0722H
+ 032C  2507      0308         DEFW    0725H
+ 032E  2C07      0309         DEFW    072CH
+ 0330  3D07      0310         DEFW    073DH
+ 0332  4B07      0311         DEFW    074BH
+ 0334  4E07      0312         DEFW    074EH
+ 0336  5107      0313         DEFW    0751H
+ 0338  5507      0314         DEFW    0755H
+ 033A  5807      0315         DEFW    0758H
+ 033C  5B07      0316         DEFW    075BH
+ 033E  5F07      0317         DEFW    075FH
+ 0340  6207      0318         DEFW    0762H
+ 0342  6507      0319         DEFW    0765H
+ 0344  6F07      0320         DEFW    076FH
+ 0346  7807      0321         DEFW    0778H
+ 0348  7B07      0322         DEFW    077BH
+ 034A  8207      0323         DEFW    0782H
+ 034C  9107      0324         DEFW    0791H
+ 034E  9807      0325         DEFW    0798H
+ 0350  9D07      0326         DEFW    079DH
+ 0352  A307      0327         DEFW    07A3H
+ 0354  A807      0328         DEFW    07A8H
+ 0356  AB07      0329         DEFW    07ABH
+ 0358  B807      0330         DEFW    07B8H
+ 035A  C307      0331         DEFW    07C3H
+ 035C  CC07      0332         DEFW    07CCH
+ 035E  D507      0333         DEFW    07D5H
+ 0360  D807      0334         DEFW    07D8H
+ 0362  DE07      0335         DEFW    07DEH
+ 0364  EB07      0336         DEFW    07EBH
+ 0366  F207      0337         DEFW    07F2H
+ 0368  F507      0338         DEFW    07F5H
+ 036A  F807      0339         DEFW    07F8H
+ 036C  FB07      0340         DEFW    07FBH
+ 036E  0408      0341         DEFW    0804H
+ 0370  0708      0342         DEFW    0807H
+ 0372  0A08      0343         DEFW    080AH
+ 0374  0D08      0344         DEFW    080DH
+ 0376  1308      0345         DEFW    0813H
+ 0378  1608      0346         DEFW    0816H
+ 037A  1B08      0347         DEFW    081BH
+ 037C  1E08      0348         DEFW    081EH
+ 037E  2108      0349         DEFW    0821H
+
+
+
+
+
+ZXLOAD ZXLD  VER 2.1  9/80  RMK        SD SYSTEMS Z80 ASSEMBLER PAGE 0007 
+ ADDR  CODE      STMT SOURCE STATEMENT
+
+ 0380  2E08      0350         DEFW    082EH
+ 0382  3108      0351         DEFW    0831H
+ 0384  3408      0352         DEFW    0834H
+ 0386  3708      0353         DEFW    0837H
+ 0388  4008      0354         DEFW    0840H
+ 038A  4308      0355         DEFW    0843H
+ 038C  4608      0356         DEFW    0846H
+ 038E  4908      0357         DEFW    0849H
+ 0390  5F08      0358         DEFW    085FH
+ 0392  6208      0359         DEFW    0862H
+ 0394  A708      0360         DEFW    08A7H
+ 0396  AA08      0361         DEFW    08AAH
+ 0398  AD08      0362         DEFW    08ADH
+ 039A  B008      0363         DEFW    08B0H
+ 039C  B608      0364         DEFW    08B6H
+ 039E  B908      0365         DEFW    08B9H
+ 03A0  BC08      0366         DEFW    08BCH
+ 03A2  CB08      0367         DEFW    08CBH
+ 03A4  CE08      0368         DEFW    08CEH
+ 03A6  D108      0369         DEFW    08D1H
+ 03A8  D708      0370         DEFW    08D7H
+ 03AA  0209      0371         DEFW    0902H
+ 03AC  0509      0372         DEFW    0905H
+ 03AE  0A09      0373         DEFW    090AH
+ 03B0  0E09      0374         DEFW    090EH
+ 03B2  1109      0375         DEFW    0911H
+ 03B4  1D09      0376         DEFW    091DH
+ 03B6  2009      0377         DEFW    0920H
+ 03B8  3609      0378         DEFW    0936H
+ 03BA  3A09      0379         DEFW    093AH
+ 03BC  3D09      0380         DEFW    093DH
+ 03BE  9509      0381         DEFW    0995H
+ 03C0  9809      0382         DEFW    0998H
+ 03C2  9D09      0383         DEFW    099DH
+ 03C4  A009      0384         DEFW    09A0H
+ 03C6  A309      0385         DEFW    09A3H
+ 03C8  A609      0386         DEFW    09A6H
+ 03CA  B409      0387         DEFW    09B4H
+ 03CC  BA09      0388         DEFW    09BAH
+ 03CE  C009      0389         DEFW    09C0H
+ 03D0  E709      0390         DEFW    09E7H
+ 03D2  EA09      0391         DEFW    09EAH
+ 03D4  040A      0392         DEFW    0A04H
+ 03D6  070A      0393         DEFW    0A07H
+ 03D8  0E0A      0394         DEFW    0A0EH
+ 03DA  290A      0395         DEFW    0A29H
+ 03DC  3E0A      0396         DEFW    0A3EH
+ 03DE  410A      0397         DEFW    0A41H
+ 03E0  4C0A      0398         DEFW    0A4CH
+ 03E2  510A      0399         DEFW    0A51H
+ 03E4  560A      0400         DEFW    0A56H
+ 03E6  5B0A      0401         DEFW    0A5BH
+ 03E8  600A      0402         DEFW    0A60H
+ 03EA  630A      0403         DEFW    0A63H
+ 03EC  6D0A      0404         DEFW    0A6DH
+ 03EE  720A      0405         DEFW    0A72H
+ 03F0  750A      0406         DEFW    0A75H
+ 03F2  7C0A      0407         DEFW    0A7CH
+
+
+
+
+
+ZXLOAD ZXLD  VER 2.1  9/80  RMK        SD SYSTEMS Z80 ASSEMBLER PAGE 0008 
+ ADDR  CODE      STMT SOURCE STATEMENT
+
+ 03F4  810A      0408         DEFW    0A81H
+ 03F6  9B0A      0409         DEFW    0A9BH
+ 03F8  B30A      0410         DEFW    0AB3H
+ 03FA  C00A      0411         DEFW    0AC0H
+ 03FC  D30A      0412         DEFW    0AD3H
+ 03FE  E60A      0413         DEFW    0AE6H
+ 0400  F00A      0414         DEFW    0AF0H
+ 0402  FA0A      0415         DEFW    0AFAH
+ 0404  000B      0416         DEFW    0B00H
+ 0406  0F0B      0417         DEFW    0B0FH
+ 0408  160B      0418         DEFW    0B16H
+ 040A  1B0B      0419         DEFW    0B1BH
+ 040C  220B      0420         DEFW    0B22H
+ 040E  290B      0421         DEFW    0B29H
+ 0410  2E0B      0422         DEFW    0B2EH
+ 0412  310B      0423         DEFW    0B31H
+ 0414  340B      0424         DEFW    0B34H
+ 0416  370B      0425         DEFW    0B37H
+ 0418  3A0B      0426         DEFW    0B3AH
+ 041A  3D0B      0427         DEFW    0B3DH
+ 041C  400B      0428         DEFW    0B40H
+ 041E  430B      0429         DEFW    0B43H
+ 0420  460B      0430         DEFW    0B46H
+ 0422  490B      0431         DEFW    0B49H
+ 0424  4C0B      0432         DEFW    0B4CH
+ 0426  4F0B      0433         DEFW    0B4FH
+ 0428  520B      0434         DEFW    0B52H
+ 042A  550B      0435         DEFW    0B55H
+ 042C  580B      0436         DEFW    0B58H
+ 042E  0100      0437         DEFW    0001
+                 0438 ;
+                 0439 ; FOUR-BYTE INSTRUCTIONS
+                 0440 ;
+ 0430  0B00      0441 REL4    DEFW    000BH
+ 0432  2C00      0442         DEFW    002CH
+ 0434  4600      0443         DEFW    0046H
+ 0436  6F00      0444         DEFW    006FH
+ 0438  9800      0445         DEFW    0098H
+ 043A  A200      0446         DEFW    00A2H
+ 043C  A900      0447         DEFW    00A9H
+ 043E  D300      0448         DEFW    00D3H
+ 0440  DA00      0449         DEFW    00DAH
+ 0442  E900      0450         DEFW    00E9H
+ 0444  ED00      0451         DEFW    00EDH
+ 0446  1701      0452         DEFW    0117H
+ 0448  1E01      0453         DEFW    011EH
+ 044A  2C01      0454         DEFW    012CH
+ 044C  6501      0455         DEFW    0165H
+ 044E  8201      0456         DEFW    0182H
+ 0450  2D02      0457         DEFW    022DH
+ 0452  E402      0458         DEFW    02E4H
+ 0454  2E03      0459         DEFW    032EH
+ 0456  3503      0460         DEFW    0335H
+ 0458  E803      0461         DEFW    03E8H
+ 045A  2A04      0462         DEFW    042AH
+ 045C  3104      0463         DEFW    0431H
+ 045E  1406      0464         DEFW    0614H
+ 0460  1A06      0465         DEFW    061AH
+
+
+
+
+
+ZXLOAD ZXLD  VER 2.1  9/80  RMK        SD SYSTEMS Z80 ASSEMBLER PAGE 0009 
+ ADDR  CODE      STMT SOURCE STATEMENT
+
+ 0462  2006      0466         DEFW    0620H
+ 0464  3206      0467         DEFW    0632H
+ 0466  4306      0468         DEFW    0643H
+ 0468  5606      0469         DEFW    0656H
+ 046A  EE07      0470         DEFW    07EEH
+ 046C  2508      0471         DEFW    0825H
+ 046E  BF08      0472         DEFW    08BFH
+ 0470  DA08      0473         DEFW    08DAH
+ 0472  DE08      0474         DEFW    08DEH
+ 0474  8B09      0475         DEFW    098BH
+ 0476  AA09      0476         DEFW    09AAH
+ 0478  F309      0477         DEFW    09F3H
+ 047A  3A0A      0478         DEFW    0A3AH
+ 047C  0100      0479         DEFW    0001
+ 047E  0000      0480         DEFW    0
+                 0481 ;
+
+ERRORS=0000 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 

@@ -1,0 +1,348 @@
+
+;	-----------------------------------------------------------
+;	DUMP.COM is a utility provided by Digital Research in their
+;	CP/M package. However, it is convenient to supplement the
+;	original program with some additional features, as well as
+;	cleaning up the code which is based on their PL/M compiler.
+;	Accordingly, the display line formed from a serial address
+;	and sixteen hexadecimal bytes is supplemented by the ASCII
+;	interpretation of these same bytes, as is done by DDT. If
+;	desired, the whole display may be recorded on disk, and
+;	later edited or printed. Error checking is very lenient.
+;
+;		    DUMMP.ASN   Copyright (C) 1983
+;		    Universidad Autonoma de Puebla
+;		           November 15, 1983
+;
+;	[Harold V. McIntosh, 15 November 1983]
+;	-----------------------------------------------------------
+
+BDOS	equ	224		;CP/M interrupt to BDOS
+
+TFCB	equ	5CH		;file control block address
+DSIZ	equ	200H		;size of .DDD buffer
+TSIZ	equ	80H		;size of input buffer
+TBUF	equ	80H		;input buffer address
+
+;	Non-graphic characters
+
+CR	equ	0DH		;carriage return
+LF	equ	0AH		;line feed
+
+
+;	-------------
+	org	0100H
+;	-------------
+
+BEGN:	cmpb	TFCB+1,#' '
+	jnz	NNUL
+	ld	bx,#LOGO
+	call	MSSG
+	jmp	EXIT
+
+NNUL:	ld	bx,#(TFCB+9)
+	cmpb	[bx],#' '
+	jnz	YEXT
+	stob	#'C',[bx]
+	inc	bx
+	stob	#'M',[bx]
+	inc	bx
+	stob	#'D',[bx]
+
+YEXT:	stob	#0,DOUT		;z=no .DDD file
+	ld	bx,#(TFCB+17)
+	cmpb	[bx],#' '
+	jz	OPFI
+
+;	If a listing file is specified, set it up.
+
+	ld	ah,#12
+	ld	dx,#DFCB	;.DDD FCB
+	ld	bx,#(TFCB+16)
+DMOV:	ld	al,[bx]
+	xchg	bx,dx
+	sto	al,[bx]
+	xchg	bx,dx
+	inc	bx
+	inc	dx
+	dec	ah
+	jnz	DMOV
+
+;	Beware that the same file will not be source and listing.
+
+	ld	ah,#11
+	ld	bx,#(TFCB+1)
+	ld	dx,#(DFCB+1)
+DCHK:	ld	al,[bx]
+	xchg	bx,dx
+	cmp	al,[bx]
+	xchg	bx,dx
+	jnz	DINI
+	inc	bx
+	inc	dx
+	dec	ah
+	jnz	DCHK
+	ld	bx,#SAME
+	call	MSSG
+	jmp	EXIT
+
+DINI:	ld	cl,#19		;(13) delete file
+	ld	dx,#DFCB	;.DDD FCB
+	int	BDOS
+
+	ld	cl,#22		;(16) create file
+	ld	dx,#DFCB	;.DDD FCB
+	int	BDOS
+
+	ld	cl,#15		;(0F) open file
+	ld	dx,#DFCB	;.DDD FCB
+	int	BDOS
+
+	sto	#DBUF,DPTR
+	stob	#0,DFCB+32
+	stob	#1,DOUT		;z=no .DDD file
+
+OPFI:	ld	dx,#TFCB
+	ld	cl,#15		;(0F) open file
+	int	BDOS
+	inc	al
+	jnz	YOPE
+	ld	bx,#NFIL
+	call	MSSG
+	jmp	EXIT
+
+YOPE:	stob	#0,TFCB+32	;set record number to zero
+	ld	cx,#0000	;byte counter, kept in BC
+
+LOOP:	call	RDSK
+	or	al,al
+	jnz	CLOS
+	call	WBUF
+	call	BREAK		;check FOR manual interruption
+	ror	al
+	jnc	LOOP
+	ld	bx,#DINT
+	call	MSSG
+
+;	Clear out and close .DDD file
+
+CLOS:	cmpb	DOUT,#0
+	jz	EXIT
+CLOA:	cmp	DPTR,#DEND
+	jnc	NCLR
+	ld	bx,DPTR
+	sto	#1AH,[bx]	;^Z
+	inc	DPTR
+	ld	bx,#DFCB	;.DDD FCB
+	ld	dx,#DBUF
+CLOB:	push	dx
+	push	bx
+	ld	cl,#26		;(1A) set DMA address
+	int	BDOS
+	pop	dx
+	push	dx
+	ld	cl,#21		;(15) write one record
+	int	BDOS
+	pop	bx
+	pop	dx
+	or	al,al
+	add	dx,#TSIZ
+	cmp	dx,DPTR
+	jc	CLOB
+
+NCLR:	ld	cl,#16		;(10) close file
+	ld	dx,#DFCB	;.DDD FCB
+	int	BDOS
+
+EXIT:	ld	dl,#00
+	ld	cl,#00
+	int	BDOS
+
+WBUF:	ld	bx,#TBUF
+	call	WFOR
+WFOR:	call	WTWO
+WTWO:	call	WONE
+WONE:	call	WORD
+	call	DUBL
+	add	cx,#16
+	push	bx
+	call	HLIN
+	call	SNGL
+	pop	bx
+	call	ALIN
+	jmp	CRLF
+
+;	Type out sixteen bytes in hexadecimal representation.
+
+HLIN:	call	HEIG
+HEIG:	call	HFOR
+HFOR:	call	HTWO
+HTWO:	call	HONE
+HONE:	ld	al,[bx]
+	call	BYTE
+	ld	al,#' '
+	call	CONA
+	inc	bx
+	ret
+
+;	Type out sixteen bytes as ASCII characters if possible.
+
+ALIN:	call	AEIG
+AEIG:	call	AFOR
+AFOR:	call	ATWO
+ATWO	call	AONE
+AONE:	ld	al,[bx]
+	call	PRPR
+	inc	bx
+	ret
+
+;	Check whether a termination request is pending.
+
+BREAK:	push	bx
+	push	dx
+	push	cx
+	ld	cl,#11		;(0B) console status
+	int	BDOS
+	push	ax
+	ror	al
+	jnc	BRK
+	ld	cl,#1		;(01) read console
+	int	BDOS
+BRK:	pop	ax
+	pop	cx
+	pop	dx
+	pop	bx
+	ret
+
+DUBL:	call	SNGL
+SNGL:	ld	al,#' '
+	jmp	CONA
+
+;	Subroutines for various output formats.
+
+CRLF:	ld	al,#CR
+	call	CONA
+	ld	al,#LF
+	jmp	CONA
+
+WORD:	mov	al,ch
+	call	BYTE
+	mov	al,cl
+BYTE:	push	ax
+	ror	al
+	ror	al
+	ror	al
+	ror	al
+	call	NIBL
+	pop	ax
+NIBL:	and	al,#0FH
+	add	al,#90H
+	daa
+	adc	al,#40H
+	daa
+CONA:	push	bx
+	push	dx
+	push	cx
+	push	ax
+	ld	cl,#2		;(02) char to console
+	mov	dl,al
+	int	BDOS
+	pop	ax
+	cmpb	DOUT,#0
+	jz	CONB
+	call	DDDA
+CONB:	pop	cx
+	pop	dx
+	pop	bx
+	ret
+
+;	Print printables, put dot for the rest.
+
+PRPR:	cmp	al,#07FH	;rubout
+	jnc	PRDO
+	cmp	al,#' '
+	jnc	CONA
+PRDO:	ld	al,#'.'
+	jmp	CONA
+
+;	Deposit byte in .DDD buffer and flush when full.
+
+DDDA:	cmp	DPTR,#DEND
+	jc	DDDB
+	ld	bx,#DFCB	;.DDD FCB
+	ld	dx,#DBUF
+	push	ax
+DDDC:	push	dx
+	push	bx
+	ld	cl,#26		;(1A) set DMA address
+	int	BDOS
+	pop	dx
+	push	dx
+	ld	cl,#21		;(15) write one record
+	int	BDOS
+	pop	bx
+	pop	dx
+	or	al,al
+	add	dx,#TSIZ
+	cmp	dx,#DEND
+	jc	DDDC
+	sto	#DBUF,DPTR
+	pop	ax
+DDDB:	ld	bx,DPTR
+	sto	al,[bx]
+	inc	DPTR
+	ret
+
+;	Memory to the console, replacing CP/M function 9, which
+;	terminates messages with $. MSSG uses 00's.
+
+MSSG:	ld	dl,[bx]
+	inc	bx
+	push	bx
+	ld	cl,#2
+	int	BDOS
+	pop	bx
+	cmpb	[bx],#00
+	jnz	mssg
+	ret
+
+;	Read a record from disk to be analyzed.
+
+RDSK:	push	bx
+	push	dx
+	push	cx
+
+	ld	cl,#26		;(1A) set DMA address
+	ld	dx,#TBUF
+	int	BDOS
+
+	ld	cl,#20		;(14) read one record
+	ld	dx,#TFCB
+	int	BDOS
+
+	pop	cx
+	pop	dx
+	pop	bx
+	ret
+
+;	-----------------------------------------------------------
+
+NFIL:	db	CR,LF,'Requested file not present.',00
+SAME:	db	CR,LF,'Same file specified for source and listing.',00
+DINT:	db	'Dump interrupted.',00
+LOGO:	db	CR,LF,'File Dump/ICUAP/November 15, 1983.',CR,LF,CR,LF
+	db	'	DUMMP [D:]FILE[.EXT] [[D:]LIST.DDD]',CR,LF,CR,LF
+	db	'will allow viewing of FILE on the console; the display',CR,LF
+	db	'may be saved in the file LIST if one is specified. If',CR,LF
+	db	'.EXT is not given, .CMD is assumed.',CR,LF
+	db	00
+DOUT:	ds	1	;z=no .DDD file
+DFCB:	db	'DFilenameDDD',00,00,00,00
+	ds	17
+DPTR:	ds	2
+DBUF:	ds	DSIZ
+DEND:	equ	DBUF+DSIZ
+
+	end
+
+

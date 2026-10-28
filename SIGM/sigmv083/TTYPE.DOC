@@ -1,0 +1,605 @@
+                       TOUCHTYPE TUTOR
+                 Version 2.0  16th April 1982
+                   Direct Cursor Addressing
+
+
+
+
+            Concept By: Tim Pearce   7 Bannerman St,
+                                     Cremorne, N.S.W.
+   
+           Reworked By: R. Berthet   15/5 Cottonwood Cr.
+                                     North Ryde, 2113.
+                                     SYDNEY.
+                                     (61-2)-88-1640
+
+
+ This  document  is  entered into the public  domain  by  its 
+  author, Richard Berthet. Please do not remove this notice.
+
+
+INTRODUCTION
+
+TTYPE  (TOUCHTYPE TUTOR) is an application programme  designed 
+to  aid the user to quickly gain touch typing skills using the 
+computer keyboard and the computer, of course.
+
+
+
+Some of the features are:
+
+*    Lots of HELP, which you can expand.
+
+*    Onscreen  representation of a 'QWERTY' keyboard  to  give           
+     visual feedback.
+
+*    Graduated    exercises   with   prompts   (or   comments) 
+     throughout.
+
+
+The  objective  of  this  document  is  to  assist  you,   the 
+programmer to get the programme up and running on your  system 
+as fast as possible,  whereupon,  it is fairly obvious what it 
+is supposed to do and how it is supposed to do it.
+
+For the impatient, I propose to first discuss what to alter to 
+make  it  go  straightaway,   and for those who  may  wish  to 
+tinker,  I  will  launch into a discourse about the  programme 
+itself .
+
+                      QUICK INSTALLATION 
+
+
+Hardware  
+
+This  version,  (2.0),  of TTYPE is written for Direct  Cursor 
+Addressing terminals,  so if yours isn't,  then you may either 
+do  a complete rewrite or wait for the  Non-Cursor  Addressing 
+version.
+
+Software
+
+Following  is  a  list of FILES that must accompany  the  main 
+programme. It is necessary to have SOME exercise files, A to J 
+are presently included.
+
+
+TTYPE   .BAS             MBASIC Source Code 
+
+TTKEYBD .DAT             KEYBOARD Datafile
+TTHELP0 .DAT             HELP File 0
+TTHELP1 .DAT             HELP file 1                   
+TTHELP2 .DAT             HELP file 2                   
+TTHELP3 .DAT             HELP file 3                   
+TTHELP4 .DAT             HELP file 4                   
+TTHELP5 .DAT             HELP file 5                   
+
+TTYPEXA .DAT             |
+ through to              | Present EXERCISE Datafiles
+TTYPEXJ .DAT             |
+
+Before running,  the software will need to be altered to  suit 
+your terminal and computer. Here is a list of changes that may 
+need to be made to get you on the road:
+
+
+1.   Refer to SECTION 1: 'ASCII CONTROL CODES' of Main Program
+
+In  this  section you will find the function to DEFine  direct 
+cursor addressing-
+
+?????     DEF FNCSRLD$(ROW,COLUMN) =
+                        ESC$+"="+CHR$(ROW+31)+CHR$(COLUMN+31)
+
+
+The constant '31' is the offset to correct the argument of the 
+function  from absolute ASCII values to ROW and COLUMN numbers 
+for a 24 line X 80 column screen. If yours is different insert 
+the  correct constant.  (A visual result of the  function  not 
+having  the  proper values as its argument will  be  "haywire" 
+printing on-screen.)
+
+2.   Refer to SECTION 3: 'INITIALISING BLOCK' of Main Program.
+
+You may need to change the following constants-
+
+DATAPORT%   = 0            Decimal address of system dataport.
+
+STATUSPORT% = DATAPORT%+1  Decimal  address   of   system 
+                           status port. 
+
+ESCTYPE%    = 127          ASCII  value of character  used  to 
+                           escape    to   command   level   of 
+                           programme.
+
+ESCCHAR$  = "RUB"          String to print name of key for the 
+                           above character (ESCTYPE%).
+
+
+Those few changes should at least make it look like it's going 
+to  run,  if  not you'll have to read the full description  to 
+ascertain where your problem is.
+
+                    EXPLANATION OF THE FILES
+
+TTYPE.BAS
+
+TTYPE.BAS  is the MBASIC source code which contains  the  body 
+of the programme and its assorted subroutines. This is the one 
+that you will have to alter to suit your system.  (See  either 
+Quick Installation or Programme Guide.)
+
+
+TTKEYBD.DAT
+
+TTKEYBD.DAT    contains    the   data   for   the     onscreen 
+representation  of your terminals KEYBOARD.  It will  probably 
+require  alteration  of  some of the minor  keys  that  always 
+differ  between  terminals.  You will need the aid of  a  text 
+editor(i).  Following  is  what  the file looks  like  and  an 
+explanation of its format-
+
+
+13,1,2,3,4,5,6,7,8,9,0,-,^,\
+!,,#,$,%,&,',(,),_,=,~,|
+13,Q,W,E,R,T,Y,U,I,O,P,{,}," "
+q,w,e,r,t,y,u,i,o,p,[,]," "
+12,A,S,D,F,G,H,J,K,L,+,*,`
+a,s,d,f,g,h,j,k,l,;,":",@
+10,Z,X,C,V,B,N,M,<,>,?
+z,x,c,v,b,n,m,",",.,/
+1," "," "
+
+
+Notice  that some of the characters are between double  quotes 
+(e.g.",")   this  is  because  MBASIC  interprets  the   comma 
+character  as  a separator of the data.  If you forget to  put 
+certain characters between quotes the READ statement gets "out 
+of step" and will eventually generate an error message.  (Read 
+the  MBASIC  manual  about the READ statement if you  are  not 
+sure.)  
+
+
+(i)  Avoid use of the WORDSTAR (R) word processor in  document 
+mode  on  DATAFILES.   It  has  the  nasty  habit  of  putting 
+'invisible'  control characters in where you don't want  them, 
+for  its own nefarious purposes.  The net effect is that these 
+control characters send the programme berserk!  (Bit 8 of  the 
+Carriage Return is set high.)
+
+KEYBOARD DATAFILE FORMAT
+
+n,D,D,D,D,D,D,D,D
+N,N,N,N,N,N,N,N
+
+WHERE:
+
+     n       =         Number of keys in the row.
+
+     D       =         Characters    DISPLAYED   as    the 
+                       keyboard.  (There  should be 'n' of 
+                       these.)
+
+     N       =         NON-DISPLAY characters that corres
+                       pond  to  DISPLAY  characters  when 
+                       shifted.
+                       i.e. You may choose to DISPLAY 
+                       upper-case   and  shift  to  lower-
+                       case,which  will therefore  be  the 
+                       NON-DISPLAY characters.
+
+
+TTYPEX? .DAT
+
+Files of the genre TTYPEX? .DAT contain exercises and COMMENTs 
+and   are   called  by  the  main  programme  when   required. 
+(TTYPEXn.DAT where 'n' is a  letter)
+
+*    Any single exercise line can be entered. 
+
+*    Any line to be repeated is preceded by  '|n' where 'n' is                
+     the number of repeats.
+
+*    A  COMMENT is preceded by '!#' and there may be up to  80                
+     characters per line.  For the COMMENT to print  correctly           
+     there must 5 lines of COMMENT, even if you only want one.
+     (See example following.)
+
+*    A  PARAGRAPH is specified by '|pn,ll' on a line by itself 
+     where   'p'   indicates  to  the  program   this   is   a 
+     PARAGRAPH;'n'  is  the number of times to repeat  it  and 
+     'll' is a 2 digit specification of the number of lines in 
+     the PARAGRAPH.
+
+
+EXAMPLE OF EXERCISE DATAFILE
+
+
+!#Exercise A. 
+!#	
+!#        Left hand on the [A] [S] [D] [F] keys.
+!#
+!#        Right hand on the [J] [K] [L] [;] keys.
+|3fff fff jjj jjj fff jjj ff jj ff jj f j
+|3ddd ddd kkk kkk ddd kkk dd kk dd kk d k
+!#
+!#
+!#        RETURN the carriage without looking up.
+!#
+!#
+|3sss sss lll lll sss lll ss ll ss ll s l
+|3aaa aaa ;;; ;;; aaa ;;; aa ;; aa ;; a ;
+|2aaa ddd add add aaa lll all all add all
+|3aaa sss kkk ask jjj aaa lll jal ask jal
+|3ddd aaa aaa dad lll aaa ddd lad dad lad
+|3a as ask asks asks; f fa fal fall falls
+|3a al ala alas alas; f fl fla flas flask
+|3a ad add adds adds; s sa sal sala salad
+!#
+!#
+!#        GOAL: Finish next two lines in one minute.
+!#
+!#
+|2a sad fad; a lass falls; dad asks a lad;
+
+
+TTHELP? .DAT
+
+Again  these are a family of files and contain the  HELP  text 
+(TTHELPn .DAT where 'n' is  a number, presently in the range 0 
+to  5).  They  are designed with one special character (#)  in 
+them  which,  when read by the programme halts  further  input 
+until  receipt of a carriage return (See SECTION 8  Subroutine 
+[4] for full explanation).
+
+This is TTHELP5 .DAT -
+
+
+    <RETURN> - Continues  with next line in the exercise.    
+
+
+
+    M - You've found this one!
+
+
+    
+    E - End the running of this program.
+
+
+
+    Q - Quit to operating system.
+
+    
+
+    
+
+Hit <RETURN> for more HELP.
+#
+
+
+    N - Start a NEW exercise.
+
+
+    R - REPEAT last line, when you can't get it right!
+
+
+    S - SKIP lines in this exercise.  You will be prompted for 
+        the  number  of  lines  to  SKIP.  Note  that  printed 
+        comments have already been skipped.
+
+
+    W - Print the number of WORDS so far and the ERROR  count.	
+        Then the RESET option resets the ERROR COUNT to zero.
+
+    
+    L - Print  the  number  of  LINES read  from  the  current 
+        exercise  file.  Used  in  combination with  <S>  this 
+        command  tells  you roughly how many lines to Skip  to 
+        restart in the middle of an exercise.
+
+HIT key for MENU selection. 
+
+                       PROGRAMME GUIDE
+
+
+You've  heard of the Hitch Hiker's Guide to the  Galaxy,  well 
+this is the Programmer's Guide to Touch Typing. The Plot is to 
+take you section by boring section through the main programme. 
+Do not adjust your seat. We are in complete control. STANDBY !
+
+(Oh,  by  the way,  the programme listing is liberally  dotted 
+with remarks, so these notes are a companion to them.)
+
+
+SECTION 1  TERMINAL ATTRIBUTES
+
+Contained herein are all the onscreen pretty bits,  originally 
+from a larger MBASIC utility called UTILSCRN.BAS,  written for 
+the   Lear Seigler ADM-31 terminal.  The remarks tell  all  (I 
+hope !).
+
+Things to look out for:
+     
+     *  Check the ESCAPE sequences for your terminal and alter 
+        them to suit it.
+
+     *  As mentioned earlier, FNCSRLD$(ROW,COLUMN) is the fun
+        ction  defining  direct cursor  addressing,  you  will 
+        probably have to change the offset for the origin.
+
+     *  The string variables WRTPRTON$ and WRTPRTOFF$ are used 
+        to  switch the video between full and half  amplitude. 
+        If  your  terminal has an equivalent function use  it, 
+        it'll make it prettier. 
+
+
+
+SECTION 2  ALTERATIONS LOG
+
+Just  a little bit of info to keep track of  the   programme's 
+metamorphosis.
+
+
+
+SECTION 3  INITIALISING BLOCK
+
+Ahhhhh  now we come to an important bit.  In amongst this  lot 
+the  numeric  and  string  constants  are  assigned  to  their 
+appropriate variables.
+
+Things to look out for:
+
+     *  DATAPORT% will probably be different in your machine. 
+
+     *  ESCTYPE%  sets  the ASCII value of a key to strike  to 
+        enter  COMMAND mode.  I chose a key which is not  used 
+        often and was readily available.
+
+     *  ESCCHR$ assigns a string to print the name of the  key 
+        you have chosen.  (In my case it was "RUB".)
+
+     *  DELAY% sets the length of a time delay. The use of the 
+        time  delay  is explained in the section dealing  with 
+        Subroutines.  As  a  guide I've used 25  when  running 
+        under  the  interpreter and  500  when  compiled.  The 
+        system  has a 6MHz clock.  (Don't forget to change  it 
+        when  compiling,  as I always do,  forget that is;  or 
+        some text will be just a figtree of your imagination.)
+
+     *  Next  you'll  find a sub-headins  "SCREEN  ADDRESSES". 
+        These   and   their  associated   remarks   are   self 
+        explanatory.  You can fiddle with these to your hearts 
+        content  if  you  want to achieve a  different  screen 
+        layout.
+
+
+     
+SECTION 4  START OF ACTIVE CODE & INPUT MENU
+
+This is the first bit of code that actually does something on
+screen.  Essentially, it presents menu questions to initialise 
+flags  and will print HELP if it is requested.  It  is  broken 
+into  4  sub-sections  which  are the  4  questions  that  the 
+programme seeks answers to.
+
+SECTION 5  SET UP & CHECK EXERCISE FILE 
+
+My  first reaction upon reading this code was unprintable;  it 
+still is.  I haven't done much to it,  apart from annotations, 
+because  the flow is so tortuous that any changes cause it  to 
+bomb. Anyway, it works, even if it is messy !
+
+The aim is to open the exercise file and perform the following 
+checks to each line as it is input:
+
+
+     * If End Of File (EOF),  then go to menu.
+
+     * If it is an EXERCISE, how many repeats ?
+
+     * If it is a COMMENT, then go to COMMENT processor.
+
+     * If  it is a PARAGRAPH,  then input additional lines  of 
+       the paragraph.
+
+The  programme  loops back through this section at the end  of 
+each  exercise,  starting  below the line where  the  file  is 
+opened.
+
+SECTION 6  KEYBOARD SCAN
+
+You'll  notice that this is one large FOR  NEXT loop which  is 
+controlled  by  the  number of letters  in  each  exercise.  A 
+summary of the functions performed:
+
+     *  Assign,  from  previously stored array,  an address of 
+        the  exercise  character,   that  corresponds  to  its 
+        position on the onscreen keyboard.
+
+     *  Print and highlight the exercise character on the key
+        board.
+
+     *  Wait  until  response to exercise character  is  typed 
+        from terminal keyboard.
+
+     *  Print resultant input on ECHOROW or store it until end 
+        of exercise if ECHO OPTION is off.
+
+     *  Check   for  ESCAPE  character  or  RETURN  and   take 
+        appropriate action.
+
+     *  Check  input  character to see if  it  corresponds  to 
+        exercise  character,  if not increment ERRORCOUNT  and 
+        CHARCOUNT.
+
+That is basically what occurs, minus a few embellishments.
+
+
+SECTION 7  ESCAPE OR ALTER PROGRAMME FLOW
+
+A  series  of IF THEN statements sort out suitable  action  in 
+response to the character input by the user,  after he/she has 
+read the MENU. If no match is made the MENU is presented again 
+until a match is made.
+
+SECTION 8 SUBROUTINES
+
+The subroutines are numbered; 1 to 9. I shall briefly describe 
+the essence what each does:
+
+
+     1. CAPITAL.
+
+     If the character falls within the range of the lower case 
+     alphabet it is converted to upper case.
+
+
+     2. ERROR COUNT.
+
+     Prints the number of errors in the number of words  typed 
+     so far.
+
+     3. INSTRUCTION LINE ADDRESS.
+
+     Adjusts the address for instructions to be printed on the 
+     screen  after the last instruction was printed.  Not used 
+     in this version.
+
+
+     4. PRINT HELP.
+
+     * Clears screen.
+
+     * Opens  TTHELP?  .DAT,  which  is  checked  for  end  of 
+       file(EOF). 
+
+     * If  (EOF)  the program waits for any  character  to  be 
+       input,  on  character  input the file  is  closed,  the 
+       screen cleared and a return made to the main programme.
+
+     * If  it is'nt (EOF) a line is input from the  file,  the 
+       left-most  character is checked for the page de-limiter 
+       (#).
+
+     * If "#" is present the programme waits for a <CR> input, 
+       whereupon  the  screen is cleared and flow  returns  to 
+       check for end of file etc.
+
+     * Otherwise  the  line is printed and  flow  returned  to 
+       check for end of line etc.
+
+
+     5. PRINT KEYBOARD.
+
+     The objective is to print on the screen, a representation 
+     of the terminals' keyboard.  The method may not appear to 
+     be too clear, but I shall  attempt a description;
+
+     * The file TTKYBD.DAT is opened. 
+
+     * The  array,  ADDRESS%(X,Y) has its contents initialised 
+       to 1. 
+
+     * The  loop  JLOOP%  cycles through the 5  lines  in  the 
+       keyboard  data that contain the NUMber OF KEYS  in  the 
+       upper and lower case rows. 
+
+     * The  loop(s) ILOOP% cycle through unshifted  characters 
+       and  then  the shifted characters.  The first ILOOP  is 
+       essentially  th same as the second.  Inside this  first 
+       loop the programme reads a character converts it to  an 
+       integer and assigns it to an array.  The ROW and COLUMN 
+       addresses  are stored in ADDDRESS%(X,Y).  The character 
+       is  printed  at  its correct  position  and  an  intger 
+       representation   is  also  stored  in  DISPLAYCHAR%(X). 
+       COLUMN%  is  incremented by 4 or whatever  spacing  you 
+       wish.  Inside  the second ILOOP the same occurs  except 
+       with one  difference;
+
+
+     The  programme tests for  certain ILOOP and JLOOP  values 
+     that should correspond to the position on the keyboard of 
+     the double quote character (").  This character cannot be 
+     put  in  a BASIC data statement.  It is assigned  to  the 
+     array by CHR$(34).
+
+
+     6.SKIP LINES.
+
+     * The  number of exercise lines to skip is input and  the 
+       loop inputs the required number from the  exercise file 
+       and end of file is tested for in each pass.
+
+
+     7. COMMENT PRINT.
+   
+     When the COMMENT indicators are detected in the  exercise 
+     file the programme branches to here. The next 4 lines are 
+     input from the file and stored in COMMENT$(X),  these are 
+     then printed in the next loop.
+
+
+     8. TIME DELAY.
+
+     The two loops just give a predetermined time delay. I now 
+     have  a  more  sophisticated version that will  give  the 
+     number of seconds delay that you input to the subroutine, 
+     to be addded at a later date.
+
+
+     9. PRINT HELP MENU.
+
+     Prints a basic help for the input MENU.
+
+      
+SECTION 9  ERROR TRAPPING
+
+
+These few lines are the minimum of error trapping,  a lot more 
+could be done.
+
+If  the programme is on the "A" drive and can't find  a  file, 
+the  file  is  closed and "B:" appended to  the  filename  and 
+another attempt is made to open the file.  If it is not on the 
+B  drive  forget it !.  If the programme is on the B drive  it 
+does  not look for files on the A drive if they aren't on  the 
+B.
+
+
+                           THE END
+
+
+
+
+
+HINTS, HELP AND APOLOGIES
+
+
+Well  that's a load of(sic) my mind.  Don't think that  you'll 
+turn into an ace typist overnight, I typed this blurb in using 
+the "Three Finger Technique".
+
+Brickbats  and  boquets  may  be  addressed  to  the   author, 
+(preferably enclosed with $50 notes). 
+
+My sincerest apologies for any errors in the document,  but as 
+we all know documenting a programme is the PITS!!!!.
+
+
+Now an idea from the programme originator, Mr Tim Pearce;
+
+It  would  be easy to interface a real time clock  to  measure 
+typing  speed.  (e.g.  using a Godbout SYSTEM SUPPORT 1  BOARD 
+with a real time clock etc etc.)
+
+Just a little something for you to work on...................
+............................HAPPY TYPING
+
+
+                                        Richard Berthet.
+  If the programme is on the B drive  it 
+does  not look for files on the A drive if they aren't on  the 
+B.
+
+
+           

@@ -1,0 +1,47 @@
+;--------------------------------------------------------
+;program title:		Memory Available
+;author:		Peter Grogono
+;date written:		May 1982
+;source:		Pascal/Z Users' Group newsletter
+;			May 1982 issue.
+;
+;DECLARE:
+;	FUNCTION MEMAVAIL: INTEGER; EXTERNAL;
+;
+;EXAMPLE CALL:
+;	if ( memavail >= 0 ) and ( memavail < 250 ) then
+;		<execute short of space routine>
+;	else
+;		<enough space>;
+;
+;SUMMARY:
+;Returns the difference in value between the top of the heap and the
+;stack as an integer value.  If the value returned is greater than
+;32767, Pascal will consider it to be negative. You can correct for
+;this by subtracting the value from 65536.  For example: assume
+;memavail = -12000 then there are 65536 + (-12000) = 53536 bytes of
+;unused memory.
+; short program example:
+;		var	free: real;
+;		function memavail: integer; external;
+;		...
+;		if memavail < 0 then
+;		   free := 65537.0 + memavail
+;		else
+;		   free := memavail;
+;		writeln ( free:6:0 );
+;--------------------------------------------------------
+	entry	memavail
+	name	memavail
+memavail:	
+	push	ix
+	pop	h	;HL = address of top of stack
+	exx
+	push	h
+	exx
+	pop	d	;now DE = address of top of heap
+	dsbc	d	;HL = distance between heap & stack
+	xchg		;put it in DE for Pascal/Z
+	ret		;all done
+;--------------------------------------------------------
+

@@ -1,0 +1,45 @@
+* DATE 08/27/84  12:46
+* purge.cmd
+STOR CHR(PEEK (063)) TO dr
+STOR 'N' TO command
+ERAS
+@ 02,05 SAY '*****   WARNING!   *****   WARNING!   *****   WARNING!   ****'
+@ 04,05 SAY 'This will PERMANENTLY remove any deleted records.'
+@ 06,05 SAY 'Type Y to continue, any other key to cancel this operation'
+@ 06,64 GET command PICTURE '!'
+READ
+CLEA GETS
+IF command = 'Y'
+ ERAS
+TEXT
+
+Records which have been marked for deletion are being removed from the file.
+
+When that is completed, all records will be reindexed. 
+
+We will keep you posted as we go along..........but please be patient.
+
+ENDT
+ SET INDEX TO
+ GO bottom
+ STOR # to before
+ @ 08,00 SAY 'The data base contains ' + STR(before,4) + ' files before deletions'
+ @ 09,00 SAY ' '
+ SET INDEX TO &dr.:lastname
+ SET TALK ON
+ PACK
+ SET TALK OFF
+ @ 19,00
+ @ 20,00
+ @ 21,00
+ @ 22,00
+ @ 23,00
+ @ 21,00 SAY '***************************************************************************'
+ @ 23,20 SAY 'Hit any key to Continue '
+ SET CONSOLE OFF
+ WAIT
+ SET CONSOLE ON
+ENDI command = Y
+RELE ALL
+STOR t TO more
+

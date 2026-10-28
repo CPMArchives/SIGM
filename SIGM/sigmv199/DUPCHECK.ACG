@@ -1,0 +1,22 @@
+* DATE 08/27/84  13:13
+* dupcheck.cmd
+SAVE TO temp1
+RELE ALL
+GO TOP
+STOR t TO more
+DO WHIL more .AND. (.NOT. EOF)
+ ERAS
+ ?
+ ?
+ ?
+ ?
+ ?
+ ? '             Searching for duplicate records'
+ STOR !(lastname) TO oldlname
+ SKIP
+ IF oldlname = !(lastname) .AND. (.NOT. EOF)
+  DO duprec.acg
+ ENDI
+ENDD
+REST FROM temp1
+

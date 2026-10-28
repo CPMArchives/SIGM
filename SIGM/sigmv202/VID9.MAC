@@ -1,0 +1,68 @@
+;
+; VLIB Module Name:  VID9
+; Author:  Richard Conn
+; VLIB  Version Number:  1.0
+; Module Version Number:  1.0
+; Module Entry Points:
+;	VIDELAY
+; Module External References:
+;	ENVPTR
+;
+	ext	envptr
+
+;
+;	VIDELAY pauses for the number of milliseconds indicated by the A
+; register.  VIDELAY assumes a ZCPR3 environment and uses it to determine
+; processor speed.
+;
+videlay::
+	push	psw	;save regs
+	push	b
+	push	d
+	push	h
+	mov	c,a	;save count in C
+	ora	a	;no delay?
+	jz	done
+	lhld	envptr	;pt to environment
+	lxi	d,2Bh	;offset to processor speed
+	dad	d
+	mov	a,m	;get processor speed
+	ora	a	;zero?
+	jnz	vid1
+	mvi	a,4	;assume 4 MHz
+vid1:
+	mov	b,a	;processor speed in B
+vid2:
+	push	b	;delay 1 ms
+	call	delay
+	pop	b
+	dcr	c	;count down
+	jnz	vid2
+done:
+	pop	h	;restore regs
+	pop	d
+	pop	b
+	pop	psw
+	ret
+;
+;  Delay 1 ms at Clock speed
+;
+delay:
+	call	del1	;delay 1 ms at 1MHz
+	dcr	b	;count down clock speed
+	jnz	delay
+	ret
+;
+;  Delay 1 ms at 1MHz
+;
+del1:
+	mvi	c,20	;20 loops of 51 cycles each ~ 1000 cycles
+del1a:
+	xthl		;18 cycles
+	xthl		;+18 = 36 cycles
+	dcr	c	;+ 5 = 41 cycles
+	jnz	del1a	;+10 = 51 cycles
+	ret
+
+	end
+

@@ -1,0 +1,161 @@
+
+PRINT.LBR is a substantial extension to ENCOL.LBR, contained in SIG/M
+volume 206. ENCOL contained programs which would fold a file onto itself,
+so that it could be listed in two (TWCOL), three (THCOL) or four (FOCOL)
+columns. Many files, particularly assembly listings or tables of data,
+occupy only a few lefthand columns on each page, which means that a two-,
+three-, or four-fold saving of paper would result from a multiple column
+listing. Additionally, more compact listings are easier to consult for
+reference or cross checking.
+
+ENCOL also contained a program for listing on both sides of the paper,
+resulting is a further saving in paper, and convenience for consulting
+bound listings. Basically it counted out the number of lines per page as
+it sent them to the printer, withholding the even-numbered pages for a
+second run after the paper had been turned over.
+
+All of these programs were presented in two versions, one for the Intel
+8080 and one for the Intel 8086, using the corresponding CP/M operating
+systems. PRINT also contains two versions, one for each of these CPU's.
+
+PRINT introduces a new type of listing, in which multiple files may be
+listed side by side for purposes of comparison. Two (TWFIL), three (THFIL),
+or four (FOFIL) files may be shown as parallel strips on the same sheet
+of paper.
+
+Experience has shown that assembly listings can be doubled up, and still
+retain a significant portion of their comments, if the compressed mode
+of 16.5 characters per inch which is available on many printers is used.
+This is particularly convenient when the listings are prepared for archival
+purposes. If the comments can be sacrificed, Intel 8086 assembly listings
+can be reproduced in three columns, while Intel 8080 assembly listings
+are still intelligible in the four column format.
+
+Further space saving is possible - 25% more - if the listings are prepared
+at eight lines per inch rather than the customary six lines per inch. For
+the programs TWFIL, THFIL, or FOFIL this does not matter, but TWCOL, THCOL,
+and FOCOL must take account of the number of lines which will be printed
+on each page in order to do their folding correctly. Consequently a switch
+has been incorporated in this new version of these programs to choose
+between the two different line densities.
+
+Finally, the page printing program, formerly PRINTDO, has been thoroughly
+reorganized. It, too, admits a switch to choose between six or eight lines
+per inch, so that either format can be handled by the same program. It is
+now called simply PRINT, and through another switch setting can be made to
+handle either single sided printing or double sided printing. Many times
+a two-sided printing was ruined when an interruption occurred when the job
+was half done, so another switch has been included which allows printing
+only front sides, or only back sides.
+
+With the advent of squeezed programs and libraries of programs whose
+members might plausibly also be squeezed, there is a tendency to endow
+programs with the capability to work directly with these alternative
+formats. In common with some other contributions to SIG/M, we have used
+parentheses to indicate indirect references, and as a sort of "area code"
+when referring to libraries. Thus, if a somewhat intricate print job is
+contemplated, a Command Line File (extension CLF) may be built up, and
+then executed by indirect reference.
+
+Let us suppose that some assembly listings are present, both squeezed
+and unsqueezed, with some of them in a library X.LBR, and some of them
+regular files on the disk. Suppose also that the file Y.CLF contains
+the following two lines:
+
+	A.ASM,B.ASM,C.ASM
+	((X) G.AQM),((X) H.AQM)
+
+Then, the following lines give some examples of the use of PRINT:
+
+	PRINT A.ASM			- A.ASM at 6 lines, 2 sides
+	PRINT A.AQM			- supposing A was squeezed
+	PRINT [8] *.ASM			- all ASM files at 8 lines, 2 sides
+	PRINT [8S] A.ASM,B.ASM		- A.ASM and B.ASM, 8 lines, 1 side
+	PRINT [B] ((X) *.AQM)		- backsides of all squeezed ASM's
+					  in the library X.LBR, 8 lines/inch
+	PRINT [B] ((B:X) *.AQM)		- but library is on disk B
+	PRINT [8] (Y)			- assemblies A,B,C, and squeezed
+					  A and B in X.LBR   [see Y.CLF]
+	PRINT (X),D.ASM			- as above, plus D.ASM, at 6 lines
+	PRINT (B:Y)			- command line file is on disk B
+	PRINT B:*.*			- everthing <except> .COM, .CMD,
+					  or .LBR on disk B at 6 lines/inch
+					  [hopefully no other binary files]
+	PRINT				- print a tutorial message
+
+Further information about the programs comprising PRINT.LBR can be found
+in the assembly programs comprising the individual members. Generally
+speaking, each program will present sufficient information for its use
+by giving it a null command line. This feature is particularly useful if
+one is not just sure about the form of the correct command line, or if one
+has forgotten the switches.
+
+To prepare the lines that follow, this much of PRINT.DOC has been subjected
+to each of the six programs TWCOL, THCOL, FOCOL, TWFIL, THFIL, FOFIL. Of
+course, the last three programs would normally be used on distinct files
+and not on the same repeated file. In each case a few lines of the composite
+file is shown to illustrate the corresponding program.
+
+TWCOL PRINT.DOC -8
+
+PRINT.LBR is a substantial extension to ENCOL.LBR, conta-	With the advent of squeezed programs and libraries of pr-
+volume 206. ENCOL contained programs which would fold a -	members might plausibly also be squeezed, there is a ten-
+so that it could be listed in two (TWCOL), three (THCOL)-	programs with the capability to work directly with these-
+columns. Many files, particularly assembly listings or t-	formats. In common with some other contributions to SIG/-
+occupy only a few lefthand columns on each page, which m-	parentheses to indicate indirect references, and as a so-
+
+THCOL PRINT.DOC -8
+
+					Further space saving is possible-					
+PRINT.LBR is a substantial exten-	at eight lines per inch rather t-	Then, the following lines give s-
+volume 206. ENCOL contained prog-	the programs TWFIL, THFIL, or FO-					
+so that it could be listed in tw-	and FOCOL must take account of t-		PRINT A.ASM		-
+columns. Many files, particularl-	on each page in order to do thei-		PRINT A.AQM		-
+
+
+FOCOL PRINT.DOC -8
+
+				Experience has shown tha-	With the advent of squee-		PRINT [B] ((B:X)-
+PRINT.LBR is a substanti-	retain a significant por-	members might plausibly -		PRINT [8] (Y)	-
+volume 206. ENCOL contai-	of 16.5 characters per i-	programs with the capabi-				-
+so that it could be list-	This is particularly con-	formats. In common with -		PRINT (X),D.ASM	-
+columns. Many files, par-	purposes. If the comment-	parentheses to indicate -		PRINT (B:Y)	-
+
+TWFIL 4.LIB=PRINT.DOC,PRINT.DOC
+
+PRINT.LBR is a substantial extension to ENCOL.LBR, conta-	PRINT.LBR is a substantial extension to ENCOL.LBR, conta-
+volume 206. ENCOL contained programs which would fold a -	volume 206. ENCOL contained programs which would fold a -
+so that it could be listed in two (TWCOL), three (THCOL)-	so that it could be listed in two (TWCOL), three (THCOL)-
+columns. Many files, particularly assembly listings or t-	columns. Many files, particularly assembly listings or t-
+occupy only a few lefthand columns on each page, which m-	occupy only a few lefthand columns on each page, which m-
+
+THFIL 5.LIB=PRINT.DOC,PRINT.DOC,PRINT.DOC
+
+PRINT.LBR is a substantial exten-	PRINT.LBR is a substantial exten-	PRINT.LBR is a substantial exten-
+volume 206. ENCOL contained prog-	volume 206. ENCOL contained prog-	volume 206. ENCOL contained prog-
+so that it could be listed in tw-	so that it could be listed in tw-	so that it could be listed in tw-
+columns. Many files, particularl-	columns. Many files, particularl-	columns. Many files, particularl-
+occupy only a few lefthand colum-	occupy only a few lefthand colum-	occupy only a few lefthand colum-
+
+FOFIL 6.LIB=PRINT.DOC,PRINT.DOC,PRINT.DOC,PRINT.DOC
+
+PRINT.LBR is a substanti-	PRINT.LBR is a substanti-	PRINT.LBR is a substanti-	PRINT.LBR is a substanti-
+volume 206. ENCOL contai-	volume 206. ENCOL contai-	volume 206. ENCOL contai-	volume 206. ENCOL contai-
+so that it could be list-	so that it could be list-	so that it could be list-	so that it could be list-
+columns. Many files, par-	columns. Many files, par-	columns. Many files, par-	columns. Many files, par-
+occupy only a few leftha-	occupy only a few leftha-	occupy only a few leftha-	occupy only a few leftha-
+
+		-------------------------------------------
+
+PRINT.COM and PRINT.CMD <are> specialized for ports 0FAH and 0FBH, of the
+Godbout System Support, or equivalent ports on an Interfacer card. The
+port assignments are assembly parameters - <data> and <status>. The
+subroutine <lpw> in each program can be replaced by a BDOS call in a system
+for which a satisfactory printer BIOS is installed.
+
+		-------------------------------------------
+
+
+[end]
+[Harold V. McIntosh, 27 December 1985]
+

@@ -1,0 +1,394 @@
+;	SAP - SORT AND PACK DISK DIRECTORY
+;
+; Originally coded for CP/M by L.E. Hughes  8080SDC
+;	Modified 5/30/78 BY B.R. Ratoff
+;		1) PICK UP VECTORS FOR ANY SIZE SYSTEM
+;		2) HANDLE NULL EXTENTS OF NON-NULL FILES
+;			PROPERLY
+; 
+; Modified by Trevor MARSHALL 18/10/79
+;	add SAP B:,etc AND ATTRIBUTE HIDE
+; 
+;
+; Rewritten by Trevor MARSHALL, 13 Apr 80
+;		Elec Eng Dept
+;		Uni W.A.
+; to be compatible with all disks supported by CDOS 2.17
+; by including the 'READ SYSTEM DIRECTORY' feature 
+; of the CDOS
+;
+; Modified 31 Oct '80 to handle the large files of
+;  CDOS 2.36 by adding double precision pointer bumping
+;
+;********** WARNING ********* Do not use with hard disks
+; (not tested other than with floppies)
+;
+BDOS:	EQU	5
+FCB:	EQU	5CH
+;
+	ORG	100H
+;
+SAP:	LD	SP,STACK+64
+	LD	C,19H	;WHAT DSK IS CURRENT?
+	CALL	BDOS
+	LD	(DSKSAV),A
+	LD	A,(FCB)	;DSK REQUEST PRESENT?
+	LD	(SYSDIR),A ;Set up 'SYS   DIR' FCB
+	LD	(DSK),A	   ;Save it for write
+; Now check CDOS ver 1 or higher is in use
+	LD	C,8DH
+	CALL	BDOS
+	LD	A,B
+	CP	1
+	JR	GE,NEXT21
+	LD	DE,CDOSERR ;Must be incompatible sys
+	LD	C,9 ;Write error msg and exit
+	CALL	BDOS
+	JP	0
+NEXT21:	LD	C,0FH	;Open SYS  DIR
+	LD	DE,SYSDIR
+	CALL	BDOS
+	CP	A,0FFH	;Error?
+	JR	NZ,NEXT
+	LD	DE,OPENERROR ;Yes
+	LD	C,9	;Print the message
+	CALL	BDOS
+	JP	0
+NEXT:	LD	DE,MSG1	;.....reading
+	LD	C,9
+	CALL	BDOS
+;
+	LD	A,0	;Initialize
+	LD	(SECTORCOUNT),A ;the sector count
+	LD	DE,BUF-80H ;prepare for DMA increment
+LP1:	LD	HL,SECTORCOUNT
+	INC	(HL)	;Incr the sectorcount
+	LD	HL,80H	;Need to increment bffr pointer
+	ADD	HL,DE
+	EX	DE,HL
+	LD	C,1AH	;Set DMA address to buffer
+	PUSH	DE	;Save it
+	CALL	BDOS
+	LD	C,14H	;Read next record
+	LD	DE,SYSDIR ;Point at 'FCB'
+	CALL	BDOS
+	POP	DE	;Fetch buffer DMA addr
+	CP	A,0	;Any errors?
+	JR	Z,LP1	;No, get more sectors
+	CP	1
+	JR	Z,NEXT1 ;End of file OK
+	LD	DE,READERROR ;All else are errors
+	LD	C,9
+	CALL	BDOS
+	JP	0
+NEXT1:	LD	HL,SECTORCOUNT
+	DEC	(HL)	;As we musn't pass the EOF
+; We have now read in the directory. The number of
+; records read is in sectorcount.
+; Now calculate the directory memory image length.
+	LD	A,(HL)
+	LD	L,A
+	LD	H,0
+; How long are the sectors?
+; We may have to use a system call to find out
+	LD	DE,80H	;Presently 80H
+	LD	C,89H	;Multiply DE = DE * HL
+	CALL	BDOS
+;
+	LD	HL,BUF	;Add the buffer base addr
+	ADD	HL,DE
+	LD	(BUFEND),HL ;Save end addr in BUFEND
+;
+	CALL	CLEAN	     ;CLEAN THE DIRECTORY
+;
+	LD	DE,MSG2	;.....Sorting
+	LD	C,9
+	CALL	BDOS
+;
+	CALL	SORT	     ;SORT THE DIRECTORY
+; I have deleted PACK as it is assumed that single disk systems
+; will not be used under CDOS. User may modify as required
+;	CALL	PACK	     ;PACK THE DIRECTORY
+;
+; Now we must write the directory to the disk	
+WRITE:  LD	DE,MSG3	;.....Writing
+	LD	C,9
+	CALL	BDOS
+;
+	LD	A,(DSK)
+	LD	(SYSDIR),A ;Poke byte 1 of FCB
+	LD	C,0FH	;Open SYS  DIR
+	LD	DE,SYSDIR
+	CALL	BDOS
+	CP	A,0FFH	;Error?
+	JR	NZ,NEXT2
+	LD	DE,WRITEERROR ;Yes
+	LD	C,9	;Print the message
+	CALL	BDOS
+	JP	0
+NEXT2:	LD	A,1	;Initialize
+	LD	(SECTORSWRITTEN),A
+	LD	HL,SYSDIR
+	RES	7,(HL) ;Reset the 'read only' atribute
+	LD	DE,BUF-80H ;prepare for DMA increment
+LP11:	LD	HL,SECTORSWRITTEN
+	INC	(HL) ;increment the count of sectors
+	LD	HL,80H	;Need to increment bffr pointer
+	ADD	HL,DE
+	EX	DE,HL
+	LD	C,1AH	;Set DMA address to buffer
+	PUSH	DE	;Save it
+	CALL	BDOS
+	LD	C,15H	;Write next record
+	LD	DE,SYSDIR ;Point at 'FCB'
+	CALL	BDOS
+	POP	DE	;Fetch buffer DMA addr
+	CP	A,0	;Any errors?
+	JR	NZ,WERR	;Yes
+; Now see if we have finished write
+	LD	A,(SECTORCOUNT)
+	LD	HL,SECTORSWRITTEN
+	CP	(HL) ;Have we written enough?
+	JR	NC,LP11	;No, get more sectors
+	JR	NEXT12
+WERR:	LD	DE,WRITEERROR ;All else are errors
+	LD	C,9
+	CALL	BDOS
+	JP	0
+NEXT12:	
+; We have now written the directory.
+	LD	A,(DSKSAV) ;Restore logged disk
+	LD	E,A
+	LD	C,0EH
+	CALL	BDOS
+	JP	0	;And exit to CDOS
+;
+;
+CLEAN:	LD	BC,0	     ;III = 0
+CLEAN1:	LD	(III),BC
+	CALL	INDEX2	     ;HL = BUF + 16 * III
+	PUSH	HL
+; HL now contains the addr of the buffer entry
+; we want to return if it is beyond BUFEND
+	XOR	A	;Clear carry
+	LD	DE,(BUFEND) 
+	SBC	HL,DE	;HL = HL - DE - CY
+; DE should be  > HL, if not, return
+	POP	HL
+	RET	NC
+;
+; Continue
+	LD	A,(HL)	     ;JUMP IF THIS IS A DELETED FILE
+	CP	0E5H
+	JP	Z,CLEAN2
+	LD	A,L	     ;HL = HL + 12
+	ADD	12
+	LD	L,A
+	JP	NC,$+4
+	INC	H
+	LD	A,(HL)	     ;CHECK EXTENT FIELD
+	OR	A
+	JP	NZ,CLEAN4    ;SKIP IF NOT EXTENT ZERO
+EXTENT0: INC	HL	     ;POINT TO RECORD COUNT FIELD
+	INC	HL
+	INC	HL
+	LD	A,(HL)	     ;CHECK RECORD COUNT FIELD
+	OR	A
+	JP	NZ,CLEAN4    ;JUMP IF NON-ZERO
+	LD	BC,(III)	;Clear all 32 bytes
+	CALL	INDEX2
+CLEAN2:	LD	C,32
+CLEAN3:	LD	(HL),0E5H
+	INC	HL
+	DEC	C
+	JP	NZ,CLEAN3
+CLEAN4:	LD	BC,(III) ; III = III + 1
+	INC	BC
+	JP	CLEAN1
+	RET	
+;
+COMP:	LD	BC,(III) ;;HL = BUF + 16 * III
+	CALL	INDEX2
+	PUSH	HL
+	LD	BC,(J)	     ;HL = BUF + 16 * J
+	CALL	INDEX2
+	EX	DE,HL
+	POP	HL
+; Need to allocate highest priority to disk label
+	LD	A,(DE) ;Is 2nd entry a label?
+	CP	81H	;The label's attribute
+	JR	NZ,NEXT56 ;NZ=> not a label
+	SCF		;Must be a disk label
+	RET		;Swap them
+NEXT56:	LD	A,(HL) ;Is 1st entry a label?
+	CP	81H
+	JR	NZ,NEXT57
+	SCF
+	CCF	;Dont swap
+	RET
+NEXT57: INC	HL
+	INC	DE	;POINT PAST ATRIBUTES
+	LD	C,12	     ;NUMBER OF BYTES TO COMPARE
+COMP1:	LD	A,(DE)	     ;COMPARE NEXT BYTE
+	CP	(HL)
+	RET	NZ	     ;RETURN IF NOT EQUAL
+	INC	DE
+	INC	HL
+	DEC	C	     ;LOOP THRU FIRST 13 BYTES
+	JP	NZ,COMP1
+	XOR	A	     ;CLEAR FLAGS AND EXIT
+	RET	
+	
+SORT:	LD	BC,0	     ;III = 0
+	LD	(III),BC
+SORT1:	LD	BC,(III)	     ;J = III + 1 
+	INC	BC
+	LD	(J),BC
+SORT2:	CALL	COMP	     ;IF NAME(J)<NAME(III), SWAP
+	CALL	C,SWAP
+	LD	BC,(J)	     ;J = J + 1
+	INC	BC
+	LD	(J),BC
+;
+; See if J beyond BUFEND
+	CALL	INDEX2
+; HL now contains the addr of the buffer entry
+; we want to jump if it is not beyond BUFEND
+	XOR	A	;Clear carry
+	LD	DE,(BUFEND) 
+	DEC	DE ;Make end addr not inclusive
+	SBC	HL,DE	;HL = HL - DE - CY
+; DE should be  > HL 
+	JR	C,SORT2
+;
+	LD	BC,(III)  ;III = III + 1
+	INC	BC
+	LD	(III),BC
+;
+; See if I beyond BUFEND - 10H
+	CALL	INDEX2
+	PUSH	HL
+; HL now contains the addr of the buffer entry
+; we want to jump if it is not beyond BUFEND-20H
+	LD	DE,(BUFEND) 
+	DEC	DE ;Make end addr not inclusive
+	LD	HL,-20H
+	ADD	HL,DE
+	EX	DE,HL ;Now have end addr - 10H
+	XOR	A	;Clear carry
+	POP	HL
+	SBC	HL,DE	;HL = HL - DE - CY
+; DE should be  > HL 
+	JR	C,SORT1
+;
+	RET	
+;
+;	
+SWAP:	LD	BC,(III)
+	CALL	INDEX2
+	PUSH	HL
+	LD	BC,(J)
+	CALL	INDEX2
+	EX	DE,HL
+	POP	HL
+	LD	C,32
+SWAP1:	LD	A,(DE)
+	LD	B,A
+	LD	A,(HL)
+	LD	(DE),A
+	LD	(HL),B
+	INC	DE
+	INC	HL
+	DEC	C
+	JP	NZ,SWAP1
+	RET	
+	
+; Bump index in double precision
+INDEX2:	PUSH	BC	;Get BC
+	POP	HL	;into HL
+	ADD	HL,HL	; X 2
+	ADD	HL,HL	; X 4
+	ADD	HL,HL
+	ADD	HL,HL
+	ADD	HL,HL	; X 32
+	LD	DE,BUF
+	ADD	HL,DE
+	RET	
+	
+;PACK:	LD	BC,0	     ;III = 0
+;	LD	(III),BC
+;PACK1:	LD	BC,(III)
+;	CALL	INDEX2	     ;HL = BUF + 16 * I
+;	LD	A,L	     ;HL = HL + 9
+;	ADD	9
+;	LD	L,A
+;	JP	NC,$+4
+;	INC	H
+;	LD	A,(HL)	     ;JUMP IF FILETYPE NOT 'X$$'
+;	SUB	'0'	     ;  WHERE 0.LE.X.LE.9
+;	JP	C,PACK2
+;	CP	10
+;	JP	NC,PACK2
+;	LD	(J),A	;  ?????
+;	INC	HL
+;	LD	A,(HL)
+;	CP	'$'
+;	JP	NZ,PACK2
+;	INC	HL
+;	LD	A,(HL)
+;	CP	'$'
+;	JP	NZ,PACK2
+;	INC	HL	     ;SET EXTENT NUMBER TO X
+;	LD	A,(J)	; ????
+;	LD	(HL),A
+;	DEC	HL	     ;SET FILETYPE TO '$$$'
+;	LD	(HL),'$'
+;	DEC	HL
+;	LD	(HL),'$'
+;	DEC	HL
+;	LD	(HL),'$'
+;PACK2:	LD	BC,(III)	     ;I = I + 1
+;	INC	BC
+;	LD	(III),BC
+;
+; See if I beyond BUFEND
+;	CALL	INDEX2
+; HL now contains the addr of the buffer entry
+; we want to jump if it is not beyond BUFEND
+;	XOR	A	;Clear carry
+;	LD	DE,(BUFEND) 
+;	SBC	HL,DE	;HL = HL - DE - CY
+; DE should be  < HL 
+;	JR	C,PACK1
+;	RET	
+;
+; ERROR MESSAGES
+;
+CDOSERR:   DB	0AH,0DH,'Incompatible with this version of CDOS.$'
+OPENERROR: DB	0AH,0DH,'Error in opening directory file.$'
+READERROR: DB	0AH,0DH,'Error whilst reading directory.$'
+WRITEERROR: DB	0AH,0DH,'Error whilst writing directory.'
+	    DB	0AH,0DH,'The image starts in memory at 500 H'
+	    DB	0AH,0DH,'Save it on a BLANK disk (allow 40 Blocks).$'
+MSG1:	DB	0AH,0DH,'......Reading$'
+MSG2:	DB	0AH,0DH,'......Sorting$'
+MSG3:	DB	0AH,0DH,'......Writing$'
+;
+;	DATA AREA
+;
+SYSDIR:	DB	0,'SYS     DIR',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+;
+STACK:	DEFS	64
+SECNO:	DEFS	1
+SECTORSWRITTEN: DS 1
+SECTORCOUNT: DS	1
+III:	DEFS	2
+J:	DEFS	2
+DSKSAV: DS	1
+DSK:	DS	1
+BUFEND:	DS	2
+	ORG	500H
+BUF:    DEFS    8192
+;
+	END	100H
+

@@ -1,0 +1,23 @@
+/* * *  PUT ERROR MSG TO CONSOLE  * * */
+PUTERR:	PROC (ERRMSG);
+/* THE FOLLOWING PUTS AN ERROR MESSAGE TO THE CONSOLE */
+	DCL	ERRMSG CHAR(80) VARYING;
+	DCL	(I,J) BIN(15);
+
+	DCL	CONOUT ENTRY(CHAR(1));
+	DCL	EOL ENTRY(BIN(7),BIN(7));
+	DCL	PUTMSG ENTRY(BIN(7),BIN(7),CHAR(80) VARYING);
+
+	DO I=1 TO 5;
+	  CALL	EOL(24,1);
+	  CALL	CONOUT(ASCII(07));  /* BEL */
+	  CALL	PUTMSG(24,1,ERRMSG);
+	  DO J=1 TO 10000;
+	  END;
+	  CALL  EOL(24,1);
+	  DO J=1 TO 5000;
+	  END;
+	END;
+	CALL	EOL(24,1);
+	END	PUTERR;
+

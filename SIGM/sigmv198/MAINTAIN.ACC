@@ -1,0 +1,532 @@
+* DATE 09/12/84  17:36
+* maintain.acc
+STOR CHR(PEEK(063)) TO dr
+SELE PRIMARY
+USE &dr.:account
+SET INDEX TO &dr.:account
+STOR t TO account1
+DO WHIL account1
+ REST from coname additive
+ STOR '?' TO command
+ ERAS
+TEXT
+ >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+ *   Please select one of the above options. You may also leave this menu    *
+ *   by typing 'Q' and get on-line HELP by typing '?'.                       *
+ >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+ENDT
+ @ 3,04 SAY coname + ' -  ACCT MAINTENANCE MENU'
+ @ 3,65 SAY DATE()
+ @ 7,17 SAY "A. Browse accounting records"
+ @ 8,17 SAY "B. Close books for the year"
+ @ 9,17 SAY "C. Edit, change or index Chart of Accounts"
+ @ 10,17 SAY "D. First initialization of program"
+ @ 11,17 SAY "E. Reininitialze defaults, company name, etc."
+ @ 12,17 SAY "F. Reindex accounting records"
+ @ 13,17 SAY "G. Return to main accounting menu"
+ @ 18,23 SAY "PLEASE SELECT ONE OF THE OPTIONS"
+ @ 18,58 GET command PICTURE '!'
+ READ
+ DO WHIL @(COMMAND, 'ABCDEFGQ?') = 0
+  STOR '?' TO command
+  @ 18,58 GET command PICTURE '!'
+  READ
+ ENDD
+ CLEA GETS
+ DO CASE
+ CASE command = 'A'
+  STOR CHR(PEEK(063)) TO dr
+  SELE PRIMARY
+  USE &dr.:account
+  SET INDEX TO
+  GO top
+* browse thru records
+  ERAS
+TEXT
+               ***WARNING***  ***WARNING***  ***WARNING*** 
+                 Changes made will be written to the File 
+
+                 CTRL-C write current record & go down 
+                 CTRL-R write current record & go up 
+                 CTRL-Z/B pans screen left or right 
+                 CTRL-V toggles Insert on or off 
+                 CTRL-G Delete character under cursor 
+                 CTRL-U Delete or Recall current record 
+                 CTRL-Q exit Don't Write Current record 
+                 CTRL-W exit and Save all changes 
+
+ >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+  BROWSE allows you to change raw accounting data, so please use it with care.
+  You can examine the record in either ENTRY order or SORT order. The use of   
+  ENTRY order presents both the debit and the credit. You locate a record by  
+  the date of posting. Sort order locates by account number. You have to find  
+  the corresponding debit or credit separately. In either case, if the record  
+  is not found, the program will go to the first record.                   
+ >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+
+
+ENDT
+* get a starting point in file
+  STOR 'E' TO sttype
+  @ 22,12 SAY 'Shall we browse by <E)ntry order or <S)ort order'
+  @ 22,63 Get sttype PICTURE '!'
+  READ
+  DO WHIL @(sttype,'ES')=0
+   @ 22,12 SAY 'Shall we browse by <E)ntry order or <S)ort order'
+   @ 22,63 Get sttype PICTURE '!'
+   READ
+  ENDD WHILE @(sttype)
+  IF sttype = 'S'
+   SET INDEX TO &dr.:account
+   STOR '    ' TO mstart
+   @ 22,00
+   @ 22,12 SAY 'WHAT IS THE STARTING ACCOUNT NUMBER ?'
+   @ 22,55 GET mstart PICTURE '9999'
+   READ
+   FIND &mstart
+   IF # = 0
+    GO TOP
+   ENDI # = 0
+  ELSE
+   SET INDEX TO
+   @ 22,00
+   STOR '        ' TO mstar
+   @ 22,10 SAY 'WHAT IS THE STARTING DATE (MM/DD/YY) ? '
+   @ 22,50 GET mstar PICTURE '99/99/99'
+   READ
+   STOR $(mstar,7,2) + $(mstar,1,2) + $(mstar,4,2) TO mstart
+   LOCA FOR mstart = date
+   IF EOF
+    GO TOP
+   ENDI EOF
+  ENDI sttype
+* display selected list
+  ERAS
+* browse thru file
+  SET ESCAPE OFF
+  BROW fields date, data, amount, posted
+  SET ESCAPE ON
+  ERAS
+  RELE mstar, mstart
+  SET INDEX TO &dr.:account
+ CASE command = 'B'
+  ERAS
+  STOR 'N' TO option
+TEXT
+ >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+        W A R N I N G       W  A  R  N  I N  G       W A R N I N G
+        =============       ==================      ==============
+
+        This option is designed to create a new data base file to
+        start a calendar or fiscal year (or for that matter, to 
+        close out any period.  It takes a while to run and if
+        something happens (like a voltage drop) while it is
+        running - you could very well lose all of your data.
+
+        The old file will be saved as 'AC' + the ending date.
+
+        NEVER RUN THIS OPTION UNLESS YOU HAVE BACKED UP YOUR DATA          
+
+ >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+
+
+
+
+
+ENDT
+  @ 19,20 SAY 'ARE YOU READY TO PROCEED'
+  @ 19,47 GET option PICTURE '!'
+  READ
+  IF option = 'Y'
+   SET CONFIRM ON
+   STOR date() TO myear
+   ERAS
+   @ 10,10 SAY "You should be able to stop this program until the last item by"
+   @ 11,10 SAY "hitting the ESCape key and typing QUIT."
+   @ 13,10 SAY "I will keep you posted as we go along."
+   @ 15,10 SAY "What is the last day of the period your are closing ?"
+   @ 15,68 GET myear PICTURE '99/99/99'
+   READ
+   STOR '01/01/' + STR((VAL($(myear,7,2))+1),2) TO nyear
+   @ 16,10 SAY "What is the first day of the new period you are opening ?"
+   @ 16,68 GET nyear PICTURE '99/99/99'
+   READ
+   STOR 'AC' + $(myear,1,2) +$(myear,4,2)+$(myear,7,2)+'.DBF' TO newname
+   SET CONFIRM OFF
+   SET TALK ON
+   SELE PRIMARY
+   USE &dr.:account
+   INDE on $(data,7,4) + $(data,5,2) TO &dr.:temp
+   SET INDEX TO &dr.:temp
+   COPY STRUCTURE TO &dr.:temp
+   GO TOP
+   STOR $(data,7,4) + $(data,5,2) TO info
+   STOR 0 TO mamount
+   STOR 0 TO recno
+   DO WHIL .NOT. EOF
+    DO CASE
+    CASE $(info,1,1)='1'.OR.$(info,1,1)='2'.OR.$(info,1,2)='57'
+     IF $(data,7,4) + $(data,5,2) =  info
+      STOR mamount + amount TO mamount
+      SKIP
+     ELSE
+      STOR # TO recno
+      SELE SECONDARY
+      USE &dr.:TEMP
+      IF mamount <> 0
+       IF mamount > 0
+        STOR 'D' to type
+       ELSE
+        STOR 'C' TO type
+       ENDI mamount > 0
+       APPE BLANK
+       REPL date WITH $(nyear,7,2)+$(nyear,1,2)+$(nyear,4,2)
+       REPL data WITH 'J001'+ $(info,5,2) + $(info,1,4) + type+ 'opening entry       ' + nyear + 'J'
+       REPL amount WITH mamount
+      ENDI mamount <> 0
+      SELE PRIMARY
+      USE &dr.:account
+      SET index TO &dr.:temp
+      STOR 0 TO mamount
+      GO recno
+      STOR $(data,7,4) + $(data,5,2) TO info
+     ENDI $(data,7,4)
+    OTHE
+     IF .NOT. EOF
+      STOR mamount + amount TO mamount
+      SKIP
+     ELSE
+      SELE SECONDARY
+      USE &dr.:TEMP
+      IF mamount <> 0
+       IF mamount > 0
+        STOR 'D' to type
+       ELSE
+        STOR 'C' TO type
+       ENDI mamount > 0
+       APPE BLANK
+       REPL date WITH $(nyear,7,2)+$(nyear,1,2)+$(nyear,4,2)
+       REPL data WITH 'J001992530' + type+ 'opening entry       ' + nyear + 'J'
+       REPL amount WITH mamount
+      ENDI mamount <> 0
+      SELE PRIMARY
+      USE &dr.:account
+      SET index TO &dr.:temp
+     ENDI .NOT. EOF
+    ENDC
+   ENDD WHILE .NOT. EOF
+   DO CASE
+   CASE $(info,1,1)='1'.OR.$(info,1,1)='2'.OR.$(info,1,2)='57'
+    SELE SECONDARY
+    USE &dr.:TEMP
+    IF mamount <> 0
+     IF mamount > 0
+      STOR 'D' to type
+     ELSE
+      STOR 'C' TO type
+     ENDI mamount > 0
+     APPE BLANK
+     REPL date WITH $(nyear,7,2)+$(nyear,1,2)+$(nyear,4,2)
+     REPL data WITH 'J001'+ $(info,5,2) + $(info,1,4) + type+ 'opening entry       ' + nyear + 'J'
+     REPL amount WITH mamount
+    ENDI mamount <> 0
+   OTHE
+    SELE SECONDARY
+    USE &dr.:TEMP
+    IF mamount <> 0
+     IF mamount > 0
+      STOR 'D' to type
+     ELSE
+      STOR 'C' TO type
+     ENDI mamount > 0
+     APPE BLANK
+     REPL date WITH $(nyear,7,2)+$(nyear,1,2)+$(nyear,4,2)
+     REPL data WITH 'J001992530' + type+ 'opening entry       ' + nyear + 'J'
+     REPL amount WITH mamount
+    ENDI mamount <> 0
+   ENDC
+   SELE PRIMARY
+   USE &dr.:account
+   SET index TO &dr.:temp
+   SAVE TO temp
+   CLEA
+   REST FROM temp
+   STOR CHR(PEEK(063)) TO dr
+   RENA &dr.:account.dbf TO &dr.:&newname
+   RENA &dr.:temp.dbf TO &dr.:account.dbf
+   DELE file &dr.:temp.ndx
+   SELE PRIMARY
+   USE &dr.:account
+   INDE ON $(data,7,4) + date + $(data,5,2) TO &dr.:account
+   SET INDEX TO &dr.:account
+   SET TALK OFF
+  ENDI OPTION = 'Y'
+ CASE command = 'C'
+  DO chart.acc
+ CASE COMMAND = 'D'
+  ERAS
+  STOR 'N' TO option
+  STOR 'R' TO choice
+TEXT
+ >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+        W A R N I N G       W  A  R  N  I N  G       W A R N I N G
+        =============       ==================      ==============
+
+        This option is designed to create a new data base file to
+        startup this program the first time. It will eliminate all
+        of the sample files we gave you in the accounting data base 
+        and start you off with no records.                     
+
+        It can also rename one of the two Chart of Accounts data
+        bases (CHART1.DBF and CHART2.DBF) to CHART.DBF when you 
+        select either the real estate or general Chart of Accounts.
+
+
+------
+     SELE SECONDARY
+     USE &dr.:TEMP
+     IF mamount <> 0
+     IF mamount > 0
+     STOR 'D' to type 
+     ELSE
+     STOR 'C' TO type
+     ENDI mamount > 0
+   APPE BLANK
+     REPL date WITH $(nyear,7,2)+$(nyear,1,2)+$(nyear,4,2) 
+     REPL data WITH 'J001'+ $(info,5,2) + $(info,1,4) + type+ 'opening entry       ' + nyear + 'J'
+     REPL amount WITH mamount
+     ENDI mamount <> 0
+     SELE PRIMARY
+     USE &dr.:account
+     SET index TO &dr.:temp
+     SAVE TO temp
+   CLEA
+   REST FROM temp
+   STOR CHR(PEEK(063)) TO dr
+   RENA &dr.:account.dbf TO &dr.:&newname
+   RENA &dr.:temp.dbf TO &dr.:account.dbf
+   DELETE file &dr.:temp.ndx
+ SELE PRIMARY
+   USE &dr.:account
+   INDE ON $(data,7,4) + date + $(data,5,2) TO &dr.:account
+   SET INDEX TO &dr.:account
+   SET TALK OFF
+  ENDI OPTION = 'Y'
+ CASE command = 'C'
+  DO chart.acc
+ CASE COMMAND = 'D'
+  ERAS
+  STOR 'N' TO option
+  STOR 'R' TO choice
+TEXT
+ >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+        W A R N I N G       W  A  R  N  I N  G       W A R N I N G
+        =============       ==================      ==============
+
+        This option is designed to create a new data base file to
+        startup this program the first time. It will eliminate all
+        of the sample files we gave you in the accounting data base 
+        and start you off with no records.                     
+
+        It can also rename one of the two Chart of Accounts data
+        bases (CHART1.DBF and CHART2.DBF) to CHART.DBF when you 
+        select either the real estate or general Chart of Accounts.
+
+        NEVER RUN THIS OPTION UNLESS YOU HAVE BACKED UP THE PROGRAM        
+
+ >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+
+
+
+
+
+ENDT
+  @ 19,20 SAY 'ARE YOU READY TO DELETE THE FILES'
+  @ 19,55 GET option PICTURE '!'
+  READ
+  IF option = 'Y'
+   STOR 'N' TO choice
+   STOR '?' TO pick
+   @ 19,00
+   @ 19,05 SAY "Do you want to select a new Chart of Accounts ?"
+   @ 19,60 GET choice PICTURE '!'
+   READ
+   DO WHIL @(CHOICE,'YNQ') = 0
+    @ 19,60 GET choice PICTURE '!'
+    READ
+   ENDD
+   IF choice = 'Y'
+    @ 19,00
+    @ 19,05 SAY "Do you want a <R>eal estate or a <G>eneral Chart of Accounts ?"
+    @ 19,68 GET pick PICTURE '!'
+    READ
+   ENDI choice = 'Y'
+   IF pick = 'R'
+    DELE file CHART.DBF
+    RENA CHART1.DBF TO CHART.DBF
+   ENDI
+   IF PICK = 'G'
+    DELE file CHART.DBF
+    RENA CHART2.DBF TO CHART.DBF
+   ENDI PICK = 'G'
+   STOR CHR(PEEK(063)) TO dr
+   USE &dr.:account
+   SET INDEX TO
+   DELE ALL
+   PACK
+   INDE ON date + $(data,7,4) + $(data,5,2) TO &dr.:account
+   SET INDEX TO &dr.:account
+   RELE choice, pick
+  ENDI option = 'Y'
+ CASE command = 'E'
+  SAVE TO temp
+  REST from manage.dat
+  IF PASS = 'Y'
+   ERAS
+   @ 12,10 SAY 'PLEASE ENTER THE PASSWORD SLOWLY ........'
+   SET EXACT ON
+   SET COLON OFF
+   STOR '12345678' TO passt
+   STOR ' ' TO passt1
+   STOR ' ' TO one
+   STOR ' ' to one1
+   STOR 0 to count
+   DO WHIL count < 8
+    SET CONSOLE OFF
+    @ 12,50 SAY passt1
+    WAIT TO one1
+    @ 12,50 ACCEPT one1
+    SET CONSOLE ON
+    STOR TRIM(one) + one1 TO one
+    STOR count + 1 TO count
+    STOR $(passt,1,count) TO passt1
+    @ 12,50 SAY passt1
+    SET CONSOLE OFF
+   ENDD
+   SET CONSOLE ON
+   STOR $(one,2,9) TO passt
+   IF TRIM(passt) <> TRIM(passp)
+    ERAS
+    @ 14,10 SAY "U N A U T H O R I Z E D       A C C E S S  "
+    @ 17,10
+    SET CONSOLE OFF
+    QUIT
+   ENDI passt
+   SET EXACT OFF
+   SET COLON ON
+  ENDI pass
+  DO init.spm
+  REST from temp additive
+ CASE command = 'F'
+  STOR CHR(PEEK(063)) TO dr
+  SET TALK ON
+  SET ECHO ON
+  INDE ON $(data,7,4) +date + $(data,5,2) TO &dr.:account
+  SET TALK OFF
+  SET ECHO OFF
+ CASE command = '?'
+  ERAS
+TEXT
+
+      A C C O U N T I N G   M A I N T E N A N C E   H E L P   M E N U
+
+    The browse ('A') option on the menu allows you to make changes directly
+    into the file to correct errors. The instructions as to how to do it are
+    quite specific.  They are set forth on screen before you actually enter
+    browse. Until you are familiar with the commands, make a note of them. 
+    Remember that 'CONTROL Q' should get you out without doing  any damage.
+    Please use Browse with care.
+
+    The year end closing statement option should be done after you have 
+    made your closing adjustments AND AFTER YOU HAVE MADE A BACKUP COPY OF
+    THE DATA. It copies all of the records to a new file, indexes the new  
+    file and then renames the old file to 'ACC' + the prior year. You can stop 
+    the process before the end by hitting ESCape and typing QUIT.              
+
+    The Chart of Accounts option has its own menu. However, we have included
+    two Charts of Account. This program was written as a building management
+    data base with accounting. Some people suggested that they might want 
+    to use just the accounting aspects for a different type of operation.
+
+                                  Please hit any key to continue
+ENDT
+  SET CONSOLE OFF
+  WAIT
+  SET CONSOLE ON
+  ERAS
+TEXT
+
+
+
+     For those people who would like to try this program in a non-real
+     estate environment, we have created a second Chart of Accounts. (There
+     are actually three Charts - CHART.DBF is real estate and will be erase
+     when you select between CHART1.DBF (also real estate) and CHART2.DBF
+     (general).  If you want to switch to the other system, just rename the
+     files. In all probability you will generate you own Chart of Accounts,
+     but we put in a sample.
+
+     The first time program in addition to initializing the Chart of Accounts
+     wipes out all of the sample records we have included and starts you off
+     with a clean slate. We warn you to make a backup before you run it.  
+                      
+     Reindex is on this menu as well as at various other points in the program.
+     You will want to use it.
+
+                      please hit any key to continue.....
+
+
+
+ENDT
+  SET CONSOLE OFF
+  WAIT
+  SET CONSOLE ON
+ CASE command = 'G' .OR. command = 'Q'
+  STOR f TO account1
+ OTHE
+  STOR t TO ACCOUNT1
+ ENDC
+ENDD WHILE account1
+REST from manage.dat additive
+IF escap = 'N'
+ SET ESCAPE OFF
+ELSE
+ SET ESCAPE ON
+ENDI escap
+IF bright = 'A'
+ SET INTENSITY ON
+ELSE
+ SET INTENSITY OFF
+ENDI bright
+RELE all
+STOR CHR(PEEK(063)) TO dr
+SELE PRIMARY
+USE &dr.:account INDEX &dr.:account
+STOR t TO account
+RETU
+

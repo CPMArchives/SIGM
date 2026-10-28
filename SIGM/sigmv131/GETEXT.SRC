@@ -1,0 +1,36 @@
+****************************************************************
+
+*                        GETEXT                                 *
+
+*****************************************************************
+
+                  NAME GETEXT
+                  ENTRY GETEXT
+
+;FUNCTION:Gets text from console.Maximum buffer size
+;is set by cbuff0.Start address of buffer = conbuff.
+
+BIOS equ 5
+RBUF equ 0Ah ;BIOS function code (= read console)
+BUFSIZ equ 40
+                
+GETEXT:         push h
+                push d
+                push b
+                lxi d,cbuff0  ;address for BIOS
+                mvi c,rbuf
+                call BIOS
+                pop b
+                pop d
+                pop h
+                ret
+cbuff0:         db BUFSIZ    ;first byte of buffer,transmits
+                             ;maximum size of buffer to BIOS.
+cbuff1:         db 0h        ;BIOS records here how many 
+                             ;bytes were read.
+conbuff:        ds BUFSIZ     ;reserves bytes for buffer
+
+                END GETEXT
+
+*******************************************************************
+

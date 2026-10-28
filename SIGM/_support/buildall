@@ -1,0 +1,24 @@
+#!/bin/bash
+
+# Make sure we're in the parent dir of _support, and that the buildvol
+# script is accessible.
+
+[[ "${PWD##*/}" == "_support" ]] && cd ..
+[[ ! -f _support/buildvol ]] && { echo "Can't find _support/buildvol. Blowing up."; exit; }
+
+[[ -f output ]] && mv output output.bkp
+
+for i in {1..310}; do
+  echo "Building Vol $i"
+# _support/buildvol $i >> output
+  _support/buildvol $i
+done
+
+echo "Building SIGM.ISO"
+[[ -f SIGM.ISO ]] && rm SIGM.ISO
+mkisofs -input-charset iso8859-1 -J -r -hide-rr-moved -joliet-long -o SIGM.ISO .
+
+echo ""
+echo "======================="
+echo " SIG/M BUILD COMPLETE! "
+echo "======================="

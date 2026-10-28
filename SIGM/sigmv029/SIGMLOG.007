@@ -1,0 +1,115 @@
+SIG/M VOLUME 7
+
+BULLETIN BOARD RELATED SOFTWARE SYSTEMS
+FILE TRANSFER UTILITIES
+CP/M UTILITIES
+
+	SIZE	NAME		COMMENTS
+ 
+				BULLETIN BOARD RELATED SOFTWARE
+
+7.1	23K	DCHBYE55.ASM	REMOTE CONSOLE FOR DC HAYES MODEM
+7.2	 3K	FLIP-8/8.ASM	SWITCH REMOTE CONSOLE TO ORIGINATE MODE
+7.3	 5K	TAG.ASM		SET F1 BIT
+7.4	 9K	MLIST34.ASM	TYPE COMMAND W/16K BUFFER
+7.5	45K	MODEM926.ASM	UPDATE OF CP/M USER GROUP 40.28
+7.6	21K	PLINK925.ASM	UPDATE OF CP/M USER GROUP 19.4
+7.7	 2K	USER-8/8.ASM	REPLACES CP/M USER CMD ON REMOTE CPU
+7.8	20K	XMODEM32.ASM	DC HAYES SUPPORT
+7.9	 4K	PURGE.ASC	REQUIRES MBASIC
+7.10	20K	RIBBS.ASC	REQUIRES MBASIC
+
+				FILE TRANSFER UTILITIES
+
+7.11	 7K	MIC-XFER.ASM	DATA TRANSFER BETWEEN MICROPOLIS 
+				CP/M 1.4 AND 8" SYSTEMS
+7.12	 7K	MIC-XFER.DOC	DATA TRANSFER DOCUMENTATION
+7.13	 3K	XFER5-8.ASM	TRANSFER FILES BETWEEN 5" AND 8"
+7.14	 3K	XFER8-5.ASM	TRANSFER FILES BETWEEN 5" AND 8"
+7.15	 5K	V2FORMAT.ASM	VERSAFLOPPY SYSTEM
+
+				CP/M UTILITIES
+
+7.16	 9K	MENU.ASM	CREATES MENU OF ALL .COM AND .BAS FILES
+7.17	 5K	MEM-MAP.ASM	USE TO MAP RAM/ROM
+7.18	 8K	MOVE6/12.ASM	SINGLE DRIVE COPY PROGRAM
+7.19	 8K	RELDUMP.ASM	DUMP MICROSOFT .REL FILES
+7.20	 1K	SAP-FIX.DOC	PATCHES FOR CP/M USER GROUP VOL. 19.8
+7.21	 5K	TEXCLEAN.ASM	CLEAR BIT 7 OF A TEXT FILE
+7.22	 2K	TPA3.ASM	COMPUTES SIZE OF TPA
+7.23	 3K	Z80EXT.LIB	EXTRA Z80 OPCODES
+
+
+
+                    INSTALLATION AND USE OF MIC-XFER PROGRAM
+                    ------------ --- --- -- -------- -------
+
+        SYSTEM REQUIREMENTS:
+
+        IŒ ORDE“ Tœ USE“ MIC-XFER¨ TH≈ FOLLOWIN« MINIMUÕ CONFIGURATIOŒ I” ç
+        REQUIRED:
+
+                1Æ IBM-FORMA‘ CP/Õ SYSTEÕ CONFIGUREƒ FO“ A‘ LEAS‘ 28K.
+                2Æ MICROPOLI” CP/Õ SYSTEÕ CONFIGUREƒ FO“ 17K.
+                3Æ†TH≈† SOURC≈† FIL≈† 'MIC-XFER.ASMß (PROVIDEƒ† OŒ† THI” 
+                        DISK).
+                4Æ TH≈ ABILITŸ FO“ #± ANƒ #≤ Tœ RESID≈ IŒ TH≈ SAM≈ BU” AT
+                        THE SAME TIME WITHOUT ANY HARDWARE CONFLICTS.
+                5Æ† TH≈ MICROPOLI” CONTROLLE“ ADDRES” (BOOTSTRA– ADDRESS©              ç
+                        MUS‘† B≈† KNOWNÆ†  (THI”† MAŸ† B≈† DETERMINEƒ† BŸ              ç
+                        INSPECTIN« TH≈ ADDRES” JUMPER” OŒ TH≈† MICROPOLI”              ç
+                        CONTROLLE“ BOARD¨ ANƒ INTERPRETIN« THEÕ ACCORDIN« ç
+                        Tœ TH≈ MICROPOLI” MANUAL).
+                6Æ† TH≈† ADDRES” O∆ TH≈ IBM-FORMA‘ CP/Õ WARÕ STAR‘ VECTO“ ç
+                        MUS‘† B≈† KNOWNÆ†  (THI”† MAŸ† B≈† DETERMINEƒ† BŸ ç
+                        EXAMININ«† LOCATION” ± ANƒ ≤ IŒ MEMORŸ WHIL≈† TH≈ ç
+                        IBM-FORMA‘ SYSTEÕ I” RUNNING).
+
+        TH≈ FIRS‘ STE– IŒ GENERATIN« MIC-XFE“ FO“ YOU“ SYSTEÕ I” Tœ GE‘ ¡ ç
+        COPŸ O∆ YOU“ 17À MICROPOLI” SYSTEÕ IMAG≈ ONTœ AŒ IBM-FORMA‘ DISKÆ  ç
+        THI” MAŸ B≈ DONE AS FOLLOWS:
+
+                1. BOOT THE IBM-FORMAT SYSTEM.
+                2. TRANSFER CONTROL TO THE MICROPOLIS SYSTEM BY TYPING:
+                        A>DDT
+                        DDT VERS 1.4
+                        -G<MICROPOLIS BOOT ADDRESS>
+                   THE MICROPOLIS SYSTEM WILL BOOT UP AND SIGN ON.
+                3. CREATE A SYSTEM IMAGE FILE BY TYPING:
+                        A>SYSGEN
+                        SYSGEN VERS 1.4
+                        SOURCE DRIVE NAME (OR RETURN TO SKIP) A
+                        FUNCTION COMPLETE
+                        DESTINATION DRIVE NAME (OR RETURN TO REBOOT) <RETURN>
+                        A>SAVE 36 MIC17.COM
+                4Æ† TRANSFE“ MIC17.COÕ Tœ TH≈ IBM-FORMA‘ SYSTEÕ BŸ TYPIN« ç
+                    (FROÕ THE
+		SAP-FIX.DOC as of 5/22/80
+		 by Keith Petersen, W8SDZ
+
+   If you are using CP/M-2 and have SAP.COM on your system,
+you probably have noticed that the directory sorting gets
+confused by the file attributes used in CP/M-2.  This can
+be easily fixed by modifying your COMP1 routine to read as
+seen below.  This fix applies to all versions of SAP, whether
+you have single or double density.
+
+;
+COMP1:	MOV	A,M		;GET NEXT BYTE
+	ANI	7FH		;REMOVE ATTRIBUTES
+	MOV	B,A		;SAVE IN B
+	LDAX	D
+	ANI	7FH		;REMOVE ATTRIBUTES
+	CMP	B		;COMPARE CHARACTER
+	RNZ			;RETURN IF NOT EQUAL
+	INX	D
+	INX	H
+	DCR	C		;LOOP THRU FIRST 13 BYTES
+	JNZ	COMP1
+	XRA	A		;CLEAR FLAGS AND EXIT
+	RET
+;
+
+END OF SAP-FIX.DOC
+
+

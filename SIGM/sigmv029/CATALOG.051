@@ -1,0 +1,453 @@
+VOLUME 50	National CP/M Users Group
+
+DESCRIPTION: STAGE2 MACRO PROCESSOR
+
+By:	Dick Curtiss			
+	843 NW 54th
+	Seattle, WA 98107
+
+<<Congratulations to Dick for a superb User's group contribution: A major
+  work, well documented, good examples, a good reference book, etc.>>
+
+STAGE2 is a macro programming language, documented
+sufficiently on this disk to effectively use it.  Examples
+given include a library of extensions for assembler
+programming, (ALX) including WHILE, REPEAT, IF, BRANCH (a CASE
+statement), etc.  STAGE2 is a general-purpose text-replacement
+processor, not limited to programming language applications.
+Those interested in transporting it to other machines, or in
+studying its background and implementation will want to
+purchase:
+
+	"Software Tools for Non-Numeric Applications"
+
+    by: Wm. M. Waite
+
+  from: Prentice Hall, Inc.
+	Rt. 59 at Brook Hill Dr.
+	P.O. Box 505
+	West Nyack, NY 10994
+
+   for: $24.95 + 1.00 tax + 1.85 Postage/handling
+
+NUMBER	SIZE	NAME		COMMENTS
+
+		CATALOG.051	CONTENTS OF CP/M VOL. 51
+51.1	2K	ABSTRACT.051	Overview of volume
+51.2	16K	ALX.S2M		Assembly Language Extension macros
+51.3	3K	ALX-.DOC	Doc on above
+51.4	3K	ALXTEST.ALX	Sample macros to test above, including
+		ALXTEST.ALX		errors to be detected.
+51.5	4K	CIO.ALX		Console I/O routines in ALX
+51.6	2K	CRCK.COM	Keith Petersen's program to CRC check files
+51.7	1K	CRCKLIST.CRC	Contains the CRCs for all files on this
+					disk. (except itself)
+51.8	2K	DEMO.S2M	Interactive STAGE2 demo macros.
+51.9	17K	DISKIO2.SRC	(*) disk I/O for STAGE2 processor
+51.10	6K	DISKIO2-.DOC	(*) DOC on above
+51.11	5K	FLD1.DAT	(*) Sample data for FLUB test
+51.12	4K	FLD2.DAT	(*) 		"
+51.13	13K	FLT1.FLB	(*) Sample program for FLUB test
+51.14	11K	FLT2.FLB	(*)		"
+51.15	1K	FLUB$.SUB	(*) Submit file for FLT1, FLT2, STG2.
+51.16	4K	FLUB8080.S2M	(*) Macros to turn FLUB into 8080 asm
+51.17	3K	HELP.DOC	First-timer's "to do" list.
+51.18	2K	IMPL.DOC	(*) Notes on implementing STAGE2
+51.19	2K	INTERACT.S2M	Another macro demo.
+51.20	22K	INTRO.DOC	Sufficient info to "read" STAGE2 macros,
+					and with diligence, write them.
+51.22	1K	IOOP$.SUB	(*) submit file for macro pass + asm of above
+51.21	16K	IOOP.SRC	(*) I/O processor 8080 source
+51.23	1K	MEMORY.INP	Another macro demo.
+51.24	2K	ST2T.DAT	(*)
+51.25	12K	STAGE2.COM	The executable macro processor itself.
+51.26	48K	STG2.FLB	(*) Source for STAGE2 in FLUB code
+51.27	5K	STG2MATH.ASM	(*) STAGE2 support routines
+51.28	5K	STG2SUP.ASM	(*)		"
+51.29	8K	TERM.ALX	Sample 8080 terminal program w/ALX macros.
+51.30	3K	TERMSUP.ASM	Subroutines for TERM.ALX
+51.31	2K	USE.DOC		How to execute STAGE2.
+51.32	6K	VDB.ALX		TDL video driver in ALX, a "state machine".
+51.33	5K	VOLUME51.DOC	Dick Curtiss' own excellent documentation.
+
+(*)	Files are necessary only to change STAGE2.
+
+NOTE:	Included on this volume for the first time, is a file
+	of CRC's for each file.  Thus people concerned that a
+	copy when wrong somewhere, can check the CRC of the
+	file, and compare it to the one stored in CRCKLIST.CRC.
+
+	Thanks to Keith Petersen for this excellent program.
+
+Abstract for National CP/M Users Group Vol. 51,
+	"STAGE2 Macro Processor"
+
+
+	Richard Curtiss implemented STAGE2, wrote many of the
+sample programs, and did an excellent job of commenting on his
+own work.  INTRO.DOC and VOLUME51.DOC, provide not only doc-
+umentation, but "insight", which is normally the service an
+"abstract" serves.  Because of such good documentation, (and
+this disk is full), this abstract will be brief.
+	STAGE2 is "cryptic", but quite interesting.  Many of
+you will enjor "experimenting with it", and many will make
+regular use of it.
+	What is a "macro processor"?  A program, which "trans-
+forms" or "expands" character strings, into something else.
+Traditional uses were in assembler programming, allowing you
+to say, for example, " OPEN MYFILE,INPUT,4096", rather than
+having to code the necessary assembler instructions.  Richard
+Curtiss uses it to expand ANY language he uses on his micro,
+to add structured programming:  IF/THEN, WHILE, REPEAT, etc.
+The macros generate the proper GOTOs, etc, no matter what the
+language
+	STAGE2 was written in "FLUB", a machine-independent
+simple language.  The FLUB source for STAGE2 is on the disk.
+IMPL.DOC goes into the details.  You could transport STAGE2 to
+some other processor, quite readily.
+	The only thing missing is some documentation on the
+"state machine" macros of ALX.  VDB.ALX, a video driver for a
+memory-mapped display, uses them.  You are normally in ST1
+(state 1) waiting for characters.  If you get an ESC, you go
+to ST2, because you are awaiting a control sequence.  Then, if
+you receive a "Y", it is cursor addressing, so you set the
+next state to ST3 via "SETNEXT ( NSTATE = ST3 )" to get the
+row, then when its received, "SETNEXT ( NSTATE = ST4 )", i.e.
+state 4 to receive the column.  Then reset to state 1.
+	The NSTATE DW is the address of the next state (rou-
+tine) you will be in, and "EXECUTE ( NSTATE )" expands to
+"branch to what is stored in NSTATE.
+
+	Abstract by Ward Christensen
+
+STAGE2 IS:
+
+	STAGE2 is a versatile macro processor developed by William
+	M. Waite.  Operating on a generalized pattern recognition principle,
+	it can be used for language translation, textual data filtering,
+	limited printer output formatting, batch file editing and other text
+	processing applications.
+
+FEATURES:
+
+	Pattern matching
+	Symbol table (storage and retrieval under user control)
+	Symbol generator
+	Integer arithmetic
+	Arithmetic expression evaluator
+	Scan controlled iteration (search for specific characters)
+	Count controlled iteration
+	Conditional and unconditional branching (skips)
+	I/O channel control
+	Limited output formatting
+	Recursion
+	Error traceback showing all macro calls
+
+STRONG POINTS:
+
+	Highly transportable
+
+	Some applications are an order of magnitude simpler to implement
+	with STAGE2 than with conventional algorithmic languages.
+
+WEAK POINTS:
+
+	A bit slow
+	Uses lots of memory for large applications (language translation)
+	Macro code is very cryptic in appearance
+
+REFERENCES:
+
+	STAGE2 is in the public domain and is documented by the author
+	in the book:
+		Implementing Software for Non-numeric Applications
+		by W. M. Waite
+		1973  Prentice Hall
+
+	Chapter 9 and appendix A include STAGE2 user information, source
+	listings and implementation directions.
+
+	STAGE2 is also documented by the author in:
+		"Communications of the ACM"
+		Volume 13 / Number 7
+		July 1970
+		Pages 415-421
+
+STAGE2 for CP/M:
+
+	This 8080 implementation was accomplished by:
+		Dick Curtiss
+		843 NW 54th
+		Seattle, Washington  98107
+		(206) 784-8018
+					and is in the public domain.
+
+DEVIATIONS FROM THE VERSION DISTRIBUTED BY WAITE:
+
+	Variable length lines for input and output (132 char max)
+		Input lines
+			Carriage return terminates
+			Line feeds are ignored
+			Nulls are ignored
+			Deletes are ignored
+
+		Output lines
+			Carriage return and line feed on every line
+
+	Channel 5 implemented for console input and output
+
+IMPLEMENTATION LIMITATIONS:
+
+	STAGE2 is modeled on an abstract machine called the FLUB machine.  FLUB
+	stands for First Language Under Bootstrap.  The FLUB machine word is
+	made up of three fields:
+		Pointer field		16 bits in this CP/M implementation
+		Value field		8 bits
+		Flag field		8 bits (only two used)
+
+	Since the value field is sometimes used to hold string length, strings
+	are limited to 255 characters maximum.  Under some circumstances the
+	value field is considered to be signed so that strings longer than
+	127 characters may cause strange results, but NOT a crash.  STAGE2 
+	seems to be extremely well protected against crashes.
+
+	Since the pointer field is used for arithmetic operations, values are
+	limited to the range -32767 to 32767.  -32768 causes trouble.
+
+	Each character stored by STAGE2 takes 1 FLUB word or 4 bytes in this
+	implementation.
+
+CP/M VERSION AVAILABILITY:
+	CP/M Users' Group
+	1651 Third Avenue   
+	New York, NY  10028
+
+DISCLAIMER:
+
+	)()!&(%$#"#"%!!$(%!##!(!$!!$=(00(!#=!! so there!
+	Use it at your own risk.
+
+MORE INFORMATION:
+
+	HELP.DOC	For the STAGE2 novice - start here
+
+	USE.DOC		STAGE2 I/O summary and command line specification
+
+	INTRO.DOC	Introduction to the STAGE2 processor
+
+	IMPL.DOC	STAGE2 implementation notes
+
+EXAMPLE FILES:
+
+	ALX.S2M		Assembly Language eXtension translator macros
+	ALX-.DOC	Notes on ALX.MAC
+
+	ALXTEST.ALX	Test case for the ALX macros
+	TERM.ALX	Sample program (incomplete)
+	VDB.ALX		TDL video display driver for H19 emulation
+	CIO.ALX		CP/M console I/O with PMMI modem in "parallel"
+
+	MEMORY.INP	Macros and source for memory demonstration
+
+	INTERACT.S2M	Macros to demonstrate interactive use of STAGE2
+
+	DEMO.S2M	Macros for interactive exercise of most conversions
+			and a few processor functions.  This is to be used
+			while reading the INTRO.DOC file.
+
+IMPLEMENTATION FILES:
+
+	IOOP.SRC	Initialization and input/output package
+
+	DISKIO2.SRC	General CP/M disk input/output package
+	DISKIO2-.DOC	Documentation for above
+
+	IOOP$.SUB	Submit file for creating IOOP.HEX
+
+	FLT1.FLB	FLUB translation test program 1
+	FLD1.DAT	Test data for FLT1
+
+	FLT2.FLB	FLUB translation test program 2
+	FLD2.DAT	Test data for FLT2
+
+	STG2.FLB	Source program for STAGE2
+	ST2T.DAT	Test data for STAGE2
+
+	FLUB8080.S2M	STAGE2 macros for translating FLUB into 8080 code
+
+	STG2SUP.ASM	Support routines for the FLUB machine
+
+	STG2MATH.ASM	16 bit math routines for the FLUB machine
+
+	FLUB$.SUB	Submit file for assembling FLT1, FLT2 or STG2
+
+		Getting Started for the STAGE2 Novice
+								3/20/81
+
+Step 1.	Print the following files:
+		HELP.DOC
+		USE.DOC
+		INTRO.DOC
+		DEMO.S2M
+
+Step 2.	Read through INTRO.DOC but do not get bogged down in trying to under-
+	stand it.  The idea on this first pass is to become a little familiar
+	with what is there.
+
+Step 3.	Run STAGE2 using DEMO.S2M for input.
+		A>STAGE2 DEMO.S2M		; make sure printer is on
+			or
+		A>STAGE2 CON:,CON:=DEMO.S2M	; if you do not have a printer
+
+		STAGE2 error messages go to channel 4 which is defaulted to
+		the list device if nothing is specified on the command line.
+
+Step 4.	Type the following examples and carefully observe the results.  Go
+	through all of the examples once to become familiar with them but do
+	not try to understand what is going on.  Then start over and do each
+	example while referring to the listings DEMO.S2M and INTRO.DOC in an
+	effort to understand the operations being performed.  Don't get dis-
+	couraged as it may not make sense at first.  Perseverance is in order.
+
+		HELP
+		C0 ABC			; simple copy
+		C1 ABC			; symbol undefined in memory
+		F3 ABC=XYZ		; defines symbol in memory
+		C1 ABC			; symbol now defined -
+					;   note difference from previous C1 
+		F3 ABC=IJK		; new value for ABC in memory
+		C1 ABC
+		S			; next symbol from generator
+		S
+		S
+		C2 ABC			; similar to C1 except if symbol is not
+					;   defined it will be given the next
+					;   value from the symbol generator
+		C2 PDQ
+		S
+		C2 PDQ
+		C4 2+3*(4-7/3)		; expression evaluation
+		C4 PDQ-6		; will use value of PDQ from memory
+		C4 XXX+3		; XXX is undefined so value is 0
+		C4 ABC+3		; causes error message to channel 4
+X					;   because ABC has non-numeric value
+					;   in memory
+		C5 ABCDEFGHIJK		; length of string
+		C6 MAGIC		; parameter redefinition
+		C7 ONE,TWO;THREE	; scanner operation
+		C8 A
+		C8 B			; internal code for character
+		F1			; output request
+		F7 2+3			; count controlled iteration
+		F7 PDQ
+		FE			; error trace back
+		F0			; terminates - WARM BOOT
+
+
+		ASSEMBLY LANGUAGE EXTENSION PREPROCESSOR
+
+This application of STAGE2 to enhance assembly language programs with a few
+control structures is included with this STAGE2 package mainly for example.
+No user documentation is provided but it should not be difficult to see how
+to use it by trying the examples provided.
+
+	Examples:
+		STAGE2 ALXTEST.ASM,ALXTEST.LST=ALX.MAC,ALXTEST.ALX
+
+		STAGE2 BOUT.ASM,BOUT.LST=ALX.MAC,BOUT.ALX
+
+
+IMPLEMENTATION NOTES:
+
+	> means push   ^ means pop   C means condition
+
+	Stack		Source Statements	Generated Code
+
+	>n >K		IF ( C )			JCF	n
+
+	^K ^n		    FIN			n:
+
+	-----------------------------------------------------------
+
+	>n >n+1 >W	WHEN ( C )			JCF	n+1
+
+	^W >E		    FIN				JMP	n
+
+	^E ^n+1 >K	ELSE			n+1:
+
+	^K ^n		    FIN			n:
+
+	-----------------------------------------------------------
+
+	>B		BRANCH
+
+			    ( V1 )  L1			CPI	V1
+							JZ	L1
+
+			    ( V2 | V3 | V4 )  L2	CPI	V2
+							JZ	L2
+							CPI	V3
+							JZ	L2
+							CPI	V4
+							JZ	L2
+
+			    ( OTHERWISE )  L3		JMP	L3
+
+	^B		    FIN
+
+	-----------------------------------------------------------
+
+	>n >S		SELECT
+
+	>n+1 >I		    ( V1 )			CPI	V1
+							JNZ	n+1
+
+	^I ^n+1			FIN			JMP	n
+						n+1:
+
+	>n+3 >I		    ( V2 | V3 | V4 )		CPI	V2
+							JZ	n+2
+							CPI	V3
+							JZ	n+2
+							CPI	V4
+							JNZ	n+3
+						n+2:
+
+	^I ^n+3			FIN			JMP	n
+						n+3:
+
+	>O		    ( OTHERWISE )
+
+	^O			FIN
+
+	^S ^n		    FIN			n:
+
+	-----------------------------------------------------------
+
+	>n >n+1 >L	WHILE ( C )		n+1:	JCF	n
+
+	^L ^n+1 ^n	    FIN				JMP	n+1
+						n:
+
+	-----------------------------------------------------------
+
+	>n >R		REPEAT			n:
+
+	^R ^n		    UNTIL ( C )			JCF	n
+
+	-----------------------------------------------------------
+
+	Statement is allowed if top of stack is one of the following:
+	I,K,L,O,R,W,*.  Otherwise particular control statements are
+	expected.
+
+		I,K,L,O,W	statement or FIN
+
+		R		statement or UNTIL
+
+		E		ELSE only
+
+		S		SELECT ITEM or FIN
+
+		B		BRANCH ITEM or FIN
+

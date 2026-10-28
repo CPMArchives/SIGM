@@ -1,0 +1,83 @@
+
+TOPIC :  INFORMATION FILE FOR INSTALLING THE MODEM797 TELEPHONE PROGRAM
+
+FROM  :  IRVIN M. HOFF and PAUL L. KELLEY
+
+DATE  :  17 DEC 82
+
+REVISED: 24 DEC 82 by Bruce R. Ratoff
+
+        The MODEM7 program was originally written by Ward Christensen
+in Sept. 1977.  It has since undergone a considerable number of changes.
+MODEM797.HIS (for history) contains a list of those changes.
+
+        The current version is 7.97 as of 24-DEC-82.  To adapt this
+version to your equipment, you will want to get some of the following
+programs:
+
+         Program name     Squeezed Name          Purpose
+
+        MODEM797.ASM     (MODEM797.AQM)    (source code file)
+        MODEM797.COM     (MODEM797.OBJ)    (object code file)
+        MODEM797.HIS     (MODEM797.HQS)    (history file)
+        MODEM797.INF     (MODEM797.IQF)    (information file)
+        MODEM797.LIB     (MODEM797.LQB)    (library file)
+        MODEM797.SET     (MODEM797.SQT)    (how to set file)
+        MCNFG797.ASM     (MCNFG797.AQM)    (general overlay file)
+	MCOSB797.ASM	 (MCOSB797.AQM)	   (Osborne overlay file)
+
+
+        (The minimum would be any pair in one of the examples shown
+below.)
+
+        There are numerous ways by which you can set the proper ports,
+status pin values, etc. for your equipment.
+
+
+     1) Use DDT, SID or DUU with:      MODEM797.COM   and
+                                       MODEM797.SET
+                                                             or        
+     2) Use your editor, ASM,          MODEM797.COM   and
+             and DDT or SID with:      MCNFG797.ASM
+	(Osborne owners use MCOSB797.ASM not MCNFG797.ASM)
+                                                             or
+     3) Use your editor, and MAC with: MODEM797.ASM   and
+                                       MODEM797.LIB
+
+        One of those should appeal to you.  Possibly the first suggest-
+ion is the easiest to use.
+
+        After asking for the program, type 'H', hit RET and it will
+display helpful information on the commands.  There are so many commands
+there are several pages.
+
+        The program has received numerous worthwhile optional features
+in the past several months.
+
+
+SUPPLEMENTAL INFORMATION OF INTEREST:
+
+        If using your editor with MCNFG797.ASM or MODEM797.ASM,
+the following might be helpful:
+
+	(A typical port number will be shown for each.)
+
+                             PMMI UART   8251     2661     8250
+
+PORT    (control or status)     0C0H     31H      0EDH    0D8H+5
+BAUDRP  (baud rate port)       PORT+2    ---      ---      ---
+MODCTL2 (2nd control port)     PORT+3    ---      ---      ---
+MODCTLP (control or status)     PORT     PORT     PORT     PORT
+MODDATP (data port)            PORT+1   PORT-1   PORT-1   PORT-5 
+MODRCVB (receive bit)           02H      02H      02H      01H
+MODRCVR (receive ready)         02H      02H      02H      01H
+MODSNDB (send buffer empty bit) 01H      01H      01H      20H
+MODSNDR (send ready)            01H      01H      01H      20H
+
+
+        (The 2661 information is for a typical Heath/Zenith Z-100
+series computer.  The 8250 information for a typical Heath/Zenith
+H8 or H89 computer.  The first PMMI board with UART for a typical
+S-100 computer.)
+
+

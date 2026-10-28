@@ -1,0 +1,362 @@
+*SAM001-Name & number table entry.(NON-EXECUTABLE ANNOTATED COPY)********************************
+*DATE OF LAST UPDATE  05/10/83                                                                  *
+*REVISION NUMBER 001.00                                                                         *
+*												*
+*                         THIS PROGRAM PLACED INTO PUBLIC DOMAIN BY                             *
+*                         DOUGLAS G. COUSE, ATLANTA, GA 5/20/83                                 *
+*                         COPYING FOR NON-COMMERCIAL OR EDUCATIONAL                             *
+*                         PURPOSES ALLOWED, PROVIDED THIS NOTICE IS                             *
+*                         NOT REMOVED. COMMERCIAL RESALE IS PROHIBITED.                         *
+*                                                                                               *
+*    This command file provides for the entry of NEW number & name data into the database file  *
+*												*
+*    NOTES:--------------------------------------------------------				*
+*          1. This database is indexed on the field named "KEY" and				*
+*	      has one index file.								*
+*	   2. The maximum number of records which this file may have				*
+*	      is 99 due to the size of the numeric field NUMBER.				*
+*	   3. If the database file becomes filled to capacity a message				*
+*	      to this effect will be displayed and the user can then				*
+*	      go directly to the maintenance command file "SAM002" to				*
+*             update the available names							*
+*          4. All explanatory comments are enclosed in boxes, indented                          *
+*             and immediately precede the section of programming code                           *
+*             to which they refer.                                                              *
+*-----------------------------------------------------------------------------------------------*
+* 	DATABASE & OTHER FILE UTILIZATION STATISTICS					        *
+*												*
+*	Database file: SAMFILE.DBF, Record length 14 characters                                 *
+*	Index file:    SAMAKEY.NDX								*
+*	Memory file:   NONE									*
+*       Other files:   SAMSCR1.CMD This is a command file which contains the screen image used  *
+*                                  by this program and is called from the program initialization*
+*                                  section P-001.                                               *
+*                                                                                               *
+*                      SAM002.CMD  This is the MAINTENANCE PROGRAM command file and is called   *
+*                                  into execution from section P-020 at the user's request.     *
+*                                                                                               *
+*                      SAMMENU.CMD This is the MENU PROGRAM command file and functions as the   *
+*                                  the calling program which executes this program .            *
+*												*
+*	Database File Structure:_______________________________________________________________ *
+*       |	|	     |	  |    |       | Memory     |                                 |	*
+*       |       |            |    |    |       | Variable   |                                 | *
+*	|Field #| Field Name |Type|Size|Decimal| Complement |Description if needed            | *
+*	|-------|------------|----|----|-------|------------|---------------------------------| *
+*	|   1   | NUMBER     | N  |  2 |   0   | M:NUMBER   | Numeric field converted to KEY  | *
+*       |       |            |    |    |       |            |                                 | *
+*       |   2   | NAME       | C  | 10 |       | M:NAME     |                                 | *
+*       |       |            |    |    |       |            |                                 | *
+*       |   3   | KEY        | C  |  2 |       | M:KEY      | Index file key field            | *
+*       --------------------------------------------------------------------------------------- *
+*                                                                                               *
+*	NON-COMPLEMENTARY MEMORY VARIABLE UTILIZATION STATISTICS                                *
+*                                                                                               *
+*	Variables Used:_____________________________________________________________________    *
+*	|    | Memory     |    |    |                                                      |	*
+*	|    | Variable   |    |    |                                                      |    *
+* 	| No.| Name       |Type|Size|                     Description                      |    *
+*	|----|------------|----|----|------------------------------------------------------|    *
+*	|    |            |    |    |                                                      |    *
+*	|  1 | PROGRAM    | C  | 6  | This variable is initialized with the literal value  |    *
+*	|    |            |    |    | "ENTRY " for use by the screen display file SAMSCR1. |    *
+*	|    |            |    |    |                                                      |    *
+*	|  2 | LINE       | N  | 2  | This variable is an arithmetic accummulator used for |    *
+*	|    |            |    |    | dynamic line cursor positioning and is incremented   |    *
+*	|    |            |    |    | by a constant value of 1 and initialized with a      |    *
+*	|    |            |    |    | value of 7.                                          |    *
+*	|    |            |    |    |                                                      |    *
+*	|  3 | COL        | N  | 2  | This variable is an arithmetic accummulator used for |    *
+*	|    |            |    |    | dynamic column cursor positioning and is incremented |    *
+*	|    |            |    |    | by constant values of 4 and 13 depending on the field|    *
+*	|    |            |    |    | to be processed and is initialized with a value of 2.|    *
+*	|    |            |    |    |                                                      |    *
+*	|  4 | ALWAYS     | C  | 1  | This variable is used to enter and exit a doloop. It |    *
+*	|    |            |    |    | is the primary doloop variable of this command file  |    *
+*	|    |            |    |    | and uses the literal "T" to enter the doloop and the |    *
+*	|    |            |    |    | literal "F" to exit the doloop. This variable is     |    *
+*	|    |            |    |    | associated with a doloop which contains the data     |    *
+*	|    |            |    |    | entry logic.                                         |    *
+*	|    |            |    |    |                                                      |    *
+*	|  5 | RESPOND    | C  | 1  | This variable is used to enter and exit a doloop. It |    *
+*	|    |            |    |    | is the secondary doloop variable of this command file|    *
+*	|    |            |    |    | and uses the literal "." to enter the doloop and the |    *
+*	|    |            |    |    | literal " " to exit the doloop. This variable is     |    *
+*	|    |            |    |    | associated with a doloop which contains the program  |    *
+*	|    |            |    |    | termination logic. This variable also acts to call   |    *
+*	|    |            |    |    | the MAINTENANCE PROGRAM "SAM002" into execution if   |    *
+*       |    |            |    |    | literal value "E" is entered by the user.            |    * 
+*       ------------------------------------------------------------------------------------    *
+*                                                                                               *
+*       MESSAGE UTILIZATION STATISTICS                                                          *
+*       ____________________________________________________________________________________    *
+*       |        |                                                                         |    *
+*       | TYPE   |  MESSAGE CONTENTS                                                       |    *
+*       |--------|-------------------------------------------------------------------------|    *
+*       |        |                                                                         |    *
+*       | ERROR  | SPACE EXHAUSTED, entry of data not allowed, strike any key to continue  |    *
+*       |        |                                                                         |    *
+*       | PROMPT | Strike <E> key to update table, or strike <RETURN> key to EXIT........  |    *
+*       |        |                                                                         |    *
+*       ------------------------------------------------------------------------------------    *
+*************************************************************************************************
+
+			**************************************************************************************************
+                        *NOTE----any comment labelled (*P-) is a procedural section numbering reference                  *
+			*that should be used in flowcharting and other program documentation.                            *
+			**************************************************************************************************
+
+
+*P-001-{START}. Program and screen initialization.
+
+			**************************************************************************************************
+			* This section is a standardized program initialization section which: 1. disables screen dialog;*
+			* 2. refreshes the screen; 3. refreshes memory; 4. closes any open database files; 5. provides a * 
+			* fresh work area for dbase; 6. initializes the program display variable used by SAMSCR1.CMD;    *
+			* 7. sets up the initial values of the cursor positioning variables; 8. initializes the          *
+			* complementary variable used to access the last record in the file and initiate data entry;     *
+			* 9. calls the screen image command file SAMSCR1.CMD for execution.                              *
+			**************************************************************************************************
+
+ERASE
+CLEAR
+USE
+SET COLON OFF
+SET TALK OFF
+SET ECHO OFF
+RELEASE
+STORE "ENTRY " TO PROGRAM
+STORE 00 TO M:NUMBER
+STORE 7 TO LINE
+STORE 2 TO COL
+DO SAMSCR1
+*P-001-{END}.
+
+=================================================================================
+
+*P-005-{START}. Database accessing and doloop initialization. 
+
+			**************************************************************************************************
+			*screen intensity is toggled off to insure that everything is displayed at high                  *
+			*intensity                                                                                       *
+			**************************************************************************************************
+   
+SET INTENSITY OFF
+
+			**************************************************************************************************
+			*primary doloop initialization                                                                   *     
+			**************************************************************************************************
+
+STORE "T" TO ALWAYS
+
+			**************************************************************************************************
+			*database file open, pointer positioning and specific record accessing                           *  
+			**************************************************************************************************
+
+USE SAMFILE INDEX SAMAKEY
+GOTO TOP
+LOCATE FOR NUMBER = 99
+
+			**************************************************************************************************
+			*conditional test to see if file is full                                                         *
+			*if the file is full a message is displayed and the doloop variable is                           *
+			*set to inhibit execution of the primary doloop.                                                 *               
+			*The console toggling is done to inhibit the display of the auto message                         *
+			*WAITING whenever the wait command is executed. The wait command is                              *
+			*used so that the REMARK message will not be over written by the prompting                       *
+			*message in section P-020.                                                                       *
+                        *Note the use of "IF EOF .OR. # = 0".  This is a standardized end of file check                  *
+			*used with indexed and non-indexed files.  Use of this end of file check can prevent             *
+			*program execution error resulting from use of the wrong end of file check with                  * 
+			*the type of file accessing method being used.                                                   * 
+			**************************************************************************************************
+
+IF EOF .OR. # = 0
+ELSE
+	@ 22,1 SAY "-"
+        REMARK SPACE EXHAUSTED, entry of data not allowed, strike any key to continue
+	STORE "F" TO ALWAYS
+	SET CONSOLE OFF
+	WAIT
+	SET CONSOLE ON
+ENDIF
+
+			**************************************************************************************************
+			*if the file is not full then the value of the last records number field is                      *
+			*moved to its complementary memory variable.  This value is then incremented                     *
+			*by 1 as each new record is entered. The number field is under program control                   *
+			*and is only displayed.  This is a common procedure used to maintain strict                      *
+			*control of table index key values and can minimize transposition errors or other                *
+			*data entry errors where users have the ability to enter key field values.                       *
+			**************************************************************************************************
+    
+STORE NUMBER TO M:NUMBER
+P-005-{END}
+
+=================================================================================
+
+*P-010-{START}. New RECORD entry section.
+
+			**************************************************************************************************
+			*execution of primary doloop                                                                     *
+			**************************************************************************************************
+
+DO WHILE ALWAYS = "T"
+
+			**************************************************************************************************
+			*incrementing of key field value, initialization of NAME FIELD complementary                     *
+			*memory variable                                                                                 *
+			**************************************************************************************************
+
+STORE M:NUMBER +01 TO M:NUMBER
+STORE "          " TO M:NAME
+
+			**************************************************************************************************
+			*complementary variable display and entry based on cursor positioning variable                   *
+			*values. COL cursor positioning variable incrementing.                                           *
+			**************************************************************************************************
+
+@ LINE, COL SAY M:NUMBER USING '99'
+STORE COL + 4 TO COL
+@ LINE, COL GET M:NAME
+READ
+
+			**************************************************************************************************
+			*Precision character string conditional test used to determine if the first 3                    *
+			*characters of the name variable are "END".  This value would be entered by                      *
+			*the user when data entry is to be terminated without filling the database to                    *
+			*its limit.  If the test is true then the doloop variable will be set for exit &                 *
+			*program logic flow will be returned to the beginning of the primary doloop.                     *
+			**************************************************************************************************
+
+SET EXACT ON
+IF $(M:NAME,1,3) = "END"
+	STORE "F" TO ALWAYS
+	SET EXACT OFF
+	LOOP
+ENDIF
+SET EXACT OFF
+
+			**************************************************************************************************
+			*blank record generation and replacement of blank record data fields with                        * 
+			*calculated & entered values. The index key field is generated by converting                     *
+			*the NUMBER FIELD complementary numeric memory variable to a character string                    *
+			*memory variable.  All fields used for indexing must be character fields and                     *
+			*not numeric fields.                                                                             *
+			**************************************************************************************************
+
+APPEND BLANK
+STORE STR(M:NUMBER,2) TO M:KEY
+REPLACE NUMBER WITH M:NUMBER
+REPLACE NAME WITH M:NAME
+REPLACE KEY WITH M:KEY
+
+			**************************************************************************************************
+			*cursor positioning variable incrementing and conditional test to determine if                   *
+			*      1. the COL variable is at the last field on the line.                                     *
+			*      2. the LINE variable is at the last available processing line on the screen               *
+			*if so then the variable or variables are re-initialized and the gets counter                    *
+			*is re-initialized to prevent a TOO MANY GETS ERROR for occuring and to eliminate screen refresh *
+			**************************************************************************************************
+
+STORE COL + 13 TO COL
+IF COL = 70
+	STORE LINE + 1 TO LINE
+	STORE 2 TO COL
+ENDIF 
+IF LINE > 21
+	STORE 7 TO LINE
+	CLEAR GETS
+ENDIF
+
+			**************************************************************************************************
+			*conditional test to determine if the last allowable record has been entered.                    *
+			*this database is limited to a maximum of 99 records due to the size of the                      *
+			*NUMBER FIELD. If the last record has been entered the doloop variable is                        *
+			*set to exit the doloop. IF NOT then processing returns to the beginning                         *
+			*of the doloop.                                                                                  *
+			**************************************************************************************************
+
+IF M:NUMBER = 99
+	STORE "F" TO ALWAYS
+	LOOP
+ENDIF
+LOOP
+
+			**************************************************************************************************
+			*primary doloop terminiation point.                                                              * 
+			**************************************************************************************************
+
+ENDDO
+*P-010-{END}
+
+================================================================================
+
+*P-020-{START}. Link to maintenance or End of program execution and exit to menu
+
+			**************************************************************************************************
+			*close of the database                                                                           *
+			**************************************************************************************************
+
+USE
+
+			**************************************************************************************************
+			*secondary doloop variable initialization and execution of the doloop                            *
+			*if the value of the doloop variable is not blank. Use of period symbol                          * 
+			*for initialization is arbitrary
+			**************************************************************************************************
+
+STORE "." TO RESPOND
+DO WHILE RESPOND # " "
+
+			**************************************************************************************************
+			*the doloop variable is set to a value of blank so that a simple <RETURN>                        *
+			*can be used to return to the menu.  All programs in the application                             *
+			*use the <RETURN> key with a blank or zero default value to terminate                            *
+			*processing.                                                                                     *
+			**************************************************************************************************
+   
+STORE " " TO RESPOND
+@ 23, 1 SAY "Strike <E> key to update table, or strike <RETURN> key to EXIT......... " GET RESPOND
+READ
+
+			**************************************************************************************************
+			*conditional test to determine if the doloop variable is equal to "E" for edit                   * 
+			*if the variable is equal to "E" then the maintenance program is called for                      *
+			*execution.  Upon completion of any maintenance the entry program will continue                  *
+			*however, the doloop variable will be automatically set to a blank value. Thus                   *
+			*allowing for an automatic pass through to the menu program.                                     *
+			*                                                                                                *
+			*if any other value except blank, or "E" is entered, the doloop will be re-executed              *
+			*with the appearance of any invalid entries being ignored.                                       *
+			**************************************************************************************************
+
+IF RESPOND = "E"
+	DO SAM002
+	STORE " " TO RESPOND
+	LOOP
+ENDIF
+IF RESPOND = " "
+	LOOP
+ENDIF
+STORE "." TO RESPOND
+LOOP
+
+			**************************************************************************************************
+			*secondary doloop termination point                                                              *
+			**************************************************************************************************
+
+ENDDO
+
+			**************************************************************************************************
+			*program exit and housekeeping,ie. re-toggling of screen processing                              *
+			*switches, clearing of memory, clearing of screen                                                *
+			**************************************************************************************************
+
+SET INTENSITY ON
+SET COLON ON
+ERASE
+RELEASE ALL
+RETURN
+*P-020-{END} 
+

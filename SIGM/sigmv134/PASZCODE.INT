@@ -1,0 +1,84 @@
+FUNCTION inttostr (given: INTEGER;  imode : intmode): intstr;  {$C-R-}
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{* Given an integer, and a conversion mode specifier, return a       *}
+{* representing the integer's value in display mode.                 *}
+{*                                                                   *}
+{* Modes:  inone - present a 5-digit number, with left zeroes, in    *}
+{*                      positions 2-6 of the string.  Position 1 is  *}
+{*                      blank, 7 is the sign (blank or hyphen).      *}
+{*         isuplzer - same as inone, but with leading zeroes         *}
+{*                      replaced by leading blanks.                  *}
+{*         ishortsup - same as isuplzer, but shortened by removing   *}
+{*                      all leading and trailing blanks.             *}
+{*         icomma - replace leading zeroes with blanks, provide a    *}
+{*                      comma if absolute value exceeds 3 digits;    *}
+{*                      units in position 6, sign in 7.              *}
+{*         ishortcom - same as icomma, but shortened by removing     *}
+{*                      all leading and trailing blanks.             *}
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+
+CONST
+    hyphen   = '-';
+    comma    = ',';
+    blank    = ' ';
+    limiter  = intstrlength + 1;
+
+VAR
+    tempstr  : intstr;
+    string2  : intstr;
+    holder   : INTEGER;
+    digitn   : 0..9;
+    digx     : 1..limiter;
+{$L+}
+BEGIN {inttostr function}
+    setlength(tempstr,intstrlength);
+    FOR digx := 1 TO intstrlength DO
+      tempstr[digx] := blank;
+    IF given<0
+      THEN
+        BEGIN
+          tempstr[intstrlength] := hyphen;
+          holder := -given
+        END   {then}
+      ELSE holder := given;
+    FOR digx := intstrlength-1 DOWNTO 2 DO
+      BEGIN {for}
+        digitn := holder MOD 10;
+        tempstr[digx] := CHR(digitn+ord('0'));
+        holder := holder DIV 10
+      END;  {for}
+    IF imode<>inone
+      THEN
+        BEGIN {then}
+          digx := 2;
+          WHILE tempstr[digx]='0' DO
+            BEGIN {while}
+              tempstr[digx] := blank;
+              digx := digx+1
+            END;  {while}
+          IF ((tempstr[3]<>blank) AND ((imode=icomma) OR (imode=ishortcom)))
+            THEN
+              BEGIN {then}
+                tempstr[1] := tempstr[2];
+                tempstr[2] := tempstr[3];
+                tempstr[3] := comma
+              END   {then}
+        END;  {then}
+    IF ((imode=ishortsup) OR (imode=ishortcom))
+      THEN
+        BEGIN
+          setlength(string2,0);
+          digx := 1;
+          WHILE tempstr[digx]=blank DO
+            digx := digx + 1;
+          WHILE ((digx<=intstrlength) AND (tempstr[digx]<>blank)) DO
+            BEGIN {while}
+              append(string2,tempstr[digx]);
+              digx := digx + 1
+            END; {while}
+          inttostr := string2
+        END {then}
+      ELSE inttostr := tempstr
+END;  {inttostr procedure} {$L+}
+

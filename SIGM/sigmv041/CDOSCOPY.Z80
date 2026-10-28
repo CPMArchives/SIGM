@@ -1,0 +1,561 @@
+; Disk Copy Utility from CPM Users Group 
+; Modified for CDOS by Trevor Marshall
+;			Elec Eng Dept
+;			Uni W.A.
+; Jan 1980
+;
+; Rewritten for 2.36 CDOS (Double Density)
+; Automatic disk label checking,
+;   Sept 1980,  Trevor Marshall
+;
+;
+	ORG	100H
+	JP	COPY
+; BIOS FUNCTION CALLING TABLE
+WBOOT:	CALL	BIOSGO
+CONST:	CALL	BIOSGO
+CONIN:	CALL	BIOSGO
+CONOUT:	CALL	BIOSGO
+LIST:	CALL	BIOSGO
+PUNCH:	CALL	BIOSGO
+READER:	CALL	BIOSGO
+HOME:	CALL	BIOSGO
+SELDSK:	CALL	BIOSGO
+SETTRK:	CALL	BIOSGO
+SETSEC:	CALL	BIOSGO
+SETDMA:	CALL	BIOSGO
+READ:	CALL	BIOSGO
+WRITE:	CALL	BIOSGO
+BIOSGO:	EX	(SP),HL	     ; Get call addr in HL, save HL on stack
+	PUSH	DE	     ; Save DE
+	EX	DE,HL	     ; Move call addr to DE
+	LD	HL,(1)	     ; Get BIOS entry address
+	ADD	HL,DE	     ; Add call addr to entry addr
+	LD	DE,[WBOOT+3]; Get start of table
+; Subtract DE from HL in 8080 code (for compatibility)
+	LD	A,E
+	CPL	
+	LD	E,A
+	LD	A,D
+	CPL
+	LD	D,A	;Now have 1s compl of DE
+	INC	DE	;2s compl
+	ADD	HL,DE	;Done!
+	POP	DE	     ; Restore DE
+	EX	(SP),HL	     ; Restore HL, put jump addr on stack
+	RET		     ; Jump to BIOS routine
+; Original coding by:
+;         L.E. HUGHES     8080SDC     77/10/29
+;
+; Modified by 	Trevor Marshall
+;		E.E.Dept
+;		Uni W.A.
+;
+; to work with any sized CDOS system
+; and to prompt for drives
+;	
+	
+;         MISC SYMBOLS
+	
+LF	EQU    0AH   ;LINE FEED
+CR	EQU    0DH   ;CARRIAGE RETURN
+	
+ITRK	EQU    0     ;INITIAL TRACK TO COPY
+LTRK	EQU    76    ;LAST TRACK TO COPY
+	
+BDOS:	EQU	5
+;
+COPY:	LD	HL,0
+	ADD	HL,SP
+	LD	(OLDSP),HL
+	LD	SP,STACK+64
+;
+;         ALLOW USER TO MOUNT DISK(S) BEFORE PROCEEDING
+	
+AGAIN:	LD	C,96H	;Turn drive motors off
+	CALL	BDOS
+;
+	LD	HL,CRLF
+	CALL	WASC
+	LD	HL,STR1 ;PRINT 'Source Disk Drive,etc'
+	CALL	WASC
+	CALL	RACC
+	CP	3	;CTL-C ABORT
+	JP	Z,EXIT1
+	CALL	WACC
+	SUB	'A'
+	JP	C,AGAIN	;Invalid entry
+	CP	3
+	JP	NC,AGAIN
+	LD	(SOURCE),A
+	LD	HL,CRLF
+	CALL	WASC
+; Now prompt for destination
+	LD	HL,STR1A
+	CALL	WASC
+	CALL	RACC
+	CALL	WACC
+	SUB	'A'
+	JP	C,AGAIN
+	CP	3
+	JP	NC,AGAIN
+	LD	(DEST),A
+	LD	HL,SOURCE
+	LD	C,(HL)
+	CP	A,C
+	JP	Z,AGAIN
+	LD	HL,CRLF
+	CALL	WASC
+	
+	
+; Now we must determine whether single or double 
+;  density disks are in use, and check that we
+;  are not trying to copy between incompatible formats
+;
+; We will use the CDOS 1BH cal (Get disk allocation vec)
+;   as the disk labels are read before this call returns.
+; This call returns the number of clusters in DE
+;
+;
+	LD	C,0DH	;Reset CDOS
+	CALL	BDOS
+;
+	LD	A,(SOURCE) ;Select Source drive
+	LD	E,A
+	LD	C,0EH
+	CALL	BDOS
+;
+	LD	C,1BH	;Get CLUSTER.SIZE size map
+	CALL	BDOS	;for first disk
+	LD	(ACLUSTERS),DE
+;
+	LD	A,(DEST) ;Select Dest. drive
+	LD	E,A
+	LD	C,0EH
+	CALL	BDOS
+;
+	LD	C,1BH	;Get cluster size map
+	CALL	BDOS	;for second disk
+	LD	(BCLUSTERS),DE ;save it
+	LD	HL,(ACLUSTERS) ;get it again
+	XOR	A
+	SBC	HL,DE	;to compare them
+	LD	A,L
+	OR	A,L	;see if HL is zero
+	JP	NZ,SEND.DIFF.ERROR ;no
+; Now display the disks in use and branch to copy S/R
+	LD	A,E	;LSB of # clusters
+	CP	A,0FEH	;D/D S/S?
+	JP	Z,SEND.DD.MSG
+	CP	A,060H	;D/D D/S
+	JP	Z,SEND.DS.MSG
+	CP	A,0F3H	;S/D S/S
+	JR	Z,SEND.SD.MSG
+	CP	A,0F7H	;S/D D/S
+	JP	Z,SEND.DS.MSG	;Dont use this often,
+			;I wont bother to tidy it up
+	JP	SEND.NON.STANDARD.MSG
+;
+SEND.SD.MSG: LD	DE,SD.MSG
+	LD	C,9
+	CALL	BDOS ;Print it
+	LD	A,1BH	;Max sectors/trk+1
+	LD	(SECTORS.PER.TRACK),A
+	LD	HL,80H	;The sector size for S/D
+	LD	(DMA.INCR),HL
+	LD	HL,SDMAP-1 ;Point to sector map
+	LD	(SECTOR.MAP.ADDRESS),HL
+	JR	MAIN
+;
+SEND.DIFF.ERROR: LD DE,DIFF.ERROR.MSG
+L5:	LD	C,9
+	CALL	BDOS
+	JP	AGAIN
+SEND.NON.STANDARD.MSG: LD DE,NON.STANDARD.ERROR.MSG
+	JR	L5
+;
+;         BEGIN SINGLE DENSITY LOOP
+	
+MAIN:	LD	DE,MSG1	;Finish disk msg
+	LD	C,9
+	CALL	BDOS
+;
+	LD	HL,STR4	     ;PRINT HEADER
+	CALL	WASC
+	LD	HL,STR5
+	CALL	WASC
+;
+	LD	A,ITRK	     ;INITIAL TRACK NUMBER
+	LD	(TRKNO),A
+COPY2: 
+; Check for CTL-C abort
+	CALL	CONST
+	CP	0
+	JP	Z,FT1
+	CALL	CONIN
+	AND	5FH
+	CP	3	;CTL-C
+	JP	Z,COPYX
+FT1:	LD	A,(SOURCE) ;Select Source Disk
+	LD	C,A
+	CALL	SELDSK
+	LD	A,(TRKNO)    ;SET TRACK NUMBER
+	LD	C,A
+	CALL	SETTRK
+	LD	HL,TBUF	     ;SET INITIAL DMA ADDRESS
+	LD	(DMAPTR),HL
+	LD	A,1	     ;INITIAL SECTOR NUMBER
+	LD	(SECNO),A
+COPY3:	LD	A,(SECNO)    ;SET SECTOR NUMBER
+	LD	HL,(SECTOR.MAP.ADDRESS)
+	LD	D,0
+	LD	E,A
+	ADD	HL,DE
+	LD	C,(HL)
+	CALL	SETSEC
+	LD	HL,(DMAPTR)  ;SET DMA ADDRESS
+	LD	B,H
+	LD	C,L
+	CALL	SETDMA
+	CALL	READ	     ;READ SECTOR
+	LD	HL,(DMAPTR)  ;ADD INCR TO DMA PTR
+	PUSH	DE
+	LD	DE,(DMA.INCR)
+	ADD	HL,DE
+	POP	DE
+	LD	(DMAPTR),HL
+	LD	HL,SECNO     ;ADD 1 TO SECTOR NUMBER
+	INC	(HL)
+	LD	A,(HL)
+	LD	HL,SECTORS.PER.TRACK
+	CP	A,(HL) ;LOOP THRU ENTIRE TRACK
+	JP	C,COPY3
+	
+;         WRITE TBUF TO CURRENT TRACK ON DISK C
+	
+	LD	A,(DEST) ;Select dest dsk
+	LD	C,A
+	CALL	SELDSK
+	LD	A,(TRKNO)    ;SET TRACK NUMBER
+	LD	C,A
+	CALL	SETTRK
+	LD	HL,TBUF	     ;SET DMA ADDRESS
+	LD	(DMAPTR),HL
+	LD	A,1	     ;SET INITIAL SECTOR NUMBER
+	LD	(SECNO),A
+COPY4:	LD	A,(SECNO)    ;SET SECTOR NUMBER
+	LD	HL,(SECTOR.MAP.ADDRESS)
+	LD	D,0
+	LD	E,A
+	ADD	HL,DE
+	LD	C,(HL)
+	CALL	SETSEC
+	LD	HL,(DMAPTR)  ;SET DMA ADDRESS
+	LD	B,H
+	LD	C,L
+	CALL	SETDMA
+	CALL	WRITE	     ;WRITE SECTOR
+	LD	HL,(DMAPTR)  ;ADD INCR TO DMAPTR
+	PUSH	DE
+	LD	DE,(DMA.INCR)
+	ADD	HL,DE
+	POP	DE
+	LD	(DMAPTR),HL
+	LD	HL,SECNO     ;ADD 1 TO SECTOR NUMBER
+	INC	(HL)
+	LD	A,(HL)
+	LD	HL,SECTORS.PER.TRACK
+	CP	A,(HL) ;LOOP THRU ENTIRE TRACK
+	JP	C,COPY4
+	
+;         ADVANCE TO NEXT TRACK
+	
+	LD	A,'*'
+	CALL	WACC
+	LD	HL,TRKNO
+	INC	(HL)
+	LD	A,(HL)
+	CP	LTRK+1	     ;LOOP THRU ENTIRE DISK
+	JP	C,COPY2
+	
+;         ALL DONE SINGLE DENSITY
+	
+COPY5:	LD	HL,STR2	     ;PRINT 'COPY COMPLETE'
+	JP	COPY6
+COPYX:	LD	HL,STR3	     ;PRINT 'COPY ABORTED'
+COPY6:	CALL	WASC
+	JP	COPY
+EXIT1:	LD	HL,(OLDSP)   ;EXIT TO CP/M
+	LD	SP,HL
+	JP	0
+	
+;         WASC - WRITE ASCII STRING TO CONSOLE
+	
+WASC:	LD	A,(HL)
+	OR	A
+	RET	Z
+	CALL	WACC
+	INC	HL
+	JP	WASC
+	
+;         WACC - WRITE ASCII CHARACTER TO CONSOLE
+	
+WACC:	PUSH	HL
+	PUSH	DE
+	PUSH	BC
+	PUSH	AF
+	LD	C,A
+	CALL	CONOUT
+	POP	AF
+	POP	BC
+	POP	DE
+	POP	HL
+	RET	
+	
+;         RACC - READ ASCII CHARACTER FROM CONSOLE
+	
+RACC:	PUSH	HL
+	PUSH	DE
+	PUSH	BC
+	CALL	CONIN
+	AND	5FH	;Make LC=UC
+	POP	BC
+	POP	DE
+	POP	HL
+	RET	
+	
+SEND.DS.MSG: LD	A,2
+	LD	(SIZE.FLAG),A
+	LD	DE,DS.MSG
+	JR	V1
+SEND.DD.MSG: LD	A,1
+	LD	(SIZE.FLAG),A
+	LD	DE,DD.MSG
+V1:	LD	C,9
+	CALL	BDOS
+;
+;Calculate the 2's complement of the block capacity of disk
+	LD	HL,(ACLUSTERS) ;Get # on disk
+	ADD	HL,HL	; x2 (16 blocks per cluster)
+	ADD	HL,HL	; x4
+	ADD	HL,HL	; x8
+	ADD	HL,HL	; x16
+	EX	DE,HL	;into DE
+	SCF		;add 1 to block capacity
+	LD	HL,0
+	SBC	HL,DE	;have 2's complement
+	LD	(BLOCK.CAPACITY),HL
+; We cannot use the same approach for D/D disks
+;   as for S/D, so we will use a LOGICAL BLOCK
+;   approach. Each block is 128 Bytes, I have
+;   ~32K free RAM, so will read ~28K at a time
+;   (160h, 352d blocks).
+;
+DOUBLE:	LD	DE,MSG1	;Finish disk msg
+	LD	C,9
+	CALL	BDOS
+;
+	LD	A,(SIZE.FLAG) ;Is it D/D or D/S ?
+	CP	1	;D/D only?
+	JR	NZ,JJ1	;No, D/S D/D
+	LD	HL,STR6	;PRINT D/D HEADER
+	CALL	WASC
+	LD	HL,STR7
+	CALL	WASC
+	JR	JJ2
+;
+JJ1:	LD	HL,STR8	;PRINT D/S HEADER
+	CALL	WASC
+	LD	HL,STR9
+	CALL	WASC
+;
+JJ2:	LD	HL,0	;INITIAL BLOCK NUMBER
+	LD	(BLKNO),HL
+;
+; Begin the main (fill buffer) loop
+DCOPY2: LD	HL,TBUF-80H
+	LD	(DMAPTR),HL ;Initialize DMA ptr
+	LD	DE,(BLKNO) ;Block # to DE
+	LD	(FIRSTBLK),DE ;Save first blocK #
+;
+; Check for CTL-C abort
+	CALL	CONST
+	CP	0
+	JP	Z,DFT1
+	CALL	CONIN
+	AND	5FH
+	CP	3	;CTL-C
+	JP	Z,COPYX	;and abort
+;
+; Get enough blocks to fill buffer, one at a time
+DFT1:	LD	HL,(DMAPTR)  ;ADD INCR TO DMA PTR
+	LD	DE,80H	;Block size is 128 bytes
+	ADD	HL,DE
+	LD	(DMAPTR),HL
+; Are we at end of Buffer,
+	LD	DE,-8000H
+	ADD	HL,DE	;C means .LT. 8000H
+	JR	C,DCOPY6 ;If so write the buffer
+;Set DMA for DOS
+	LD	DE,(DMAPTR)
+	LD	C,1AH
+	CALL	BDOS
+; Is this block beyond the end of disk?
+	LD	DE,(BLOCK.CAPACITY)
+	LD	HL,(BLKNO)	
+	ADD	HL,DE	;see if DE & HL are .EQ.
+	LD	A,L
+	OR	A,H
+	JP	Z,COPY5   ;Z = done copy
+; Read the block
+	LD	DE,(BLKNO) ;Block # to DE
+	LD	C,83H
+	LD	HL,SOURCE
+	LD	B,(HL) ;disk # to B
+	INC	B	;For BDOS
+	SET	7,B	;Set interleaved read
+	CALL	BDOS
+; Handle error status
+	CP	A,1	;I/O error
+	JP	Z,COPYX
+	CP	A,2	;Illegal request
+	JP	Z,COPYX
+	CP	A,3	;Illegal Block
+	JP	EQ,COPYX			
+; Now incr the block #
+	LD	HL,(BLKNO)
+	INC	HL
+	LD	(BLKNO),HL
+; Is this beyond the end of disk?
+	LD	DE,(BLOCK.CAPACITY)
+	ADD	HL,DE	;see if DE & HL are .EQ.
+	LD	A,L
+	OR	A,H
+	JR	NZ,DFT1   ;Z = done read
+; Must decr last BLKNO so write does not overrun
+DCOPY6:	LD	HL,(BLKNO)
+	DEC	HL
+	LD	(BLKNO),HL
+;
+;Write the buffer if full
+DCOPY3:
+; Begin the main (empty buffer) loop
+SENDSTAR: LD	A,'*'
+	CALL	WACC
+;
+	LD	HL,TBUF-80H
+	LD	(DMAPTR),HL ;Initialize DMA ptr
+; Save last BLK # and get first #
+	LD	HL,(BLKNO)
+	LD	(LASTBLK),HL
+;
+	LD	DE,(FIRSTBLK) ;First Block # to DE
+	LD	(BLKNO),DE ;Save blocK #
+;
+; Put enough blocks to empty buffer, one at a time
+DFT2:	LD	HL,(DMAPTR)  ;ADD INCR TO DMA PTR
+	LD	DE,80H	;Block size is 128 bytes
+	ADD	HL,DE
+	LD	(DMAPTR),HL
+; Is this beyond the end of disk?
+;	LD	DE,(BLOCK.CAPACITY)
+;	LD	HL,(BLKNO)	;get the block #
+;	ADD	HL,DE	;see if DE & HL are .EQ.
+;	LD	A,L
+;	OR	A,H
+;	JP	Z,COPY5   ;Z = done copy
+; Have we written too many blocks
+	LD	HL,(LASTBLK)
+	LD	DE,(BLKNO)
+	XOR	A
+	SBC	HL,DE
+	JP	C,DCOPY2 ;C if BLKNO > LASTBLK
+; On exit BLKNO will be LASTBLK + 1
+; Which is OK for next read loop
+;Set DMA for DOS
+	LD	DE,(DMAPTR)
+	LD	C,1AH
+	CALL	BDOS
+;
+; Write the block
+	LD	DE,(BLKNO) ;Block # to DE
+	LD	C,84H
+	LD	HL,DEST
+	LD	B,(HL) ;disk # to B
+	INC	B	;for BDOS
+	SET	7,B	;Set interleaved read
+	CALL	BDOS
+; Handle error status
+	CP	A,1	;I/O error
+	JP	Z,COPYX
+	CP	A,2	;Illegal request
+	JP	Z,COPYX
+	CP	A,3	;Illegal Block,done
+	JP	EQ,COPYX 
+; Now incr the block #
+	LD	HL,(BLKNO)
+	INC	HL
+	LD	(BLKNO),HL
+;
+	JR	DFT2	;Loop for more blocks
+;	
+;
+;         OUTPUT STRINGS
+	
+STR1:	DEFB	'Source disk drive (A to D) ?',CR,LF
+	DB	'Type <CR> if you make an error --- ',0
+CRLF:	DB	cr,lf,0
+STR1A:	db	'Ensure you mount the disks before'
+	db	'typing the : ',cr,lf
+	  DB	'Destination drive (A to D) ? --- ',0
+STR2:	DEFB	CR,LF,'Copy completed',CR,LF,0
+STR3:	DEFB	'***** Copy aborted *****',CR,LF,0
+STR4:	DEFB	0DH,0AH,0AH
+	DB	'          1         2         3         4'
+	DEFB	'         5         6         7',CR,LF,0
+STR5:	DEFB	'01234567890123456789012345678901234567890'
+	DEFB	'123456789012345678901234567890123456',CR,LF,0
+STR6:	DB	0DH,0AH,0AH
+	DB	'          1',CR,LF,0
+STR7:	DB	'01234567890123456',CR,LF,0
+STR8:	DB	0DH,0AH,0AH
+	DB	'          1         2         3         4',CR,LF,0
+STR9:	DB	'01234567890123456789012345678901234567890',CR,LF,0
+;	
+DD.MSG:	DB	0DH,0AH,'Double Density$'
+SD.MSG:	DB	0DH,0AH,'Single Density$'
+DS.MSG:	DB	0DH,0AH,'Double sided Double Density$'
+MSG1:	DB	' disks mounted.$'
+DIFF.ERR.MSG: DB 0DH,0AH,'**** DISK LABEL ERROR ***$'
+NON.STANDARD.ERROR.MSG: DB 0DH,0AH,'**** DISKS ARE NON STANDARD ****$'
+;
+;         SECTOR MAP
+	
+SDMAP:	DB	1,7,0DH,13H,19H,5,0BH,11H,17H,3,9,0FH,15H,2
+	DB	8,0EH,14H,1AH,6,0CH,12H,18H,4,0AH,10H,16H
+;DDMAP:	DB	1,0CH,7,2,0DH,8,3,0EH,9,4,0FH,0AH,5,10H,0BH,6
+;	
+OLDSP:	DEFS	2
+STACK:	DEFS	64
+ACLUSTERS: DS	2	;Clusters on DSK 1
+BCLUSTERS: DS	2	;Clusters on DSK 2
+BLOCK.CAPACITY: DS 2	;Blocks on the disk
+SIZE.FLAG: DS	1	;D/D OR D/S ?
+SECTORS.PER.TRACK: DS 1
+DMA.INCR: DS	2
+SECTOR.MAP.ADDRESS: DS 2
+SOURCE:	DS	1	;SOURCE DRIVE #
+DEST:	DS	1	;DEST DRIVE #
+	
+TRKNO:	DEFS	1	     ;TRACK NUMBER
+SECNO:	DEFS	1	     ;SECTOR NUMBER
+DMAPTR:	DEFS	2	     ;DMA POINTER
+BLKNO:	DS	2
+FIRSTBLK: DS	2
+LASTBLK: DS	2
+;
+; THe buffer for D/D is assumed 45 K long
+TBUF:	DEFS	26*128	     ;TRACK BUFFER
+	
+	END	100H
+

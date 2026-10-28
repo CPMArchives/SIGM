@@ -1,0 +1,216 @@
+	MODEM901 9.01.05
+
+	M.J. Mellinger, 11/25/83
+
+This represents a fix of bugs already present in my previous
+version (and not fixed by the expert Mr. Bolton).  Also fixed
+were various bugs induced by Mr. Bolton's change in the use of
+the MSPEED parameter.  Specific problems fixed were:
+
+	1.  The line printer now works.
+	2.  The BATCH mode handles all size files.
+	3.  The BATCH mode properly handles all file names.
+	4.  Transmit time is reported correctly (a Bolton bug).
+
+Control sequences have been modified from normal MODEM conventions.
+This was done after a study of operating systems and auto-dial modems
+to allow use of same without excessive effort.  Use the "H" option in
+MODEM or see START.A86 for information on these sequences, both before
+and after the change.
+
+The only current restrictions, other than those below are that the
+Rainbow will not work at more than 4800 baud in terminal mode.  Because
+of this and a desire to support other RAINBOW functionality, RAINBOW
+users will soon have their own MODEM -- look on this system for  this
+in 10-30 days.  We have a RAINBOW 100+ on site and are making MODEM
+compatible with the new release of CP/M-86/80.
+
+Bill's documentation follows.
+
+
+
+           MODEM901 FOR CP/M-86 MICROCOMPUTER SYSTEMS
+
+            Documentation for CP/M-86 Version 9.01.04
+
+   Software Tools RCPM, Sydney Australia - September 22, 1983
+
+A few weeks ago Trevor Marshal gave me a copy of MODEMRB, a quick 
+CP/M-86  implementation of MODEM901 for the DEC Rainbow.  Now the 
+Rainbow isn't a bad machine, but it tain't mine, I happen to work 
+with NEC Adavanced Personal Computers, so I deceided to get MODEM 
+running  under CP/M-86 on the APC and on my Godbout  8086  system 
+too!
+
+Obviously  the original MODEMRB stuff was a rush translation (see 
+below) so I started to tidy it up.  Well one thing led to another 
+and  I did a proper implementation of the INBUFF routine to  work 
+like the CP/M-80 version does,  got rid of many of the  "funnies" 
+caused  by  the "mechanical" translation (by XLT86???) from  8080 
+code and did 8251 and 2651 versions of the SYS.A86 file.
+
+Trevor  showed up here in Australia unexpectedly (a week  earlier 
+than I anticipated) and I'm giving him this copy without having a 
+chance to fully test EVERYTHING,  but most features seem to  work 
+properly (much better than originally).  It certainly works OK in 
+the single file transfer modes.
+
+There are now three implementations:
+
+MODEMGB.CMD is for Godbout hardware or other 2651 USART systems.
+
+MODEMAPC.CMD is for a standard NEC Advanced Personal Computer.
+
+MODEMRB.CMD is for a DEC Rainbow 100 computer.
+
+The only difference in the source code between the versions is in 
+the SYS.A86 file. There are three XXXXSYS.A86 files which go with 
+the above implementations.
+
+2651SYS.A86 is used to generate MODEMGB.CMD (blame me)
+
+8251SYS.A86 is used to generate MODEMAPC.CMD (again blame me)
+
+SIOSYS.A86 is used to generate MODEMRB.CMD (blame Mike, though I 
+                                            made a few changes)
+
+Since  there isn't an LU for CP/M-86 machines as far as I know  I 
+haven't built and LBR file for this latest version. I have a dual 
+processor  system  but I know many other CP/M-86 users who  don't 
+have any access to 8 bit utilities,  so I would recommend that it 
+stay out of LBR form until there is a CP/M-86 LU. 
+
+I  have,  however,  SQUEEZED  everything to save space  and  have 
+included  a  CP/M-86 version of SQ on the distribution  disk  for 
+unsqueezing it.
+
+Assembling:
+
+Note  that  Version 9.01.04 needs to GENCMD with  a  much  larger 
+reserved  memory  space  than previous  versions.  The  following 
+command line for GENCMD will do the trick.
+ 
+               GENCMD MODEM 8080 CODE[MCD0]
+
+The file MODEM.SUB will do it all for you, but make sure that you 
+rename your appropriate XXXXSYS.A86 file to plain SYS.A86  before 
+you start assembling MODEM901.
+
+Known Bug Fixes:
+
+Specifically,  the  problems  3c,  3d and 3e noted below in  Mike 
+Mellingers 9.01.02 documentation are fixed.
+
+In Australia not too many people use MODEMXXX programs, mostly we 
+use a compatible program called YAM (Yet Another MODEM) which  is 
+written  in  BDS C (version 3.12 of YAM is soon to  be  available 
+through  SIG/M).  YAM  uses Christensen protocol but the  "batch" 
+mode  was developed long before MODEM batch modes came along  and 
+is not compatible with MODEM batch mode. I have only been able to 
+test  out the single file transfer modes of MODEM901 so I  cannot 
+say  at the time of writing whether the batch mode problems  have 
+been fixed (that's on next week's testing schedule),  but I think 
+they  probably  have been caught in some of the other  changes  I 
+made  to tidy up the translated code.  Mike made a fatal  mistake 
+with  the  arrangement of the disk and capture  buffers  which  I 
+think have been a contributing factor towards problems 3a and 3b.
+
+Known Bugs:
+
+I  think there is still a minor bug in text capture buffering  in 
+that  it  MAY (I'm not certain) drop 1 character when it  flushes 
+the capture buffer to disk.  Also USART errors are not tested and 
+an  over  run  can cause continuing garbage  until  you  get  the 
+sending  end to shut up.  There are a couple of ways of  handling 
+this  but  I think that I will just add code to the  modem  input 
+status fetch routine to reset any USART errors and throw away the 
+bad  character.  For protocol transfers,  the protocol will  take 
+care of resending the block, while for "wild" text transfers only 
+one  character  will  be  garbaged,  rather  than  a  whole  lot. 
+Compuview's  commercial program "MODEM86" takes this approach and 
+it  hasn't  caused me any real grief in many  megabytes  of  file 
+transfer!
+
+Capture Buffer Size:
+
+At the moment I have fixed the capture buffer size at 16K as that 
+is a reasonable compromise. In a CP/M-86 environment, determining 
+the  "top" of available memory is a slightly more difficult  than 
+in CP/M-80, there are BDOS calls to do it. The present version of 
+MODEM901  for CP/M-86 is built on the Intel "8080"  memory  model 
+for  the 8086 and therefore CANNOT cope with buffers  larger  the 
+difference  between  the  BOTTRAM  address and  the  top  of  the 
+segement  that MODEM901 is in.  As memory is pretty cheap now,  I 
+guess that it would be a safe bet to let the buffer run up to the 
+end of the segment in for all implementations.
+
+It would be nice if someone would take on the task of creating at 
+least  a  "small" memory model version for CP/M-86 with  separate 
+code  and data segments as then we could run the  capture  buffer 
+well  up  towards  a full 64K!  In any case if you  increase  the 
+capture  buffer size you MUST change the "CODE[M???] part of  the 
+GENCMD  command line to reflect the larger memory requirement  of 
+the program.
+
+I'll  try  to  keep Trevor Marshal up to date  with  any  further 
+developments on MODEM901 from the bottom half of the world!  Also 
+I  hope  to get stuck into a CP/M-86 version of YAM as soon as  I 
+can get hold of DRI's new C compiler (a long project). I you like 
+MODEM901, wait till you see YAM!
+
+OK that's my bit, the 9.01.02 docs by Mike Mellinger follow.
+
+                                             Bill Bolton,
+                                             SYSOP,
+                                             Software Tools RCPM     
+                                             P.O. Box 80,
+                                             Newport Beach,
+                                             NSW, 2106
+                                             Australia
+
+                   ---------------------------
+
+            Documentation For Version CP/M-86 9.01.02
+
+1.   The MODEMRB software is a conversion of the MODEM901 CP/M-80 
+program  to run on the DEC (R) RAINBOW (R) personal  computer  in 
+16-bit  mode  with considerable ability to change  communications 
+port parameters, batch send/receive, and other MODEM901 features.
+
+2.   MODEMRB  is distributed in standard LU  format.   All  files 
+should  be expanded,  unsqueezed and then assembled and  GENCMD'd 
+using MODEMRB.SUB as an example.
+
+3.  This was a quick modification.  Known bugs include:
+
+	a.  Batch mode displays filenames incorrectly.
+	b.  Batch mode has problems with short (1 sector) files.
+	c.  Memory  buffer works well as long as transfer is less 
+            than 16,000 bytes.
+	d.  Command  input uses CP/M-86 rather than a  user-input 
+            routine. Thus ^C and other commands cause problems.
+	e.  If  a  command  of  greater  than  one  character  is 
+            entered,  a  later shorter command will  include  the 
+            remaining letters from the previous command.
+
+4.   These  bugs  are fixable and will be corrected  soon.   This 
+program was rushed to distribution to fulfill a perceived need.
+
+5.   I  am  the  President/Principal  of  an  Authorized  Digital 
+Computer  Distributor  (DEC) and therefore please  don't  try  to 
+contact me by phone.
+
+Use the mails or Trevor Marshall's RCPM at 805-492-5472.
+
+6.   Please  tell  me about your fixes and changes via the  above 
+changes.
+
+7.  Good luck.
+
+Michael J. Mellinger
+Data Research Associates, Inc.
+9270 Olive Boulevard
+St. Louis, Missouri  63132
+July 8, 1983
+
+

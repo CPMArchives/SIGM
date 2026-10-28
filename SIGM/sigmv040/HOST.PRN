@@ -1,0 +1,479 @@
+CROMEMCO Z80 Macro Assembler version 03.07   Nov 30, 1980  09:21:39   Page 0001
+*** HOST *** 
+
+                  0001  ; HOST Program for AMD 96-4016 Z8000 Monitor
+                  0002  ;
+                  0003  ; Sourced March '80 by 	Trevor Marshall
+                  0004  ;			Elec Eng Dept
+                  0005  ;			Uni W.A.
+                  0006  ;
+                  0007  ; This program was written for a Z80 CPU
+                  0008  ; running a CDOS 2.17 Disk Operating System.
+                  0009  ;
+                  0010  ; It has been modified for 8080 CPU 
+                  0011  ; but not fully tested with that CPU
+                  0012  ;
+                  0013  ; Most code is compatible with other CP/M
+                  0014  ; systems, but will have to be tailored
+                  0015  ; to the individual's hardware environment
+                  0016  ;
+                  0017  ; Although the AMD SYS 8/8 uses parallel
+                  0018  ;  ports for handshaking the 96-4016 will also
+                  0019  ;  support serial I/O and this method is
+                  0020  ;  usually preferable.
+                  0021  ; The AMD Monitor uses an 8 bit data word with
+                  0022  ;  parity generated in software.
+                  0023  ; If you cannot configure your HOST USART
+                  0024  ;  to that format then you must null the 
+                  0025  ;  parity generation with NOPs and the parity
+                  0026  ;  checking may be defeated with a prior RET
+                  0027  ; Note that the AMD SYS 8/8 appears to have a
+                  0028  ;  CP/M compatible operating system
+                  0029  ;
+      (0005)      0030  BDOS:	EQU	5	;CDOS system call addr
+      (0014)      0031  RNEXT:	EQU	14H	;Read next record
+      (0015)      0032  WNEXT:	EQU	15H	;Write next record
+      (0016)      0033  FCREATE: EQU	16H	;Create a file
+      (000D)      0034  RESET:	EQU	0DH	;Reset CDOS
+      (000F)      0035  FOPEN:	EQU	0FH	;Open a file
+      (0010)      0036  FCLOSE:	EQU	10H	;Close a file
+      (001A)      0037  DMA:	EQU	1AH	;Set disk buffer address
+      (0086)      0038  FORMAT: EQU	86H	;Format name to FCB
+      (0015)      0039  NAK:	EQU	15H	;CTL-U
+      (0005)      0040  ENQ:	EQU	5	;CTL-E
+      (0006)      0041  ACK:	EQU	6	;CTL-F
+      (0001)      0042  SOH	EQU	1	;CTL-A
+      (0002)      0043  STX:	EQU	2	;CTL-B	
+      (0004)      0044  EOT:	EQU	4	;CTL-D
+      (001A)      0045  EOF:	EQU	1AH	;End of file marker byte
+                  0046  ;
+                  0047  ;THE FOLLOWING EQUATES ARE HARDWARE DEPENDENT
+                  0048  ;
+      (00F7)      0049  CSTATP: EQU	0F7H	;Console driver status port
+      (00F6)      0050  CDATA:	EQU	0F6H	;Console data port
+      (0002)      0051  CRDA:	EQU	2	;RDA bit
+      (0001)      0052  CTBE:	EQU	1	;TBE bit
+                  0053  ;
+      (0100)      0054  	ORG	100H
+                  0055  ;
+0100  318000      0056  START:	LD	SP,80H
+0103  3E00        0057  	LD	A,0
+0105  32DD04      0058  	LD	(FLAG),A ;Clear the file opened flag
+                  0059  ; Now output system prompt to console
+0108  11AD03      0060  	LD	DE,MSG
+010B  0E09        0061  	LD	C,9	;Print Buffered Line
+CROMEMCO Z80 Macro Assembler version 03.07   Nov 30, 1980  09:21:39   Page 0002
+*** HOST *** 
+
+010D  CD0500      0062  	CALL	BDOS
+                  0063  ;
+0110  318000      0064  MORE:	LD	SP,80H	;Reset Stack Pointer
+0113  3E00        0065  	LD	A,0
+0115  32DC04      0066  	LD	(CODE),A ;Clear the error code
+0118  CD8402      0067  	CALL	DIALOG	;Wait for an instruction
+011B  3ABA04      0068  	LD	A,(NEWCODE) ;2 locs to ease debugging
+011E  32B904      0069  	LD	(CURCODE),A	;Save it
+                  0070  ; Now decode the Function request type
+0121  FE04        0071  	CP	A,4
+0123  CA5901    R 0072  	JP	Z,OPEN
+0126  FE05        0073  	CP	A,5
+0128  CAA601    R 0074  	JP	Z,CLOSE
+012B  FE06        0075  	CP	A,6
+012D  CA2302      0076  	JP  	Z,CREATE
+0130  FE07        0077  	CP	A,7
+0132  CADB01      0078  	JP	Z,READ
+0135  FE08        0079  	CP	A,8
+0137  CA7901    R 0080  	JP	Z,WRITE
+                  0081  ;
+013A  C3C601      0082  	JP	N7	;If not one of the above instrs
+                  0083  ;
+                  0084  ; S/R to set up FCB name in FCB block from BFFR data
+                  0085  ;
+013D  3A2C04      0086  SETUP	LD	A,(REQBFFR) ;Fetch the drive (A - C)
+0140  D640        0087  	SUB	A,40H	;A = 01 IN FCB
+0142  322D04      0088  	LD	(REQBFFR+1),A ;Put drive # in FCB
+0145  212D04      0089  	LD	HL,REQBFFR+1 ;Point at start of legal co
+			de
+0148  11BB04      0090  	LD	DE,FCB	;Point at FCB area
+014B  010C00      0091  	LD	BC,12	;# of bytes in name & drive
+                  0092  ;	LDIR		;Shift name to FCB
+                  0093  ; implement the LDIR in 8080 code:
+014E  7E          0094  L1:	LD	A,(HL)	;***** THIS CODE HAS NOT
+014F  12          0095  	LD	(DE),A	;   BEEN CHECKED******
+0150  23          0096  	INC	HL
+0151  13          0097  	INC	DE
+0152  0B          0098  	DEC	BC
+0153  79          0099  	LD	A,C	;Is BC = 0
+0154  B0          0100  	OR	A,B
+0155  C24E01    R 0101  	JP	NZ,L1
+                  0102  ;
+0158  C9          0103  	RET
+                  0104  ;
+                  0105  ;Now try to open file
+0159  0E0D        0106  OPEN:	LD	C,RESET
+015B  CD0500      0107  	CALL	BDOS	;First log off all disks
+015E  CD3D01      0108  	CALL	SETUP   ;Set up FCB
+0161  11BB04      0109  	LD	DE,FCB
+0164  0E0F        0110  	LD	C,FOPEN
+0166  CD0500      0111  	CALL	BDOS	;Open file
+                  0112  ; Any errors?
+0169  C601        0113  	ADD	A,1	;Is a = -1 ?
+016B  CAC601    R 0114  	JP	Z,N7
+                  0115  ; Opened successfully, now can process read or write
+016E  3EFF        0116  	LD	A,0FFH
+0170  32DD04      0117  	LD	(FLAG),A ;Set opened flag
+0173  CD7303      0118  	CALL	TRNS	;Acknowledge
+0176  C31001    R 0119  	JP	MORE	;Get next instruction
+                  0120  ;
+0179  3ADD04      0121  WRITE:	LD	A,(FLAG) ;Check file is created or open
+CROMEMCO Z80 Macro Assembler version 03.07   Nov 30, 1980  09:21:39   Page 0003
+*** HOST *** 
+
+017C  FE00        0122  	CP	A,0
+017E  CAD001    R 0123  	JP	Z,N5 ;no, send error code 3
+                  0124  ; Now set the DMA address to BFFR
+0181  0E1A        0125  	LD	C,DMA
+0183  113904      0126  	LD	DE,BFFR
+0186  CD0500      0127  	CALL	BDOS
+                  0128  ;
+0189  11BB04      0129  	LD	DE,FCB
+018C  0E15        0130  	LD	C,WNEXT
+018E  CD0500      0131  	CALL	BDOS	;Write the record
+0191  FE01        0132  	CP	A,1	;entry error
+0193  CAD001    R 0133  	JP	Z,N5	; send code 3
+0196  FE02        0134  	CP	A,2
+0198  CAC601    R 0135  	JP	Z,N7	;Send code 1 if out of space
+019B  FE00        0136  	CP	0	;OK
+019D  C2CB01    R 0137  	JP	NZ,N8	;Send code 2 for other errors
+                  0138  ; Must be OK,wait for next instruction
+01A0  CD7303      0139  	CALL	TRNS
+01A3  C31001      0140  	JP	MORE
+                  0141  ;
+01A6  3ADD04      0142  CLOSE:	LD	A,(FLAG) ;Dont close an unopened file
+01A9  FE00        0143  	CP	0
+01AB  CAD001    R 0144  	JP	Z,N5	;not open
+01AE  0E10        0145  	LD	C,FCLOSE
+01B0  11BB04      0146  	LD	DE,FCB
+01B3  CD0500      0147  	CALL	BDOS
+01B6  FEFF        0148  	CP	A,0FFH
+01B8  CAC601    R 0149  	JP	Z,N7	;A=FF means not found
+01BB  3E00        0150  	LD	A,0
+01BD  32DD04      0151  	LD	(FLAG),A ;Clear the open file flag
+01C0  32DC04      0152  	LD	(CODE),A ;Clr error flag
+01C3  C3D501    R 0153  	JP	N10
+01C6  3E01        0154  N7:	LD	A,1	;Send error code 1
+01C8  C3D201    R 0155  	JP	N6
+01CB  3E02        0156  N8:	LD	A,2	;Send error code 2
+01CD  C3D201    R 0157  	JP	N6
+01D0  3E03        0158  N5:	LD	A,3	;Send error code 3
+01D2  32DC04      0159  N6:	LD	(CODE),A ;File not open or created
+01D5  CD7303      0160  N10:	CALL	TRNS
+                  0161  ; Omit the following for 8080 CP/M
+                  0162  ;	LD	C,96H	;Call to CDOS 2.17 to turn
+                  0163  ;	CALL	BDOS	; drive motors off
+01D8  C31001      0164  	JP	MORE
+                  0165  ;
+01DB  3ADD04      0166  READ:	LD	A,(FLAG) ;Is file open ?
+01DE  FE00        0167  	CP	0
+01E0  C2FD01    R 0168  	JP	NZ,N2 ;Yes
+01E3  0E0D        0169  	LD	C,RESET	;No,open it
+01E5  CD0500      0170  	CALL	BDOS
+01E8  CD3D01      0171  	CALL	SETUP
+01EB  11BB04      0172  	LD	DE,FCB
+01EE  0E0F        0173  	LD	C,FOPEN
+01F0  CD0500      0174  	CALL	BDOS
+01F3  C601        0175  	ADD	A,1
+01F5  CAD001    R 0176  	JP	Z,N5   ;type 3 error, not found
+01F8  3EFF        0177  	LD	A,0FFH
+01FA  32DD04      0178  	LD	(FLAG),A ;Set open flag
+                  0179  ; File opened now read record
+01FD  0E1A        0180  N2:	LD	C,DMA	;set CDOS DMA addr to bffr
+01FF  113904      0181  	LD	DE,BFFR
+0202  CD0500      0182  	CALL	BDOS
+CROMEMCO Z80 Macro Assembler version 03.07   Nov 30, 1980  09:21:39   Page 0004
+*** HOST *** 
+
+0205  0E14        0183  	LD	C,RNEXT	;read next record
+0207  11BB04      0184  	LD	DE,FCB
+020A  CD0500      0185  	CALL	BDOS
+                  0186  ; Now process error codes
+020D  FE00        0187  	CP	0	;1 = <EOF>
+020F  CA1D02    R 0188  	JP	Z,M1  
+                  0189  ; Must be 1, End Of File
+                  0190  ; Note that this error is only returned AFTER an
+                  0191  ; abortive attempt to fetch the next sector, and
+                  0192  ; <EOF> within data is transferred normally, so
+                  0193  ; ASM will give errors unless a QUIT instruction
+                  0194  ; is used to end the source file.
+0212  3E01        0195  	LD	A,1
+0214  32DC04      0196  	LD	(CODE),A
+0217  CD7303      0197  	CALL	TRNS	;Dont send any data
+021A  C31001      0198  	JP	MORE
+021D  CD0C03      0199  M1:	CALL	SEND	;Transmit normal data
+0220  C31001      0200  	JP	MORE
+                  0201  ;
+0223  3ADD04      0202  CREATE:	LD	A,(FLAG) ;Is file open?
+0226  FE00        0203  	CP	0
+0228  C2D001    R 0204  	JP	NZ,N5	;Yes send error code 3
+022B  0E0D        0205  	LD	C,RESET	;Log off all disks
+022D  CD0500      0206  	CALL	BDOS	;Prior to directory operations
+0230  CD3D01      0207  	CALL	SETUP
+                  0208  ; First check if a file already exists with this name
+                  0209  ; Dont delete it,as it may be a mistaken command
+0233  11BB04      0210  	LD	DE,FCB
+0236  0E11        0211  	LD	C,11H	;Search Directory cmd
+0238  CD0500      0212  	CALL	BDOS
+023B  FEFF        0213  	CP	A,0FFH	
+023D  CA4602    R 0214  	JP	Z,MI3	;Entry was not found
+0240  7E          0215  	LD	A,(HL)	;Fetch the first directory byte
+0241  FEE5        0216  	CP	A,0E5H	;Is it erased
+0243  C2D001    R 0217  	JP	NZ,N5	;No, send error
+0246  0E16        0218  MI3:	LD	C,FCREATE
+0248  11BB04      0219  	LD	DE,FCB
+024B  CD0500      0220  	CALL	BDOS
+024E  FEFF        0221  	CP	A,0FFH
+0250  CAC601      0222  	JP	Z,N7	;Send error code 1
+0253  CD7303      0223  	CALL	TRNS
+0256  3EFF        0224  	LD	A,0FFH
+0258  32DD04      0225  	LD	(FLAG),A ;Set the open flag
+025B  C31001      0226  	JP	MORE
+                  0227  ;
+                  0228  ;
+                  0229  ; S/R to accomplish I/O
+                  0230  ; N.B. THESE WILL BE HARDWARE DEPENDENT
+025E  DBF7        0231  CSTAT:	IN	A,CSTATP
+0260  E602        0232  	AND	CRDA
+0262  C8          0233  	RET	Z
+0263  3EFF        0234  	LD	A,-1
+0265  C9          0235  	RET
+                  0236  ;
+0266  CD5E02      0237  CHIN:	CALL	CSTAT
+0269  CA6602    R 0238  	JP	Z,CHIN
+026C  DBF6        0239  	IN	A,CDATA
+026E  E67F        0240  	AND	7FH	;Strip off parity bit
+0270  C9          0241  	RET
+                  0242  ;
+0271  DBF7        0243  CRDY:	IN	A,CSTATP
+CROMEMCO Z80 Macro Assembler version 03.07   Nov 30, 1980  09:21:39   Page 0005
+*** HOST *** 
+
+0273  E601        0244  	AND	CTBE
+0275  C8          0245  	RET	Z
+0276  3EFF        0246  	LD	A,-1
+0278  C9          0247  	RET
+                  0248  ;
+0279  F5          0249  COUT:	PUSH	AF
+027A  CD7102      0250  C1:	CALL	CRDY
+027D  CA7A02    R 0251  	JP	Z,C1
+0280  F1          0252  	POP	AF
+0281  D3F6        0253  	OUT	CDATA,A
+0283  C9          0254  	RET
+                  0255  ;
+                  0256  ;
+                  0257  ; S/R DIALOG to talk to Z8000
+0284  21FFFF      0258  DIALOG: LD	HL,0FFFFH ;Load a delay value to HL
+                  0259  ; We will decrement HL until 0, then switch the
+                  0260  ; disk drive motors off
+0287  CD5E02      0261  DI1:	CALL	CSTAT
+028A  C29E02    R 0262  	JP	NZ,DIA2 ;Have input,exit motor loop
+028D  2B          0263  	DEC	HL
+028E  7D          0264  	LD	A,L	;No flag setting after DEC HL
+028F  B4          0265  	OR	H
+0290  C28702    R 0266  	JP	NZ,DI1	;Try the loop again
+                  0267  ; Have now waited long enough, assume Z8000 done
+                  0268  ;	LD	C,96H	;Call to CDOS 2.17 to turn
+                  0269  ;	CALL	BDOS	; drive motors off
+0293  C39E02    R 0270  	JP	DIA2
+0296  3E15        0271  KNACK:	LD	A,NAK
+0298  CD7902      0272  	CALL	COUT
+029B  C38402    R 0273  	JP	DIALOG ;Service motors
+029E  CD6602      0274  DIA2:	CALL	CHIN
+02A1  FE05        0275  	CP	ENQ
+02A3  C29602    R 0276  	JP	NZ,KNACK ;Only <ENQ> is valid
+02A6  3E06        0277  ACKNL:	LD	A,ACK
+02A8  CD7902      0278  	CALL	COUT
+02AB  212C04      0279  RECVE:	LD	HL,REQBFFR
+02AE  CD6602      0280  	CALL	CHIN
+02B1  FE01        0281  	CP	SOH	;Answer should be <SOH>
+02B3  C20103    R 0282  	JP	NZ,FLUSH
+02B6  CD6602      0283  	CALL	CHIN	;FUNCTION REQUEST CODE 
+02B9  D630        0284  	SUB	A,30H
+02BB  32BA04      0285  	LD	(NEWCODE),A
+                  0286  ; We will just receive chars and store them in req bffr
+02BE  CD6602      0287  RECVA:	CALL	CHIN
+02C1  FE04        0288  	CP	A,EOT
+02C3  CAF602    R 0289  	JP	Z,RECVB	;Message ends with <EOT>
+02C6  FE02        0290  	CP	A,STX
+02C8  CABE02    R 0291  	JP	Z,RECVA	;Discard it
+                  0292  ; Now process two hex bytes
+02CB  D630        0293  	SUB	30H	;Pseudo-Hex format is used
+                  0294  ; Cabt SLA C in 8080, so rewrite
+02CD  37          0295  	SCF
+02CE  3F          0296  	CCF
+02CF  17          0297  	RLA
+02D0  37          0298  	SCF
+02D1  3F          0299  	CCF
+02D2  17          0300  	RLA
+02D3  37          0301  	SCF
+02D4  3F          0302  	CCF
+02D5  17          0303  	RLA
+02D6  37          0304  	SCF
+CROMEMCO Z80 Macro Assembler version 03.07   Nov 30, 1980  09:21:39   Page 0006
+*** HOST *** 
+
+02D7  3F          0305  	CCF
+02D8  17          0306  	RLA
+02D9  4F          0307  	LD	C,A	;Save first hex digit
+02DA  CD6602      0308  	CALL	CHIN
+                  0309  ;	SLA	C
+                  0310  ;	SLA	C
+                  0311  ;	SLA	C
+                  0312  ;	SLA	C
+02DD  D630        0313  	SUB	A,30H
+02DF  E60F        0314  	AND	A,0FH	;Mask off upper nibble
+02E1  81          0315  	ADD	A,C	;Now have Hex digit
+02E2  77          0316  	LD	(HL),A
+02E3  23          0317  	INC	HL
+02E4  7D          0318  	LD	A,L
+02E5  FE39        0319  	CP	REQBUFFEND AND 0FFH
+02E7  C2BE02    R 0320  	JP	NZ,RECVA
+02EA  7C          0321  	LD	A,H
+02EB  FE04        0322  	CP	REQBUFFEND SHR 8
+02ED  C2BE02    R 0323  	JP	NZ,RECVA
+02F0  213904      0324  	LD	HL,BFFR	;Now point at data buffer
+02F3  C3BE02    R 0325  	JP	RECVA
+                  0326  ;
+02F6  3E06        0327  RECVB:	LD	A,ACK
+02F8  CD7902      0328  	CALL	COUT
+02FB  C9          0329  	RET
+                  0330  ;
+                  0331  ;FLUSH routine to discard all input characters
+                  0332  ; up to the next <EOT> after an input error
+                  0333  ;
+02FC  3E15        0334  FLUSHB:	LD	A,NAK
+02FE  CD7902      0335  	CALL	COUT	;Send a <NAK>
+0301  CD6602      0336  FLUSH:	CALL	CHIN 
+0304  FE04        0337  	CP	EOT	;EOT means end of input
+0306  C2FC02    R 0338  	JP	NZ,FLUSHB ;Continue to flush
+0309  C38402      0339  	JP	DIALOG	;Try to fetch the data again
+                  0340  ;
+                  0341  ; S/R to transmit code,response & data in 96-4016 format
+                  0342  ;
+030C  3E05        0343  SEND:   LD	A,ENQ	
+030E  CD7902      0344  	CALL	COUT	;Ask permission to send
+0311  CD6602      0345  SENDA: 	CALL	CHIN
+0314  FE06        0346  	CP	A,ACK	;Must reply with <ACK>
+0316  C20C03    R 0347  	JP	NZ,SEND  
+0319  3E01        0348  SENDB: 	LD	A,SOH
+031B  CD7902      0349  	CALL	COUT
+031E  3AB904      0350  	LD	A,(CURCODE)
+0321  C630        0351  	ADD	A,30H
+0323  CD7902      0352  	CALL	COUT	;Transmit the Function Code
+0326  3E02        0353  	LD	A,STX
+0328  CD7902      0354  	CALL	COUT
+032B  3E30        0355  	LD	A,'0'	;Error codes, first is zero
+032D  CD7902      0356  	CALL	COUT
+0330  3ADC04      0357  	LD	A,(CODE) ;Second code byte
+0333  C630        0358  	ADD	'0'
+0335  CD7902      0359  	CALL	COUT
+                  0360  ; Now transmit text
+0338  213904      0361  	LD	HL,BFFR
+033B  7E          0362  LP4:	LD	A,(HL)
+033C  4F          0363  	LD	C,A	;Save it
+033D  E6F0        0364  	AND	A,0F0H
+                  0365  ; Cant SRA A in 8080,
+CROMEMCO Z80 Macro Assembler version 03.07   Nov 30, 1980  09:21:39   Page 0007
+*** HOST *** 
+
+                  0366  ;	SRA	A
+                  0367  ;	SRA	A
+                  0368  ;	SRA	A
+                  0369  ;	SRA	A
+033F  37          0370  	SCF
+0340  3F          0371  	CCF
+0341  1F          0372  	RRA
+0342  37          0373  	SCF
+0343  3F          0374  	CCF
+0344  1F          0375  	RRA
+0345  37          0376  	SCF
+0346  3F          0377  	CCF
+0347  1F          0378  	RRA
+0348  37          0379  	SCF
+0349  3F          0380  	CCF
+034A  1F          0381  	RRA
+034B  C630        0382  	ADD	A,'0'	;Get in Pseudo-Hex 
+034D  CD7902      0383  	CALL	COUT
+0350  79          0384  	LD	A,C
+0351  E60F        0385  	AND	A,0FH
+0353  C630        0386  	ADD	'0'
+0355  CD7902      0387  	CALL	COUT
+0358  23          0388  	INC	HL
+0359  7D          0389  	LD	A,L
+035A  FEB9        0390  	CP	[BUFFEND AND 0FFH]
+035C  C23B03    R 0391  	JP	NZ,LP4
+035F  7C          0392  	LD	A,H	;L was equal,test H
+0360  FE04        0393  	CP	A,[BUFFEND SHR 8]
+0362  C23B03    R 0394  	JP	NZ,LP4
+                  0395  ;Now have finished buffer
+0365  3E04        0396  J4:	LD	A,EOT
+0367  CD7902      0397  	CALL	COUT
+                  0398  ; Now wait for <ACK>
+036A  CD6602      0399  	CALL	CHIN
+036D  FE06        0400  	CP	ACK
+036F  C8          0401  	RET	Z
+0370  C30C03    R 0402  	JP	SEND  
+                  0403  ;
+                  0404  ;
+                  0405  ; S/R to transmit code and response only to 96-4016
+                  0406  ;
+0373  3E05        0407  TRNS:	LD	A,ENQ	
+0375  CD7902      0408  	CALL	COUT	;Ask permission to send
+0378  CD6602      0409  TRNSA:	CALL	CHIN
+037B  FE06        0410  	CP	A,ACK	;Must reply with <ACK>
+037D  C27303    R 0411  	JP	NZ,TRNS
+0380  3E01        0412  TRNSB:	LD	A,SOH
+0382  CD7902      0413  	CALL	COUT
+0385  3AB904      0414  	LD	A,(CURCODE)
+0388  C630        0415  	ADD	A,30H
+038A  CD7902      0416  	CALL	COUT	;Transmit the Function Code
+038D  3E02        0417  	LD	A,STX
+038F  CD7902      0418  	CALL	COUT
+0392  3E30        0419  	LD	A,'0'	;Error codes, first is zero
+0394  CD7902      0420  	CALL	COUT
+0397  3ADC04      0421  	LD	A,(CODE) ;Second code byte
+039A  C630        0422  	ADD	'0'
+039C  CD7902      0423  	CALL	COUT
+039F  3E04        0424  	LD	A,EOT
+03A1  CD7902      0425  	CALL	COUT
+                  0426  ; Now wait for <ACK>
+CROMEMCO Z80 Macro Assembler version 03.07   Nov 30, 1980  09:21:39   Page 0008
+*** HOST *** 
+
+03A4  CD6602      0427  	CALL	CHIN
+03A7  FE06        0428  	CP	ACK
+03A9  C8          0429  	RET	Z
+03AA  C37303    R 0430  	JP	TRNS
+                  0431  ;
+03AD  0D0A5A38    0432  MSG:	DB	0DH,0AH,'Z8000 HOST Communication Progra
+			m'
+03CF  20626574    0433  	DB	' between CDOS and AMD 96-4016',0DH,0AH
+03EE  0D0A2020    0434  	DB	0DH,0AH,'       '
+03F7  436F6E74    0435  	DB	'Contact Trevor Marshall for operating'
+041C  2070726F    0436  	DB	' proceedures.',0DH,0AH,'$'
+042C  (000D)      0437  REQBFFR DS	13
+      (0439)      0438  REQBUFFEND EQU	$
+0439  (0080)      0439  BFFR:	DS	128
+      (04B9)      0440  BUFFEND EQU 	$
+04B9  (0001)      0441  CURCODE DS	1	;Current operation code
+04BA  (0001)      0442  NEWCODE DS	1	;New operation code
+04BB  (0021)      0443  FCB:	DS	33	;FCB area
+04DC  (0001)      0444  CODE    DS	1	;Operation status code
+04DD  (0001)      0445  FLAG	DS	1	;0 means file is NOT OPEN
+04DE  00          0446  	NOP
+04DF  (0100)      0447  	END 	START
+
+Errors		   0
+Range Count	  41
+Parity Count	   0
+
+

@@ -1,0 +1,84 @@
+
+[EVALCOM.REC]
+[a compiler analogous to EVAL]
+[compiles LISP into REC without ALIST]
+[January 1, 1981]
+
+[[]]
+
+ {
+    [cr,lf]			(2573TL;)&
+    [console input]		(R13%='';T08%(=2080[sp,bs]TL)(@#|;L@#;);)#
+    [logon message]		('
+Type a LISP function - use round parentheses.
+'TL@&;)!
+    [bal paren]			(A')'E;'('E@+::)+
+    [next element]		(A'('E@+JA;j' 'U;')'U;)-
+    [enclose in quotes]		(JZD39%II39%IJQ;)%
+    [car]			(JZDI@-Q;)1
+    [cdr]			(JZDI@-D(' 'ED;;)JZQ;)2
+    [cons]			(JZD('()'='('II')'I;IAjI' 'I;)JZQ;)3
+    [atom]			(JZDI'('E'F';'T';)4
+    [eq]			(='T';L'F';)5
+    [null]			('()'='T';L'F';)6
+    [read]			(@&'read> 'TL(@#;:);)7
+    [print]			(@&'      'TLT;)8
+    [append]			(JZDIjIzABBD' 'IJZQ;)9
+    [not]			('T'='F';'F'='T';;)0
+				
+[ASSOC]
+(1$rmml1$S0$rmml0$S(1$ryG@6'T'=0$ryG;L0$ryG1$ryG@1@5'T'=1$ryG@2@1;L'T''T'=0$ryG1$ryG@2@2@a;L;)nLn0$SnLn1$S ;)a
+
+
+[EVALCOM]
+(1$rmml1$S(1$ryG@4'T'=1$ryG"($ryG)"@3;L1$ryG@1"quote"@5'T'=1$ryG@2@1@%'()'@3;L1$ryG@1@4'T'=1$ryG@11$ryG@2@v@d;L1$ryG@1@1"lambda"@5'T'=1$ryG@2@v1$ryG@1@2@11$ryG@1@2@2@1@c@m;L;)nLn1$S ;)c
+
+
+(2$rmml2$S1$rmml1$S(1$ryG"if"@5'T'=2$ryG@1"('T'=)"2$ryG@2@1"(;L)"2$ryG@2@2@1"(;)"'()'@3@3@3@3@3@3@p;L1$ryG"list"@5'T'=2$ryG@l;L1$ryG"and"@5'T'=2$ryG@n'()'@3;L1$ryG"or"@5'T'=2$ryG@o'()'@3;L'T''T'=@e;L;)nLn1$SnLn2$S ;)d
+
+
+[primitive atomic function forms]
+((1$ryG"car"@5'T'=2$ryG@1"(@1)"@9;L1$ryG"cdr"@5'T'=2$ryG@1"(@2)"@9;L1$ryG"cons"@5'T'=2$ryG@12$ryG@2@1"(@3)"@9@9;L1$ryG"atom"@5'T'=2$ryG@1"(@4)"@9;L1$ryG"eq"@5'T'=2$ryG@12$ryG@2@1"(@5)"@9@9;L'T''T'=@f;L;) ;)e
+
+
+((0$ryG"not"@5'T'=1$ryG@12$ryG@e@0;L0$ryG"append"@5'T'=1$ryG@12$ryG@e1$ryG@2@12$ryG@e@9;L0$ryG"cond"@5'T'=1$ryG@m;L'T''T'=@h;L;) ;)f
+
+
+[COMLIS - compile the function LIST]
+(1$rmml1$S(1$ryG@6'T'="(' () ')";L1$ryG@11$ryG@2@l"(@3)"'()'@3@3@3@p;)nLn1$S ;)l
+
+
+[COMLAM compile a LAMBDA]
+(2$rmml2$S1$rmml1$S0$rmml0$S0$ryG1$ryG@s2$ryG1$ryG@r'()'@3@3@3@9@pnLn0$SnLn1$SnLn2$S ;)m
+
+
+[COMAND]
+(1$rmml1$S(1$ryG@6'T'="('T';;)";L1$ryG@1"('T'=)"1$ryG@2@n'()'@3@3@3@p;)nLn1$S ;)n
+
+
+[EVOR - evaluate an OR]
+(1$rmml1$S(1$ryG@6'T'="('F';)";L1$ryG@1"('T'='T';L)"1$ryG@2@o'()'@3@3@3@p;)nLn1$S ;)o
+
+
+[multiple APPEND]
+(1$rmml1$S(1$ryG@6'T'=1$ryG;L1$ryG@11$ryG@2@p@9;)nLn1$S ;)p
+
+[restore]
+(1$rmml1$S(1$ryG@6'T'=1$ryG;L"(nLnn$S)"1$ryG@2@r@9;)nLn1$S ;)r
+
+
+[save]
+(1$rmml1$S(1$ryG@6'T'=1$ryG;L1$ryG@1"pGm$rmml"1$ryG@1"$S"'()'@3@3@3@31$ryG@2@s@9;)nLn1$S ;)s
+
+
+[EVLIST - compile all the elements of a list]
+(1$rmml1$S(1$ryG@6'T'=1$ryG;L1$ryG@1@c1$ryG@2@v@3;)nLn1$S ;)v
+
+
+[main program]
+(0$rmml0$S0$ryG@cnLn0$S ;)*
+
+(@!@7@*@8;;)}
+
+[end]
+

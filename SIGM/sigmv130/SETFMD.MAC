@@ -1,0 +1,29 @@
+title	setfmd.mac version 1.0
+;	this will set the the file attributes on the FCB passed 
+;	from the calling program
+
+;	by Dick Lieber	1/3/81
+
+
+bdos	equ	5
+wrcon	equ	2
+wrbuf	equ	9
+setattr	equ	30	;set flags
+
+entry	setfmd		;set flags module
+
+setfmd:
+;	process passed parameter 
+;	makes hl point to passed string
+;
+	inx	h	;pass length byte
+	mov	e,m
+	inx	h	;get address of passed string into de
+	mov	d,m	;de points to file name (actually begining
+			;of a FCB
+	mvi	c,setattr
+	call	bdos
+	ret
+	
+	end
+

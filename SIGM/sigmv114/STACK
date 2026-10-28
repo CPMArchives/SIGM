@@ -1,0 +1,115 @@
+MENU FOR STACK RELATED WORDS:
+copyright (C) 1983 by E. E. Bergmann
+definitions in alphabetical(ASCII) order.
+explanation of FFT,TFT,NTT,TOS
+:
+::
+*********************************************************
+*							*
+* PISTOL-Portably Implemented Stack Oriented Language	*
+*			Version 2.0			*
+* (C) 1983 by	Ernest E. Bergmann			*
+*		Physics, Building #16			*
+*		Lehigh Univerisity			*
+*		Bethlehem, Pa. 18015			*
+*							*
+* Permission is hereby granted for all reproduction and *
+* distribution of this material provided this notice is *
+* included.						*
+*							*
+*********************************************************
+:
+::
+.V	Vocabulary stack pointer
+
+2OVER	TFT NTT TOS --> TFT NTT TOS TFT
+
+3OVER	FFT TFT NTT TOS --> FFT TFT NTT TOS FFT
+
+<R	S: TOS -->
+	R:     --> TOS
+	{pushes TOS onto Return Stack.}
+
+>	Pops (discards) top (most recent) entry from
+	Vocabulary Stack.  Changes search path for 
+	stored definitions.
+
+CASE@	TOS --> CASESTACK[CASESTACKPOINTER-TOS]
+
+CHKLMT	Constant that specifies the maximum size of the
+	Check stack (that is used to check syntax and
+	which appears as part of the prompt).
+
+DDUP	NTT TOS --> NTT TOS NTT TOS
+
+DUP	TOS --> TOS TOS
+
+L@	TOS --> LOOPSTACK[LOOPSTACKPOINTER-TOS]
+
+LSIZE	Constant that specifies the size of the LOOPSTACK.
+	{a DO-LOOP takes three levels}.
+
+PISTOL<	Pushes the PISTOL vocabulary on the top of the
+	Vocabulary Stack.  Thus the first set of definitions
+	in the search path will then be the "standard PISTOL"
+	definitions.
+
+R@	TOS --> RETURNSTACK[RETURNSTACKPOINTER-TOS]
+
+R>	Transfers the top of the Return Stack onto the top
+	of the (Parameter) Stack.
+
+RP	--> (current number of items on Return Stack)
+	{"Return Stack Pointer"}.
+
+RSIZE	Constant indicating the maximum capacity of the
+	Return Stack.
+
+RSTACK	Displays the current size and contents of the
+	Return Stack. {No side effects other than i/o}.
+
+S@	TOS --> STACK[STACKPOINTER-TOS]
+	{ "0 S@" produces the same result as "DUP" }.
+
+SP	--> (number of items on Parameter Stack)
+	{"Stack Pointer".}
+
+SSIZE	Constant indicating the maximum size of the
+	(Parameter) Stack.
+
+STACK	Displays the current size and contents of the
+	(Parameter) Stack. {No side effects other than i/o}.
+
+SYNTAXBASE
+	Provides pointer to string area where the Syntax
+	Checking Stackpointer resides; immediately above
+	the contents of the Check Stack are located.
+	{"SYNTAXBASE MSG" would produce a display of the
+	 part of the prompt that shows which structures
+	 have been entered, but not yet exited during
+	 compilation.}
+
+UNDER	NTT TOS --> TOS
+
+UNLINKED<
+	Places on top of the Vocabulary Stack the "Unlinked"
+	Vocabulary.  This vocabulary contains definitions
+	that have subsequently been UNLINKed (probably because
+	of their obscurity or danger).
+
+VSIZE	Constant indicating the maximum capacity of the
+	Vocabulary Stack.
+
+:
+::
+
+	TOS - "Top Of Stack"
+
+	NTT - "Next To Top" of stack
+
+	TFT - "Third From Top" of stack
+
+	FFT - "Fourth From Top" of stack
+
+:
+r of items on Paramet

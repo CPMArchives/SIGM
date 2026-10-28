@@ -1,0 +1,95 @@
+io:
+	proc;
+	%replace
+		true  by '1'b,
+		false by '0'b;
+	%include 'attrib.dcl';
+
+hdr_out:
+	proc(a) ext;
+	/* write name attribute a */
+	dcl
+		a fixed,
+		i fixed,
+		f char(max_chr);
+
+		do i = 1 to max_chr by 2;
+		substr(f,i,2) = '.';
+		end;
+
+	substr(f,1,length(att_chars(a))+1) = att_chars(a);
+	put edit(f) (column(4),a);
+	end hdr_out;
+
+att_in:
+	proc(a,r) returns(bit) ext;
+	/* read attribute to r, return true if sucessful */
+	dcl
+		a  fixed,
+		r  char(max_siz),
+		t  char(max_siz) var,
+		fl fixed;
+	get edit(t) (a);
+	fl = att_len(a);
+	if length(t) > fl then
+		return(false);
+	if length(t) > 0 then
+		substr(r, att_start(a), fl) = t;
+	return(true);
+	end att_in;
+
+att_out:
+	proc(a,r) ext;
+	/* write attribute value a from record r */
+	dcl
+		a fixed,
+		r char(max_siz);
+	put edit(substr(r,att_start(a),att_len(a)))
+		(x(1),a(max_chr));
+	end att_out;
+
+att_len:
+	proc(a) returns(fixed) ext;
+	dcl
+		a fixed;
+	return (att_finish(a) - att_start(a) + 1);
+	end att_len;
+
+accept:
+	proc(r) ext;
+	/* read record into r */
+	dcl
+		r char(max_siz),
+		i fixed;
+
+	r = '';
+	i = 1;
+		do while(i <= att_cnt);
+		call hdr_out(i);
+		if att_in(i,r) then
+			i = i + 1;
+		else
+			call att_err();
+		end;
+	end accept;
+
+att_err:
+	proc ext;
+	put edit('Item Too Long, Retry','')
+		(column(4),a,skip,a);
+	end att_err;
+
+display:
+	proc(r) ext;
+	/* write record r */
+	dcl
+		r char(max_siz),
+		i fixed;
+
+		do i = 1 to att_cnt;
+		call hdr_out(i);
+		call att_out(i,r);
+		end;
+	end display;
+end io;
+

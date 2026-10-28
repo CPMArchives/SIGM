@@ -1,0 +1,212 @@
+;	title	'TAG - set or reset and display the "no copy" flag on a file'
+;	by Bruce R. Ratoff - first version 5/18/80
+;	modified 5/19/80 by BRR to display 4 across
+;
+;
+; The purpose of this program is to set or reset the f1' bit on a file.
+; This is used by the XMODEM program to indicate that a file may not
+; be transmitted.  The anticipated purpose is to allow remote use of
+; licensed programs without the danger of their being copied by the
+; remote users.  This should protect the licensee from liabilities
+; associated with dissemination of licensed software.
+;
+; To Set the "no copy" flag on a file, type:
+;    A>TAG d:filename.typ S
+; To Reset the flag (allows copying via XMODEM), type:
+;    A>TAG d:filename.typ R
+;
+; The filename.typ may contain the wildcards "*" and "?".
+;
+;
+;
+; Please forward all comments, suggestions and improvements to:
+;	Bruce R. Ratoff
+;	80 Gill Lane, Apt 1B
+;	Iselin, New Jersey 08830
+;
+;
+;
+bdos	equ	5		;cp/m entry point
+exit	equ	0		;cp/m exit point
+dfcb	equ	5ch		;cp/m default fcb
+dbuff	equ	80h		;default disk buffer
+;
+pchar	equ	2		;print character function
+pmessg	equ	9		;print message function
+seldsk	equ	14		;select drive function
+srchfst	equ	17		;search for first file match
+srchnxt	equ	18		;search for next file match
+attrib	equ	30		;set file attributes function
+;
+;
+	org	100h
+begin:
+	lhld	bdos+1		;set up a stack
+	sphl			;at top of tpa
+	lda	dfcb		;check for specific drive
+	dcr	a
+	mov	e,a		;set up for select disk call
+	mvi	c,seldsk
+	inr	a		;if no specified drive, skip call
+	cnz	bdos
+	sub	a		;now zap out drive spec
+	sta	dfcb
+	mvi	a,'?'		;force extent number wild
+	sta	dfcb+12
+	lda	dfcb+17		;get "S" or "R" option
+	sta	sropt
+	cpi	'S'
+	jz	okopt
+	cpi	'R'
+	jz	okopt
+	cpi	' '
+	jz	okopt
+badopt:
+	lxi	d,ilgopt
+	mvi	c,pmessg	;bitch about illegal option
+	call	bdos
+	jmp	exit
+ilgopt:
+	db	'Invalid option letter$'
+okopt:
+	sub	a		;zero out file count
+	sta	filcnt
+	lxi	d,dfcb		;find the first file and get its block map
+	mvi	c,srchfst
+	call	bdos
+	inr	a		;search successful?
+	jnz	gotfile		;yes, go process rest
+	lxi	d,nofile
+	mvi	c,pmessg	;say "no file"
+	call	bdos
+	jmp	exit
+nofile:
+	db	'File not found$'
+gotfile:
+	dcr	a		;compensate for inr above
+	rrc			;file offset to bits 5 and 6
+	rrc
+	rrc
+	ani	60h
+	lxi	h,dbuff		;point to base of buffer
+	mov	c,a
+	mvi	b,0
+	dad	b		;index by file offset
+	push	h		;save for the moment
+	lxi	b,filetable
+	call	filepoint	;get table pointer to hl
+	xchg			;de now points to place in table
+	lda	filcnt
+	inr	a
+	sta	filcnt		;bump file count
+	pop	h		;hl points to directory entry
+	mvi	b,32
+	call	blkmov		;copy entry into table
+	mvi	c,srchnxt	;search for another entry
+	lxi	d,dfcb
+	call	bdos
+	inr	a		;returns 0ffh at end of search
+	jnz	gotfile		;got another one...go save it
+;
+; end of directory encountered, now process them
+;
+tagfile:
+	lxi	b,filetable-32	;allow for filcnt one greater than desired
+	call	filepoint
+	push	h
+	lxi	d,dfcb		;copy next name to default fcb
+	mvi	b,32
+	call	blkmov
+	sub	a
+	sta	dfcb		;clear drive number
+	lxi	d,-20		;point back to extent field
+	dad	d
+	mvi	m,'$'		;tag end of print here
+	pop	d		;get back pointer to start of entry
+	inx	d		;bump fwd to name
+	mvi	c,pmessg
+	call	bdos		;say what we're working on
+	lda	dfcb+12		;get extent #
+	push	psw		;save it
+	adi	'0'		;convert to ascii
+	mov	e,a
+	mvi	c,pchar
+	pop	psw
+	ora	a		;print extent if nonzero
+	jnz	pext
+	mvi	e,' '
+pext:
+	call	bdos
+	lda	sropt		;get S or R
+	cpi	' '		;display only?
+	jz	nextfile
+	rrc			;bit 7=0 for R, 1 for S
+	ani	80h
+	mov	b,a		;save mask
+	lxi	d,dfcb+1	;point to f1
+	ldax	d		;get it
+	ani	7fh		;strip f1'
+	ora	b		;set bit if option was S
+	stax	d		;put it back
+	dcx	d		;point to start of fcb
+	sub	a		;zap out drive field
+	stax	d
+	mvi	c,attrib	;do set attributes call
+	call	bdos
+nextfile:
+	lda	dfcb+1		;get f1
+	rlc			;isolate f1'
+	ani	1
+	adi	'R'		;make an R or S
+	sta	donmsg+1
+	lxi	d,donmsg
+	mvi	c,pmessg	;print completion message for this file
+	call	bdos
+	lda	filcnt		;get file counter
+	ani	3		;multiple of 4?
+	lxi	d,crlf
+	mvi	c,9		;if so, time for new line
+	cz	bdos
+	lxi	h,filcnt	;point to file counter
+	dcr	m		;count it down
+	jz	exit		;exit if done
+	jmp	tagfile		;and go work on next one
+donmsg:
+	db	'  ',9,'$'
+crlf:
+	db	13,10,'$'
+;
+;
+; subroutine to do block moves
+blkmov:
+	mov	a,m		;copy byte from m(hl) to m(de)
+	stax	d
+	inx	h		;bump pointers
+	inx	d
+	dcr	b		;loop for count in b
+	jnz	blkmov
+	ret
+;
+;
+; subroutine to index bc by file counter
+filepoint:
+	lhld	filcnt		;get file counter
+	mvi	h,0		;force hi ord to 0
+	dad	h		;multiply by 32
+	dad	h
+	dad	h
+	dad	h
+	dad	h
+	dad	b		;use as index to file table
+	ret
+;
+;
+;
+;
+filcnt:	ds	1		;count of files in filetable
+sropt:	ds	1		;storage for S or R option letter
+;
+filetable	equ	$	;start table here, take all avail memory
+;
+	end
+

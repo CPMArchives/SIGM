@@ -1,0 +1,25 @@
+;File  LOGIOR.SRC      Created  19-Nov-80
+;
+;    This procedure will do a logical or of two operands passed to it
+;    by a PascalZ program and then return the result
+;
+          NAME LOGIOR
+          ENTRY LOGIOR
+
+LOGIOR:   POP       H    ;Save the return address
+          POP       D    ;Get first operand
+          POP       B    ;Get second operand
+          PUSH      H    ;Put back return vector
+
+          MOV       A,D  ;OR  the high byte
+          ORA       B    ;of the two numbers
+          MOV       D,A
+
+          MOV       A,E  ;OR  the low byte
+          ORA       C    ;of the two numbers
+          MOV       E,A
+
+          XRA       A    ;Get ready for return to PascalZ
+          RET            ;And return
+
+

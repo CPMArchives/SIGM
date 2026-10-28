@@ -1,0 +1,230 @@
+{#name getarg}
+procedure getarg(var arg:stringarray);
+var
+  i:integer; name:stringtype;
+  comline:string[127] absolute $80;
+
+function get_name:boolean;
+begin
+  while (comline[i] =' ') and (i<=length(comline)) do i:=i+1;
+  name:='';
+  while (comline[i]<>' ') and (i<=length(comline)) do
+    begin name:=name+comline[i]; i:=i+1 end;
+  get_name:=length(name)>0 
+end;
+
+begin
+  i:=1; arg.number:=0;
+  while get_name and (arg.number<max_buf) do
+    begin
+      arg.number:=arg.number+1;
+      arg.name[arg.number]:=name
+    end
+end;
+
+{#name store}
+procedure store(var pointer:integer; line:linetype);
+var i,j:integer;
+begin
+  i:=length(line)+1; j:=pointer+i;
+  if j<=max_buf then
+    begin move(line,buffer[pointer],i); pointer:=j end
+  else
+    begin writeln('buffer overflow'); halt end
+end;
+ 
+{#name set_buffer}
+{#external store}
+procedure set_buffer(var filename:stringtype; var pointer:integer);
+var line:linetype;
+begin
+  assign(infile,filename); {$I-} reset(infile); {$I+}
+  if ioresult=0 then
+    while not eof(infile) do
+      begin
+        readln(infile,line);
+        if pos('{#',line)=1 then store(pointer,line)
+      end
+  else
+    begin
+      writeln(filename,': can''t open file'); halt
+    end;
+  close(infile)
+end;
+
+{#name get}
+procedure get(var pointer:integer; var line:linetype);
+var i:integer;
+begin
+  i:=ord(buffer[pointer])+1;
+  move(buffer[pointer],line,i); pointer:=pointer+i
+end;
+
+{#name interpret}
+function interpret(line:linetype; var string_:stringarray;
+                   var number:integer):symbol;
+const
+  eos=#0;
+  letters:set of char=['a'..'z','A'..'Z','0'..'9','_','.'];
+var i:integer; s:stringtype; command:symbol;
+
+procedure skip;
+begin
+  while not (line[i] in (letters+[eos])) do i:=i+1
+end;
+
+procedure extract(var s:stringtype);
+var l:linetype;
+begin
+  l:=''; s:='';
+  while line[i] in letters do
+    begin l:=l+upcase(line[i]); i:=i+1 end;
+  if length(l)>name_length then
+    begin writeln(l,': too long name'); error:=true end
+  else s:=l;
+  skip
+end;
+
+begin
+  line:=line+eos; number:=string_.number; i:=1;
+  skip; extract(s);
+  if      s='NAME'     then command:=namesym
+  else if s='EXTERNAL' then command:=externalsym
+  else if s='SCAN'     then command:=scansym
+  else                      command:=nosym;
+  while line[i]<>eos do
+    begin
+      number:=number+1;
+      if number<=max_name then extract(string_.name[number])
+      else begin writeln('table overflow'); halt end
+    end;
+  interpret:=command
+end;
+
+{#name set_string}
+{#external get,interpret}
+procedure set_string(sym:symbol; var string_:stringarray);
+var number,pointer:integer; line:linetype;
+begin
+  string_.number:=0; pointer:=1;
+  while pointer<bufindex[0] do
+    begin
+      get(pointer,line);
+      if interpret(line,string_,number)=sym then
+        string_.number:=number
+    end
+end;
+
+{#name get_external}
+{#external get,interpret}
+procedure get_external(var index:integer; var name:stringtype;
+                       var external_:stringarray);
+var exit:boolean; pointer,number:integer; command:symbol;
+    line:linetype;
+begin
+  exit:=false; index:=0;
+  external_.number:=0; pointer:=bufindex[0];
+  while (pointer<bufindex[scan_.number]) and not exit do
+    begin
+      get(pointer,line);
+      command:=interpret(line,external_,number);
+      if (index>0) and (command=externalsym) then
+        external_.number:=number;
+      if command=namesym then
+        if external_.name[number]=name then index:=pointer
+        else exit:=index>0
+    end;
+  if index=0 then
+    begin
+      writeln(name,' is not found'); error:=true
+    end
+end;
+
+{#name expand}
+{#external get_external}
+{$A-}
+procedure expand(external_:stringarray; var p:link);
+var i,index:integer; external_next:stringarray;
+begin
+  for i:=1 to external_.number do
+    begin
+      get_external(index,external_.name[i],external_next);
+      expand(external_next,p);
+      p:=p^.next;
+      p^.name :=external_.name[i];
+      p^.index:=index
+    end;
+  new(p^.next)
+end;
+{$A+}
+
+{#name make_table}
+{#external expand}
+procedure make_table(var external_:stringarray);
+var p:link;
+begin
+  p:=root; expand(external_,p); p^.next:=nil
+end;
+
+{#name condense}
+procedure condense;
+var p,q:link; name:stringtype;
+begin
+  p:=root;
+  while p^.next<>nil do
+    begin
+      p:=p^.next; name:=p^.name; q:=p;
+      while q^.next<>nil do
+        if q^.next^.name=name then q^.next:=q^.next^.next
+        else q:=q^.next
+    end
+end;
+
+{#name write_lib}
+{#external interpret}
+procedure write_lib(var filename,name:stringtype);
+var find:boolean; s_:stringarray; number:integer;
+    line:linetype;
+
+function check:boolean;
+begin
+  if pos('{#',line)=1 then
+    check:=interpret(line,s_,number)=namesym
+  else check:=false
+end;
+
+begin
+  assign(infile,filename); reset(infile);
+  find:=false; s_.number:=0;
+  while not eof(infile) and not find do
+    begin
+      readln(infile,line);
+      if check then find:=name=s_.name[number]
+    end;
+  while not eof(infile) and find do
+    begin
+      writeln(outfile,line); readln(infile,line);
+      find:=not check
+    end;
+  if find then writeln(outfile,line);
+  close(infile)
+end;
+
+{#name make_library}
+{#external write_lib}
+procedure make_library;
+var p:link; i:integer;
+begin
+  writeln('making ',outfile_name);
+  assign(outfile,outfile_name); rewrite(outfile);
+  p:=root;
+  while p^.next<>nil do
+    begin
+      p:=p^.next; i:=0;
+      while p^.index>bufindex[i] do i:=i+1;
+      write_lib(scan_.name[i],p^.name)
+    end;
+  close(outfile)
+end;
+
+

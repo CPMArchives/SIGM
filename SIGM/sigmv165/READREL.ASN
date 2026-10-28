@@ -1,0 +1,626 @@
+
+
+;	------------------------------------------------------------
+;	.REL files are encoded as a bitstream according to certain
+;	rules which are spelled out in Microsoft's FORTRAN manual.
+;	As a consequence a normal disk dump program will not be very
+;	intelligible, even to people who have learned to recognize
+;	8080 opcodes in hexadecimal form, or to spot ASCII constants
+;	in a program. The purpose of READREL.CMD is to generate a
+;	hexadecimal dump of a .REL file, interspersed with special
+;	directives as they are produced by M80.COM, F80.COM or other
+;	relocating assemblers using the same format.
+;
+;		     READREL - Copyright (C) 1983
+;		    Universidad Autonoma de Puebla
+;		          November 24, 1983
+;
+;	[Harold V. McIntosh, 24 November 1983]
+;	------------------------------------------------------------
+
+
+BDOS	equ	224		;CP/M interrupt to BDOS
+
+TFCB	equ	005CH
+TSIZ	equ	0080H		;CP/M's record size
+DSIZ	equ	0100H		;size of .OUT buffer (must be 100H)
+RSIZ	equ	0400H		;size of relfile buffer
+LSIZ:	equ	16		;line length (maximum spaces per line)
+
+LF	equ	0AH
+CR	equ	0DH
+
+;	-------------
+	org	0100H
+;	-------------
+
+BEGN:	sto	#0000,BCTR		;byte counter
+	sto	#DSIZ,DCTR		;output downcounter
+	sto	#DBUF,DPTR		;output pointer
+	sto	#0000,RCTR		;relfile counter
+	sto	#RBUF,RPTR		;relfile pointer
+	stob	#LSIZ,LCTR		;count 16 bytes/line
+	stob	#00,COLM		;FF=column 1
+	cmpb	TFCB+1,#' '
+	jnz	NNUL
+	ld	dx,#LOGO		;'UAP...'
+	call	MSSG			;type text at (dx)
+	ld	dx,#TUTO		;instructions for usage
+	call	MSSG			;type text at (dx)
+	jmp	GBYE			;normal exit
+
+NNUL:	ld	cl,#021H		;count
+	ld	dx,#TFCB		;source
+	ld	bx,#RFCB		;.REL FCB = destination
+	call	MIUC			;block move
+
+	stob	#'R',RFCB+9
+	stob	#'E',RFCB+10
+	stob	#'L',RFCB+11
+	stob	#00H,RFCB+12
+
+	ld	cl,#15			;(0F) open file
+	ld	dx,#RFCB		;.REL FCB
+	int	BDOS
+	cmpb	al,#0FFH
+	ld	dx,#COSO		;'can''t open .REL file'
+	jnz	ORLF
+	jmp	TEMA			;type text at (dx), quit
+
+ORLF:	stob	#00,DOUT		;z=no disk output
+	cmpb	TFCB+17,#' '		;output filename
+	jz	NOUT
+	stob	#0FFH,DOUT		;z=no disk output
+
+	ld	cl,#16
+	ld	dx,#TFCB+16
+	ld	bx,#TFCB	;CP/M's file control block (.OUT)
+	call	MIUC
+
+	cmpb	TFCB+9,#' '	;output extension
+	jnz	YEXT
+	stob	#'O',TFCB+9
+	stob	#'U',TFCB+10
+	stob	#'T',TFCB+11
+
+YEXT:	ld	cx,#0003
+	ld	bx,#TFCB+9
+	ld	dx,#RFCB+9
+YEXX:	xchg	bx,dx
+	ld	al,[bx]
+	xchg	bx,dx
+	cmp	al,[bx]
+	inc	bx
+	inc	dx
+	loopz	YEXX
+	jnz	NEQL
+	ld	dx,#MEQL	;'extensions equal'
+	jmp	TEMA		;type text at (dx), quit
+
+NEQL:	ld	cl,#19		;(13) delete file
+	ld	dx,#TFCB	;CP/M's file control block (.OUT)
+	int	BDOS
+
+	ld	cl,#22		;(16) create file
+	ld	dx,#TFCB	;CP/M's file control block (.OUT)
+	int	BDOS
+
+	ld	cl,#15		;(0F) open file
+	ld	dx,#TFCB	;CP/M's file control block (.OUT)
+	int	BDOS
+	cmp	al,#0FFH
+	ld	dx,#DDFU	;'no more directory'
+	jnz	NOUT
+	jmp	TEMA		;type text at (dx), quit
+
+NOUT:	sto	#0FF00H,ROBY	;rotating byte, bit counter
+	call	REFI		;process the .REL file
+	cmpb	DOUT,#00	;z=no disk output
+	jz	FINI
+
+;	Fill the remainder of the output file with ^Z's, write
+;	the tag end to disk, and close the file.
+
+	ld	cx,DCTR		;output downcounter
+	ld	bx,DPTR		;output pointer
+	ld	al,#1AH		;^Z
+	jcxz	CLOP
+CLOO:	sto	al,[bx]
+	loop	CLOO
+
+CLOP:	cmpb	DBUF,#1AH	;^Z
+	jz	CLOS
+	ld	cl,#26		;(1A) set DMA address
+	ld	dx,#DBUF
+	int	BDOS
+
+	call	BUDK		;record to disk
+
+	cmpb	DBUF+TSIZ,#1AH	;^Z
+	jz	CLOS
+	ld	cl,#26		;(1A) set DMA address
+	ld	dx,#DBUF+TSIZ
+	int	BDOS
+
+	call	BUDK		;record to disk
+
+CLOS:	ld	cl,#16		;(10) close file
+	ld	dx,#TFCB	;CP/M's file control block (.OUT)
+	int	BDOS
+	cmp	al,#0FFH
+	ld	dx,#NCLO	;'can''t close file'
+	jnz	FINI
+	jmp	EDSK		;delete .OUT file, type messages
+
+FINI:	call	CRLF		;CR,LF
+GBYE:	ld	dl,#00
+	ld	cl,#00
+	int	BDOS
+
+;	Type CR, LF.
+
+CRLF:	ld	al,#CR
+	call	CONA		;console from A
+	ld	al,#LF
+	call	CONA		;console from A
+	stob	#LSIZ,LCTR	;count 16 bytes/line
+	stob	#0FFH,COLM	;FF=column 1
+	ld	cl,#11		;(0B) console status
+	int	BDOS
+	or	al,al
+	jz	CRLR
+	ld	cl,#1		;(01) read console
+	int	BDOS
+	ld	dx,#IRRP	;'analysis interrupted'
+	call	MSSG
+	cmpb	DOUT,#00	;z=no disk output
+	jz	GBYE
+	jmp	EDSQ		;delete .OUT file, type messages
+CRLR:	ret
+
+;	word: type dx as four nibbles.
+;	byte: type A as two nibbles.
+
+WORD:	mov	al,dh
+	call	BYTE		;type A as two nibbles
+	mov	al,dl
+BYTE:	call	TADR		;type address if column 1
+BEIT:	push	ax
+	rcr	al
+	rcr	al
+	rcr	al
+	rcr	al
+	call	NIBL		;type A as hex
+	pop	ax
+NIBL:	and	al,#0FH
+	add	al,#90H
+	daa
+	adc	al,#40H
+	daa
+CONA:	push	bx
+	push	dx
+	push	ax
+	ld	cl,#2		;(02) write console
+	mov	dl,al
+	int	BDOS
+	pop	ax
+	cmpb	DOUT,#00	;z=no disk output
+	jz	CONB
+	call	DDDA
+CONB:	pop	dx
+	pop	bx
+	ret
+
+;	Type several spaces.
+
+DUBL:	call	SNGL		;type one space
+SNGL:	decb	LCTR		;count 16 bytes/line
+	jnz	NOCR
+	call	CRLF
+NOCR:	ld	al,#' '
+	jmp	CONA
+
+;	Type relative address if at start of a new line.
+
+TADR:	push	bx
+	incb	COLM		;FF=column 1
+	jnz	TRET
+	push	ax
+	ld	al,#'('
+	call	CONA
+	ld	bx,BCTR
+	mov	al,bh
+	call	BEIT
+	mov	al,bl
+	call	BEIT
+	ld	al,#')'
+	call	CONA
+	call	SNGL
+	pop	ax
+TRET:	pop	bx
+	ret
+
+;	Type message at (dx).
+
+MSSG:	xchg	bx,dx
+MSSH:	ld	al,[bx]
+	cmp	al,#'$'
+	jz	MSSR
+	call	CONA
+	inc	bx
+	jmp	MSSH
+MSSR:	ret
+
+;	Type message, erase .OUT file, quit.
+
+EDSK:	call	MSSG
+EDSQ:	ld	cl,#19		;(13) delete file
+	ld	dx,#TFCB	;CP.M's file control block (.OUT)
+	int	BDOS		;don't leave a partial file
+	ld	dx,#ERAD	;'output file erased'
+TEMA:	call	MSSG
+	jmp	GBYE
+
+;	Block move.
+
+MIUC:	xchg bx,dx
+	ld	al,[bx]
+	xchg	bx,dx
+	sto	al,[bx]
+	inc	bx
+	inc	dx
+	dec	cl
+	jnz	MIUC		;block move
+	ret
+
+;	Place disk output in buffer, store the buffer in the
+;	disk as it is filled and reinitialize it.
+
+DDDA:	cmp	DCTR,#0000
+	jnz	DDDB
+	call	BUDI		;output downcounter
+DDDB:	dec	DCTR
+	ld	bx,DPTR		;output pointer
+	sto	al,[bx]
+	inc	DPTR		;output downcounter
+	ret
+
+;	Send DBUF to disk.
+
+BUDI:	push	ax
+	call	BUDJ
+	sto	#DBUF,DPTR	;output pointer
+	sto	#DSIZ,DCTR
+	pop	ax
+	ret
+
+BUDJ:	ld	cl,#26		;(1A) set DMA address
+	ld	dx,#DBUF	;output buffer
+	int	BDOS
+
+	call	BUDK		;record to disk
+
+	ld	cl,#26		;(1A) set DMA address
+	ld	dx,#DBUF+TSIZ	;CP/M's record size
+	int	BDOS
+
+BUDK:	ld	cl,#21		;(15) write one record
+	ld	dx,#TFCB	;CP/M's file control block (.OUT)
+	int	BDOS
+	cmp	al,#00H
+	ld	dx,#DIWR	;'disk write error'
+	jnz	EDSK		;delete .OUT file, type messages
+	ret
+
+;	Get next bit.
+
+GEBI:	incb	ROBY+1
+	jnz	GEBJ
+	call	NXHX
+	stob	al,ROBY
+	stob	#0F8H,ROBY+1	;-8
+GEBJ:	rclb	ROBY
+	ret
+
+;	Read sixteen bits from the .REL file, leave them in dx.
+
+GEWO:	call	GEBY
+	push	ax
+	call	GEBY
+	pop	dx
+	mov	dh,al
+	ret
+
+;	Read a full byte from the .REL file, leave it in al.
+
+GEBY:	ld	cl,#08
+BITS:	ld	ch,#00
+MORE:	call	GEBI		;get next bit
+	rcl	ch
+	dec	cl
+	jnz	MORE
+	mov	al,ch
+	ret
+
+;	Get next relfile element.
+
+NXHX:	push	cx
+	push	bx
+	cmp	RCTR,#0000	;relfile counter
+	jnz	NXHV		;byte available
+	sto	#RBUF,RPTR
+NXHY:	cmp	RPTR,#(RBUF+RSIZ)
+	jnc	NXHU		;reset relfile, read 1st element
+	ld	cl,#26		;(1A) set DMA address
+	ld	dx,RPTR		;relfile buffer
+	int	BDOS
+	ld	cl,#20		;(14) read one record
+	ld	dx,#RFCB	;.REL FCB
+	int	BDOS
+	cmp	al,#000H
+	jnz	NXHZ
+	add	RPTR,#TSIZ
+	add	RCTR,#TSIZ
+	jmp	NXHY
+
+NXHZ:	cmp	al,#001H
+	ld	dx,#DIRD	;'disk read error'
+	jz	NXHU
+	jmp	TEMA		;type text at (dx), quit
+
+NXHU:	sto	#RBUF,RPTR
+NXHV:	dec	RCTR
+	ld	bx,RPTR
+	inc	RPTR
+	ld	al,[bx]
+	pop	bx
+	pop	cx
+	ret
+
+;	-------------------
+;	Read the .REL file.
+;	-------------------
+
+
+;	The first bit read determines whether a single byte
+;	follows (bit = 0), to be used without alteration, or
+;	whether the following information may be relocatable
+;	(bit = 1).
+
+REFI:	call	GEBI		;get next bit
+	jc	RELA		;not absolute byte
+	call	GEBY		;full byte from .REL
+	call	BYTE		;type A as two nibbles
+	call	SNGL		;type one space
+	inc	BCTR		;byte counter
+	jmp	REFI		;.REL read loop
+
+;	When the leadin bit is 1, two more bits are read to
+;	distinguish four alternatives: 00 for further analysis,
+;	01 for program segment, 10 for data segment, or 11 for
+;	common segment. In the latter three cases, a two-byte
+;	address will be read, which a loader would assign to its
+;	proper memory segment.
+
+RELA:	ld	cl,#2
+	call	BITS		;get C bits from .REL
+	or	al,al
+	jz	SPEC		;'special LINK element'
+	call	TADR		;type address if column 1
+	call	GTYQ		;fetch segment descriptor
+	call	MSSG		;type text at (dx)
+	call	GEWO		;sixteen bits from .REL
+	call	WORD		;type dx as four nibbles
+	call	CRLF		;CR, LF
+	ld	bx,BCTR		;byte counter
+	inc	bx
+	inc	bx
+	sto	bx,BCTR		;byte counter
+	jmp	REFI		;.REL read loop
+
+;	There are sixteen 'special LINK elements' ranging from
+;	entry point definitions to the EOF indicator. They fall
+;	into three or four general groups, depending on whether
+;	they are associated with an eight-byte ASCII label, a
+;	relocatable address, both, or neither. Since they represent
+;	parenthetic information, they are set off on a line by
+;	themselves.
+
+SPEC:	cmpb	LCTR,#LSIZ	;max spaces/line
+	jz	SPED
+	call	CRLF		;CR,LF
+SPED:	stob	#0,COLM		;FF=column 1
+	ld	cl,#4
+	call	BITS		;get C bits from .REL
+	ld	ah,#0
+	add	ax,ax		;case number indexes two tables
+	mov	bx,ax
+	ld	di,#META	;case table for messages
+	ld	dx,[bx+di]
+	ld	di,#JUTA	;case table for action addresses
+	push	[bx+di]
+	jmp	MSSG		;type text at (dx)
+
+;	Message table, to correspond to the 'special' relocation
+;	elements, of which there are sixteen. These are the
+;	descriptive messages inserted into the output stream.
+
+META:	dw	ME0		;'entry symbol'
+	dw	ME1		;'COMMON block'
+	dw	ME2		;'program name'
+	dw	ME3		;'request library search'
+	dw	ME4		; reserved
+	dw	ME5		;'COMMON size'
+	dw	ME6		;'chain external'
+	dw	ME7		;'define entry'
+	dw	ME8		; reserved
+	dw	ME9		;'external add offset'
+	dw	MEA		;'size of DATA area'
+	dw	MEB		;'loading location counter'
+	dw	MEC		;'chain address'
+	dw	MED		;'define program size'
+	dw	MEE		;'end of program'
+	dw	MEF		;'end of file'
+
+;	There may be a label or a further address associated
+;	with each 'special LINK item.' These subroutines take
+;	the appropriate action in each case.
+
+JUTA:	dw	TEXT		;ASCII label
+	dw	TEXT		;ASCII label
+	dw	TEXT		;ASCII label
+	dw	TEXT		;ASCII label
+	dw	TEXT		;ASCII label
+	dw	STYP		;storage type
+	dw	STYP		;storage type
+	dw	STYP		;storage type
+	dw	STYP		;storage type
+	dw	PHUE		;storage type w/ address
+	dw	PHUE		;storage type w/ address
+	dw	PHUE		;storage type w/ address
+	dw	PHUE		;storage type w/ address
+	dw	PHUE		;storage type w/ address
+	dw	PHOO		;program end - flush byte
+	dw	EOFI		;EOF
+
+;	The 'special LINK item' includes an 8-byte label
+;	or similar ASCII string. 8 bytes is maximum, there
+;	must be at least 1, 8 is taken for 0.
+
+TEXT:	ld	cl,#3
+	call	BITS		;get C bits from .REL
+	or	al,al		;take 0 to mean 8
+	jnz	X2X
+	ld	al,#8
+X2X:	push	ax
+	call	GEBY		;full byte from .REL
+	call	CONA
+	pop	ax
+	dec	al
+	jnz	X2X
+	call	CRLF		;CR,LF
+	jmp	REFI		;.REL read loop
+
+;	The 'special LINK item' requires identification via
+;	the following two bits, as to whether it is absolute
+;	(00), code (01), data (10), or common (11).
+
+STYP:	call	GTYP		;ascertain storage type
+	call	MSSG		;type text at (dx)
+	call	TWRD		;read & type word from .REL
+	call	DUBL		;type one space
+	jmp	TEXT		;ASCII label
+
+;	Read two bits to ascertain storage type, then load
+;	address of appropriate descriptor for console typing.
+
+GTYP:	ld	cl,#2
+	call	BITS		;get C bits from .REL
+GTYQ:	ld	dx,#MABS	;'ABS:'
+	or	al,al
+	jz	GTYR
+	ld	dx,#MPRG	;'PREL'
+	dec	al
+	jz	GTYR
+	ld	dx,#MDAT	;'DREL'
+	dec	al
+	jz	GTYR
+	ld	dx,#MCOM	;'CREL'
+GTYR:	ret
+
+;	This class of 'special LINK items' require a two-bit
+;	storage classigication followed by a two-byte address.
+
+PHUE:	call	GTYP		;ascertain storage type
+	call	MSSG		;type text at (dx)
+	call	TWRD		;read & type word from .REL
+	call	CRLF		;CR,LF
+	jmp	REFI		;.REL read loop
+
+;	At the program end, the bit stream should be squared
+;	off at a byte boundary. A start address may be present.
+
+PHOO:	call	GTYP		;ascertain storage type
+	call	MSSG		;type text at (dx)
+	call	TWRD		;read & type word from .REL
+	call	CRLF		;CR,LF
+	sto	#0FF00H,ROBY	;rotating byte, bit counter
+	jmp	REFI		;.REL read loop
+
+;	End of File.
+
+EOFI:	ret
+
+;	Read a word from .REL and type it.
+
+TWRD:	call	GEWO		;sixteen bits from .REL
+	jmp	WORD		;type dx as four nibbles
+
+;	-------------------------------------------------------
+
+
+LOGO:	db	CR,LF
+	db	'        READREL/ICUAP',CR,LF
+	db	'Universidad Autonoma de Puebla',CR,LF
+	db	'      November 24, 1983',CR,LF,'$'
+
+TUTO:	db	CR,LF
+	db	'READREL.CMD will decompose the bitstream which',CR,LF
+	db	'constitutes a .REL file into hexadecimal bytes',CR,LF
+	db	'and addresses interspersed with commentaries',CR,LF
+	db	'derived from the ''special LINK elements'' and',CR,LF
+	db	'other clarifying information. The command:',CR,LF,CR,LF
+	db	'    READREL [D:]FILE[.REL] [[D:]LIST[.OUT]]',CR,LF,CR,LF
+	db	'will analyze the requested file. If no extension',CR,LF
+	db	'is given, .REL will be used. The analysis will',CR,LF
+	db	'always appear at the console. When a second file is',CR,LF
+	db	'given (with default extension .OUT), it will gather',CR,LF
+	db	'in the output listing. Pressing any key will stop',CR,LF
+	db	'the program.',CR,LF
+	db	'$'
+
+ME0:	db	'entry symbol  $'
+ME1:	db	'COMMON block  $'
+ME2:	db	'program name  $'
+ME3:	db	'req lib srch  $'
+ME4:	db	'reserved      $'
+ME5:	db	'COM  size $'
+ME6:	db	'chain ext $'
+ME7:	db	'def entry $'
+ME8:	db	'reserved  $'
+ME9:	db	'extnl + offset $'
+MEA:	db	'size DATA area $'
+MEB:	db	'ldng locn cntr $'
+MEC:	db	'chain address  $'
+MED:	db	'def prgrm size $'
+MEE:	db	'end of program $'
+MEF:	db	'EOF$'
+MABS:	db	'ABS: $'
+MPRG:	db	'PREL $'
+MDAT:	db	'DREL $'
+MCOM:	db	'CREL $'
+DIRD:	db	'Disk read error.$'
+DIWR:	db	'Disk write error.$'
+COSO:	db	'Can''t open .REL file.$'
+DDFU:	db	'Disk or Directory full.$'
+NCLO:	db	'Cannot close file.$'
+MEQL:	db	'Duplicate extensions.$'
+IRRP:	db	'-- Analysis interrupted --',CR,LF,'$'
+ERAD:	db	'- Output file suppressed -$'
+
+RFCB:	ds	21H		;.REL FCB
+RBUF:	ds	RSIZ		;relfile buffer (400H)
+RPTR:	ds	2		;relfile pointer
+RCTR:	ds	2		;relfile counter
+ROBY:	ds	2		;rotating byte, bit counter
+DOUT:	ds	1		;z=no disk output
+DCTR:	ds	2		;output downcounter
+DPTR:	ds	2		;output pointer
+LCTR:	ds	1		;count 16 bytes/line
+COLM:	ds	1		;FF=column 1
+BCTR:	ds	2		;byte counter
+DBUF:	ds	DSIZ		;.OUT buffer
+
+	end
+
+

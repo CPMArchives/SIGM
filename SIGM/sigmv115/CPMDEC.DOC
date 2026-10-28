@@ -1,0 +1,51 @@
+                              Feb. 19, 1983
+
+DOCUMENTATION FOR CPMDEC.FOR
+
+Overview:
+This program allows handling of 8" single density CPM
+format disks on a PDP-11 series computer.  The program makes
+use of a menu to allow viewing or printing the directory,
+copying files to or from the CP/M disk, erasing files,
+initializing the disk, etc.  In the Binary copy mode, the
+entire file is copied.  In the ASCII copy mode, the EOF
+is detected (in either direction) and translated.  For the
+user with many files to translate, the program provides
+a loop to copy ALL files from the CP/M disk.  In this case,
+a floppy disk in the other drive is used for all output
+files (usually, any device in the system can be the
+target).
+
+Requirements:
+PDP-11 series computer with RX-01 or RX-02 disk drives.
+RT-11 or TSX-Plus operating system (this program has been
+    tested under RT-11 V4 and TSX+ V2.2 and V3.01).
+DEC FORTRAN IV V2.5
+
+
+Compatibility:
+This program makes extensive use of RT-11 system calls,
+notably ISPFNW but also LOOKUP, IENTER, and others.
+Accordingly, if you want to modify it to run on another
+system, you are on your own.  Good luck!
+
+Notes:
+Due to the extensive use of the USR module (part of the
+RT-11 operating system), the program MUST be compiled
+/NOSWAP (ie, .FORT/NOSWAP/WARN CPMDEC/LIST).
+
+This program occasionally crashes TSX-Plus.  My Theory is
+that this problem is related to the USR swapping over the
+program, but I am probably wrong.
+
+For the user who must manually type this program in
+(the problem of distributing a DEC program on a CP/M
+format disk) a short version (CPMD2.FOR) is provided.
+This program, when run, will automatically copy CPMDEC.FOR
+to DK0: (and do nothing else).  Then compile CPMDEC.FOR
+and you are ready to go.
+
+If you find any bugs, let me know.
+     Russ Bakke
+     121 Shadow Ridge Rd.
+     Stamford, CT 06905

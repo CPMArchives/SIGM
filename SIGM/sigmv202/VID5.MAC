@@ -1,0 +1,43 @@
+;
+; VLIB Module Name:  VID5
+; Author:  Richard Conn
+; VLIB  Version Number:  1.0
+; Module Version Number:  1.0
+; Module Entry Points:
+;	TINIT
+; Module External References:
+;	VIDPTR	VIDOUT	VIDSKP
+;
+	ext	vidptr,vidout,vidskp
+;
+; Initialize Terminal
+;	Affect No Registers
+;
+tinit::
+	push	h	;save regs
+	push	d
+	push	psw
+	lhld	vidptr	;pt to environment
+	mov	a,m	;no terminal?
+	cpi	' '+1
+	jc	done
+	lxi	d,17h	;pt to cls string
+	dad	d
+	mvi	d,0	;no delay
+	call	vidskp	;skip over CL string
+	call	vidskp	;skip over CM string
+	call	vidskp	;skip over CE string
+	call	vidskp	;skip over SO string
+	call	vidskp	;skip over SE string
+	mov	a,m	;get first char of TI string
+	ora	a	;if no string, error
+	jz	done
+	call	vidout	;output string with delay
+done:
+	pop	psw	;done
+	pop	d
+	pop	h
+	ret
+
+	end
+

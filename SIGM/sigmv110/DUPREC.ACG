@@ -1,0 +1,121 @@
+* duprec.cmd 02/12/83 sml
+* this will allow the user to process a duplicate record
+
+* get the first duplicate ' s data to display
+SKIP -1
+STORE lastname TO lastname1
+STORE fname TO fname1
+STORE company1 TO company11
+STORE address TO address1
+STORE phone TO phone1
+STORE ophone TO ophone1
+STORE UPDATE TO UPDATE1 
+
+* find out if this record is marked for deletion
+* DO delcheck.acg
+IF *
+  STORE 'Deleted' TO deleted1
+ELSE
+  STORE ' ' TO deleted1
+ENDIF * 
+
+* return to the second duplicate record and get its data
+SKIP
+STORE lastname TO lastname2
+STORE fname TO fname2
+STORE company1 TO company12
+STORE address TO address2
+STORE phone TO phone2
+STORE ophone TO ophone2
+STORE UPDATE TO UPDATE2
+
+* find out if this record is marked for deletion
+* DO delcheck.acg
+IF *
+  STORE 'Deleted' TO deleted2
+ELSE
+  STORE ' ' TO deleted2
+ENDIF * 
+
+* set up the loop
+STORE t TO more
+DO WHILE more
+  
+  * set up the screen format and variables
+  SET FORMAT TO two-rec
+  STORE '<C>ontinue, <D>elete/Recall, <E>dit, <P>rint, <Q>uit' TO prompt
+  STORE 'Records with duplicate last names' TO mode
+  STORE '?' TO command
+  	STORE '?' TO RECORD
+  
+  * show both records and find out what to do next
+  READ
+  
+  * move to the record to be processed
+  IF RECORD = 'A' 
+    SKIP -1
+  ENDIF RECORD = 'A'  
+  
+  *process the record
+  DO CASE
+      
+    CASE command = 'C' .OR. command = 'Q' 
+      * set up the loop to exit
+      STORE f TO more
+      
+    CASE command = 'D' 
+      * delete.cmd 02/08/83
+
+        IF *
+           RECALL
+        ELSE
+           DELETE
+        ENDIF * 
+
+      IF RECORD = 'A' 
+        IF deleted1 = 'Deleted' 
+          STORE ' ' TO deleted1
+        ELSE
+          STORE 'Deleted' TO deleted1
+        ENDIF deleted1 = 'Deleted'  
+      ENDIF RECORD = 'A'  
+      IF RECORD <> 'A' 
+        IF deleted2 = 'Deleted' 
+          STORE ' ' TO deleted2
+        ELSE
+          STORE 'Deleted' TO deleted2
+        ENDIF deleted2 = 'Deleted'  
+      ENDIF RECORD <> 'A'  
+      
+    CASE command = 'E' 
+      SAVE TO temp2
+      RELEASE ALL
+      RESTORE FROM temp1
+      RECALL
+      DO EDIT.acg
+      SAVE TO temp1
+      RELEASE ALL
+      RESTORE FROM temp2
+      
+    CASE command = 'P' 
+      DO PRINT.acg
+      
+  ENDCASE 
+  
+  * move back to correct record
+  IF RECORD = 'A' 
+    SKIP
+  ENDIF RECORD = 'A'  
+  
+  * loop back again
+ENDDO WHILE more 
+
+* if more duplicates are to be found
+* set up the loop to continue in dupcheck
+IF command = 'C' 
+  STORE t TO more
+ENDIF command = 'C'  
+
+
+
+

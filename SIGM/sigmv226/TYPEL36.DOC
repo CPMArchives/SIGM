@@ -1,0 +1,116 @@
+DOCUMENTATION FOR TYPEL version 3.x
+
+V3.6 as of 01/01/85
+
+CHANGE FROM v3.5:
+$L mode now can be used to paginate printer listings by setting the
+EJECTP location to the number of lines per page (60 default). $L now
+no longer expands control characters.
+
+CHANGES FROM v3.4a: (3.4 and 3.4a just fixed minor bugs)
+Added new mode - prompted single file entry. USAGE:
+A0>TYPEL
+Typel v3.5.... bla bla....
+
+* 
+At the asterisk prompt, you may enter any valid filename, which
+will then be typed. Command options are not allowed in this mode
+and revert to defaults.
+USQB has been modified to allow re-execution.
+
+
+CHANGES FROM v3.20:
+Fixed bug introduced in 3.20 (released as v3.30).
+Added ability to select/deselect typing of $SYS files.
+SYSLIB3 now required for reassembly.
+
+CHANGES FROM v3.10:
+Bug in single-file list routine fixed -- when typing unsqueezed file
+with no EOF mark (no 1AH as EOF because file is exact multiple of 128
+bytes large) then last sector was redisplayed until manually aborted.
+
+CHANGES FROM v3.00:
+TYPEL now includes LST output capability. If the command option $L is
+given, the file will be printed to the LST: device with no paging, but
+with tab expansion ($L also sets the $N option). Only data will be sent
+to the printer.
+The $L option can be disabled for remote systems - see below.
+
+TYPEL is a universal single-file lister which allows typing of any of the
+following type files:
+
+- normal ASCII file
+- squeezed ASCII file
+- ASCII member of .LBR file
+- squeezed ASCII member of .LBR file
+
+TYPEL determines from the filetype whether or not the file is ASCII, i.e. it
+refuses to process certain file types.
+
+TYPEL is invoked as follows:
+
+
+A>TYPEL FN.FT|FN[.LBR] [FN.FT] [$N]|[$L]
+
+Translated to english, a few examples:
+
+A>TYPEL FOO.ASM			types the file
+A>TYPEL STUFF.LBR FOO.ASM	types the member file
+A>TYPEL STUFF FOO.ASM		you can omit the .LBR
+A>TYPEL FILE.DOC $N		disable paging (if enabled)
+A>TYPEL FOO.BAR $L		send data to list device, non-paged
+
+
+1. If you supplu ONE argument, TYPEL assumes a single file and tries
+   to type it.
+2. If you specify TWO filenames, TYPEL assumes first filename is .LBR
+   and attempts to find second filename in LBR directory.
+3. If the characters $N are appended to the command line, separated from
+   the other argument(s) by at least one space, the paging option, if enabled,
+   is turned off for continuous file display. (See below for paging).
+
+OPTIONS:
+
+TYPEL can be fully configured from the .COM file without need for reassembly.
+The following are the relevant patch locations:
+
+0103	MAXDRV		enter highest allowable drive PLUS 1 (A=2, B=3...)
+0104	MAXUSR		enter highest allowable user area PLUS 1
+0105	MAXLIN		enter maximum number of lines before TYPEL aborts,
+			or enter 0 for no limit.
+0106	MAXLPS		enter number of lines on screen MINUS 1, or 0 for
+			continuous display ($N command line option
+			overrides the setting).
+0107	LSTEN		enables LST output. Set to 1 to enable LST option
+			(default) or set to 0 if LST undesired.
+0108	SYSEN		enables $SYS type. Set to 0 to disallow $SYS or to 1
+			(default) to allow $SYS.
+0109	EJECTP		enter number of lines per printed page or 0 if
+			page eject is not desired.
+010A	...		The exclusion table starts here. Each entry has 3
+			bytes. A "?" denotes an ambiguous byte, i.e. "OV?"
+			matches "OVR", "OVL", etc. There is room for an
+			additional 9 entries. If you wish to DELETE an
+			entry, use DDT to set all high bits.
+
+
+REASSEMBLY:
+
+You must reassemble TYPEL3 with M80. You also need USQB.REL (provided) and
+SYSLIB3.REL (you supply it). When linking, all three .REL files must be on
+the same default drive. Example:
+
+A>;assemble with M80/L80
+A>
+A>m80 =typel3
+...
+A>l80 /p:100,typel3,typel3/n/e
+...
+A>; or if using DR's LINK:
+A>
+A>link typel3
+
+Note that you need not specify USQB and SYSLIB on the link command line.
+Be sure, however, that the files are indeed on the default drive!
+bles LST output. Set to 1 to enable LST option
+			(default) or set to 0 if LST u

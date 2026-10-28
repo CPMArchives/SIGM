@@ -1,0 +1,134 @@
+CAPS    -- Capitalize a Character
+CAPSTR  -- Capitalize a String
+ISx     -- Character Test Routines
+SKx     -- Character Skip Routines
+:Capitalize a Character
+     Routine Name:  CAPS
+
+     Functionº
+
+     Capitalizå  ASCIÉ  characteò  iî Registeò Á  iæ  iô  ió 
+lower-caså alphabetiã (a-z)» otherwise¬ returî Á unaffected®  
+Onlù  thå loweò seveî bitó oæ thå bytå arå  considered¬  anä 
+thå Mosô Significanô Biô ió maskeä ouô tï zero.
+
+     Inputs:  A = character to capitalize
+
+     Outputs:  A = capitalized character
+
+     Registers Affected:  PSW
+
+     SYSLIB Routines Called:  -None-
+
+     Special Error Conditions:  -None-
+
+:Capitalize a String
+     Routine Name:  CAPSTR
+
+     Function:
+
+     CAPSTÒ capitalizeó thå <NULL>-terminateä (0-terminated© 
+strinç pointeä tï bù HL®  Nï Registeró arå affected.
+
+     Inputs:  HL pts to first byte of string
+
+     Outputs:  None (String is Capitalized)
+
+     Registers Affected:  None
+
+     SYSLIB Routines Called:  CAPS
+
+     Special Error Conditions:  None
+
+:Character Test Routines
+
+     Thå  Characteò Tesô routineó checë thå characteò iî thå 
+Á registeò (afteò maskinç ouô itó MSB© tï seå iæ iô meetó  á 
+condition.  These conditions are:
+
+ISALNUM     -- Is Alphanumeric Char?
+ISALPHA     -- Is Alphabetic Char?
+ISCTRL      -- Is Control Char?
+ISDIGIT     -- Is Digit Char?
+ISGRAPH     -- Is Graphic Char?
+ISHEX       -- Is Hexadecimal Char?
+ISPRINT     -- Is Printable Char?ŠISPUN       -- Is Punctuation Char?
+ISSP        -- Is Space Char?
+
+
+     Iî alì cases¬ thå routineó conforí tï thió description:
+
+     Routine Name:  ISx
+
+     Functionº  Tï tesô tï seå iæ thå characteò iî Á meetó á 
+certaiî  conditioî  (thå MSÂ ió maskeä ofæ oæ Á  beforå  thå 
+test).
+
+     Inputs:  A = Char
+
+     Outputs:  Zero Flag is Set (Z) if Condition is TRUE;
+               Zerï Flaç ió Reseô (NZ© iæ Conä ió FALSE;
+               A is not affected, only PSW
+
+     Registers Affected:  PSW (NOT including A)
+
+     SYSLIB Routines Called:  None
+
+     Special Error Conditions:  None
+
+     The characters tested for by these routines are:
+
+ISALNUM     -- Is Alphanumeric Char?    -- A-Z, a-z, 0-9
+ISALPHA     -- Is Alphabetic Char?      -- A-Z, a-z
+ISCTRL      -- Is Control Char?         -- Less than SP or DEL
+ISDIGIT     -- Is Digit Char?           -- 0-9
+ISGRAPH     -- Is Graphic Char?         -- Between SP and DEL
+ISHEX       -- Is Hexadecimal Char?     -- 0-9, A-F, a-f
+ISPRINT     -- Is Printable Char?       -- Between SP and DEL,
+                                             incl SP
+ISPUN       -- Is Punctuation Char?     -- Between SP and DEL,
+                                             DEL, NOT 0-9,
+                                             A-Z, or a-z
+ISSP        -- Is Space Char?           -- HT, LF, VT, FF, CR,
+                                             and SP
+
+
+:Character Skip Routines
+
+     Theså  routineó arå useä tï skiğ oveò characteró iî thå 
+strinç pointeä tï bù HÌ untiì eitheò á characteò oæ thå typå 
+theù  arå  noô  skippinç ió encountereä oò thå  enä  oæ  thå 
+string (NULL character) is encountered.
+
+     The character skip routines are:
+
+SKNPUN      -- Skip Over Non-Punctuation Chars
+SKNSP       -- Skip Over Non-Space Chars
+SKPUN       -- Skip Over Punctuation Chars
+SKSP        -- Skip Over Space Chars
+
+     Á  Punctuatioî Characteò ió á characteò betweeî SĞ  anä 
+DEÌ whicè ió noô 0-9¬ A-Z¬ oò a-z®  Á Spacå Characteò ió anù 
+of HT, LF, VT, FF, CR, or SP.
+
+
+     All of these routines are characterized as follows:
+
+     Routine Name:  SKx
+
+     Functionº   Tï skiğ oveò á certaiî clasó oæ  characteró 
+iî  thå strinç pointeä tï bù HÌ untiì á characteò NOÔ iî thå 
+skiğ  grouğ  ió encountereä oò thå enä oæ thå  strinç  (NULÌ 
+character) is encountered.
+
+     Inputs:  HL pts to first character in string
+
+     Outputs:  HL pts to character which terminated the skip
+
+     Registers Affected:  HL
+
+     SYSLIB Routines Called:  ISPUN or ISSP, as appropriate
+
+     Special Error Conditions:  None
+
+

@@ -1,0 +1,439 @@
+;		SYS.A86
+;
+;
+;		For Godbout/Compupro Interfacer 3/4 
+;
+;Change the clock speed to suit your system.
+CLKRATE	EQU	8		;clock speed in MHz, 8 MHz maximum
+;
+;Do not change the next three equates.
+SETUP	EQU	TRUE
+DISCON	EQU	TRUE
+CARDET	EQU	TRUE
+SCRNCLR	EQU	TRUE
+;
+;2651 equates
+;
+MODRCVB	EQU	02H		;bit to test for received data
+MODRCVR	EQU	MODRCVB		;change to 0 if bit is 0 when
+				;data received
+MODSNDB	EQU	01H		;bit to test for ready to send
+MODSNDR	EQU	MODSNDB		;change to 0 if bit is 0 when
+				;ready to send
+;
+MODDATP	EQU	010H		;Serial data port
+MODCTLP	EQU	MODDATP+1	;Serial status port
+MODMODP	EQU	MODDATP+2	;Serial mode port
+MODCMDP	EQU	MODDATP+3	;Serial command port
+MODUSRP	EQU	MODDATP+7	;Serial bank port
+MODUSRN	EQU	6		;Serial bank number
+;
+ESCAPE	EQU	1BH
+NULL	EQU	0
+;
+CLR1	EQU	ESCAPE		;Lear Siegler clear from cursor to end of screen
+CLR2	EQU	'Y'
+CLR3	EQU	0
+CLR4	EQU	0
+;
+SCLR1	EQU	ESCAPE		;Lear Siegler clear/home
+SCLR2	EQU	'*'
+SCLR3	EQU	0
+SCLR4	EQU	0
+SCLR5	EQU	0
+SCLR6	EQU	0
+SCLR7	EQU	0
+;
+CLREOS:
+	CALL	ILPRT
+;
+	DB	CLR1,CLR2,CLR3,CLR4,0
+	RET
+;
+CLRSCRN:
+	CALL	ILPRT
+;
+	DB	SCLR1,SCLR2,SCLR3,SCLR4,SCLR5,SCLR6,SCLR7,0
+	RET
+;
+SELECT:
+	PUSH	AX
+	MOV	AL,MODUSRN
+	OUT	MODUSRP,AL	;Select USART
+	POP	AX
+	RET
+;
+INMODCTLP:
+	CALL	SELECT
+	IN	AL,MODCTLP	;in modem status port
+	RET
+	RB	OFFSET INMODCTLP-(offset $)+16  ;extra space
+
+OUTMODDATP:
+	CALL	SELECT
+	OUT	MODDATP,AL	;out modem data port
+	RET
+	RB	OFFSET OUTMODDATP-(offset $)+16 ;extra space
+
+INMODDATP:
+	CALL	SELECT
+	IN	AL,MODDATP	;in modem data port
+	RET
+	RB	OFFSET INMODDATP-(offset $)+16  ;extra space
+
+ANIMODSNDB:
+	AND	AL,MODSNDB	;bit to test for send ready
+	RET
+	RB	OFFSET ANIMODSNDB-(offset $)+16 ;extra space
+
+CPIMODSNDR:
+	CMP	AL,MODSNDR	;value of send bit when ready
+	RET
+	RB	OFFSET CPIMODSNDR-(offset $)+16 ;extra space
+
+ANIMODRCVB:
+	AND	AL,MODRCVB	;bit to test for receive ready
+	RET
+	RB	OFFSET ANIMODRCVB-(offset $)+16 ;extra space
+
+CPIMODRCVR:
+	CMP	AL,MODRCVR	;value of receive ready bit
+	RET
+;
+;This is where the message goes giving the system for
+;which MODEM9 has been customized.
+;
+SYSVER:
+	CALL	ILPRT
+	DB	'Set Up for: Godbout 816 System with Interfacer 3',CR,LF,LF,0
+	RET
+;
+;The following are used in setting up the 2651
+;No need to change for another micro if INIT and SETUP are FALSE.
+;
+;control bytes
+RSTERR	EQU	37H	;reset parity and overrun flags
+MODEIN1	EQU	4EH	;16x, 8 bits, no parity, 1 stop
+MODEIN2	EQU	35H	;Baudrate
+CMDINS	EQU	27H	;DTR, RTS, Tx enable, RX enable
+CLK16	EQU	02H	;16x clock
+STSPEED	EQU	1	;300bps
+;End of 2651 specific equates for initialization.
+;
+;
+;The following is used to initialize the 2651 on execution
+;of MODEM9.
+;
+INITMOD:
+	MOV	AL,STSPEED
+INITSPD	EQU	Offset $ - 1
+	MOV	MSPEED,AL
+	CALL	SELECT
+	MOV	AL,MODEIN1	;2651 Mode 2 byte
+PARM1	EQU	Offset $ - 1
+	OUT	MODMODP,AL
+	MOV	AL,MSPEED
+	MOV	BX,Offset BDTABL
+	MOV	AH,0
+	ADD	BX,AX
+	MOV	AL,Byte Ptr [BX]
+	OUT	MODMODP,AL	;2651 Mode 2 byte
+	MOV	AL,CMDINS	;2651 Command byte
+PARM2	EQU	Offset $ - 1
+	OUT	MODCMDP,AL
+	RET
+;
+;The following routine changes the baud rate, stop bits and parity on
+;the 2651 from the command level. Note the routine MUST modify the
+;parameters used by the INITMOD routine.
+;
+;The following are parameters/masks used in setting word length
+;stop bits and parity for the 2651
+;
+MSKWD	EQU	0CH	;word length mask
+SEVEN	EQU	08H	;receive seven bit word
+EIGHT	EQU	0CH	;receive eight bit word
+MSKST	EQU	0C0H	;stop bit mask
+ONE	EQU	040H	;one stop bit
+TWO	EQU	0C0H	;two stop bits
+MSKPA	EQU	030H	;mask for parity bits
+NONE	EQU	00H	;no parity
+ODD	EQU	010H	;odd parity
+EVEN	EQU	030H	;even parity
+;
+;
+SETUPR:
+	PUSH	BX
+	CALL	CLRTST
+	CALL	ILPRT
+	DB	'                 USART/Modem Control',CR,LF,LF,LF
+	DB	'Current settings -',CR,LF,0
+	CALL	SETTIM2
+	CALL	GIVEPRM
+	CALL	ILPRT
+	DB	CR,LF
+	DB	'Enter choices below - <CR> for no change',CR,LF,0
+AGAIN:
+	MOV	DX,OFFSET BAUDBUF	;point to input buffer for ILCOMP
+	CALL	ILPRT
+	DB	'Baud Rate (110, 300, 600, 1200, 2400, 4800, 9600, 19200): ',0
+	CALL	INBUFF
+	MOV	DX,OFFSET BAUDBUF+2
+	CALL	ILCOMP		;compare BAUDBUF+2 with characters below
+	DB	'110',0
+	MOV	AL,0
+	JNC	OK		;go if got match
+	CALL	ILCOMP
+	DB	'300',0
+	MOV	AL,1
+	JNC	OK
+	CALL	ILCOMP
+	DB	'600',0
+	MOV	AL,2
+	JNC	OK
+	CALL	ILCOMP
+	DB	'1200',0
+	MOV	AL,3
+	JNC	OK
+	CALL	ILCOMP
+	DB	'2400',0
+	MOV	AL,4
+	JNC	OK
+	CALL	ILCOMP
+	DB	'4800',0
+	MOV	AL,5
+	JNC	OK
+	CALL	ILCOMP
+	DB	'9600',0
+	MOV	AL,6
+	JNC	OK
+	CALL	ILCOMP
+	DB	'19200',0
+	MOV	AL,7
+	JNC	OK
+	CALL	ILCOMP
+	DB	' ',0
+	JNC	AGAIN2
+	CALL	WRONG
+	JMP	AGAIN		;try again
+;
+OK:
+	MOV	CS: BYTE PTR .INITSPD,AL
+	MOV	MSPEED,AL
+;
+AGAIN2:
+	MOV	DX,OFFSET BAUDBUF	;point to input buffer for ILCOMP
+	CALL	ILPRT
+	DB	CR,LF
+	DB	'Word Length (7, 8): ',0
+	CALL	INBUFF
+	MOV	DX,OFFSET BAUDBUF+2
+	CALL	ILCOMP	;compare BAUDBUF+2 with characters below
+	DB	'7',0
+	MOV	AL,SEVEN
+	JNC	OK2
+	CALL	ILCOMP
+	DB	'8',0
+	MOV	AL,EIGHT
+	JNC	OK2
+	CALL	ILCOMP
+	DB	' ',0
+	JNC	AGAIN3
+	CALL	WRONG
+	JMP	AGAIN2
+;
+OK2:
+	MOV	WDLEN,AL
+;
+AGAIN3:
+	MOV	DX,OFFSET BAUDBUF ;point to input buffer for ILCOMP
+	CALL	ILPRT
+	DB	CR,LF
+	DB	'Stop Bits (1, 2): ',0
+	CALL	INBUFF
+	MOV	DX,OFFSET BAUDBUF+2
+	CALL	ILCOMP		;compare BAUDBUF+2 with characters below
+	DB	'1',0
+	MOV	AL,ONE
+	JNC	OK3
+	CALL	ILCOMP
+	DB	'2',0
+	MOV	AL,TWO
+	JNC	OK3
+	CALL	ILCOMP
+	DB	' ',0
+	JNC	AGAIN4
+	CALL	WRONG
+	JMP	AGAIN3
+;
+OK3:
+	MOV	STPLN,AL
+;
+AGAIN4:
+	MOV	DX,OFFSET BAUDBUF ;point to input buffer for ILCOMP
+	CALL	ILPRT
+	DB	CR,LF
+	DB	'Parity (None, Even, Odd): ',0
+	CALL	INBUFF
+	MOV	DX,OFFSET BAUDBUF+2
+	CALL	ILCOMP		;compare BAUDBUF+2 with characters below
+	DB	'NONE',0
+	MOV	AL,NONE
+	JNC	OK4		;go if got match
+	CALL	ILCOMP
+	DB	'EVEN',0
+	MOV	AL,EVEN
+	JNC	OK4
+	CALL	ILCOMP
+	DB	'ODD',0
+	MOV	AL,ODD
+	JNC	OK4
+	CALL	ILCOMP
+	DB	' ',0
+	JNC	GOSET
+	CALL	WRONG
+	JMP	AGAIN4		;try again
+;
+OK4:
+	MOV	PARIT,AL
+;
+GOSET:
+	MOV	AL,0
+	OR	AL,WDLEN
+	OR	AL,PARIT
+	OR	AL,STPLN
+	OR	AL,CLK16
+	MOV	CS: BYTE PTR .PARM1,AL
+	CALL	ILPRT
+	DB	CR,LF
+	DB	'New settings -',CR,LF,0
+	CALL	SETTIM2
+	CALL	GIVEPRM
+	POP	BX
+	JMP	INITMOD		;reset 2651
+;
+GIVEPRM:
+	CALL	GETPRM
+	CALL	ILPRT
+	DB	'Word length is ',0
+	MOV	AL,WDLEN
+	CMP	AL,SEVEN
+	JNZ	NOTSEV
+	CALL	ILPRT
+	DB	'seven',0
+	JMP	GIVEST
+
+NOTSEV:
+	CALL	ILPRT
+	DB	'eight',0
+GIVEST:
+	CALL	ILPRT
+	DB	', number of stop bits is ',0
+	MOV	AL,STPLN
+	CMP	AL,ONE
+	JNZ	NOTONE
+	CALL	ILPRT
+	DB	'one',0
+	JMP	GIVEPA
+
+NOTONE:
+	CALL	ILPRT
+	DB	'two',0
+GIVEPA:
+	CALL	ILPRT
+	DB	', parity is ',0
+	MOV	AL,PARIT
+	CMP	AL,NONE
+	JNZ	NOTNON
+	CALL	ILPRT
+	DB	'none',CR,LF,0
+	RET
+
+NOTNON:
+	MOV	AL,PARIT
+	CMP	AL,ODD
+	JNZ	NOTODD
+	CALL	ILPRT
+	DB	'odd',CR,LF,0
+	RET
+NOTODD:
+	CALL	ILPRT
+	DB	'even',CR,LF,0
+	RET
+;
+GETPRM:
+	MOV	AL,CS: BYTE PTR .PARM1	;get present word length
+	AND	AL,MSKWD	
+	MOV	WDLEN,AL
+	MOV	AL,CS: BYTE PTR .PARM1	;get stop bits and parity
+	MOV	CH,AL
+	AND	AL,MSKST
+	MOV	STPLN,AL
+	MOV	AL,CH
+	AND	AL,MSKPA
+	MOV	PARIT,AL
+	RET
+;
+WRONG:
+	CALL	ILPRT	;all matches failed - tell operator
+	DB	'++ Incorrect entry ++',CR,LF,BELL,0
+	RET
+;
+;Table of baud rate parameters
+;
+BDTABL	EQU	BYTE PTR $
+	DB      32H		; 110 baud
+	DB	35H		; 300 baud
+	DB	36H		; 600 baud
+	DB	37H		; 1200 baud
+	DB	3AH		; 2400 baud
+	DB	3CH		; 4800 baud
+	DB	3EH		; 9600 baud
+	DB	3FH		; 19200 baud
+;
+WDLEN	DB	EIGHT
+STPLN	DB	ONE
+PARIT	DB	NONE
+;
+BAUDBUF:
+	DB	10,0
+	RB	10
+;
+;
+;For MODEMs which disconnect from the telephone line when data terminal
+;ready (DTR) drops, the following routine will disconnect.
+;
+HANGUP	EQU	0		;HANG UP THE TELEPHONE
+;
+DISCR:
+	CALL	SELECT		;Select USART
+	IN	AL,MODCMDP
+	AND	AL,25H		;Mask out DTR
+	OUT	MODCMDP,AL
+	RET
+;
+;
+;The following routine will give the carrier detect status
+;
+;
+RLSD	EQU	40H
+;
+DETCAR:
+	MOV	AL,CARDETFLG
+	OR	AL,AL
+	JZ	DETCARRET	;RETURN IF FALSE
+	CALL	ILPRT
+	DB	'Carrier ',0
+	CALL	SELECT
+	IN	AL,MODCTLP
+	AND	AL,RLSD
+	JNZ	DETCAR1
+	CALL	ILPRT
+	DB	'not ',0
+DETCAR1:
+	CALL	ILPRT
+	DB	'present',CR,LF,0
+DETCARRET:
+	RET
+;
+

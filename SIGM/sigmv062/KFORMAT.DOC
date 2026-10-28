@@ -1,0 +1,129 @@
+.re ++++++++++++++++++++++++++++++++++++++++++++++++++++
+.remark     THIS IS A REMARK LINE.
+.remark     Remarks are left as is and are useful for
+.remark     the writer of the document.
+.re ++++++++++++++++++++++++++++++++++++++++++++++++++++
+.in 10          * set the normal left indent at column 10
+.rm 70          * set the right  margin at column 70
+.sf             * justify by space filling lines
+.he '         FORMAT (Text Output Processor) description
+.fo '                                                           Page #
+.sp 3           * space 3 lines
+.ce 2           * center the next two lines
+The FORMAT text processor
+-------------------------
+.ti +4          * set a temporary indent 4 columns to the right of indent
+FORMAT is a text processing system.  It is invoked as:
+.sp 2
+        FORMAT <infile name> <outfile name>
+.sp 2
+This means accept text with imbedded commands from file name
+<input-file> and send the processed text to <output-file>.  These files
+are normally CP/M disk files however if the output file is specified
+to be: LST: or CON: then the output is sent to the List device
+(printer), or the Console device (crt) respectively.
+An example invocation is:
+.sp 2
+        FORMAT MYLETTER CON:
+.sp 2
+.ti +4
+The processor accepts several commands to permit control of margins,
+spacing, indentation, centering, underlining, and to simply pass
+thru text.  In addition it allows both a header title at the beginning
+of each page and a footer title at the bottom of each page.  These both
+default to an empty line.
+
+.ti + 4         * NOTE * the plus sign is spaced from the number 4 *
+Each command consists of 3 characters in the leftmost column and
+(in most cases) an optional parameter.  Parameters are strings
+in the case of header and footer titles and numbers in all other
+cases.
+
+.ti +4
+In the header and footer strings, leading spaces are ignored
+and all occurrences of # are replaced in the output text
+by the current page number.  If the first non space or tab
+character in a header or footer string is " or ' it will be
+discarded, this is a means to allow leading spaces in the string
+since all spaces after the " or ' are significant.
+.bp
+.ti +4
+The numeric parameters can be in one of two forms,
+an absolute number sets the associated to that number or if
+out of legal range, to its limit.  A signed (+ or -) number
+sets the parameter to its current value + or - the value of the
+number.  This allows setting for example a paragraph indent
+margin to be inset from the normal indent without being required
+to remember where the current indent is set.
+
+.ti +4
+The default mode is "fill" i.e.  fit as many words as possible
+on a line to fill out the line width, however any input lines of
+text which start with space or tab maintain that number of 
+columns of leading space.  In any case these lines with leading
+whitespace cause a "break" i.e. they cause the following text to
+begin on a new line.  Several commands also cause a break (see
+table of defined commands).
+
+.ti +4
+In the function categories the lines referred to in centering
+and underlining are input lines, therefore
+to cause a single word to be underlined, for instance, simply
+place it on a separate input line.  Likewise, to avoid the need
+to count lines, centering and underlining may be made continous
+by setting the number of lines to something huge
+e.g.  4000 until it is wished to disable them again at which
+point specifing 0 will cause an immediate disable.
+
+.ti +4
+The FORMAT program does not recognize the tab character (ASCII
+9), therefore, use the PIP program to expand tabs in the
+original text before running it through FORMAT.  For example to
+expand tabs to every eighth column in the file OLDLTR execute
+the following:
+
+        PIP NEWLRT=OLDLTR[T8]
+
+The file NEWLRT is now ready to be processed by FORMAT.  Of
+course since you have the source code to the Pascal version of
+FORMAT you could also incorporate the ability to have FORMAT
+expand tabs as it reads the input file.
+.bp
+.remark +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+.sp 2
+.ce 2
+List of defined commands
+------------------------
+.sp 4
+.nf             * justify off
+.rem
+.rem
+ Command    Function                    Default         Break
+ -------    --------                    -------         -----
+ .bp n      begin page numbered n       n = +1          yes
+ .br        cause a line break                          yes
+ .ce n      center the next n lines     n = 1           yes
+ .fi        enable line filling                         yes
+ .sf        justify by space filling                    yes
+ .nf        justify off                                 yes
+ .fo s      set footer title to s       empty           no
+ .he s      set header title to s       empty           no
+ .in n      indent n spaces from        n = 0           no
+             from left margin.
+ .ti n      set temporary indent to n   n = 0           yes
+ .rm n      set right margin to n       n = 60          no
+ .ls n      set line spacing to n       n = 1           no
+ .pl n      set page length to n lines  n = 66          no
+ .sp n      space n lines               n = 1           yes
+ .ul n      underline the next n lines  n = 1           yes
+.rem
+.rem
+.sp 2
+.ti -6
+note:
+underlining works only for printers which can back up the print
+head one char position at a time.
+.bk
+.sp 2
+.ti -6
+note:

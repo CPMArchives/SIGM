@@ -1,0 +1,106 @@
+menu:
+	proc options(main);
+	/********************************************************
+	*       Inventory Control / Point of Sale Program       *
+	*                                                       *
+	*                 Copyright(c) 1981                     *
+	*                 Digital Research                      *
+	*                 Box 579                               *
+	*                 Pacific Grove, CA                     *
+	*                 93950                                 *
+	*                                                       *
+	* This program is tutorial in nature and thus permis-   *
+	* sion is hereby granted to those individuals who have  *
+	* received an ISV Seminar completion certificate the    *
+	* right to copy or abstract all or portions of this pro-*
+	* gram for the purpose of extending or customizing to a *
+	* particular application or software product, in which  *
+	* case an appropriate credit to Digital Research should *
+	* be included in the source listing.                    *
+	********************************************************/
+	dcl
+		copyright char(37) static init
+		(' Copyright(c) 1981, Digital Research ');
+	%replace
+		true   by '1'b,
+		false  by '0'b,
+		update by  0,   /* access(0) = update */
+		sale   by  1;   /* access(1) = sale   */
+	dcl
+		setdef    entry,
+		setkey    entry,
+		create    entry,
+		access	  entry(fixed),
+		report    entry;
+	dcl
+		prc_start fixed ext,
+		prc_len   fixed ext,
+		qty_start fixed ext,
+		qty_len   fixed ext,
+		sales_tax dec(4,2) ext,
+		key_hdr   ptr ext;
+	dcl
+		F  char(2) var,
+		Fi fixed(7);
+	dcl
+		list  file,
+		def   file,
+		data  file,
+		sysin file;
+
+	on endfile(sysin)
+		stop;
+
+	/* initialize field definitions */
+	call setdef();
+	call setkey();
+
+		/* process each major request */
+		do while(true);
+		put edit('Select Function:',
+				'Create(c)',
+				'Update(u)',
+				'Sale  (s)',
+				'Report(r)',
+				'Quit  (q) ')
+			(skip(3), a, 100(column(10),a));
+		get list(F);
+		Fi = index('cusrq',F);
+		if length(F) ^= 1 then
+			Fi = 0;
+		go to case(Fi);
+
+		case(0):
+			/* invalid entry */
+			put skip list
+				('"' || F || '" is invalid, retry');
+			go to endcase;
+
+		case(1):
+			/* create */
+			call create();
+			call setkey();
+			go to endcase;
+
+		case(2):
+			/* update */
+			call access(update);
+			go to endcase;
+
+		case(3):
+			/* sale */
+			call access(sale);
+			go to endcase;
+
+		case(4):
+			/* report */
+			call report();
+			go to endcase;
+
+		case(5):
+			/* quit */
+			signal endfile(sysin);
+		endcase:
+		end;
+	end menu;
+

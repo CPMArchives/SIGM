@@ -1,0 +1,882 @@
+;Install - Data Technology Corporation CP/M 2.2 Install.
+;
+;	+-----------------------+
+;	|			|
+;	|     I N S T A L L 	|
+;	|			|
+;	+-----------------------+
+;
+;
+;	Version number:	2.2B
+;	Version date:	December 3, 1980
+;
+;	Update date:	March 31, 1981
+;		Source modified for assembly with ASM.
+;
+;	Update date:	April 27, 1981
+;		Source modified for controller timeout.
+
+;	Update date:	June 16, 1981
+;		Source modified for new CONFIG parameters.
+;
+;	The following code is supplied to customers who
+;	purchase a hard/floppy disk system from DTC.
+;	The following code reads the user created CPMxx.com
+;	file and writes out onto the Hard disk boot sectors.
+;
+;	The format of the Hard Disk Boot sectors are as follows:
+;
+;	Logical		Routine
+;	Sector		Name
+;
+;	  0		Boot program
+;
+;	1 thru 8	CCP
+;
+;	9 thru 22	BDOS
+;
+;	23 thru 32	DTC CBIOS
+;
+;	The format of the CPMxx.com file is as follows:
+;
+;	CP/M		Routine
+;	Sector		Name
+;
+;	0 thru 14	Do not care.
+;
+;	  15,16		Boot program
+;
+;	17 thru 32	CCP
+;
+;	33 thru 60	BDOS
+;
+;	61 thru 88	DTC CBIOS
+	
+
+
+
+
+VERS:	EQU	22
+
+CR:	EQU	0Dh		;ASCII carrriage return
+LF:	EQU	0Ah		;ASCII line feed
+TAB:	EQU	9		;ASCII HORIZONTAL TAB
+EOS:	EQU	'$'		;BDOS End of string
+ERRCD:	EQU	0FFh		;BDOS error code
+
+
+
+;	BDOS function equates.
+
+PRTSTR:	EQU	09	;Print String    DE = buffer address.
+RDCB:	EQU	10	;Read console buffer   DE = buffer address.
+OPEN:	EQU	15	;Open file   DE = FCB address.
+READS:	EQU	20	;Read sequential file    DE = FCB.
+SETDMA:	EQU	26	;Set DMA address    DE = DMA address.
+
+;	Page zero locations.
+
+BDOSV:	EQU	5	;BDOS jump address.
+DFCB:	EQU	005Ch	;Default FCB address.
+DBUF:	EQU	0080h	;Default DMA buffer.
+
+
+
+	
+
+
+
+
+	ORG	100h
+
+INSTAL:
+	PUSH	PSW
+	PUSH	B
+	PUSH	D
+	PUSH	H
+	LXI	H,0
+	DAD	SP
+	SHLD	SYSTK		;save system stack
+
+
+	LXI	SP,STACK
+	CALL	GFILEN		;Get file name
+	CALL	SKIPF		;Skip do not care sectors
+	CALL	RBOOT		;Read Boot
+	CALL	RCPM		;Read CP/M
+	CALL	RBIOS		;Read BIOS
+	CALL	WOUT		;Write out onto hard disk
+
+	LXI	D,ENDMSG
+	MVI	C,PRTSTR
+	CALL	BDOSV		;Output successful message
+
+;	Return to system gracefully.
+
+SYSRET:	LHLD	SYSTK
+	SPHL
+	POP	H
+	POP	D
+	POP	B
+	POP	PSW
+	RET			;return to system
+
+ENDMSG:	DB	CR,LF,'Disk Boot Successfully Updated.'
+	DB	CR,LF,EOS
+
+
+
+
+;	GFILEN - Get file name and opent the file.
+;
+;	ENTRY	loaction 5C = filename.
+
+GFILEN:
+	LXI	H,5Ch
+	LXI	D,FCB
+	LXI	B,12
+	CALL	MOVDTA		;Move file name to FCB
+
+	LXI	D,FCB
+	MVI	C,OPEN
+	CALL	BDOSV		;Open the file
+	CPI	ERRCD
+	RNZ			;If no error
+
+	LXI	D,OPNERR
+	MVI	C,PRTSTR
+	CALL	BDOSV
+	JMP	SYSRET
+
+OPNERR:	DB	CR,LF,'Error on file open.',CR,LF,EOS
+
+
+
+;	SKIPF - Skip meaningless sectors on file.
+
+SKIPF:
+	LXI	D,DBUF
+	MVI	C,SETDMA
+	CALL	BDOSV		;Set DMA address to default buffer
+
+	MVI	A,15		;Skip 15 sectors
+SKPF1:	PUSH	PSW
+	LXI	D,FCB
+	MVI	C,READS
+	CALL	BDOSV		;Read a sector
+	CPI	ERRCD
+	JZ	SKPF2		;If error on read
+	POP	PSW
+	DCR	A
+	JNZ	SKPF1		;If 16 sectors not read
+	RET
+
+SKPF2:	LXI	D,SKERR
+	MVI	C,PRTSTR
+	CALL	BDOSV		;Output error message
+	JMP	SYSRET
+
+SKERR:	DB	CR,LF,'File read error sectors 0 thru 15.'
+	DB	CR,LF,EOS
+
+
+;	RBOOT - Read the boot sector.
+
+RBOOT:
+	LXI	H,BUFFER
+	LXI	D,BUFFER+1
+	LXI	B,255
+	XRA	A
+	MOV	M,A
+	CALL	MOVDTA		;Clear 256 bytes of buffer
+
+	LXI	D,BUFFER
+	MVI	A,2
+RBOOT1:
+	PUSH	PSW
+	PUSH	D
+	MVI	C,SETDMA
+	CALL	BDOSV		;Set DMA address
+
+	LXI	D,FCB
+	MVI	C,READS
+	CALL	BDOSV		;Read the boot sector
+	CPI	ERRCD
+	JZ	RBOOT2
+	POP	D
+	LXI	H,128
+	DAD	D
+	XCHG
+	POP	PSW
+	DCR	A
+	JNZ	RBOOT1
+	RET
+
+RBOOT2:
+	LXI	D,BTERR
+	MVI	C,PRTSTR
+	CALL	BDOSV		;Output error message
+	JMP	SYSRET
+
+BTERR:	DB	CR,LF,'File read error on boot sector.'
+	DB	CR,LF,EOS
+
+
+
+
+;	RCPM - Read CPM sectors.
+
+RCPM:
+	MVI	A,22*2
+	LXI	D,BUFFER+256
+RCPM1:	PUSH	PSW
+	PUSH	D		;Save buffer address
+	MVI	C,SETDMA
+	CALL	BDOSV		;Set DMA address to default buffer
+
+	LXI	D,FCB
+	MVI	C,READS
+	CALL	BDOSV		;Read a sector
+	CPI	ERRCD
+	JZ	RCPM2		;If error on read
+	POP	D
+	LXI	H,128
+	DAD	D
+	XCHG
+	POP	PSW
+	DCR	A
+	JNZ	RCPM1		;If 22*2 sectors not read
+	RET
+
+RCPM2:	LXI	D,RCERR
+	MVI	C,PRTSTR
+	CALL	BDOSV		;Output error message
+	JMP	SYSRET
+
+RCERR:	DB	CR,LF,'File read error in CPM sectors (17 thru 60).'
+	DB	CR,LF,EOS
+	RET
+
+
+
+
+;	RBIOS - Read BIOS sectors.
+
+RBIOS:
+	LXI	H,BUFFER+22*256+256
+	LXI	D,BUFFER+22*256+256+1
+	LXI	B,255
+	XRA	A
+	MOV	M,A
+	CALL	MOVDTA		;Clear the rest of the buffer
+
+	LXI	D,BUFFER+22*256+256
+RBIOS1:	PUSH	D		;Save buffer address
+	MVI	C,SETDMA
+	CALL	BDOSV		;Set DMA address to default buffer
+
+	LXI	D,FCB
+	MVI	C,READS
+	CALL	BDOSV		;Read a sector
+	POP	D
+	LXI	H,128
+	DAD	D
+	XCHG
+	ORA	A
+	JZ	RBIOS1		;If no errors
+
+	RET
+
+
+
+
+;	WOUT - Write out boot sectors onto hard disk.
+
+WOUT:
+	LXI	D,DMESSG	;Output disk selection message
+	CALL	INFCRT
+	SUI	'A'
+	JM	WOUT		;If invalid entry
+	MOV	B,A		;Save CP/M drive #
+	XRA	A		;Determine LUN
+	LXI	H,CONTBL
+	LXI	D,CONELN
+	MVI	C,CONLEN
+WOUT1:
+	CMP	B
+	JP	WOUT2
+	ADD	M
+	DAD	D
+	DCR	C
+	JP	WOUT1
+	LXI	D,INVMSG	;Invalid drive select
+	MVI	C,PRTSTR
+	CALL	BDOSV
+	JMP	WOUT
+WOUT2:
+	JZ	WOUT3		;This table?
+	LXI	D,-CONELN	;No. Went too far.
+	DAD	D		;HL = table entry address
+	SUB	M
+WOUT3:
+	MOV	C,A		;Compute relative logical disk
+	INX	H		;Get LUNiTYPE
+	MOV	A,M
+	STA	TYPE
+	MOV	D,A
+	ANI	TYPEDRV		;Floppy?
+	JZ	WOUT4
+	MOV	A,D
+	ANI	TYPEN48+TYPEN96
+	MVI	A,0
+	JNZ	WOUT4
+	MOV	A,B
+	SUB	C
+WOUT4:
+	MOV	C,A
+	INX	H		;Set drive type
+	MOV	A,M
+	STA	CIOADT+4
+	INX	H		;Set track format code
+	MOV	A,M
+	STA	CIOFS+5
+	INX	H		;Set LUN
+	MOV	A,M
+	STA	CIOESC+1
+	STA	CIOPB+1
+	STA	CIOADT+1
+	STA	CIOFS+1
+	INX	H		;Set # sectors
+	MOV	A,M
+	STA	LOGNSEC
+	INX	H		;Compute logical address
+	MOV	E,M
+	INX	H
+	MOV	D,M
+	CALL	MUL
+	XCHG
+	LXI	H,CIOPB+1
+	MOV	A,M
+	ADD	B
+	MOV	M,A
+	INX	H
+	MOV	M,D
+	INX	H
+	MOV	M,E
+	LDA	CIOADT+4	;Does controller have Class 6,
+	CPI	0FFh		;  op code?
+	JZ	WOUTA
+	LXI	H,CIOADT
+	CALL	EXEC
+	CZ	WAITF
+	MOV	A,C
+	ANI	FERR
+	JZ	WOUT5
+	LXI	D,ADTMSG
+	MVI	C,PRTSTR
+	CALL	BDOSV
+	JMP	SYSRET
+WOUT5:
+	LDA	CIOFS+5		;Floppy?
+	CPI	0FFh
+	JZ	WOUTA
+	LXI	H,CIOFS
+	CALL	EXEC		; diskettes
+	CZ	WAITF
+	MOV	A,C
+	ANI	FERR
+	JZ	WOUTA
+	LXI	H,CIOFS
+	CALL	ERROR
+	JMP	SYSRET
+WOUTA:
+
+	LXI	H,CIOPB		;Set Command buffer address
+	LXI	D,BUFFER	;Set data buffer address
+	CALL	WDISK		;Write the data
+	MOV	A,C
+	ANI	FERR
+	RZ
+	LXI	H,CIOPB		;Report errors
+	CALL	ERROR
+	JMP	WOUT
+
+TYPE:	DS	1
+CIOESC:	DB	ESCMD,0,0,0,0,0
+CIOADT:	DB	ADCMD,0,0,0,0,0
+CIOFS:	DB	FSCMD,0,0,0,0,0
+CIOPB:	DB	WTCMD
+	DB	0
+LOGSEC:	DB	0,0			;Write logical sector 0
+LOGNSEC:
+	DB	0		;Write two or three tracks
+	DB	0			;Perform no retries
+
+DMESSG:	DB	CR,LF
+	DB	'Select Drive : ',EOS
+INVMSG:	DB	CR,LF,'Invalid drive selection.',EOS
+ADTMSG:	DB	CR,LF,'Drive Assignment error.',EOS
+
+;	Configuration table
+;
+CONTBL:
+	IF	LUN0
+	DB	LUN0NLD
+	DB	LUN0TYPE+TYPEN48*N48M0+TYPEN96*N96M0
+	DB	LUN0DAT,B0
+	DB	0 SHL 5
+	DB	2*26*(NH0+NF0)+3*16*(N48M0+N96M0)
+	DW	LUN0SEC
+	ENDIF
+	IF	LUN1
+	DB	LUN1NLD
+	DB	LUN1TYPE+TYPEN48*N48M1+TYPEN96+N96M1
+	DB	LUN1DAT,B1
+	DB	1 SHL 5
+	DB	2*26*(NH1+NF1)+3*16*(N48M1+N96M1)
+	DW	LUN1SEC
+	ENDIF
+	IF	LUN2
+	DB	LUN2NLD
+	DB	LUN2TYPE+TYPEN48*N48M2+TYPEN96*N96M2
+	DB	LUN2DAT,B2
+	DB	2 SHL 5
+	DB	2*26*(NH2+NF2)+3*16*(N48M2+N96M2)
+	DW	LUN2SEC
+	ENDIF
+	IF	LUN3
+	DB	LUN3NLD
+	DB	LUN3TYPE+TYPEN48*N48M3+TYPEN96*N96M3
+	DB	LUN3DAT,B3
+	DB	3 SHL 5
+	DB	2*26*(NH3+NF3)+3*16*(N48M3+N96M3)
+	DW	LUN3SEC
+	ENDIF
+CONELN:	EQU	8		;Entry length
+CONLEN:	EQU	($-CONTBL)/CONELN
+
+
+
+;	INFCRT - Output message and input from console.
+;
+;	ENTRY	DE = message address.
+;
+;	EXIT	A = First character entered (upper case).
+
+INFCRT:
+	MVI	C,PRTSTR
+	CALL	BDOSV		;Output message
+	LXI	D,INBUFX
+	MVI	C,RDCB
+	CALL	BDOSV
+	LDA	INBUFX+1
+	ANA	A
+	MVI	A,CR
+	RZ
+	LDA	INBUF
+	CPI	'A'+20h
+	RC			;If upper case
+	CPI	'Z'+20h+1
+	RNC			;If upper case
+	SUI	20h		;Fold to uppercase
+	RET
+
+INBUFX	DB	10,0
+INBUF	DB	0,0,0,0,0,0,0,0,0,0
+
+
+
+
+
+
+;	MOVDTA - Move data utility program.
+;
+;	ENTRY	HL = Source field.
+;		DE = Destination field.
+;		BC = number of bytes.
+
+MOVDTA:
+	MOV	A,M
+	STAX	D
+	INX	H
+	INX	D
+	DCX	B
+	MOV	A,B
+	ANA	C
+	CPI	0FFh		;-1
+	JNZ	MOVDTA
+	RET
+
+;	Multiply single X double
+;
+;	Entry:	DE = Multiplicand
+;		 C = Multiplier
+;	Exit:	HL = Product (least significant)
+;		 B = Product (most significant)
+;
+MUL:
+	LXI	H,0
+	MVI	B,0
+	MOV	A,C
+	ORA	A
+	RZ
+MUL1:
+	DAD	D
+	JNC	MUL2
+	INR	B
+MUL2:
+	DCR	A
+	JNZ	MUL1
+	RET
+
+
+
+
+SYSTK:	DW	0		;Hold stack
+
+FCB:	DS	12		;file name
+	DB	0,0,0,0,0
+	DB	0,0,0,0,0
+	DB	0,0,0,0,0
+	DB	0,0,0,0,0
+	DB	0,0,0,0
+
+
+
+	DS	50
+STACK:	DS	1
+
+
+
+
+;	Disk I/O Routines
+;
+;
+	IF	I696
+;	E X E C
+
+EXEC:	MVI	B,BUSY		;Wait for not busy.
+	MVI	C,BUSY and (not BUSY)
+	CALL	WAITM
+	RNZ
+	
+
+	MVI	A,SLCT		;Alert controller
+	OUT	DIO+1
+EXEC1:
+	MOV	C,B		;Wait for controller busy
+	CALL	WAITM
+	RNZ
+
+	MVI	A,DODTA		;Enable data in
+	OUT	DIO+1
+
+EXEC2:	IN	DIO+2		;Get status
+	XRI	0FFh
+	JM	EXEC2		;If not requesting next byte
+	ANI	CMND+DIROUT
+	JNZ	EXEC3		;If CMND or DIROUT false
+	MOV	A,M
+	INX	H
+	OUT	DIO		;Send byte from command buffer
+	JMP	EXEC2
+
+EXEC3:	CMP	A		;Z:=1
+	RET
+;
+;
+;
+;
+;	WDISK - Output from memory buffer.
+;	ENTRY:	HL = COMMAND BUFFER ADDRESS
+;		DE = DATA BUFFER ADDRESS
+;
+
+WDISK:	CALL	EXEC		;Output command
+	RNZ			;Return if timeout
+WDISK1:	IN	DIO+2		;Read status
+	ORA	A
+	JP	WDISK1		;If request is present
+	ANI	CMND
+	JNZ	GCMPS		;If done with transfer
+	LDAX	D		;Get the data byte
+	OUT	DIO
+	INX	D		;Advance buffer address
+	JMP	WDISK1
+;
+;
+;
+;
+;	RDISK - Input to memory buffer.
+;
+;	Entry:	HL = command buffer address
+;		DE = data buffer address
+
+RDISK:	CALL	EXEC
+	RNZ			;Return if timeout
+RDISK1:	IN	DIO+2		;Read status
+	ORA	A
+	JP	RDISK1		;If request is present
+	ANI	CMND
+	JNZ	GCMPS
+	IN	DIO
+	STAX	D
+	INX	D
+	JMP	RDISK1
+;
+;
+;
+;
+;	WAITF - Wait for function to complete.
+
+WAITF:	MVI	B,REQ+CMND	;Wait for both REQ and CMND
+	MOV	C,B
+	CALL	WAITM
+	RNZ
+;
+;	Get completion status.
+
+GCMPS:	IN	DIO		;Get completion status
+	MOV	C,A
+
+GCMP1:	IN	DIO+2
+	ORA	A
+	JP	GCMP1		;If REQ not set
+
+	MOV	B,A
+	IN	DIO		;Get message byte
+	RET
+	ENDIF
+;
+
+;
+;
+;
+	IF	I796
+;	EXEC - Output the command
+;
+;	Enter:	HL is the command buffer address
+;		DE - data transfer address.
+
+EXEC:
+	MOV	A,E		;Output DMA address
+	OUT	DIO+2
+	MOV	A,D
+	OUT	DIO+3
+	MOV	A,L
+	OUT	DIO+4
+	MOV	A,H
+	OUT	DIO+5
+	MVI	A,0
+	OUT	DIO+6
+	OUT	DIO+7
+	OUT	DIO
+	CMP	A		;Z:=1
+	RET
+
+
+;	Disk read/write
+;
+;	Entry:	same as EXEC
+;
+RDISK:
+WDISK:	CALL	EXEC
+	RNZ			;Return if timeout
+
+;	WAITF - Wait until transfer done
+;
+;	Enter:	none
+;	Exit:	when transfer completed
+
+WAITF:	MVI	B,CMDDON	;Wait for CMDDON
+	MOV	C,B
+	CALL	WAITM
+	RNZ			;Return if timeout
+;
+
+;	GCMPS - Get completion status
+;
+;	Enter:	none
+;	Exit:	Status in C
+GCMPS:	IN	DIO+1
+	MOV	C,A
+	RET
+	ENDIF
+
+;	WAITM - Wait for controller with timeout
+;
+;	Entry:	B=Status mask
+;		C=Status value
+;	Exit:	Z=1 if OK, else timeout with A=C=TERR
+;
+WAITM:
+	PUSH	D		;Save D
+	PUSH	H
+	LXI	H,138		;Two minute timeout
+	LXI	D,0		;Max wait @4MHZ is 868 ms
+WAITML:
+	IF	I696
+	IN	DIO+2
+	ENDIF
+	IF	I796
+	IN	DIO
+	ENDIF
+	ANA	B		;Mask wait bits
+	CMP	C		;Check value
+	JZ	WAITM1
+	DCX	D		;Not ready.  Decrement time
+	MOV	A,D
+	ORA	E
+	JNZ	WAITML
+	DCX	H
+	MOV	A,H
+	ORA	L
+	JNZ	WAITML
+	MVI	B,0		;Timeout
+	MVI	A,TERR
+	ORA	A
+WAITM1:
+	POP	H
+	POP	D		;Restore D
+	MOV	C,A		;Return status in C
+	RET
+;	DTC Error Print Routine
+;
+;Called at completion of disk command when error status is returned.
+;
+;	Entry:	HL = Address of Command Descriptor Block
+;		C = Status byte
+;
+ERROR:
+	PUSH	B		;Save status
+	PUSH	H		;SAVE ADDRESS OF CDB
+	MOV	A,M		;GET CLASS CODE
+	ANI	0E0H
+	RAL			;MAKE CDB LENGTH INDEX
+	RAL
+	RAL
+	MOV	E,A		;GET CDB LENGTH
+	MVI	D,0
+	LXI	H,CDBLEN
+	DAD	D
+	MOV	C,M
+	POP	H		;RESTORE CDB ADDRESS
+	PUSH	H
+	LXI	D,ERRCDB
+	CALL	PUTHEX		;BUILD CDB FOR PRINT
+	LXI	D,EHEAD		;Print header
+	MVI	C,PRTSTR
+	CALL	BDOSV
+	POP	H		;Get status
+	POP	B
+	PUSH	H
+	MOV	A,C		;Timeout?
+	ANI	TERR
+	LXI	D,TOMSG
+	JNZ	ERROR1
+	LXI	H,CIOESC	;No. READ ERROR SENSE
+	LXI	D,SENSE
+	CALL	RDISK
+	LXI	D,ESENSE
+	MVI	C,PRTSTR
+	CALL	BDOSV
+	LXI	D,ESENS1
+	LXI	H,SENSE
+	MOV	A,M
+	MVI	C,PRTSTR
+	ORA	A
+	CM	BDOSV
+	LXI	D,ETYPE
+	LXI	H,SENSE		;BUILD ERROR SENSE MESSAGE
+	MOV	A,M
+	RAR
+	RAR
+	RAR
+	RAR
+	ANI	3
+	CALL	HEXASC
+	LXI	D,ECODE
+	MOV	A,M
+	CALL	HEXASC
+	LXI	D,ELUN
+	INX	H
+	MOV	A,M
+	RLC
+	RLC
+	RLC
+	ANI	7
+	CALL	HEXASC
+	MOV	A,M
+	ANI	01FH
+	MOV	M,A
+	LXI	D,ELAD
+	MVI	C,3
+	CALL	PUTHEX
+	LXI	D,ESENS2	;PRINT MESSAGE
+ERROR1:
+	MVI	C,PRTSTR
+	CALL	BDOSV
+	POP	H		;RESTORE CDB ADDRESS
+	RET
+;
+;
+
+;	PUT HEXADECIMAL STRING
+;
+;	ENTRY:	HL = ADDRESS OF HEX NUMBER STRING
+;		DE = ADDRESS OF HEX ASCII STRING
+;		 C = NUMBER OF BYTES TO CONVERT
+;
+PUTHEX:	CALL	HEXBYT
+	MVI	A,' '
+	STAX	D
+	INX	D
+	DCR	C
+	JNZ	PUTHEX
+	MVI	A,EOS
+	STAX	D
+	RET
+;
+;
+HEXBYT:	MOV	A,M
+	RAR
+	RAR
+	RAR
+	RAR
+	CALL	HEXASC
+	MOV	A,M
+	INX	H
+HEXASC:	ANI	0FH
+	ADI	090H
+	DAA
+	ACI	040H
+	DAA
+	STAX	D
+	INX	D
+	RET
+;
+;
+;	CDB length table (indexed by class)
+CDBLEN:	DB	6,10,0,0,0,0,6,6
+;
+EHEAD:	DB	CR,LF,LF,'Disk error:'
+	DB	CR,LF,'Command Descriptor:',TAB,TAB
+ERRCDB:	DS	31
+;
+TOMSG:	DB	CR,LF,TAB,TAB,TAB,TAB,'Timeout',EOS
+ESENSE:	DB	CR,LF,'Error Sense:',EOS
+ESENS1:	DB	CR,LF,TAB,TAB,TAB,TAB,'Block address valid.',EOS
+ESENS2:	DB	CR,LF,TAB,'Error type:',TAB,TAB
+ETYPE:	DS	1
+	DB	CR,LF,TAB,'Error code:',TAB,TAB
+ECODE:	DS	1
+	DB	CR,LF,TAB,'Logical unit:',TAB,TAB
+ELUN:	DS	1
+	DB	CR,LF,TAB,'Logical address:',TAB
+ELAD:	DS	4
+SENSE:	DS	4
+;
+BUFFER:	DS	9*1024+256
+;
+	END
+

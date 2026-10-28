@@ -1,0 +1,170 @@
+VOLUME 36
+
+Assemblers, editors, text processor related programs,
+memory bank boot and manager, misc. utilities,
+drivers for TDL software, etc.
+
+NUMBER	SIZE	NAME		COMMENTS
+
+		-CATALOG.036	CONTENTS OF CP/M VOL. 36
+	6K	ABSTRACT.036	Abstract on some files
+36.1	7K	COMBINE.ASM	Combine multiple .asm files..
+36.2	1K	COMBINE.COM	..and delete comments
+36.3	4K	CPM-PEN.ASM	Convert CP/M to electric..
+36.4	1K	CPM-PEN.COM	..pencil files
+36.5	8K	FIND.ASM	Find ASCII string in 1 or..
+36.6	1K	FIND.COM	..more files
+36.7	1K	FIND.DOC	DOC on above
+36.8	11K	L82.COM		ML80 Component
+36.9	1K	LINES.COM	Count lines in an ASCII file
+36.10	1K	LINES.DOC	DOC of above
+36.11	6K	LINKASM.COM	ASM.COM with feature to link..
+36.12	5K	LINKASM.DOC	..files together at assembly
+36.13	1K	LIST.COM	List files with starting..
+36.14	1K	LIST.DOC	..line number
+36.15	10K	M81.COM		ML80 Component
+36.16	11K	MAC6.AZM	I/O drivers for TDL..
+36.17	2K	MAC6.COM	..macro assembler
+36.18	4K	MAC6.DOC	..
+36.19	8K	MBMBOT.ASC	Memory bank boot & mgmt
+36.20	3K	MFACCESS.LIB	Subroutine to setup for..
+				..multiple files (ex: *.ASM)
+36.21	2K	ML80.DOC	DOC on ML80 components
+36.22	9K	ML80.REF	Reference material on ML80
+36.23	3K	PEN-CPM.ASM	Electric Pencil to CP/M file..
+36.24	1K	PEN-CPM.COM	..conversion program
+36.25	2K	PEN-CPM.DOC	..
+36.26	24K	POW.ASM		Source for text processor
+36.27	5K	POWCMDS.POW	POW documentation
+36.28	2K	POWTEXT.POW	More POW doc.
+36.29	6K	SCRAMBLE.ASM	File encode/decode
+36.30	2K	SCRAMBLE.DOC	Doc on above
+36.31	17K	TED.COM		Nice CP/M text editor, with..
+36.32	23K	TED.DOC		..built in help features.
+36.33	10K	TOP.AZM		TDL Text output processor..
+36.34	5K	TOP.PRN		..patches
+36.35	3K	TOP.TOP		..
+36.36	22K	XREF.ASM	Cross references .ASM files
+
+
+
+-------------------- VOLUME 36 ABSTRACTS ----------------------
+
+TITLE:  ASSEMBLERS, EDITORS, AND TEXT PROCESSORS
+
+COMBINE.ASM and COMBINE.COM are source and object of a utility
+to concatenate assembler source files and remove comments.
+This becomes necessary when trying to assemble very large
+source files which have been broken down into modules for
+ease of editing.  Could also be used to strip comments from
+a single file.  Requires MAC for assembly.  Command line
+format is:
+	COMBINE dest.asm=source1,source2,...,sourceN
+Originaly written by Ward Christensen, revised by Steve Ness
+and Robert A. Van Valzah.
+
+PEN-CPM.ASM is the source code for a transient which will
+convert files in Electric Pencil format to normal CP/M ASCII
+file format.  CPM-PEN.ASM is the inverse operation.  Author
+written documentation is provided in PEN-CPM.DOC.  The source
+code is well written and commented.  Both files require MAC
+and SEQIO.LIB for assembly.  These utilities would be useful
+to anyone owning the Electric Pencil or anyone wishing to
+exchange files with an Electric Pencil user.  Reviewed by
+Robert A. Van Valzah.
+
+LINKASM.COM is an assembler which is upward compatible with
+ASM.COM supplied by Digital Research with CP/M.  It has the
+additional feature that it can produce one object file from the
+sequential assembly of several 'linked' source files.  This is
+most useful when maintaining very large application programs
+written in assembler.  It is much easier to edit several 10K
+source files than a 100K one!  LINKASM is a bit faster that
+the CP/M assembler too.  It also has provision to write a
+symbol file compatible with SID.  Several utilities are
+provided to facilitate the maintaince of linked source files.
+They are: LINES, LIST, and FIND.  See appropriate docs for
+details.  Source for LINKASM cannot be provided at this time.
+Reviewed by Robert A. Van Valzah.
+
+MAC6.AZM contains source for patches to the paper tape TDL
+Z-80 assembler to make it work from CP/M disk files.  This
+is a revision of MAC4.ASM from volume 18.  It is written
+in TDL mnemonics so MAC6.COM is included so that you can
+get around the chicken-egg problem.  MAC6.DOC contains the
+installation instructions.  TOP.AZM is a similar patch to
+CP/Mifiy a paper tape version TDL Text Output Processor.
+TOP.TOP is a sample input file to the processor and TOP.PRN
+is the resulting output.  Reviewed by Robert A. Van Valzah.
+
+ML80 is structured assembler programming language for the
+8080.  It allows you to increment the accumulator by writing
+A=A+1.  Control constructs are provide for conditional
+branching and iteration.  A powerful macro pre-processor is
+provided to allow the equivalent of EQU's and other neat stuff.
+The original code appeared in volume 4 but was flawed by some
+nasty bugs.  The files M81.COM and L82.COM are patched versions
+of those from volume 4.  ML80.REF is a quick reference for
+ML80 syntax, semantics, and errors.  ML80.DOC describes the
+changes made to the original .COM files.  Reviewed by
+Robert A. Van Valzah.
+
+MFACCESS.LIB is an assembler subroutine.  It provides routines
+to read multiple files with wildcard names.  For instance, it
+would enable you to write a transient which would print all
+.ASM files on a disk simply by typing PRINT *.ASM.  One
+restriction is that files can only be read, they cannot be
+renamed or erased using MFACCESS.LIB.  This file would be most
+useful to those who know how to write transients and wish to
+allow them to work with wildcard filenames.  Reviewed by
+Robert A. Van Valzah.
+
+POW.ASM is the source for a text processor (Processor Of Words)
+transient.  The original source appeared in Dr. Dobbs Journal,
+number 29.  It has been CP/Mified and had one minor bug fixed.
+It has ability to define margins, justify, center, space,
+paragraph and title a document.  Requires an editor for
+preperation of the input text (ED will do) and a printer on
+your LST device for operation.  The source is fairly well
+written and doucmented, making it fairly easy to modify.
+Some documentation is provided in POW.DOC and pieces of the
+DDJ article appear in POWCMDS.POW and POWTEXT.POW.  Reviewed
+by Robert A. Van Valzah.
+
+SCRAMBLE.ASM is a utility to encode and decode the contents
+of a CP/M file.  The primary use for it is to maintain data
+security.  This is necessary if you want to leave protected
+information on a public access system (such as yours might
+be when running a remote console program).  The author makes
+no guarantees of the throughness of this program, but he does
+not think that he could unscramble a file without knowing
+the password, even if given the first 256 byte of the plain
+text.  Files are scrambled 'in place' (as opposed to reading
+a plain text file and writing a cypher text file) and as a
+consequence there is a chance that a disk error may destroy
+the file.  Reviewed by Robert A. Van Valzah.
+
+TED.COM is a text editor transient.  TED.DOC contains
+documentaion.  This is a line oriented editor which should
+make a good alternative to ED.COM for those who prefer a line
+oriented editor over a character oriented editor.  Commands
+are proviede to search for a string, substitute strings, type
+line, move and copy lines from place to place, delete lines,
+and give help on commands.  This self help mode could be very
+useful to beginners or to those who have not used an editor
+before.  TED seems to have farily good error detection and
+recovery facilities.  The source code has not been provided.
+TED was written at the Naval Post-graduate School (which has
+brought us BASIC-E and ML80).  TED requires at least a 24K
+CP/M system size in order to run.  
+Reviewed by Robert A. Van Valzah. 
+
+XREF.ASM is source for cross reference generator utility which
+accepts as input standard INTEL format assembler source code.
+Modified version of NYCPMUG 8.27.  Now accepts lower case,
+ignores PAGE and ELSE psuedo-ops, has improved error messages,
+and has equates to changes things like lines per page and so
+on.  Modified by Steve Ness of the Mark Williams Company.
+Reviewed by Robert A. Van Valzah.
+
+

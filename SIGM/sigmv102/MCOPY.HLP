@@ -1,0 +1,282 @@
+MCOPY Overview
+MCOPY Command Line Options
+MCOPY Interactive Mode
+Sample MCOPY Sessions
+:MCOPY Overview
+
+     MCOPÙ  ió á filå copù prograí designeä foò uså undeò  ZCPR2®  
+Iô  supportó  manù  featureó relateä specificallù  tï  thå  ZCPR² 
+System and is very intimately tied into the ZCPR2 System.
+
+     Thå  basiã  purposå  oæ  MCOPÙ ió tï  copù  fileó  froí  onå 
+directorù (disk/useò area© tï anotheò undeò ZCPR2®   Iô  supportó 
+thå   nameä  directorù  formó  oæ  ZCPR2¬   anä  thå  sourcå  anä 
+destinatioî  directorieó  caî  bå specifieä  iî  termó  oò  nameä 
+directories or DU: forms or both.
+
+     MCOPÙ  ió alsï intendeä tï bå useä foò backuğ purposes®   Iô 
+haó  thå  abilitù  tï repeatedlù copù á seô  oæ  fileó  froí  onå 
+directorù  tï another¬  pausinç betweeî successivå copù passeó tï 
+allo÷  thå useò tï changå disks®   Á keù tï thå uså oæ  MCOPÙ  iî 
+generaì  ió thaô oncå MCOPÙ haó beguî operations¬  thå useò  neeä 
+neveò concerî himselæ witè Warí Bootinç thå systeí afteò changinç 
+disks; MCOPY is doing that for him.
+
+
+     Iî  copyinç  á  filå froí onå directorù  tï  another¬  MCOPÙ 
+performs the following steps:
+
+          1®  Iô logó intï thå sourcå directorù anä scanó foò thå 
+files specified by the user
+
+          2®   Iô logó intï thå destinatioî directory¬ determineó 
+iæ á copù oæ thå filå existó oî thå destinatioî anä deleteó iô iæ 
+it does
+
+          3®   MCOPÙ copieó thå filå iî thå sourcå directorù intï 
+the destination directory
+
+          4®   MCOPÙ  setó  thå  attributeó oæ thå  filå  iî  thå 
+destinatioî  directorù  tï  bå thå samå aó thoså  iî  thå  sourcå 
+directory
+
+          5®   MCOPÙ optionallù verifieó botè fileó bù meanó oæ á 
+CRC Check
+
+     MCOPY is invoked by one of the following forms:
+
+          MCOPY //                 <-- Print Help
+          MCOPÙ                    <-- Enteò Interactivå Mode
+          MCOPY files options      <-- Immediately Copy
+
+     Thå "MCOPÙ fileó options¢ forí ió extremelù flexiblå iî  itó 
+capabilities®    Wheî   firsô  invoked¬   MCOPÙ  haó  á   defaulô 
+destinatioî directorù defineä (bù GENINS)®   Thå "files¢ fielä ió 
+á  serieó  oæ  filå  assignmenô  specifications¬   wherå  sucè  á 
+specification is of the form:
+
+          dir:=dir:filename.typ or dir:filename.typ
+
+Iæ  thå  firsô forí ió encountered¬  thå defaulô  destinatioî  ió 
+temporarilù  redefineä tï bå thå directorù indicateä oî thå  lefô 
+oæ  thå "=¢ character¬  anä alì fileó referenceä thereafteò untiì 
+the next "dir:=dir:filename.typ" form are copied to this default.
+
+     To illustrate my point, note the following example:
+
+          MCOPY FILE1.*,HELP:FILE2.HLP,TEMP:=TEST.TXT,HI.*
+
+Let'ó assumå thaô thå defaulô defineä bù GENINÓ ió thå  directorù 
+nameä  BACKUP®   Iî  thió  case¬  fileó matchinç FILE1.ª  iî  thå 
+currenô  directorù arå copieä tï BACKUP¬  thå filå  FILE2.HLĞ  iî 
+directorù  HELĞ  ió copieä tï BACKUP¬  thå filå TEST.TXÔ  iî  thå 
+currenô directorù ió copieä tï TEMP¬  anä thå fileó matchinç HI.ª 
+in the current directory are copied to TEMP.
+
+     Oncå  á  DIR:½ ió encountered¬  thå defaulô  destinatioî  ió 
+redefined®   Encounterinç á differencå source¬  however¬ doeó noô 
+change what the default source directory is.
+
+:MCOPY Command Line Options
+
+     Thå  optionó portioî oæ thå "MCOPÙ fileó options¢ commanä ió 
+a set of none or more of the following characters:
+
+          E -- Test for Existence of File on Destination and
+               User Approves Copy before Copy is Done
+
+          I -- User Approves Each File before Copy Begins
+
+          M -- Multiple Copy (Repeat) Facility
+
+          Q -- Quiet Operation (No Activity Displays)
+
+          V -- Verify Facility
+
+     GENINÓ ió useä tï seô thå defaulô settingó foò eacè oæ theså 
+optionó (turninç theí oî oò off)¬ anä thå optioî characteró servå 
+to toggle the settings from the defaults.
+
+
+     Thå  Å  optioî  (Existencå Test© lookó  oî  thå  destinatioî 
+directorù  tï  seå  iæ thå filå iô ió abouô tï  copù  ió  alreadù 
+there®  Iô theî telló thå useò oæ itó findingó anä askó hií iæ hå 
+wantó tï gï aheaä witè thå copy®   Thå useò maù elecô tï copù  oò 
+noô copù aó hå desires.
+
+     Thå  É  optioî (Inspect© displayó alì fileó whicè matcè  thå 
+indicateä sourcå fileó tï thå user¬  allowinç hií tï selecô whicè 
+fileó  hå  wantó tï copy®   Iô theî copieó  thå  selecteä  files®  
+MCOPÙ  performó  thió  operatioî  foò eacè seô oæ  fileó  iî  thå 
+command line (separated by commas).
+
+     Thå  Í  optioî (Multiplå Copy© pauseó  beforå  startinç  thå 
+copy¬  allowinç  thå useò tï aborô thå procedurå oò inserô á disë 
+intï thå source¬  thå destination¬  oò botè anä instrucô MCOPÙ tï 
+proceed®   Afteò copyinç alì oæ thå indicateä files¬  MCOPÙ  theî 
+pauseó  again¬  allowinç  thå useò tï agaiî changå  disks®   Thió 
+continues until the user aborts the procedure.
+
+
+     Thå  Ñ optioî (Quiet© turnó ofæ thå MCOPÙ activitù  display®  
+Iî normaì operation¬ MCOPÙ ió constantlù tellinç thå useò whaô iô 
+ió  doing®   É  feeì  thaô thió ió  betteò  thaî  quietlù  havinç 
+problems without the user knowing what is going on.
+
+     Thå  Ö  optioî (Verify© ió useä tï checë thå copieä filå  tï 
+insurå thaô thå copù ió good®   Witè thió optioî  engaged¬  MCOPÙ 
+computeó  á  CRÃ valuå oæ thå sourcå filå aó iô readó  it®   Wheî 
+MCOPÙ haó completeä thå copy¬ iô readó thå destinatioî filå back¬ 
+computinç itó CRÃ value¬  and¬ wheî complete¬ iô compareó thå twï 
+CRÃ  values¬  tellinç thå useò iæ aî erroò iî thå  copù  occurreä 
+(i.e., different CRC values resulted).
+
+:MCOPY Interactive Mode
+
+     Iæ   thå  user'ó  commanä  ió  simplù  "MCOPY"¬   theî   thå 
+Interactivå Modå ió enabled®   Iî responså tï thió command¬ MCOPÙ 
+displays the following prompt:
+
+MCOPY Status: EIMQV -- MCOPY Command (? for Help)?
+
+wherå anù oæ thå characteró iî "EIMQV¢ maù bå omitted®  Thå EIMQÖ 
+characteró  indicatå  thå  statuó oæ thå variouó  MCOPÙ  options¬ 
+namely:
+
+          E indicates that File Existence Test is ON
+          I indicates that Inspect Mode is ON
+          M indicates that Multiple Copy is ON
+          Q indicates that Quiet Mode is ON
+          V indicates that MCOPY will Verify
+
+     Thå MCOPÙ commanä prompteä foò ió á singlå  character¬  caså 
+insignificant®   Yoõ  caî  togglå  eacè onå oæ theså  optionó  bù 
+simply striking the appropriate letter.
+
+     Therå  arå siø MCOPÙ Commandó tï perforí variouó  functions®  
+These commands are:
+
+          C - Copy a File or Set of Files
+          D - Directory Display
+          F - Compute Amount of Free Space on Disk
+          L - Log in New Directories
+          S - Display MCOPY Status
+          X or ^C - Exit
+
+     Thå  Ã  commanä  (Copy©  allowó yoõ  tï  specifù  á  seô  oæ 
+destinations¬ sources¬ anä fileó aó yoõ coulä aô thå commanä linå 
+level®     Eacè    seô    ió   separateä   bù    commaó    (like¬ 
+"dir:=dir:f1.typ,f2.typ,dir:=dir:f3.typ").
+
+
+     Thå Ä commanä (Directory© displayó á sorteä directorù tï thå 
+useò  oæ  thå  defaulô directorù oò onå  oæ  hió  choice®   Nameä 
+directorieó oò thå DUº forí maù bå useä tï specifù thå directory®  
+Thå defaulô directorù ió thå lasô destinatioî directorù copieä tï 
+or selected by the L command.
+
+     Thå  Æ  commanä  computeó thå amounô oæ freå spacå  lefô  oî 
+disk.  The user may select the disk or ride with the default.
+
+     Thå  Ì commanä allowó thå useò tï specifù á ne÷  destinatioî 
+or source directory.
+
+     Thå   Ó  commanä  telló  thå  useò  thå  Statuó  oæ   MCOPY¬ 
+particularlù  whaô thå currenô sourcå anä destinatioî directorieó 
+are.
+
+     X or ^C exits MCOPY to ZCPR2.
+
+:Sample MCOPY Sessions
+
+B7>mcopy help:=mcopy.hlp
+MCOPY  Version 2.8
+        Copy B  7: MCOPY   .HLP to A 16:
+No Original File MCOPY   .HLP on Destination
+Reading     7K  Writing     7K
+
+    Copy Complete,  Verify Phase --
+Reading     7K
+    Verify Complete
+**** MCOPY Compete ****
+            1 File Copied     0 Copy Errors
+
+
+B7>mcopy 1:=*.hlp,*.txt i
+MCOPY  Version 2.8
+        Copy B  7: ????????.HLP to B  1:
+MCOPY   .HLP -- Copy (Y/N/Q=Quit and Skip Rest/<CR>=Y)? Y
+No Original File MCOPY   .HLP on Destination
+Reading     7K  Writing     7K
+
+    Copy Complete,  Verify Phase --
+Reading     7K
+    Verify Complete
+        Copy B  7: ????????.TXT to B  1:
+HELP    .TXT -- Copy (Y/N/Q=Quit and Skip Rest/<CR>=Y)? Y
+S100    .TXT -- Copy (Y/N/Q=Quit and Skip Rest/<CR>=Y)? N
+No Orginal File HELP    .TXT on Destination
+Reading     1K  Writing     1K
+
+    Copy Complete,  Verify Phase --
+Reading     1K
+    Verify Complete
+**** MCOPY Complete ****
+            2 Files Copied     0 Copy Errors
+
+B7>mcopy
+MCOPY  Version 2.8
+MCOPY Status:     V -- MCOPY Command (? for Help)? ?
+        MCOPY Status:  E I M Q V
+These Status Characters have the following meanings:
+   E - File Existence Test Mode is ON
+   I - File Selection Inspect Mode is ON
+   M - Muliple Copy Function Mode is ON
+   Q - Quiet Mode is ON
+   V - Verify Mode is ON
+
+The Status Characters, as commands, toggle their respective modes.
+Other valid MCOPY Commands are:
+   C - Copy a File or Set of Files
+   D - Directory Display
+   F - Compute Amount of Free Space on Disk
+   L - Log in New User/Disks
+   S - Display MCOPY Status (Cur and Dest User/Disk)
+   X or ^C - Exit MCOPY
+
+
+MCOPY Status:     V -- MCOPY Command (? for Help)? d
+** Directory Display **
+        File Spec (<CR>=C  0:*.*)? b1:
+DEMO    .COM    4K  DEMO    .MAC    4K  DEMO    .ZEX    4K  GENINS  .MAC   44K
+HELP    .TXT    4K  MCOPY   .HLP    8K  TEMPLATE.MAC   12K
+**    80K Occupied by Displayed Files,  4048K Remaining on Disk B **
+
+MCOPY Status:     V -- MCOPY Command (? for Help)? c
+        File Spec (<CR>=Abort)? zcpr:=mcopy.hlp
+        Copy B  7: MCOPY   .HLP to A 11:
+No Original File MCOPY   .HLP on Destination
+Reading     7K  Writing     7K
+
+    Copy Complete,  Verify Phase --
+Reading     7K
+    Verify Complete
+**** MCOPY Complete ****
+            1 File Copied     0 Copy Errors
+
+
+MCOPY Status:     V -- MCOPY Command (? for Help)? f
+** Free Space Data **
+        Disk (<CR>=A)? 
+
+ 1328K Bytes Remaining on Disk A
+MCOPY Status:     V -- MCOPY Command (? for Help)? f
+** Free Space Data **
+        Disk (<CR>=A)? B
+
+ 4048K Bytes Remaining on Disk B
+
+MCOPY Status:     V -- MCOPY Command (? for Help)? x
+** MCOPY Exiting **
+
+

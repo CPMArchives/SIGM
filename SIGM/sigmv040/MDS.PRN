@@ -1,0 +1,358 @@
+      (0000)      0521+ LP:	DL	AA0011
+*** undefined symbol on pass one ***
+
+      (0000)      0565+ LP:	DL	AA0015
+*** undefined symbol on pass one ***
+
+      (0000)      0608+ LP:	DL	AA0019
+*** undefined symbol on pass one ***
+
+      (0000)      0651+ LP:	DL	AA0023
+*** undefined symbol on pass one ***
+
+Pass One Errors	   4
+CROMEMCO Z80 Macro Assembler version 03.07   Nov 30, 1980  09:46:29   Page 0001
+*** MDS *** 
+
+                  0001  ; INTEL MDS FDC CARD EMULATOR
+                  0002  ;
+                  0003  ; SOURCED NOV 79 BY TREVOR MARSHALL
+                  0004  ;		    Dept E & E Eng
+                  0005  ;		    University of West Australia
+                  0006  ;		    NEDLANDS, W.A. 6009
+                  0007  ;
+                  0008  ; This version of the source produces, after linking,
+                  0009  ; object code in memory from 600H to A000H to enable
+                  0010  ; a Prom Programmer resident in the host system
+                  0011  ; to directly program the object file
+                  0012  ;
+                  0013  ; A version ORGed at F800H is compiled seperately
+                  0014  ; and is provided on the master disk as MDSABS.Z80
+                  0015  ;
+                  0016  ;
+                  0017  ; REGISTER USAGE DURING READ AND WRITE:
+                  0018  ; D contains the (auto wait) drive control byte
+                  0019  ; IX points to the IOPB base
+                  0020  ; HL points to the current memory DMA address
+                  0021  ; B contains the input byte counter for INI & OUTI
+                  0022  ; C contains DDATA for INI & OUTI
+                  0023  ; B' (alternate) contains the number of records required
+                  0024  ; D' (alternate) contains the current sector address
+                  0025  ; E' (alternate) contains the retry count
+                  0026  ; H' (alternate) contains the previously logged track
+                  0027  ; AF' (alternate) contains the previous drive mask
+                  0028  ; to skip read trk# if it is already logged
+                  0029  ; and allow for fast response without interleaving
+                  0030  ;
+                  0031  ; FDC CONTROLLER DEFINITIONS:
+      (0063)      0032  DCONTROL:EQU	63H	;Control Port
+      (0063)      0033  DFLAGS:	 EQU	63H	;FDC Status Port
+      (0067)      0034  DDATA:   EQU	67H	;1793 Data Port
+      (0064)      0035  DSTATUS: EQU	64H	;1793 Status Port
+      (0064)      0036  DCOMMAND:EQU	64H	;1793 Command Port
+      (0065)      0037  DTRACK:	 EQU	65H	;1793 Track Port
+      (0066)      0038  DSECTOR: EQU	66H	;1793 Sector Port
+      (0004)      0039  DSIDE:	EQU	4	;Bit 1=0 selects side 1
+                  0040  			; of D/S drives
+                  0041  ;
+                  0042  ; DISK CONTROL PORT HARDWARE ENVIRONMENT
+                  0043  ; Bits 0-3 select drives 1-4
+                  0044  ; Bit 7 enables auto wait on accesses to DDATA
+                  0045  ; Bit 5 enables dsk drive motors 
+                  0046  ; Bit 4 selects single density (S/D)
+                  0047  ;
+                  0048  ; DISK STATUS PORT HARDWARE REQUIREMENTS
+                  0049  ; Bit 0 is 1793 INTREQ status output
+                  0050  ; Bit 5 indicates head is loaded
+                  0051  ;
+                  0052  ; DISK DENSITY DEFINITIONS
+      (001A)      0053  MAXSECTORS: EQU 1AH  ;Single Density
+      (004C)      0054  MAXTRACKS:   EQU 4CH  ; 8" Disks
+                  0055  ;
+                  0056  ; PIO DEFINITIONS:
+      (007A)      0057  ACOMMAND:EQU	7AH
+      (0078)      0058  ADATA:   EQU	78H
+      (007B)      0059  BCOMMAND:EQU	7BH
+      (0079)      0060  BDATA:   EQU	79H
+                  0061  ;
+CROMEMCO Z80 Macro Assembler version 03.07   Nov 30, 1980  09:46:29   Page 0002
+*** MDS *** 
+
+                  0062  ; BUS CONTROL:
+      (007F)      0063  RELEASE: EQU	7FH	;I/O To this addr releases bus
+      (007C)      0064  HOLD:    EQU	7CH	;I/O to this addr requests bus
+                  0065  ;
+                  0066  ; MDS PORT DEFINITIONS:
+      (007E)      0067  STATUS:  EQU	7EH	;S100 Bus reads 78H
+                  0068  ;Note that port 78H is referenced directly in ASERVICE
+                  0069  ;TYPE:	Not Implemented
+      (007D)      0070  RESULT:  EQU	7DH	;S100 Bus reads 7BH
+                  0071  ;RESET: Not Implemented
+      (0079)      0072  IOPBLOW: EQU	79H
+      (007A)      0073  IOPBHIGH:EQU	7AH
+                  0074  ;
+                  0075  ; DISKETTE INSTRUCTION CODES:
+      (0000)      0076  NOP:     EQU	0	
+      (0001)      0077  SEEK:	 EQU	1
+      (0002)      0078  FORMAT:	 EQU	2
+      (0003)      0079  RECALIB: EQU 	3
+      (0004)      0080  READ:	 EQU	4
+      (0005)      0081  VERIFY:	 EQU	5
+      (0006)      0082  WRITE:	 EQU	6
+      (0007)      0083  WRITEDEL:EQU	7	;Write deleted data mark;
+                  0084  ;
+                  0085  ; AS THERE IS NO STACK RAM AVAILABLE ALL CODE
+                  0086  ; MUST BE SEQUENTIAL
+                  0087  ;
+                  0088  ; THE PROM PROGRAMMER REQUIRES AN ADDRESS OFFSET
+                  0089  ; OF 0F200H FOR THIS ORG 0F800H CODE
+                  0090  ;
+                  0091  ; THE FOLLOWING MACROS FORM COMMONLY USED ROUTINES
+                  0092  ;
+                  0093  STOP:	MACRO
+                  0094  	LD	SP,STACK; Point at ROM stack
+                  0095  	IN	A,RELEASE
+                  0096  	RETI
+                  0097  	MEND
+                  0098  DONE: MACRO   ;Set up status port & stop
+                  0099  	LD	A,0FH
+                  0100  	OUT	STATUS,A
+                  0101  	STOP
+                  0102  	MEND
+                  0103  ;
+                  0104  INTREQ:	MACRO	;Wait for intreq
+                  0105  LL#SYM:	IN	A,DFLAGS ;Loop until 1793 INTREQ active
+                  0106  	RRA
+                  0107  	JR	NC,LL#SYM
+                  0108  	MEND
+                  0109  ;
+                  0110  ERRORS: MACRO	#LOOP,#MASK ;Check 1793 for errors
+                  0111  	INTREQ
+                  0112  	IN	A,DSTATUS
+                  0113  	EXX	;Save working registers
+                  0114  	LD	C,A	;Save error byte
+                  0115  	AND	80H	;Not ready mask
+                  0116  	EXX
+                  0117  	JR	NZ,#LOOP	;Loop until drive ready
+                  0118  	EXX
+                  0119  	LD	A,C
+                  0120  	AND	#MASK	;General error mask
+                  0121  	JP	NZ,SELECT+OFFSET ;Retry if any errors
+                  0122  	EXX
+CROMEMCO Z80 Macro Assembler version 03.07   Nov 30, 1980  09:46:29   Page 0003
+*** MDS *** 
+
+                  0123  	MEND
+                  0124  ;
+                  0125  SETUP:	MACRO	;Set up read and write common parameters
+                  0126  LP:	DL	AA#SYM
+                  0127  AA#SYM:	INC	D	;Sector #
+                  0128  	LD	A,D
+                  0129  	OUT	DSECTOR,A
+                  0130  	EXX
+                  0131  	LD	A,D
+                  0132  	OUT	DCONTROL,A
+                  0133  	LD	B,80H	;Input byte count
+                  0134  	IN	A,DFLAGS ;Is head loaded?
+                  0135  	AND	20H
+                  0136  	JR	Z,J2#SYM ;No
+                  0137  	LD	A,0
+                  0138  	JR	J3#SYM
+                  0139  J2#SYM: LD	A,04H    ;Head load mask for 1793
+                  0140  J3#SYM	DL	$
+                  0141  	MEND
+                  0142  ;
+                  0143  CHECK:	MACRO	;See if read or write is complete
+                  0144  	EXX
+                  0145  	DJNZ	LP
+                  0146  	EXX
+                  0147  	LD	B,0	;Done
+                  0148  	JP	FINISH+OFFSET
+                  0149  	MEND
+                  0150  ;
+                  0151  ; NOTE THAT THE 1793 NEEDS TIME TO CALCULATE CRC
+                  0152  ; BEFORE THE ERROR STATUS IS AVAILABLE
+                  0153  ; IF THE DRQ IS NOT SERVICED
+                  0154  ; The following delay loop is sufficient (4MHz Z-80)
+                  0155  DELAY:	MACRO
+                  0156  	LD	B,30H	;12 to 15 give CRC errors
+                  0157  ; 0 to 12 give BUSY flag
+                  0158  	DJNZ	$
+                  0159  	MEND
+                  0160  ;
+                  0161  ; Check for 1793 errors during read and write
+                  0162  DERROR: MACRO	#MASK
+                  0163  	INTREQ
+                  0164  	IN	A,DSTATUS
+                  0165  	EXX
+                  0166  	LD	C,A	;Save error byte
+                  0167  	EXX
+                  0168  ; Note that we will not check for deleted data marks
+                  0169  	AND	#MASK
+                  0170  	JP	NZ,S2+OFFSET ; Retry errors
+                  0171  	MEND
+                  0172  
+                  0173  ; LINKER AND PROM PROGRAMMER CODE REQUIREMENTS
+      (0100)      0174  	ORG	100H
+0100  C30000      0175  	JP	0
+      (F200)      0176  OFFSET: EQU	0F800H-600H
+                  0177  ; Setup vectors at top of ROM
+      (09F4)      0178  	ORG	9F4H	;Effectively FBF4
+09F4  37F8        0179  VEC1:	DW	ASERVICE+OFFSET
+09F6  50F8        0180  VEC2:	DW	BSERVICE+OFFSET
+09F8  FB          0181  WAIT:	EI
+09F9  76          0182  	HALT	;wait for interrupt
+                  0183  ; STACK: To enable interrupt structure we need a 'stack'
+CROMEMCO Z80 Macro Assembler version 03.07   Nov 30, 1980  09:46:29   Page 0004
+*** MDS *** 
+
+09FA  F8FB        0184  	DW	WAIT+OFFSET
+      (FBFC)      0185  STACK:	EQU	$+OFFSET
+09FC  F8FB        0186  	DW	WAIT+OFFSET 
+09FE  F8FB        0187  	DW	WAIT+OFFSET
+                  0188  ;
+                  0189  ; Hardware Reset Code
+      (0600)      0190  	ORG	600H
+0600  C304F8      0191  START:	JP	0F804H
+0603  00          0192  	NOP
+                  0193  ; The ORG address is now effectively F804H
+                  0194  ; Now setup PIO & Interupts
+                  0195  ;
+0604  ED5E        0196  	IM2
+0606  3EFB        0197  	LD	A,0FBH
+0608  ED47        0198  	LD	I,A	;Int vector table near FBF2
+060A  3EF4        0199  	LD	A,0F4H	;IVEC(A) = FBF4
+060C  D37A        0200  	OUT	ACOMMAND,A
+060E  3EF6        0201  	LD	A,0F6H	;IVEC(B) = FBF6
+0610  D37B        0202  	OUT	BCOMMAND,A
+0612  3E4F        0203  	LD	A,4FH	;MODE 1
+0614  D37A        0204  	OUT	ACOMMAND,A
+0616  D37B        0205  	OUT	BCOMMAND,A
+0618  DB78        0206  	IN	A,ADATA	;Set READY handshake
+061A  DB79        0207  	IN	A,BDATA
+061C  3E87        0208  	LD	A,87H	;Enable PIO interrupt mode
+061E  D37A        0209  	OUT	ACOMMAND,A
+0620  D37B        0210  	OUT	BCOMMAND,A
+                  0211  ; Now setup output latches
+0622  3E00        0212  	LD	A,00
+0624  D37D        0213  	OUT	RESULT,A
+0626  3E0B        0214  	LD	A,0BH	;:F0:,:F1: ready, not D/D
+0628  D37E        0215  	OUT	STATUS,A
+062A  08          0216  	EX	AF,AF'
+062B  3E00        0217  	LD	A,0	;Clear drive select mask
+062D  08          0218  	EX	AF,AF'
+062E  D9          0219  	EXX
+062F  26FF        0220  	LD	H,0FFH	;Clear logged trk
+0631  D9          0221  	EXX
+0632  31FCFB      0222  	LD	SP,STACK
+0635  FB          0223  	EI
+0636  76          0224  	HALT
+                  0225  ; Routine to service PIO inputs
+                  0226  ; (79) go to IX lower, (7A) to IX upper
+                  0227  ;
+0637  F3          0228  ASERVICE: DI
+0638  D37C        0229  	OUT	HOLD,A	; Lock out bus until done
+063A  00          0230  	NOP	;Allow time for bus control
+063B  00          0231  	NOP
+063C  DB78        0232  	IN	A,78H ; S100 Status port read (& reset)
+                  0233  ;		      ; must be done during bus access
+063E  DB78        0234  	IN	A,ADATA
+0640  DD210000    0235  	LD	IX,0
+0644  4F          0236  	LD	C,A
+0645  0600        0237  	LD	B,0
+0647  DD09        0238  	ADD	IX,BC	;Now have A in IX
+0649              0239  	STOP
+0649  31FCFB      0240+ 	LD	SP,STACK; Point at ROM stack
+064C  DB7F        0241+ 	IN	A,RELEASE
+064E  ED4D        0242+ 	RETI
+0650  F3          0243  BSERVICE: DI
+0651  D37C        0244  	 OUT	HOLD,A	; Lock out bus until done
+CROMEMCO Z80 Macro Assembler version 03.07   Nov 30, 1980  09:46:29   Page 0005
+*** MDS *** 
+
+0653  DB79        0245  	IN	A,BDATA
+0655  47          0246  	LD	B,A
+0656  0E00        0247  	LD	C,0
+0658  DD09        0248  	ADD	IX,BC	; IX now points to IOPB
+                  0249  ; Now select side 0 of disks
+065A  3E02        0250  	LD	A,2	;Set bit 1
+065C  D304        0251  	OUT	DSIDE,A
+                  0252  ;
+065E  D9          0253  	EXX
+065F  1E0A        0254  	LD	E,0AH	;10 retries
+0661  1803        0255  	JR	SELECT
+                  0256  ;
+                  0257  ; NOW BEGIN DECODING COMMAND WORD
+                  0258  ; 
+                  0259  ; FIRST SELECT THE DRIVE (:F0:=A:, :F1:=C:)
+                  0260  ;
+0663  D9          0261  S2:	EXX
+0664  26FF        0262  	LD	H,0FFH	;Log off track if error occurs
+                  0263  ;			;This will cause a RESTORE cmd
+                  0264  ;			;To be executed for SEEK errors
+0666  7B          0265  SELECT:	LD	A,E
+0667  FE00        0266  	CP	0	;Have we retried 10 times?
+0669  79          0267  	LD	A,C	;Error byte
+                  0268  
+066A  CAC8FA      0269  	JP	Z,EXIT+OFFSET
+066D  1D          0270  	DEC	E
+066E  D9          0271  	EXX
+066F  DD7E00      0272  	LD	A,(IX+0)
+0672  E63F        0273  	AND	3FH ;Check for acceptable channel word
+0674  C27EFB      0274  	JP	NZ,CHERROR+OFFSET ; Channel error
+                  0275  ;
+                  0276  ;If the op is NOP,FORMAT or RECALIBRATE 
+                  0277  ;Dont check address field
+0677  DD7E01      0278  	LD	A,(IX+1)
+067A  E607        0279  	AND	07H	;Now have opcode field
+067C  FE01        0280  	CP	1	;Seek
+067E  2804        0281  	JR	Z,DONTSKIP
+0680  D604        0282  	SUB	4
+0682  3823        0283  	JR	C,SKIP	; <=3
+                  0284  DONTSKIP:
+                  0285  
+                  0286  ; Now check for valid IOPB addresses
+0684  DD7E03      0287  N12:	LD	A,(IX+3) ;Track address
+0687  D64D        0288  	SUB	MAXTRACKS+1  ;max track # + 1
+0689  D269FB      0289  	JP	NC,ADDERROR+OFFSET
+068C  DD7E04      0290  	LD	A,(IX+4)
+                  0291  ;
+                  0292  ; Must reset bits 4 & 5 of sector byte (a drive select b
+			it)
+                  0293  ; to retain compatibility with S/D MDS systems
+068F  E69F        0294  	AND	A,09FH
+0691  CA69FB      0295  	JP	Z,ADDERROR+OFFSET ;Zero sector #
+0694  D61B        0296  	SUB	MAXSECTORS+1 ;Max sector # + 1
+0696  D269FB      0297  	JP	NC,ADDERROR+OFFSET
+0699  DD7E04      0298  	LD	A,(IX+4) ;Sector addr
+                  0299  ;
+                  0300  ; Must reset bit 5 of sector byte (a drive select bit)
+                  0301  ; to retain compatibility with S/D MDS systems
+069C  E69F        0302  	AND	A,09FH
+069E  DD4E02      0303  	LD	C,(IX+2) ;Number of records requested
+06A1  81          0304  	ADD	A,C
+CROMEMCO Z80 Macro Assembler version 03.07   Nov 30, 1980  09:46:29   Page 0006
+*** MDS *** 
+
+06A2  D61C        0305  	SUB	A,MAXSECTORS+2
+06A4  D269FB      0306  	JP	NC,ADDERROR+OFFSET ;Final sector >1AH
+                  0307  ; Address errors trapped, now seek to required track
+                  0308  ;
+06A7  DD7E01      0309  SKIP:	LD	A,(IX+1) ;Instruction word
+06AA  E630        0310  	AND	30H	;Get drive mask
+06AC  CB0F        0311  	RRC	A
+06AE  CB0F        0312  	RRC	A
+06B0  CB0F        0313  	RRC	A
+06B2  CB0F        0314  	RRC	A
+06B4  FE03        0315  	CP	3 ; S/D MDS drive #1 mask
+06B6  2804        0316  	JR	Z,BSELECT ;Select drive B
+                  0317  ; Dont allow for more than 2 drives
+06B8  16B1        0318  	LD	D,0B1H	;Auto wait,motor on,S/D,A:
+06BA  1802        0319  	JR	J3
+06BC  16B2        0320  BSELECT: LD	D,0B2H	;Auto wait,motor on,S/D,B:
+                  0321  ; D contains the drive control byte with auto wait set
+                  0322  ;
+                  0323  ; Now check for recalibrate, nop & format instructions
+                  0324  ;
+06BE  DD7E01      0325  J3:	LD	A,(IX+1)
+06C1  E607        0326 

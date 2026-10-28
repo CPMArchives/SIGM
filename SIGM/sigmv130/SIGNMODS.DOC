@@ -1,0 +1,37 @@
+09/06/82 23:52:34
+
+notes by Jim Mills regarding implementation of the SIGNON system.
+
+The following three files were written for use with SIGNON under the
+following conditions:
+
+1. Use SIGNZCPR if you use ZCPR with the drive/user select/limit
+mode -- ie: if you allow "A0>B: 5" to go to drive B user 5.  This
+module will poke the appropriate values into lower memory for ZCPR
+to limit drive and user# select properly.  Make sure the memory
+locations poked match the memory locations specified when you
+assembled ZCPR.  This version of SIGNON tested with NZCPR 1.6
+
+2. Use SIGNCBBS if you use CBBS or MINICBBS instead of RBBS or
+MINIRBBS.  This module changes the routines at line 4900 which
+read the summary file and report any messages addressed to the user.
+Tested with CBBS version 3.5
+
+3. Use SIGNFALC if you use the Falco TS-1 Terminal and you want
+the caller's first initial plus last name to appear on the status
+line (convenient for telling at a glance who's online).  The
+output is hardcoded to my CRT output ports so the user won't see
+the escape sequences, etc.  Make appropriate changes to match your
+hardware.  If you customize this routine for use with the status
+line on a different terminal, please send a copy of the routine to
+Dick Lieber or Jim Mills for incorporation into the "standard"
+package.  Thanks.
+
+The easiest way to implement the desired changes is to run MBASIC,
+load SIGNON, then MERGE the appropriate sub-file (one of the above
+files).  Be sure to delete any excess line numbers in the 4900
+routine before you merge SIGNCBBS.BAS (if you use this option).
+Failing to do so shouldn't hurt the operation, but it may save some
+space in the compiled .COM file.
+
+

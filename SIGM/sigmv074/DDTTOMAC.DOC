@@ -1,0 +1,43 @@
+
+
+
+                DDTTOMAC - DISASSEMBLY EDITOR
+
+        DDTTOMAC  is a special purpose editor used to  convert 
+DDT  format disassembly files into a format acceptable to MAC, 
+ASM  or  MACRO-80.   To use it,  you will need to be  able  to 
+divert  your console output to a disk file while using DDT  to 
+disassemble  a  program using the L  command.   Diverting  the 
+console  output  may  be done by trapping  console  output  at 
+either  the BDOS entry point or the BIOS (in the latter  case, 
+watch   out   for  re-entrancy  problems   with   the   BDOS). 
+Alternatively,  Acoustic Electronic Developments market a CP/M 
+utility  package  which contains a spooler program to  perform 
+this function.
+
+        The program is invoked by the command lines:
+
+        A>DDTTOMAC <file1>
+   or   A>DDTTOMAC <file1> <file2>
+
+where  the  first  form edits <file1>  to  produce  a  console 
+listing  and the second writes the edited version to  <file2>. 
+Two  pass  operation  is  used  and  the  program  is  neither 
+particularly  fast nor elegant - it was written in a hurry  to 
+fill  a  particular need.   The source listing (in BDS  C)  is 
+included on the disk.
+
+        In   its   present  form,   the  program  strips   the 
+hexadecimal addresses from the start of each  instruction  and 
+substitutes labels for 2 byte operand values.  If the  operand 
+is  the  address  of an instruction within the  range  of  the 
+disassembly.  the  label  is  inserted at the  correct  point, 
+otherwise  it  is  set  to the  correct  value  by  an  EQUate 
+statement at the end of the listing.   Lines not recognised as 
+valid  DDT listing format are commented out.   It should  work 
+satisfactorily in both CP/M 1.4 and 2.2 systems.
+
+        Á  filå  (REST.DDT© ió includeä oî thå disë  foò  tesô 
+purposes®   Thió  ió á disassemblù listinç oæ  RESTORE.COM¬  á 
+program to unERAse files.
+

@@ -1,0 +1,382 @@
+;	  intrinsic functions for sine and cosine
+;<<<30 JULY 80 - mods to cosine routine>>>
+;
+	NAME SINCOS
+	ENTRY SIN,L136
+	ENTRY COS,L132
+	INCLUDE DEFLT.SRC
+	INCLUDE FCTMAC.SRC
+;
+L136:
+;
+; (*
+;  * intrinsic function for sine
+;  *)
+; function sin( x: real ):real;
+;     const   a1 = 1.5707949;
+; 	    a3 = -0.64592098;
+; 	    a5 = 0.07948766;
+; 	    a7 = -0.004362476;
+; 	    piu2 = 0.6366197724;	(* 2 / pi *)
+;     var x2: real;
+;         schg: boolean;
+;     begin
+FCT375
+sin:	ENTR	D,2,5
+;         schg := false;
+FCC375
+	MOV	-4(IX),A
+;         while x > halfpi do begin
+FCT414
+	LXI	H,-4
+	DADD	S
+	SPHL
+	XCHG
+	PUSH	IX
+	POP	H
+	LXI	B,8
+	DADD	B
+	LXI	B,4
+	LDIR
+	LXI	H,356
+	LXI	D,-30739
+	PUSH	H
+	PUSH	D
+	GRET	D,-4
+	JNC	FCT413
+; 	    x := x - pi;
+	LXI	H,-4
+	DADD	S
+	SPHL
+	XCHG
+	PUSH	IX
+	POP	H
+	LXI	B,8
+	DADD	B
+	LXI	B,4
+	LDIR
+	LXI	H,612
+	LXI	D,-30739
+	PUSH	H
+	PUSH	D
+	DSUB	D,-4
+	LXI	H,3
+	DADD	S
+	XCHG
+	PUSH	IX
+	POP	H
+	LXI	B,11
+	DADD	B
+	XCHG
+	LXI	B,4
+	LDDR
+	POP	H
+	POP	H
+; 	    schg := not schg
+; 	    end;
+	CMP	-4(IX)
+	JRC	FCT431
+FCT430
+FCT432	EQU  FCT430
+FCT435	EQU  FCT432
+	INR	A
+FCT431
+	MOV	L,A
+	XRA	A
+	MOV	H,A
+	MOV	-4(IX),L
+	JMP	FCT414
+FCT413
+;         while x <= -halfpi do begin
+FCT438
+	LXI	H,-4
+	DADD	S
+	SPHL
+	XCHG
+	PUSH	IX
+	POP	H
+	LXI	B,8
+	DADD	B
+	LXI	B,4
+	LDIR
+	LXI	H,484
+	LXI	D,-30739
+	PUSH	H
+	PUSH	D
+	LE	D,-4
+	JNC	FCT437
+; 	    x := x + pi;
+	LXI	H,-4
+	DADD	S
+	SPHL
+	XCHG
+	PUSH	IX
+	POP	H
+	LXI	B,8
+	DADD	B
+	LXI	B,4
+	LDIR
+	LXI	H,612
+	LXI	D,-30739
+	PUSH	H
+	PUSH	D
+	DADD	D,-4
+	LXI	H,3
+	DADD	S
+	XCHG
+	PUSH	IX
+	POP	H
+	LXI	B,11
+	DADD	B
+	XCHG
+	LXI	B,4
+	LDDR
+	POP	H
+	POP	H
+; 	    schg := not schg
+; 	    end;
+	CMP	-4(IX)
+	JRC	FCT455
+FCT454
+FCT456	EQU  FCT454
+FCT459	EQU  FCT456
+	INR	A
+FCT455
+	MOV	L,A
+	XRA	A
+	MOV	H,A
+	MOV	-4(IX),L
+	JMP	FCT438
+FCT437
+; 	x := x * piu2;
+	LXI	H,-4
+	DADD	S
+	SPHL
+	XCHG
+	PUSH	IX
+	POP	H
+	LXI	B,8
+	DADD	B
+	LXI	B,4
+	LDIR
+	LXI	H,81
+	LXI	D,31937
+	PUSH	H
+	PUSH	D
+	MULT	D,-4
+	LXI	H,3
+	DADD	S
+	XCHG
+	PUSH	IX
+	POP	H
+	LXI	B,11
+	DADD	B
+	XCHG
+	LXI	B,4
+	LDDR
+	POP	H
+	POP	H
+; 	x2 := x * x;
+	LXI	H,-4
+	DADD	S
+	SPHL
+	XCHG
+	PUSH	IX
+	POP	H
+	LXI	B,8
+	DADD	B
+	LXI	B,4
+	LDIR
+	LXI	H,-4
+	DADD	S
+	SPHL
+	XCHG
+	PUSH	IX
+	POP	H
+	LXI	B,8
+	DADD	B
+	LXI	B,4
+	LDIR
+	MULT	D,-4
+	LXI	H,3
+	DADD	S
+	XCHG
+	PUSH	IX
+	POP	H
+	XCHG
+	LXI	B,4
+	LDDR
+	POP	H
+	POP	H
+; 	x := (((a7*x2 + a5)*x2 + a3)*x2 + a1)*x;
+	LXI	H,-1593
+	LXI	D,31116
+	PUSH	H
+	PUSH	D
+	LXI	H,-4
+	DADD	S
+	SPHL
+	XCHG
+	PUSH	IX
+	POP	H
+	DCX	H
+	DCX	H
+	DCX	H
+	LXI	B,4
+	LDIR
+	MULT	D,-4
+	LXI	H,-687
+	LXI	D,25910
+	PUSH	H
+	PUSH	D
+	DADD	D,-4
+	LXI	H,-4
+	DADD	S
+	SPHL
+	XCHG
+	PUSH	IX
+	POP	H
+	DCX	H
+	DCX	H
+	DCX	H
+	LXI	B,4
+	LDIR
+	MULT	D,-4
+	LXI	H,210
+	LXI	D,-21111
+	PUSH	H
+	PUSH	D
+	DADD	D,-4
+	LXI	H,-4
+	DADD	S
+	SPHL
+	XCHG
+	PUSH	IX
+	POP	H
+	DCX	H
+	DCX	H
+	DCX	H
+	LXI	B,4
+	LDIR
+	MULT	D,-4
+	LXI	H,356
+	LXI	D,-30745
+	PUSH	H
+	PUSH	D
+	DADD	D,-4
+	LXI	H,-4
+	DADD	S
+	SPHL
+	XCHG
+	PUSH	IX
+	POP	H
+	LXI	B,8
+	DADD	B
+	LXI	B,4
+	LDIR
+	MULT	D,-4
+	LXI	H,3
+	DADD	S
+	XCHG
+	PUSH	IX
+	POP	H
+	LXI	B,11
+	DADD	B
+	XCHG
+	LXI	B,4
+	LDDR
+	POP	H
+	POP	H
+;         if schg then x := -x;
+	CMP	-4(IX)
+	JNC	FCT494
+	LXI	H,-4
+	DADD	S
+	SPHL
+	XCHG
+	PUSH	IX
+	POP	H
+	LXI	B,8
+	DADD	B
+	LXI	B,4
+	LDIR
+	NEGT	E
+	LXI	H,3
+	DADD	S
+	XCHG
+	PUSH	IX
+	POP	H
+	LXI	B,11
+	DADD	B
+	XCHG
+	LXI	B,4
+	LDDR
+	POP	H
+	POP	H
+FCT494
+;         sin := x;
+	LXI	H,-4
+	DADD	S
+	SPHL
+	XCHG
+	PUSH	IX
+	POP	H
+	LXI	B,8
+	DADD	B
+	LXI	B,4
+	LDIR
+	LXI	H,3
+	DADD	S
+	XCHG
+	PUSH	IX
+	POP	H
+	LXI	B,15
+	DADD	B
+	XCHG
+	LXI	B,4
+	LDDR
+	POP	H
+	POP	H
+;         end;
+	EXIT	D,4
+; 
+; (*
+;  * intrinsic function for cosine
+;  *)
+; function cos( x: real ):real;
+;     begin
+FCT513
+L132:
+cos:	ENTR	D,2,5
+; 	cos := sin( x + halfpi )
+	LXI	H,-4
+	DADD	S
+	SPHL
+	XCHG
+	PUSH	IX
+	POP	H
+	LXI	B,8
+	DADD	B
+	LXI	B,4
+	LDIR
+	LXI	H,356
+	LXI	D,-30739
+	PUSH	H
+	PUSH	D
+	DADD	D,-4
+	lxi	h,3
+	dadd	s
+	xchg
+	push	ix
+	pop	h
+	lxi	b,11
+	dadd	b
+	xchg
+	lxi	b,4
+	lddr
+	pop	h
+	pop	h
+;         end;
+	JMP	FCC375
+;
+

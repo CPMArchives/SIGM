@@ -1,0 +1,420 @@
+; An article relating to the following code appeared in the Vol 1 No 5
+; issue of Micro/Systems Journal and is presented here with the per-
+; mission of the publisher. The code alone should be sufficient to
+; use the program.  However, back copies of the article are available from
+; Micro/Systems Journal, Box 1192, Mountainside, NJ 07092.
+\p\#12
+                            LISTING 1
+
+
+********************************************************************
+*                                                                  *
+*     A MONITOR FOR THE MOTOROLA 68000 MICROPROCESSOR TO ENABLE    *
+*   LOADING PROGRAMS, CHANGING DATA VALUES, AND BEGIN EXECUTION    *
+*     AT ANY MEMORY LOCATION.   68000 ASSEMBLY LANGUAGE LISTING.   *
+*                                                                  *
+*   Copyright (C) 1985, Jack L. Calaway.  All rights reserved.     *
+*                                                                  *
+********************************************************************
+*
+
+* EQUATES
+*
+DATA	EQU.L	$0FF0010		* CONSOLE UART DATA
+STATUS	EQU.L	$0FF0011		* CONSOLE UART STATUS
+SDATA	EQU.L	$0FF0020		* DOWN LOAD UART DATA
+SSTAT	EQU.L	$0FF0021		* DOWN LOAD UART STATUS
+STACK	EQU.L	$0000300		* STACK BELOW CP/M-68K
+
+	ORG	$0FD0000
+
+*
+* START UP CODE FOR GODBOUT CPU
+*   ON HARDWARE RESET, PROMS ON CPU BOARD ARE GLOBAL
+*
+
+	DC.L	$8			* FIRST INSTRUCTION ADDRESS
+	DC.L	STACK			* INITAL STACK VALUE
+	JSR.L	INIT			* SWITCH PROMS TO REAL ADDRESS
+
+*
+* DO INITIALIZING TASKS
+*
+
+INIT:
+	MOVEA.L	#STACK,A7		* SET STACK POINTER
+
+	BSR	CRLF			* OUTPUT A CR/LF PAIR
+	MOVEQ	#$04D,D0		* THEN LOAD AND OUTPUT   
+	BSR	OUTCH                   * THE MONITOR SIGN-ON
+	MOVEQ	#$036,D0		* MESSAGE: M68K
+	BSR	OUTCH
+	MOVEQ	#$038,D0		
+	BSR	OUTCH
+	MOVEQ	#$04B,D0	
+	BSR	OUTCH
+
+*
+* BEGIN PROCESSING COMMANDS.  THE PROGRAM 
+* RETURNS TO THIS POINT BETWEEN COMMANDS
+*Š
+START:
+	MOVEA.L	#STACK,A7		* RESET STACK POINTER
+	BSR	CRLF			* NEXT LINE
+	MOVEQ	#$02E,D0		* OUTPUT THE MONITOR
+	BSR	OUTCH                   * PROMPT CHARACTER: '.'
+	BSR	INCH			* GET A COMMAND
+	CMPI.B	#$0D,D0
+	BEQ.S	START			* IGNORE CARRIAGE RETURN
+	BSR	OUTCH			* ECHO THE CHARACTER
+	CMPI.B	#$053,D0		* 'S' = SUBSTITUTE
+	BNE.S	START1			* NOT 'S', TRY NEXT COMMAND
+	BSR	SUBST			* ON 'S' GO TO SUBSTITUTE
+	BSR	CRLF                    * ROUTINE.
+	BRA.S	START                   * BACK TO START
+
+START1:
+	CMPI.B	#$047,D0		* IF COMMAND IS A 'G',
+	BNE.S	START2                  * JUMP TO GOTO AND BEGIN
+	BSR	GOTO			* EXECUTION
+	BSR	CRLF
+	BRA.S	START
+
+START2:
+	CMPI.B	#$04C,D0		* ON 'L' COMMAND, JUMP
+	BNE.S	START                   * TO THE LOAD ROUTINE
+	BSR	LOAD
+	BSR	CRLF
+	BRA.S	START                   * NONE OF THE ABOVE
+
+
+**********************************************************************
+*                                                                    *
+*                           GOTO                                     *
+*   THIS ROUTINE WILL JUMP TO INPUT ADDRESS AND BEGIN EXECUTION      *
+*                                                                    *
+**********************************************************************
+
+
+GOTO:
+	BSR	INADR			* GET THE ADDRESS
+	JMP	(A0)			* JUMP TO IT
+
+*********************************************************************
+*                                                                   *
+*                           LOAD                                    *
+*   THIS ROUTINE WILL DOWN LOAD AN S-FILE INTO THE 68000 MEMORY     *
+*                                                                   *
+*********************************************************************
+
+
+LOAD:
+	BSR	CRLF			* WE ARE HERE
+
+*Š* FIND THE S-RECORD HEADER
+*
+
+LOAD1:
+	CLR.B	D4			* D4=LENGTH FLAG
+	BSR	GCHR			* GET CHARACTER
+	CMPI.B	#$053,D0		* IS IT AN 'S'?
+	BNE.S	LOAD1			* IF NOT, TRY AGAIN 
+	BSR	GCHR
+	CMPI.B	#$030,D0		* CHARACTER EQUALS ZERO
+	BEQ.S	LOAD1			* TRY AGAIN IF SO
+	CMPI.B	#$039,D0		* CHECK FOR FILE END, (9)
+	BEQ.S	LOADX			* DONE IF SO
+	CMPI.B	#$032,D0		* 4, OR 6 BYTES OF ADDRESS
+	BEQ.S	LOAD3
+	ADDQ.B	#$001,D4		* PUT 1 IN LENGTH FLAG
+
+*
+* GET BYTE COUNT
+*
+
+LOAD3:
+	BSR	GHEX			* GET RECORD LENGTH
+	MOVE.B	D0,D2			* SAVE IN COUNTER
+	SUBI.B	#$03,D2			* ADJUST COUNT, AND TEST
+	TST.B	D4			* AND TEST FOR LONG OR SHORT ADDRESS
+	BNE.S	LOAD4			* SHORT
+	SUBQ.B	#$001,D2		* LONG, SUBTRACT ONE MORE
+
+*
+* GET LOAD ADDRESS OF RECORD
+*
+
+LOAD4:
+	BSR	GADR			
+
+*
+* NOW GET FILE DATA
+*
+
+LOAD2:
+	BSR	GHEX			* GET BYTE OF DATA
+	MOVE.B	D0,(A0)+		* STORE IN MEMORY 
+	SUBQ.B	#$001,D2		* DECREMENT COUNT
+	BNE.S	LOAD2			* CONTINUE
+	BRA.S	LOAD1			* SKIP CHECKSUM
+
+
+LOADX:
+	RTS				* RETURN FOR NEW COMMAND
+
+
+*
+* GET TWO ASCII CHARACTERS FROM SERIAL PORT
+* AND CONVERT TO ONE BINARY BYTEŠ* RETURNS THE DATA IN THE D0 REGISTER
+* D1 IS CLOBBERED
+*
+
+GHEX:
+	CLR.B	D1			* CLEAR TEMPORARY
+	JSR	CAHEX			* GET HIGH NIBBLE
+	ASL.B	#$4,D1                  * SHIFT TEMPORARY LEFT
+	OR.B	D0,D1                   * 'OR' WITH D1
+	JSR	CAHEX			* GET LOW NIBBLE
+	ASL.B	#$4,D1                  * POSITION HIGH NIBBLE
+	OR	D1,D0                   * COMBINE LOW AND HIGH
+	ANDI.L	#$0000FF,D0
+	RTS
+
+*
+* CONVERT ASCII TO HEX
+*
+
+CAHEX:
+	BSR	GCHR			* GET CHARACTER
+	SUBI.B	#$030,D0		* REMOVE ASCII
+	CMPI.B	#$00A,D0		* A-F?
+	BLT.S	CAHEX1			* NO
+	SUBI.B	#$007,D0		* YES, SUBTRACT 7
+
+CAHEX1:
+	RTS
+
+*
+* GET LOAD ADDRESS FROM SERIAL PORT
+* RETURNS WITH THE ADDRESS IN REGISTER A0
+* WORKS JUST LIKE GHEX, BUT DOES 2 OR 3 BYTES
+* RATHER THAN JUST ONE
+*
+
+GADR:
+	CLR.L	D3			* TEMPORARY=0
+	BSR	GHEX
+	ASL.L	#$08,D3			* MAKE ROOM FOR NIBBLE
+	OR.L	D0,D3
+	BSR	GHEX
+	ASL.L	#$08,D3
+	OR.L	D0,D3
+	TST.B	D4			* LONG OR SHORT ADDRESS?
+	BNE.S	GADRX			* SHORT
+	BSR	GHEX
+	ASL.L	#$08,D3			* LAST BYTE
+	OR.L	D0,D3
+
+GADRX:
+	MOVE.L	D3,A0
+	RTS
+
+*Š* GET SERIAL CHAR
+*
+
+GCHR:
+	ANDI.B	#$02,SSTAT		* ANY WAITING?
+	BEQ.S	GCHR			* NO
+	MOVE.B	SDATA,D0		* GET IT
+	ANDI.B	#$07F,D0		* STRIP HIGH BIT
+	RTS
+
+*******************************************************************
+*                                                                 *
+*                        SUBSTITUTE                               *
+*   THIS ROUTINE WILL SUBSTITUTE DATA AT ANY MEMORY LOCATION      *
+*                                                                 *
+*******************************************************************
+
+
+SUBST:
+	BSR	INADR			* GET ADDRESS
+	BSR	CRLF			* CLEAN UP
+
+SUBST1:
+	BSR	CRLF			* FOR NEW LINE
+	BSR	PADR			* PRINT ADDRESS
+	MOVEQ	#$020,D0		* SPACE
+	BSR	OUTCH
+	MOVE.B	(A0),D0
+	BSR	PHEX			* PRINT CURRENT DATA
+	MOVEQ	#$020,D0
+	BSR	OUTCH			* SPACE
+	BSR	INCH			* GET KEYBOARD CHAR
+	CMPI.B	#$0D,D0			* NEXT ADDRESS?
+	BEQ.S	SUBST4			* YES
+	BSR	OUTCH			* ECHO
+	CMPI.B	#$02E,D0		* PERIOD EQUAL DONE?
+	BEQ.S	SUBSTX			* YES, EXIT
+
+*
+* INPUT NEW BYTE OF DATA 
+*
+	CLR.B	D1			* CLEAR REGISTER
+
+*
+* CONVERT 1 OR 2 ASCII CHARACTER
+* TO BINARY BYTE
+*
+
+SUBST2:
+	SUBI.B	#$030,D0		* STRIP ASCII
+	CMPI.B	#$0A,D0
+	BLT.S	SUBST3
+	SUBI.B	#$07,D0
+SUBST3:
+	ANDI.L	#$0000000F,D0Š	ASL.L	#$04,D1
+	OR.L	D0,D1
+	BSR	INCH			* NEXT
+	CMPI.B	#$0D,D0			* DONE?
+	BEQ.S	SUBST5			* YES
+	BSR	OUTCH			* NO
+	BRA.S	SUBST2
+SUBST5:
+	MOVE.B	D1,(A0)			* STORE NEW DATA
+SUBST4:
+	ADDQ.L	#$001,A0		* NEXT MEMORY ADDRESS
+	BRA.S	SUBST1
+SUBSTX:
+	RTS				* FINI
+
+*
+* INPUT ADDRESS FROM CONSLOE
+* EXIT WITH A0=ADDRESS
+*
+
+INADR:
+	CLR.L	D1			* TEMPORAY = 0
+INADR1:
+	BSR.S	INCH			* GET ASCII CHARACTER
+	CMPI.B	#$0D,D0			* CR=END?
+	BEQ.S	INADRX			* YES
+	BSR	OUTCH			* SHOW
+	SUBI.B	#$030,D0		* STRIP ASCII
+	CMPI.B	#$0A,D0			* 0-9
+	BLT.S	INADR2
+	SUBI.B	#$07,D0			* FOR A-F
+INADR2:
+	ANDI.L	#$0000000F,D0		* CLEAR
+	ASL.L	#$04,D1			* POSITION HIGH NIBBLE
+	OR.L	D0,D1			* MAKE ONE BYTE FROM TWO NIBBLES
+	BRA.S	INADR1
+INADRX:
+	MOVE.L	D1,A0			* ADDRESS TO ADDRESS REGISTER
+	RTS
+
+*
+* PRINT ADDRESS
+* (A0)=DATA
+*
+
+PADR:
+	MOVEQ	#$04,D2			* PRINT FOUR BYTES
+	MOVE.L	A0,D1			* COPY ADDRESS
+PADR1:
+	ROL.L	#$08,D1			* SHIFT BYTES
+	MOVE.B	D1,D0
+	ANDI.B	#$0FF,D0
+	BSR.S	PHEX			* PRINT BYTE
+	SUBQ.B	#$001,D2		* COUNTER -1
+	BNE.S	PADR1			* MORE TO PRINTŠ	RTS
+
+*
+* PRINT HEX
+* D0=DATA
+*
+
+PHEX:
+	MOVE.B	D0,-(SP)		* SAVE LOW NIBBLE
+	ROR.B	#$04,D0			* PRINT HIGH NIBBLE FIRST
+	BSR.S	PHEX1
+	MOVE.B	(SP)+,D0		* GET LOW NIBBLE BACK
+PHEX1:
+	ANDI.B	#$0F,D0			* CLEAR LOW NIBBLE
+	CMP.B	#$0A,D0			* A-F?
+	BLT.S	PHEX2			* NO
+	ADD.B	#$07,D0			* YES - CORRECT
+PHEX2:
+	ADD.B	#$030,D0		* MAKE ASCII
+	BSR.S	OUTCH
+	RTS
+
+*
+* CRLF TO CONSOLE
+*
+
+CRLF:
+	MOVEQ	#$0D,D0			* CR
+	BSR.S	OUTCH
+	MOVEQ	#$0A,D0			* LF
+
+*
+* PRINT CHAR IN REG D0 TO CONSOLE
+*
+
+OUTCH:
+	ANDI.B	#$01,STATUS		* BUSY?
+	BEQ.S	OUTCH			* YES
+	MOVE.B	D0,DATA			* SEND
+	RTS
+
+*
+* INPUT CHAR FROM CONSOLE
+*
+
+INCH:
+	ANDI.B	#$02,STATUS		* WAITING
+	BEQ.S	INCH			* NO
+	MOVE.B	DATA,D0			* GET IT
+	ANDI.B	#$07F,D0		* CLEAR HIGH BIT
+	RTS
+
+*********************************************************************
+*                                                                   *
+*           T H A T ' S   A L L  F O L K S                          *Š*                                                                   *
+*********************************************************************
+
+	END
+
+-----------------------------------------------------------------
+
+                            LISTING 2
+
+
+****************************************************************
+*                                                              *
+*                        BTEST                                 *
+*      A PROGRAM TO TEST THE BIOS CHANGES IN 68000 SYSTEM.     *
+*             *  WRITTEN BY J. L. CALAWAY, 03/17/85            *
+*                                                              *
+****************************************************************
+
+*
+* ENTER THIS TEST PROGRAM WITH A CALL AFTER FIRST PATCHING THE
+* REQUIRED VALUES IN REGISTERS D0, D1, AND D2 WITH THE MONITOR.
+*
+
+	ORG.L	$002000	
+
+	MOVE.L	#$00000000,D0		* MOVE PATCHED DATA
+	MOVE.L  #$00000000,D1		* TO REGISTERS
+	MOVE.L  #$00000000,D2		
+
+	TRAP	#3			* READ CONSOLE CHAR IN
+
+	MOVE.L	D0,RESULT		* RETURN FROM TRAP WITH
+	RTS				* DATA IN 'RESULT' REGISTER
+                                        * D0; SAVE IN MEMORY LOCATION
+RESULT: DC.L	$0
+
+	END

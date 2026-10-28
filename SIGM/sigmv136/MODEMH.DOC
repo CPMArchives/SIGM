@@ -1,0 +1,88 @@
+MODEMH.DOC - documentation file for MODEMH.
+
+
+MODEMH is an augmented version of MODEM7A, permitting
+handover of control to a remote computer or data terminal. 
+It operates by intercepting console i/o at the bios, so that
+input can be taken indefferently from the console or the
+line, and is output both to line and screen.
+
+The existing MODEM7A facilities are unaffected.	 An 'H'
+command hands over control; the remote computer should be in
+terminal mode (without echo) to get message and prompt. 
+After that the remote operator can feed in MODEMH commands,
+cause exit to CPM for other programs, recall MODEMH, and so
+on.  Control codes can be sent, but the alternative form with
+preceding '^' is available when he doesn't want them to be
+recognised by his own computer; in particular, he uses '^E'
+if he has put the handed-over computer in terminal mode to
+type a message, and wants to leave it again.  He exits his own
+terminal mode - for example, to type in his own 'Send' or
+'Receive' command - with a genuine 'Ctrl E'.  Similarly, he
+can turn YOUR disk-write off with a '^Y' (when he wants to be
+off the record!), his own with 'Ctrl Y'.
+
+Typing an 'escape' cancels handover and gets you back in
+exclusive control of your machine - UNLESS the remote
+operator has crashed it, in which case you do a cold boot in
+the same way as when you've crashed it yourself, and start
+again.	Note that, although your own keyboard is still active
+while you are handed over, it is effective only when the
+running program makes a standard (CPM) console i/o call; so
+you may have to wait for results.  No message is sent to the
+remote operator when you cancel; he may not be listening
+anyway, and you can always send him a manual one if he is.
+
+There are no special 'anti-crash' provisions.  I use this
+program mainly when I have two computers strapped together
+(for transfer of files from one disk format to another) on
+the same bench, simply to avoid having to hop between
+keyboards.  But it can also be useful over the phone.
+(Operator A needs to relieve nature, has back-up copies of 
+all his valuable files, and might as well let operator B
+carry on meanwhile.  Or an expert gets a novice to hand over
+to him to show him how it's done.  Or--)
+
+CONFIGURATION
+
+SORMODH is a version for the Sorcerer; DATMODH is for the
+Australian Datamax computer; and I'm going to have to make an
+APMODH soon.  The ASM files are tailored for assembly on RMAC
+and LINK; they assume you have MODEM.LIB on the same disk in
+the same way as for other members of the MODEM7 family.
+
+The sensitive bit of the added program is a 100h block that
+needs to be stashed somewhere it won't be overwritten by
+other programs the remote operator might want to run.  On the
+Sorcerer I have a cunning hole between CPM and the Monitor;
+generally, a spot just below CPM will be the best place, or
+below the base of DDT (Shh!), ZSID or some other debugger if
+you run them.  Put its address at HAVEN in the added equates
+near the start of the listing.
+
+Also put the code of an escape character at ESCHAR;
+presumably this will be ESC, 1bh, but you can alter it if you
+have to.
+
+The remainder of the configuration is as for MODEM7A, EXCEPT
+that, because the stashed 100h block needs to be independent,
+there are four small subroutines in it, called MINST, MOUST,
+MIN and MOUT, that need to be considered as well.  These are
+right at the end of the listing; the first two return z-flags
+when modem input and output (respectively) are ready, and the
+others (respectively) receive or send bytes.  Note also that
+if (improbably) you need to insert symbolic addresses when
+rewriting these programs, references to these addresses need
+to take into account the fact that the program is to be
+relocated; the offset is 'HAVEN minus RCAN', and should be
+added to jump, call, load and store addresses in the same way
+as it is elsewhere in the segment.
+
+If you DO need to rewrite anything here, there are about 30
+bytes spare.
+
+Leave me a message on RCPM if you have any troubles, or helpful
+suggestions.
+
+				Charles Hamblin
+

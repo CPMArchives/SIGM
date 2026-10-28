@@ -1,0 +1,61 @@
+SQ version 1.5a is an experimental outgrowth of Richard
+Greenlaw's file compression utility.  Note that it was
+developed by modifying SQ 1.5, not 1.6 which has been in
+the public domain for a year or so.
+
+1.5a changes:
+
+a)	Directed I/O support was removed.
+
+b)	Leor Zolman's WILDEXP command-line interface was
+	added.  All file and output drive specifications
+	are taken from the command line.
+
+c)	Output file sizes are checked against input file
+	sizes.  If SQ finds a file which doesn't compress
+	very well then it discards the output file, and,
+	if the output was on a different disk from the
+	input file then the input file is simply copied
+	to the destination disk.
+
+d)	A command-line option consisting of a single plus
+	sign (+) causes SQ to ask whether or not to
+	discard a poorly-compressed file.
+
+e)	Files of 8 sectors or less are never squeezed.
+	Even on single-density standard CP/M interchange
+	disks no space saving would be realised and, when
+	transferring such files by modem the saving in
+	transmission time is not significant.
+
+Examples:
+
+1	A>sq *.c *.asm
+
+	squeezes all .C and .ASM files on the logged-in
+	disk.
+
+2	A>sq b: *.c *.asm
+
+	same as above except that the squeezed files are
+	written to the B: disk.
+
+3	A>sq b: *.c + *.asm
+
+	same again except that if a .ASM file is found not
+	to compress well then SQ will ask whether or not to
+	discard the output file and copy the original.
+
+4	A>sq b: *.* !*.com
+
+	squeeze all except .COM files and write the output
+	files to the B: disk.
+
+Note that this IS a pre-release version of SQ.  PLEASE USE
+IT AND REPORT ANY BUGS OR SUBMIT ANY SUGGESTIONS via this
+system or to
+
+	John Hastwell-Batten,
+	38 Silvia St, Hornsby, NSQ 2077
+	(02)477 4225 ah, (02) 239 9327 bh.
+

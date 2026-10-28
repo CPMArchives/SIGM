@@ -1,0 +1,178 @@
+              ***     ***   ***  **    **  *******
+              *  *   *   *   *    **   *   *  *  *
+              *  *   *   *   *    * *  *      *
+              ***    *   *   *    *  * *      *
+              *      *   *   *    *   **      *
+              **      ***   ***  **    **    ***
+
+****************************************************************
+*                                                              *
+* PROCEDURE POINT(VAR XVALUE,YVALUE : INTEGER):                *
+*                           A PASCAL/Z EXTERNAL PROCEDURE.     *
+*                           ((ITHACA) Z/80 ASSEMBLY CODE)      *
+* READS THE HOUSTON HIPAD VIA MIO PARALLEL PORT A TO OBTAIN    *
+* A PAIR OF X,Y COORDINATES.                                   *
+*                                                              *
+****************************************************************
+
+VBYTES EQU 06    : # OF BYTES ON STACK
+
+XVALUE EQU 13    : OFFSETS TO (IX) FOR ADDRESS OF POINTERS
+YVALUE EQU 10    : TO TRANSMITTED VARIABLES.
+
+STAT_RDY EQU 0F7H  STATUS PORT DATA AVAILABLE CODE
+STAT_PRT EQU 00AH  ADDRESS OF STATUS PORT
+DATA_PRT EQU 008H     "    "   DATA    "
+
+                     EXT BEEP
+                     EXT HEXOUT
+
+                  INCLUDE MACRO.SRC
+                    
+                    NAME  POINT
+                     ENTRY POINT
+
+POINT:  ENTR D,2,0
+        JMP START   JUMP OVER MESSAGES & LOCAL STORAGE AREA.
+
+HELLO: DB 0DH,0AH,'PLACE STYLUS ON POINT TO BE ACQUIRED.          '
+       DB 0DH,0AH,'$'
+CB_OK: DB 'C/B = $'
+X_EQUALS: DB 'X = $'
+Y_EQUALS: DB 'Y = $'
+BLNK3: DB '   $'
+STAR: DB '*$'
+
+START:   CALL SIGN_ON
+         CALL ERASE
+         CALL F2CNTRL
+         CALL X_IN
+         CALL PASS_X
+         CALL X_OUT
+         CALL Y_IN
+         CALL PASS_Y
+         CALL Y_OUT
+         CURSOR 24,1
+         EXIT D,VBYTES
+
+* SUBROUTINES :
+
+* 1 : GIVE SIGN ON MESSAGE :
+SIGN_ON:   RING_BELL
+           PRINT HELLO
+           RET
+
+* 2 : ERASE C/B,X & Y VALUES ON SCREEN
+* USEFUL WHEN POINT IS CALLED REPEATEDLY.
+
+ERASE:  CURSOR 5,73
+        PRINT BLNK3
+        CURSOR 6,73
+        PRINT BLNK3
+        CURSOR 7,73
+        PRINT BLNK3
+        CURSOR 24,1
+        PRINT STAR
+        RET
+
+* 3 : STAT_CHK CHECKS STATUS PORT 
+
+STAT_CHK:  IN STAT_PRT      ;DATA IN? 
+           CPI STAT_RDY 
+           RZ             ;IF SO:GO GET IT.
+           JMP STAT_CHK     ;ELSE TRY AGAIN.
+
+
+* 4 : F2CNTRL READS DATA PORT,LOOKING FOR CONTROL BYTE = F2
+
+F2CNTRL:  CALL STAT_CHK       ;WAIT FOR DATA
+          IN DATA_PRT         ;GET A BYTE
+          CPI 0F2H            ;CONTROL BYTE = F2?(POINT-MODE)
+          RZ
+          JMP F2CNTRL
+
+
+* 5 : X_IN GETS CURRENT X VALUE FROM HIPAD INTO DE
+
+X_IN:    CALL STAT_CHK       ;WAIT FOR DATA
+         IN DATA_PRT         ;GET 1ST BYTE (X7..X13)
+         MOV D,A             ;INTO D
+         PUSH D
+         CALL STAT_CHK
+         POP D
+         IN DATA_PRT         ;2ND BYTE (X0..X6)
+         MOV E,A             ;INTO E
+         SLAR E              ;---|
+         SLAR D              ;   |JUSTIFY
+         SRAR D              ;   | RIGHT 
+         SRAR D              ;   | IN DE
+         RRAR E              ;---|
+         RET
+
+
+* 6 : Y_IN GETS CURRENT Y VALUE FROM HIPAD INTO HL
+
+Y_IN:    XCHG
+         CALL X_IN
+         XCHG
+         RET
+
+
+* 7 : CB_OUT OUTPUTS CONTROL BYTE TO SCREEN.
+
+CB_OUT:  CURSOR 5,68
+         PRINT CB_OK
+         CALL HEXOUT
+         RET
+
+* 8 : Y_OUT OUTPUTS Y VALUE TO SCREEN.
+
+Y_OUT:   CURSOR 7,70
+         PRINT Y_EQUALS
+         MOV A,H
+         CALL HEXOUT
+         MOV A,L
+         CALL HEXOUT
+         RET          
+
+* 9 : DISPLAY X (IN HEX) ON SCREEN
+
+X_OUT:   CURSOR 6,70
+         PRINT X_EQUALS
+         MOV A,D
+         CALL HEXOUT
+         MOV A,E
+         CALL HEXOUT
+         RET
+
+* 10 : PASS X TO PASCAL/Z
+* PASS_X STORES THE 16 BIT # IN DE @ THE LOCATIONS WHOSE START
+* ADDRESS'S MSB = XVALUE + (IX)
+
+PASS_X:    MOV B,XVALUE(IX)
+           MOV C,XVALUE-1(IX)
+           MOV A,D
+           STAX B
+           DCX B
+           MOV A,E
+           STAX B
+           RET
+
+* 11 : PASS Y TO PASCAL/Z
+* PASS_Y STORES THE 16 BIT # IN HL @ THE LOCATIONS WHOSE START
+* ADDRESS'S MSB = YVALUE + (IX)
+
+PASS_Y:    MOV D,YVALUE(IX)
+           MOV E,YVALUE-1(IX)
+           MOV A,H
+           STAX D
+           DCX D
+           MOV A,L
+           STAX D
+           RET
+
+
+                   END POINT
+
+
+

@@ -1,0 +1,80 @@
+DEFINITIONAL OPERATORS:
+copyright (C) 1983 by E. E. Bergmann
+definitions in alphabetical (ASCII) order
+:
+::
+*********************************************************
+*							*
+* PISTOL-Portably Implemented Stack Oriented Language	*
+*			Version 2.0			*
+* (C) 1983 by	Ernest E. Bergmann			*
+*		Physics, Building #16			*
+*		Lehigh Univerisity			*
+*		Bethlehem, Pa. 18015			*
+*							*
+* Permission is hereby granted for all reproduction and *
+* distribution of this material provided this notice is *
+* included.						*
+*							*
+*********************************************************
+:
+::
+ARRAY		NUM 'NAME -->
+		Creates an array whose name was placed on the
+		the top of stack. The size of the array (in
+		words) is established from the NUM that was on
+		stack.  Subsequent invocation of NAME will
+		place a pointer to NAME[0] on top of stack.
+		For example, to print the value of NAME[17]:
+		X> NAME 17 W* + ?
+
+BRANCH		Creates a new "catagory" or "heading" for
+		definitions; creates a new vocabulary whose
+		name is what has been placed on the stack.
+		For example:
+		X> 'SPECIAL< BRANCH
+		X> SPECIAL<  DEFINITIONS
+		X> 'FIRST : ....    ;
+		.
+		.
+		X> > DEFINITIONS  % finish definitions for
+		X>		  % SPECIAL< vocabulary
+
+CONSTANT	defines a word whose name is on the top	of
+		stack and assigns it the permanent value given
+		by the next to top.
+
+VARIABLE	Allocates space in RAM and defines a word whose
+		name is on top of stack.  Later, when the name
+		is invoked, a pointer to the allocated space is
+		pushed on stack.  The variable is initialized
+		to the next to top of stack.
+
+ :  ... ;	is used in creating a standard definition.
+		It takes the string pointed to by the top of
+                stack as the name of the word being defined.
+                The body of the word is anything that is placed
+                between the ":" and the ";". When the
+                definition extends beyond one line of text,
+                thesystem displays a prompt that contains a
+                ":".  Examples have been provided already in
+                the tutorial.
+
+$: ... ;$	is used to create a "macro" definition.  In
+                syntax and use its behavior is very similar to
+                a standard definition, as described immediately
+                above.  However the code that is associated
+                with the newly defined word will be compiled
+                "in line" when the word is invoked, instead of
+                being called.  Its use increases the execution
+                speed of any code that uses the word (since the
+                is no overhead from a "call"), but the
+                resulting code is usually longer; thus we can
+                choose our own preference between speed and
+                memory space.  It is used to define "perfect
+                NOPs", such as in the definition of W* when the
+                word size is, in fact, 1. (see the beginning of
+                PBASE).
+:
+s a prompt that contains a
+    

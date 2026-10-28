@@ -1,0 +1,158 @@
+;
+;			START.A86
+;
+;This file is for making changes to MODEM9.xx which are not UART/MODEM
+;specific. UART/MODEM suport is provided by the various SYS files.
+;
+;The user can make the following changes in this file:
+;
+;   	a) Set the TRUE/FALSE statements in the lookup table which
+;	   begins with BAKUPBYTE and ends with EOFSEND
+;   	b) Change the control characters that are used for local commands,
+;	   this sequence starts with EXITCHR and ends with EXTCHR
+;	c) Set STRGOK to TRUE and enter up to ten strings at location
+;	   STRINGS. These strings can be logon sequences or frequently
+;	   used commands that are sent to a remote computer
+;
+;
+STRGOK	EQU	TRUE		;change to TRUE if you want to define
+				;strings, such as logon sequences, for
+				;transmission. Up to 10 strings may be
+				;entered at location STRINGS in this file.
+;
+;*** Don't change the ORG locations in this file or in the files    ***
+;*** SETUP and MAIN. This ORG statements provide standard locations ***
+;*** for modification by overaly files or DDT.			    ***
+;
+	CSEG
+	ORG	0100H
+;
+	JMP	START
+;
+BAKUPBYTE	DB	FALSE	;true=make .BAK file
+CKSUMDFLT	DB	FALSE	;true=default to Checksum checking
+				;false=default to CRC checking
+TOGGLECRC	DB	TRUE	;true=allow toggling of Checksum to CRC
+CONVBKSP	DB	FALSE	;true=convert backspace to rub
+TOGGLEBK	DB	TRUE	;true=allow toggling of bksp to rub
+ADDLF		DB	FALSE	;true=add LF after CR
+TOGGLELF	DB	TRUE	;true=allow toggling of LF after CR
+STRLF		DB	FALSE	;true=strip LF after CR in terminal file output
+TOGSLF		DB	TRUE	;true=toggle strip LF after CR in file output
+LOCONEXTCHR	DB	FALSE	;true=local command if EXTCHR precedes
+				;false=not local command if EXTCHR precedes
+TOGGLELOC	DB	TRUE	;true=allow toggling of LOCONEXTCHR
+LSTTST		DB	TRUE	;true=allow toggling of printer on/off
+				;in terminal mode. Set to false if your
+				;printer can't keep up with the modem
+XOFFTST	DB	FALSE		;true=allow testing of XOFF from remote
+				;while transmitting a file in terminal mode
+XONWAIT	DB	FALSE		;true=wait for XON after sending CR while
+				;transmitting a file in terminal mode
+TOGXOFF	DB	TRUE		;true=allow toggling of XOFF/XON testing
+ECHWAIT	DB	FALSE		;true=wait for echo before sending next
+				;character in terminal mode file output
+EOFSEND	DB	FALSE		;true=send eof in terminal mode file output
+NAKONLY	DB	FALSE		;true=resends a record only after a valid NAK
+				;false=resends a record after any non-ACK
+				;true is intended only for use with mainframes
+				;that send, for example, xoff when buffer is
+				;full
+;
+SETUPTST	DB	SETUP
+SCRNTEST	DB	SCRNCLR
+TRANLOGON	DB	STRGOK
+DISCFLG		DB	DISCON
+CARDETFLG	DB	CARDET
+CLOCK		DB	CLKRATE
+;
+MSPEED		DB	3	;sets the display time to send a file
+				;0=110 1=300 2=600 3=1200
+				;4=2400 5=4800 6=9600 7=19200
+BYTDLY		DB	0	;default time to send character in
+				;terminal mode file transfer
+				;0=0 delay, 1=0.02 sec, -- ,9=0.18 sec
+CRDLY		DB	0	;default time for extra wait after CR
+				;in terminal mode file transfer
+				;0=0 delay, 1=0.02 sec, -- ,9=0.18 sec
+BELRPT		DB	10	;bell repeat time = value*0.03 sec
+NOOFCOL		DB	5	;number of directory columns, currently
+				;set for 80 column screen
+;
+EXITCHR		DB	'\'-40H	; ^E = Exit without disconnect
+LOGCHR		DB	'N'-40H	; ^O = Send logon
+LSTCHR		DB	']'-40H	; ^P = Toggle printer
+UNSAVECHR	DB	'D'-40H	; ^R = Close input text buffer
+TRANCHR		DB	'V'-40H ; ^T = Transmit file to remote
+SAVECHR		DB	'F'-40H	; ^Y = Open input text buffer
+EXTCHR		DB	'^'-40H	; ^^ = Send next character
+;
+VERNUM:	CALL	ILPRT
+	DB	CR,LF
+	DB	'MODEM 9.01.05 - 24/Nov/83'
+	DB	CR,LF,LF
+	DB	'CP/M-86 version by Michael Mellinger and Bill Bolton'
+	DB	CR,LF,LF,0
+	JMP	SYSVER
+;
+;ALL STRINGS MUST BE 31 CHARACTERS OR LESS AND MUST BE TERMINATED WITH 0
+;
+STRINGS:
+	DB	'STRING #0 at 240H',0
+	RB	(OFFSET STRINGS)-(OFFSET $)+32*1
+	DB	'STRING #1 at 260H',0
+	RB	(OFFSET STRINGS)-(OFFSET $)+32*2
+	DB	'STRING #2 at 280H',0
+	RB	(OFFSET STRINGS)-(OFFSET $)+32*3
+	DB	'STRING #3 at 2A0H',0
+	RB	(OFFSET STRINGS)-(OFFSET $)+32*4
+	DB	'STRING #4 at 2C0H',0
+	RB	(OFFSET STRINGS)-(OFFSET $)+32*5
+	DB	'STRING #5 at 2E0H',0
+	RB	(OFFSET STRINGS)-(OFFSET $)+32*6
+	DB	'STRING #6 at 300H',0
+	RB	(OFFSET STRINGS)-(OFFSET $)+32*7
+	DB	'STRING #7 at 320H',0
+	RB	(OFFSET STRINGS)-(OFFSET $)+32*8
+	DB	'STRING #8 at 340H',0
+	RB	(OFFSET STRINGS)-(OFFSET $)+32*9
+	DB	'STRING #9 at 360H',0
+;
+;
+;PHONE NUMBER LIBRARY TABLE.
+;
+;EACH DB MUST BE 32 CHARACTERS LONG FOR PROPER OPERATION.
+;LAST DB MUST BE DB 0. UP TO 26 NUMBERS ARE ALLOWED.
+;
+NUMBLIB:
+;	'----5---10---15---20---25-----32'
+DB	'A=Amrad           1-703-734-1387'	;'A'
+DB	'B=Ben Bronson     1-312-955-4493'	;'B'
+DB	'C=CBBS Pasadena   1-213-799-1632'	;'C'
+DB	'D=PMMI            1-703-379-0303'	;'D'
+DB	'E=Tech. CBBS      1-313-846-6127'	;'E'
+DB	'F=Ron Fowler     1-313-729-1905R'	;'F'
+DB	'G=Gasnet NASA     1-301-344-9156'	;'G'
+DB	'H=Dave Hardy      1-313-846-6127'	;'H'
+DB	'I=Wayne Hammerly  1-301-953-3753'	;'I'
+DB	'J=RBBS Pasadena   1-213-356-1034'	;'J'
+DB	'K=David Kozinn    1-216-334-4604'	;'K'
+DB	'L=Program Store   1-202-337-4694'	;'L'
+DB	'M=Kelly Smith     1-805-527-9321'	;'M'
+DB	'N=SuperBrain Sys  1-617-862-0781'	;'N'
+DB	'O=R.L.Plouffe     1-703-524-2549'	;'O'
+DB	'P=K.Petersen     1-313-759-6569R'	;'P'
+DB	'Q=Bruce Ratoff    1-201-272-1874'	;'Q'
+DB	'R=Mark Pulver     1-312-789-0499'	;'R'
+DB	'S=                              '	;'S'
+DB	'T=                              '	;'T'
+DB	'U=                              '	;'U'
+DB	'V=                              '	;'V'
+DB	'W=                              '	;'W'
+DB	'X=                              '	;'X'
+DB	'Y=                              '	;'Y'
+DB	'Z=                              '	;'Z'
+DB	0					; end
+;	'----5---10---15---20---25-----32'
+;
+

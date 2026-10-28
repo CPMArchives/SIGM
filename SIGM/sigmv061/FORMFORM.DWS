@@ -1,0 +1,465 @@
+.. FORMFORM.DWS March 8, 1982
+.op
+.mt 0
+.hm 0
+.fm 0
+.mb 0
+.po 0
+.. DIMS has a built-in facility for designing a form for the display and
+.. printing of a file.  To make DIMS use your form design, you must create
+.. a format control file with all the detailed specifications in it.  There
+.. are two ways to make this ".DFO" file.  One is to use the transient com-
+.. mand "cform" which can type a form for you to fill out and then accept the
+.. specifications.  Another way is to edit this file with WordStar, changing
+.. the numbers to fit your design.  Once a ".DFO" file has been created, you
+.. can switch the dislay to that form by typing "format <name>" as a DEDIT
+.. command.  DEDIT will respond with "Format <name> loaded."
+.. 
+.. To make a format control file for the DIMS file <name>, start Word-
+.. Star, select the N mode and make your file name <name>.DWS.  As soon
+.. as you're in the file, do ^KR, and give the name FORMFORM.DWS.  This will
+.. read in this file into your workfile.  This file contains all the
+.. values which produce the default format (format 0).  You will want to
+.. edit these values to design your forms.  You may then delete these instruc-
+.. tions to save space, but the single . commands at the top are essential.
+..
+.. A single format specification controls both screen display and the form
+.. on the printer.  These forms may be the same or as different as you
+.. like, only the sequence of fields must be the same for both.  Note in
+.. the form below that many items have two values on the line.  The second
+.. value is for the printer.  The DEDIT variable names into which the
+.. the parameters are read are given for debugging.  THE LINES WITH NO DOTS
+.. BECOME THE FORM CONTROL FILE, THEY MUST KEEP EXACTLY THE SAME NUMBER OF
+.. LINES AND ITEMS IN EACH LINE.
+..
+.. After you have made all the changes you need, save and print it to a
+.. disk file <name>.DFO, which will make all the .. lines disappear.
+.. Edit the .DFO file and delete the extra blank line which may appear 
+.. at the end.  Try out the format on the DIMS file.  To make corrections 
+.. edit <name>.DWS again, and "re-assemble" the .DFO file by printing to 
+.. disk again.
+..
+.. Words and numbers will be read as data input items by a Basic INPUT#
+.. statement.  Therefore there must be the expected number of words on
+.. each line, or everything after the error will be loaded into DEDIT
+.. wrong, and you will get the message "Error in loading format." and/or
+.. DEDIT will crash.  Some of the items are input by DEDIT as whole lines
+.. (LINE INPUT#), and these can have commas or anything you want.
+..
+.. Code begins here.
+..
+.. FO$ Name of this format
+   DEFAULT
+.. FFD$ Who wrote it, date of last update
+   Dan 12/8/81
+..
+.. PARAMETERS FOR THE WHOLE SCREEN AND PAGE
+..
+.. TM:  Top margin lines	LTM:  Top margin lines (printer)
+   0  				4 
+.. (not used for screen)	LLM:  Left margin
+   0  				13 
+.. SW:  Screen width		LW:  Printing width
+   80  				95 
+..
+.. The following parameters, if not 0, will position a form on the screen
+.. and not use scrolling.  This type of form may have bugs in DEDIT.
+.. RS:  Records/screen		RP:  Records/page
+   0  				0 
+.. 
+.. If the printer is at or past the conditional page line, it will ad-
+.. vance to the next page.  Set to the number of lines on the page minus
+.. the top plus bottom margins, minus the normal number of lines used by
+.. a record.  This deals with the fact that extra-long data items in for-
+.. mats that don't limit the length of the field may overflow into extra
+.. lines on the printer.  Dims keeps track of this.
+.. (not used for screen)	LLP:  Conditional page line
+   0  				52 
+..
+.. These parameters apply to printers with variable character and line
+.. spacing, DEDIT is set up for Diablo 1610/1620.
+.. HMI:  120th of an inch per character (use 10 for 12 per inch)
+   10 
+.. VMI:  48ths of an inch per line (use 8 for 6 per inch)
+   8 
+.. FSC$:  Reserved for future enhancement.
+   0
+..
+.. The next three lines are heading lines for the screen display.  They
+.. will be printed only if something is entered on the line.  You must
+.. keep three lines here whether you enter anything on them or not.
+.. HL1$:  If this line ends on a space, "PAGE" and the page number will
+.. be added automatically.
+
+.. HL2$:
+
+.. HL3$:
+
+..
+.. The next three lines are heading lines for each printed page.  Same
+.. as above.
+.. LHL1$:  If this line ends on a space, the page number will print after.
+
+.. LHL2$:
+
+.. LHL3$:
+
+..
+.. HB:  Blank lines after head.	LHB:  Blank lines after heading.
+   0  				1 
+..
+.. PARAMETERS FOR EACH RECORD OF THE FILE
+.. 
+.. The record number mode can be 0 (don't show number) or 1 (on).
+.. RM:				LRM:
+   1  				1 
+..
+.. Location line parameters are used for forms which don't scroll.  They
+.. display fields at fixed positions on the screen or page.  Make all
+.. location line parameters 0 in a scrolling format.  The top line of the
+.. screen is line 1.  The first location line parameter is the line to print
+.. the record number on:
+.. RLL:				LRLL:
+   0  				0 
+..
+.. Location column parameters position the printhead or cursor.  If there
+.. is no CR/LF after the previous item and the location column is 0, the
+.. item will be printed after the previous item, wherever that may have 
+.. left the printhead.  To print "Lastname, Firstname" define the field
+.. name for the Firstname field as ", ".  Use Column 1 to position at the
+.. left margin;  0 means put it wherever it is.
+..
+.. Record number location column:
+.. RLC:				LRLC:
+   0  				0 
+.. The number of CR/LF's after the record number:
+.. RNB:				LRNB:
+   1  				1 
+.. 
+.. The following sequence of numbers determines the order in which the
+.. fields of the file will be printed, on both the screen and the prin-
+.. ter.  THERE MUST BE A ZERO TO TERMINATE THE SEQUENCE.
+.. SQ():
+   1  2  3  4  5  6  7  8  0
+..
+.. Number of CR/LF's or blank lines after the whole record:
+.. EB:				LEB:
+   0  				1 
+.. 
+.. PARAMETERS FOR EACH FIELD IN RECORD.  USE BLOCK COPY TO REPEAT THIS 
+.. BLOCK AS MANY TIMES AS THERE ARE FIELDS TO BE SHOWN IN THE FORMAT.
+.. FIELDS ARE DESCRIBED IN THE ORDER THAT THEY APPEAR IN THE FORMAT.
+..
+.. The FIELD NAME MODE may be 0, 1 or 2.  0 means no field name, 1 means
+.. the 4-char default name, and 2 indicates a name will be entered.
+.. FM():			LFM():
+   1  				1 	
+.. F2$():  Screen field name (whole line - used in mode 2 only).
+
+.. LF2$():  Printer field name (whole line - used in mode 2 only).
+
+.. NLL():  Field name loc. ln.  LNLL():  Field name location line
+   0  				0 
+.. NLC():  Name location col.	LNLC():  Field name location column
+   0  				0 
+.. The number of CR/LF's after the field name:
+.. FMB():			LFMB():
+   0  				0 
+.. The location line to print the field data:
+.. DLL():			LDLL():
+   0  				0 
+.. The column at which to print the field data:
+.. DLC():			LDLC():
+   8  				8 
+..
+.. If the field is a numeric field and the following lines are not blank,
+.. the line will be used as a MBASIC PRINT USING string.
+.. PU$():  Numeric PRINT USING string for screen.
+
+.. LPU$():  Numeric PRINT USING string for printer.
+
+.. Field length.  Fields may be truncated to a certain number of char-
+.. acters to fit in the space designed.  0 means that whatever random
+.. length it is will be printed.  -1 means that the field will be skipped
+.. (so you can show a field on the screen but skip it on the printer).
+.. FL():			LFL():
+   0  				0 
+.. Number of CR/LF's after this field (use 1 at end of line if necess.)
+.. FB():			LFB():
+   1				1
+.. (end field)
+..
+.. The FIELD NAME MODE may be 0, 1 or 2.  0 means no field name, 1 means
+.. the 4-char default name, and 2 indicates a name will be entered.
+.. FM():			LFM():
+   1  				1 	
+.. F2$():  Screen field name (line - mode 2 only).
+
+.. LF2$():  Printer field name (line - mode 2 only).
+
+.. NLL():  Field name loc. ln.  LNLL():  Field name location line
+   0  				0 
+.. NLC():  Name location col.	LNLC():  Field name location column
+   0  				0 
+.. The number of CR/LF's after the field name:
+.. FMB():			LFMB():
+   0  				0 
+.. The location line to print the field data:
+.. DLL():			LDLL():
+   0  				0 
+.. The column at which to print the field data:
+.. DLC():			LDLC():
+   8  				8 
+..
+.. If the field is a numeric field, a MBASIC PRINT USING string entered
+.. here will be used.
+.. PU$():  Numeric PRINT USING string for screen.
+
+.. LPU$():  Numeric PRINT USING string for printer.
+
+.. Field length.  Fields may be truncated to a certain number of char-
+.. acters to fit in the space designed.  0 means that whatever random
+.. length it is will be printed.  -1 means that the field will be skipped
+.. (so you can show a field on the screen but skip it on the printer).
+.. FL():			LFL():
+   0  				0 
+.. Number of CR/LF's after this field (use 1 at end of line if necess.)
+.. FB():			LFB():
+   1				1
+.. (end field)
+..
+.. The FIELD NAME MODE may be 0, 1 or 2.  0 means no field name, 1 means
+.. the 4-char default name, and 2 indicates a name will be entered.
+.. FM():			LFM():
+   1  				1 	
+.. F2$():  Screen field name (line - mode 2 only).
+
+.. LF2$():  Printer field name (line - mode 2 only).
+
+.. NLL():  Field name loc. ln.  LNLL():  Field name location line
+   0  				0 
+.. NLC():  Name location col.	LNLC():  Field name location column
+   0  				0 
+.. The number of CR/LF's after the field name:
+.. FMB():			LFMB():
+   0  				0 
+.. The location line to print the field data:
+.. DLL():			LDLL():
+   0  				0 
+.. The column at which to print the field data:
+.. DLC():			LDLC():
+   8  				8 
+..
+.. If the field is a numeric field, a MBASIC PRINT USING string entered
+.. here will be used.
+.. PU$():  Numeric PRINT USING string for screen.
+
+.. LPU$():  Numeric PRINT USING string for printer.
+
+.. Field length.  Fields may be truncated to a certain number of char-
+.. acters to fit in the space designed.  0 means that whatever random
+.. length it is will be printed.  -1 means that the field will be skipped
+.. (so you can show a field on the screen but skip it on the printer).
+.. FL():			LFL():
+   0  				0 
+.. Number of CR/LF's after this field (use 1 at end of line if necess.)
+.. FB():			LFB():
+   1				1
+.. (end field)
+..
+.. The FIELD NAME MODE may be 0, 1 or 2.  0 means no field name, 1 means
+.. the 4-char default name, and 2 indicates a name will be entered.
+.. FM():			LFM():
+   1  				1 	
+.. F2$():  Screen field name (line - mode 2 only).
+
+.. LF2$():  Printer field name (line - mode 2 only).
+
+.. NLL():  Field name loc. ln.  LNLL():  Field name location line
+   0  				0 
+.. NLC():  Name location col.	LNLC():  Field name location column
+   0  				0 
+.. The number of CR/LF's after the field name:
+.. FMB():			LFMB():
+   0  				0 
+.. The location line to print the field data:
+.. DLL():			LDLL():
+   0  				0 
+.. The column at which to print the field data:
+.. DLC():			LDLC():
+   8  				8 
+..
+.. If the field is a numeric field, a MBASIC PRINT USING string entered
+.. here will be used.
+.. PU$():  Numeric PRINT USING string for screen.
+
+.. LPU$():  Numeric PRINT USING string for printer.
+
+.. Field length.  Fields may be truncated to a certain number of char-
+.. acters to fit in the space designed.  0 means that whatever random
+.. length it is will be printed.  -1 means that the field will be skipped
+.. (so you can show a field on the screen but skip it on the printer).
+.. FL():			LFL():
+   0  				0 
+.. Number of CR/LF's after this field (use 1 at end of line if necess.)
+.. FB():			LFB():
+   1				1
+.. (end field)
+..
+.. The FIELD NAME MODE may be 0, 1 or 2.  0 means no field name, 1 means
+.. the 4-char default name, and 2 indicates a name will be entered.
+.. FM():			LFM():
+   1  				1 	
+.. F2$():  Screen field name (line - mode 2 only).
+
+.. LF2$():  Printer field name (line - mode 2 only).
+
+.. NLL():  Field name loc. ln.  LNLL():  Field name location line
+   0  				0 
+.. NLC():  Name location col.	LNLC():  Field name location column
+   0  				0 
+.. The number of CR/LF's after the field name:
+.. FMB():			LFMB():
+   0  				0 
+.. The location line to print the field data:
+.. DLL():			LDLL():
+   0  				0 
+.. The column at which to print the field data:
+.. DLC():			LDLC():
+   8  				8 
+..
+.. If the field is a numeric field, a MBASIC PRINT USING string entered
+.. here will be used.
+.. PU$():  Numeric PRINT USING string for screen.
+
+.. LPU$():  Numeric PRINT USING string for printer.
+
+.. Field length.  Fields may be truncated to a certain number of char-
+.. acters to fit in the space designed.  0 means that whatever random
+.. length it is will be printed.  -1 means that the field will be skipped
+.. (so you can show a field on the screen but skip it on the printer).
+.. FL():			LFL():
+   0  				0 
+.. Number of CR/LF's after this field (use 1 at end of line if necess.)
+.. FB():			LFB():
+   1				1
+.. (end field)
+..
+.. The FIELD NAME MODE may be 0, 1 or 2.  0 means no field name, 1 means
+.. the 4-char default name, and 2 indicates a name will be entered.
+.. FM():			LFM():
+   1  				1 	
+.. F2$():  Screen field name (line - mode 2 only).
+
+.. LF2$():  Printer field name (line - mode 2 only).
+
+.. NLL():  Field name loc. ln.  LNLL():  Field name location line
+   0  				0 
+.. NLC():  Name location col.	LNLC():  Field name location column
+   0  				0 
+.. The number of CR/LF's after the field name:
+.. FMB():			LFMB():
+   0  				0 
+.. The location line to print the field data:
+.. DLL():			LDLL():
+   0  				0 
+.. The column at which to print the field data:
+.. DLC():			LDLC():
+   8  				8 
+..
+.. If the field is a numeric field, a MBASIC PRINT USING string entered
+.. here will be used.
+.. PU$():  Numeric PRINT USING string for screen.
+
+.. LPU$():  Numeric PRINT USING string for printer.
+
+.. Field length.  Fields may be truncated to a certain number of char-
+.. acters to fit in the space designed.  0 means that whatever random
+.. length it is will be printed.  -1 means that the field will be skipped
+.. (so you can show a field on the screen but skip it on the printer).
+.. FL():			LFL():
+   0  				0 
+.. Number of CR/LF's after this field (use 1 at end of line if necess.)
+.. FB():			LFB():
+   1				1
+.. (end field)
+..
+.. The FIELD NAME MODE may be 0, 1 or 2.  0 means no field name, 1 means
+.. the 4-char default name, and 2 indicates a name will be entered.
+.. FM():			LFM():
+   1  				1 	
+.. F2$():  Screen field name (line - mode 2 only).
+
+.. LF2$():  Printer field name (line - mode 2 only).
+
+.. NLL():  Field name loc. ln.  LNLL():  Field name location line
+   0  				0 
+.. NLC():  Name location col.	LNLC():  Field name location column
+   0  				0 
+.. The number of CR/LF's after the field name:
+.. FMB():			LFMB():
+   0  				0 
+.. The location line to print the field data:
+.. DLL():			LDLL():
+   0  				0 
+.. The column at which to print the field data:
+.. DLC():			LDLC():
+   8  				8 
+..
+.. If the field is a numeric field, a MBASIC PRINT USING string entered
+.. here will be used.
+.. PU$():  Numeric PRINT USING string for screen.
+
+.. LPU$():  Numeric PRINT USING string for printer.
+
+.. Field length.  Fields may be truncated to a certain number of char-
+.. acters to fit in the space designed.  0 means that whatever random
+.. length it is will be printed.  -1 means that the field will be skipped
+.. (so you can show a field on the screen but skip it on the printer).
+.. FL():			LFL():
+   0  				0 
+.. Number of CR/LF's after this field (use 1 at end of line if necess.)
+.. FB():			LFB():
+   1				1
+.. (end field)
+..
+.. The FIELD NAME MODE may be 0, 1 or 2.  0 means no field name, 1 means
+.. the 4-char default name, and 2 indicates a name will be entered.
+.. FM():			LFM():
+   1  				1 	
+.. F2$():  Screen field name (line - mode 2 only).
+
+.. LF2$():  Printer field name (line - mode 2 only).
+
+.. NLL():  Field name loc. ln.  LNLL():  Field name location line
+   0  				0 
+.. NLC():  Name location col.	LNLC():  Field name location column
+   0  				0 
+.. The number of CR/LF's after the field name:
+.. FMB():			LFMB():
+   0  				0 
+.. The location line to print the field data:
+.. DLL():			LDLL():
+   0  				0 
+.. The column at which to print the field data:
+.. DLC():			LDLC():
+   8  				8 
+..
+.. If the field is a numeric field, a MBASIC PRINT USING string entered
+.. here will be used.
+.. PU$():  Numeric PRINT USING string for screen.
+
+.. LPU$():  Numeric PRINT USING string for printer.
+
+.. Field length.  Fields may be truncated to a certain number of char-
+.. acters to fit in the space designed.  0 means that whatever random
+.. length it is will be printed.  -1 means that the field will be skipped
+.. (so you can show a field on the screen but skip it on the printer).
+.. FL():			LFL():
+   0  				0 
+.. Number of CR/LF's after this field (use 1 at end of line if necess.)
+.. FB():			LFB():
+   1				1
+.. (end field)
+..
+

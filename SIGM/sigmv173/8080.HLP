@@ -1,0 +1,977 @@
+Introduction.
+8080 Registers.
+8080 Flags.
+8080 Instructions.
+Data Movement.
+Assembler Organization.
+Assembler Directives.
+Comments.
+First Pass.
+Second Pass.
+Intel HEX Files.
+Listing of the Object Code.
+Bibliography.
+:Introduction.
+
+This Help File is is intended to supplement 8080.CNV, an assembler for the
+Intel 8080 written in CNVRT. Half of the file contains a description of the
+registers, flags, and instructions of the 8080; the other half contains an
+introduction to assemblers and their operation.
+
+The 8080 architecture is one of the architectures, like that of the PDP-8
+or the PDP-11, which deserves to be called "classic." This is not to say
+that it is free of compromises or without criticism. Rather, it is 1) Free
+of major blunders, and 2) Extremely logical and selfconsistent. This it turn
+implies that considerable care and expreience went into its original design.
+
+There exist various assemblers for the Intel 8080, coinciding in the majority
+of their notation, but differing slightly in details and the number of user
+conveniences which they offer. 8080.CNV will assemble code written for the
+Digital Research ASM.COM, provided that all references to the same symbol are
+given with the same case combination (label, Label, LABEL are all distinct).
+It accepts "dc" as well as "db" to introduce ASCII character strings, the
+former terminated by a sign-flagged byte. Operation codes must be lowercase.
+
+
+-
+:8080 Registers.
+Compared to previous architectures in which the only active registers were the
+accumulator and program counter, the Intel 8080 has a fairly large assortment
+of active registers. Many are one byte registers, some of these can be used as
+pairs, and some are exclusively two byte registers. The following diagram shows
+the possible pairings, which makes it a useful representation to remember.
+
+		-----------------
+		|   A   |   F   |
+		--------+--------
+		|   B   |   C   |
+		--------+--------
+		|   D   |   E   |
+		--------+--------
+		|   H   |   L   |  ------->  M
+		-----------------
+		|       PC      |
+		-----------------
+		|       SP      |
+		-----------------
+
+"M" is not a specific register; it is the byte in memory that HL designates.
+-
+Six of the registers, B, C, D, E, H, L can be combined into pairs as well as
+being used individually. There is only one combination to which each one can
+belong when it is paired, namely B with C, D with E, and H with L. Two more
+eight bit registers exist - the accumulator A and the flag register F. They
+are also paired for the purpose of pushes and pops.
+
+A: The accumulator is the site of all binary arithmetic and logical operations
+	except for four two-byte additions in which the pair HL is one of the
+	participants.
+
+F: The flag register contains five one-bit status registers: zero, sign, carry,
+	half-carry, and parity. The bits are set according to the results of
+	arithmetic and logical operations, or by some explicit instructions.
+	The status bits are consulted for all the conditional calls, jumps,
+	and returns; but neither they nor the "F" register they can be accessed
+	directly. The register "F" is paired with the accumulator A for pushes
+	and pops; so it may be put in another register and consulted indirectly
+	using pushes and pops.
+
+	The flag register does not reflect the instantaneous state of the
+	accumulator; rather the bits are determined by certain instructions
+	and are unaffected by others.
+-
+B and C: This pair is the hardest to load, typical loading sequences being
+	<lxi b,xxxx>, <lhld xxxx>, <mov c,l>, <mov b,h>, or <pop b>. It is
+	frequently used as a counter, but it is a memory pointer when the
+	ldax and stax instructions are used.
+
+D and E: Since <xchg> can be used to exchange this pair with the pair HL, it
+	is relatively easy to load. A typical usage is for holding two-byte
+	arguments which have to be fetched from the memory, because of the
+	convenience of the sequence <lhld xxxx>, <mov e,m>, <inx h>, <mov d,m>,
+	<xchg>. The same sequence permits indirect address chains. <ladx d>
+	and <stax d> make it a useful memory pointer; a short loop generating
+	a block move uses the sequence <xxxx: ldax d>, <mov m,a>, <inx h>,
+	<inx d>, <dcr b>, <jnz xxxx>. In this loop, DE is the source pointer,
+	HL is the destination pointer, with register B as a byte counter.
+
+H and L: A two-byte accumulator of limited capacity is formed by this pair. It
+	can be loaded and stored in one instruction by lhld and shld; some of
+	the other two byte registers can be added to it (BC, DE, HL, SP). In
+	addition it functions as a memory pointer. This use is important enough
+	that the byte to which it points is accorded the status of "register"
+	in all the instructions which deal with single-byte registers.
+
+-
+PC: The Program Counter is found in all computer architectures; it allows the
+	serial use of the contents of memory as program instructions by always
+	pointing to the next instruction in sequence and incrementing by the
+	required amount during the fetching of that instruction. It cannot be
+	used directly by the programmer, however its use is implicit in every
+	jump, call or return instruction and likewise in every "immediate"
+	instruction.
+
+SP: The stack pointer is a recent acquisition of computer architecture, whose
+	incorporation in the register complement of the Intel 8080 was one of
+	the innovative features of its design. Although it participates in all
+	pushes and pops, the fact that it gives the <call> instruction a place
+	to deposit its return address without interference from successive
+	there is hardly a CPU that does not have at least one stack pointer.
+	calls is the foundation of convenient recursive programming. Nowadays
+	there is hardly a CPU which does not have at least one stack pointer.
+
+	The Intel 8080's stack pointer runs downward in memory, so that the
+	stack of a program can be started at the top of memory. <push> first
+	decrements the stack pointer, then stores the high order byte of its
+	register pair, decrements again and stores the low order byte. <pop>
+	follows the same sequence in reverse.
+-
+:8080 Flags.
+
+The Intel 8080 uses five flags to indicate the status of the CPU. These are
+
+		---------------------------------
+		| s | z | . | h | . | p | . | c |
+		---------------------------------
+
+		s	sign of the accumulator
+		z	zero/nonzero accumulator
+		h	half carry - used by DAA
+		p	parity of the accumulator
+		c	carry from the accumulator
+
+In a departure from previous practice, the flag bits bits do not reflect the
+instantaneous state of an extended accumulator; rather they are given values by
+only certain instructions, and conserve the previous state of the accumulator
+while the remaining instructions are executed. Data can be loaded or stored
+during multiple byte arithmetic, pointers modified and counters adjusted, all
+without interfering with the fact that the flags bear the state of the last
+arithmetic or logical operation.
+
+-
+The collection of flags lacks the "overflow" bit which appears in later designs
+such as the Intel 8086 and in the Motorola 6800 series. Since an overflow bit
+is merely convenient, but not logically necesssary, it is not clear whether it
+was omitted for economy of design or because its convenience was not generally
+appreciated at the time. It is not needed for pure address arithmetic, but is
+very useful for computing with signed integers.
+
+We can only speculate as to why the flag bits are arranged into a byte as they
+are. Save for the sign flag, which occupies the same position as the sign bit
+in an ordinary byte, the significant bits alternate with "undefined" bits which
+may or may not have an actual internal use within the CPU. Carry falls in a
+natural place were there multibyte arithmetic; however the placement of flag
+bits is only meaningful within the byte which is brought into existence when
+it is combined with the accumulator for <push psw> and <pop psw>.
+
+Pushing and popping "PSW" has two evident purposes. The most likely is to
+save a previous state of the CPU, as during the servicing of an interrupt.
+Since the flags can change at any time, and since the accumulator is often
+used in the execution of an instruction, they are a good pair to save together.
+They are usually saved at once; additional registers can be saved as needed.
+
+
+-
+The only effective way to read or set the flag bits - certainly the only way
+that they can all be gotten at once - is to use some sequence like <push psw>
+<pop b> <mov a,b>, and then extract the desired bit with an <ani xx>. Using
+<push psw> and <pop psw> to access the flag bits is the other common use of
+these instructions, but much less frequent than for saving the machine state.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-
+In detail, the characteristics of the flags are the following:
+
+S - sign: Most integer arithmetic in computers is modular arithmetic, whose
+	modulus corresponds to the word length; in the case of bytes it is
+	arithmetic modulo 2**8 or 256. It is not an intrinsic property of
+	modular arithmetic that some numbers are positive, others negative.
+	Only the full set of natural integers can be ordered in the strict
+	mathematical sense - it is notorious that "large" integers turn out
+	to be "negative" in computer arithmetic.
+
+	Nevertheless the convention exists that the cycle of modular integers
+	should be split in the middle, using the high order bit to distinguish
+	"positive" and "negative" integers from one another; the convention
+	works well enough if "large" integers are not used. The creation of
+	the concept of overflow was a response to the need to determine quite
+	accurately where the frontier of largeness yields to negativity.
+
+	For all practical purposes, the sign bit is simply the high order bit
+	in the byte. The value that it acquired at certain moments can be
+	ascertained by testing the sign flag.
+
+
+-
+Z - zero: That the accumulator is zero is definite enough - all its bits have
+	to be zero. The zero flag preserves this information from the time that
+	certain specific instructions were executed.
+
+H - half carry:  Half carry or auxiliary carry is an artifact of the relation
+	of bytes to decimal numbers, namely that it requires a minimum of four
+	bits to represent a single decimal number, that there is an excess over
+	ten digits that four bits can represent, and that two four-bit numbers
+	can be packed in a byte. If the CPU worked with nibbles - four bits -
+	rather than bytes, half-carry would be full-carry.
+
+	The only instruction which uses half-carry is DAA [Decimal Adjust
+	Accumulator], and its presence is due to the prospect of employing
+	the CPU in commercial applications requiring a large amount of simple
+	decimal arithmetic. However, the half-carry bit must be set by the
+	arithmetic instructions before DAA can be used to compensate the gap
+	between ten and sixteen resulting from the difference in number bases.
+
+	Although half-carry can be read from the flag byte, it can also be
+	set or tested by adding the hexadecimal number 66 or AA.
+
+
+-
+P - parity: The parity of a byte is the number of ones which it contains,
+	modulo 2; in other words whether it has an even or an odd number of
+	ones. This is a concept rarely used in computations, but it is a
+	quantity that was apparently included among the flags of the 8080
+	because of the liklihood that that microcomputer would be used in
+	communications equipment. Bytes transmited according to the 8 channel
+	teletype code include a parity bit whose automatic computation can
+	be convenient in the proper context.
+
+	In any event, parity gives an alternative to the sign but for dividing
+	the universe of bytes into two equal halves, and so can sometimes be
+	used for classifying data.
+
+C - carry: The carry bit is as extension of the accumulator.  Because it is
+	an extension, it is usually dropped after each arithmetic operation is
+	completed - otherwise the length of data would keep growing. Given that
+	carry is an essential part of an arithmetic calculation, it has to be
+	preserved long enough that it can be definitively saved, or for it to
+	affect the subsequent course of the computation. The carry flag does
+	just this. Kept transiently, carry helps determine the result of a
+	comparison, to continue a multibyte arithmetic operation, or many
+	other things.
+-
+Distribution of z, s, and parity over 256 possible bytes.
+
+	    \	00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F
+	   00   ze  o  o  e  o  e  e  o  o  e  e  o  e  o  o  e
+	   01    o  e  e  o  e  o  o  e  e  o  o  e  o  e  e  o
+	   02    o  e  e  o  e  o  o  e  e  o  o  e  o  e  e  o
+	   03    e  o  o  e  o  e  e  o  o  e  e  o  e  o  o  e
+	   04    o  e  e  o  e  o  o  e  e  o  o  e  o  e  e  o
+	   05    e  o  o  e  o  e  e  o  o  e  e  o  e  o  o  e
+	   06    e  o  o  e  o  e  e  o  o  e  e  o  e  o  o  e
+	   07    o  e  e  o  e  o  o  e  e  o  o  e  o  e  e  o
+	   08   so se se so se so so se se so so se so se se so
+	   09   se so so se so se se so so se se so se so so se
+	   0A   se so so se so se se so so se se so se so so se
+	   0B   so se se so se so so se se so so se so se se so
+	   0C   se so so se so se se so so se se so se so so se
+	   0D   so se se so se so so se se so so se so se se so
+	   0E   so se se so se so so se se so so se so se se so
+	   0F   se so so se so se se so so se se so se so so se
+
+
+
+-
+:8080 Instructions
+
+The Intel 8080 has a very systematic instruction format, in which the
+8 bit instruction code is divided into three fields of 2, 3 and 3 bits.
+
+		-----------------
+		|q|q|d|d|d|s|s|s|
+		-----------------
+
+The first two bits define a "quadrant" within each of which there is a
+greater or lesser degree of uniformity. Quadrants 1 and 2 are extremely
+uniform; quadrants 0 and 3 are best subdivided into octets. There is
+still a variation within the octets although the majority of them show
+high internal consistency. For example, the conditional calls, returns,
+and jumps follow the same ordering according to the condition tested.
+
+The second field is the "destination" field, the third is the "source"
+field. In quadrant 1, the quadrant of movements between registers, these
+names are quite literally descriptive. In quadrant 2, the quadrant of
+arithmetic-logical operations, the source still refers to the register
+from which an operand will be taken, but the "destination" is poetic,
+since the field is used to enumerate the operations in a certain order.
+-
+The quadrants can be characterized as follows:
+
+		0	movement from registers to memory
+		1	movement from one 8-bit register to another
+		2	arithmetic and logic between register and accumulator
+		3	movement of data to and from program counter
+
+The 8-bit or one byte registers are numbered as follows:
+
+		0	B
+		1	C
+		2	D
+		3	E
+		4	H
+		5	L
+		6	M	M = (HL)
+		7	A	accumulator
+
+"Memory" is not a single register, but it is the byte in memory designated
+by the register pair HL. This was one of the innovative concepts that made
+its appearance in the 8080 instruction set.
+
+-
+The arithmetic-logical instructions are systematically numbered.
+
+		0	add	add
+		1	adc	add with carry
+		2	sub	subtract
+		3	sbb	subtract with borrow
+		4	and	logical and
+		5	xor	logical exclusive or
+		6	or	logical or
+		7	cmp	compare (subtraction preserving accumulator)
+
+Conditional instructions can be enumerated according to the condition:
+
+		0	nz
+		1	z
+		2	c
+		3	nc
+		4	po
+		5	pe
+		6	p
+		7	m
+
+-
+The instructions which affect the accumulator and the flags form an octet
+
+		0	rlc
+		1	rrc
+		2	ral
+		3	rar
+		4	daa	decimal adjust accumulator
+		5	cma	complement accumulator
+		6	stc	set carry
+		7	cmc	complement carry
+
+The register pairs are naturally numbered by the high order member of the
+pair, but whether sp or psw is assigned the number 6 depends on whether the
+instruction lies in quadrant 0 or quadrant 3
+
+		value		quad 0		quad 3
+
+		  0		  bc		  bc
+		  2		  de		  de
+		  4		  hl		  hl
+		  6		  psw		  sp
+
+-
+
+Quadrant 0:
+
+	   00	   01	   02	   03	   04	   05	   06	   07
+	-----------------------------------------------------------------
+   00   |nop	|lxi b,	|stax b	|inx b	|inr b	|dcr b	|mvi b,	|rlc	|
+   01	|...	|dad b	|ldax b	|dcx b	|inr c	|dcr c	|mvi c,	|rrc	|
+   02	|...	|lxi d,	|stax d	|inx d	|inr d	|dcr d	|mvi d,	|ral	|
+   03	|...	|dad d	|ldax d	|dcx d	|inr e	|dcr e	|mvi e,	|rar	|
+   04	|...	|lxi h,	|shld	|inx h	|inr h	|dcr h	|mvi h,	|daa	|
+   05	|...	|dad h	|lhld	|dcx h	|inr l	|dcr l	|mvi l,	|cma	|
+   06	|...	|lxi sp,|sta	|inx sp	|inr m	|dcr m	|mvi m,	|stc	|
+   07	|...	|dad sp	|lda	|dcx sp	|inr a	|dcr a	|mvi a,	|cmc	|
+	-----------------------------------------------------------------
+
+
+
+
+
+
+
+
+-
+
+Quadrant 1:
+
+	   00	   01	   02	   03	   04	   05	   06	   07
+	-----------------------------------------------------------------
+   00	|mov b,b|mov b,c|mov b,d|mov b,e|mov b,h|mov b,l|mov b,m|mov b,a|
+   01	|mov c,b|mov c,c|mov c,d|mov c,e|mov c,h|mov c,l|mov c,m|mov c,a|
+   02	|mov d,b|mov d,c|mov d,d|mov d,e|mov d,h|mov d,l|mov d,m|mov d,a|
+   03	|mov e,b|mov e,c|mov e,d|mov e,e|mov e,h|mov e,l|mov e,m|mov e,a|
+   04	|mov h,b|mov h,c|mov h,d|mov h,e|mov h,h|mov h,l|mov h,m|mov h,a|
+   05	|mov l,b|mov l,c|mov l,d|mov l,e|mov l,h|mov l,l|mov l,m|mov l,a|
+   06	|mov m,b|mov m,c|mov m,d|mov m,e|mov m,h|mov m,l|hlt	|mov m,a|
+   07	|mov a,b|mov a,c|mov a,d|mov a,e|mov a,h|mov a,l|mov a,m|mov a,a|
+	----------------------------------------------------------------
+
+
+
+
+	mov m,m is replaced by hlt, perhaps to avoid the circuitry
+	for making a double memory reference in a single instruction.
+
+
+-
+
+Quadrant 2
+
+	   00	   01	   02	   03	   04	   05	   06	   07
+	-----------------------------------------------------------------
+   00	|add b	|add c	|add d	|add e	|add h	|add l	|add m	|add a	|
+   01	|adc b	|adc c	|adc d	|adc e	|adc h	|adc l	|adc m	|adc a	|
+   02	|sub b	|sub c	|sub d	|sub e	|sub h	|sub l	|sub m	|sub a	|
+   03	|sbb b	|sbb c	|sbb d	|sbb e	|sbb h	|sbb l	|sbb m	|sbb a	|
+   04	|ana b	|ana c	|ana d	|ana e	|ana h	|ana l	|ana m	|ana a	|
+   05	|xra b	|xra c	|xra d	|xra e	|xra h	|xra l	|xra m	|xra a	|
+   06	|ora b	|ora c	|ora d	|ora e	|ora h	|ora l	|ora m	|ora a	|
+   07	|cmp b	|cmp c	|cmp d	|cmp e	|cmp h	|cmp l	|cmp m	|cmp a	|
+	-----------------------------------------------------------------
+
+
+
+
+
+
+
+
+-
+
+Quadrant 3
+
+	   00	   01	   02	   03	   04	   05	   06	   07
+	-----------------------------------------------------------------
+   00	|rnz	|pop b	|jnz	|jmp	|cnz	|push b	|adi	|rst 0	|
+   01	|rz	|ret	|jz	|...	|cz	|call	|aci	|rst 1	|
+   02	|rnc	|pop d	|jnc	|out	|cnc	|push d	|sui	|rst 2	|
+   03	|rc	|...	|jc	|in	|cc	|...	|sbi	|rst 3	|
+   04	|rpo	|pop h	|jpo	|xthl	|cpo	|push h	|ani	|rst 4	|
+   05	|rpe	|pchl	|jpe	|xchg	|cpe	|...	|xri	|rst 5	|
+   06	|rp	|pop psw|jp	|di	|cp	|pushpsw|ori	|rst 6	|
+   07	|rm	|sphl	|jm	|ei	|cm	|...	|cpi	|rst 7	|
+	-----------------------------------------------------------------
+
+
+
+
+
+
+
+
+-
+Quadrant 0 - multiple byte instructions:
+		---------------------------------
+		| . | 3 | . | . | . | . | 2 | . |
+		| . | . | . | . | . | . | 2 | . |
+		| . | 3 | . | . | . | . | 2 | . |
+		| . | . | . | . | . | . | 2 | . |
+		| . | 3 | 3 | . | . | . | 2 | . |
+		| . | . | 3 | . | . | . | 2 | . |
+		| . | 3 | 3 | . | . | . | 2 | . |
+		| . | . | 3 | . | . | . | 2 | . |
+		---------------------------------
+Quadrant 3 - multiple byte instructions:
+		---------------------------------
+		| . | . | 3 | 3 | 3 | . | 2 | . |
+		| . | . | 3 | . | 3 | 3 | 2 | . |
+		| . | . | 3 | 2 | 3 | . | 2 | . |
+		| . | . | 3 | 2 | 3 | . | 2 | . |
+		| . | . | 3 | . | 3 | . | 2 | . |
+		| . | . | 3 | . | 3 | . | 2 | . |
+		| . | . | 3 | . | 3 | . | 2 | . |
+		| . | . | 3 | . | 3 | . | 2 | . |
+		---------------------------------
+-
+:Data Movement.
+
+Aside from memory registers, which can be indicated in various ways by
+two-byte pointers, the Intel 8080 has an assortment of one- and two-byte
+active registers whose designation is an implicit part of most instructions.
+Some one-byte registers are simply the high or low bytes of some of the
+two-byte registers; alternatively it may be said that some of the one-byte
+registers may be combined to form two-byte registers. However, there is no
+flexibility in this arrangement, as only certain pairs of single byte registers
+can be combined into double byte registers, and none of these overlap.
+
+The ports are also single byte registers which should be included in any
+enumeration of registers, but they interact only with the accumulator which
+leaves them at the margin of most discussions.
+
+It is instructive to form a matrix, whose rows and columns are labelled by
+the different one- and two- byte registers, pointers, and memory locations
+which the latter can designate.  Much of the Intel 8080 instruction set can
+be illustrated by filling this matrix with the instructions which result in
+the movement of data in the directions indexed by the rows and columns.
+
+
+-
+Using (HL) to denote the memory location addressed by the register pair HL
+and similarly for other registers, we have to consider all the following
+locations:
+
+		B	BC	(BC)
+		C
+		D	DE	(DE)
+		E
+		H	HL	(HL)=M
+		L
+		A	AF
+		F
+		port
+			PC	(PC)
+			SP	(SP)
+
+
+Altogether, this calls for a twenty by twenty matrix. On examination, much
+of the matrix will be empty, because the only registers for which systematic
+movement is possible are the single-byte registers in the instructions of
+quadrant 1. The remaining movement goes mostly on a case by case basis.
+
+-
+dest:	    B	    C	    D	    E	    H	    L	    M	    A
+source:\|-------|-------|-------|-------|-------|-------|-------|-------|
+  B	|mov b,b|mov c,b|mov d,b|mov e,b|mov h,b|mov l,b|mov m,b|mov a,b|
+  C	|mov b,c|mov c,c|mov d,c|mov e,c|mov h,c|mov l,c|mov m,c|mov a,c|
+  D	|mov b,d|mov c,d|mov d,d|mov e,d|mov h,d|mov l,d|mov m,d|mov a,d|
+  E	|mov b,e|mov c,e|mov d,e|mov e,e|mov h,e|mov l,e|mov m,e|mov a,e|
+  H	|mov b,h|mov c,h|mov d,h|mov e,h|mov h,h|mov l,h|mov m,h|mov a,h|
+  L	|mov b,l|mov c,l|mov d,l|mov e,l|mov h,l|mov l,l|mov m,l|mov a,l|
+  M	|mov b,m|mov c,m|mov d,m|mov e,m|mov h,m|mov l,m|mov m,m|mov a,m|
+  A	|mov b,a|mov c,a|mov d,a|mov e,a|mov h,a|mov l,a|mov m,a|mov a,a|
+ (BC)	|							|ldax b |
+ (DE)	|							|ldax d |
+ (HL)	|same as M							|
+ (PC)	|mvi b,%|mvi c,%|mvi d,%|mvi e,%|mvi h,%|mvi l,%|mvi m,%|mvi a,%|
+  port	|							|in port|
+	|-------|-------|-------|-------|-------|-------|-------|-------|
+
+
+
+
+
+
+-
+dest:	   BC	   DE	   HL	   AF	   SP	   PC
+source:\|-------|-------|-------|-------|-------|-------|
+  DE	|	|	|xchg	|	|	|	|
+  HL	|	|xchg	|	|	|sphl	|pchl	|
+  SP	|	|	|dad sp	|	|	|	|
+ (SP)	|pop b	|pop d	|pop h	|pop psw|	|	|
+ (SP)	|		|xthl	|			|
+	|-------|-------|-------|-------|-------|-------|
+
+
+			|same as|
+			|M - see|
+			|above. |
+dest:	  (BC)	  (DE)	| (HL)	| (SP)	  (PC)	  port
+source:\|-------|-------|-------|-------|-------|-------|
+  A	|stax b	|stax d	|mov m,a|	|	|out p	|
+  BC	|	|	|	|push b	|	|	|
+  DE	|	|	|	|push d	|	|	|
+  HL	|	|	|	|push h	|	|	|
+  AF	|	|	|	|pushpsw|	|	|
+	|-------|-------|-------|-------|-------|-------|
+
+-
+:Assembler Organization.
+
+Assemblers vary greatly in complexity, according to the services which they
+offer. The simplest assemblers are not very useful, although they have their
+role in envoironments like DDT. They simply translate the mnemonics of some
+particular CPU into the binary code which corresponds. According to the degree
+to which both the instruction set of the machine and the choice of menmonics
+is logical and systematic, even this task will vary in complexity. This is why
+there is a tendency to claim a copyright on a well laid out set of mnemonics,
+for their design is every bit as important as the selection of the instructions
+in the first place.
+
+An assembler crosses the threshold of usefulness when it can construct a symbol
+table, allowing points in the program and locations in memory to have symbolic
+designations. This is one of those routine tasks which computers are supposed
+to perform well - to figure out how long each instruction or other structure
+is, and so to calculate the address of all the components of the program in
+relation to an assumed starting point. Not only is much tedious work avoided,
+but it doesn't have to be repeated each time an insertion or deletion is made
+in the program. That is, it doesn't have to be repeated by the programmer,
+because it has to be done somehow.
+
+-
+Beyond the ability to translate menmonics and calculate symbolic addresses,
+most of the additional services that an assembler can perform tend to lie in
+the class of luxuries. Some of the essential services include the definition
+or redefinition of the program origin, skipping space, and allocating space
+for specific constants, be they numerical or textual.
+
+Some modest arithmetic is convenient; at the least, addition or subtraction
+which allows placement relative to symbolic addresses. The evaluation of
+general formulas will occupy space in the assembler, and soon creates the
+temptation to introduce special functions - maximum, minimum, shifts and
+rotations, and boolean operations. Some of this capacity is required by the
+desire to organize tables and organize programs by page and parity boundaries,
+all of which is characteristic of CPU's which have special requirements for
+word placement and work with a variety of data formats. Some vestiges of this
+are evident in the 8080, but can largely be avoided. The principal intrusion
+of alignment problems arises from the possibility of splitting a two-byte
+address in half, and working with 256-byte pages. The fact that <inr> and <dcr>
+set the zero flag, while <inx> and <dcx> modify no flags, generates a strong
+temptation to align data along page boundaries and work with pages.
+
+Addressing relative to a location counter is not much favored, either for the
+Intel 8080 or other microcomputers, because of the variability of word length.
+-
+Some assemblers have elaborate features for formatting the assembly listing.
+These can include skipping lines, skipping up to a new page, suppressing code
+listing over certain parts of the assembly, and showing various degrees of
+detail in the process of macro expansion.
+
+Macro assemblers form a class apart, considering the degree to which they are
+allowed to carry out symbolic manipulation. Not only do they tend to permit
+advanced formulations of algebraic formulas and functional notation; their
+primary usage is to set up complicated structural elements into which selected
+substitutions can be made each time they are used. They greatly simplify coding
+because of the concise way that they express program configurations which are
+frequently used. Their indiscriminate use is a hazard, just because of the ease
+with which they can multiply voluminous code.
+
+Careful planning of an assembler will enhance the services which are rendered
+to the programmer. Since the construction of a symbol table is an inherent
+part of the assembly process, there is no reason that it cannot be presented
+as one of the byproducts of assembly. With some additional effort, it is even
+possible to produce a cross reference listing, in which each symbol is indexed
+by all the references to it throughout the program.
+
+Its degree of error detection and analysis affects the utility of an essembler.
+-
+:Assembler Directives.
+
+An assembler needs additional information, beyond labels and instructions. At
+the least, an indication of where the program begins and ends is needed. Data
+is part of most programs, both numerical and textual. There could be cosmetic
+instructions: start on a new page or suppress part of the program listing.
+
+The most essential directives are:
+
+		org	define initial program address
+		end	no more source code follows
+		equ	assign a value to a symbol
+		db	one or more bytes of ASCII text
+		dc	ASCII text terminated by a flagged byte
+		ds	reserve space, perhaps label first byte
+		dw	one or more addresses or two-byte data
+
+Beyond bare essentials, assemblers can grow to have considerable complexity.
+For example, "include" can incorporate supplementary files in the text, while
+"link" can allow the program to be written on a series of independent files.
+Conditional assemblies, macros, or conditional macros are other possibilities.
+
+-
+:Comments
+
+Programs lose most of their value without written descriptions of their purpose
+and contents. The discipline required to prepare a separate document is a very
+great obstacle to its realization, so that often the user is satisfied to have
+a well commented program listing. Such a listing may have half of its volume or
+more in comments, which in turn can be seen as a drawback. Any overhead takes
+up disk space, and it consumes assembly time, so that all comments should be as
+terse as possible.
+
+Full lines can be dedicated to comments, especially as paragraph headings of as
+introductions to subroutines. Such lines are conveniently marked by a semicolon
+in column 1, and can be dedicated to a general description of the content of
+the programming material which follows. If it is kept sufficiently general, it
+will not have to be revised when minor alterations or corrections are made to
+the program itself.
+
+It is a good idea to introduce each program with a section stating its purpose,
+its requirements for such system resources as memory, disk space, or running
+time, and a history of its authorship and evolution. All this material would
+take the form of initial comments.
+
+-
+Major sections can be set off by ornamental comments, such as a line of stars
+or a line of dashes, which can also be used to frame headings. Given that such
+embellishment uses up three or four score bytes at a time, it should be used
+sparingly.
+
+Other comments apply to individual instructions, explaining them or some
+special characteristic of their use. Likewise, constants or parameters may be
+identified. It is particularly important to identify the use of each location
+used for temporary storage, each area used for a table or a buffer, and so on.
+These comments are set off from the rest of the code line by a semicomon, which
+can follow immediately the last field of the instruction. More commonly one or
+more tabs are used to align all the in-line comments in a single column towards
+the right hand side of the page.
+
+Comments should convey as much relevant information as possible. Ofter a few
+extra words will make a comment much more significant. For example the z/nz
+comment in the following sequence is much more informative than a comment
+like "output file open." It tells the alternatives and their meaning.
+
+		mvi   a,flag
+		ora   a		;z/nz = file not/open
+		jz    open	;open input file
+-
+The same type of detail should accompany the place where the flag is stored:
+
+	flag:	ds    1		;z/nz = input file not/open
+
+It would be even better if a more suggestive name than "flag" were chosen.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-
+:First Pass.
+
+Unless an assembler is simultaneously a loader, which will greatly restrict
+the size of program which it can handle, it needs two passes through the
+source code to complete the assembly. On the first pass, the length of each
+instruction, data block, or reserved area is calculated. While this is being
+done the labels can be assigned values as they are encountered, forming the
+symbol table. On the second pass, the actual code is substituted for each
+instruction and defined data is converted to binary form or its equivalent.
+
+If the assembler did not permit multiple origin statements, the second pass
+would not have to calculate any lengths anew. The second pass is sometimes
+distinguished from a "third pass" in which an annotated listing is produced;
+the third pass displays program locations and so must keep a running count of
+lengths. Often the third pass is produced simultaneously with the second pass,
+either as an option or as a requirement.
+
+Assemblers tend to produce an intermediate "hexadecimal" listing rather than
+a binary object code file. Partly the reason is historical, there being many
+uses for the paper tape that usually contained the hex-file. Practically, the
+reason is that the allocation of blank space implied by multiple origins or
+data reservation statements can be deferred to loading time.
+-
+The First Pass must then take one of the following actions for each
+possible constituent of the listing:
+
+	action		line		affects
+	------		----		-------
+	quit		end
+	ignore		null line
+	ignore		comment line
+	record		equ		symbol table
+	record		label		symbol table
+	add 3		3-byte instr	program counter
+	add 2		2-byte instr	program counter
+	add 1		1-byte instr	program counter
+	add n		db		program counter
+	add n		dc		program counter
+	add 2n		dw		program counter
+	add n		ds		program counter
+	set pc		org		program counter
+	error		other
+
+
+
+-
+Several choices can affect the completeness or the elegance of the assembler
+even in the first pass. For example, it is convenient to treat an error as
+though it were the longest instruction - three bytes - and place three NOP's
+in its place. It can be patched with DDT at run time without reassembly. This
+feature is obviously most likely to be used when patching is simple compared
+with running the assembly over again.
+
+Of more importance is the treatment of symbolic expressions which occur as
+addresses, or as arguments of such directives as "org" or "ds." If all of
+the symbols in a directive have not been defined by the time the directive
+has been encountered, it will not be possible to decide how much space to
+allocate or where to allocate it. Supposing that the program is processed
+in its natural reading order, we find the rule that a symbol must be fully
+defined before it is used in an expression - particularly org or ds.
+
+This rule does not have to be rigid, it is merely the simplest which will
+get the job done. If enough symbols have been acquired and possibly evaluated
+on the first pass that all the remaining symbols can be evaluated in time on
+the second pass, the assembly can still be carried through. To permit that an
+assembly extend beyond two passes is usually forsaken in favor of requiring
+more discipline in the program layout. Equivalences concentrated near the
+beginning of a program satisfy this requirement and are easier to locate.
+-
+:Second Pass.
+
+The second pass of an assembler, which is the one in which the bulk of the
+work is to be done, can be undertaken once sufficient information is available
+to evaluate all the symbols that will be encountered in the process. Simplest
+of all is the case where the symbols were labels, and were defined on the first
+pass. The most difficult combination arises when blocks of reserved space are
+defined by formulas which involve other symbols, reaching its greatest degree
+of complexity when space allocated to some parts of the program depends on the
+amount allocated to other parts, and this somehow reacts to affect the original
+allocation.
+
+The same sequence of actions arise in the second pass as in the first pass,
+but the response to each type of source line must be more detailed. Not only
+the length of each instruction is involved, but a determination of the data
+fields which it requires and their evaluaton.
+
+The equivalences and labels should not have to be repeated in the second pass.
+To do so gives an error check, that the definitions are consistent between the
+two passes. Divergences generate a "phase" or "pass" error in some assemblers.
+Not ordering the sequence of definitions, or deliberately making them implicit
+rather than explicit, will surely allow the passes to differ sometimes.
+-
+The second pass has to evaluate symbolic expressions. They include
+
+		component 	defined by
+		---------	----------
+
+		constant	decimal or hexadecimal number
+		constant	quoted ASCII string
+		constant	equivalence
+		label		program location
+		label		equivalence
+		formula		algebraic combination
+
+
+
+
+
+
+
+
+
+
+
+-
+:Intel HEX File.
+
+There is hardly any assembler which produces a binary .COM file directly.
+A relocating assembler would be expected to defer the production of binary
+code until loading time, but assemblers which produce absolute code often
+produce a file with the extension .HEX, with the explanation that it contains
+an Intel HEX file. Historically, this is a file that was produced on paper
+tape, and which could be used for ordering PROMS, as well as for transferring
+assembled code from a cross assembler located on a mainframe computer to the
+microcomputer development system that one was presumably using.
+
+There are good, although not overwhelming, technical reasons to work with the
+.HEX file. If a .COM file is generated at once, it must contain provision for
+multiple origins and the reservation of blocks of uninitialized code. If this
+causes gaps in the compiled code, they will have to be filled with zeroes, or
+spaced out somehow. If some care is not used, this can lead to the generation
+of a very large binary file holding a lot of space filler. When care is used,
+truly large reserved areas are placed at the end of the program, and can simply
+be ignored in the binary file.
+
+Another convenience of a HEX file is that, as an ASCII file representing a
+binary file, it can be listed on a printer and checked over as needed.
+-
+In spite of all, it is a very strong presumption that the usage of HEX files is
+a relic of the days of paper tape, IBM 80 column punched cards, and primitive
+peripherals in general. Still, as a standard part of the assembly process, it
+behooves us to understand their layout.
+
+A typical line of a HEX file has the following form:
+
+	:NNAAAA00DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDCC
+
+in which
+	    :	    signals the start of a data line
+	    NN	    is the number of bytes represented by the line
+	    AAAA    is the initial address to store the line
+	    00	    has internal significance at the Intel Corp.
+	    DD	    is two ASCII hexadecimal nibbles per data byte
+	    CC	    is a checksum making the line sum to zero
+
+The full line, from : to CC, including CC but excluding :, is to be made
+into a byte two nibbles at a time and summed modulo one byte; if the sum
+is zero the line is accepted as being without error. This protection is
+important when programming a high volume PROM run, less so in the disk
+storage now used to hold programs.
+-
+Information preceding the colon and following the stated number of bytes is
+ignored. This presumably permits errors in paper tape to be corrected with
+rubouts, pieces of tape to be spliced, leader and trailer to be placed on the
+tape, and similar housekeeping.
+
+Usually a maximum of sixteen data bytes is placed on a single line, making
+NN equal to 10 (hexadecimal), but a greater or lesser number is possible.
+The latter accomodates a short line due to the presence of a "ds" statement
+or an "org" statement in the source code, or the simple fact that the program
+was not a multiple of sixteen bytes long.
+
+Each line bears its initial address, AAAA.
+
+The zero byte which follows the address seems to be a type code, the details
+of which are not available in the literature which we have seen. LOAD, the
+loader in DDT, and other programs seem to ignore it (except in the checksum).
+
+The checksum arranges that a zero test on the sum of the bytes constructed
+since the preceding checksum indicates an acceptable transferrence of data.
+
+If the bytecount field is zero, the end of the file is signalled, and the
+address as taken as the address to start execution (except CP/M uses 0100H).
+-
+:Listing of the Object Code.
+
+For reference purposes, most assemblers offer the option of annotating the
+source listing with some indication of the object code which they have just
+generated. Usually, each line is extended by 20 columns or so, to make room
+for notations on the left hand side of the page. At the least, this notation
+will consist of the address at which each line of code is to be placed, plus
+the hexadecimal equivalent of the code that it generates.
+
+To make error notations available for ready reference, the first column is
+often kept blank, except when the line is in error and a letter identifying
+the error is placed in the first column. Naturally assemblers differ greatly
+in the kinds of errors that they suspect and report.
+
+Given the additional columns inserted in the annotated listing, precautions
+are needed to print it. The simplest solution is to make the source listing
+20 columns less than the normal printer width; this works out well enough if
+64 columns is allowed to pass 80 a bit.  All works well for a printer capable
+of 132 columns, even beginning with 80 columns. Such widths can be attained
+either by using compressed printing on letter size paper, or printing letter
+sized paper crossways. Of course, regular computer sized paper can substitute
+for letter sized paper if the printer has a wide enough carriage.
+-
+:Bibliography.
+
+	Intel Corporation
+	8080/8085 Assembly Language Programming
+	Intel Corporation 1979
+	#9800940
+
+	A. Osborne and G. Kane
+	Osborne 4- and 8-Bit Microprocessor Handbook
+	Osborne/McGraw-Hill 1981
+	ISBN CC 931988-42X
+
+	Lance Leventhal
+	8080A-8085 Assembly Language Programming
+	Osborne/McGraw-Hill 1978
+	ISBN CC 931988-10-1
+
+:[8080.HLP]
+[Harold V. McIntosh, 10 April 1984]
+[end]
+

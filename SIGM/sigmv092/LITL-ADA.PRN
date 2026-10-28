@@ -1,0 +1,1174 @@
+L/1 Interpreter Source list                     August 10, 1980
+Copywrite 1980 by Ralph E. Kenyon Jr.           page  1
+Abstract Systems, etc.                          Ph 413-354-7875
+RFD Lower Prospect Hill
+Chester MA, 01011
+
+                ;Little-Ada L/0 machine interperter
+                ;Edited June 21, 1980
+                ;Copyright 1980 by Ralph E. Kenyon Jr.
+                ;Version 1547 Re-designated L/1 Jan 81
+                ;Stripped down, no debug version
+
+                        REFS SYSTEM.SY  ;Library file
+                        REF Warm        ;Warmstart
+                        REF WH0         ;Consol Char in
+                        REF WH1         ;Consol Char out
+                        REF Msg         ;Message writer
+                        REF USER        ;Start of user memory
+                        REF MEMTOP      ;Last good memory
+                        REF Ret         ;Return from overlay
+                        REF Dio         ;Disk In/Out
+                        REF Err         ;System error handler
+                        REF FILE        ;File data buffer
+                        REF Ovrto       ;Overlay handler
+                        REF CMPTR       ;Command buffer pointer
+                        REF Ioret       ;Return from Interupt
+
+                        REFS <#>L0CODE.SY
+                ;Open L/0 code MACRO Library
+                        REF L0CODE
+                ;Macro which defines all L/0 code macros.
+
+
+000D            CR      EQU 13
+
+3200                    ORG USER
+3200                    IDNT $,$        ;$ is current value PC
+
+3200  C32F3A            JMP Start
+3203  C31135            JMP GO
+
+                        L0CODE
+0000                    LIST 0
+
+3206  0D446976  DBZ     DB CR,'Division by zero not defined!',CR,0
+320A  6973696F
+320E  6E206279
+3212  207A6572
+3216  6F206E6F
+321A  74206465
+321E  66696E65
+3222  64210D00
+3226            Inst    DS 1    ;Instruction register
+3227            Base    DS 2    ;Base register
+3229            Static  DS 2    ;Static link conversion register
+322B            Level   DS 1    ;Level register
+322C            AR1     DS 2    ;Arithemetic storage 1
+322E            AR2     DS 2    ;Arithemetic storage 2
+3230            AR3     DS 2    ;Arithemetic storage 3
+3232            TMStack DS 2    ;Stack start
+
+
+
+L/1 Interpreter Source list                     August 10, 1980
+Copywrite 1980 by Ralph E. Kenyon Jr.           page  2
+
+3234            FDB     DS 44   ;File descriptor buffer
+
+3260            IFD     DS 1    ;Input file drive
+3261            IFA     DS 2    ;Input file disk address
+3263            IFS     DS 2    ;Input file disk sector
+3265            IFP     DS 2    ;Input file buffer pointer
+3267            IFB     DS 256  ;Input file buffer
+
+3367            OFD     DS 1    ;Output file drive
+3368            OFA     DS 2    ;Output file disk address
+336A            OFS     DS 2    ;Output file disk sector
+336C            OFP     DS 2    ;Output file buffer pointer
+336E            OFB     DS 256  ;Output file buffer
+346E            Flag    DS 1    ;Output file in use flag
+
+346F  01        IFflg   DB 1    ;initialize flag
+3470  01        OFflg   DB 1    ;initialize flag
+
+
+3471  0A        Fetch   LDAX B  ;Instruction fetch cycle
+3472  03                INX B
+3473  322632            STA Inst
+3476  B7                ORA A
+3477  C9                RET
+
+3478  73        Push    MOV M,E         ;DE to S(t)
+3479  2B                DCX H           ;t+1 to HL
+347A  72                MOV M,D
+347B  2B                DCX H
+347C  C9                RET
+
+347D  23        Pop     INX H           ;S(t) to DE
+347E  56                MOV D,M         ;t-1 to HL
+347F  23                INX H
+3480  5E                MOV E,M
+3481  C9                RET
+
+3482  F5        MinDE   PUSH PSW        ;Two's complement
+3483  7A                MOV A,D         ;of DE. All other
+3484  2F                CMA             ;registers preserved.
+3485  57                MOV D,A
+3486  7B                MOV A,E
+3487  2F                CMA
+3488  5F                MOV E,A
+3489  13                INX D
+348A  F1                POP PSW
+348B  C9                RET
+
+348C  E5        CONV    PUSH H          ;Requires T in DE
+348D  CD8234            CALL MinDE      ;(Static)
+3490  2A3232            LHLD TMStack
+3493  19                DAD D           ;<[(TMStack)-(Static)]
+3494  7C                MOV A,H         ;We're going to divide by 2
+3495  BC                CMP H           ;(Just reset carry)
+
+
+
+L/1 Interpreter Source list                     August 10, 1980
+Copywrite 1980 by Ralph E. Kenyon Jr.           page  3
+
+3496  1F                RAR             ;Puts lo bit in carry
+3497  57                MOV D,A         ;Right shifted by 1
+3498  7D                MOV A,L         ;Lo byte
+3499  1F                RAR             ;Carry goes into hi bit
+349A  5F                MOV E,A         ;(16 bits right shift)
+349B  E1                POP H
+349C  C9                RET             ;Result in DE
+
+                ;This section computes the static link
+                ;by finding the ltack position base for
+                ;L levels down.
+
+349D  F5        GStL    PUSH PSW
+349E  E5                PUSH H
+349F  3A2632            LDA Inst        ;get & stow level
+34A2  E60F      GStL1   ANI 0FH
+34A4  2A2732            LHLD Base       ;get & stow base
+34A7  222932            SHLD Static
+34AA  C3C534            JMP BASE
+34AD  2A2932    BASE1   LHLD Static     ;get base
+34B0  EB                XCHG
+34B1  2A3232            LHLD TMStack
+34B4  13                INX D           ;We need to be above by 1
+34B5  CD8234            CALL MinDE
+34B8  19                DAD D           ;(MEMTOP-2*T)
+34B9  19                DAD D           ;stack address now in hl
+34BA  CD7D34            CALL Pop        ;Get S(S(t))
+34BD  EB                XCHG
+34BE  222932            SHLD Static
+34C1  3A2B32            LDA Level       ;get level
+34C4  3D                DCR A
+34C5  322B32    BASE    STA Level
+34C8  C2AD34            JNZ BASE1
+34CB  EB                XCHG            ;Returns static level in DE
+34CC  E1                POP H
+34CD  F1                POP PSW
+34CE  C9                RET
+
+34CF  1E02      Out2    MVI E,2         ;Output file already exists
+34D1  C3D634            JMP Out0
+34D4  1E03      Out3    MVI E,3         ;Input file not specified
+34D6  1607      Out0    MVI D,7
+34D8  C30F04    Out     JMP Err
+                
+34DB  3EE0      Gf      MVI A,0E0H
+34DD  CD1204    Gf1     CALL Ovrto
+34E0  47666964          DB 'Gfid'
+34E4  C9                RET
+
+                ;Parameters for Dio set up by start code
+                ;Here's where we get the file to be
+                ;interpretered
+
+34E5  CD0604    GETP    CALL Dio        ;Go get it.
+
+
+
+L/1 Interpreter Source list                     August 10, 1980
+Copywrite 1980 by Ralph E. Kenyon Jr.           page  4
+
+34E8  DAD834            JC Out          ;Something Wrong!
+34EB  212F3A            LXI H,Pgmaddr   ;get the program
+34EE  E5                PUSH H
+34EF  C1                POP B           ;Set TMPC to first byte
+34F0  2A3232            LHLD TMStack    ;Set initialize TMSP
+34F3  110000            LXI D,0         ;First position on stack for
+34F6  CD7834            CALL Push       ;Character in/out
+34F9  CD7834            CALL Push       ;Static link
+34FC  13                INX D
+34FD  EB                XCHG
+34FE  222732            SHLD Base       ;set Base 1st
+3501  EB                XCHG
+3502  CD7834            CALL Push       ;Dynamic link same
+3505  112E3A            LXI D,Origin    ;addr of that 'hlt' byte
+3508  CD7834            CALL Push
+350B  CDFF37            CALL INB
+350E  CD5039            CALL OUTB
+
+                ;This routine sets itself up as a return address
+
+3511  E5        GO      PUSH H          ;Return to here
+3512  211135            LXI H,GO
+3515  E3                XTHL            ;Put our addr on stack
+3516  CD7134            CALL Fetch
+3519  17                RAL
+351A  D2A635            JNC branch      ;0 means br or bnz
+351D  17                RAL
+351E  D26935            JNC oprlic
+3521  17                RAL
+3522  D8                RC              ;111XXXXX is NOP
+3523  CD9D34            CALL GStL       ;For both lad & call
+3526  17                RAL             ;Now which one
+3527  DA3C35            JC Call         ;do we have?
+
+                ;Here we have to get the address from
+                ;the program immediate data (two bytes)
+
+352A  E5        Lad     PUSH H
+352B  2A2932            LHLD Static
+352E  CD7134            CALL Fetch
+3531  57                MOV D,A         ;Address hi byte
+3532  CD7134            CALL Fetch
+3535  5F                MOV E,A         ;Address lo byte
+3536  19                DAD D           ;Add in the stack base
+3537  EB                XCHG            ;put it in DE
+3538  E1                POP H
+3539  C37834            JMP Push        ;Let push return
+
+                ;This routine puts links on stack
+                ;followed by return address
+
+353C  E5        Call    PUSH H          ;We need TMSP later
+353D  EB                XCHG
+353E  2A2932            LHLD Static
+
+
+
+L/1 Interpreter Source list                     August 10, 1980
+Copywrite 1980 by Ralph E. Kenyon Jr.           page  5
+
+3541  EB                XCHG
+3542  CD7834            CALL Push       ;Static link first
+3545  EB                XCHG
+3546  2A2732            LHLD Base
+3549  EB                XCHG
+354A  CD7834            CALL Push       ;Dynamic link second
+354D  E3                XTHL            ;TMSP to stack
+354E  EB                XCHG
+354F  CD8C34            CALL CONV
+3552  EB                XCHG
+3553  222732            SHLD Base       ;Set new base
+3556  CD7134            CALL Fetch      ;lets get that address
+3559  57                MOV D,A
+355A  CD7134            CALL Fetch
+355D  5F                MOV E,A
+355E  212F3A            LXI H,Pgmaddr
+3561  19                DAD D
+3562  E3                XTHL            ;Addr to top of stack
+3563  C5                PUSH B
+3564  D1                POP D
+3565  C1                POP B
+3566  C37834            JMP Push        ;return address
+
+3569  17        oprlic  RAL             ;Check next bit for oprlic
+356A  DA8135            JC Lic
+
+                ;For opr, we must get last 5 bits from inst
+                ;We'll use a computed goto to get the
+                ;routine for the sub-operation.
+
+356D  3A2632    opr     LDA Inst
+3570  E61F              ANI 1FH
+3572  87                ADD A           ;Times 2
+3573  5F                MOV E,A
+3574  1600              MVI D,0
+3576  E5                PUSH H          ;save TMSP
+3577  21CB35            LXI H,Jtbl      ;jmp table
+357A  19                DAD D           ;add position
+357B  5E                MOV E,M
+357C  23                INX H
+357D  56                MOV D,M
+357E  EB                XCHG            ;addr to HL
+357F  E3                XTHL            ;addr to stack
+3580  C9                RET             ;Jump to addr
+
+                ;Now we've got to sort out the number of
+                ;bytes used for the constant in this lic
+
+3581  17        Lic     RAL
+3582  DA8F35            JC Lic1
+3585  3A2632            LDA Inst        ;1 byte
+3588  E60F              ANI 0FH
+358A  1600              MVI D,0
+358C  C3A235            JMP lic4
+
+
+
+L/1 Interpreter Source list                     August 10, 1980
+Copywrite 1980 by Ralph E. Kenyon Jr.           page  6
+
+358F  17        Lic1    RAL
+3590  DA9B35            JC lic2
+3593  3A2632            LDA Inst        ;2 byte
+3596  E607              ANI 7
+3598  C39E35            JMP lic3
+359B  CD7134    lic2    CALL Fetch      ;3 byte
+359E  57        lic3    MOV D,A
+359F  CD7134            CALL Fetch
+35A2  5F        lic4    MOV E,A
+35A3  C37834            JMP Push        ;let push RET for us
+
+35A6  17        branch  RAL
+35A7  D2B935            JNC Br
+35AA  CD7D34            CALL Pop
+35AD  7A                MOV A,D
+35AE  B7                ORA A
+35AF  C2B935            JNZ Br          ;(bnz)
+35B2  83                ADD E
+35B3  C2B935            JNZ Br          ;(bnz)
+35B6  C37134            JMP Fetch       ;Skip this byte
+                                        ;let Fetch return
+
+35B9  3A2632    Br      LDA Inst
+35BC  E63F              ANI 3FH         ;Kill opcode
+35BE  57                MOV D,A         ;Hi addr
+35BF  CD7134            CALL Fetch      ;rest of addr
+35C2  5F                MOV E,A         ;Lo addr
+35C3  E5                PUSH H
+35C4  212F3A            LXI H,Pgmaddr   ;Adjust for program
+35C7  19                DAD D           ;load address
+35C8  E3                XTHL
+35C9  C1                POP B
+35CA  C9                RET
+
+35CB  0B36      Jtbl    DW Halt         ;0
+
+                ; Halt closes both the input and the
+                ; output files before invoking Exec.
+                ; The input and output file setup routines
+                ; are restored to IFR and OFR also.
+
+35CD  1636              DW addsub       ;1
+35CF  1636              DW addsub       ;2
+35D1  2D36              DW muldiv       ;3
+35D3  2D36              DW muldiv       ;4
+35D5  F236              DW Mod          ;5
+35D7  3637              DW Neg          ;6
+35D9  3F37              DW Not          ;7
+35DB  8837              DW Sete         ;8
+35DD  A837              DW Setlg        ;9
+35DF  A837              DW Setlg        ;A
+35E1  5737              DW Swap         ;B
+35E3  6837              DW retn         ;C
+35E5  CB37              DW Rav          ;D
+
+
+
+L/1 Interpreter Source list                     August 10, 1980
+Copywrite 1980 by Ralph E. Kenyon Jr.           page  7
+
+35E7  DF37              DW Sto          ;E
+35E9  F637              DW inc          ;F
+35EB  FF37      IFR     DW INB          ;10
+
+                ; INB sets up the input file data for Dio
+                ; and puts the address of Inb into IFR.
+                ; If a file is not selected, INB puts the
+                ; address of Cinb into IFR (input from consol)
+
+35ED  5039      OFR     DW OUTB         ;11
+
+                ; OUTB sets up the output file data for Dio
+                ; and puts the address of Outb into OFR.
+                ; If a file is not selected, OUTB puts the
+                ; address of Coutb into OFR (output to consol)
+
+                ;These remaining are all treated as nop
+
+35EF  2805              DW Ret          ;12 insurance
+35F1  2805              DW Ret          ;13
+35F3  2805              DW Ret          ;14
+35F5  2805              DW Ret          ;15
+35F7  2805              DW Ret          ;16
+35F9  2805              DW Ret          ;17
+35FB  2805              DW Ret          ;18
+35FD  2805              DW Ret          ;19
+35FF  2805              DW Ret          ;1A
+3601  2805              DW Ret          ;1B
+3603  2805              DW Ret          ;1C
+3605  2805              DW Ret          ;1D
+3607  2805              DW Ret          ;1E
+3609  2805              DW Ret          ;1F
+
+360B  CDE539    Halt    CALL TURNOFF    ;Close open output file
+360E  21FF37            LXI H,INB       ;Restore Input file
+3611  22EB35            SHLD IFR        ;Open sequence
+3614  D1                POP D           ;Clean up stack
+3615  C9                RET
+
+3616  CD7D34    addsub  CALL Pop        ;S(t)
+3619  D5                PUSH D
+361A  CD7D34            CALL Pop        ;S(t-1)
+361D  E3                XTHL            ;S(t) to HL
+361E  EB                XCHG            ;S(t) to DE
+361F  3A2632            LDA Inst
+3622  E602              ANI 2           ;is it a subtract?
+3624  C48234            CNZ MinDE
+3627  19                DAD D           ;S(t-1)-S(t) IN HL
+3628  EB                XCHG
+3629  E1                POP H           ;Get TMSP back
+362A  C37834            JMP Push        ;let push return for us
+
+362D  CD7D34    muldiv  CALL Pop
+3630  EB                XCHG
+
+
+
+L/1 Interpreter Source list                     August 10, 1980
+Copywrite 1980 by Ralph E. Kenyon Jr.           page  8
+
+3631  222C32            SHLD AR1
+3634  EB                XCHG
+3635  CD7D34            CALL Pop
+3638  EB                XCHG
+3639  222E32            SHLD AR2
+363C  3A2632            LDA Inst
+363F  E604              ANI 4           ;not multiply?
+3641  CC4E36            CZ MULT
+3644  C49936            CNZ DIVD
+3647  2A3032            LHLD AR3
+364A  EB                XCHG
+364B  C37834            JMP Push        ;let push return for us
+
+364E  F5        MULT    PUSH PSW        ;16 bit multiply
+364F  C5                PUSH B          ;with no overflow test
+3650  D5                PUSH D          ;returns product mod 10000H
+3651  E5                PUSH H
+3652  2A2C32            LHLD AR1
+3655  7C                MOV A,H
+3656  B7                ORA A
+3657  C25F36            JNZ MULT1
+365A  85                ADD L
+365B  CA9036            JZ MULT7
+365E  EB                XCHG
+365F  2A2E32    MULT1   LHLD AR2
+3662  7C                MOV A,H
+3663  B7                ORA A
+3664  C26B36            JNZ MULT2
+3667  85                ADD L
+3668  CA9036            JZ MULT7
+366B  4C        MULT2   MOV C,H         ;save hi byte
+366C  7D                MOV A,L         ;do lo byte
+366D  210000            LXI H,0
+3670  0608              MVI B,8
+3672  0F        MULT3   RRC
+3673  D27736            JNC MULT4
+3676  19                DAD D
+3677  EB        MULT4   XCHG
+3678  29                DAD H
+3679  EB                XCHG
+367A  05                DCR B
+367B  C27236            JNZ MULT3
+367E  79                MOV A,C         ;now do hi byte
+367F  0608              MVI B,8
+3681  0F        MULT5   RRC
+3682  D28636            JNC MULT6
+3685  19                DAD D
+3686  EB        MULT6   XCHG
+3687  29                DAD H
+3688  EB                XCHG
+3689  05                DCR B
+368A  C28136            JNZ MULT5
+368D  C39336            JMP MULT8
+3690  210000    MULT7   LXI H,0
+
+
+
+L/1 Interpreter Source list                     August 10, 1980
+Copywrite 1980 by Ralph E. Kenyon Jr.           page  9
+
+3693  223032    MULT8   SHLD AR3
+3696  C36400            JMP Ioret
+
+3699  F5        DIVD    PUSH PSW
+369A  C5                PUSH B
+369B  D5                PUSH D
+369C  E5                PUSH H
+369D  010000            LXI B,0         ;Result goes here
+36A0  2A2C32            LHLD AR1
+36A3  7C                MOV A,H         ;lets see if
+36A4  B7                ORA A           ;the idiot wants
+36A5  C2AC36            JNZ DIVD1       ;to divide by
+36A8  85                ADD L           ;zero.
+36A9  CAE536            JZ DBZER        ;He does!
+
+36AC  EB        DIVD1   XCHG            ;nope, so get
+36AD  2A2E32            LHLD AR2        ;dividend
+36B0  7A                MOV A,D         ;If it's
+36B1  B7                ORA A           ;zero
+36B2  C2BF36            JNZ DIVD2       ;then
+36B5  85                ADD E           ;result's
+36B6  C2BF36            JNZ DIVD2       ;also
+36B9  210000    DIVD7   LXI H,0         ;zero
+36BC  C3DF36            JMP DIVD6
+
+36BF  7C        DIVD2   MOV A,H
+36C0  BA                CMP D
+36C1  DADD36            JC DIVD4
+36C4  CACB36            JZ DIVD3
+36C7  03                INX B
+36C8  C3D436            JMP SUBT
+36CB  7D        DIVD3   MOV A,L
+36CC  BB                CMP E
+36CD  DADD36            JC DIVD4
+36D0  03                INX B
+36D1  CADD36            JZ DIVD4
+36D4  D5        SUBT    PUSH D
+36D5  CD8234            CALL MinDE
+36D8  19                DAD D
+36D9  D1                POP D
+36DA  C3BF36            JMP DIVD2
+36DD  C5        DIVD4   PUSH B
+36DE  E1                POP H
+36DF  223032    DIVD6   SHLD AR3
+36E2  C36400            JMP Ioret
+
+36E5  CDEB36    DBZER   CALL DBZ1
+36E8  C3B936            JMP DIVD7
+
+36EB  210632    DBZ1    LXI H,DBZ
+36EE  CD0C04            CALL Msg
+36F1  C9                RET
+
+36F2  CD7D34    Mod     CALL Pop        ;S(t) to DE
+
+
+
+L/1 Interpreter Source list                     August 10, 1980
+Copywrite 1980 by Ralph E. Kenyon Jr.           page  10
+
+36F5  D5                PUSH D          ;S(t) to top of stack
+36F6  CD7D34            CALL Pop        ;S(t-1) to DE
+36F9  E3                XTHL            ;S(t) to HL
+36FA  7C                MOV A,H         ;lets see if
+36FB  B7                ORA A           ;the idiot wants
+36FC  C20937            JNZ Mod1        ;to divide by
+36FF  85                ADD L           ;zero.
+3700  C20937            JNZ Mod1
+3703  CDEB36            CALL DBZ1
+3706  C32D37            JMP Mod3        ;He does!
+
+3709  7A        Mod1    MOV A,D         ;see if we
+370A  B7                ORA A           ;start with
+370B  C21D37            JNZ TEST        ;zero
+370E  83                ADD E
+370F  C21D37            JNZ TEST
+3712  C32D37            JMP Mod3
+
+3715  EB        SUBTR   XCHG
+3716  D5                PUSH D          ;Save
+3717  CD8234            CALL MinDE
+371A  19                DAD D           ;Add -DE
+371B  D1                POP D           ;Restore
+371C  EB                XCHG
+371D  7A        TEST    MOV A,D         ;Hi byte of S(t)
+371E  BC                CMP H
+371F  DA3037            JC Done         ;Hi byte of S(t-1)
+                                        ;<Hi byte of S(t)
+3722  C21537            JNZ SUBTR       ;its bigger
+3725  7B                MOV A,E         ;It's equal so
+3726  BD                CMP L           ;Check lo byte
+3727  DA3037            JC Done
+372A  C21537            JNZ SUBTR       ;its bigger
+372D  110000    Mod3    LXI D,0         ;its equal
+3730  EB        Done    XCHG
+3731  E3                XTHL
+3732  D1                POP D
+3733  C37834            JMP Push        ;let push return for us
+
+3736  CD7D34    Neg     CALL Pop        ;S(t) to DE
+3739  CD8234            CALL MinDE
+373C  C37834            JMP Push        ;DE to S(t) let push ret
+
+373F  CD7D34    Not     CALL Pop        ;look
+3742  7A                MOV A,D         ;hi byte
+3743  B7                ORA A           ;set flags
+3744  C25137            JNZ Not2
+3747  83        Not1    ADD E           ;lo byte
+3748  C25137            JNZ Not2
+374B  110100            LXI D,1         ;its Zero so change result
+374E  C37834            JMP Push
+3751  110000    Not2    LXI D,0
+3754  C37834            JMP Push        ;onto stack let
+                                        ;push ret for us
+
+
+
+L/1 Interpreter Source list                     August 10, 1980
+Copywrite 1980 by Ralph E. Kenyon Jr.           page  11
+
+
+3757  CD7D34    Swap    CALL Pop        ;S(t)
+375A  D5                PUSH D          ;to TOS
+375B  CD7D34            CALL Pop        ;S(t-1) to DE
+375E  E3                XTHL            ;S(t) TO HL, t-1 to TOS
+375F  EB                XCHG            ;S(t) to DE, S(t-1) to HL
+3760  E3                XTHL            ;t-1 to HL, S(t-1) to TOS
+3761  CD7834            CALL Push       ;S(t-1) to TOS
+3764  D1                POP D           ;S(t-1) to DE
+3765  C37834            JMP Push        ;S(t-1) to TMS
+                                        ;let push return for us.
+
+3768  2A2732    retn    LHLD Base
+376B  110300            LXI D,3
+376E  19                DAD D
+376F  29                DAD H
+3770  EB                XCHG
+3771  CD8234            CALL MinDE
+3774  2A3232            LHLD TMStack
+3777  19                DAD D
+3778  CD7D34            CALL Pop        ;TMPC
+377B  D5                PUSH D
+377C  C1                POP B
+377D  CD7D34            CALL Pop        ;Dynamic link
+3780  EB                XCHG
+3781  222732            SHLD Base
+3784  EB                XCHG
+3785  23                INX H           ;We don't need that
+3786  23                INX H           ;static link now
+3787  C9                RET
+
+3788  CD7D34    Sete    CALL Pop
+378B  D5                PUSH D
+378C  CD7D34            CALL Pop
+378F  E3                XTHL
+3790  7A                MOV A,D
+3791  BC                CMP H
+3792  C2A137            JNZ SETE1
+3795  7B                MOV A,E
+3796  BD                CMP L
+3797  C2A137            JNZ SETE1
+379A  110100            LXI D,1         ;they're equal
+379D  E1                POP H
+379E  C37834            JMP Push        ;let push return for us
+
+37A1  110000    SETE1   LXI D,0         
+37A4  E1                POP H
+37A5  C37834            JMP Push        ;let push return for us
+
+37A8  CD7D34    Setlg   CALL Pop
+37AB  D5                PUSH D          ;S(t) to TOS
+37AC  CD7D34            CALL Pop        ;S(t-1) to DE
+37AF  E3                XTHL            ;S(t) to HL
+37B0  3A2632            LDA Inst
+
+
+
+L/1 Interpreter Source list                     August 10, 1980
+Copywrite 1980 by Ralph E. Kenyon Jr.           page  12
+
+37B3  E602              ANI 2           ;Setgt?
+37B5  CAB937            JZ Set1
+37B8  EB                XCHG            ;Reverse for Setgt
+37B9  CD8234    Set1    CALL MinDE      ;-S(t-1)
+37BC  19                DAD D           ;Want 0<S(t)-S(t-1)
+37BD  2B                DCX H           ;Sign test uses >= 0
+37BE  7C                MOV A,H         ;Look at sign
+37BF  B7                ORA A           ;Set flags
+37C0  E1                POP H           ;TMSP
+37C1  110100            LXI D,1         ;Assume true
+37C4  F2C837            JP Set2         ;Jump if true
+37C7  1B                DCX D           ;Falls thru if false
+37C8  C37834    Set2    JMP Push        ;Let Push return for us
+
+                ;Note: RAV assumes that the address on the stack
+                ;is a relative address from the TM stack pointer
+                ;with 1 for each 16 bit push or pop.  We multiply
+                ;the two's complement by 2 and add it to
+                ;the address in TMStack (Top of memory)
+
+37CB  CD7D34    Rav     CALL Pop        ;Get S(t)
+37CE  E5                PUSH H          ;Save SP
+37CF  2A3232            LHLD TMStack
+37D2  13                INX D           ;We need to be above by 1
+37D3  CD8234            CALL MinDE
+37D6  19                DAD D           ;(MEMTOP-2*T)
+37D7  19                DAD D           ;stack address now in hl
+37D8  CD7D34            CALL Pop        ;Get S(S(t))
+37DB  E1                POP H           ;Restore TMSP
+37DC  C37834            JMP Push        ;S(t):=S(S(t))
+
+37DF  CD7D34    Sto     CALL Pop        ;S(t) to be stowed
+37E2  D5                PUSH D          ;save it
+37E3  CD7D34            CALL Pop        ;address to stow S(t) in
+37E6  E3                XTHL            ;(We'll want S(t) first)
+37E7  E5                PUSH H          ;Need to use HL
+37E8  CD8234            CALL MinDE      ;Convert Stack
+37EB  2A3232            LHLD TMStack    ;address
+37EE  19                DAD D           ;(MEMTOP-2*T)
+37EF  19                DAD D           ;stack address now in hl
+37F0  D1                POP D           ;Get S(t)
+37F1  CD7834            CALL Push       ;S(S(T-1)):=S(T)
+37F4  E1                POP H           ;T-2 to TMSP
+37F5  C9                RET
+
+37F6  CD7D34    Inc     CALL Pop        ;S(t) to de, t-1 in HL
+37F9  CD8234            CALL MinDE
+37FC  19                DAD D
+37FD  19                DAD D           ;S(t)+t-1 to HL
+37FE  C9                RET
+
+37FF  E5        INB     PUSH H          ;Save VMSP
+3800  C5                PUSH B          ;Save VMPC
+3801  216F38            LXI H,Ifpr      ;get one from him.
+
+
+
+L/1 Interpreter Source list                     August 10, 1980
+Copywrite 1980 by Ralph E. Kenyon Jr.           page  13
+
+3804  11CB2D    IFR1    LXI D,FILE      ;File descriptor buffer
+3807  014441            LXI B,'AD'      ;Default file extension
+380A  CDDB34            CALL Gf
+380D  D28C38            JNC IFR2        ;Gfid found the file
+                                        ;so go read it
+
+3810  AF                XRA A           ;Checks for error
+3811  82                ADD D           ;code 0503H
+3812  FE05              CPI 5
+3814  C20F04            JNZ Err         ;Wrong one
+3817  83                ADD E
+3818  FE08              CPI 8           ;adds up to 8
+381A  C20F04            JNZ Err         ;No good!
+381D  212638            LXI H,Cinb      ;Set up to get input
+3820  22EB35            SHLD IFR        ;from the consol
+3823  C1                POP B           ;VMPC
+3824  E1                POP H           ;VMSP
+3825  C9                RET
+
+                ; Additional inputs jump to here
+
+3826  CD200C    Cinb    CALL WH0        ;We're inputting from
+3829  E5                PUSH H          ;the consol
+382A  2A3232            LHLD TMStack    ;Where it goes
+382D  77                MOV M,A         ;Put it in
+382E  E1                POP H           ;VMSP
+382F  C9                RET
+
+3830  0D546865  Ifprn   DB CR,'The input file''s empty.'
+3834  20696E70
+3838  75742066
+383C  696C6527
+3840  7320656D
+3844  7074792E
+3848  0D576861  DB CR,'What''s the continuation file''s name? ',0
+384C  74277320
+3850  74686520
+3854  636F6E74
+3858  696E7561
+385C  74696F6E
+3860  2066696C
+3864  65277320
+3868  6E616D65
+386C  3F2000
+386F  57686174  Ifpr    DB 'What''s the input file name? ',0
+3873  27732074
+3877  68652069
+387B  6E707574
+387F  2066696C
+3883  65206E61
+3887  6D653F20
+388B  00
+
+388C  21CB2D    IFR2    LXI H,FILE      ;READ starts here
+
+
+
+L/1 Interpreter Source list                     August 10, 1980
+Copywrite 1980 by Ralph E. Kenyon Jr.           page  14
+
+388F  7E                MOV A,M
+3890  E607              ANI 7           ;trim down to drive no.
+3892  326032            STA IFD         ;Drive number
+3895  23                INX H
+3896  7E                MOV A,M         ;FDE flag byte
+3897  E61F              ANI 1FH         ;trim to file size
+3899  C603              ADI 3           ;point past extension
+389B  5F                MOV E,A         ;Put into DE
+389C  1600              MVI D,0
+389E  19                DAD D           ;Add to Address in HL
+389F  EB                XCHG            ;FDA pointer now in DE
+38A0  216132            LXI H,IFA       ;Where the addresses go
+38A3  0E04              MVI C,4         ;4 bytes to copy
+38A5  1A        CIFD    LDAX D          ;Get the data
+38A6  77                MOV M,A         ;from the FDB (FILE)
+38A7  23                INX H           ;and copy into the
+38A8  13                INX D           ;areas for our Dio
+38A9  0D                DCR C           ;routines
+38AA  C2A538            JNZ CIFD        ;More to copy
+38AD  216733            LXI H,IFB+100H  ;Reset the
+38B0  226532            SHLD IFP        ;buffer pointer too
+38B3  21BC38            LXI H,Inb       ;Furthur calls to Reader
+38B6  22EB35            SHLD IFR        ;the reader
+38B9  C1                POP B           ;VMPC
+38BA  E1                POP H           ;VMSP
+38BB  C9                RET
+
+                ; Routine to input from an open file
+
+38BC  E5        Inb     PUSH H          ;Save VMSP
+38BD  C5                PUSH B          ;Save VMPC
+38BE  2A6532    RD1     LHLD IFP
+38C1  116733            LXI D,IFB+100H
+38C4  7C                MOV A,H
+38C5  BA                CMP D
+38C6  C2CE38            JNZ RD2
+38C9  7D                MOV A,L
+38CA  BB                CMP E
+38CB  CADA38            JZ RD3
+38CE  7E        RD2     MOV A,M
+38CF  23                INX H
+38D0  226532            SHLD IFP
+38D3  C1                POP B           ;VMPC
+38D4  2A3232            LHLD TMStack    ;Here's where
+38D7  77                MOV M,A         ;we put it
+38D8  E1                POP H           ;VMSP
+38D9  C9                RET
+
+38DA  2A6332    RD3     LHLD IFS
+38DD  7C                MOV A,H
+38DE  B7                ORA A
+38DF  C2EC38            JNZ RD4
+38E2  B5                ORA L
+38E3  C2EC38            JNZ RD4
+
+
+
+L/1 Interpreter Source list                     August 10, 1980
+Copywrite 1980 by Ralph E. Kenyon Jr.           page  15
+
+
+                ; We've reached the end of the input file
+                ; so, we ask for another one
+
+38E6  213038            LXI H,Ifprn
+38E9  C30438            JMP IFR1
+
+38EC  2B        RD4     DCX H           ;Got to get another
+38ED  226332            SHLD IFS        ;sector from disk
+38F0  216732            LXI H,IFB
+38F3  226532            SHLD IFP
+38F6  D5                PUSH D
+38F7  EB                XCHG
+38F8  2A6132            LHLD IFA        ;Get disk address
+38FB  23                INX H           ;update for next time
+38FC  226132            SHLD IFA        ;and save
+38FF  2B                DCX H           ;back to the one we want
+3900  C5                PUSH B          ;going to preserve B
+3901  0601              MVI B,1         ;Read
+3903  3A6032            LDA IFD         ;Drive for input file
+3906  4F                MOV C,A         ;into C
+3907  3E01              MVI A,1         ;1 sector
+3909  CD0604            CALL Dio        ;Get it
+390C  C1                POP B           ;restore
+390D  D1                POP D           ;this too
+390E  D2BE38            JNC RD1         ;Now we can get another byte
+3911  C30F04            JMP Err
+
+3914  57686174  Ofpr    DB 'What''s the output file name? ',0
+3918  27732074
+391C  6865206F
+3920  75747075
+3924  74206669
+3928  6C65206E
+392C  616D653F
+3930  2000
+
+3932  FE03      CK1     CPI 3           ;Now lets check
+3934  C20F04            JNZ Err         ;for the 0503 error
+3937  82                ADD D
+3938  FE08              CPI 8           ;adds up to 8
+393A  C20F04            JNZ Err         ;No good!
+393D  214639            LXI H,Coutb
+3940  22ED35            SHLD OFR
+3943  C1                POP B           ;VMPC
+3944  E1                POP H           ;VMSP
+3945  C9                RET
+
+                ; Ouputs jump to here
+
+3946  E5        Coutb   PUSH H          ;We're outputting to the consol
+3947  2A3232            LHLD TMStack
+394A  7E                MOV A,M
+394B  CD240C            CALL WH1
+
+
+
+L/1 Interpreter Source list                     August 10, 1980
+Copywrite 1980 by Ralph E. Kenyon Jr.           page  16
+
+394E  E1                POP H
+394F  C9                RET
+
+3950  E5        OUTB    PUSH H          ;Save VMSP
+3951  C5                PUSH B          ;Save VMPC
+3952  211439            LXI H,Ofpr      ;get one from him.
+3955  113432            LXI D,FDB       ;File descriptor buffer
+3958  014941            LXI B,'AI'      ;('AI' is default ext)
+395B  CDDB34            CALL Gf
+395E  D2CF34            JNC Out2
+3961  AF                XRA A           ;Checks for error
+3962  83                ADD E           ;code 0300H or 0503H
+3963  C23239            JNZ CK1         ;Does not return
+3966  82                ADD D           ;unless one was
+3967  FE03              CPI 3           ;found. Sets CARRY
+3969  C20F04            JNZ Err         ;Need to have
+                                        ;a 0300 error
+396C  213432            LXI H,FDB       ;We need to save this
+                                        ;for close
+396F  7E                MOV A,M
+3970  E607              ANI 7           ;trim down to drive no.
+3972  326733            STA OFD         ;Drive number
+3975  23                INX H
+3976  7E                MOV A,M         ;FDE flag byte
+3977  E61F              ANI 1FH         ;trim to file size
+3979  C603              ADI 3           ;point past extension
+397B  5F                MOV E,A         ;Put into DE
+397C  1600              MVI D,0
+397E  19                DAD D           ;Add to Address in HL
+397F  EB                XCHG            ;FDA pointer now in DE
+3980  216833            LXI H,OFA       ;Where the addresses go
+3983  0E04              MVI C,4         ;4 bytes to copy
+3985  1A        COFD    LDAX D          ;Get the data
+3986  77                MOV M,A         ;from the FDB
+3987  23                INX H           ;and copy into the
+3988  13                INX D           ;areas for our Dio
+3989  0D                DCR C           ;routines
+398A  C28539            JNZ COFD        ;More to copy
+398D  216E33            LXI H,OFB       ;Reset the
+3990  226C33            SHLD OFP        ;buffer pointer too
+3993  219C39            LXI H,Outb      ;characters thru
+3996  22ED35            SHLD OFR
+3999  C1                POP B           ;VMPC
+399A  E1                POP H           ;VMSP
+399B  C9                RET
+
+                ; Routine to output to an open file
+                ; thru calls to Outb
+
+399C  F5        Outb    PUSH PSW        ;For writing
+399D  C5                PUSH B
+399E  D5                PUSH D
+399F  E5                PUSH H
+39A0  216400            LXI H,Ioret
+
+
+
+L/1 Interpreter Source list                     August 10, 1980
+Copywrite 1980 by Ralph E. Kenyon Jr.           page  17
+
+39A3  E5                PUSH H
+39A4  2A3232            LHLD TMStack    ;Get the char
+39A7  7E                MOV A,M
+
+                ;The rest of this is called as a subroutine for
+                ;filling up the last sector with zeros also.
+
+39A8  2A6C33    Store   LHLD OFP
+39AB  77                MOV M,A         ;put char in buffer
+39AC  116E34            LXI D,Flag
+39AF  1A                LDAX D
+39B0  B7                ORA A
+39B1  C2B639            JNZ Store1
+39B4  3D                DCR A           ;We've been had!
+39B5  12                STAX D
+39B6  23        Store1  INX H           ;bump pointer
+39B7  226C33            SHLD OFP
+39BA  116E33            LXI D,OFB
+39BD  25                DCR H
+39BE  7C                MOV A,H
+39BF  BA                CMP D
+39C0  C0                RNZ
+39C1  7D                MOV A,L
+39C2  BB                CMP E
+39C3  C0                RNZ
+
+                ;pointer now points at OFB so do DIO.
+                
+39C4  226C33            SHLD OFP        ;DE points at OFB
+39C7  2A6A33            LHLD OFS        ;Number of sectors
+39CA  23                INX H           ;One more
+39CB  226A33            SHLD OFS
+39CE  2A6833            LHLD OFA        ;Disk address
+39D1  23                INX H           ;Up date for next time
+39D2  226833            SHLD OFA
+39D5  2B                DCX H           ;Here's where we write
+39D6  3A6733            LDA OFD         ;Drive
+39D9  4F                MOV C,A         ;Drive no.
+39DA  0600              MVI B,0         ;Write
+39DC  3E01              MVI A,1         ;one sector
+39DE  CD0604            CALL Dio
+39E1  DA0F04            JC Err
+39E4  C9                RET
+
+                ; Routines for closing the file
+
+
+39E5  E5        TURNOFF PUSH H          ;Save VMSP
+39E6  C5                PUSH B          ;Save VMPC
+39E7  3A6E34            LDA Flag        ;See if we're
+                                        ;still Virgin.
+39EA  B7                ORA A           ;(Also for closing
+39EB  CA213A            JZ TO1          ;a read file.)
+39EE  3A6C33    Fill    LDA OFP         ;Not virgin,
+
+
+
+L/1 Interpreter Source list                     August 10, 1980
+Copywrite 1980 by Ralph E. Kenyon Jr.           page  18
+
+39F1  FE6E              CPI OFB AND 0FFH
+39F3  3E00              MVI A,0
+39F5  CAFE39            JZ Close1
+39F8  CDA839            CALL Store      ;fill up last sector
+39FB  C3EE39            JMP Fill        ;with zeros
+
+39FE  213532    Close1  LXI H,FDB+1
+3A01  7E                MOV A,M
+3A02  E61F              ANI 1FH         ;strip down to length
+3A04  C605              ADI 5           ;Point past ext and FDA
+3A06  5F                MOV E,A
+3A07  1600              MVI D,0
+3A09  19                DAD D
+3A0A  EB                XCHG            ;adr of DNS now in DE
+3A0B  2A6A33            LHLD OFS
+3A0E  EB                XCHG
+3A0F  73                MOV M,E
+3A10  23                INX H
+3A11  72                MOV M,D         ;length now updated
+3A12  213432            LXI H,FDB
+3A15  7E                MOV A,M
+3A16  E67F              ANI 7FH
+3A18  77                MOV M,A
+3A19  3E01              MVI A,1         ;enter new output
+                                        ;file in directory
+3A1B  CDDD34            CALL Gf1
+3A1E  DA0F04            JC Err
+3A21  AF        TO1     XRA A           ;Virgin exit.
+3A22  326E34            STA Flag
+3A25  215039    Out1    LXI H,OUTB      ;Restore calling address
+3A28  22ED35            SHLD OFR        ;to open a file
+3A2B  C1                POP B           ;VMPC
+3A2C  E1                POP H           ;VMSP
+3A2D  C9                RET
+
+                Origin  hlt     ;L0 MACRO instruction
+3A2E  80        Origin  DB 80H
+3A2F            Pgmaddr EQU $
+                
+                ; We load the executable file on top
+                ;of the Start code !!
+
+3A2F  2A802D    Start   LHLD MEMTOP
+3A32  223232            SHLD TMStack
+3A35  210032            LXI H,USER
+3A38  36C9              MVI M,RET       ;Don't START again
+3A3A  2AC72D            LHLD CMPTR      ;Cmd pointer
+3A3D  7E                MOV A,M
+3A3E  FE0D              CPI CR
+3A40  CAD434            JZ Out3
+3A43  113432            LXI D,FDB       ;File descriptor block
+                                        ;built by Gfid
+3A46  01304C            LXI B,4C30H     ;L/0 extension for
+                                        ;default is L0
+
+
+
+L/1 Interpreter Source list                     August 10, 1980
+Copywrite 1980 by Ralph E. Kenyon Jr.           page  19
+
+3A49  3E60              MVI A,60H
+3A4B  CDDD34            CALL Gf1
+3A4E  DAD834            JC Out          ;Something Wrong!
+3A51  213432            LXI H,FDB
+3A54  7E                MOV A,M
+3A55  E607              ANI 7           ;Kill flags
+3A57  77                MOV M,A
+3A58  23                INX H           ;Move up to FDE flags.
+3A59  7E                MOV A,M
+3A5A  E61F              ANI 1FH         ;Kill flags
+3A5C  C603              ADI 3           ;Point past ext
+3A5E  5F                MOV E,A
+3A5F  1600              MVI D,0
+3A61  19                DAD D           ;Addr of FDA
+3A62  5E                MOV E,M
+3A63  23                INX H
+3A64  56                MOV D,M
+3A65  23                INX H
+3A66  3A3432            LDA FDB
+3A69  4F                MOV C,A         ;Drive to C
+3A6A  0601              MVI B,1         ;Read
+3A6C  7E                MOV A,M         ;DNS
+3A6D  EB                XCHG            ;FDA to HL
+3A6E  112F3A            LXI D,Pgmaddr   ;Where to put it
+3A71  C3E534            JMP GETP
+
+                        END
+
+
+
+Error total = 0
+
+
+        Macros defined in this assembly:
+
+L0CODE          add             bnz             br
+call            div             hlt             inb
+inc             lad             lic             mod
+mul             neg             nop             not
+outb            rav             ret             sete
+setgt           setlt           sto             sub
+swap
+
+        Labels defined in this assembly:
+
+AR1     322C AR2        322E AR3        3230 BASE       34C5
+BASE1   34AD Base       3227 Br         35B9 CIFD       38A5
+CK1     3932 CMPTR      2DC7 COFD       3985 CONV       348C
+CR      000D Call       353C Cinb       3826 Close1     39FE
+Coutb   3946 DBZ        3206 DBZ1       36EB DBZER      36E5
+DIVD    3699 DIVD1      36AC DIVD2      36BF DIVD3      36CB
+DIVD4   36DD DIVD6      36DF DIVD7      36B9 Dio        0406
+Done    3730 Err        040F FDB        3234 FILE       2DCB
+Fetch   3471 Fill       39EE Flag       346E GETP       34E5
+
+
+
+L/1 Interpreter Source list                     August 10, 1980
+Copywrite 1980 by Ralph E. Kenyon Jr.           page  20
+
+GO      3511 GStL       349D GStL1      34A2 Gf         34DB
+Gf1     34DD Halt       360B IFA        3261 IFB        3267
+IFD     3260 IFP        3265 IFR        35EB IFR1       3804
+IFR2    388C IFS        3263 IFflg      346F INB        37FF
+Ifpr    386F Ifprn      3830 Inb        38BC Inc        37F6
+Inst    3226 Ioret      0064 Jtbl       35CB Lad        352A
+Level   322B Lic        3581 Lic1       358F MEMTOP     2D80
+MULT    364E MULT1      365F MULT2      366B MULT3      3672
+MULT4   3677 MULT5      3681 MULT6      3686 MULT7      3690
+MULT8   3693 MinDE      3482 Mod        36F2 Mod1       3709
+Mod3    372D Msg        040C Neg        3736 Not        373F
+Not1    3747 Not2       3751 OFA        3368 OFB        336E
+OFD     3367 OFP        336C OFR        35ED OFS        336A
+OFflg   3470 OUTB       3950 Ofpr       3914 Origin     3A2E
+Out     34D8 Out0       34D6 Out1       3A25 Out2       34CF
+Out3    34D4 Outb       399C Ovrto      0412 Pgmaddr    3A2F
+Pop     347D Push       3478 RD1        38BE RD2        38CE
+RD3     38DA RD4        38EC Rav        37CB Ret        0528
+SETE1   37A1 SUBT       36D4 SUBTR      3715 Set1       37B9
+Set2    37C8 Sete       3788 Setlg      37A8 Start      3A2F
+Static  3229 Sto        37DF Store      39A8 Store1     39B6
+Swap    3757 TEST       371D TMStack    3232 TO1        3A21
+TURNOFF 39E5 USER       3200 WH0        0C20 WH1        0C24
+Warm    0403 addsub     3616 branch     35A6 lic2       359B
+lic3    359E lic4       35A2 muldiv     362D opr        356D
+oprlic  3569 retn       3768
+
+

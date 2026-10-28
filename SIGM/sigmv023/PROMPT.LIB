@@ -1,0 +1,31 @@
+
+{	PROMPT
+
+	Takes message, formats into fixed length string, and
+	writes it to the console.
+	The calling program passes the prompt and will handle actual
+	date input.
+
+	Requires globally declared
+		TYPE	string255 = string 255
+		FUNCTION length;
+}
+
+PROCEDURE prompt (msg : string255);
+
+CONST	msglength = 12;	{ should be longer than longest message }
+	leader = '.';	{ could be a space if desire }
+	endprompt = ' =>  ';
+
+VAR	count : integer;
+	esc : char;
+
+begin
+	append (msg,' ');
+	if length(msg) < msglength then
+		for count := succ(length(msg)) to msglength do
+			append (msg,leader);
+	write (msg,endprompt)
+end;
+
+

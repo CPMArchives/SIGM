@@ -1,0 +1,139 @@
+ttsddj.hlp
+Bring CP/M 2.2 up on the Single Density Disk Jockey
+Files required
+Author / Programmers credits
+Help file version information
+:ttsddj.hlp
+
+	This is ttsddj, which stands for:
+
+
+		Thinker
+		Toys
+		Single
+		Density
+		Disk
+		Jockey
+		
+			.hlp 
+
+				hlp being the file type for a help file
+
+
+:Bringing CP/M 2.2 up on the Thinker Toys Single Density Disk Jockey
+
+1. Modify TTCBIOS.ASM for your console and other I/O
+
+2. Make sure that MSIZE is set equal to 20 in both TTCBIOS.ASM & TTBOOT.ASM
+
+3. Assemble both TTCBIOS & TTBOOT
+
+4. You will need a copy of a 20K version of CP/M 2.2, use SYSGEN to get a
+   copy off of your master CP/M disk and save it as a COM file:
+
+	A>SYSGEN
+	SOURCE DRIVE (OR RETURN TO SHIP) B
+        SOURCE ON B, THEN TYPE RETURN
+	FUNCTION COMPLETE
+	DESTINATION DRIVE NAME (OR RETURN TO REBOOT)
+
+	A>SAVE 35 CPM20.COM
+
+5. Now we can insert our 'customized' boot & cbios into this 20K version
+   of CP/M using DDT.COM:
+
+	A>DDT
+	DDT VERS 1.4
+	-ICPM20.COM
+	-R
+	NEXT  PC
+	2400 0100
+	-ITTBOOT.HEX
+	-R880
+	NEXT  PC
+	2400 0100
+	-ITTCBIOS.HEX
+	-RD580                  (for systems larger than 20K this value will
+	NEXT  PC		 change. Use the value of OFFSET from TTCBIOS)
+	2400 0100
+	-^C
+	A>SAVE 35 CPM20NEW.COM
+	A>SYSGEN CPM20NEW.COM 	(Put a clean disk to receive the new CP/M 2.2
+	SYSGEN			 system into drive B)
+	DESTINATION DRIVE NAME (OR RETURN TO REBOOT)B
+	DESTINATION DRIVE NAME (OR RETURN TO REBOOT)
+	A>
+
+6. You should now take your 'new CP/M 2.2 disk' from drive B, insert it
+   into drive A, and boot your system.  
+
+7. Your CP/M 2.2 Single Density Disk Jockey system should sign on.
+
+8. Now try saving files with the save command and see if they appear in
+   the directory.  Try using ^C to Warm boot.  If everything works ok,
+   you're on your way with CP/M 2.2 on the DJSD system.
+:Files Required
+
+		The files required to bring CP/M 2.2 up on the
+single density Thinker Toys disk jockey are:
+
+
+		TTBOOT.ASM	Cold boot loader 
+
+		TTCBIOS.ASM	The source for the Basic I/O system
+				
+		TTSDDJ.HLP	This Help file  (Optional)
+:Author / Programmers Credits
+
+
+	Full credit should be given to the original cbios and hardware
+creators:
+
+		Thinker Toys
+		5221 Central Ave
+		Richmond, CA 94804
+
+	
+	The original CP/M 1.4 cbios was re-written / modified for CP/M 2.2
+and minimized to fit smaller area provided by CP/M 2.2 (compared to 1.4) by:
+
+		Jack Burge
+		518-A Fifth Street
+		East Northport, NY 11731
+
+
+	The MSIZE, DELTA, CCP Equates to allow easy changing of the system
+size came from excellent software written by:
+
+		TKI   (The Kendall Institute)
+		Bruce Kendall
+		334-A Camille Ct
+		Mountain View, CA 94040
+	
+
+	All I did was put everything together, patching TKI's equates into
+software re-written by Jack Burge.  These equates by TKI REALLY simplify
+changing system size.  The ideas and design of the section 'Bringing CP/M 2.2
+up...' is from Bruce Kendall.  I liked Bruce's design, so I used it.
+
+	I also created this hlp file and accept a small credit for the ease 
+with which this software can now be implimented following the instructions
+in this file.  It wasn't so quick or easy for me.  I'm trying to make it easier
+for others.  I hope I have succeeded.
+
+		Henry B. Rothberg
+		1 Laticrete Park
+		Bethany,  CT 06525
+:Help file version information
+
+
+		File:		TTSDDJ.HLP
+
+		Version:	1.0
+
+		Creation date:	1/12/82
+
+		Revision date:	 
+
+		Author:		Henry B. Rothberg
+

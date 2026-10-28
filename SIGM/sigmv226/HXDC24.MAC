@@ -1,0 +1,110 @@
+.comment \
+
+HXDC24 module by ESKAY 08-21-84
+
+HXDC24 converts a 24 bit number in EHL and stores it at (IX)
+on exit, IX points to the byte following the 8-digit number,
+all other registers are undefined.
+
+This module is in the Public Domain and may be used, improved,
+updated and otherwise treated as necessary for any particular
+application. This module may be used freely in commercial
+programming but may not be sold as an individual component.
+
+There are 4 modes of operation supported, as determined by the contents
+of the accumulator on entry:
+
+A = 0	raw conversion with leading zeroes
+A = 1	conversion with no leading zeroes
+A = 2	conversion with leading zeroes and commas as thousands dividers
+A = 3	conversion with no leading zeroes, with commas
+
+	(bits 0 and 1 are used, all others are insignificant)
+
+	Have fun displaying 24-bit numbers!
+
+\
+.z80
+;
+	public	hxdc24
+;
+hxdc24:	ld	(flag),a	;save the mode flag
+	ld	bc,6980h	;-10,000,000
+	ld	d,67h
+	call	mkdec		;make tens of millions
+	ld	bc,0bdc0h	;-1,000,000
+	ld	d,0f0h
+	call	mkdec		;make millions
+	ld	a,(flag)
+	bit	0,a		;if commas flag reset...
+	jr	z,skc		;then skip commas
+	call	putcm		;  else may need a comma
+skc:	ld	bc,7960h	;-100,000
+	ld	d,0feh
+	call	mkdec		;make hundreds of thousands
+	ld	bc,-10000
+	ld	d,0ffh
+	call	mkdec		;make tens of thousands
+	ld	bc,-1000
+	call	mkdec		;make thousands (D reg is preserved FF)
+	ld	a,(flag)
+	bit	0,a		;if commas flag reset...
+	jr	z,skc1		;then skip commas
+	call	putcm		;  else may need a comma
+skc1:	ld	bc,-100
+	call	mkdec		;make hundreds
+	ld	bc,-10
+	call	mkdec		;make tens
+	ld	bc,-1
+	call	mkdec		;make units
+;	ret	nz
+;	ld	a,'0'
+;	call	putcx
+	ret
+;
+mkdec:	ld	iy,-1		;set up counter
+mkdecl:	ld	(hltmp),hl	;save intermediate result
+	ld	(detmp),de
+	inc	iy
+	add	hl,bc		;subtract DBC from EHL until carry...
+	ld	a,e		;...IY then has the decimal digit
+	adc	a,d
+	ld	e,a
+	jr	c,mkdecl
+	ld	hl,(hltmp)	;restore intermediate result
+	ld	de,(detmp)
+	push	iy		;get IY into BC
+	pop	bc
+	push	hl		;save HL
+	ld	hl,flag		;get flag byte
+	ld	a,c		;if digit <> 0...
+	or	a
+	jr	nz,doput	;...then put it out...
+	bit	1,(hl)		;...else if zero suppress...
+	jr	nz,nozer	;...then skip
+doput:	res	1,(hl)		;once we have a non-zero, suppress flag is off
+	add	a,'0'		;make ascii digit
+	call	putcx		;put it away at (IX)
+nozer:	pop	hl		;restore hl
+	ret
+;
+; conditional comma output
+; make comma only if preceded by a digit
+;
+putcm:	ld	a,(flag)
+	bit	1,a		;if flag bit 1 is on...
+	ret	nz		;...then leading zeroes being suppressed...
+	ld	a,','		;else output comma
+;
+; store A at (IX) and increment pointer
+;
+putcx:	ld	(ix+0),a
+	inc	ix
+	ret
+;
+hltmp:	dw	0		;temporary storage
+detmp:	dw	0
+flag:	db	0		;mode flag byte
+	end
+),hl	;save intermediate result
+	

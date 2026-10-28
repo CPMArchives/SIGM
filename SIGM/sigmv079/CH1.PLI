@@ -1,0 +1,41 @@
+ch1: proc options(main);	/* chain subroutine tester */
+
+	dcl fcbptr ptr;
+
+	dcl 1 fcb based(fcbptr),
+	      2 drive fixed(7),
+	      2 name char(8),
+	      2 type char(3),
+	      2 ext(4) fixed(7),
+
+	    dummy char(16) based(fcbptr);
+
+	dcl
+	    chain entry(char(16)),
+	    fparse entry(ptr,ptr,fixed(7));
+
+
+	dcl
+	    UPPERCASE      char(26) static init('ABCDEFGHIJKLMNOPQRSTUVWXYZ'),
+	    LOWERCASE      char(26) static init('abcdefghijklmnopqrstuvwxyz'),
+	    filename       char(14),
+	    retcode        fixed(7);
+
+	/* base fcb at default fcb (5CH) */
+	unspec(fcbptr) = '005C'b4;
+
+	put skip list('Executing Chain Test');
+	if fcb.name = '' then do;
+            put skip list
+	       ('Chain to ..............^H^H^H^H^H^H^H^H^H^H^H^H^H^H');
+	    get list (filename);
+	    filename = translate(filename,UPPERCASE,LOWERCASE);
+	    call fparse(addr(filename),fcbptr,retcode);
+	    if retcode > 1 then
+	        put skip(2) list('Invalid Filename');
+	    end;
+	fcb.type = 'COM';
+	call chain(dummy);
+	put skip(2) list('Shouldn''t be here !!');
+end ch1;
+

@@ -1,0 +1,1967 @@
+;	***** INVADERS *****
+;
+; Space invaders for Z80 + ETI-640.
+; Need CP/M 2.X due to use of direct I/O system call.
+;
+; The following patches will be required for different systems
+;	1.  SCREEN....Patch to the start address of your VDU.
+;	2.  FLASH.....Should equal 1 for standard ETI640.
+;
+INVADR:	ORG	0100H	;Origin in TPA of CP/M.
+;
+; CPM EQUATES
+BIOS	EQU	5	;System call entry point.
+RDCON	EQU	1	;Read console function number.
+DIRIO	EQU	6	;Direct I/O function number.
+BOOT	EQU	0	;Warm-boot CP/M.
+CTRLC	EQU	3	;Exit character.
+;
+SCREEN	EQU	0E800H	;Start of screen RAM.
+;
+TOPLFT	EQU	SCREEN		;Top left of screen.
+TOPRIT	EQU	SCREEN+3FH	;Top right of screen.
+BOTLFT	EQU	SCREEN+3C0H	;Bottom left of screen.
+BOTRIT	EQU	SCREEN+3FFH	;Bottom right of screen.
+;
+GRFBIT	EQU	2	;Weighting of chunky graphic attribute.
+FLASH	EQU	1	;Flashing attribute for ETI640 = 1...
+			;(prog. char. select on color VDU).
+SWITCH	EQU	64	;Parallel input port for game controls.
+			;(9 for DG-Z80).
+;
+TITLDL	EQU	150	;Delay to allow reading of titles.
+MYSSDL	EQU	25	;Delay to allow viewing of mystery
+			;ship score (when hit).
+;
+;--------------------------------------------------------------
+;
+START:
+;	LD	A,1	;Init CTC timer chan. 0 (DG-Z80).
+;	OUT	(4),A	;(Not essential to operation).
+	LD	A,090H	; INITIALIZE 8255 A IN
+	OUT	(64),A
+	JR	MAIN
+;
+;--------------------------------------------------------------
+; I/O ROUTINES.
+;
+; Get character from keyboard, return to CP/M if CTRL-C.
+WAITCH:	CALL	GETCH
+	JR	Z,WAITCH
+	RET
+;
+; Get character if there, else return with zero flag,
+; return to CP/M if control-C.
+GETCH:	PUSH	DE
+	PUSH	BC
+	PUSH	HL
+	LD	C,DIRIO	;Direct I/O function.
+	LD	E,0FFH	;  (input)
+	CALL	BIOS
+	POP	HL
+	POP	BC
+	POP	DE
+	OR	A,A	;Zero means nothing available.
+	RET	Z	;Back to caller then.
+	CP	CTRLC
+	RET	NZ	;Back to caller with char if no ctrl-C
+	JP	BOOT	;Else, reboot.
+;
+; Read least significant 3 bits of switch port into <B>.
+; (3 player buttons for LEFT, RIGHT, and FIRE - all active low)
+GETSW:	IN	A,(SWITCH)
+	XOR	7
+	LD	B,A
+	RET		;Return with key-pressed=1.
+;
+	DEFB	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ;Patch space.
+	DEFB	0,0,0,0,0,0,0,0,0,0,0
+;
+;-------------------------------------------------------------
+; START OF MAIN PROGRAM.
+;
+; Clear screen and set graphic attributes at all locations.
+; Incorporate flash function at screen boundaries.
+;
+MAIN:	LD	HL,TOPLFT ;Point to top left of screen.
+CLS:	LD	(HL),0
+	CALL	CKSCRN	;Ensure that we are on screen.
+	SET	2,H	;Point <HL> to character attribute RAM.
+	JR	Z,CLS1	;Skip if not at boundary.
+	LD	(HL),GRFBIT+FLASH ;Else incorporate flash.
+	JR	CLS2
+CLS1:	LD	(HL),GRFBIT ;Set graphic attribute.
+CLS2:	RES	2,H	;Point to screen ram.
+	INC	HL	;Next location.
+	BIT	2,H	;All of screen blanked?
+	JR	Z,CLS	;Continue if not.
+;
+; Draw "chaser" of dots on perimeter of screen.
+	LD	A,28H	;Init counter.
+	LD	(COUNTR),A
+	LD	HL,SCREEN+80H ;Init screen pointer.
+	LD	(SCRADR),HL ;Save as current screen address
+	LD	BC,7
+	LD	IX,BORDR1 ;Put border patterns on screen.
+	LD	IY,BORDR2
+A0071:	PUSH	BC
+	LD	A,(COUNTR) ;Update counter.
+	SUB	4
+	AND	3FH
+	LD	(COUNTR),A
+	LD	B,A
+A007D:	LD	A,(IX+0) ;Get byte from border pattern table.
+	INC	A	;Test for -1 (terminator).
+	JR	NZ,A0088 ;Skip if not.
+	LD	DE,-24	;Else, back up IX pointer.
+	ADD	IX,DE
+A0088:	CALL	CHASER	;Draw "chaser" dots at screen boundary.
+;
+;Check player switches, skip preamble if any one pressed.
+	IN	A,(SWITCH)
+	AND	7
+	CP	7
+	JR	NZ,A00BE
+	CALL	WAIT	;Delay.
+	LD	DE,6
+	ADD	IX,DE
+	DJNZ	A007D
+	POP	BC
+	CALL	PTITLE	;Print "SPACE INVADERS" in large letters.
+	PUSH	IX
+	PUSH	IY
+	POP	IX
+	POP	IY
+	DEC	BC	;..a total of 4 times.
+	LD	A,B
+	OR	C
+	JR	NZ,A0071
+;
+	LD	HL,AUTHMS	;Print author message
+	LD	DE,SCREEN+389H	;...near bottom line.
+	CALL	PRMSG
+;
+	LD	B,TITLDL	;Delay....
+A00B9:	CALL	WAIT
+	DJNZ	A00B9
+;
+A00BE:	CALL	CLRSCN
+	LD	IX,T0ED9
+	LD	HL,0
+	LD	(CSCORL),HL	;Zero current score.
+	LD	(RSCORE),HL	;Zero previous highest score.
+	LD	A,3		;Init number of spare cannon.
+	LD	(NUMCAN),A
+	CALL	A095E		;Display advancing armies and
+				;current score of zero.
+;
+NUGAME:	CALL	A08BD
+	CALL	A08D7
+	LD	HL,STTKEY ;Print "press any key to start"
+	LD	DE,SCREEN+28EH ;...near screen centre.
+	CALL	PRMSG
+	LD	DE,(CSCORL) ;Compare current score with
+	LD	HL,(RSCORE) ;  previous high score.
+	AND	A
+	SBC	HL,DE
+	JR	NC,YAWN ;Skip if current score nothing special
+	LD	(RSCORE),DE ;Else, point to current score.
+	LD	HL,NEWHI	;Print "NEW HIGH SCORE"
+	LD	DE,SCREEN+10H	;...on top line.
+	CALL	PRMSG
+	LD	HL,PRESSN	;Print "press N to..." 
+	LD	DE,SCREEN+4AH	;...on line 2.
+	CALL	PRMSG
+	LD	DE,HIGHSCR	;Copy new high score to buffer
+	LD	HL,HIGHMS	;Point to "High Score" message
+	LD	BC,12		;12 bytes to move.
+	LDIR
+	CALL	WAITCH		;Get char from keyboard.
+	AND	0DFH
+	CP	'N'		;Start new game if not "N".
+	JR	NZ,RUN
+;
+; N key pressed, get player's name for highest score record.
+	CALL	CLRSCN
+	LD	DE,SCREEN+216H	;Player's name goes here.
+	LD	HL,HIGHSCR
+GTNAME:	LD	A,5FH	;Put prompt on screen (underline).
+	LD	(DE),A
+	XOR	A	;Set character attributes.
+	SET	2,D
+	LD	(DE),A
+	RES	2,D	;Point to screen RAM.
+	LD	BC,4	;Move 4 bytes.
+	PUSH	HL	;Save highscore pointer.
+	PUSH	DE	;Save screen pointer.
+	EX	DE,HL
+	LD	HL,T0D76
+	LDIR
+	POP	DE
+	POP	HL
+	CALL	WAITCH	;Get character from keyboard.
+	CP	0DH	;Carriage return? (name terminator).
+	JR	Z,NUGAME ;Start new game if so.
+	CP	7FH	;Delete?
+	JR	Z,A0149	;Skip if so.
+	CP	8	;Backspace?
+	JR	NZ,NAME ;Character of player's name if not.
+; Process delete or backspace character.
+A0149:	LD	A,E
+	CP	16H	;Are we already at start of name?
+	JR	Z,GTNAME ;Go no further back if so.
+	LD	A,' '	;Replace character by space.
+	LD	(DE),A
+	DEC	DE	;Back up pointers.
+	DEC	HL
+	JR	GTNAME
+;
+NAME:	LD	(HL),A	;Echo player's name to screen.
+	LD	(DE),A	;Save name also for later scores.
+	LD	A,E
+	CP	2AH	;Limit length of name.
+	JR	Z,GTNAME
+	INC	DE	;Process next character of name.
+	INC	HL
+	JR	GTNAME
+;
+YAWN:	CALL	WAITCH	;Get character from keyboard.
+;
+; Key pressed - start game.
+RUN:	LD	HL,0
+	LD	(CSCORL),HL ;Zero current score.
+	LD	A,3	;3 spare cannon.
+	LD	(NUMCAN),A
+	LD	A,6	;Init speed control byte.
+	LD	(SPEED),A
+	XOR	A	;Init game frame counter.
+	LD	(FRAMES),A
+	CALL	CLRSCN
+	CALL	A095E
+;
+;**************************************************************
+; MAIN GAME EXECUTION LOOP
+;
+GMLOOP:	CALL	SETUP	;Set up player defences and tanks,
+			;advancing armies and score.
+	CALL	A0211
+	JR	NZ,GAMOVR
+	CALL	A0542
+	CALL	GETCH	;Exit if user wants out.
+	CALL	A05DA
+	JR	NZ,GAMOVR
+	CALL	A0833
+	CALL	A0542
+	CALL	A05DA
+	JR	NZ,GAMOVR
+	LD	A,(SPEED)
+	JR	A01A6
+;
+DELAY:	LD	B,0	;Delay.....
+DELA1:	DJNZ	DELA1
+DELA2:	DJNZ	DELA2
+A01A6:	DEC	A	;Faster.
+	JR	NZ,DELAY
+	JP	GMLOOP
+;
+;**************************************************************
+;
+GAMOVR:	LD	HL,OVERMS	;Point to "Game Over" message
+	LD	DE,SCREEN+210H	;...near centre of screen.
+	CALL	PRMSG		;Print message.
+	JP	NUGAME		;Prepare to restart.
+;
+SETUP:	LD	A,(FRAMES)	;Get frame count.
+	DEC	A		;Count frames.
+	JP	M,A01C4		;Skip if first frame.
+	AND	0FH		;Else, limit to 0-15
+	LD	(FRAMES),A	;...and update count.
+A01C4:	CALL	GETSW		;Read player's switches.
+	BIT	2,B		;FIRE switch pressed?
+	JR	NZ,FIRE		;Fire if so.
+	LD	A,-1		;Else, set firing flag to -1.
+	LD	(FIREFL),A
+A01D0:	BIT	0,B		;LEFT switch pressed?
+	JR	NZ,LEFT		;Move cannon left if so.
+	BIT	1,B		;RIGHT switch pressed?
+	RET	Z		;Return if none pressed.
+;
+RIGHT:	LD	A,(CANPOS)	;Get active cannon's position.
+	INC	A		;Prepare to move it right.
+	CP	3CH		;Do nothing if too far right.
+	RET	NC
+	LD	(CANPOS),A	;Else, update position.
+	JP	A09D0
+;
+LEFT:	LD	A,(CANPOS)	;Get active cannon's position.
+	DEC	A		;Prepare to m/ve it right.
+	CP	0FFH		;Do nothing if too far left.
+	RET	Z
+	LD	(CANPOS),A	;Else, update position.
+	JP	A09D0
+;
+; Fire cannon.
+FIRE:	LD	A,(FIREFL)	;Test fire flag.
+	LD	A,(FRAMES)
+	OR	A
+	JR	NZ,A01D0	;Skip if not first frame.
+	LD	A,9		;9 frames to a standard game.
+	LD	(FRAMES),A
+	XOR	A		;Zero fire flag.
+	LD	(FIREFL),A
+	LD	A,99H		;Load cannon.
+	LD	HL,(D0E4B)
+	RES	2,H
+	CALL	XFER	;Transfer byte to image and screen
+	RET
+;
+A0211:	LD	A,(D0E50) ;Toggle.
+	INC	A
+	AND	1
+	LD	(D0E50),A
+	LD	HL,ATTIMG ;Point to attribute image array.
+A021D:	XOR	A	;Scan past next zero in table.
+	LD	B,A
+	LD	C,A
+	CPIR
+	LD	(ARRYAD),HL ;Save array address.
+	DEC	HL	   ;Subtract CPIR overshoot.
+	RES	2,H	   ;Point to equiv loc. in screen image
+	LD	A,(HL)	;Get contents.
+	LD	C,59H
+	CP	0BH	;Laser bolt from cannon?
+	JP	Z,A047A
+	LD	C,6CH
+	CP	4
+	JP	Z,A047A
+	LD	C,4
+	CP	6CH
+	JP	Z,A0473
+	LD	C,0BH
+	CP	59H
+	JP	Z,A0473
+	CP	7FH
+	JP	Z,A053C
+	CP	0A0H
+	JP	Z,A0465
+	CP	19H
+	JR	Z,A025E
+	CP	99H
+	JR	Z,A0259
+	XOR	A
+	RET
+;
+A0259:	CALL	A09D0
+	JR	A0269
+;
+A025E:	XOR	A	;Zero screen image and screen.
+	CALL	XFER
+	SET	2,H	;Set graphic attributes in image and
+			;on screen.
+	LD	A,GRFBIT
+	CALL	XFER
+A0269:	SET	2,H
+	LD	BC,-64	;Decrement.
+	ADD	HL,BC
+	BIT	2,H	;All done?
+	JP	Z,A053C	;Continue if not.
+	BIT	1,(HL)
+	JR	NZ,A028A
+	RES	2,H
+	LD	A,(HL)
+	CP	19H
+	JP	Z,A053C
+A0280:	RES	2,H
+	LD	A,0A0H
+	CALL	XFER	;Transfer to image and screen
+	JP	A053C
+;
+A028A:	RES	2,H
+	LD	A,(HL)
+	OR	A
+	JP	Z,A0320
+	CALL	A032E
+	JP	Z,A053C
+	PUSH	HL
+	LD	DE,1040H
+	AND	A
+	SBC	HL,DE
+	POP	HL
+	JR	C,HITMYS	;Mystery ship hit.
+	PUSH	HL
+	LD	DE,1300H
+	AND	A
+	SBC	HL,DE
+	POP	HL
+	JR	NC,A02AE
+	JP	A053C
+;
+A02AE:	LD	A,(HL)
+	LD	C,A
+	SRL	A
+	AND	C
+	CALL	XFER	;Transfer to image and screen
+	JP	A053C
+;
+; Mystery ship hit.
+HITMYS:	LD	A,(D0E64)
+	LD	L,A
+	LD	H,IMAGE/256
+	LD	B,7
+	PUSH	HL
+; Show missile contacting mystery ship, then replace ship
+; by solid rectangle.
+A02C2:	LD	A,0A0H
+	CALL	XFER
+	SET	2,H
+	XOR	A
+	CALL	XFER
+	RES	2,H
+	INC	HL
+	DJNZ	A02C2
+	CALL	A08A8	;Get random number.
+	AND	3	;Limit to 3.
+	INC	A	;Mystery scores range from 100-400.
+	LD	L,A
+	SLA	L	;*2
+	SLA	L	;*4
+	SLA	L	;*8
+	SLA	L	;*16
+	LD	H,0
+	CALL	A0912	;Add to score.
+	POP	HL	;Get screen pointer to mystery ship.
+	INC	HL	;Score goes in centre of rectangle.
+	INC	HL
+	OR	'0'	;Form ASCII digit.
+	CALL	XFER	;Put high byte of score over mystery.
+	INC	HL
+	LD	A,'0'	;Follow high byte by 2 zeros.
+	CALL	XFER
+	INC	HL
+	CALL	XFER
+	LD	B,MYSSDL ;Delay to enable reading of score.
+A02FA:	CALL	WAIT	
+	DJNZ	A02FA
+A02FF:	PUSH	BC
+	PUSH	HL
+	LD	H,IMAGE/256
+	LD	A,(D0E64)
+	LD	L,A
+	LD	B,7
+A0309:	LD	A,0A0H	;Replace invader by solid block.
+	CALL	XFER
+	SET	2,H
+	XOR	A
+	CALL	XFER
+	RES	2,H
+	INC	HL
+	DJNZ	A0309
+	XOR	A
+	LD	(D0E65),A
+	POP	HL
+	POP	BC
+	RET
+;
+A0320:	LD	A,19H
+	CALL	XFER
+	SET	2,H
+	XOR	A
+	CALL	XFER
+	JP	A053C
+;
+; Invader clobbered.
+A032E:	PUSH	BC
+	PUSH	DE
+	PUSH	HL
+	LD	A,3FH
+	AND	L
+	LD	C,A
+	LD	A,3
+	AND	H
+	RLCA
+	RLCA
+	RLCA
+	RLCA
+	LD	B,A
+	LD	A,0C0H
+	AND	L
+	RRCA
+	RRCA
+	RRCA
+	RRCA
+	OR	B
+	LD	B,A
+	INC	B
+	INC	B
+	INC	B
+	LD	A,(HL)
+A034A:	RLCA
+	JR	C,A0353
+	RLCA
+	JR	C,A0353
+	DEC	B
+	JR	A034A
+;
+A0353:	LD	A,(D0E5D)
+	SRA	A
+	JP	M,A0361
+	CP	C
+	JR	Z,A0361
+	JP	NC,A040D
+A0361:	ADD	A,2CH
+	CP	C
+	JP	C,A040D
+	LD	A,(D0E58)
+	DEC	A
+	CP	B
+	JP	NC,A040D
+	ADD	A,1EH
+	CP	B
+	JP	C,A040D
+	CALL	A037C
+	POP	HL
+	POP	DE
+	POP	BC
+	RET
+;
+A037C:	LD	IY,T0E6A
+	LD	(IY+0),0
+	LD	A,(D0E58)
+	SUB	B
+	NEG
+	LD	HL,T0E89
+	LD	DE,IMAGE/256
+A0390:	SUB	6
+	CP	0FEH
+	JR	NC,A040A
+	OR	A
+	JP	M,A03A0
+	ADD	HL,DE
+	INC	(IY+0)
+	JR	A0390
+;
+A03A0:	LD	E,C
+	LD	D,1
+A03A3:	LD	B,(IY+0)
+	INC	B
+	LD	C,D
+	CALL	A0413
+	LD	A,E
+	SUB	C
+	CP	3
+	LD	C,D
+	JR	C,A03BB
+	INC	D
+	INC	HL
+	LD	A,D
+	CP	0CH
+	JR	C,A03A3
+	JR	A040A
+;
+A03BB:	LD	A,(HL)
+	OR	A
+	JR	Z,A040A
+	LD	(HL),0
+	LD	B,(IY+0)
+	INC	B
+	CALL	A0413
+	LD	DE,SPACE  ;Clear space instead of invader.
+	CALL	A0B7C
+	CALL	A0B59
+	LD	B,3
+A03D3:	LD	A,0A0H
+	CALL	XFER
+	SET	2,H
+	XOR	A
+	CALL	XFER
+	RES	2,H
+	INC	HL
+	DJNZ	A03D3
+	LD	HL,2
+	BIT	0,(IY+0)
+	CALL	NZ,A0912
+	CALL	A0912
+	LD	A,(D0E6F)
+	DEC	A
+	LD	(D0E6F),A
+	JR	NZ,A0408
+	CALL	CLRSCN
+	CALL	A095E
+	LD	A,(SPEED)
+	DEC	A
+	JR	Z,A0408
+	LD	(SPEED),A
+A0408:	XOR	A
+	RET
+;
+A040A:	XOR	A
+	INC	A
+	RET
+;
+A040D:	POP	HL
+	POP	DE
+	POP	BC
+	XOR	A
+	INC	A
+	RET
+;
+A0413:	PUSH	DE
+	LD	D,B	;<DE>  <--  <BC>
+	LD	E,C
+	DEC	B
+	DEC	C
+	SLA	B
+	LD	A,B
+	SLA	B
+	ADD	A,B
+	LD	B,A
+	LD	A,(D0E58)
+	ADD	A,B
+	LD	B,A
+	LD	A,(D0E5D)
+	SRA	A
+	SLA	C
+	SLA	C
+	ADD	A,C
+	LD	C,A
+	LD	A,(D0E58)
+	BIT	1,A
+	LD	A,(D0E59)
+	JR	NZ,A044F
+	INC	C
+	CP	D
+	JR	C,A0463
+	JR	NZ,A0445
+	LD	A,(D0E5A)
+	CP	E
+	JR	C,A0463
+A0445:	LD	A,(D0E5D)
+	BIT	0,A
+	JR	NZ,A0463
+	DEC	C
+	JR	A0463
+;
+A044F:	CP	D
+	JR	C,A0463
+	JR	NZ,A045B
+	LD	A,(D0E5A)
+	DEC	A
+	CP	E
+	JR	NC,A0463
+A045B:	LD	A,(D0E5D)
+	BIT	0,A
+	JR	Z,A0463
+	INC	C
+A0463:	POP	DE
+	RET
+;
+A0465:	XOR	A
+	CALL	XFER
+	SET	2,H
+	LD	A,GRFBIT	;Invader was hit.
+	CALL	XFER
+	JP	A053C
+;
+A0473:	LD	A,C
+	CALL	XFER
+	JP	A053C
+;
+A047A:	LD	A,(D0E50)
+	OR	A
+	JP	NZ,A053C
+	LD	A,C
+	LD	(D0E57),A
+	XOR	A
+	CALL	XFER
+	SET	2,H
+	LD	A,GRFBIT	;Invaders fire.
+	CALL	XFER
+	LD	BC,40H
+	ADD	HL,BC
+	PUSH	HL
+	LD	BC,0E840H
+	ADD	HL,BC
+	POP	HL
+	JP	C,A053C
+	PUSH	HL
+	LD	BC,0E880H
+	ADD	HL,BC
+	POP	HL
+	JP	NC,A0513
+	RES	2,H
+	LD	A,(HL)
+	OR	A
+	JP	Z,A0513
+	LD	A,(CANPOS)
+	LD	C,A
+	LD	B,0FH
+	LD	DE,CANNON
+A04B6:	LD	HL,10
+	ADD	HL,DE
+	EX	DE,HL
+	CALL	A0502
+	DEC	B
+	LD	A,B
+	OR	A
+	JR	Z,A04CD
+	LD	HL,0FFFBH
+	ADD	HL,DE
+	EX	DE,HL
+	CALL	A0502
+	DJNZ	A04B6
+A04CD:	LD	B,5
+A04CF:	CALL	WAIT
+	DJNZ	A04CF
+	LD	HL,1380H
+	LD	B,40H
+A04D9:	XOR	A
+	CALL	XFER
+	SET	2,H
+	LD	A,GRFBIT	;Clear cannon movement line.
+	CALL	XFER
+	RES	2,H
+	INC	HL
+	DJNZ	A04D9
+	LD	A,(NUMCAN)	;Delete one spare cannon.
+	DEC	A
+	LD	(NUMCAN),A
+	CP	0FFH
+	JP	Z,A07A2
+	CALL	A09C2
+	LD	B,1EH
+A04FA:	CALL	WAIT
+	DJNZ	A04FA
+	JP	A053C
+;
+A0502:	PUSH	BC
+	LD	A,5
+	LD	B,38H
+	CALL	DRAW
+	LD	B,3
+A050C:	CALL	WAIT
+	DJNZ	A050C
+	POP	BC
+	RET
+;
+A0513:	SET	2,H
+	BIT	1,(HL)
+	JP	Z,A0280
+	RES	2,H
+	LD	A,(HL)
+	OR	A
+	JR	NZ,A052F
+	LD	A,(D0E57)
+	CALL	XFER
+	SET	2,H
+	XOR	A
+	CALL	XFER
+	JP	A053C
+;
+A052F:	RES	2,H
+	LD	A,(HL)
+	LD	C,(HL)
+	SLA	A
+	AND	C
+	CALL	XFER
+	JP	A053C
+;
+A053C:	LD	HL,(ARRYAD)
+	JP	A021D
+;
+A0542:	LD	A,(D0E53)	;Toggle flag.
+	INC	A
+	AND	1
+	LD	(D0E53),A
+	RET	NZ
+	LD	A,(D0E65)
+	OR	A
+	JR	Z,A0581
+	LD	C,A
+	LD	A,(D0E64)
+	ADD	A,C
+	LD	C,A
+	OR	A
+	JP	M,A02FF
+	CP	38H
+	JP	NC,A02FF
+	LD	(D0E64),A
+	LD	B,0
+	LD	DE,(D0E68)
+	LD	A,7
+	CALL	DRAW
+	LD	HL,7
+	ADD	HL,DE
+	LD	(D0E68),HL
+	LD	A,(HL)
+	CP	0FFH
+	RET	NZ
+	LD	HL,(D0E66)
+	LD	(D0E68),HL
+	RET
+;
+A0581:	LD	A,(D0E58)
+	CP	6
+	RET	C
+	CALL	A08A8
+	RET	NZ
+	CALL	A08A8
+	BIT	0,A
+	LD	C,0FFH
+	LD	A,38H
+	JR	Z,A059A
+	LD	C,1
+	LD	A,0
+A059A:	LD	(D0E64),A
+	LD	A,C
+	LD	(D0E65),A
+	ADD	A,4
+	LD	C,A
+	LD	HL,MYSTRY
+	CALL	A08A8
+	AND	3
+	LD	B,A
+	JR	Z,A05BA
+	CP	C
+	JR	Z,A05BA
+A05B2:	LD	A,(HL)
+	CP	0FFH
+	INC	HL
+	JR	NZ,A05B2
+	DJNZ	A05B2
+A05BA:	LD	(D0E66),HL
+	LD	(D0E68),HL
+	RET
+;
+A05C1:	PUSH	AF
+	PUSH	BC
+	LD	A,(D0E6E)
+	OR	A
+	JR	Z,A05D7
+	LD	A,(D0E5B)
+	LD	B,A
+	LD	A,(D0E5C)
+	LD	C,A
+	CALL	A0413
+	CALL	A037C
+A05D7:	POP	BC
+	POP	AF
+	RET
+;
+A05DA:	LD	A,2
+	LD	(D0E6C),A
+A05DF:	CALL	A05ED
+	CALL	A05C1
+	RET	NZ
+	LD	HL,D0E6C
+	DEC	(HL)
+	JR	NZ,A05DF
+	RET
+;
+A05ED:	XOR	A
+	LD	(D0E6E),A
+	LD	A,(D0E59)
+	LD	(D0E5B),A
+	LD	A,(D0E5A)
+	LD	(D0E5C),A
+	LD	A,(D0E58)
+	BIT	1,A
+	JR	Z,A0658
+	CALL	A0810
+	JR	Z,A0645
+	LD	B,A
+	LD	A,(D0E59)
+	DEC	A
+	SLA	A
+	LD	C,A
+	SLA	A
+	ADD	A,C
+	ADD	A,B
+	LD	B,A
+	LD	A,(D0E5A)
+	DEC	A
+	SLA	A
+	SLA	A
+	LD	C,A
+	LD	A,(D0E5D)
+	SRA	A
+	ADD	A,C
+	LD	C,A
+	LD	A,(D0E5D)
+	LD	DE,1
+	BIT	0,A
+	JR	Z,A0633
+	LD	DE,6
+A0633:	LD	A,(D0E59)
+	LD	HL,INVDR1	;Start of ship data.
+	BIT	0,A
+	JR	NZ,A0640
+	LD	HL,INVDR2
+A0640:	ADD	HL,DE
+	EX	DE,HL
+	CALL	A0B7C
+A0645:	LD	A,(D0E5A)
+	INC	A
+	LD	(D0E5A),A
+	CP	0CH
+	JP	NZ,A078E
+	LD	A,1
+	LD	(D0E5A),A
+	JR	A06A8
+;
+A0658:	CALL	A0810
+	JR	Z,A0699
+	LD	B,A
+	LD	A,(D0E59)
+	DEC	A
+	SLA	A
+	LD	C,A
+	SLA	A
+	ADD	A,C
+	ADD	A,B
+	LD	B,A
+	LD	A,(D0E5A)
+	DEC	A
+	SLA	A
+	SLA	A
+	LD	C,A
+	LD	A,(D0E5D)
+	SRA	A
+	ADD	A,C
+	LD	C,A
+	LD	A,(D0E5D)
+	LD	DE,0
+	BIT	0,A
+	JR	Z,A0687
+	LD	DE,5
+A0687:	LD	A,(D0E59)
+	LD	HL,INVDR1
+	BIT	0,A
+	JR	NZ,A0694
+	LD	HL,INVDR2
+A0694:	ADD	HL,DE
+	EX	DE,HL
+	CALL	A0B7C
+A0699:	LD	A,(D0E5A)
+	DEC	A
+	LD	(D0E5A),A
+	JP	NZ,A078E
+	LD	A,0BH
+	LD	(D0E5A),A
+;
+A06A8:	LD	A,(D0E59)
+	DEC	A
+	LD	(D0E59),A
+	JP	NZ,A078E
+	JP	A06E7	;Security measures deleted.
+	DEFB	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	DEFB	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	DEFB	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+A06E7:	LD	A,5
+	LD	(D0E59),A
+	LD	A,(D0E58)
+	BIT	1,A
+	LD	A,(D0E5D)
+	LD	(D0E5E),A
+	JR	NZ,A06FB
+	INC	A
+	INC	A
+A06FB:	DEC	A
+	LD	(D0E5D),A
+	LD	A,(D0E6F)
+	CP	7
+	JR	NC,A075A
+	LD	DE,40H
+	LD	B,0DH
+	LD	A,(D0E58)
+	BIT	1,A
+	JR	Z,A071E
+	LD	HL,1041H
+A0715:	LD	A,(HL)
+	OR	A
+	JR	NZ,A072A
+	ADD	HL,DE
+	DJNZ	A0715
+	XOR	A
+	RET
+;
+A071E:	LD	HL,107EH
+A0721:	LD	A,(HL)
+	OR	A
+	JR	NZ,A072A
+	ADD	HL,DE
+	DJNZ	A0721
+	XOR	A
+	RET
+;
+A072A:	LD	A,(D0E58)
+	ADD	A,2
+	LD	(D0E58),A
+	LD	B,A
+	LD	A,(D0E5E)
+	LD	(D0E5D),A
+	LD	C,A
+	SRA	C
+	CALL	A07A5
+	RET	NZ
+	LD	A,5
+	LD	(D0E59),A
+	LD	A,(D0E58)
+	BIT	1,A
+	JR	Z,A0756
+	LD	A,1
+A074E:	LD	(D0E5A),A
+	XOR	A
+	LD	(D0E6E),A
+	RET
+;
+A0756:	LD	A,0BH
+	JR	A074E
+;
+A075A:	LD	A,(D0E5D)
+	CP	0FFH
+	JR	Z,A0768
+	CP	28H
+	JR	Z,A0768
+	JP	NZ,A078E
+A0768:	LD	A,(D0E58)
+	ADD	A,2
+	LD	(D0E58),A
+	LD	B,A
+	BIT	1,A
+	JR	Z,A0790
+	LD	C,13H
+	CALL	A07A5
+	RET	NZ
+	LD	A,26H
+	LD	(D0E5D),A
+	LD	A,1
+	LD	(D0E5A),A
+A0785:	LD	A,5
+	LD	(D0E59),A
+	XOR	A
+	LD	(D0E6E),A
+A078E:	XOR	A
+	RET
+;
+A0790:	LD	C,0
+	CALL	A07A5
+	RET	NZ
+	XOR	A
+	LD	(D0E5D),A
+	LD	A,0BH
+	LD	(D0E5A),A
+	JP	A0785
+;
+A07A2:	XOR	A
+	INC	A
+	RET
+;
+A07A5:	PUSH	BC
+	PUSH	DE
+	PUSH	HL
+	LD	IY,T0E6D
+	LD	A,B
+	ADD	A,18H
+	LD	B,A
+	LD	H,5
+	RES	0,(IY+0)
+A07B6:	PUSH	BC
+	LD	A,B
+	DEC	A
+	JP	M,A07EE
+	LD	L,0BH
+A07BE:	LD	DE,INVDR2
+	BIT	0,H
+	JR	Z,A07C8
+	LD	DE,INVDR1	;Start of ship data.
+A07C8:	LD	A,H
+	LD	(D0E59),A
+	LD	A,0CH
+	SUB	L
+	LD	(D0E5A),A
+	CALL	A0810
+	JR	Z,A07E1
+	SET	0,(IY+0)
+	CALL	A0B7C
+	CALL	A0C24
+A07E1:	PUSH	BC
+	LD	B,0
+A07E4:	DJNZ	A07E4	;Delay.
+	POP	BC
+	INC	C
+A07E8:	INC	C
+	INC	C
+	INC	C
+	DEC	L
+	JR	NZ,A07BE
+A07EE:	BIT	0,(IY+0)
+	JR	Z,A07FE
+	LD	A,B
+	CP	35H
+	JR	C,A07FE
+	XOR	A
+	INC	A
+	POP	BC
+	JR	A080C
+;
+A07FE:	POP	BC
+	LD	A,B
+	SUB	6
+	LD	B,A
+	DEC	H
+	JR	NZ,A07B6
+	LD	A,1
+	LD	(D0E6C),A
+	XOR	A
+A080C:	POP	HL
+	POP	DE
+	POP	BC
+	RET
+;
+A0810:	EXX
+	LD	B,A
+	LD	A,(D0E59)
+	RLCA
+	RLCA
+	RLCA
+	RLCA
+	LD	D,0
+	LD	E,A
+	LD	A,(D0E5A)
+	ADD	A,E
+	LD	E,A
+	LD	HL,T0E78
+	ADD	HL,DE
+	BIT	0,(HL)
+	LD	A,B
+	EXX
+	RET	NZ
+	LD	A,(D0E6C)
+	INC	A
+	LD	(D0E6C),A
+	XOR	A
+	RET
+;
+A0833:	LD	A,(D0E52)
+	DEC	A
+	AND	1FH
+	LD	(D0E52),A
+	RET	NZ
+	LD	A,(SPEED)
+	LD	C,A
+	SLA	A
+	ADD	A,C
+	LD	(D0E52),A
+A0847:	CALL	A08A8
+	AND	0FH
+	CP	0BH
+	JR	NC,A0847
+	LD	C,A
+	LD	B,5
+	LD	DE,0FFF0H
+	LD	HL,T0EC9
+	ADD	A,L
+	LD	L,A
+	JR	NC,A085E
+	INC	H
+A085E:	LD	A,(HL)
+	OR	A
+	JR	NZ,A086D
+	ADD	HL,DE
+	DJNZ	A085E
+	CALL	A08A8
+	AND	7
+	JR	NZ,A0847
+	RET
+;
+A086D:	DEC	B
+	LD	A,(D0E5D)
+	SRA	A
+	SLA	C
+	SLA	C
+	ADD	A,C
+	LD	C,A
+	SLA	B
+	LD	A,B
+	SLA	B
+	ADD	A,B
+	LD	B,A
+	LD	A,(D0E58)
+A0883:	ADD	A,B
+	LD	B,A
+	INC	C
+	INC	C
+	INC	B
+	INC	B
+	INC	B
+	INC	B
+	INC	B
+	INC	B
+	CALL	A0B59
+	LD	A,(HL)
+	OR	A
+	RET	NZ
+	CALL	A08A8	;Get random number.
+	BIT	0,A
+	LD	A,4	;Invader's laser flash (zigzag).
+	JR	Z,A089E
+	LD	A,0BH	;Invader's bomb trace (down arrow).
+A089E:	CALL	XFER
+	SET	2,H
+	XOR	A
+	CALL	XFER
+	RET
+;
+A08A8:	PUSH	HL
+	PUSH	BC
+	LD	B,4
+	LD	HL,D0E60
+	LD	A,R		;Get a random number.
+A08B1:	XOR	(HL)
+	RLCA
+	LD	(HL),A
+	INC	HL
+	DJNZ	A08B1
+	LD	(D0E60),A
+	POP	BC
+	POP	HL
+	RET
+;
+A08BD:	PUSH	HL
+	PUSH	BC
+	LD	HL,13D1H
+	LD	B,2FH
+A08C4:	LD	A,20H
+	CALL	XFER
+	SET	2,H
+	XOR	A	;Set character attributes.
+	CALL	XFER
+	RES	2,H
+	INC	HL
+	DJNZ	A08C4
+	POP	BC
+	POP	HL
+	RET
+;
+A08D7:	PUSH	HL
+	PUSH	DE
+	LD	HL,SCORMS	;Print "Score"
+	LD	DE,SCREEN+3D3H	;near bottom right.
+	CALL	PRMSG		;Print message.
+	LD	HL,(CSCORL)
+	CALL	A092A
+	LD	HL,(RSCORE)
+	LD	A,H
+	OR	L
+	JR	Z,A08FE
+	LD	HL,HIGHSCR	;Score.
+	LD	DE,SCREEN+3E1H
+	CALL	PRMSG		;Print message.
+	LD	HL,(RSCORE)
+	CALL	A092A
+A08FE:	POP	DE
+	POP	HL
+	RET
+;
+; Print string pointed to by <HL> on screen at location <DE>
+; until null byte found in string.
+PRMSG:	LD	A,(HL)	;Get character.
+	OR	A	;Null terminator?
+	JR	NZ,A0907 ;Skip if not.
+	INC	HL	;Else, bump pointer and return.
+	RET
+;
+A0907:	LD	(DE),A	;Put character on screen.
+	SET	2,D	;Set character attributes in attr. ram
+			; (at F400H).
+	XOR	A	;   attribute = character.
+	LD	(DE),A
+	RES	2,D	;Restore pointer to screen ram.
+	INC	HL	;Next character.
+	INC	DE	;Next screen location.
+	JR	PRMSG
+;
+A0912:	PUSH	AF	;Part of score processing.
+	PUSH	HL
+	LD	A,(CSCORL) ;Low byte.
+	ADD	A,L
+	DAA
+	LD	(CSCORL),A
+	LD	A,(CSCORH) ;High byte.
+	ADC	A,H
+	DAA
+	LD	(CSCORH),A
+	CALL	A08D7
+	POP	HL
+	POP	AF
+	RET
+;
+A092A:	PUSH	BC
+	PUSH	HL
+	LD	B,4
+A092E:	CALL	A0950
+	PUSH	AF
+	JR	NZ,A0936
+	LD	A,0F0H
+A0936:	ADD	A,30H
+	LD	(DE),A
+	INC	DE
+	POP	AF
+	JR	NZ,A0948
+	DJNZ	A092E
+	JR	A094A
+;
+A0941:	CALL	A0950
+	ADD	A,30H
+	LD	(DE),A
+	INC	DE
+A0948:	DJNZ	A0941
+A094A:	LD	A,30H
+	LD	(DE),A
+	POP	HL
+	POP	BC
+	RET
+;
+A0950:	PUSH	BC
+	LD	B,4
+A0953:	RL	L
+	RL	H
+	RLA
+	DJNZ	A0953
+	AND	0FH
+	POP	BC
+	RET
+;
+; Fill table with 50H successive 1's.
+A095E:	LD	HL,T0E89	;Point to table.
+	LD	B,50H
+A0963:	LD	(HL),1
+	INC	HL
+	DJNZ	A0963
+	XOR	A
+	LD	(D0E65),A
+	LD	A,37H
+	LD	(D0E6F),A
+	LD	A,5
+	LD	(D0E59),A
+	LD	A,0BH
+	LD	(D0E5A),A
+	LD	A,14H
+	LD	(D0E5D),A
+	LD	A,4
+	LD	(D0E58),A
+	LD	B,30H
+	LD	C,7
+A0989:	PUSH	BC
+	LD	DE,FORTTOP	;Draw top of fortress.
+	LD	A,6		;Fortress width.
+	CALL	DRAW
+	LD	A,4
+	ADD	A,B
+	LD	B,A
+	LD	DE,FORTBOT	;Draw base of fortress.
+	LD	A,6		;Width.
+	CALL	DRAW
+	POP	BC
+	LD	A,0EH
+	ADD	A,C
+	LD	C,A
+	CP	3BH
+	JR	C,A0989
+	CALL	A09C2
+	LD	C,0AH
+	LD	B,0C0H
+A09AE:	CALL	A07A5
+	INC	B
+	INC	B
+	LD	A,6
+	CP	B
+	JR	NZ,A09AE
+	CALL	A08BD
+	CALL	A08D7
+	CALL	A09C2
+	RET
+;
+; Draw defender's laser cannon.
+A09C2:	LD	A,8	;Initial offset from LH side of screen.
+	LD	(CANPOS),A
+	LD	HL,178AH
+	LD	(D0E4B),HL
+	CALL	A09FD
+A09D0:	PUSH	BC
+	PUSH	DE
+	PUSH	HL
+	LD	HL,(D0E4B)
+	LD	A,GRFBIT
+	CALL	XFER
+	LD	DE,CANNON
+	LD	B,38H
+	LD	A,(CANPOS)
+	LD	C,A
+	LD	A,5
+	CALL	DRAW	;Draw the cannon.
+	INC	C
+	INC	C
+	LD	HL,1780H
+	LD	E,C
+	LD	D,0
+	ADD	HL,DE
+	LD	(D0E4B),HL
+	LD	A,D
+	CALL	XFER	;Draw the flash tube coils in cannon.
+	POP	HL
+	POP	DE
+	POP	BC
+	RET
+;
+; Draw spare cannon on bottom line of screen.
+A09FD:	PUSH	AF
+	PUSH	BC
+	PUSH	DE
+	PUSH	HL
+	LD	DE,SCREEN+3C1H	;Screen location.
+	LD	A,(NUMCAN)	;Any spare cannon left?
+	OR	A
+	JR	Z,A0A18		;Skip if not.
+	LD	B,A		;Else, draw them
+	XOR	A
+A0A0C:	ADD	A,5		;at intervals of 5.
+	DJNZ	A0A0C
+	LD	C,A		;Put them on screen.
+	LD	B,0
+	LD	HL,SPARES
+	LDIR
+A0A18:	XOR	A
+	LD	(DE),A
+	INC	DE
+	LD	A,E
+	CP	0D1H
+	JP	C,A0A18
+	POP	HL
+	POP	DE
+	POP	BC
+	POP	AF
+	RET
+;
+CHASER:	XOR	A		;Blank screen corners.
+	LD	(TOPLFT),A	;Top left.
+	LD	(TOPRIT),A	;Top right.
+	LD	(BOTLFT),A	;Bottom left.
+	LD	(BOTRIT),A	;Bottom right.
+	PUSH	BC
+	LD	A,(IX+0)	;Get data from border table.
+	LD	HL,TOPLFT	;Point to top left of screen.
+	LD	BC,32		;32 horiz dots to do
+	LD	DE,2		;..at intervals of 2 chars.
+	CALL	DRAWLN		;Draw top row.
+	LD	A,(IX+1)	;Clear the intermediate points.
+	INC	HL		;Starting at SCREEN+1.
+	CALL	DRAWLN
+	LD	A,(IX+2)	;Draw bottom row of dots
+	LD	HL,BOTLFT	;starting at bottom left.
+	CALL	DRAWLN
+	INC	HL		;Zero intermediate points.
+	LD	A,(IX+3)
+	CALL	DRAWLN
+	LD	A,(IX+4)	;Draw LH vertical dots
+	LD	HL,TOPLFT	;starting at top left.
+	LD	BC,16		;16 dots to do
+	LD	DE,40H		;at line spacing.
+	CALL	DRAWLN
+	LD	A,(IX+5)	;Draw RH vertical dots
+	LD	HL,TOPRIT	;Starting at top right.
+	LD	BC,16		;16 to do.
+	CALL	DRAWLN
+	CALL	WAIT
+	POP	BC
+	RET
+;
+DRAWLN:	PUSH	BC
+	PUSH	HL
+	LD	(D0E43),A
+A0A7F:	LD	A,(D0E43)
+	CALL	EDGECK
+	JR	NZ,A0A8D
+	CALL	A0B1A
+	JR	NZ,A0A8D
+	OR	(HL)
+A0A8D:	LD	(HL),A
+	ADD	HL,DE
+	DEC	BC
+	LD	A,B
+	OR	C
+	JR	NZ,A0A7F
+	POP	HL
+	POP	BC
+	LD	A,(D0E43)
+	RET
+;
+; Print "SPACE INVADERS" in large letters.
+PTITLE:	PUSH	HL
+	PUSH	BC
+	PUSH	DE
+	LD	DE,(SCRADR) ;Get screen address.
+	LD	A,D	;Check high byte.
+	CP	[SCREEN+300H]/256
+	JR	Z,A0AC5 ;Do nothing if out of range.
+	LD	A,0CH	;Add displacement from LH side.
+	ADD	A,E
+	LD	E,A
+	LD	HL,INVTOP ;Point to top row data.
+	LD	BC,29H	  ;Length of string to transfer.
+	PUSH	BC	  ;Lower row is same length.
+	LDIR		  ;Transfer to screen.
+	POP	BC	  ;Recover length.
+	LD	HL,17H	  ;Add offset to bottom row.
+	ADD	HL,DE
+	EX	DE,HL
+	LD	HL,INVBOT ;Print bottom row.
+	LDIR
+	LD	HL,4BH	  ;Update screen address.
+	ADD	HL,DE
+	LD	(SCRADR),HL
+A0AC5:	POP	DE
+	POP	BC
+	POP	HL
+	RET
+;
+CLRSCN:	PUSH	AF
+	PUSH	HL
+	LD	HL,IMAGE	;Point to array image.
+A0ACE:	XOR	A		;Fill it with zeros.
+	CALL	XFER
+	SET	2,H
+	LD	A,GRFBIT
+	CALL	XFER
+	RES	2,H
+	INC	HL
+	BIT	2,H		;All done yet?
+	JR	Z,A0ACE
+	POP	HL
+	POP	AF
+	RET
+;
+	LD	HL,SCREEN
+A0AE6:	LD	(HL),0
+	INC	HL
+	BIT	2,H
+	JR	Z,A0AE6
+A0AED:	LD	A,L
+	AND	3FH
+	JR	Z,A0B0A
+	INC	A
+	AND	3FH
+	JR	Z,A0B0A
+	PUSH	HL
+	RLC	L
+	RL	H
+	RLC	L
+	RL	H
+	LD	A,H
+	POP	HL
+	AND	0FH
+	JR	Z,A0B0A
+	CP	0FH
+	JR	NZ,A0B0E
+A0B0A:	LD	(HL),2
+	JR	A0B10
+;
+A0B0E:	LD	(HL),3
+A0B10:	INC	HL
+	BIT	3,H
+	JR	Z,A0AED
+	RET
+;
+CKSCRN:	CALL	EDGECK	;Check horizontal position.
+	RET	Z	;Return if at either edge.
+A0B1A:	PUSH	HL
+	PUSH	BC
+	PUSH	DE
+	LD	B,A	;Save <A>.
+	LD	DE,SCREEN+40H
+	PUSH	HL
+	AND	A
+	SBC	HL,DE
+	POP	HL
+	JR	C,A0B33
+	LD	DE,BOTLFT
+	XOR	A
+	SBC	HL,DE
+	JR	NC,A0B33
+	INC	A
+	JR	A0B34
+;
+A0B33:	XOR	A
+A0B34:	LD	A,B	;Restore <A>.
+	POP	DE
+	POP	BC
+	POP	HL
+	RET
+;
+; Check if at screen edges, return zero if so.
+EDGECK:	PUSH	BC
+	LD	B,A	;Save <A>.
+	LD	A,L	;Get LSB of screen address.
+	AND	3FH	;At RH edge?
+	JR	Z,A0B42	;Return with zero if yes.
+	CP	3FH	;Else, see if at LH edge.
+A0B42:	LD	A,B	;Restore <A>.
+	POP	BC
+	RET
+;
+WAIT:	PUSH	BC
+	LD	BC,0BB8H
+A0B49:	DEC	BC
+	LD	A,B
+	OR	C
+	JR	NZ,A0B49
+	POP	BC
+	IN	A,(0)	;Read data from port 0.
+	RES	7,A	;Strip parity.
+	CP	1BH	;Escape?
+	RET	NZ	;Return if not.
+	LD	A,0AH
+	RST	0
+A0B59:	LD	A,B
+	AND	3
+	LD	(IX+1),A
+	SUB	4
+	NEG
+	LD	(IX+3),A
+	LD	A,B
+	RRCA
+	RRCA
+	RRCA
+	RRCA
+	AND	3
+	LD	H,A
+	LD	A,B
+	RLCA
+	RLCA
+	RLCA
+	RLCA
+	AND	0C0H
+	OR	C
+	LD	L,A
+	LD	BC,1000H
+	ADD	HL,BC
+	RET
+;
+A0B7C:	LD	A,4
+DRAW:	LD	(IX+0),A
+	PUSH	AF
+	PUSH	BC
+	PUSH	DE
+	PUSH	HL
+	CALL	A0B59
+	JP	A0B8B
+;
+A0B8B:	LD	A,(IX+3)
+	AND	3
+	PUSH	HL
+	PUSH	DE
+	OR	A
+	JR	Z,A0B9E
+	LD	B,A
+	LD	A,0FFH
+A0B98:	SRL	A
+	SRL	A
+	DJNZ	A0B98
+A0B9E:	LD	(IX+4),A
+	LD	C,(IX+0)
+A0BA4:	LD	B,(IX+1)
+	LD	A,(DE)
+	INC	B
+	JP	A0BB0
+;
+A0BAC:	SLA	A
+	SLA	A
+A0BB0:	DJNZ	A0BAC
+	LD	(IX+2),A
+	CALL	A0BF2
+	INC	DE
+	INC	HL
+	DEC	C
+	JP	NZ,A0BA4
+	LD	A,(IX+4)
+	CPL
+	LD	(IX+4),A
+	POP	DE
+	POP	HL
+	LD	BC,0040H
+	ADD	HL,BC
+	LD	C,(IX+0)
+A0BCE:	LD	B,(IX+3)
+	LD	A,B
+	AND	3
+	JR	Z,A0BED
+	INC	B
+	LD	A,(DE)
+	JP	A0BDF
+;
+A0BDB:	SRL	A
+	SRL	A
+A0BDF:	DJNZ	A0BDB
+	LD	(IX+2),A
+	CALL	A0BF2
+	INC	DE
+	INC	HL
+	DEC	C
+	JP	NZ,A0BCE
+A0BED:	POP	HL
+	POP	DE
+	POP	BC
+	POP	AF
+	RET
+;
+A0BF2:	LD	A,(HL)
+	SET	2,H
+	BIT	1,(HL)
+	RES	2,H
+	JR	NZ,A0C13
+	CP	19H
+	JR	NZ,A0C09
+	LD	A,(IX+2)
+	OR	A
+	RET	Z
+	LD	A,0FFH
+	LD	(D0E6E),A
+A0C09:	SET	2,H
+	LD	A,GRFBIT
+	CALL	XFER
+	RES	2,H
+	XOR	A
+A0C13:	AND	(IX+4)
+	OR	(IX+2)
+;
+; Store a byte in image and on screen.
+XFER:	PUSH	HL	;Save current image address.
+	LD	(HL),A	;Store byte in image.
+	EX	AF,AF'	;Save data byte.
+	LD	A,[SCREEN/256]-IMAGE/256
+	ADD	A,H	;Calculate equivalent screen address.
+	LD	H,A
+	EX	AF,AF'	;Restore data.
+	LD	(HL),A	;Write to screen.
+	POP	HL	;Restore current image address.
+	RET
+;
+A0C24:	PUSH	BC
+	DEC	B
+	CALL	A0C2F
+	DEC	B
+	CALL	A0C2F
+	POP	BC
+	RET
+;
+A0C2F:	PUSH	AF
+	PUSH	BC
+	PUSH	DE
+	PUSH	HL
+	CALL	A0B59
+	LD	B,(IX+3)
+	LD	A,0FCH
+A0C3B:	RRCA
+	RRCA
+	DJNZ	A0C3B
+	LD	C,A
+	LD	B,4
+A0C42:	LD	A,(HL)
+	SET	2,H
+	BIT	1,(HL)
+	RES	2,H
+	JR	Z,A0C4F
+	AND	C
+	CALL	XFER
+A0C4F:	INC	HL
+	DJNZ	A0C42
+	POP	HL
+	POP	DE
+	POP	BC
+	POP	AF
+	RET
+;
+; Data for graphic objects.
+INVDR1:	DEFB	0,66H,36H,44H,0	;Type 1 invader (20 points).
+	DEFB	0,8,79H,59H,0
+INVDR2:	DEFB	0,0B8H,0B9H,10H,0 ;Type 2 invader (40 points).
+	DEFB	0,0A0H,36H,0B4H,0
+SPACE:	DEFB	0,0,0,0,0
+MYSTRY:	DEFB	0,0E8H,0B3H,0B6H,0B9H,40H,0,0FFH ;Mystery 1.
+	DEFB	0,0E8H,0B2H,0F7H,0B8H,40H,0,0FFH ;Mystery 2.
+	DEFB	0,68H,0ADH,0ACH,2DH,40H,0,0FFH,0 ;Mystery 3.
+	DEFB	60H,6,9,90H,60H,0,0,6,9,90H,60H,6,0,0 ;Wiggler.
+	DEFB	9,90H,60H,6,9,0,0,90H,60H,6,9,90H,0,0FFH
+CANNON:	DEFB	0,0EAH,7FH,0D5H,0	;Charged laser cannon.
+	DEFB	0,0EAH,0,0D5H,0		;Empty laser cannon.
+	DEFB	0,0EAH,8,0D5H,0		;Cannon destroyed....
+	DEFB	0,0ECH,10H,0D5H,0,80H,0E4H,84H
+	DEFB	0D6H,10H,0A0H,0E2H,0D8H,0D0H,48H,0D0H,0E4H,0F0H
+	DEFB	0A8H,50H,0C0H,0F0H,0F4H,0E0H,40H,0,0E0H,0F0H
+	DEFB	80H,0,0,80H,0D0H,40H,0
+SPARES:	DEFB	0E8H,0F0H,0D4H,0	;Spare cannon 1.
+	DEFB	0,0E8H,0F0H,0D4H,0	;Spare cannon 2.
+	DEFB	0,0E8H,0F0H,0D4H,0,0	;Spare cannon 3.
+;
+;Top of fortress.
+FORTTOP: DEFB	0B4H,0D4H,0D0H,0D0H,0F4H,14H
+;
+; Bottom of fortress.
+FORTBOT: DEFB	3AH,3FH,3FH,3FH,3FH,10H
+;
+; Data for top row of "SPACE INVADERS" title.
+INVTOP:	DEFB	96H,0C3H,4,0D7H,0C3H,14H,58H,9,50H,56H,3,4
+	DEFB	0D7H,0C3H,1,0,0,0,0ABH,1,5DH,90H,55H,55H,0,55H
+	DEFB	58H,9,50H,57H,3,54H,0D7H,0C3H,1,0D7H,0C3H,14H
+	DEFB	96H,0C3H,4
+;
+; Data for bottom row of "SPACE INVADERS" title.
+INVBOT:	DEFB	24H,30H,5,15H,0,0,17H,3,15H,25H,30H,4,35H
+	DEFB	30H,10H,0,0,0,3AH,10H,15H,0,15H,9,18H,1,17H,3
+	DEFB	15H,35H,30H,5H,35H,30H,10H,15H,9H,10H,24H,30H,5
+;
+; Data for "chaser" dots on edge of screen (Referenced by IX).
+BORDR1:	DEFB	1,0,80H,0,1
+	DEFB	8,2,0,40H,0
+	DEFB	40H,20H,0
+	DEFB	1,0,80H,10H,80H,0,2,0,40H,4,2,0FFH
+;
+; TABLE INITIALLY POINTED TO BY IY.
+BORDR2:	DEFB	0,2,0,40H,4,2,0,1,0
+	DEFB	80H,10H,80H,2,0,40H,0,40H,20H,1,0
+	DEFB	80H,0,1,8,0FFH
+T0D76:	DEFB	20H,3AH,20H,0
+;
+AUTHMS:	DEFB	'written by '
+	DEFB	'Matthew Starr and '
+	DEFB	'Tim Morris-Yates',0
+HIGHMS:	DEFB	'High '
+SCORMS:	DEFB	'Score ',0
+NEWHI:	DEFB	'  N E W   H I G H   S C O R E  ',0
+PRESSN:	DEFB	'  press N to enthrone your name in glory  ',0
+STTKEY:	DEFB	'  ***  Press any key to start ***  ',0
+OVERMS:	DEFB	'  ***  G A M E   O V E R  ***  ',0
+;
+D0E43:	DEFB	33H
+COUNTR:	DEFB	0
+SCRADR:	DEFW	0	;Current screen address.
+RSCORE:	DEFW	0	;Record (highest) score.
+CSCORL:	DEFB	0	;Current game score (low byte)
+CSCORH:	DEFB	0	;   "     "     "   (high byte)
+D0E4B:	DEFB	30H
+	DEFB	30H
+	DEFB	22H
+CANPOS:	DEFB	0	;Current horiz position of laser cannon
+NUMCAN:	DEFB	3	;No of spare cannon (initially 3).
+	DEFB	21H
+D0E50:	DEFB	3BH
+FRAMES:	DEFB	0	;Count of game frames.
+D0E52:	DEFB	34H
+D0E53:	DEFB	7EH
+FIREFL:	DEFB	0	;Fire flag (-1 if not firing, else 0).
+ARRYAD:	DEFW	1F21H	;Array address.
+D0E57:	DEFB	26H
+D0E58:	DEFB	0F0H
+D0E59:	DEFB	0CDH
+D0E5A:	DEFB	0D8H
+D0E5B:	DEFB	0EH
+D0E5C:	DEFB	21H
+D0E5D:	DEFB	3CH
+D0E5E:	DEFB	11H
+SPEED:	DEFB	0
+D0E60:	DEFB	0E5H
+	DEFB	7EH
+A0E62:	DEFB	21H
+	DEFB	38H
+D0E64:	DEFB	0F0H
+D0E65:	DEFB	0CDH
+D0E66:	DEFB	0D8H
+	DEFB	0EH
+D0E68:	DEFB	0E1H
+	DEFB	3EH
+T0E6A:	DEFB	3CH
+	DEFB	0BEH
+D0E6C:	DEFB	20H
+T0E6D:	DEFB	65H
+D0E6E:	DEFB	36H
+D0E6F:	DEFB	0
+HIGHSCR: DEFB	21H
+	DEFB	30H
+	DEFB	30H
+	DEFB	22H
+	DEFB	38H
+	DEFB	0F0H
+	DEFB	21H
+	DEFB	3DH
+T0E78:	DEFB	11H
+	DEFB	34H
+	DEFB	7EH
+	DEFB	21H
+	DEFB	35H
+	DEFB	0F0H
+	DEFB	0CDH
+	DEFB	0D8H
+	DEFB	0EH
+	DEFB	21H
+	DEFB	3DH
+	DEFB	11H
+	DEFB	3EH
+	DEFB	18H
+	DEFB	0BEH
+	DEFB	20H
+	DEFB	4AH
+T0E89:	DEFB	36H
+	DEFB	0
+	DEFB	21H
+	DEFB	30H
+	DEFB	30H
+	DEFB	22H
+	DEFB	35H
+	DEFB	0F0H
+	DEFB	21H
+	DEFB	3EH
+	DEFB	11H
+	DEFB	34H
+	DEFB	7EH
+	DEFB	21H
+	DEFB	2BH
+	DEFB	0F0H
+	DEFB	0CDH
+	DEFB	0D8H
+	DEFB	0EH
+	DEFB	21H
+	DEFB	3EH
+	DEFB	11H
+	DEFB	3AH
+	DEFB	41H
+	DEFB	11H
+	DEFB	0BEH
+	DEFB	30H
+	DEFB	2EH
+	DEFB	36H,1,21H,30H,31H,22H,2BH,0F0H,21H,3FH,11H
+	DEFB	34H,7EH,21H,2EH,0F0H,0CDH,0D8H,0EH,3EH,0CH
+	DEFB	21H,3FH,11H,0BEH,30H,13H,36H,1,21H,30H,31H
+	DEFB	22H,2EH,0F0H,21H
+;
+T0EC9:	DEFB	40H
+	DEFB	11H
+	DEFB	34H
+	DEFB	7EH
+	DEFB	21H
+	DEFB	31H
+	DEFB	0F0H
+	DEFB	0CDH
+	DEFB	0D8H
+	DEFW	0E08H
+	DEFB	0D9H,0FBH,0EDH,4DH,0C5H
+T0ED9:	DEFB	0EH
+;
+	ORG	1000H
+IMAGE:	DS	400H	;Screen image array.
+ATTIMG:	EQU	$	;Screen attribute image array.
+;
+;**************************************************************
+;
+	END
+
+

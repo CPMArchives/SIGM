@@ -1,0 +1,119 @@
+CROMEMCO Z80 Macro Assembler version 03.04                                                                            Page 0001
+Source File:  FDCBOOT 
+
+                  0001  		LIST	NOCOND,NOGEN
+                  0002  ;
+                  0003  ;
+      (0001)      0004  LARGESW:	EQU	1		;ONE IF MAXI DRIVE
+                  0005  ;
+      (0040)      0006  MEMSIZE:	EQU	64
+      (0037)      0007  MEMSTAT:	EQU	MEMSIZE-9	;2400 HEX OFFSET
+      (DC00)      0008  BEGINADR	EQU	MEMSTAT*1024	;THIS IS THE START OF CPM
+                  0009  ;
+      (F200)      0010  CBOOT		EQU	BEGINADR+01600H	;THIS IS THE COLD BOOT
+                  0011  ;
+      (0000)      0012  		ORG	0
+                  0013  ;
+                  0014  	;CROMEMCO 4FDC I/O ASSIGNMENTS
+      (0000)      0015  CSTATPORT:	EQU	00H
+      (0001)      0016  CDATAPORT:	EQU	01H
+      (0002)      0017  IMODEPORT:	EQU	02H
+      (0003)      0018  IMASKPORT:	EQU	03H
+      (0004)      0019  PARLPORT:	EQU	04H
+      (0030)      0020  STATPORT:	EQU	30H
+      (0031)      0021  TRAKPORT:	EQU	31H
+      (0032)      0022  SECTPORT:	EQU	32H
+      (0033)      0023  DATAPORT:	EQU	33H
+      (0034)      0024  FLAGPORT:	EQU	34H
+      (0040)      0025  BANKPORT:	EQU	40H
+                  0026  ;
+                  0027  START:
+0000  3E01        0028  		LD	A,01H
+0002  D340        0029  		OUT	BANKPORT,A
+                  0030  ;
+                  0031  ;
+0004  2100DC      0032  		LD	HL,BEGINADR	;START OF CP/M
+0007  110233      0033  		LD	DE,51*256+2	;SECTOR COUNT, FIRST SECTOR
+                  0034  ;
+                  0035  ;			RESTORE TO TRACK ZERO
+                  0036  ;
+000A  3E31        0037  		LD	A,21H+LARGESW*10H
+000C  D334        0038  		OUT	FLAGPORT,A
+000E  3E0D        0039  		LD	A,0FH-LARGESW*2
+0010  D330        0040  RST0:		OUT	STATPORT,A
+0012  DB34        0041  RST1:		IN	A,FLAGPORT
+0014  1F          0042  		RRA
+0015  30FB        0043  		JR	NC,RST1
+0017  DB30        0044  		IN	A,STATPORT
+0019  E698        0045  		AND	A,98H
+001B  20E3        0046  		JR	NZ,START
+                  0047  ;
+                  0048  ;			READ ONE SECTOR
+                  0049  ;
+001D  7B          0050  RDI0:		LD	A,E
+001E  D332        0051  		OUT	SECTPORT,A
+0020  013380      0052  		LD	BC,8000H+DATAPORT
+0023  3EB1        0053  		LD	A,0A1H+LARGESW*10H
+0025  D334        0054  		OUT	FLAGPORT,A
+0027  3E88        0055  		LD	A,88H
+CROMEMCO Z80 Macro Assembler version 03.04                                                                            Page 0002
+Source File:  FDCBOOT 
+
+0029  D330        0056  		OUT	STATPORT,A
+002B  DB34        0057  RDI1:		IN	A,FLAGPORT
+002D  1F          0058  		RRA
+002E  3809        0059  		JR	C,RDI3
+0030  EDA2        0060  		INI
+0032  20F7        0061  		JR	NZ,RDI1
+0034  DB34        0062  RDI2:		IN	A,FLAGPORT
+0036  1F          0063  		RRA
+0037  30FB        0064  		JR	NC,RDI2
+                  0065  ;
+                  0066  ;			CHECK STATUS AND READY FOR NEXT SECTOR AND TRACK
+                  0067  ;
+0039  DB30        0068  RDI3:		IN	A,STATPORT
+003B  E69C        0069  		AND	A,9CH
+003D  20C1        0070  		JR	NZ,START	;RETRY BOOT IF ERROR
+003F  15          0071  		DEC	D
+0040  CA00F2      0072  		JP	Z,CBOOT		;SEE IF ALL DONE
+0043  1C          0073  		INC	E
+0044  7B          0074  		LD	A,E		;INCREMENT SECTOR NUMBER
+0045  FE1B        0075  		CP	A,19+LARGESW*8
+0047  38D4        0076  		JR	C,RDI0		;JUMP IF NOT END OF TRACK
+0049  1E01        0077  		LD	E,1
+004B  3E5D        0078  		LD	A,5FH-LARGESW*2	;GO TO NEXT TRACK
+004D  18C1        0079  		JR	RST0
+                  0080  ;
+004F  (0000)      0081  		END
+
+Errors		   0
+Range Count	   0
+
+CROMEMCO Z80 Macro Assembler version 03.04                                                                            Page 0003
+Source File:  FDCBOOT 
+Symbol	   Value  Defn  References
+
+BANKPORT   0040   0025  0029
+BEGINADR   DC00   0008  0010 0032
+CBOOT      F200   0010  0072
+CDATAPOR   0001   0016 
+CSTATPOR   0000   0015 
+DATAPORT   0033   0023  0052
+FLAGPORT   0034   0024  0038 0041 0054 0057 0062
+IMASKPOR   0003   0018 
+IMODEPOR   0002   0017 
+LARGESW    0001   0004  0037 0039 0053 0075 0078
+MEMSIZE    0040   0006  0007
+MEMSTAT    0037   0007  0008
+PARLPORT   0004   0019 
+RDI0       001D   0050  0076
+RDI1       002B   0057  0061
+RDI2       0034   0062  0064
+RDI3       0039   0068  0059
+RST0       0010   0040  0079
+RST1       0012   0041  0043
+SECTPORT   0032   0022  0051
+START      0000   0027  0046 0070
+STATPORT   0030   0020  0040 0044 0056 0068
+TRAKPORT   0031   0021 
+

@@ -1,0 +1,278 @@
+PROCEDURE rnsetup;                                              {$e-r-}
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{* To be executed once, at the start of a run, to set up tables      *}
+{* for subsequent use by the RN$ function.                           *}
+{*                                                                   *}
+{* Requires the following global definitions:                        *}
+{*    CONST:  rnleft, rnmax                                          *}
+{*    TYP:    rndex, rnpair                                          *}
+{*    VAR:    rnset, rnlimit, rnmin                                  *}
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+
+VAR
+    i : rndex;
+    v : rnpair;
+
+BEGIN {rnsetup procedure}
+    v[1] := 1.0;
+    v[2] := 5.0;
+    FOR i := rnleft DOWNTO 1 DO
+      BEGIN {for}
+        rnset[i] := v;
+        v[1] := v[1] * 10.0;
+        v[2] := v[2] * 10.0
+      END;  {for}
+    rnlimit := v[1];
+
+    v[1] := 0.1;
+    v[2] := 0.5;
+    FOR i := (rnleft+1) TO rnmax DO
+      BEGIN {for}
+        rnset[i] := v;
+        v[1] := v[1] / 10.0;
+        v[2] := v[2] / 10.0
+      END;  {for}
+    rnmin := v[2]
+END;  {rnsetup procedure} {$L+}
+FUNCTION strtoreal (given: longstr): real;                      {$e-r-}
+
+    {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+    {* Given a string containing an alleged real number in external  *}
+    {* decimal form, return its value as a real, with grerror=false. *}
+    {* If the given value is not valid, return 0.0, grerror=true.    *}
+    {*                                                               *}
+    {* Validity criteria:                                            *}
+    {*                                                               *}
+    {*    1.  First non-blank may be a hyphen (for negative number). *}
+    {*                                                               *}
+    {*    2.  Beginning with first non-blank (or character after     *}
+    {*        leading hyphen, if any), each character must be a      *}
+    {*        numeral, a comma, or a period.                         *}
+    {*                                                               *}
+    {*    3.  Only numerals are permitted to the right of the        *}
+    {*        (first) period.                                        *}
+    {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+
+CONST
+    comma    = ',';
+    decimal  = '.';
+    hyphen   = '-';
+    blank1   = ' ';
+VAR
+    i, j     : 1..longlength;
+    addend   : real;
+    pastdec  : boolean;
+    negsign  : boolean;
+    result   : real;
+    units    : real;
+{$L+}
+BEGIN {strtoreal function}
+    result  := 0;
+    pastdec := FALSE;
+    grerror := FALSE;
+    j := 1;
+    WHILE given[j]=blank1 DO
+      j := j + 1;
+    IF given[j]=hyphen
+      THEN
+        BEGIN {then}
+          negsign := TRUE;
+          j := j + 1
+        END   {then}
+      ELSE negsign := false;
+    FOR i := j TO length(given) DO
+        IF given[i] IN ['0'..'9']
+          THEN
+            BEGIN {then}
+              addend := ORD(given[i]) - ORD('0');
+              IF pastdec
+                THEN
+                  BEGIN {then}
+                    result := result + (addend*units);
+                    units  := units / 10.0
+                  END   {then}
+                ELSE result := (result * 10.0) + addend
+            END   {then}
+        ELSE
+          IF ((given[i]=decimal) AND (NOT pastdec))
+            THEN
+              BEGIN {then}
+                pastdec := TRUE;
+                units   := 0.1
+              END   {then}
+        ELSE
+          IF ((given[i]<>comma) OR (pastdec))
+            THEN grerror := TRUE;
+    IF grerror
+      THEN strtoreal := 0.0
+      ELSE
+        IF negsign
+          THEN strtoreal := -result
+          ELSE strtoreal := result
+END;  {strtoreal function} {$L+}
+FUNCTION rn$ (given: REAL;  retntype: rn$ind): rnstr;  {$C-R+}
+
+{** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** **}
+{* Given a real number, return a "display" representation of that   *}
+{* number, punctuated with commas, decimal point and (if number is  *}
+{* negative) leading hyphen.  Leading zeroes are suppressed.        *}
+{* Precision is specified by global constants RNLEFT and RNRIGHT.   *}
+{* If the second parameter = 'FULL', the returned field will be     *}
+{* fixed-length (RNLEN), with leading blanks as required;  if       *}
+{* "COMPACT", leading blanks will be removed, and the field may be  *}
+{* shorter.                                                         *}
+{*                                                                  *}
+{* If the given number's absolute value is too large to be respre-  *}
+{* sented with rnleft positions to the left of the decimal point,   *}
+{* a value of all nines (punctuated, and with leading hyphen if     *}
+{* appropriate) is returned.                                        *}
+{*                                                                  *}
+{* External definitions required:                                   *}
+{*   CONST     RNLEFT, RNRIGHT, RNMAX - define precision            *}
+{*             RNLEN    - length of maximum-size string field       *}
+{*   TYPE      RN$IND   - (full, compact)                           *}
+{*             RNSTR    - STRING                                    *}
+{*             RNDEX    - 0..RNMAX                                  *}
+{*             RNLENDX  -                                           *}
+{*   VAR       RNSET    - array initialized by RNSETUP              *}
+{*   PROCEDURE SETLENGTH - Pascal/Z string procedure                *}
+{*********************************************************************}
+{**                         COPYRIGHT NOTICE                        **}
+{**    Copyright (C) 1981, 1982 by Systems Engineering Associates   **}
+{**                    124 West Blithedale Avenue                   **}
+{**                 Mill Valley, California  U.S.A.                 **}
+{**                                                                 **}
+{**  Permission is hereby given to all parties to copy or to adapt  **}
+{**   this Function, provided that the full text of this Copyright  **}
+{**       Notice is included in each such copy or adaptation.       **}
+{*********************************************************************}
+
+CONST
+    hyphen = '-';
+    comma   = ',';
+    decimal = '.';
+    space   = ' ';
+    zero    = '0';
+    five    = '5';
+    nine    = '9';
+VAR
+    i        : rndex;
+    work     : REAL;
+    numeral  : CHAR;
+    startsig : rnlendx;
+    ptr      : rnlendx;
+    shortrn$ : rnstr;
+    result   : rnstr;
+{$L+}
+PROCEDURE rn$mask (xleft, xright : rndex);  {$C-R-}
+
+VAR
+    i        : rnlendx;
+
+BEGIN {rn$mask procedure}
+    result := space;
+    FOR i := 1 TO xleft DO
+      BEGIN {for}
+        append(result,space);
+        IF ((((xleft-i) MOD 3)=0) AND (i<xleft))
+          THEN append(result,comma)
+      END;  {for}
+    append(result,decimal);
+    FOR i := 1 TO xright DO
+      append(result,space)
+END;  {rn$mask procedure}
+
+
+{ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+
+
+PROCEDURE rn$nines;
+
+BEGIN {rn$nines procedure}
+    startsig := ptr;
+    WHILE ptr<rnlen DO
+      BEGIN {while}
+        IF result[ptr]=space
+          THEN result[ptr] := nine;
+        IF ptr<rnlen
+          THEN ptr := ptr+1
+      END   {while}
+END;  {rn$nines procedure} {$L+}
+PROCEDURE rn$trans;
+
+VAR
+    i     : rndex;
+    basis : 0..255;
+
+BEGIN {rn$trans procedure}
+    FOR i := 1 TO rnmax DO
+      BEGIN {for}
+        WHILE result[ptr]<>space DO
+          BEGIN {while}
+            IF startsig=0
+              THEN
+                CASE result[ptr] OF
+                    comma  :  result[ptr] := space;
+                    decimal:  BEGIN {decimal}
+                                startsig := ptr-1;
+                                result[startsig] := zero
+                              END   {decimal}
+                  END; {case}
+            ptr := ptr + 1
+          END;  {while}
+        IF work<rnset[i,1]
+          THEN
+            IF startsig>0
+              THEN result[ptr] := zero
+              ELSE {no action}
+          ELSE
+            BEGIN
+              IF startsig=0
+                 THEN startsig := ptr;
+              IF work<rnset[i,2]
+                THEN basis := ORD(zero)
+                ELSE
+                  BEGIN
+                    work  := work - rnset[i,2];
+                    basis := ORD(five)
+                  END;  {else}
+              WHILE work>=rnset[i,1] DO
+                BEGIN {while}
+                  work := work - rnset[i,1];
+                  basis := basis + 1
+                END;  {while}
+              result[ptr] := CHR(basis)
+            END; {else}
+        IF ptr<rnlen
+          THEN ptr := ptr+1
+      END   {for}
+END;  {rn$trans procedure} {$L+}
+BEGIN {rn$ function} {$C-R+}
+    rn$mask(rnleft,rnright);
+    IF given<0.0
+      THEN work := -given + rnmin
+      ELSE work :=  given + rnmin;
+    startsig := 0;
+    ptr      := 2;
+
+    IF work<rnlimit
+      THEN rn$trans
+      ELSE rn$nines;
+    IF given<0.0
+      THEN
+        BEGIN {then}
+          startsig := startsig - 1;
+          result[startsig] := hyphen
+        END;  {then}
+    IF retntype=full
+      THEN rn$ := result
+      ELSE
+        BEGIN
+          setlength(shortrn$,0);
+          FOR ptr := startsig TO rnlen DO
+            append(shortrn$,result[ptr]);
+          rn$ := shortrn$
+        END   {else}
+END;  {rn$ function} {$L+}
+

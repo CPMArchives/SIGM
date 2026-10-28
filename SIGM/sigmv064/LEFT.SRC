@@ -1,0 +1,190 @@
+;TYPE
+;$STRING80 = STRING 80;
+;$STRING0 = STRING 0;
+;$STRING255 = STRING 255;
+;BYTE = 0..255;
+;VAR
+;DATA:$STRING255;
+;NUMBER:INTEGER;
+;
+;function length(x:$string255):INTEGER;external;
+	EXTD	L168,LENGTH  
+;PROCEDURE setlength(var x:$string0; y : INTEGER); external;
+	EXTD	L169,SETLENGT
+;
+;{function to return the "y" left most characters of a string "x"
+;where y is an integer value up to 255, and x is a string of maximum
+;length 255 characters.  Corresponds to BASIC command LEFT$(A$,x)..
+;requires pascal/z's external functions setlength and length.. }
+;
+;FUNCTION LEFT(X:$STRING255; Y:BYTE):$STRING255;
+;
+;{returns the first or left-most y characters in a string x}
+;
+;LABEL 1;
+;VAR
+;LEN,I:INTEGER;
+;L:$STRING255;
+;
+;BEGIN
+L170
+	NAME LEFT
+	ENTRY LEFT
+LEFT:
+	ENTR	D,2,260
+;SETLENGTH(L,0);
+	STMT	D,1
+	PUSH	IX
+	POP	H
+	LXI	B,-4
+	DADD	B
+	PUSH	H
+	MOV	H,A
+	MOV	L,A
+	PUSH	H
+	CALL	L169
+;LEN:=LENGTH(X);
+	STMT	D,2
+	PUSH	IX
+	POP	H
+	LXI	B,264
+	DADD	B
+	SPSH	S,255
+	CALL	L168
+	STMT	M,2
+	MOV	-2(IX),D
+	MOV	-3(IX),E
+;
+;IF (LEN = 0) OR (Y < 1) THEN GOTO 1;
+	STMT	D,3
+	MOV	L,-3(IX)
+	MOV	H,-2(IX)
+	MOV	D,A
+	MOV	E,A
+	DSB1	D,0
+	JZ	L198
+	MOV	H,A
+	MOV	L,8(IX)
+	MOV	A,L
+	CMPI	D,1
+	MOV	A,H
+	JNC	L197
+L196
+L198	EQU	L196
+	STMT	D,4
+	CTRL	M,4
+	JMP	L171
+L197
+;IF Y >= LEN THEN 
+	STMT	D,5
+	MOV	H,A
+	MOV	L,8(IX)
+	MOV	E,-3(IX)
+	MOV	D,-2(IX)
+	GE	D,0
+;	BEGIN
+	JNC	L218
+	STMT	D,6
+;	L:=X;
+	STMT	D,7
+	PUSH	IX
+	POP	H
+	LXI	B,264
+	DADD	B
+	RCHK	S,255
+	XCHG
+	PUSH	IX
+	POP	H
+	LXI	B,-4
+	DADD	B
+	XCHG
+	LXI	B,256
+	LDDR
+;	GOTO 1;
+	STMT	D,8
+	CTRL	M,8
+	JMP	L171
+;	END;
+	STMT	D,9
+L218
+;
+;{IF Y = 1 THEN 
+;	BEGIN
+;	L:=X[1];
+;	GOTO 1;
+;	END;}
+;
+;FOR I:= 1 TO Y DO APPEND(L,X[I]);
+	STMT	D,10
+	MOV	0(IX),A
+	MVI	-1(IX),1
+	PUSH	IX
+	MOV	H,A
+	MOV	L,8(IX)
+	XTHL
+L245
+	MOV	D,M
+	DCX	H
+	MOV	E,M
+	XTHL
+	PUSH	H
+	GE	D,0
+	JNC	L246
+	STMT	D,11
+	PUSH	IX
+	POP	H
+	LXI	B,-4
+	DADD	B
+	PUSH	H
+	LXI	H,255
+	PUSH	H
+	MOV	L,-1(IX)
+	MOV	H,0(IX)
+	RCHK	H,1,255
+	XCHG
+	LXI	H,264
+	ADDR	IX
+	MOV	D,A
+	MOV	E,M
+	INR	D
+	PUSH	D
+	LXI	H,2
+	PUSH	H
+	CALL	L137
+	CTRL	M,11
+	POP	H
+	XTHL
+	INR	M
+	INX	H
+	JRNZ	L271
+	INR	M
+	JV	L272
+L271
+	JMP	L245
+L246
+	POP	D
+L272
+	POP	D
+;
+;1:
+	STMT	D,12
+L171
+;LEFT:=L;
+	STMT	D,13
+	PUSH	IX
+	POP	H
+	LXI	B,-4
+	DADD	B
+	RCHK	S,255
+	XCHG
+	PUSH	IX
+	POP	H
+	LXI	B,520
+	DADD	B
+	XCHG
+	LXI	B,256
+	LDDR
+;END;
+	STMT	D,14
+	EXIT	D,257
+

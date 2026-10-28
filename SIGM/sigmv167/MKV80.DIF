@@ -1,0 +1,46 @@
+File 1, Line 60: ;	January 20, 1984 - M checked upper argument incorrectly
+
+File 1, Line 516: ;	The comparison is lexicographic; bytes are compared from left
+File 1, Line 517: ;	to right, the first inequality resolves the comparison.
+
+File 1, Line 538: 	jmp	um8	;non-trivial comparison to be made
+File 2, Line 535: 	jmp	um7	;non-trivial comparison to be made
+
+File 1, Line 550: 	jz	um5	;record endpoint, quit
+File 2, Line 547: 	jz	um4	;record endpoint, quit
+
+File 1, Line 553: um3:	ldax	d	;argument b
+File 1, Line 554: 	cmp	m	;workspace text
+File 1, Line 555: 	jc	um7	;wrong inequality, so FALSE
+File 1, Line 556: 	jnz	um4	;strict less settles issue
+File 2, Line 550: um3:	ldax	d	;
+File 2, Line 551: 	cmp	m	;
+File 2, Line 552: 	jc	um6	;wrong inequality, so FALSE
+
+File 1, Line 563: um4:	pop	h	;recover the saved p2
+File 1, Line 564: um5:	shld	p2	;it can be stored as end pointer
+File 2, Line 559: 	pop	h	;recover the saved p2
+File 2, Line 560: um4:	shld	p2	;it can be stored as end pointer
+
+File 2, Line 562: um5:	pop	h	;
+
+File 1, Line 567: um7:	pop	h	;
+
+File 1, Line 569: um8:	lhld	p3	;fetch end of text
+File 2, Line 565: um7:	lhld	p3	;fetch end of text
+
+File 1, Line 572: 	jnz	um9	;whole addresses can't be equal
+File 2, Line 568: 	jnz	um8	;whole addresses can't be equal
+
+File 1, Line 575: 	jz	um6	;end of text without success - FALSE
+File 1, Line 576: um9:	xchg		;pointer to argument back in (HL)
+File 2, Line 571: 	jz	um5	;end of text without success - FALSE
+File 2, Line 572: um8:	xchg		;pointer to argument back in (HL)
+
+File 1, Line 580: 	jc	um6	;fail if argument is bigger
+File 2, Line 576: 	jc	um5	;fail if argument is bigger
+
+ack in (HL)
+
+File 1, Line 580: 	jc	um6	;fail if argument is bigger
+File 2, Line 576: 	jc	um5	;fail if argumen

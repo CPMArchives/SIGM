@@ -1,0 +1,458 @@
+* DATE 09/10/84  18:19
+* maintain.bld
+STOR t TO more
+DO WHIL more
+ STOR CHR(PEEK(063)) TO dr
+ SELE PRIMARY
+ USE &dr.:build INDEX &dr.:code
+ REST from coname additive
+ ERAS
+ STOR '?' TO command
+TEXT
+ >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+ *   Please select one of the above options. You may also leave this menu    *
+ *   by typing 'Q' and get on-line HELP by typing '?'.                       *
+ >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+ENDT
+ @ 03,04 SAY coname + "  -  FILE MAINTENANCE MENU"
+ @ 03,65 SAY DATE()
+ @ 07,24 SAY 'A. Backup data files'
+ @ 08,24 SAY 'B. Browse through building file'
+ @ 09,24 SAY 'C. Browse through tenant file'
+ @ 10,24 SAY 'D. Display building file'
+ @ 11,24 SAY 'E. Display tenant file'
+ @ 12,24 SAY 'F. First initialization of Property Manager Program'
+ @ 13,24 SAY 'G. Reininitialze defaults, company name, etc.'
+ @ 14,24 SAY 'H. Purge building and tenant file'
+ @ 15,24 SAY 'I. Re-index the records into all indexes'
+ @ 16,24 SAY 'J. Return to main menu'
+ @ 18,23 SAY "PLEASE SELECT ONE OF THE OPTIONS"
+ @ 18,58 GET command PICTURE '!'
+ READ
+ DO WHIL @(COMMAND, 'ABCDEFGHIJ?Q') = 0
+  STOR '?' TO command
+  @ 18,58 GET command PICTURE '!'
+  READ
+ ENDD
+ DO CASE
+ CASE command = 'A'
+  STOR 'Y' TO doit
+  ERAS
+  @ 01,05 SAY 'This module makes a backup of the DATA Files to another disk'
+  @ 03,05 SAY 'Do you want to do a backup of the DATA Files (Y/N) ?'
+  @ 03,60 GET doit PICTURE '!'
+  READ
+  IF doit = 'Y'
+   @ 01,00
+   @ 03,00
+   @ 03,05 SAY 'The left drive is Drive A  - The right drive is Drive B'
+   @ 04,05 SAY 'The DATA File is on drive '+dr+' and you normally backup to drive B'
+   @ 06,05 SAY 'Make sure the backup disk is in the drive selected for backup'
+   RESE
+   STOR 'B' TO bdr
+   @ 08,05 SAY 'Which drive selected for backup DATA File ? ' GET bdr PICTURE '!'
+   READ
+   DO WHIL @(bdr,'AB') = 0
+    @ 08,05 SAY 'Which drive selected for backup DATA File ? ' GET bdr PICTURE '!'
+    READ
+   ENDD while @
+   IF bdr <> dr
+    @ 10,05 SAY 'Now copying DATA Files from drive '+dr+' to drive '+bdr+ ' '
+    SET ECHO ON
+    SET TALK ON
+    SELE PRIMARY
+    USE &dr.:build INDEX &dr.:code
+    RESE
+    COPY TO &bdr.:buildbak
+    SELE SECONDARY
+    USE &dr.:tenant INDEX &dr.:codea
+    COPY TO &bdr.:tenbak
+    SET TALK OFF
+    SET ECHO OFF
+    SELE PRIMARY
+    USE &dr.:build INDEX &dr.:code
+   ELSE
+    @ 10,05 SAY 'Cant backup to same drive - Aborting'
+    @ 12,00 SAY 'Hit RETURN to Continue'
+    SET CONSOLE OFF
+    WAIT
+    SET CONSOLE ON
+   ENDI not same drive
+  ENDI do backup
+ CASE command = 'B'
+* browse thru records
+  ERAS
+  @ 01,12 SAY '***WARNING***  ***WARNING***  ***WARNING***'
+  @ 03,13 SAY 'Changes made will be written to the File'
+  @ 06,12 SAY 'CTRL-C write current record & go down'
+  @ 07,12 SAY 'CTRL-R write current record & go up'
+  @ 08,12 SAY 'CTRL-Z/B pans screen left or right'
+  @ 09,12 SAY 'CTRL-V toggles Insert on or off'
+  @ 10,12 SAY 'CTRL-G Delete character under cursor'
+  @ 11,12 SAY 'CTRL-U Delete or Recall current record'
+  @ 12,12 SAY 'CTRL-Q exit Dont Write Current record'
+  @ 13,12 SAY 'CTRL-W exit and Save all changes'
+* get a starting point in file
+  STOR '  ' TO stletter
+  @ 15,12 SAY 'We are using the building code index to browse'
+  @ 16,12 SAY '....so please tell me the starting code number'
+  @ 17,12 SAY 'or as much of it as you want to.'
+  @ 19,12 SAY '           Where shall we start.............'
+  @ 19,57 Get stletter PICTURE '99'
+  @ 22,00
+  READ
+  STOR TRIM(stletter) TO stletter
+* goto starting point or next if no find
+  FIND &stletter
+  IF # = 0
+   GO top
+  ENDI
+* browse thru file
+  SET ESCAPE OFF
+  BROW fields bcode, baddr
+  SET ESCAPE ON
+ CASE command = 'C'
+  ERAS
+  SELE SECONDARY
+  USE &dr.:tenant INDEX &dr.:codea
+* browse thru records
+  ERAS
+  @ 01,12 SAY '***WARNING***  ***WARNING***  ***WARNING***'
+  @ 03,13 SAY 'Changes made will be written to the File'
+  @ 06,12 SAY 'CTRL-C write current record & go down'
+  @ 07,12 SAY 'CTRL-R write current record & go up'
+  @ 08,12 SAY 'CTRL-Z/B pans screen left or right'
+  @ 09,12 SAY 'CTRL-V toggles Insert on or off'
+  @ 10,12 SAY 'CTRL-G Delete character under cursor'
+  @ 11,12 SAY 'CTRL-U Delete or Recall current record'
+  @ 12,12 SAY 'CTRL-Q exit Dont Write Current record'
+  @ 13,12 SAY 'CTRL-W exit and Save all changes'
+* get a starting point in file
+  STOR '     ' TO stletter
+  @ 15,12 SAY 'We are using the building code index to browse'
+  @ 16,12 SAY '....so please tell me the starting code number'
+  @ 17,12 SAY 'or as much of it as you want to.'
+  @ 19,12 SAY '           Where shall we start.............'
+  @ 19,57 Get stletter PICTURE '99999'
+  @ 22,00
+  READ
+  STOR TRIM(stletter) TO stletter
+* goto starting point or next if no find
+  FIND &stletter
+  IF # = 0
+   GO top
+  ENDI
+* browse thru file
+  SET ESCAPE OFF
+  BROW fields bcode, tunit, tenant
+  SET ESCAPE ON
+  SELE PRIMARY
+  USE &dr.:build INDEX &dr.:code
+ CASE command = 'D'
+  STOR CHR(PEEK (063)) TO dr
+  ERAS
+  @ 02,12 SAY 'Records are displayed by code number and you can select the '
+  @ 03,12 SAY 'starting code letter or any part of it.  If I do not find that'
+  @ 04,12 SAY 'number in the file, I will start at the beginning'
+  @ 06,12 SAY 'When WAITING hit space bar to continue... or ESCape to quit'
+* get a starting point in file
+  STOR '  ' TO stletter
+  @ 10,12 SAY 'Place at which to start display'
+  @ 10,57 Get stletter PICTURE '99'
+  READ
+  STOR TRIM(stletter) TO stletter
+* goto starting point or next if no find
+  FIND &stletter
+  IF # = 0
+   GO top
+  ENDI
+* display selected list
+  ERAS
+  SET ESCAPE OFF
+  DISP NEXT 65000 bcode, $(bdata,1,38), $(baddr,1,20)
+  IF eof
+   WAIT
+  ENDI
+  SET ESCAPE ON
+ CASE command = 'E'
+  STOR CHR(PEEK(063)) TO dr
+  SELE SECONDARY
+  USE &dr.:tenant INDEX &dr.:codea
+  ERAS
+  @ 02,12 SAY 'Records are displayed by code number and you can select the '
+  @ 03,12 SAY 'starting code letter or any part of it.  If I do not find that'
+  @ 04,12 SAY 'number in the file, I will start at the beginning'
+  @ 06,12 SAY 'When WAITING hit space bar to continue... or ESCape to quit'
+* get a starting point in file
+  STOR '     ' TO stletter
+  @ 10,12 SAY 'Place at which to start display'
+  @ 10,57 Get stletter PICTURE '99999'
+  READ
+  STOR TRIM(stletter) TO stletter
+* goto starting point or next if no find
+  FIND &stletter
+  IF # = 0
+   GO top
+  ENDI
+* display selected list
+  ERAS
+  SET ESCAPE OFF
+  DISP NEXT 65000 bcode, tunit, ttype, tenant
+  IF eof
+   WAIT
+  ENDI
+  SET ESCAPE ON
+  SELE PRIMARY
+  USE &dr.:build INDEX &dr.:code
+ CASE command = 'F'
+  ERAS
+  STOR 'N' TO option
+TEXT
+ >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+        W A R N I N G       W  A  R  N  I N  G       W A R N I N G
+        =============       ==================      ==============
+
+        This option is designed to create a new data base file to
+        startup this program the first time. It will mark for     
+        deletion all of the sample files we gave you in the build- 
+        ing and tenant databases. Then add your records and come
+        back to the maintenance menu to purge. A similar program 
+        is found on the Accounting Maintenance menu.
+
+        NEVER RUN THIS OPTION UNLESS YOU HAVE BACKED UP THE PROGRAM        
+
+
+ >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+
+
+
+
+
+ENDT
+  @ 19,20 SAY 'ARE YOU READY TO PROCEED'
+  @ 19,47 GET option PICTURE '!'
+  READ
+  IF option = 'Y'
+   STOR CHR(PEEK(063)) TO dr
+   SELE SECONDARY
+   USE &dr.:tenant
+   DELE ALL
+   SELE PRIMARY
+   USE &dr.:build
+   DELE ALL
+   SET INDEX TO &dr.:code
+  ENDI option = 'Y'
+ CASE command = 'G'
+  SAVE TO temp
+  REST from manage.dat
+  IF PASS = 'Y'
+   ERAS
+   @ 12,10 SAY 'PLEASE ENTER THE PASSWORD SLOWLY ........'
+   SET EXACT ON
+   SET COLON OFF
+   STOR '12345678' TO passt
+   STOR ' ' TO passt1
+   STOR ' ' TO one
+   STOR ' ' to one1
+   STOR 0 to count
+   DO WHIL count < 8
+    SET CONSOLE OFF
+    @ 12,50 SAY passt1
+    WAIT TO one1
+    @ 12,50 ACCEPT one1
+    SET CONSOLE ON
+    STOR TRIM(one) + one1 TO one
+    STOR count + 1 TO count
+    STOR $(passt,1,count) TO passt1
+    @ 12,50 SAY passt1
+    SET CONSOLE OFF
+   ENDD
+   SET CONSOLE ON
+   STOR $(one,2,9) TO passt
+   IF TRIM(passt) <> TRIM(passp)
+    ERAS
+    @ 14,10 SAY "U N A U T H O R I Z E D       A C C E S S  "
+    @ 17,10
+    SET CONSOLE OFF
+    QUIT
+   ENDI passt
+   SET EXACT OFF
+   SET COLON ON
+  ENDI pass
+  DO init.spm
+  REST from temp additive
+ CASE command = 'H'
+  STOR CHR(PEEK (063)) TO dr
+  STOR 'N' TO command
+  ERAS
+  @ 02,05 SAY '*****   WARNING!   *****   WARNING!   *****   WARNING!   ****'
+  @ 04,05 SAY 'This will PERMANENTLY remove any deleted records.'
+  @ 06,05 SAY 'Type Y to continue, any other key to cancel this operation'
+  @ 06,64 GET command PICTURE '!'
+  READ
+  IF command = 'Y'
+   ERAS
+* give the user something to read while file is packed
+TEXT
+
+Records which have been marked for deletion are being removed from the file.
+
+When that is completed, all records will be reindexed. 
+
+We will keep you posted as we go along..........but please be patient.
+
+ENDT
+*pack the file to remove deleted records
+*but let us know how many records are deleted
+   SET INDEX TO
+   GO bottom
+   STOR # to before
+   @ 08,00 SAY 'The building data base contains ' + STR(before,4) + ' files before deletions'
+   @ 09,00 SAY ' '
+   SET INDEX TO &dr.:code
+   SET TALK ON
+   PACK
+   SET TALK OFF
+   SELE SECONDARY
+   USE &dr.:tenant
+   GO bottom
+   STOR # to before
+   ERAS
+   @ 08,00 SAY 'The tenant data base contains ' + STR(before,4) + ' files before deletions'
+   @ 09,00 SAY ' '
+   SET INDEX TO &dr.:codea
+   SET TALK ON
+   PACK
+   SET TALK OFF
+   SELE PRIMARY
+   USE &dr.:build INDEX &dr.:code
+   @ 19,00
+   @ 20,00
+   @ 21,00 SAY ' *************************************************************************'
+   @ 23,20 SAY 'Hit any key to Continue '
+   SET CONSOLE OFF
+   WAIT
+   SET CONSOLE ON
+  ENDI command = Y
+  RELE ALL
+  STOR t TO more
+ CASE command = 'I'
+* re-initialize index files
+  ERAS
+  @ 2,00 SAY 'We are going to index to all of the indexes and'
+  @ 3,00 SAY 'will keep you posted as we do it.'
+  @ 5,00 SAY 'Please be patient as this takes a little time...'
+  @ 7,00 SAY 'Records are now being re-indexed'
+  STOR CHR(PEEK(063)) TO dr
+  SET TALK ON
+  SET ECHO ON
+  SELE SECONDARY
+  USE &dr.:tenant
+  INDE on bcode to &dr.:codea
+  SELE PRIMARY
+  USE &dr.:build
+  INDE ON bcode TO &dr.:code
+  SET INDEX TO &dr.:code
+  SET TALK OFF
+  SET ECHO OFF
+ CASE command = '?'
+  ERAS
+TEXT
+
+
+       M A I N T E N A N C E   M E N U   H E L P   S C R E E N
+
+
+The maintenance menu allows you to work with both the building and the tenant
+databases.   Some of the options on this screen are exceedingly powerful  and
+should be used with care.
+
+The browse command allows you to examine certain of the data in the files and
+make changes directly in the file.  Because of size limitations, you can only
+browse in the code, address and type fields in the building database  and  in
+the code, unit and tenant name fields in the tenant database.
+
+The same type of space limitations apply in the display mode.  However, it is
+a simple, non-dangerous (and preferable) way to view multiple records. In the
+building mode  I display the code, the units, the type, the acquisition  date
+and part of the address. In the tenant mode I display the code, tenant,  type
+and tenant name.
+
+
+                Please hit any key to continue........
+ENDT
+  SET CONSOLE OFF
+  WAIT
+  SET CONSOLE ON
+  ERAS
+TEXT
+
+Purge deleted entries  -  this permanently removes from the file all entries
+marked for deletion and then reindexes the file. Use this carefully and only
+purge after you have made a backup of the file.
+
+Backup data file - I hate to say this -  but computers goof and disks are so
+so delicate. ALWAYS ALWAYS ALWAYS never let a week go by without a backup  -
+so all you lose is one week (do it every day if you want).  This program can
+make an automatic backup of the data to another disk.    There should always   
+be another copy of the program and data, but backup is a convenient way for 
+an extra copy.
+
+Reindex -  this is necessary if you are going to search for a file using the 
+search by index command. 
+
+The first time initialization option has instructions. Basically, first time
+around run it to delete the sample files. The set name option refers to the
+name that appears on the top of the menu and on reports. You can change it
+anytime. Note, when going from dBASE version to another or from one operating
+system to another, you must delete memory variable files. These files are   
+MANAGE.DAT and CONAME.MEM. If deleted, the program will reinitialize itself.
+
+             Please press any key to return to the menu......... 
+ENDT
+  SET CONSOLE OFF
+  WAIT
+  SET CONSOLE ON
+  ERAS
+ CASE (command = 'J' .OR. command = 'Q')
+  STOR f TO more
+ ENDC
+ENDD while more
+REST from manage.dat
+IF escap = 'N'
+ SET ESCAPE OFF
+ELSE
+ SET ESCAPE ON
+ENDI
+IF bright = 'A'
+ SET INTENSITY ON
+ELSE
+ SET INTENSITY OFF
+ENDI bright
+RELE ALL
+STOR 0 TO box
+STOR t TO first
+STOR t TO keepitup
+RETU
+

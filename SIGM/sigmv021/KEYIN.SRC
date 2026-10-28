@@ -1,0 +1,39 @@
+;===================================================
+;  PROGRAM TITLE:	KEYIN
+;
+;  WRITTEN BY:	RAYMOND E. PENLEY
+;  DATE WRITTEN:	14 APRIL 1980
+;			modified for Pascal/Z vers 3.0
+;			8 May 1980
+;
+;  SUMMARY:
+;	Keyin reads the Console directly. It
+;	bypasses the CCP and goes to the Console
+;	routine through the BIOS.
+;	It will work with both CP/M ver 1.4 and ver 2.0
+;
+;CALL AS:
+;
+;	PROCEDURE KEYIN(VAR X:char); EXTERNAL;
+;
+;
+	NAME	KEYIN
+;
+	ENTRY	KEYIN
+;
+KEYIN:
+	CALL	$K2	;---Char returns in "A" reg
+	POP	D	;---return addr to DE
+	POP	H	;---param addr to HL
+	MOV	M,A	;---Store char (HL)
+	XRA	A	;---Satisfy Pascal/Z. LET A:=0
+	XCHG		;---HL := DE
+	PCHL		;---Done, return
+;
+$K2:	LHLD	1	;---BIOS address
+	LXI	D,6	;---CONIN offset
+	DAD	D	;---Add in offset
+	PCHL		;---Continue from here
+	;
+;===================================================
+

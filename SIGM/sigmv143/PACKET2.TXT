@@ -1,0 +1,275 @@
+R PR.SEMINARS.BAY.AREA COMPLETE
+
+*** PR.SEMINARS.BAY.AREA  1-AUG-81
+  PARENT=*ASCII               USAGE= 97
+     A seminar series on Packet Radio, as it now exists (and where it will
+probably go), will be held by Hank Magnuski, KA6M, who operates the Menlo
+Park packet repeater.  He says:  "The high level of interest in packet radio
+concepts and technology, plus the need to get some design groups going to work
+on establishing new networking protocols and hardware has prompted me to
+arrange a series of meetings.  Anybody interested in helping...or giving a
+presentation please contact me (Hank, 415-854-1927 home)."
+ 
+                            Times & Place
+ 
+Tymnet Training Room, Tymnet, 20665 Valley Green Dr., Cupertino.  I-280 to
+DeAnza...go South...Right at Valley Green to 1st 2-story bldg...Enter at East
+end.....All meetings at 8:p0 PM.
+ 
+7 July       --- VADCG protocol discussion
+4 August     --- problems and issues
+1 September  --- interfacing to packet radio
+6 October    --- AMICON/AMINET
+3 November   --- Gateway/Repeater design
+1 December   --- Advanced hardware
+ 
+Call Hank 415-854-1927 for more info; Wm. Putney 408-446-7190 for better di-
+rections to meeting if needed.
+ 
+     +++ SUBMESSAGES +++
+
+*** PROBLEMS&ISSUES       5-AUG-81
+  PARENT=PR.SEMINARS.BAY.AREA USAGE= 90
+     Last night your fairwitness went to the second, of a series of seminars
+that are being held by Hank Magnuski, KA6M, on Packet Radio. (see parent msg)
+My first </++_ deals with the directions.  If you are coming from the NORTH
+there is no sign saying DeAnza or Cupertino ---->  (this way).  So if you are
+coming from the north the turnoff is AFTER hwy85, but BEFORE the Lawrence Exp.
+If you are coming from the SOUTH the directions work fine.
+     I was about an hour late for the meeting, so I can't give you a complete
+report, but I met a few users of the Conference Tree there, who might want to
+elaborate a bit more.  (Please feel free to addto these branches)
+     Upon arriving, the topic of discussion was on how various stations would
+communicate to one another through various methods, including, satellites and
+repeaters, and the various protocols that would allow this communication. The
+basic flow was drawn out as follows:::
+                                       Terminal Node --- Single User Station
+                                       Host Node     --- Multi-user Station
+                                       Repeater      --- Reproduces Packets
+                                       Station Node  --- Global Ctrl. PR/net
+                                       Gateway       --- Protocol/Media
+A discussion then followed on into what I would call the "stacking" order of
+the data and the problems and solutions of addressing data to other stations.
+All in all, it was a pleasure attending this seminar, listening to the info
+that Hank and the other participants exchanged, and highly recommend the sem-
+minars to follow. (see parent msg)
+ 
+                          PACKET RADIO HDLC PROTOCOL NOTES
+ 
+The protocol used by the Vancouver Digital Communications Group controller
+board, and also used by the packet radio repeater is based on a subset of
+HDLC standard protocol.  In this protocol the standard unit of information
+is the frame:
+------------------------------------------------------------------------------
+| SYNC | SYNC | FLAG | ADDR | CNTL | TEXT | ... | TEXT | FCS1 | FCS2 | FLAG |
+------------------------------------------------------------------------------
+where
+          SYNC   -   preframe synchronization, idle flags or zeroes
+          FLAG   -   start of frame, bit pattern 01111110
+          ADDR   -   address byte, hex 00 to FF
+          CNTL   -   control byte, indicates type of frame, other info
+          TEXT   -   optional information field
+          FCS1   -   first byte of frame check sequence (CRC)
+          FCS2   -   second byte of frame check sequence
+          FLAG   -   closing flag
+other features used
+          bit stuffing - provides fully transparent transmission of data
+          NRZI encode  - Zeroes cause transition which allows clock recovery
+          multiframe   - Up to (7) frames permitted in a single transmission
+types of frames
+          Non-sequenced-information   -   Used for Connect/Disconnect
+          Supervisory                 -   Used for window & flow control
+          Information                 -   Used for transmission of text
+
+*** P&I2                  5-AUG-81
+  PARENT=PROBLEMS&ISSUES      USAGE= 88
+ 
+NSI Frames:
+          FLAG ADDR CNTL FMCALL TOCALL FCS1 FCS2 FLAG
+          ADDR   -   Address of calling station (assigned to each station)
+          CNTL   -   17H = Connect request
+                     07H = Connect acknowledge
+                     53H = Disconnect request
+                     43H = Disconnect acknowledge
+ 
+                     The Poll/Final (P/F) bit, 10H, is used to force a
+                     response from the receiving station.  Used here and
+                     in other frame types for this function.
+ 
+          FMCALL -   Call of station originating the frame (6 characters)
+          TOCALL -   Call of station receiving the frame (6 characters)
+ 
+                     The callsign is left-justified in the field and pad-
+                     ded with trailing blanks if the call is shorter than
+                     6 characters.
+ 
+Supervisory Frames:
+          FLAG ADDR CNTL FSC1 FCS2 FLAG
+          ADDR   -   Address of sender
+ 
+          CNTL   -    7     6    5    4    3    2    1    0
+                    -----------------------------------------
+                    |       Nr      |P/F|  0    0    0    1 | Receive Ready
+                    -----------------------------------------
+ 
+                    -----------------------------------------
+                    |       Nr      |P/F|  0    1    0    1 | Zcv Not Ready
+                    -----------------------------------------
+                    Nr  =  Sequence count of next expected I-frame
+                    P/F =  Poll/Final bit
+Information Frames:
+          FLAG ADDR CNTL TEXT ... TEXT FCS1 FCS2 FLAG
+          ADDR   -  Address of sender
+          CNTL   -    7     6    5    4    3    2    1    0
+                    -----------------------------------------
+                    |       Nr      |P/F|       Ns      | 0 | I-frame
+                    -----------------------------------------
+                    Nr  =  Sequence count of next expected I-frame
+                    P/F =  Poll/Final bit
+                    Ns  =  Sequence count of this I-frame
+          TEXT   -  Text field, 128 bytes maximum, ASCII code
+Timeouts:
+          T1     -  Receive timeout, 2-3 seconds
+          T1S    -  Frame timeout, time for frame of maximum length
+          Tr  0  -  Delay time (random) prior to transmission of first frame
+                    of a sequence, 950 milliseconds to 1.25 seconds    (cont.)
+
+*** P&I3                  5-AUG-81
+  PARENT=P&I2                 USAGE= 86
+ 
+Addresses:
+          00     -     No operation
+          01-7F  -     Station direct connect addresses
+          80     -     Reserved
+          81-9F  -     Repeater input channel addresses
+          A0     -     Reserved
+          A1-BF  -     Repeater output channel addresses
+          C0-FE  -     Reserved
+          FF     -     All parties addressed
+ 
+ 
+ 
+     A great deal of information is to be gained from attending the seminars.
+If you cannot attend then write to:
+                                     Hank Magnuski, KA6M  415-854-1927
+                                     311 Stanford Avenue
+                                     Menlo Park, CA  94025
+ 
+                                                                        -cas-
+
+*** WHAT-IS-NRZI          6-AUG-81
+  PARENT=PROBLEMS&ISSUES      USAGE= 86
+What is the NRZI encoding that is mentioned everywhere in this
+packet radio conference? The only NRZI I know about is used in
+digital magnetic tape recording and is not self-clocking.
+I use a format called SDLC which is very similar to HDLC and I
+encode it with a scheme called Phase Modulation which works
+like this:
+Starting bit stream: 0   0   0   1   0   1   1   1   0   1   1
+Encoded bit stream:  0 1 0 1 0 0 1 1 0 0 1 0 1 0 1 1 0 0 1 0 1
+Is this what is called NRZI in packet radio?
+I think it is wonderful that people are working on packet
+radio and I would like to learn more about it, thanks for all
+the technical info in the preceding (I hope I put this message
+in the right place so they are preceding) messages.
+					Peter Ryan
+
+*** ANSWER???            15-AUG-81
+  PARENT=WHAT-IS-NRZI         USAGE= 58
+Peter, if you have access to 'Reference Data For Radio Engineers' (c
+Howard W. Sams Co.,Inc.) look on page 40-24.  There, NRZ, NRZI and PM
+are discussed.  From what info I have on P/R, the protocol is SDLC.
+NRZI is a transition whenever the data changes states, SDLC is a 0 (Zero)
+whenever 5 consecutive 1's (one's) are encountered.  The receiver is tasked
+with the removal of the 0.  I can understand why you don't see how to
+recover a clock from NRZI.  Frankly, I don't either.  Send a binary 63, and
+recover the clock from it (without the sync field, that is)  My disk system,
+and I think a lot of others uses NRZI, with sync, so the clock is easily
+recovered.  If you need more info, I'll type it in. (My kingdom for a
+flying spot scanner interfaced to this machine!)  And Curtis, if you can
+get the March 1981 issue of 'the packet' it has what you just explained
+in your review of the seminar.  Someone ought to get all of the newslettess,
+articles ect together, and print them up.  Very interesting reading, for
+what I have.   Enough computering for today, snooze time.
+							Rick
+
+*** IF/NW                11-SEP-81
+  PARENT=PR.SEMINARS.BAY.AREA USAGE= 15
+The third seminar in our series on packet radio was held last evening, and
+was attended by 25 people.  The theme of the meeting was "Interfacing to the
+Network".
+ 
+Announcements -
+ 
+Howard Nurse, W6LLO, has his 20M packet station available for schedules.  He
+would like to make some contacts to checkout the equipment, as no one else
+in this area is ready.  The station will, in general, be connected to the
+mailbox system here, but it is currently not continously on.  Please call me
+or Howard, or send us a message.
+ 
+Hank Magnuski distributed a 555 baseon his VADCG board
+to implement a downline loaded version of the protocol.
+pvolunteered to try mounting 3 MK4118N3 1kx8 RAMS on his VADCG board
+to implement a downline loaded version of the protocol.
+ 
+The VADCG 1200 baud modem schematics, recently received, were inspected byCqthe group.
+ 
+Brian Yee and Dave Altekruse described their recent meeting with Larry Kayser,
+VE3QB.  There were several questions concerning the satellite channel, and
+more information is needed on the details of the Vancouver-Ottawa link.
+ 
+Speakers -
+ 
+The main topic of the meeting was a description of how some of our network
+users have connected their persnal computer systems to packet.
+ 
+Bob Rekkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk
+          CNTL   -   17H = Connect request
+                     07H = Connect acknowledge
+                     53H = Disconnect request
+                     43H = Disconnect acknowledge
+ 
+                     The Poll/Final (P/F) bit, 10H, is used to force a
+                     response from the receiving station.  Used here and
+                     in other frame types for this function.
+ 
+          FMCALL -   Call of station originating the frame (6 characters)
+          TOCALL -   Call of station receiving the frame (6 characters)
+ 
+                     The callsign is left-justified in the field and pad-
+                     ded with trailing blanks if the call is shorter than
+                     6 characters.
+ 
+Supervisory Frames:
+          FLAG ADDR CNTL FSC1 FCS2 FLAG
+          ADDR   -   Address of sender
+ 
+          CNTL   -    7     6    5    4    3    2    1    0
+                    -----------------------------------------
+                    |       Nr      |P/F|  0    0 also pointed out the treme~dus
+diversity of systems in use, and yet there is little trouble in getting
+these systems to communicate with the current packet setup.
+ 
+Network Usage Survey -
+ 
+To wrap up the meeting and to get an answer to |he question of "What are
+we going to use it for?" a matrix of in|erests vs. potential users was
+contructed by the group:
+ 
+             Topic                                    Votes
+ 
+             Experimentation/Design/Technical           9
+             Compof sender
+          CNTL   -    7     6    5    4    3    2    1    0
+                    -----------------------------------------
+                    |       Nr      |P/F|       Ns      | 0 | I-frame
+                    -----------------------------------------
+                    Nr  =  Sequence count of next expected I-frame
+                    P/F =  Poll/Final bit
+                    Ns  =  Sequence count of this I-frame
+          TEXT   -  Text field, 128 bytes maximum, ASCII code
+Timeouts:
+          T1     -  Receive timeout, 2-3 seconds
+          T1S    -  Frame timeout, time for frame of maximum length
+          Tr  0  -  Delay time (random) prior to transmission of first frame
+                    of a sequence, 950 milliseconds to 1.2

@@ -1,0 +1,180 @@
+* DATE 07/20/84  18:12
+* chart of account program
+STOR CHR(PEEK(063)) TO dr
+SELE SECONDARY
+USE &dr.:CHART
+SET INDEX TO &dr.:chart
+STOR t TO more3
+DO WHIL more3
+ REST from coname additive
+ ERAS
+TEXT
+ >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+ *   Please select one of the above options. You may also leave this menu    *
+ *   by typing 'Q' and get on-line HELP by typing '?'.                       *
+ >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+ENDT
+ STOR '?' TO comman
+ @ 3,04 SAY coname + ' -  CHART OF ACCOUNTS MENU'
+ @ 3,65 SAY date()
+ @ 07,26 SAY "1. Display Chart of Accounts"
+ @ 08,26 SAY "2. Print Chart of Accounts"
+ @ 09,26 SAY "3. Edit or delete existing accounts"
+ @ 10,26 SAY "4. Add new accounts"
+ @ 11,26 SAY "5. Index Chart of Accounts"
+ @ 12,26 SAY "6. Return to prior menu"
+ @ 17,23 SAY "PLEASE SELECT ONE OF THE OPTIONS"
+ @ 17,58 GET comman PICTURE '!'
+ READ
+ DO WHIL @(COMMAN, '123456?Q') = 0
+  STOR '?' TO comman
+  @ 17,58 GET comman PICTURE '!'
+  READ
+ ENDD
+ CLEA GETS
+ DO CASE
+ CASE comman = '1' .OR. comman = '2'
+  IF comman =  '2'
+   SET PRINT ON
+   LIST all fields acctno, desc
+   SET PRINT OFF
+  ELSE
+   ERAS
+   SET ESCAPE OFF
+   DISP all fields acctno, desc
+   SET ESCAPE ON
+   ? ' '
+   ? '                               Hit any key to continue'
+   SET CONSOLE OFF
+   WAIT
+   SET CONSOLE ON
+  ENDI comman = '2'
+ CASE comman = '3'
+  ERAS
+  STOR t TO more4
+  DO WHIL more4
+   STOR '    ' TO macctno
+   STOR '                                             ' TO mdesc
+   @ 12,00
+   @ 13,00
+   @ 15,00
+   @ 8,10 SAY 'Leave blank to end editing'
+   @ 10,10 SAY "What account shall we edit  ?"
+   @ 10,39 GET macctno PICTURE '9999'
+   READ
+   IF macctno = ' '
+    STOR f TO more4
+   ELSE
+    FIND &macctno
+    DO WHIL # = 0
+     @ 10,10 SAY "What account shall we edit  ?"
+     @ 10,39 GET macctno PICTURE '9999'
+     READ
+     FIND &macctno
+    ENDD WHILE # = 0
+    STOR 'N' TO getrid
+    STOR desc TO mdesc
+    @ 12,10 SAY "Account Number: "
+    @ 13,13 SAY "Description: "
+    @ 12,27 GET macctno PICTURE '9999'
+    @ 13,27 GET mdesc
+    READ
+    @ 15,15 SAY "Shall we delete the account ?"
+    @ 15,45 GET getrid PICTURE '!'
+    READ
+    CLEA GETS
+    IF getrid = 'Y'
+     @ 17,10 SAY "Don't forget to reindex to remove deleted record."
+     DELE
+    ELSE
+     REPL acctno WITH macctno
+     REPL desc WITH mdesc
+    ENDI getrid
+   ENDI macctno
+  ENDD WHILE more4
+ CASE comman = '4'
+  STOR t TO more4
+  DO WHIL more4
+   ERAS
+   STOR '    ' TO macctno
+   STOR '                                             ' TO mdesc
+   @ 08,10 SAY 'Add as many account as you wish - just leave a blank to end'
+   @ 10,10 SAY "Account Number: "
+   @ 11,13 SAY "Description: "
+   @ 10,27 GET macctno PICTURE '9999'
+   @ 11,27 GET mdesc
+   READ
+   IF macctno = ' '
+    STOR f TO more4
+   ENDI macct no
+  ENDD while more4
+ CASE comman = '5'
+  SET TALK ON
+  SET ECHO ON
+  STOR CHR(PEEK(063)) TO dr
+  SET INDEX TO
+  PACK
+  INDE on acctno TO &dr.:chart
+  SET ECHO OFF
+  SET TALK OFF
+  SET INDEX TO &dr.:chart
+ CASE comman = '?'
+  ERAS
+TEXT
+            C H A R T   O F    A C C O U N T S   H E L P   M E N U
+
+	The Chart of Accounts is critical to your use of this program.
+        It is the vehicle by which you can customize Property Manager
+        to fit your requirement. IF YOU SELECTED THE GENERAL CHART OF
+        ACCOUNTS YOU MUST INDEX BEFORE FIRST USE.
+
+        The Display function shows the various accounts on screen in 
+        account number order. The print funtion outputs a full list to
+        your printer.  We would suggest that you print the list and    
+        decide how it should be customized to meet your needs. You can
+        then use the edit function to change or delete items and the
+        add funtion to add new items.  Remember, before you use it
+        you must index it. (Note to the edit function will not find
+        an entry that has had the account number changed unless you
+        reindex. 
+
+        If you change the account number structure you may have to 
+        change the statement writing modules. Chances are you will 
+        not have to - but you may.
+
+                                  Hit any key to continue
+ENDT
+  SET CONSOLE OFF
+  WAIT
+  SET CONSOLE ON
+ CASE comman = '6' .OR. comman = 'Q'
+  STOR f TO more3
+ ENDC
+ENDD WHILE more3
+RELE ALL
+STOR CHR(PEEK(063)) TO dr
+SELE PRIMARY
+USE &dr.:account
+SET INDEX TO &dr.:account
+STOR t TO account1
+RETU
+

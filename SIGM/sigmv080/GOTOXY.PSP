@@ -1,0 +1,32 @@
+PROCEDURE GotoXY (X_pos, Y_pos : Integer) ;
+
+  { Procedure to position cursor at co-ordinates X,Y for Micro-Term ACT-IV;
+      duplicates functions of "GotoXY" in Pascal/M & UCSD.
+    Change to proper control codes for your terminal, if necessary.
+    Note that to avoid actually printing characters on the screen, the
+      numbers are made negative before sending the "character" to the terminal;
+      i.e., the range of "X_pos" is actually -128 to -47, rather than 0 to 80,
+      and for "Y_pos", -128 to -105, rather than 0 to 23. It's not clear
+      whether this is a peculiarity required by Pascal/Z or by the ACT-IV,
+      so different strategies may be necessary for different terminals.       }
+
+  CONST
+    Offset = 128 ;  { Used to reduce X and Y numbers to ranges shown above }
+
+BEGIN { GotoXY }
+
+  Write (Chr (20)) ; { Signals ACT-IV that position co-ordinates follow }
+
+  Write (Chr (Y_pos - Offset)) ; { Send row number first,... }
+
+  Write (Chr (X_Pos - Offset)) ; { ...then column number }
+
+END { GotoXY } ;
+ - Offset)) ; { Send row number first,... }
+
+  Write (Chr (X_Pos - Offset)) ; { ...then column numd.		      }
+
+BEGIN { Ucase }
+
+  IF Ord (Letter) IN [Ord ('a')..Ord ('z')] THEN
+    Ucase := Chr (Ord (Letter) - Ord ('a') +

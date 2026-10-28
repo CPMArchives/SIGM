@@ -1,0 +1,1208 @@
+%	30 Dec 82 1443 hrs.
+          PROGRAM BOOT;% WRITTEN FOR AMD MACZ ASSEMBLER
+ 	  ORIGIN #0000;%      RESET POINT FOR Z8001.
+%
+GRESET:	WORD:   #0000;
+        WORD:	#5000;
+	WORD:	#0000;%	SEGMENT ZERO.
+	WORD:	UTIL;
+UTIL:	JP BLOCKL;
+BLOCKL:	LD R1, ^PBOOT;%SOURCE OF BLOCK MOVE.
+	LD R2, ^BOOT;%DEST OF LOAD.
+	LD R3, ( ^DP - ^BOOT + 2 );%LENGTH OF FORTH & ZSIO.
+	LDIR R2^, R1^, R3;%MOVE FORTH FROM EPROM TO 4100.
+	JP KICK;
+
+PBOOT:	%BEGIN EPROM HERE.
+
+
+          ORIGIN #4100;
+CONST     DSIOA     =#1000;% Z80-SIO PORT LOCATIONS
+CONST     DSIOB     =#1001;% DATA PORT B
+CONST     CSIOA     =#1002;% CONTROL/STATUS PORT A
+CONST     CSIOB     =#1003;% CONTROL/STATUS PORT B
+%
+BOOT:     WORD:     #5000;    % ENABLE Z8001 INT. -NOT USED.
+          WORD:     KICK;
+
+KICK:     LD R15, #6000;%          SET STACK TO RAM END.
+          CALL ZSIO;          %DIS SIO INT'S.( POLLING USED )
+          JP FORTH;	% FOR START.
+%
+ZSIO:     % SET UP SIO'S
+          LD R2, CSIOA;
+          LD R3, ^SIOBUF; %OUTPUT STRING BUF SOURCE
+          LD R4, #000A;  %COMAND STRING LENGTH
+          OTIRB R2, R3^, R4;
+          RET;
+SIOBUF:		WORD:	#0100;% 00 -> REGISTER #1
+		WORD:	#0200;
+		WORD:	#03C1;
+		WORD:	#0444;% 44 -> REG #4 ( 19.2K BAUD, etc. )
+		WORD:	#056A;
+%
+%
+SIOIN:    IN R2, CSIOA;% Get SIO A status.
+          AND R2, #0001;% Received a char yet ?
+          JR ZR, SIOIN;% no, poll
+          IN R0, DSIOA;% yes, get the character
+          AND R0, #007F;% clear parity bit
+          CPB RL0, #0D;   % DON'T ECHO CRETS.
+          JR ZR, NECHO;
+          CPB RL0, #08;  % SUPRESS BSP ?
+          JR ZR, NECHO;
+          CPB RL0, #7F;  % SUPRESS DEL ?
+          JR ZR, NECHO;Š          CALL SIOUT;    % ECHO THE CHARACTER.
+NECHO:    CP R0, #0000; % RETURN TO UTILITY IF ^@ OR 'NUL', exit.
+  	  JP ZR, STARTX;% If a utility or monitor prog exists.
+          EXB RH0, RL0;	%PUT Rx -> RH0 WITH A SWAP.
+          RET;
+STARTXº   LÄ  R2¬  CSIOA;¥  Re-enablå SIÏ INT'Ó foò  monitoò  iæ needed
+          LD R3, ^SIORTN;
+          LD R4, #0002;
+          OTIRB R2, R3^, R4;
+          JP UTIL;
+SIORTN:   WORD:     #0118;% 18 -> REG #1 (enable receive INT'S )
+%
+SIOUT:    IN R2, CSIOA;
+          AND R2, #0004;	%IS Tx BUFFER EMPTY YET?
+          JR ZR, SIOUT;
+          NOP;			%YES, CONTINUE.
+          OUT DSIOA, R0;	%OUTPUT LOW-ORDER BYTE TO SIO PORT.
+          RET;
+%
+%
+CONOUT:   LD R0, R13^;		%OUTPUT STRING TO CONSOLE.
+          AND R0, #7F7F;	%CLEAR MSB'S OF ASCII BYTES IN R0
+          EXB RL0, RH0;         %GET CHAR TO BE SENT INTO RL0.
+          CALL CHARO;		%OUTPUT LOWER CHAR IN R0
+          RET EQ;		%EXIT IF 04 OR 0A ENCOUNTERED.
+          EXB RL0, RH0;		%ACCESS 2nd BYTE IN R0
+          CALL CHARO;		%OUTPUT 2nd BYTE
+          RET EQ;		%EXIT IF 0A OR 04 ENCOUNTERED
+          INC R13, #2;		%GET NEXT CHARAC4ERS.
+          JR CONOUT;
+%
+CHARO:	CALL SIOUT;	%OUTPUT LOWER BYTE TO SIO
+	CPB RL0, #0D;	%WAS IT A CRET?
+	JR NZ, BBB;	%JR IF NOT
+	LDB RL0, #0A;	%YES, FOLLOW W/LINEFEED
+	CALL SIOUT;
+	SETFLG ZR;	%SIGNAL CALLING ROUTINE THIS IS LAST CHAR.
+	RET;
+BBB:	CPB RL0, #04;	%WAS IT A 04 END-OF-STRING ?
+	RET;		%ZR=1 IF END-OF-STRING.
+%
+CONIN:    LD R13, ^INBUF;
+STILL:    CALL SIOIN;
+          CPB RH0, #0D;  %CRET?
+          JR ZR, DONE;
+          CPB RH0, #08;  % BACKSPACE?
+          JR ZR, BKUP;
+          CPB RH0, #7F;  % DELETE?
+          JR ZR, BKUP;
+          LDB R13^, RH0;  % PUT CHAR INTO INBUF @R13.
+          CP R13, ^INBUF(#64);   % END OF BUFFER ?
+          JR ZR, HOLD;           % YES, OVERLAY LAST CHAR.
+          INC R13;
+          JR STILL;
+BKUP:     CP R13, ^INBUF;Š          JR LE, STILL;  % CAN'T BACKUP LOWER.
+          DEC R13;       % BACKUP OVER LAST CHARACTER.
+HOLD:     LDB RL0, #08;  % BACKSPACE.
+          CALL SIOUT;
+          LDB RL0, #20;  % ERASE CRT CHAR.
+          CALL SIOUT;
+          LDB RL0, #08;  %BACKSPACE OVER SPACE.
+          CALL SIOUT;
+          JR STILL;      % GET NEXT CHAR.
+DONE:     LDB R13^, #80;
+          INC R13;
+          LDB R13^, #80;
+          LD BUFPNT, ^INBUF;
+          RET;
+          WORD(40);      % PATCH SPACE.
+%
+MACRO DATE;
+          BEGIN
+                    BYTE:     #0A,'30 Dec 82  1443 hrs.', #0D;
+          END;
+%
+%          MODULE "FORTH";
+% 30 Dec 82. For Z8001   J. L. Way
+% FROM Dr. Dobb's Journal  No. 71 sept '82.
+% By    L. L. Odette
+   	  ORIGIN #0001;
+NUM1:     % MACZ doesn't support constant declarations
+          % for address arithmetic.
+          ORIGIN #0004;
+NUM4:
+          ORIGIN #4300;
+FORTH:
+          CLR BASE;
+          CLR START;
+          JP INIT;
+% R1 IS THE INSTR. REG. AND MUST BE SAVED BY ALL ROUTINES.
+% R14 IS THE RETURN STACK POINTER
+% R15 IS THE DATA STACK POINTER.
+%
+MACRO HEADER   N, NFIELD, LFIELD ;
+          % N is # of chars in name
+          % NFIELD is 1st 3 chars of name field.
+          % LFIELD is compilation addrs of previous entry. (link)
+     BEGIN
+          BYTE:     N ;
+          BYTE:     NFIELD ;
+          WORD:     LFIELD - 6 ;
+END;
+%
+MACRO NEXT ;
+     BEGIN
+          POP R2, R1^;
+          JP R2^;
+END;
+	WORD(4);	%ADJUST CODE TO LISTING + 300.Š%
+%
+% I/O BUFFERS
+INBUF:
+     BYTE ( #64);
+OUTBUF:
+     BYTE ( #64);
+%
+%
+% SYSTEM DATA AREA, DO NOT CHANGE ORDER OF PARAMETERS
+%
+START:    WORD (1);
+BASE:     WORD (1);
+MODE:     BYTE (1);
+STATE:    BYTE (1);
+DICPNT:   WORD (1);
+CONXT:    WORD (1);
+CURRNT:   WORD (1);
+BUFPNT:   WORD (1);
+STKPNT:   WORD (1);
+CMPLER:   WORD:      SEMI1(-6);
+CONST     SYSTEM    =START;
+CONST     TERM      =#0080;
+% SYSTEM MESSAGES.
+RSTMSG:	BYTE:	#0A,' RESTART!',#0D;
+SRTMSG:  	BYTE:  	#2B,#1B,#2B,'Z8000-FORTH:    (C)  1982,  L. L. ODETTE',#0D;
+OK:	BYTE:	#04,' OK',#0D;
+NOTKNO:	BYTE:	#03,' ?',#0D;
+STKMSG:	BYTE:	#11,' STACK UNDERFLOW',#0D;
+%
+% ADDRESS INTERPRETER.
+%
+COLON:	PUSH R14^,R1;
+	POP R1,R15^;
+	NEXT;
+%
+SEMI:	POP R1,R14^;
+	NEXT;
+%
+% TEXT INTERPRETER.
+%
+OUTINT:	WORD:	TYPE;
+	WORD:	QUERY;
+	WORD:	ASPACE;
+	WORD:	WORD_;
+	WORD:	DROP;
+	WORD:	SERCH1;
+	WORD:	SYSIF;
+	WORD:	#000E;
+	WORD:	NUMBR1;
+	WORD:	SYSEND;
+	WORD:	#0010;
+	WORD:	QUESTN;
+	WORD:	SYSWHL;
+	WORD:	#001A;Š	WORD:	EXEC1;
+	WORD:	SYSWHL;
+	WORD:	#001C;
+%
+% TEXT INTERPRETER WORDS.
+%
+SERCH1:   CALL COLON;
+          WORD:   CONTXT;
+          WORD:   FETCH;
+          WORD:   FETCH;
+          WORD:   SEARCH;
+          WORD:   DUP;
+          WORD:   SYSIF;
+          WORD:   #0024;
+          WORD:   MOD_;
+          WORD:   CFETCH;
+          WORD:   SYSIF;
+          WORD:   #001C;
+          WORD:   DROP;
+          WORD:   CMPLR;
+          WORD:   FETCH;
+          WORD:   SEARCH;
+          WORD:   DUP;
+          WORD:   SYSIF;
+          WORD:   #0008;
+          WORD:   ZERO;
+          WORD:   SYSELS;
+          WORD:   #0004;
+          WORD:   ONE;
+          WORD:   ST8;
+          WORD:   CSTORE;
+          WORD:   SEMI;
+%
+EXEC1:    CALL COLON;    %EXECUTE ROUTINE
+          WORD:   ST8;
+          WORD:   CFETCH;
+          WORD:   ST8;
+          WORD:   C0SET;
+          WORD:   MOD_;
+          WORD:   CFETCH;
+          WORD:   EQUALS;
+          WORD:   SYSIF;
+          WORD:   #000A;
+          WORD:   EXECUT;
+          WORD:   STACK;
+          WORD:   SYSELS;
+          WORD:   #0004;
+          WORD:   COMMA;
+          WORD:   SEMI;
+%
+NUMBR1:   CALL COLON;
+          WORD:   NUMBER;
+          WORD:   SYSIF;
+          WORD:   #0018;
+          WORD:   MOD_;Š          WORD:   CFETCH;
+          WORD:   SYSIF;
+          WORD:   #000A;
+          WORD:   LITERL;
+          WORD:   LITERL;
+          WORD:   COMMA;
+          WORD:   COMMA;
+          WORD:   ZERO;
+          WORD:   SYSELS;
+          WORD:   #0004;
+          WORD:   ONE;
+          WORD:   SEMI;
+%
+% SYSTEM SUBROUTINES.
+%
+CONVOC:   WORD (1);
+CURVOC:   WORD (1);
+%
+INIT:     LD R2, ^RSTMSG;
+          TEST BASE;
+          JR NZ, ABORT;
+%
+          LD R15, #5FF0;%          SET FORTH DATA STACK
+          LD STKPNT, R15;
+          LD R12, ^DP;
+          LD DICPNT, R12;
+          LD R12, ^QUIT(-6);
+          LD CONVOC, R12;
+          LD CURVOC, R12;
+          LD R12, ^CONVOC;
+          LD CONXT, R12;
+          LD R12, ^CURVOC;
+          LD CURRNT, R12;
+          LD BASE, #0010;  % HEX. FOR DECIMAL, USE #0A HERE.
+          LD R2, ^SRTMSG;
+%
+ABORT:    PUSH R15^, R2;
+          CLR MODE;
+          LD R14, #5F00;
+          LD R1, ^OUTINT;	% ERROR SOURCE TRIAL R10!
+          NEXT;
+%
+CONWRT:   CLRB RH6;
+          LDB RL6, R12^; % EXPECTS MESS'G ADRS IN R12.
+          INC R12;
+          LD R13, ^OUTBUF;
+          LDIRB R13^,R12^,R6;
+          LDB R13^, #04; % SET END OF STRING
+          LD R13, ^OUTBUF;
+          CALL CONOUT;
+          RET;
+%
+CRLF:     LD R13, ^OUTBUF;
+          LDB R13^, #0D;
+          CALL CONOUT;Š          RET;
+%
+PATCH:    TESTB MODE;    % MODE=0 (EXECUTE).
+          JP EQ, ABORT;  % YES.
+          LD R8, CURRNT;
+          LD R9, R8^;    % RESET DICTIONARY POINTER.
+          LD DICPNT, R9;
+          INC R9, #04;   % GET LINK ADRS.
+          LD R9, R9^;
+          LD R8^, R9;
+          JP ABORT;
+%
+ASCWD:    PUSH R15^, #0020;        % PUSH SPACE ON STACK.
+ASCII:    CLR R6;   % CLR HI WORD.
+          DIV RR6, BASE;      % DIVIDE BY BASE.
+          CPB RL6,#0A;
+          JR LT, ASCII0;
+          ADDB RL6, #07; % OTHERWISE ADD OFFSET TO ALPHABET.
+ASCII0:   ADDB RL6, '0';
+          PUSH R15^,R6;
+          TEST R7;
+          JR NE, ASCII;
+ASCII1:   POP R6, R15^;
+          LDB R13^, RL6;
+          INC R13;
+          CPB RL6, #20;
+          JR NE, ASCII1;
+          RET;
+%
+%         SYSTEM WORDS (HEADERLESS)
+%
+%         SYSTEM VARIABLES.
+MOD_:     CALL SYS;
+          WORD:     #0004;
+%
+DPNT:     CALL SYS;
+          WORD:     #0006;
+%
+BFPNT:    CALL SYS;
+          WORD:     #000C;
+%
+CMPLR:    CALL SYS;
+          WORD:     #0010;
+%
+%         SYSTEM I/O, NUMBER CONVERSION, SEARCH.
+%
+QUESTN:   LD R12, DICPNT;
+          INC R12;
+          BITB R12^, #07;
+          JR EQ, $(12);
+          LD R2, ^OK;
+          PUSH R15^, R2;
+          NEXT;
+          CALL CRLF;
+          DEC R12;Š          CALL CONWRT;
+          LD R2,^NOTKNO;
+          JP PATCH;
+%
+STACK:    CP R15, STKPNT;
+          JP LE, SEMI(2);
+          LD R15, STKPNT;
+          LD R2, ^STKMSG;
+          JP PATCH;
+%
+NUMBER:   CLR R6;
+          CLR R10;
+          LD R8, DICPNT;
+          LDB RH0, R8^;
+          INC R8;
+          % STEP OVER COUNT.
+          CPB R8^, '-';
+          CLRB RL0;
+          JR NE, $(8);
+          DECB RL0;
+          DECB RH0;
+          INC R8;
+          %
+          PUSH R15^, #0000;
+NLOOP:    LDB RL6, R8^;
+          SUBB RL6, #30;
+          JR MI, NOTNO;
+          CPB RL6, #0A;
+          JR MI, NUMB;
+          CPB RL6, #11;
+          JR MI, NOTNO;
+          SUBB RL6, #07;
+          %
+NUMB:     CP R6, BASE;
+          JR MI, $(10);
+NOTNO:    LD R15^, #0000;
+          NEXT;
+%
+          LD R11, R15^;
+          MULT RR10, BASE;
+          ADD R11, R6;
+          LD R15^,R11;
+          INC R8;
+          DBJNZ RH0, NLOOP;
+          TESTB RL0;
+          JR EQ, $(8);
+          CLR R11;
+          SUB R11, R15^;
+          LD R15^, R11;
+          PUSH R15^, #00FF;
+          NEXT;
+SEARCH:   LD R8, R15^;
+          LD R9, DICPNT;
+          LDB RH0, R9^;
+          CPB RH0, R8^;Š          JR NE, NXTHDR;
+          CPB RH0, #04;
+          JR LT, NXTCH;
+          LDB RH0, #03;
+NXTCH:    INC R9;
+          INC R8;
+          LDB RL0, R9^;
+          CPB RL0, R8^;
+          JR NE, NXTHDR;
+          DBJNZ RH0, NXTCH;
+          INC R15^, #06;
+          PUSH R15^, #0000;
+          JR $(18);
+NXTHDR:   LD R8, R15^;
+          INC R8, #04;
+          LD R7, R8^;
+          LD R15^, R7;
+          TEST R7;
+          JR NE, SEARCH;
+          LD R15^, #0001;
+          NEXT;
+ENDC:     CALL COLON;
+          WORD:     COMMA;
+          WORD:     HERE;
+          WORD:     SWAP_;
+          WORD:     MINUS;
+          WORD:     COMMA;
+          WORD:     SEMI;
+%
+DOC:      CALL COLON;
+          WORD:     COMMA;
+          WORD:     HERE;
+          WORD:     SEMI;
+%
+BUILD:    CALL COLON;
+          WORD:     ENTRY;
+          WORD:     ASPACE;
+          WORD:     WORD_;
+          WORD:     CRNT;
+          WORD:     FETCH;
+          WORD:     STORE;
+          WORD:     LITERL;
+          WORD:     #0004;
+          WORD:     DPNT;
+          WORD:     PSTORE;
+          WORD:     COMMA;
+          WORD:     LITERL;
+          WORD:     #5F00;
+          WORD:     COMMA;
+          WORD:     LITERL;
+          WORD:     COLON;
+          WORD:     COMMA;
+          WORD:     SEMI;
+%
+ENTRY:    CALL COLON;Š          WORD:     CRNT;
+          WORD:     FETCH;
+          WORD:     FETCH;
+          WORD:     SEMI;
+%
+CAXCLM:   CALL COLON;
+          WORD:     ENTRY;
+          WORD:     LITERL;
+          WORD:     #0008;
+          WORD:     PLUS;
+          WORD:     STORE;
+          WORD:     SEMI;
+%
+SCODE:    CALL COLON;
+          WORD:     RFROM;
+          WORD:     CAXCLM;
+          WORD:     SEMI;
+%
+% SYSTEM DIRECTIVES: IMPLMT CONTROL STRUCTRS.
+%
+SYSIF:    POP R8, R15^;
+          TEST R8;
+          JR EQ, SYSELS;
+          INC R1, #02;
+          NEXT;
+%
+SYSELS:   LD R6, R1^;
+          ADD R1,R6;
+          NEXT;
+%
+SYSEND:   POP R8, R15^;
+          TEST R8;
+          JR EQ, SYSWHL;
+          INC R1, #02;
+          NEXT;
+%
+SYSWHL:   LD R6,R1^;
+          SUB R1,R6;
+          NEXT;
+%
+LITERL:   PUSH R15^, R1^;
+          INC R1, #02;
+          NEXT;
+%
+SYSPLP:   POP R8, R14^;
+          POP R7, R15^;
+          JR LP;
+%
+SYSLOP:   POP R8, R14^;
+          LD R7, #1;
+LP:       ADD R8, R7;
+          CP R8, R14^;
+          PUSH R14^, R8;
+          JR MI, SYSWHL;
+          POPL RR8, R14^;Š          INC R1,#2;
+          NEXT;
+%
+SYSDO:    POPL RR8, R15^;
+          PUSHL R14^, RR8;
+          NEXT;
+SYS:      LD R8, ^SYSTEM;
+          POP R2, R15^;
+          ADD R8, R2^;
+          PUSH R15^, R8;
+          NEXT;
+%
+% DICTIONARY WORD SETS
+%
+% MEMORY REFERENCE WORD SET
+%
+          HEADER 1, '@XX',6;
+FETCH:    LD R6, R15^;
+          LD R6,R6^;
+          LD R15^, R6;
+          NEXT;
+          HEADER 2,'C@X',^FETCH; % C@
+CFETCH:   LD R6,R15^;
+          LDB RL5, R6^;
+          EXTSB R5;
+          LD R15^, R5;
+          NEXT;
+ 	  HEADER  1, '!XX', ^CFETCH;	% C!
+STORE:	  POPL RR6, R15^;
+	  LD R6^, R7;
+	  NEXT; 
+         HEADER 2, 'C!X', ^STORE;
+CSTORE:   POPL RR6, R15^;
+          LDB R6^, RL7;
+          NEXT;
+	  HEADER  2, '+!X', ^CSTORE;
+PSTORE:   POPL RR6, R15^;
+  	  ADD R7 , R6^;
+	  LD R6^ , R7;
+	  NEXT;
+          HEADER 1, '?XX', ^PSTORE;
+QMARK:    POP R6, R15^;
+          LD R7, R6^;
+          LD R13, ^OUTBUF;
+          CALL ASCWD;
+          LDB R13^, #04;
+          LD R13, ^OUTBUF;
+          CALL CONOUT;
+          NEXT;
+          HEADER 4, 'MOV', ^QMARK;
+MOVE:     POPL RR6, R15^;
+          POP R5, R15^;
+          BIT R6, #0F;
+          JR NE, $(6);
+          LDIR R7^, R5^, R6;Š          NEXT;
+          HEADER 5, 'CMO', ^MOVE;
+CMOVE:    POPL RR6, R15^;
+          POP R5, R15^;
+          BIT R6, #0F;
+          JR NE, $(6);
+          LDIRB R7^, R5^, R6;
+          NEXT;
+          HEADER 4, 'FIL', ^CMOVE;
+FILL:     POPL RR6, R15^;
+          POP R5, R15^;
+          BIT R7, #0F;
+          JR NE, $(8);
+          LDB R5^, RL6;
+          INC R5;
+          DJNZ R7, $(-4);
+          NEXT;
+          HEADER 2, 'P!X', ^FILL;
+POUT:     POP R2, R15^;
+          POP R3, R15^;
+          OUT R2, R3;
+          NEXT;
+          HEADER 2, 'P@X', ^POUT;
+P@:       POP R2, R15^;
+          IN R2, R2;
+          PUSH R15^, R2;
+          NEXT;
+          %
+% COMPARISON WORD SET.
+%
+          HEADER 3, 'NOT', ^P@;
+N_T:      POP R12, R15^;
+          AND R12, R12;
+          CLR R12;
+          JR NZ, CHANGE;
+          INC R12;
+CHANGE:   PUSH R15^, R12;
+          NEXT;
+          HEADER 1, '=XX', ^N_T;
+EQUALS:   POP R6,R15^;
+          CP R6, R15^;
+          CLR R15^;
+          JR NE, $(4);
+          INC R15^;
+          NEXT;
+          HEADER 2, '0=X', ^EQUALS;
+EQUAL0:   JR N_T;
+          HEADER 1, '<XX', ^EQUAL0;
+LESS:     POP R6,R15^;
+          CP R6, R15^;
+          CLR R15^;
+          JR LE, $(4);
+          INC R15^;
+          NEXT;
+          HEADER 1, '>XX', ^LESS;ŠGREATR:   POP R6, R15^;
+          CP R6, R15^;
+          CLR R15^;
+          JR GE, $(4);
+          INC R15^;
+          NEXT;
+%
+% ARITH & LOGIC WORD SET.
+%
+          HEADER 1, '+XX', ^GREATR;
+PLUS:     POP R6, R15^;
+          ADD R6, R15^;
+          LD R15^, R6;
+          NEXT;
+          HEADER 1, '-XX', ^PLUS;
+MINUS:    POPL RR6, R15^;
+          SUB R7, R6;
+          PUSH R15^, R7;
+          NEXT;
+          HEADER 2, '1+X', ^MINUS;
+PLUS1:    INC R15^;
+          NEXT;
+          HEADER 2, '1-X', ^PLUS1;
+MINUS1:   DEC R15^;
+          NEXT;
+          HEADER 2, '2+X', ^MINUS1;
+PLUS2:    INC R15^, #2;
+          NEXT;
+          HEADER 2, '2-X', ^PLUS2;
+MINUS2:   DEC R15^, #2;
+          NEXT;
+          HEADER 1, '*XX', ^MINUS2;
+TIMES:    POPL RR6, R15^;
+          LD R5, R6;
+          MULT RR6, R5;
+          PUSH R15^, R7;
+          NEXT;
+          HEADER 1, '/XX', ^TIMES;
+DIVIDE:   POPL RR6, R15^;
+          LD R5, R6;
+          CLR R6;
+          DIV RR6, R5;
+          PUSH R15^, R7;
+          NEXT;
+          HEADER 3, 'MOD', ^DIVIDE;
+MOD0:     POPL RR6, R15^;
+          LD R5,R6;
+          CLR R6;
+          DIV RR6, R5;
+          PUSH R15^, R6;
+          NEXT;
+          HEADER 4, '/MO', ^MOD0;
+DIVMOD:   POPL RR6, R15^;
+          LD R5, R6;
+          CLR R6;Š          DIV RR6, R5;
+          EX R6, R7;
+          PUSHL R15^, RR6;
+          NEXT;
+          HEADER 6, 'NEG', ^DIVMOD;
+NEGATE:   NEG R15^;
+          NEXT;
+          HEADER 3, 'ABS', ^NEGATE;
+ABS:      BIT R15^, #0F;
+          JR NE, NEGATE;
+          NEXT;
+          HEADER 3, 'AND', ^ABS;
+AND0:     POP R6, R15^;
+          AND R6, R15^;
+          LD R15^, R6;
+          NEXT;
+          HEADER 2, 'ORX',^AND0;
+OR0:      POP R6,R15^;
+          OR R6, R15^;
+          LD R15^, R6;
+          NEXT;
+%
+% STACK MANIPULATION
+%
+          HEADER 2, 'R>X', ^OR0;
+RFROM:    POP R6, R14^;
+          PUSH R15^, R6;
+          NEXT;
+          HEADER 2, '>RX', ^RFROM;
+TOR:      POP R6, R15^;
+          PUSH R14^, R6;
+          NEXT;
+          HEADER 2, 'R@X', ^TOR;
+RFETCH:   PUSH R15^, R14^;
+          NEXT;
+          HEADER 3, 'DUP', ^RFETCH;
+DUP:      PUSH R15^, R15^;
+          NEXT;
+          HEADER 4, 'DRO', ^DUP;
+DROP:     POP R6, R15^;
+          NEXT;
+          HEADER 4, 'SWA', ^DROP;
+SWAP_:    POP R6, R15^;
+          EX R6, R15^;
+          PUSH R15^, R6;
+          NEXT;
+          HEADER 4, 'OVE', ^SWAP_;
+OVER:     INC R15, #2; % MODIFIED FROM ODETTE'S VERSION.
+          LD R2, R15^;
+          DEC R15, #2;
+          PUSH R15^, R2;
+          NEXT;
+          HEADER 3, 'ROT', ^OVER;
+ROT:      POPL RR6, R15^;
+          POP R5, R15^;Š          PUSHL R15^, RR6;
+          PUSH R15^, R5;
+          NEXT;
+          HEADER 4, 'ROL', ^ROT;
+ROLL:     POP R4, R15^;
+          DEC R4;
+          LD R6, R15;
+          ADD R6, R4;
+          ADD R6, R4;
+          LD R7, R6^;
+          LD R5, R6;
+          DEC R5, #2;
+          LDDR R6^, R5^, R4;
+          LD R15^, R7;
+          NEXT;
+          HEADER 4, 'PIC', ^ROLL;
+PICK:     POP R4, R15^;
+          DEC R4;
+          LD R6, R15;
+          ADD R6, R4;
+          ADD R6, R4;
+          PUSH R15^, R6^;
+          NEXT;
+          HEADER 4, '?DU', ^PICK;
+QDUP:     TEST R15^;
+          JR EQ, $(4);
+          PUSH R15^, R15^;
+          NEXT;
+          HEADER 2, 'CRX', ^QDUP;
+CR:       LD R13, ^OUTBUF;
+          LDB R13^, #0D;
+          CALL CONOUT;
+          NEXT;
+          HEADER 4, 'EMI', ^CR;
+EMIT:     LD R13, ^OUTBUF;
+          POP R6, R15^;
+          LDB R13^, RL6;
+          LDB NUM1(R13), #04;
+          CALL CONOUT;
+          NEXT;
+          HEADER 5, 'SPA', ^EMIT;
+SPACE:    LD R13, ^OUTBUF;
+          LD R13^, #2004; % SET SPACE & END-OF-STRING
+          CALL CONOUT;
+          NEXT;
+          HEADER 4, 'TYP', ^SPACE;
+TYPE:     POP R12, R15^;
+          CALL CONWRT;
+          NEXT;
+          HEADER 4, 'WOR', ^TYPE;
+WORD_:    LD R8, BUFPNT;
+          LD R9, DICPNT;
+          POP R6, R15^;
+          CPB RL6, #20;
+          JR NE, TOK;ŠIGNLB:    CPB R8^, #20; % IGNORE SPACES IN BUFFER
+          JR NE, TOK;
+          INC R8;
+          JR IGNLB;
+TOK:      PUSH R15^, R8;
+COUNT:    INCB RH6;
+          INC R8;
+          CPB RL6, R8^;
+          JR EQ, ENDTOK; % FIND NEXT SEPARATOR
+          CPB R8^, TERM; % COMPARE W/ TERMINATOR
+          JR NE, COUNT;
+          DEC R8;
+ENDTOK:   INC R8;
+          LD BUFPNT, R8;
+          LDB R9^, RH6;
+          LD R8, R15^;
+          LD R15^, R9;
+          INC R9;
+          LDB RL6, RH6;
+          CLRB RH6;
+          LDIRB R9^, R8^, R6;
+          NEXT;
+          HEADER 5, 'QUE', ^WORD_;
+QUERY:    CALL CONIN;
+          NEXT;
+%
+% MISC WORDS
+%
+          HEADER 4, 'BAS', ^QUERY;
+BASE0:    CALL SYS;
+          WORD:     #0002;
+          HEADER 1, '0XX', ^BASE0;
+ZERO:     PUSH R15^, #0;
+          NEXT;
+          HEADER 1, '1XX', ^ZERO;
+ONE:      PUSH R15^, #1;
+          NEXT;
+          HEADER 1, '2XX', ^ONE;
+TWO:      PUSH R15^, #2;
+          NEXT;
+          HEADER 6, 'ASP', ^TWO;
+ASPACE:   PUSH R15^, #20;
+          NEXT;
+          HEADER 1, '.XX', ^ASPACE;
+PERIOD:   POP R7, R15^;
+          LD R13, ^OUTBUF;
+          CALL ASCWD;
+          LDB R13^, #04;
+          LD R13, ^OUTBUF;
+          CALL CONOUT;
+          NEXT;
+          HEADER 4, '2DU', ^PERIOD;
+DUP2:     PUSH R15^, R15^;
+          PUSH R15^, R15^;
+          NEXT;Š          HEADER 5, '2DR', ^DUP2;
+DROP2:    POPL RR6, R15^;
+          NEXT;
+          HEADER 5, 'C0S', ^DROP2;
+C0SET:    POP R6, R15^;
+          CLRB R6^;
+          NEXT;
+          HEADER 5, 'C1S', ^C0SET;
+C1SET:    POP R6,R15^;
+          LDB R6^, #01;
+          NEXT;
+%
+% VOCABULARIES.
+%
+          HEADER 7, 'CON', ^C1SET;
+CONTXT:   CALL SYS;
+          WORD:     #0008;
+          HEADER 7, 'CUR', ^CONTXT;
+CRNT:     CALL SYS;
+          WORD:     #000A;
+          HEADER 11, 'DEF', ^CRNT;
+DEFN:     CALL COLON;
+          WORD:   CRNT;
+          WORD:   FETCH;
+          WORD:   CONTXT;
+          WORD:   STORE;
+          WORD:   SEMI;
+          HEADER 4, 'FIN', ^DEFN;
+FIND:     CALL COLON;
+          WORD:	ASPACE;
+	  WORD:	WORD_;
+	  WORD:	DROP;
+	  WORD:	CONTXT;
+	  WORD:	FETCH;
+	  WORD:	FETCH;
+	  WORD:	SEARCH;
+	  WORD:	SYSIF;
+	  WORD:	#0004;
+	  WORD:	ZERO;
+	  WORD:	SEMI;
+          HEADER 6, 'FOR', ^FIND;
+FORGET:   CALL COLON;
+	  WORD:	ASPACE;
+	  WORD:	WORD_;
+	  WORD:	DROP;
+	  WORD:	CRNT;
+	  WORD:	FETCH;
+	  WORD:	FETCH;
+	  WORD:	SEARCH;
+	  WORD:	SYSIF;
+	  WORD:	#0004;
+	  WORD:	QUESTN;
+	  WORD:	DUP;
+	  WORD:	TWO;
+	  WORD:	MINUS;Š	  WORD:	FETCH;
+	  WORD:	CRNT;
+	  WORD:	FETCH;
+	  WORD:	STORE;
+	  WORD:	LITERL;
+	  WORD:	#0006;
+	  WORD:	MINUS;
+	  WORD:	DPNT;
+	  WORD:	STORE;
+	  WORD:	SEMI;
+%
+%         DEFINING WORDS, COMPILER WORDS, CONTROL WORDS
+%
+          BYTE:     #01;
+          BYTE:     ',  ';
+          WORD:     ^FORGET(-6);
+COMMA:    POP R6, R15^;
+          LD R7, DICPNT;
+          LD R7^, R6;
+          INC DICPNT, #2;
+          NEXT;
+          HEADER 5, 'ALL', ^COMMA;
+ALLOT:    POP R6, R15^;
+          ADD R6, DICPNT;
+          LD DICPNT, R6;
+          NEXT;
+          HEADER 5, 'LEA', ^ALLOT;
+LEAVE:    LD R12, R14^;
+          LD R14^(2), R12;
+          NEXT;
+          HEADER 1, 'IXX', ^LEAVE;
+I:        PUSH R15^, R14^;
+          NEXT;
+          HEADER 1, 'JXX', ^I;
+J:        PUSH R15^, NUM4(R14);
+          NEXT;
+          HEADER 5, 'STA', ^J;
+ST8:      CALL SYS; % STATE
+          WORD:     #0005;
+          HEADER 4, 'HER', ^ST8;
+HERE:     PUSH R15^, DICPNT;
+          NEXT;
+          HEADER 7, 'EXE', ^HERE;
+EXECUT:   POP R2, R15^;
+          JP R2^;
+          HEADER 6, 'CRE', ^EXECUT;
+CREATE:   CALL COLON;
+          WORD:     ZERO;
+          WORD:     CNSTNT;
+          WORD:     SEMI;
+          HEADER 5, 'DOE', ^CREATE;
+DOES:     CALL COLON;
+          WORD:	RFROM;
+          WORD:	ENTRY;
+          WORD:	LITERL;Š          WORD:	#000A;
+          WORD:	PLUS;
+          WORD:	STORE;
+          WORD:	SCODE;
+          PUSH R14^, R1;
+          POP R2, R15^;
+          POP R1, R2^;
+          PUSH R15^, R2;
+          NEXT;
+          HEADER 8, 'VAR', ^DOES;
+VARIBL:   CALL COLON;
+          WORD:	CNSTNT;
+          WORD:	SCODE;
+          NEXT;
+          HEADER 8, 'CON', ^VARIBL;
+CNSTNT:   CALL COLON;
+          WORD:	BUILD;
+          WORD:	COMMA;
+          WORD:	SCODE;
+          POP R2, R15^;
+          PUSH R15^, R2^;
+          NEXT;
+          HEADER 10, 'VOC', ^CNSTNT;
+VOCAB:    CALL COLON;
+          WORD:	CREATE;
+          WORD:	ENTRY;
+          WORD:	COMMA;
+          WORD:	DOES;
+          WORD:	CONTXT;
+          WORD:	STORE;
+          WORD:	SEMI;
+          HEADER 1, ':XX', ^VOCAB;
+COLON1:   CALL COLON;
+          WORD:	CRNT;
+          WORD:	FETCH;
+          WORD:	CONTXT;
+          WORD:	STORE;
+          WORD:	BUILD;
+          WORD:	MOD_;
+          WORD:	C1SET;
+          WORD:	SEMI;
+%
+% COMPILER VOCABULARY.
+%
+          HEADER 2, 'DOX', 6;
+DO_:      CALL COLON;
+          WORD:	LITERL;
+          WORD:	SYSDO;
+          WORD:	DOC;
+          WORD:	SEMI;
+          HEADER 4, 'LOO', ^DO_;
+LOOP:     CALL COLON;
+          WORD:	LITERL;
+          WORD:	SYSLOP;
+          WORD:	ENDC;Š          WORD:	SEMI;
+          HEADER 5, '+LO', ^LOOP;
+PLOOP:    CALL COLON;
+          WORD:	LITERL;
+          WORD:	SYSPLP;
+          WORD:	ENDC;
+          WORD:	SEMI;
+          HEADER 5, 'BEG', ^PLOOP;
+BEGIN_:   CALL COLON;
+          WORD:	HERE;
+          WORD:	SEMI;
+          HEADER 5, 'UNT', ^BEGIN_;
+UNTIL_:   CALL COLON;
+          WORD:	LITERL;
+          WORD:	SYSEND;
+          WORD:	ENDC;
+          WORD:	SEMI;
+          HEADER 5, 'WHI', ^UNTIL_;
+WHILE:    CALL COLON;
+          WORD:	IF_;
+          WORD:	SEMI;
+          HEADER 6, 'REP', ^WHILE;
+REPEAT:   CALL COLON;
+          WORD:	SWAP_;
+          WORD:	LITERL;
+          WORD:	SYSWHL;
+          WORD:	ENDC;
+          WORD:	THEN_;
+          WORD:	SEMI;
+          HEADER 2, 'IFX', ^REPEAT;
+IF_:      CALL COLON;
+          WORD:	LITERL;
+          WORD:	SYSIF;
+          WORD:	DOC;
+          WORD:	ZERO;
+          WORD:	COMMA;
+          WORD:	SEMI;
+          HEADER 4, 'THE', ^IF_;
+THEN_:    CALL COLON;
+          WORD:	HERE;
+          WORD:	OVER;
+          WORD:	MINUS;
+          WORD:	SWAP_;
+          WORD:	STORE;
+          WORD:	SEMI;
+          HEADER 4, 'ELS', ^THEN_;
+ELSE_:    CALL COLON;
+          WORD:	LITERL;
+          WORD:	SYSELS;
+          WORD:	DOC;
+          WORD:	ZERO;
+          WORD:	COMMA;
+          WORD:	SWAP_;
+          WORD:	THEN_;
+          WORD:	SEMI;Š          HEADER 1, ';XX', ^ELSE_;
+SEMI1:    CALL COLON; % FIRST ENTRY OF COMPILER DIRECTIVES
+          WORD:     LITERL;
+          WORD:     SEMI;
+          WORD:     COMMA;
+          WORD:     MOD_;
+          WORD:     C0SET;
+          WORD:     SEMI;
+%
+% The following words were not part of the original FORTH 
+% in Dr. Dobbs Journal ( op. cit.)
+%
+	  HEADER 2, 'JXR', ^COLON1;
+JXVAR:	  CALL VARIBL(8);%Nearest NEXT.
+	  WORD:	#0000;% VALUE OF THE VARIABLE 'JX'
+HEADER	3,'NUM', ^JXVAR;
+NUMBR:	CALL COLON;% Display numbers with leading zero's
+          WORD:	DUP;
+          WORD:	LITERL;
+          WORD:	#8000;
+          WORD:	AND0;
+          WORD:	SYSIF;
+          WORD:	#0008;
+          WORD:	PERIOD;
+          WORD:	SYSELS;
+          WORD:	#0058;
+          WORD:	DUP;
+          WORD:	LITERL;
+          WORD:	#0FFF;
+          WORD:	GREATR;
+          WORD:	SYSIF;
+          WORD:	#0008;
+          WORD:	PERIOD;
+          WORD:	SYSELS;
+          WORD:	#0046;
+          WORD:	DUP;
+          WORD:	LITERL;
+          WORD:	#00FF;
+          WORD:	GREATR;
+          WORD:	SYSIF;
+          WORD:	#000E;
+          WORD:	LITERL;
+          WORD:	#0030;
+          WORD:	EMIT;
+          WORD:	PERIOD;
+          WORD:	SYSELS;
+          WORD:	#002E;
+          WORD:	DUP;
+          WORD:	LITERL;
+          WORD:	#000F;
+          WORD:	GREATR;
+          WORD:	SYSIF;
+          WORD:	#0012;
+          WORD:	LITERL;
+          WORD:	#0030;Š          WORD:	DUP;
+          WORD:	EMIT;
+          WORD:	EMIT;
+          WORD:	PERIOD;
+          WORD:	SYSELS;
+          WORD:	#0012;
+          WORD:	LITERL;
+          WORD:	#0030;
+          WORD:	DUP;
+          WORD:	DUP;
+          WORD:	EMIT;
+          WORD:	EMIT;
+          WORD:	EMIT;
+          WORD:	PERIOD;
+          WORD:	SEMI;
+HEADER	3, 'DMP', ^NUMBR;% For use by memory dump word.
+DMPLP:	CALL COLON;
+          WORD:	LITERL;
+          WORD:	#0010;
+          WORD:	ZERO;
+          WORD:	SYSDO;
+          WORD:	JXVAR;
+          WORD:	FETCH;
+          WORD:	I;
+          WORD:	PLUS;
+          WORD:	FETCH;
+          WORD:	NUMBR;
+          WORD:	TWO;
+          WORD:	SYSPLP;
+          WORD:	#0010;
+          WORD:	SEMI;
+HEADER	4, 'DUM', ^DMPLP;% Mem. dump  word ( addr lgth ---; )
+DUMP:	CALL COLON;
+          WORD:	CR;
+          WORD:	OVER;
+          WORD:	PLUS;
+          WORD:	PLUS1;
+          WORD:	SWAP_;
+          WORD:	SYSDO;
+          WORD:	I;
+          WORD:	DUP;
+          WORD:	JXVAR;
+          WORD:	STORE;
+          WORD:	NUMBR;
+          WORD:	SPACE;
+          WORD:	SPACE;
+          WORD:	DMPLP;
+          WORD:	CR;
+          WORD:	LITERL;
+          WORD:	#0010;
+          WORD:	SYSPLP;
+          WORD:	#0018;
+          WORD:	SEMI;
+HEADER	9, '?TE', ^DUMP;%     ?TERMINAL word
+FTER:	CALL COLON;Š          WORD:	LITERL;
+          WORD:	#1002;% READ TERMINAL STATUS BYTE.
+          WORD:	P@;
+          WORD:	ONE;
+          WORD:	AND0;
+          WORD:	SEMI;
+HEADER	4, 'QUI', ^FTER;% QUIT word
+QUIT:	CALL COLON;
+          WORD:	FTER;
+          WORD:	SYSIF;
+          WORD:	#0004;
+          WORD:	LEAVE;
+          WORD:	SEMI;
+%
+
+DP:       WORD(2);% Initial dictionary pointer, cold start.
+%
+%
+          END.
+

@@ -1,0 +1,34 @@
+;
+; VLIB Module Name:  VID8
+; Author:  Richard Conn
+; VLIB  Version Number:  1.0
+; Module Version Number:  1.0
+; Module Entry Points:
+;	VIDOUT
+; Module External References:
+;	COUT	VIDELAY
+;
+	ext	cout,videlay
+
+;
+;  VIDOUT - Output video string pted to by HL
+;	Output also a delay contained in the D register
+;
+vidout::
+	mov	a,m	;get next char
+	ora	a	;done if zero
+	jz	vid2
+	inx	h	;pt to next
+	cpi	'\'	;literal value?
+	jnz	vid1
+	mov	a,m	;get literal char
+	inx	h	;pt to after it
+vid1:
+	call	cout	;output char
+	jmp	vidout
+vid2:
+	mov	a,d	;output delay
+	jmp	videlay	;output delay
+
+	end
+

@@ -1,0 +1,217 @@
+                  CCSA EDITOR/ASSEMBLER PROGRAM
+
+                           USER MANUAL
+
+                      Version 2.7 - 3/16/82
+
+     program written by: Doug Moser, Mercer Country College
+       manual written by: Sol Libes, Union County College
+
+
+INTRODUCTION
+        Computeró  arå  instructeä (programmed© witè binarù  bitó 
+(e.g®  01011011)®   Á hexidecimaì codå (e.g®  5D© caî bå useä  tï 
+represenô  thå  binarù instructioî codå  (01011011=5D)®   Wå  caî 
+writå shorô programó iî binarù codå anä indeeä thió ió thå waù iô 
+waó donå iî thå verù earlù days¬  buô thå methoä ió verù pronå tï 
+error®   Usinç  heø codå simplifieó thå tasë anä ió practicaì foò 
+simplå  programs®   However¬  computeò professionals¬  whï  writå 
+largå  anä  ofteî  compleø programs¬  uså  á  prograí  calleä  aî 
+ASSEMBLEÒ whicè permitó theí tï writå computeò instructionó usinç 
+nmemonics®   Thå  assembleò convertó thå nmemoniã codå  (assemblù 
+language© intï thå binarù codå thaô thå computeò executes.
+        Aî  EDITOÒ prograí allowó thå useò tï writå thå nmemonicó 
+(calleä SOURCÅ CODE© intï á FILÅ iî thå computer'ó  memory®   Thå 
+Assembleò wilì takå thå source-codå filå anä assemblå iô intï thå 
+heø codå (calleä OBJECÔ CODE© intï anotheò areá iî thå computer.
+        Aî assembleò prograí offeró manù otheò advantageó anä haó 
+somå disadvantages®   Thå useò shoulä reaä Chapteò ± oæ Lancå  A® 
+Leventhal'ó    booë   titleä   "8080A/808µ   Assemblù    Languagå 
+Programming"®  Alsï reaä Chapteò ² oî ho÷ tï uså aî Assembleò anä 
+
+     Noteº  Thió editor/assmbleò wilì assemblå 808° anä TDÌ  Z-8° 
+nmemonics®  Iô wilì noô assemblå thå 808µ RIÍ anä SIÍ instructions.
+
+
+LOADINÇ THE EDITOR/ASSEMBLER
+     Firsô loaä CP/Í DOÓ program®   Inserô disë witè ED/ASÍ file®  
+Typå  ED/ASM  followeä bù thå filå namå (uğ tï  ¸  characters)®  
+Thå  filå  musô bå aî "ASR¢ typå file®   Iæ yoõ dï noô providå  á 
+filå namå aî erroò messagå wilì bå displayeä anä controì  returnó 
+tï thå CP/Í operatinç system.
+
+     examples:  A>ED/ASM TEST<cr>
+                A>ED/ASM B:TEST<cr>
+
+     Iî  thå firsô examplå loaä thå Editor/Assembleò anä thå  ASÒ 
+filå  nameä  "TEST¢ froí thå currenô  logged-iî  drive®   Iî  thå 
+seconä  examplå iô wilì loaä TESÔ froí drivå B®   Iæ thå  prograí 
+TEST does not already exist ED/ASM will open the file.
+
+     The program will then sign on with the message:
+
+     CCSA Editor Assembler V2.7
+     [NEW FILE]
+     TEST 1C00 1C00Š
+     Thå  Editor/Assembleò  wilì alsï sho÷ thå filå namå anä  thå 
+startinç anä endinç hexidecimaì addresseó oæ thå sourcå codå filå 
+iî memory®   Iæ thió ió á ne÷ filå ,sucè aó thå example¬ theî thå 
+startinç  anä endinç addresseó wilì bå thå samå sincå nothinç haó 
+aó yeô beeî entereä intï thå filå space.
+
+
+SYSTEM MEMORY USAGE
+
+     Thå Editor/Assembleò prograí ió approximtelù 5Kbyteó iî sizå 
+anä  alsï  useó  á fe÷ hundreä additionaì byteó foò  storinç  itó 
+symboì table®   Thå CCSÁ Editor/Assembleò wilì noô allo÷ thå useò 
+to overwrite either itself or the CP/M operating system.
+
+
+CCSA Editor/Assembler COMMANDS
+
+ASSÍ maº  assembleó prograí aô specifieä memorù locatioî (ma© anä 
+     listó oî thå console®   
+
+ASSME ma: same as ASSM except only shows lines with errors.
+
+ASSML ma: same as ASSM except lists on printer.
+  
+EXIT: closes current temporary file and returns user to CP/M.
+ 
+FILEº showó  currenô filå namå anä startinç anä endinç addresseó 
+     in source code file buffer.
+
+FORMº turnó  oî fielä formatteò foò sourcå  codå  listing®   Thå 
+     formatter is on when the CCSA Editor/Assembler is loaded.
+
+FSET: moves file buffer pointer to end of the file.
+
+GOTÏ: wilì  permiô  useò  tï gï directlù tï  á  specifieä  memorù 
+     locatioî anä continuå executioî aô thaô point®  Foò exampleº 
+     GOTÏ  F00° wilì causå á jumğ tï memorù locatioî F000heø  anä 
+     continue execution from that memory location.
+
+LIST: lists program on console.  Type Control-E to abort listing.
+
+LISTL: same as LIST except lists to printer.
+
+LISTPº  listó  prograí  oî consolå witè pauså  afteò  eacè  line®  
+     Presó  spacå baò tï seå nexô line®   Presó returî keù tï enä 
+     listing.
+
+LOADº  allowó  loadinç á filå froí thå CCSÁ Editor/Assembler®  Iæ 
+     yoõ  wisè  tï  keeğ  currenô filå  SAVÅ  iô  beforå  loadinç      
+     ne÷ file.
+
+NFOR: turns field formatter off.
+
+SAVEº musô  bå  typeä tï savå currenô file®   Nï filå namå ió re-Š     quired®  Notå  thaô  typinç  EXIÔ  returnó  controì  tï CP/Í
+     anä  closeó  thå  temporarù (.$$$© file¬  iô doeó  noô  savå           
+     currenô file®     
+
+
+
+
+CONTROL KEY FUNCTIONS
+
+     H    backspace
+     E    abort listing
+     Q    Continue listing if temporarily stopped
+     S    temporarily stop listing
+
+
+
+ASSEMBLER PSEUDO OP CODES
+
+label ORG ma       defines origin memory address of program.
+
+label EQU ma or n  assign ma or n value to symbol label.
+
+END                marks end of program.
+
+ASÃ  'string§      putó  characteò strinç iî RAÍ  (onlù  firsô  ´      
+                    characteró arå displayed).
+
+DB n               saves an 8-bit word in RAM.
+
+DS n               reserves n memory locations for future use.
+
+DW nî              saveó á 16-biô worä iî  RAÍ  (lo-byte/hi-bytå 
+                    format).
+
+
+
+USING THE EDITOR
+
+     There are five fields in the source code format.  They are:
+
+        line #  label  Op-code  Operand  Comment<cr>
+
+     Line numbers may be any number between 0 and 9999.
+     Labeì ió µ characteró maximum®   Iæ nï labeì ió useä enter ² 
+          spaces to skip over label field.
+     Be sure to leave one space between each field.
+     Commenô  lineó  maù bå inserteä bù enterinç aî  "*¢  iî  thå 
+     label field.
+
+
+
+OPERANDS
+
+     Operandó maù bå symbols¬ labeló oò values®  Á symboì musô bå 
+identified with an EQU statment, as in the following example:Š
+     10 PORT EQU 0FFH
+     20 MON  EQU 0F01EH
+     .   .    .    .
+     .   .    .    .
+     80      OUT PORT
+     90      LXI H,MON
+
+     Á  labeì  musô  bå identifieä  elsewherå  iî  program®   Foò 
+example:
+
+     100     JMP END
+      .       .   .
+      .       .   .
+     500 END HLT
+
+     Numeriã  valueó  arå  assumeä tï bå  decimaì  valueó  unlesó 
+followeä bù letteró È (hex)®  Iæ firsô characteò iî operanä ió aî 
+alphá  characteò iô musô bå precedeä bù "0"®   Herå arå somå  ex
+amples:
+
+     300       MVI A,20
+     310       MVI C,10H
+     320       MVI H,0A000H
+
+     Add¬  subtract¬ multiplù anä dividå (+¬ -¬ *¬ /© symboló caî 
+bå used®  Arithmetiã operatoró arå executeä lefô tï righô withouô 
+precedence®   Thå  smyboì "$¢ meanó PC-addresó  afteò  operation® 
+Herå arå somå examples:
+
+     200       JMP HOME+5
+     220       JMP $+10
+
+
+COMMENT LINES
+
+     Uså thå symboì "*¢ tï indicatå commenô lines®  Herå is an 
+example:
+
+     10 * THIS IS THE START OF THE PROGRAM
+     20 START LXI SP,1000H INITIALIZE STACK POINTER
+
+
+
+ASSEMBLER ERROR CODES
+
+     A    Argument error
+     D    Duplicate error
+     L    Label error
+     M    Missing label
+     O    Opcode error
+     R    Register error
+     S    Syntax error
+     U    Undefined error
+     V    Value errorŠ     

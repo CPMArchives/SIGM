@@ -1,0 +1,719 @@
+
+
+            ECCE   -   Z80 CP/M Version by J.M. and J.Palmer
+            ------------------------------------------------
+
+Index
+-----
+
+    1     Introduction
+    2     Calling the Editor
+    3     Commands
+    3.1   Basic Commands
+    3.2   Special Commands and Macros
+    3.3   More on Basic Commands
+    3.4   More on Special Commands
+    3.5   More on Macros
+    4     Sample ECCE session
+    5     Gruesome Details
+
+1   Introduction
+    ------------
+
+   ECCE  is  the  Edinburgh  Compatible  Context  Editor.    It   is   a
+particularly  versatile  line  oriented editor developed by Hamish Dewar
+and colleagues on the staff of the Department of Computer Science at the
+University of Edinburgh.   It is in extensive use at the University  and
+the  nearby  research  community,  where  it  is  mounted  on  two large
+mainframes in the ICL 2900 series, on the Computer Science  Department's
+VAX 11/780, and on many mini computers.
+
+   Its outstanding features are:
+
+      * It can handle files of any length, though the user can only
+        move backwards through text that is still in memory.
+
+      * Text  can  be  taken  from other files by declaring them as
+        "Secondary" files
+
+      * It  can  be  given  conditional  sequences   of   commands,
+        equivalent   to   "IF   (condition   X  is  true)  THEN  DO
+        (consequence A) ELSE IF (condition  X  is  false)  THEN  DO
+        (consequence B)", and these can be nested if required
+
+      * Sequences  of  commands  can be defined as macros which can
+        then be invoked by their single-letter names.
+
+   Thus whatever the user's specialised requirements,  whether  they  be
+say  word  processing  or  table  creation,  ECCE  can usually be easily
+adapted to provide them.
+
+   This CP/M version of ECCE was  translated  from  IMP,  the  Edinburgh
+environment  implementation  language  and  a  development  of ALGOL, to
+PASCAL intended for compilation  by  HISOFT  PASCAL  4D.   The  run-time
+routines are therefore copyright.   Some parts which subsequently proved
+to be slow in  execution  were  rewritten  in  Z80  assembler  code  and
+implanted.   Some extensions to Standard ECCE have been incorporated: in
+the main these substitute for services normally available externally  in
+Edinburgh-style operating systems.
+
+   The extensions to ECCE are
+
+      * Once  defined,  macros  can  be  preserved  in a named or a
+        default file.   If the default file is used then the macros
+        will  be  recalled  automatically  whenever  ECCE is called
+        subsequently.   If a named file is  used  then  it  can  be
+        recalled  at  any  time  to insert the definitions which it
+        contains.   Thus the user can accumulate groups of  complex
+        macros and apply them rapidly when wanted.
+
+      * The  command ECCE without parameters will resume editing of
+        the output file from the previous session.
+
+      * A backup command can be invoked to make a copy of the  work
+        done so far in the current session.
+
+      * A  command string can be aborted from the keyboard part way
+        through its execution.
+
+      * The session can be aborted and the file left unaltered.
+
+
+2   Calling the Editor
+    ------------------
+
+
+   There are five modes of calling ECCE summarised below:-
+
+    1) ECCE .N <filename>             - create file <filename>
+    2) ECCE <filename1> <filename2>   - edit <filename1> to  <filename2>
+    3) ECCE <filename>                - edit  <filename>  to a temporary
+                                        file; when the edit  is  closed,
+                                        the  original file is renamed as
+                                        a BAK file,  and  the  temporary
+                                        file  is renamed as the original
+                                        file.   In this mode if the text
+                                        "/NOLOAD" is entered as a second
+                                        file  name  then the text buffer
+                                        will not be preloaded  with  the
+                                        contents of the file.
+    4) ECCE <filename> .N             - "Show" <filename>; do not create
+                                        an  output  file  or  record any
+                                        changes made.
+    5) ECCE                           - edit the file last  written  to.
+
+
+3   Commands
+    --------
+
+   There  are  two  types of command in ECCE, basic and special.   Basic
+commands are used to manipulate text in the file buffer, whereas special
+commands alter the editing environment.   Special commands begin with  a
+"%".
+
+
+3.1 Basic Commands
+    --------------
+
+   ECCE basic commands are of two main types:-
+    1)  Those  which  are  normally  restricted to operations within the
+    current line
+    2) Those which can move between lines,  operating  anywhere  in  the
+    file
+
+  B       : BREAK  the current line into two lines at the current cursor
+            position
+  C (-)   : change the CASE of the character to the  right/left  of  the
+            cursor in the current line
+  D/text/ : DELETE  the  first  occurrence of <text> on the current line
+  E (-)   : ERASE the character to the right/left of the cursor  and  in
+            the current line
+  F/text/ : FIND the next occurrence of <text> in the file.
+  G/text/ : GET <text>.  Insert it as a complete line before the current
+            line
+  I/text/ : INSERT  <text> at the current cursor position in the current
+            line
+  J       : JOIN the current line to the next one
+  K (-)   : KILL the whole of the current/previous line
+  L       : Shift the file pointer LEFT one  character  on  the  current
+            line
+  M (-)   : MOVE to the next/previous line
+  O/text/ : OVERWRITE  the  text to the right of the cursor with <text>,
+            extending the current line if necessary
+  P       : PRINT the current line
+  R       : Shift the file pointer RIGHT one character  on  the  current
+            line
+  S/sbs/  : SUBSTITUTE <sbs> for the <text> found, verified or uncovered
+  T/text/ : TRAVERSE  <text>.   Place  file  pointer after <text> on the
+            current line.  Text traversed cannot be substituted.
+  U/text/ : UNCOVER <text>.   Remove all characters on the current  line
+            up to but not including <text>
+  V/text/ : VERIFY  that  the  text to the right of the file pointer and
+            in the current line is <text>
+  W       : Use macro W
+  X       : Use macro X
+  Y       : Use macro Y
+  Z       : Use macro Z
+
+   The text parameter with commands G, I, O, and S is optional; if it is
+not given then the text is entered when the command executes.
+
+
+3.2 Special Commands
+    ----------------
+
+  %A      : ABORT - abandon editing session
+  %B      : BACKUP - equivalent to closing edit and  running  ECCE  with
+            the name of the file written to as parameter
+  %C      : CLOSE  EDIT - write text buffer to disk, close files, return
+            to CP/M
+  %F      : Print current line whenever the cursor  is  moved  (default)
+  %H      : Toggle  HELP  mode.   All  failures  are  explained  if help
+            mode is on.
+  %I      : Give useful INFORMATION
+  %L      : Regard the case of the text  as  significant  when  finding,
+            verifying, traversing, uncovering and deleting
+  %M      : Print  current  line  only  when  moving to it or when the P
+            command is used
+  %P      : Save the macros, monitoring mode and the setting of %L/%U in
+            a named profile file or, by default, in file PROFILE.ECE  on
+            the  default  disk.   They will be loaded automatically when
+            ECCE is next used if stored in the default file.
+  %Q      : Print current line only when P command is used
+  %R      : RESTORE macros from a named disk file or  the  default  file
+  %S      : When  first  called, define a named secondary input file and
+            switch to it.   When  subsequently  called,  switch  between
+            primary and secondary files.
+  %U      : Disregard case when finding, verifying, traversing, deleting
+            or uncovering (default)
+  %W      : Define / display macro W
+  %X      : Define / display macro X
+  %Y      : Define / display macro Y
+  %Z      : Define / display macro Z
+
+   There are no special commands to write out part of the text buffer to
+the output file; ECCE handles this automatically.
+
+
+3.3 More on Basic Commands
+    ----------------------
+
+   Any basic command can be repeated by placing a number after it :-
+
+         f/fred/3            - find  the third occurrence of fred in the
+                               file
+ but note
+         f/fred/i/I am /3    - will find the first  occurrence  of  fred
+                               and insert "I am " 3 times giving
+                               "I am I am I am fred"
+
+   To  change  the  next three occurrences of 'fred' to 'I am fred', the
+command should be bracketed
+                (f/fred/i/I am /)3
+
+   To execute a command an indefinite number of times, the character '*'
+or the number '0' should be placed after the command.   This will result
+in the relevant command being executed up to 32767 times.
+
+   For  example,  the normal way of entering lines of text into the file
+is to type
+                >>G0
+
+   To exit from the 'G' command, a single ':' should be inserted at  the
+start of a line, followed immediately by <return>.
+
+   The  console buffer used by HISOFT PASCAL is 80 characters long so if
+more than 80 characters are entered in one line from the keyboard  while
+using the G command then a newline character will be inserted.   However
+when text is entered from disk ECCE will  accept  lines  of  up  to  121
+characters  before inserting a newline, and further text can be added by
+the I(nsert) command.   If by any means the line is  made  132  or  more
+characters  long  then later attempts to I(nsert) in that line will fail
+until the user splits it by applying B(reak) to it  or  shortens  it  in
+some way.
+
+   The  search  range  for  commands  F,  U  and  T  can  be extended or
+restricted by placing a number after the command but before the text.
+
+   As described above F searches for text through the whole of the file,
+but this can be restricted by placing a number after the F, so
+
+          F23/fred/
+
+will only look for 'fred' on the next 23 lines.
+
+   D, U and T normally only search the current line,  but  this  can  be
+extended similarly :-
+
+          t50/joe/
+
+will try to traverse 'joe' but will fail if it is not within 50 lines of
+the current cursor position.
+
+
+   The maximum search restriction or extension is 511 lines.
+
+   The previous command line can be executed again by typing a number on
+the next line.  The previous line will be executed as if it had brackets
+around it.
+
+   Pressing  <return>  on  its  own  will  cause  ECCE to execute an 'M'
+command.  If '-' is typed at the start of the line followed by <return>,
+all <return>'s after that will cause ECCE to execute  an  'M-'  command,
+until a further '-' is entered, or another command is used.
+
+   Error  reports  are  given when ECCE is checking the command line for
+syntax errors or when a correctly formed command line causes  a  failure
+when  it  is  running.   Syntax  errors  are  reported  by  printing the
+offending character or characters followed by a query
+  e.g.
+        >>r-           { Should be "l" }
+         -?
+        >>
+
+   An error will also be reported if there are mismatched brackets or if
+a command line or macro definition is too long.   Macros can be up to 64
+characters.  Note, however, that macros are expanded and placed into the
+command  buffer  when  used,  so  it is possible to get an overflow if a
+large macro is used many times.  If possible use brackets instead.
+
+   Failure occurs if the command typed cannot be executed  successfully.
+A message of the form
+
+    Failure: <editor command>
+
+will be displayed.
+
+   This failure condition can be turned to advantage by the use of three
+more symbols recognised by ECCE
+
+          ,      \      ?
+
+   The comma causes 'alternative command execution'.  If one part of the
+command line fails, ECCE tries the next part.
+
+  e.g.     (rli/ /2m,m)0
+
+
+   This  command  will  cause  two spaces to be inserted at the start of
+every line in the file , BUT only if it is NOT blank.   This is  because
+'r'  will  fail if there is nothing on the line, so control will pass to
+the 'm' after the ',' and the  editor  will  then  try  the  next  line.
+However,  if  the line is not empty then two spaces will be inserted and
+ECCE will move to the next line.  There can be any number of commas in a
+command.
+
+   Backslash '\' inverts the failure condition; so a failure occurs when
+an operation is successful.
+
+          (r\li/ /2m,m)0
+
+would cause two spaces to be inserted on every blank line and  no  other
+line.
+
+   Query  '?' causes ECCE to ignore the failure condition, and execution
+continues uninterrupted.  e.g.  r?  or (f1/fred/2)?
+
+   A more useful example of ',' is
+
+          %X=(r,i/ /)
+
+   If the command 'X23' is now issued, the file  pointer  will  move  to
+column  23  on  the screen, inserting any spaces if the line is not long
+enough.  This is useful when creating tables.
+
+   Another example of failure is the following :-
+
+      (r0 ( l d/ / )0 m)0
+
+   which will remove any trailing spaces at the end of all lines in  the
+file.   Specifying  the  number  of repetitions as '0' or '*' causes the
+command to be  executed  as  many  times  as  possible  without  causing
+failure.   Thus  the  command E7 will fail if there are not 7 characters
+left on the line, but E0 will delete all the remaining characters on the
+line and WILL NOT FAIL.   Similarly in the above example (l d/ /)0 means
+"delete as many trailing spaces as possible".
+
+
+   The  symbol  ';' makes ECCE execute the current command line as if it
+were two (or more) lines, the lines being separated by the ';' symbol.
+
+   In these examples the symbol  '/'  has  been  used  to  delimit  text
+strings, but any of the following can be used :-
+
+    # & ' .  / : < = > @ [ ] ^ _
+
+   So to find a '/' the following command could be used :-
+
+    >>F./.
+
+   Finally,  execution  of  any  command  sequence  can  be abandoned by
+pressing <escape>.  Note that this requires CP/M function 6 which is not
+present in some early versions.
+
+
+3.4 More on Special Commands
+    ------------------------
+
+%S :    With ECCE you can define a secondary input file from which input
+        is to be taken.   When in secondary input mode all commands  can
+        be used except those which move the file pointer backwards.  Any
+        text passed over is copied to the main file buffer.
+
+        To define a secondary input file type
+
+                %S=<filename>
+
+        To switch between primary and secondary input type
+
+                %S
+
+        If you wish to include all of a file you should type
+
+                %S=<filename>
+                M0
+                %S
+
+        To include only part of a file (starting at <text> say) type
+
+                %S=<filename>
+                U0/text/
+
+        and  now  step over the lines required by pressing return, using
+        M, or FINDing the last piece of text you wish to include, or  by
+        any other means that seem appropriate.  Now type
+
+                %S
+
+        to get back to the original file.
+
+
+
+%P :    As described above this command will save macros, the monitoring
+        mode  and  the  setting  of %L/%U in the file PROFILE.ECE on the
+        default disk.   It is possible to specify the file to which  the
+        information is to be written (thus enabling the user to build up
+        a library of macros) by typing
+
+                %P=<filename>
+
+%R :    This command can also be given a filename as a parameter so that
+        the macros will be loaded from the specified file by typing
+
+                %R=<filename>
+
+
+3.5 More on Macros
+    --------------
+
+   To define a macro, type
+
+                %W=<macro text>
+
+        or      %X=<macro text>
+
+        or      %Y=<macro text>
+
+        or      %Z=<macro text>
+
+   A  macro text can be up to 64 characters long but, if one macro calls
+other macros the combined  macro  texts  must  not  exceed  the  command
+buffer's  dynamic  limit  of  about  150 to 200 characters, otherwise an
+error message will be displayed.
+
+   To display a macro, type
+
+                %W
+
+        or      %X
+
+        or      %Y
+
+        or      %Z
+
+   To use a macro simply enter W or X or Y or Z in the command line.
+        Example
+                >>%X=f/fred/
+                >>%Y=s/joe/
+                >>%Z=x
+
+                >>xyz
+
+        will be translated to
+
+                >>f/fred/s/joe/f/fred/
+
+   Here are some examples of elaborate macros which are worth saving  in
+suitably named files.
+
+   First, a set for displaying a number of lines on a video screen:
+
+        %X=((p10)?)
+
+ie  print  the  next ten lines OR, if there are not ten left, print what
+there is.   The macro is in brackets so that it can be  set  to  operate
+more than once
+
+        %Y=(m-10p10m-8,p10m-0,m-0)
+
+ie  move  back ten lines,print those ten and set the file pointer to the
+the first line printed OR, if there are not ten preceding  lines,  print
+ten  succeeding  lines and move back to the beginning of the file, OR if
+there are not ten such lines to print, go to the beginning of the file
+
+        %Z=(m-5p10m-4)
+
+ie move back five lines, print ten then go back four lines to the  fifth
+line of text displayed on the screen
+
+   Now a text processing set used to produce lines which come as near as
+possible to a standard size
+
+        %W=(l0ry(lv/ /\)0ebxp,r0z)
+
+ie find the start of the line, move right the number of characters shown
+in  Y then move left one character at a time until a space between words
+is found, erase it, BREAK the line in two, insert the margin shown in  X
+and  print  the line OR, if this is impossible (usually because the line
+is less than Y characters long) move right to the end of the line,  join
+on  the  succeeding  line  as  shown in Z and perhaps erase some leading
+spaces ready for W to be repeated.  Note that the W macro can be adapted
+for different required line lengths and leading spaces by altering  only
+the short macros X, Y and Z.  Typically these might read:
+
+        %X=i/ /2    ie insert two leading spaces
+
+        %Y=75       ie  the  maximum  number  of  characters  wanted  in
+                    the line
+
+        %Z=je       ie join on the  next  line  and  erase  one  of  the
+                    two leading spaces
+
+Alternatively:
+
+        %X=         ie do not insert leading spaces
+        %Y=75       as before
+        %Z=i/ /j    ie  insert  a space before joining on the next line.
+                    Note that the space is inserted before the  line  is
+                    joined because the insertion could fail if the lines
+                    were joined first due to the increased line length.
+
+   NEVER define recursive macros of the form
+
+    >>%x=y
+    >>%y=x
+
+and  then  use  X  in  a  command because ECCE will loop indefinitely in
+trying to substitute a command for X.
+
+
+4   Sample ECCE session
+    -------------------
+
+  A>ECCE .N TEST.TXT
+  ECCE  Z80 Version 12:Feb:84
+  Creating TEST.TXT
+  >>g0                                              {Get text}
+  The quick brown
+  fox jumps over
+  the lazy dog.
+  :                                                 {End of text}
+  **END**
+  >>m-0                                             {Move to start of file}
+  The quick brown
+  >>f/ qui/                                          {Move to start of 'quick'}
+  The^ quick brown
+  >>i                                               {Insert ' very' before quick}
+  I> very                                           {Text entered at run time}
+  The very ^quick brown
+  >>t/k/i/ greyish-/e
+                                              {Move to end of 'quick'}
+                                              {Insert ' greyish-'}
+                                              {and erase space}
+  The very quick greyish-^brown
+  >>%X                                              {Display current macros}
+  (P10)
+  >>%Y
+  (M-10P10M-9)
+  >>%Z
+  (M-5P10M-9)
+  >>%X=(rli/ /2m,m)                                 {Re-define X}
+                                              {See 3.3 for}
+                                              {meaning of macro}
+  >>l0x0                                          {Use X}
+  **END**
+  >>m-0p0                                           {Print whole file}
+    The very quick greyish-brown
+    fox jumps over
+    the lazy dog.
+  **END**
+  >>m-0f2/zy/                                       {Example to show}
+                                              {restriction of search}
+                                              {range and failure}
+  Failure: F'zy'
+    fox jumps over
+  >>m-0                                             {Back to start}
+    The very quick greyish-brown
+  >>t3/zy/                                          {Extension of}
+                                              {search range}
+      the lazy^ dog.
+  >>m-0f/g/
+    The very quick ^greyish-brown
+  >>u/br/                                           {Uncovering text}
+    The very quick ^brown
+  >>c0                                              {Changing case}
+    The very quick BROWN^
+  >>j                                               {Joining lines}
+    The very quick BROWN^  fox jumps over
+  >>e
+    The very quick BROWN^ fox jumps over
+  >>je
+    The very quick BROWN fox jumps over^ the lazy dog.
+  >>m
+  **END**
+  >>k                                               {Another example of failure}
+  Failure: K
+  **END**
+  >>m-0
+    The very quick BROWN fox jumps over the lazy dog.
+  >>t/own/bi/ /t/er/bi/ /m-0p0                      {Break into 3 lines again}
+    The very quick BROWN
+    fox jumps over
+    the lazy dog.
+  **END**
+  >>%c                                              {Close edit}
+  File TEST.TXT written to
+
+  A>
+
+
+5   Gruesome Details
+    ----------------
+
+   This section describes the design philosophy of the editor.
+
+   The text in ECCE's text buffer is stored in two parts, one  from  the
+start  of  the  buffer  to  the address in the current file pointer, the
+other from the address shown by a further pointer  to  the  end  of  the
+buffer.   It  is into the gap in between these two pointers that text is
+inserted,  substituted  etc.    When  the   gap   becomes   too   small,
+approximately  half  of  the  buffer  is  written  to  the  output file.
+Deleting is only a matter of moving one or other of the pointers.
+
+   The buffer can be seen like this :-
+
+   NL O N E NL T W . . . O NL N E X T NL - - - NL L A S T NL NL
+      ^        ^   ^     ^  ^                                 ^
+      T        L   P     F  L                                 F
+      O        B   P     P  E                                 E
+      P        E            N                                 N
+               G            D                                 D
+
+  where  TOP        is the start of the buffer
+         LBEG       is the start of the line
+         PP         is the start of the gap
+         FP         marks the start of the rest of the line
+         LEND       is the end of the line
+         FEND       is the end of the file
+         NL         is a character to separate lines
+                    (currently carriage return)
+
+
+   If we call the array holding the file BUFF then it can be seen that
+
+  R can be performed by
+                       fail IF FP = LEND
+        otherwise      BUFF[pp] := BUFF[fp]
+                       FP := FP + 1;
+                       PP := PP + 1;
+
+  E4 would be performed by
+                        fail IF LEND = FP
+         otherwise      FP := FP + 1;  repeated 4 times
+
+
+   Commands are stored in a command array as fixed length  units.   This
+unit is made up of three 16 bit numbers called
+
+   CODE   - the   lowest   7   bits  contain  the  ASCII  code  for  the
+            command, the  upper  9  contain  the  range  restriction  or
+            extension number when used with F,U,T,D
+
+   TEXT   - A  pointer  to  the  text  to  be  found; the text is stored
+            backwards at the end of the command array.
+
+   NUM    - Repetition number.
+
+  So the command    t0/Glug/7  would be stored as
+
+     1    2   3   4          296 297 298 299  300
+   -----------------------------------------------
+   ! T ! 300 ! 7 ! . . . . .! 0 ! g ! u ! l !  G !
+   -----------------------------------------------
+     ^    ^    ^              ^                ^
+     !    !    !              !                !
+  CODE  TEXT  NUM      end of text        start of text
+          !                                    !
+          --------------------->----------------
+
+
+   The meanings of these components differ when a bracket or a comma  is
+being represented :-
+
+ For a close bracket;
+
+    TEXT is a pointer to the corresponding open bracket
+    NUM  is   the   number   of   times  the  bracketed  command  string
+         is to be executed
+
+ For an open bracket;
+
+    NUM  is the level at which the current bracket is nested
+    TEXT points to the corresponding close bracket
+
+   A comma unit is similar to an open bracket unit.
+
+   It can be seen that once this command array has been built up  it  is
+very  easy to execute it.   One simply needs a pointer (initially at the
+start of the array)  which  is  incremented  by  3  after  every  normal
+command,  and  set  to  the position of the opening bracket when a close
+bracket is encountered, and which is incremented by 3 repeatedly when  a
+failure  occurs  until  a  comma  or  the  end  of  the command array is
+encountered.   At each stage current values of  CODE,TEXT  and  NUM  are
+available to describe the current command.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          (currently carriage return)
+
+
+   If we call the array holding the file BUFF then it ca

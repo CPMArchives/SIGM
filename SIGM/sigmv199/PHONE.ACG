@@ -1,0 +1,66 @@
+* DATE 08/27/84  13:11
+* phone.ag
+STOR chr(peek (063)) TO dr
+SET INDEX TO &dr.:lastname
+SET MARGIN TO 10
+STOR 'A' TO stletter
+@ 17,12 SAY 'Letter of alphabet at which to start report'
+@ 17,57 GET stletter PICTURE '!'
+READ
+STOR 'Z' TO llet
+@ 18,12 SAY 'Letter of alphabet at which to end report'
+@ 18,57 GET llet PICTURE '!'
+READ
+FIND &stletter
+DO WHIL # = 0
+ STOR 'ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ' TO ALPHABET
+ STOR @(stletter,ALPHABET) + 1 TO NEXL
+ STOR $(ALPHABET,NEXL,1) TO stletter
+ FIND &stletter
+ RELE alphabet
+ENDD
+STOR 'ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ0' TO ALPHABET
+STOR @(llet,ALPHABET) + 1 TO NEXL
+STOR $(ALPHABET,NEXL,1) TO llet
+RELE alphabet
+STOR 0 TO pageno
+STOR t TO more
+SET MARGIN TO 10
+DO WHIL more
+ STOR pageno + 1 TO pageno
+ STOR 6 TO lineno
+ ERAS
+ EJEC
+ ? '========================== TELEPHONE LIST =========================='
+ ? ' '
+ ? '         ' + DATE() + '                                            PAGE: ' + str(pageno,2)
+ ? ' '
+ ? '      NAME                   HOME PHONE         OFFICE PHONE'
+ ? ' '
+ DO WHIL lineno < 55
+  IF .not. eof
+   IF $(lastname,1,1) <> llet
+    STOR trim(fname)+ ' ' + lastname TO mname
+    STOR $(mname,1,23) TO mname
+    ? mname+ '      ' + phone + '      ' + ophone
+    STOR lineno +1 TO lineno
+    SKIP
+    IF *
+     SKIP
+    ENDI
+   ELSE
+    SKIP
+   ENDI $(lastname)
+  ELSE
+   STOR f TO more
+   STOR 60 TO lineno
+  ENDI not eof
+ ENDD WHILE lineno < 55
+ENDD more
+EJEC
+SET PRINT OFF
+SET ALTERNATE OFF
+RELE pageno, lineno, mname
+STOR t TO more
+STOR t TO first
+

@@ -1,0 +1,665 @@
+TOOLINTF.DOC	821007:1301
+
+
+
+
+LIST OF TOOLS IN LINKAGE ORDER:
+>>> ACOMPR.MAC	>>> ADDAD.MAC	>>> EXIT.MAC	>>> CLOSE.MAC
+>>> CONPUT.MAC	>>> TABBER.MAC	>>> TABBRF.MAC	>>> CRLF.MAC
+>>> CRLFF.MAC	>>> CTOF.MAC	>>> CTODI.MAC	>>> CTOI.MAC
+>>> DCMP.MAC	>>> FTOC.MAC	>>> INIT.MAC	>>> GETWD.MAC
+>>> GETLIN.MAC	>>> GETLNF.MAC	>>> GETC.MAC	>>> GETCF.MAC
+>>> OPEN.MAC	>>> LSTPUT.MAC	>>> MAKFCB.MAC	>>> PCSTR.MAC
+>>> PCMSG.MAC	>>> PLMSG.MAC	>>> PLSTR.MAC	>>> PUSHBK.MAC
+>>> PUSHBF.MAC	>>> PUTDCF.MAC	>>> PUTDEC.MAC	>>> PUTMSF.MAC
+>>> PUTMSG.MAC	>>> PUTSTR.MAC	>>> PUTSTF.MAC	>>> PUTC.MAC
+>>> PUTCF.MAC	>>> MTBUF.MAC	>>> ERROR.MAC	>>> ESC.MAC
+>>> FILLBF.MAC	>>> FNDBUF.MAC	>>> GETARG.MAC	>>> HCTODI.MAC
+>>> HCTOI.MAC	>>> HLDDE.MAC	>>> HLXDE.MAC	>>> ITOC.MAC
+>>> OP32.MAC	>>> PROMPT.MAC	>>> REMARK.MAC	>>> SETBF.MAC
+>>> ADDA.MAC	>>> ARGBUF.MAC	>>> BUFBLK.MAC	>>> CONMSG.MAC
+>>> CRLFMS.MAC	>>> DPL.MAC	>>> FILL.MAC	>>> FNB.MAC
+>>> HDCMP.MAC	>>> HLMDE.MAC	>>> INDEX.MAC	>>> INPORT.MAC
+>>> IPTBUF.MAC	>>> ISDIGD.MAC	>>> ISDIGH.MAC	>>> MOVEL.MAC
+>>> MOVES.MAC	>>> MOVEU.MAC	>>> MPLD.MAC	>>> MPLS.MAC
+>>> MPRD.MAC	>>> MPRS.MAC	>>> MPWAIT.MAC	>>> MPS0.MAC
+>>> NEGH.MAC	>>> OUTPT.MAC	>>> RDCLK.MAC	>>> SELCMD.MAC
+>>> SOUNDX.MAC	>>> SPXCH.MAC	>>> STDIO.MAC	>>> TYPAHD.MAC
+>>> UPCASE.MAC	>>> LENGTH.MAC	>>> MEMRY.MAC
+
+                                             ACOMPR-CRLF
+
+>>> ACOMPR.MAC	820830:2037	Page 8
+	Lexical comparison between 2 strings
+	At entry:
+	  HL points to one string
+	  DE points to another string
+	  C  contains the length to test
+	At exit:
+	  All registers are preserved
+	  Z is set if the strings match
+	  C is set if the DE string is
+	    lexically less than the HL.
+
+>>> ADDA.MAC	820820:1709	Page 9
+	HL + A -> HL
+	(Overwrites A)
+
+>>> ADDAD.MAC	820820:1715	Page 10
+	EXT	MPLS,MPS0
+	Add A to a 32-bit number on 9511 stack
+	At entry: A contains number to add
+	At exit:  A contains 9511 status
+
+>>> ARGBUF.MAC	820820:1715	Page 11
+	Buffer for command line arguments;
+	Also contains NARGS
+
+>>> BUFBLK.MAC	820820:1716	Page 12
+	Buffer definition blocks for disk i/o;
+	Also contains channel tables.  Entries
+	are BUFBLS and CHANLS.
+
+>>> CLOSE.MAC	820825:1543	Page 13
+	EXT	FNDBUF,NEGH,SETBF,MTBUF
+	EXT	ADDA,CHANLS,ERROR
+	Close an i/o channel, flushing buffer
+	if necessary.  HL,DE,BC preserved.
+	At entry: C contains channel number
+	At exit:  A contains channel number
+
+>>> CONMSG.MAC	820825:1316	Page 15
+	Put string directly on CON:
+	At entry: HL points to string
+	At exit:  HL points past ENDSTR
+	DE, BC and A are preserved
+
+>>> CONPUT.MAC	820825:1655	Page 16
+	EXT	PUTCF
+	Put single char on CON: via PUTCF
+	  to take advantage of char/line
+	  counting
+	At entry: A contains char to type
+	All regs preserved
+
+>>> CRLF.MAC	820820:1716	Page 17
+	EXT	STDOUT,CRLFF
+	Write CR then LF to standard output
+	All regs preserved
+
+                                             CRLFF-ERROR
+
+>>> CRLFF.MAC	820820:1717	Page 18
+	EXT	PUTCF
+	Write CR then LF to specified channel
+	At entry: C contains channel no.
+	All regs preserved
+
+>>> CRLFMS.MAC	820820:1717	Page 19
+	CR,LF,ENDSTR
+
+>>> CTODI.MAC	820830:1219	Page 20
+	EXT	ADDA,NEGH,ISDIGD,FNB
+	EXT	MPLS,MPS0,MPRD,DPL
+	Convert ASCII to 32-bit integer
+	At entry: HL points to ASCII string
+		  DE points to 4-byte buffer
+	At exit:  HL points to first non-digit
+		  A contains this non-digit
+	DE and BC are preserved
+
+>>> CTOF.MAC	820820:1717	Page 22
+	EXT	CTODI,CTOI,ERROR
+	EXT	MPLS,MPS0,MPLD,DPL
+	Convert ASCII to 9511 floating-point
+	At entry: HL points to ASCII string
+	At exit:  HL points to 1st non-digit
+		  A contains this non-digit
+	DE and BC are preserved
+
+>>> CTOI.MAC	820820:1717	Page 24
+	EXT	ADDA,NEGH,ISDIGD,FNB
+	Convert ASCII to 16-bit integer
+	At entry: HL points to ASCII string
+	At exit:  HL points to first non-digit
+		  DE contains the integer
+		  A contains the non-digit
+	BC is preserved
+
+>>> DCMP.MAC	820820:1718	Page 25
+	EXT	MPLD
+	Compare two 32-bit numbers in memory
+	At entry: HL points to the first no.
+		  DE points to the 2nd no.
+	At exit:  A contains 9511 status from
+		  <HL> - <DE>
+	HL, DE and BC are preserved
+
+>>> DPL.MAC	820820:1718	Page 26
+	Stores no. of decimal places in
+	CTODI and DITOC conversions
+
+>>> ERROR.MAC	820820:1718	Page 27
+	EXT	CONMSG,CRLFMS
+	Issue inline message, then quit.
+	No registers are relevant.
+
+                                             ESC-FTOC
+
+>>> ESC.MAC	820820:1718	Page 28
+	EXT	ISDIGD,HCTOI
+	Interpret @T as tab, @N as newline,
+	  @R as CR, @L as LF, @F as FF,
+	  @hh as hex number
+	At entry: HL points to character
+	At exit:  HL points to next char
+		  A contains result char
+	DE and BC are preserved
+
+>>> EXIT.MAC	820820:1718	Page 29
+	EXT	CLOSE
+	Close all fifteen i/o channels and
+	  return to CP/M - all registers
+	  are irrelevant.
+
+>>> FILL.MAC	820820:1718	Page 30
+	Fill memory with a given byte
+	At entry: HL points to area to fill
+		  BC contains number of bytes
+		  A contains byte to write
+	At exit:  HL points past area filled
+		  BC contains 0
+	DE and A are preserved
+
+>>> FILLBF.MAC	820820:1718	Page 31
+	EXT	ADDA,FILL
+	Read from disk into buffer
+	At entry: HL points to buffer
+		  DE points to FCB
+		  C contains no. secs to read
+	At exit:  A contains zero or EOF
+		  C contains zero
+	HL, DE and B are preserved.
+
+>>> FNB.MAC	820820:1718	Page 32
+	Find next blank or tab in string
+	At entry: BC points to string
+	At exit:  BC points to nonblank
+		  A contains nonblank
+
+>>> FNDBUF.MAC	820825:1521	Page 33
+	EXT	CHANLS,ADDA
+	Find buffer block for channel
+	At entry: C contains channel no.
+	At exit:  HL points to buffer block
+		  A contains read/write flag
+
+>>> FTOC.MAC	820830:1542	Page 34
+	EXT	MPLS,MPRS,MPRD,DPL
+	EXT	ITOC,DITOC,ADDA,MOVES
+	EXT	ERROR,MSTAT,HLMDE
+	Convert 9511 floating-point to ASCII
+	At entry: 9511 has fp number
+	At exit:  HL points to ASCII string
+		  A contains length of ASCII
+	DE and BC are preserved
+
+                                             GETARG-GETWD
+
+>>> GETARG.MAC	820820:1719	Page 38
+	EXT	NARGS, ARGBUF
+	Get nth argument from command line
+	At entry: A contains no. of arg to get
+	At exit:  HL points to arg
+		  A contains ENDSTR unless arg
+		    is null
+
+>>> GETC.MAC	820820:1720	Page 39
+	EXT	STDIN,GETCF
+	Read one char from STDIN
+	At exit, A contains char input
+	HL, DE and BC are preserved.
+
+>>> GETCF.MAC	820820:1720	Page 40
+	EXT	FNDBUF,ERROR,SETBF,FILLBF
+	EXT	ADDA
+	Read one char from specified channel
+	At entry, C contains channel no.
+	At exit,  A contains char input
+	HL, DE and BC are preserved
+
+>>> GETLIN.MAC	820820:1720	Page 42
+	EXT	STDIN,GETLNF
+	Read one line (LF is delim) from STDIN
+	At exit, HL points to input buffer
+		 A contains length of input
+	DE and BC are preserved.
+
+>>> GETLNF.MAC	820820:1720	Page 43
+	EXT	GETCF,IPTBUF
+	Read one line from specified channel
+	At entry, C contains the channel no.
+	At exit, HL points to input buffer
+		 A contains length of input
+	DE and BC are preserved.
+
+>>> GETWD.MAC	820820:1720	Page 44
+	EXT	ERROR
+	Get one word from an ASCII string.
+	At entry: HL points to the source
+		  DE points to the destination
+		     buffer
+		  BC points to a table of
+		     accepted delimiters that
+		     begins with ENDSTR and
+		     ends with @
+	Delimiters other than ENDSTR may be
+	included in a word by use of @ as an
+	escape character.  Doublequotes may
+	also be used as explicit delimiters.
+	ENDSTR overrides both.
+	At exit:  A contains the delimiter
+		  HL points past the delim.
+	DE and BC are preserved.
+
+                                             HCTODI-INIT
+
+>>> HCTODI.MAC	820820:1723	Page 46
+	EXT	ADDA,NEGH,ISDIGH
+	EXT	MPLS,MPS0,MPRD
+	EXT	DPL,FNB
+	Convert hex ASCII to 32-bit integer
+	At entry: HL points to string
+		  DE points to 4-byte buffer
+	At exit:  HL points to 1st non-digit
+		  A contains this non-digit
+
+>>> HCTOI.MAC	820820:1723	Page 48
+	EXT	ADDA,NEGH,ISDIGH,FNB
+	Convert hex ASCII to 16-bit integer
+	At entry: HL points to string
+	At exit:  HL points to 1st non-digit
+		  DE contains number
+		  A contains non-digit
+
+>>> HDCMP.MAC	820820:1723	Page 49
+	Set flags as for CMP but HL-DE
+	A is overwritten
+
+>>> HLDDE.MAC	820820:1724	Page 50
+	EXT	MPLS,MPRS
+	HL / DE -> HL
+	(Status in A)
+
+>>> HLMDE.MAC	820820:2333	Page 51
+	HL - DE -> HL
+	A is preserved
+
+>>> HLXDE.MAC	820820:2333	Page 52
+	EXT	MPLS,MPRS
+	HL * DE -> HL
+	(Status in A)
+
+>>> INDEX.MAC	820821:0955	Page 53
+	Find position of substring
+	At entry: HL points to string searched
+		  DE points to string sought
+		  B contains length of <HL>str
+		  C contains length of <DE>str
+	At exit:  HL contains offset to substr
+		    (0 if substr not in str)
+	All registers overwritten
+
+>>> INIT.MAC	820820:2333	Page 56
+	EXT	NARGS,ARGBUF,ESC
+	EXT	GETWD,OPEN,STDIN,STDOUT
+	Pick up and buffer the CP/M command
+	  line; reassign STDIN and STDOUT if
+	  specified in < or > parameters; set
+	  NARGS to the number of parameters
+	  not counting redirection params.
+	All registers used
+	No registers defined at exit.
+
+                                             INPORT-MEMRY
+
+>>> INPORT.MAC	820820:2333	Page 58
+	Read byte from port
+	At entry: A contains port to read
+	At exit:  A contains datum
+	HL, DE and BC are preserved
+
+>>> IPTBUF.MAC	820820:2335	Page 59
+	Input buffer for GETLIN & PROMPT
+
+>>> ISDIGD.MAC	820820:2335	Page 60
+	Check char in A for '0'-'9'
+	Return char and C set if not
+	Else return value 0-9
+
+>>> ISDIGH.MAC	820820:2335	Page 61
+	Check char in A for '0'-'9' or 'A'-'F'
+	Return char and C set if not
+	Else return value 0-0FH
+
+>>> ITOC.MAC	820820:2335	Page 62
+	EXT	MPLS,MPS0,MPLD,DPL
+	Convert integer to ASCII string
+	4 entry points:
+	  ITOC:   Decimal 16-bit in DE
+	  ITOHC:  Hex 16-bit in DE
+	  DITOC:  Decimal 32-bit at <DE>
+	  DITOHC: Hex 32-bit at <DE>
+	At exit:  HL points to ASCII string
+		  A contains string length
+
+>>> LENGTH.MAC  820927:1321	Page 64
+	At entry, HL points to a string
+	At exit, DE contains the string length
+	HL, BC and A remain unchanged.
+
+>>> LSTPUT.MAC	820825:1656	Page 65
+	EXT	PUTCF
+	Put char on LST: device via PUTCF
+	At entry: A contains char to print
+	All regs preserved
+
+>>> MAKFCB.MAC	820823:1358	Page 66
+	EXT	FNB,ERROR,UPCASE,FILL
+	Create FCB from filename string
+	At entry: HL points to filename string
+		  DE points to FCB space
+	At exit:  HL points past FCB space
+		  A contains zero
+	DE and BC are preserved
+
+>>> MEMRY.MAC	820820:2336	Page 68
+	EXT	$MEMRY
+	Establish location of dynamic-alloc
+	  pointer
+
+                                             MOVEL-MPS0
+
+>>> MOVEL.MAC	820820:2336	Page 69
+	Move from <HL> to <DE>, BC bytes
+	  Move is performed bottom up
+	At entry: HL points to low of source
+		  DE points to low of dest.
+		  BC contains length
+	At exit:  HL and DE are incr. by BC
+		  BC contains 0
+		  A is preserved
+
+>>> MOVES.MAC	820820:2337	Page 70
+	Move from <HL> to <DE>, till delim
+	  Move is performed bottom up
+	At entry: HL points to low of source
+		  DE points to low of dest.
+		  C contains delimiter
+	At exit:  HL points past block copied
+		  DE points past block written
+		  BC and A are preserved
+
+>>> MOVEU.MAC	820820:2343	Page 71
+	Move from <HL> to <DE>, BC bytes
+	  Move is performed top down
+	At entry: HL points to low of source
+		  DE points to low of dest.
+		  BC contains length to copy
+	At exit:  BC contains 0
+		  HL, DE and A are preserved
+
+>>> MPLD.MAC	820820:2346	Page 72
+	Load 32 bits to math chip
+	At entry: HL points to 4-byte buffer
+	All registers are preserved
+
+>>> MPLS.MAC	820820:2347	Page 73
+	Load 16 bits to math chip
+	At entry: HL contains number to load
+	All registers are preserved
+
+>>> MPRD.MAC	820820:2352	Page 74
+	Read 32 bits from math chip
+	At entry: HL points to 4-byte buffer
+	All registers are preserved
+
+>>> MPRS.MAC	820820:2354	Page 75
+	Read 16 bits from math chip
+	At exit: HL contains number read
+	DE, BC and A are preserved
+
+>>> MPS0.MAC	820820:2354	Page 76
+	Write a 16-bit zero to the math chip
+	All registers are preserved
+
+                                             MPWAIT-PCSTR
+
+>>> MPWAIT.MAC	820820:2354	Page 77
+	Write an opcode to the math chip,
+	  await completion and return status
+	At entry: A contains opcode to write
+	At exit:  A contains math-chip status
+	HL, DE and BC are preserved
+
+>>> MTBUF.MAC	820820:2354	Page 78
+	EXT	ADDA,ERROR
+	Flush buffer to disk
+	At entry: HL points to buffer
+		  DE points to FCB
+		  C contains no. secs to write
+	At exit:  A contains zero
+		  C contains zero
+	HL, DE and B are preserved
+
+>>> NEGH.MAC	820820:2354	Page 79
+	Change the sign of HL contents
+	DE, BC and A are preserved
+
+>>> OP32.MAC	820820:2354	Page 80
+	EXT	MPLD,MPRD,MPWAIT
+	HL op DE -> HL
+	(Status in A)
+
+>>> OPEN.MAC	820820:2355	Page 81
+	EXT	MAKFCB,FILLBF
+	EXT	BUFBLS,CHANLS,ADDA,NEGH
+	EXT	$MEMRY
+	Open a file for reading or writing
+	  (erases existing file on write)
+	At entry: HL points to filename string
+		  B contains FF to write, any
+		    other value to read
+		  C contains the number of
+		    sectors to buffer
+	At exit:  A contains the channel no.
+		    (0 for a failed open)
+	HL, DE and BC are preserved.
+
+>>> OUTPT.MAC	820820:2355	Page 84
+	Write byte to port
+	At entry: C contains port number
+		  A contains byte to write
+	All registers are preserved
+
+>>> PCSTR.MAC	820825:1740	Page 85
+	EXT	PUTSTF
+	Put string on CON:
+	At entry: HL points to string
+	At exit:  HL points past ENDSTR
+	DE, BC and A are preserved
+
+                                             PCMSG-PUTCF
+
+>>> PCMSG.MAC	820825:1741	Page 86
+	EXT	PUTSTF
+	Put inline string on CON:
+	All regs preserved
+
+>>> PLMSG.MAC	820825:1742	Page 87
+	EXT	PUTSTF
+	Put inline string on LST:
+	All regs preserved
+
+>>> PLSTR.MAC	820825:1743	Page 88
+	EXT	PUTSTF
+	Put string on LST:
+	At entry: HL points to string
+	At exit:  HL points past ENDSTR
+	DE, BC and A are preserved
+
+>>> PROMPT.MAC	820820:2355	Page 89
+	EXT	CONMSG,IPTBUF
+	Issue inline message to CON: and
+	  read reply, allowing ESCAPE to
+	  cancel the input or, if no input,
+	  to abort the read.  The reply may
+	  not start with a blank.
+	At entry: C contains max. reply length
+		  A contains flag:
+		    if 0, null entry (CR) ok
+		    otherwise forbidden
+	At exit:  HL points to input
+		  A contains input length
+
+>>> PUSHBF.MAC	820820:2355	Page 92
+	EXT	CONBUF,FNDBUF,ERROR,MOVEU
+	Push char back on specified channel
+	At entry: A contains char to push back
+		  C contains channel number
+	All registers are preserved
+
+>>> PUSHBK.MAC	820820:2356	Page 93
+	EXT	STDIN,PUSHBF
+	Push char back to standard input
+	At entry: A contains char to push back
+	All registers are preserved
+
+>>> PUTC.MAC	820820:2356	Page 94
+	EXT	STDOUT,PUTCF
+	Put character on STDOUT
+	At entry: A contains char to write
+	All registers are preserved
+
+>>> PUTCF.MAC	820820:2356	Page 95
+	EXT	FNDBUF,ERROR,SETBF,MTBUF
+	EXT	ADDA, *** ENTRY FNDCNT ***
+	Put char on specified channel
+	At entry: A contains char to write
+		  C contains channel no
+	All registers are preserved
+
+                                             PUTDCF-REMARK
+
+>>> PUTDCF.MAC	820825:1941	Page 98
+	EXT	ITOC,PUTCF,PUTSTF
+	Put out decimal number on channel,
+	  right-adjusted.
+	At entry: DE contains number to write
+		  C contains channel number
+		  A contains minimum length.
+	All registers are preserved.
+
+>>> PUTDEC.MAC	820825:1942	Page 99
+	EXT	ITOC,PUTC,PUTSTR
+	Put out decimal number on STDOUT,
+	  right-adjusted.
+	At entry: DE contains number to write
+		  C contains channel number
+		  A contains minimum length.
+	All registers are preserved.
+
+>>> PUTMSF.MAC	820825:1746	Page 100
+	EXT	PUTSTF
+	Put out inline message on channel
+	At entry: C contains channel no.
+	All registers are preserved.
+
+>>> PUTMSG.MAC	820825:1748	Page 101
+	EXT	PUTSTF,STDOUT
+	Put out inline message on STDOUT
+	All registers are preserved.
+
+>>> PUTSTF.MAC	820825:1749	Page 102
+	EXT	PUTCF
+	Put out message on channel
+	At entry: HL points to message
+		  C contains channel no.
+	All registers are preserved
+
+>>> PUTSTR.MAC	820825:1751	Page 103
+	EXT	PUTSTF,STDOUT
+	Put out message on STDOUT
+	At entry: HL points to message
+	All registers are preserved
+
+>>> RDCLK.MAC	820820:2356	Page 104
+	Read clock contents yymmdd:hhmm
+	At exit: HL points to ASCII string
+		 A contains string length
+	DE and BC are preserved
+
+>>> REMARK.MAC	820820:2356	Page 105
+	EXT	CONMSG,CRLFMS
+	Put inline message direct on CON:
+	(can be used to avoid linking disk i/o
+	 routines if not needed).
+
+                                             SELCMD-UPCASE
+
+>>> SELCMD.MAC	820820:2356	Page 106
+	Select command from inline list;
+	  fall through if no match
+	  Table format is (byte,addr)n,0
+	  All registers are overwritten
+
+>>> SETBF.MAC	820820:2356	Page 107
+	EXT	ADDA
+	Set up registers for FILLBF or
+	MTBUF call - normally not used outside
+	tool package
+
+>>> SOUNDX.MAC	820820:2357	Page 108
+	Return Soundex code for ASCII string
+	At entry: HL points to string
+		  DE points to 4-byte buffer
+	At exit:  HL points to first non-alpha
+		  DE, BC and A are preserved
+
+>>> SPXCH.MAC	820820:2357	Page 110
+	Exchange stacks
+	At entry: HL points to new stack
+	All registers are overwritten
+
+>>> STDIO.MAC	820820:2357	Page 111
+	Storage for STDIN and STDOUT channel
+	  numbers (init to 0)
+
+>>> TABBER.MAC	820820:2357	Page 112
+	EXT	STDOUT,TABBRF
+	Put blanks on standard output till
+	  specified column is reached.
+	At entry: A contains column no.
+	All regs preserved
+
+>>> TABBRF.MAC	820820:2357	Page 113
+	EXT	PUTCF,FNDCNT,CRLFF
+	Put blanks on specified channel
+	  till specified column is reached.
+	At entry: C contains channel no.
+	          A contains column no.
+	All regs preserved
+
+>>> TYPAHD.MAC	820901:1325	Page 114
+	Set up type-ahead buffer, disabling
+	  CONIN etc. and replacing with KEY
+	  which returns 0 if not ready, char
+	  if one is available.  CONST will
+	  always return false, and CONIN will
+	  hang forever.
+	TYPAHD overwrites all registers
+	KEY preserves HL, DE and BC
+
+>>> UPCASE.MAC	820820:2357	Page 116
+	Force A to upper case
+                                                                                                                                                                                                                

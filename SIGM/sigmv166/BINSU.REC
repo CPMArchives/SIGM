@@ -1,0 +1,65 @@
+
+[BINSU.REC]
+[Post version of binary sum]
+
+[To sum two binary numbers using Post's Productions, we set up
+ two addition tables for the terminal digits of the numbers.
+ One table is used initially, and when there is no carry present.
+ The other is used to incorporate a propagated carry into the
+ sum.  Auxiliary symbols are naturally incorporated into the
+ sum by writing the Axiom in the form a+b=c. The digits to be
+ removed from a and b are identified by their proximity to + and
+ =, respectively.  As the sum is developed, its digits are inserted
+ to the right of the = sign. The computation terminates when the
+ auxiliary symbols are dropped after at least one of them
+ reaches the front of its summand.]
+
+[Post Productions can deal with the digits to be summed even
+ though they are widely separated.  In a Markov Algorithm it is
+ necessary to move one of them until it is in contact with the
+ other before the addition table can be applied.]
+
+[[]]
+
+
+
+{
+    [cr, lf]			(2573TL;)&
+    [read console]		(R13%='';T08%(=2080[sp,bs]TL)(@J|;L@J;);)J
+    [logon message]		('
+A Post Production scheme which will sum two binary
+numbers written in the form a+b=c; for example
+
+          111110+011=
+
+Each successive keystroke will display one more step
+in the transformation until the sum is finished.
+'TL@&'Initial Axiom:'TL@&@JI;:)R
+    [to shorten program]	(UQzml;)U
+    [write workspace]		(JZqt;)W
+    [to shorten program]	(zZQml;)Z
+    [signoff message]		(@&'Theorem:'TL@&JZqt;)X
+				(@R(@&@WRL
+JZ''E'0+'@U1$S('0+'E'0='@U2$S('0='E@Z3$S(
+	JZD''I1$ryGI'+'I2$ryGI'=0'I3$ryGI''I;)nL;nL)nL;nL)nL:
+JZ''E'0+'@U1$S('0+'E'1='@U2$S('1='E@Z3$S(
+	JZD''I1$ryGI'+'I2$ryGI'=1'I3$ryGI''I;)nL;nL)nL;nL)nL:
+JZ''E'1+'@U1$S('1+'E'0='@U2$S('0='E@Z3$S(
+	JZD''I1$ryGI'+'I2$ryGI'=1'I3$ryGI''I;)nL;nL)nL;nL)nL:
+JZ''E'1+'@U1$S('1+'E'1='@U2$S('1='E@Z3$S(
+	JZD''I1$ryGI'+'I2$ryGI'*0'I3$ryGI''I;)nL;nL)nL;nL)nL:
+JZ''E'0+'@U1$S('0+'E'0*'@U2$S('0*'E@Z3$S(
+	JZD''I1$ryGI'+'I2$ryGI'=1'I3$ryGI''I;)nL;nL)nL;nL)nL:
+JZ''E'0+'@U1$S('0+'E'1*'@U2$S('1*'E@Z3$S(
+	JZD''I1$ryGI'+'I2$ryGI'*0'I3$ryGI''I;)nL;nL)nL;nL)nL:
+JZ''E'1+'@U1$S('1+'E'0*'@U2$S('0*'E@Z3$S(
+	JZD''I1$ryGI'+'I2$ryGI'*0'I3$ryGI''I;)nL;nL)nL;nL)nL:
+JZ''E'1+'@U1$S('1+'E'1*'@U2$S('1*'E@Z3$S(
+	JZD''I1$ryGI'+'I2$ryGI'*1'I3$ryGI''I;)nL;nL)nL;nL)nL:
+JZ''E'+'@U1$S('+'E'='@U2$S('='E@Z3$S(
+	JZD''I1$ryGI''I2$ryGI''I3$ryGI''I;)nL;nL)nL;nL)nL:
+JZ''E'+'@U1$S('+'E'*'@U2$S('*'E@Z3$S(
+	JZD'0'I1$ryGI'+0'I2$ryGI'*'I3$ryGI''I;)nL;nL)nL;nL)nL:;)@X;)}
+
+[end]
+

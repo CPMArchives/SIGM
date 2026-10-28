@@ -1,0 +1,170 @@
+
+
+
+             Thió  texô filå waó originallù commenô lineó iî  thå  SYSMOÎ 
+        sourcå  file®  Anù  referenceó tï 'thió code§ refeò tï  thå  filå 
+        SYSMON.ASM.
+
+             Thió codå waó originallù writteî aó onå oæ mù firsô program-
+        minç  effortó  iî earlù 1978¬  anä É havå cleaneä iô uğ  slightlù 
+        sincå then®  Iô runó well¬  anä therå arå nï knowî bugs¬  buô  iô 
+        isn'ô aó 'fancy§ aó iô mighô be® oè well.
+
+             Sincå  iô  haó beeî pointeä ouô tï må thaô "thå  programminç 
+        stylå lookó likå so-and-so's"¬ leô må givå crediô wherå crediô ió 
+        due:
+
+             A      Tï thå CP/Í User'ó Grouğ (aó iô waó iî 1978¬  noô  aó 
+               iô ió now© foò distributinç assembleò sourcå fileó oæ somå 
+               verù nicå (foò thå period© utilities.
+
+             B      Tï L®  E® Hughes¬ 808° SDÃ (doeó iô stilì exist?© foò 
+               submittinç  thå aforementioneä utilities¬  anä whoså  RM8° 
+               provideä thå inspiratioî foò må tï tacklå thió programminç 
+               projecô bacë iî thå Darë Ageó oæ microcomputing.
+
+
+                  N O T I C E  --  N O T I C E  --  N O T I C E
+
+             Iæ  yoõ  arå goinç tï uså thió code¬  yoõ MUSÔ  modifù  somå 
+        hardwarå constants®  Tï avoiä gettinç burned¬ PLEASÅ assemblå thå 
+        wholå  thinç aó iô ió anä REAÄ thå WHOLÅ listinç tï geô á  betteò 
+        understandinç  oæ whaô thå prograí ió alì about® Iô caî bå prettù 
+        confusinç aô first.
+
+             P.S®  - Iæ  yoõ ediô anä re-assemblå witè D.R.'ó  ASM¬  makå 
+        surå  thaô iô assembleó OK®  ASÍ getó confuseä bù multiplå nesteä 
+        IF's¬ oæ whicè therå arå many.
+
+             NOTEº  CP/Í ió á (registered© trademarë oæ Digitaì Research¬ 
+        Inc.¬  Pacifiã  Grove¬  California®  Referencå tï thió  trademarë 
+        withiî  thå bodù oæ thió texô ió onlù tï indicatå thaô thió  codå 
+        wilì interfacå witè saiä trademarkeä product¬  anä doeó noô implù 
+        thaô  thå owneò oæ thå trademarë owns¬  approves¬  oò  useó  thió 
+        code.
+
+             Usageº  Thió  codå texô ió thå sourcå foò á powerfuì monitoò 
+        designeä tï emulatå front-paneì typå datá manipulatioî functions® 
+        Thå  codå  waó designeä tï bå placeä intï EPROÍ iî  alì  systems¬ 
+        whetheò oò noô theù haä fronô panels®  Therefore¬ iæ thå useò haó 
+        á fronô panel¬ thå codå wilì attempô tï booô thå operatinç systeí 
+        oæ oæ thå firsô physicaì drivå (A:)®  Iæ thå useò doesn'ô havå  á 
+        fronô  panel¬  controì passeó tï thå commanä interpreter¬  givinç 
+        hií somå fronô paneì typå commands® Thå useò maù simulatå á fronô 
+        panel-lesó systeí bù settinç thå fronô paneì switcheó tï 8° hex.
+
+             Comment(s)º  Thió ió 808° sourcå codå anä coulä bå madå mucè 
+        morå  compacô  iæ Z80(tm© codå waó useä (especiallù É  ¦  Ï  com-Š        mands)®  Thió  codå aó supplieä doesn'ô 'dï anything§ bù itselæ - 
+        yoõ wilì havå tï alteò iô tï suiô youò system®  Thå disë control-
+        leò thió codå runó ió thå Digitaì Microsystemó FDC-3® Iæ yoõ havå 
+        á differenô controller¬ DON'Ô trù modifyinç theså driveró - writå 
+        NE× ones®  Thå codå tï drivå á FDC-³ ió verù complex¬ anä sincå É 
+        aí  probablù  thå  onlù  persoî withiî  50°  mileó  (besideó  Boâ 
+        Radcliffe© whï haó one¬  I'í NOÔ goinç tï explaiî ho÷ mù  driveró 
+        work® Thå referenceó tï 'booô diagnostiã system§ refeò tï á disk-
+        baseä  diagnostiã packagå whicè useó thió codå foò low-leveì  I/Ï 
+        support® Thaô packagå ió NOÔ availablå anä wilì noô bå available¬ 
+        aó iô ió welì oveò ² man-yearó iî thå making®  Therefore¬ yoõ maù 
+        deletå  thå 'S§ commanä froí thå thå codå iæ yoõ desire®  Thå 'L§ 
+        commanä workó aó followsº  Froí aî inpuô devicå (anù  byte-seriaì 
+        devicå wilì do¬  É uså á cassette© á filenamå ió read®  Thå file-
+        namå  maù bå aó lonç aó 1¶ characters®  Wheî á filå witè thå samå 
+        namå ió reaä froí thå tape¬ iô ió loadeä in® Thå filå ió presumeä 
+        tï bå iî Inteì Heø format® Thå formaô oæ thå filenamå anä datá oî 
+        thå tapå ió aó follows:
+
+                --- data ---  (any random data)
+                ;filename     (the filename is preceded with a ';')
+                :xxxxxxxxxxxx (Intel hex formatted object code)
+                .
+                .             (more Intel hex data)
+                .
+                <1A>          (the file is terminated with a Control-Z)
+
+                Thå  supervisoò  calló worë aó followsº  Thå  useò  CALLó 
+        locatioî SUPERº  witè á supervisoò calì codå storeä aô SVC:®  Thå 
+        desireä functioî ió performeä anä controì ió returneä tï thå useò 
+        program®  Iæ aî out-of-boundó SVÃ ió issued¬  á trağ messagå wilì 
+        bå  generateä anä thå monitoò wilì bå entered®  Seå 'SVC.LIB§  oî 
+        thå disë foò á callinç macro®  Thå labeì CSº neaò thå enä oæ thió 
+        filå  ió thå cleaò screeî codå useä bù thå program®  Alteò iô  tï 
+        suiô youò terminal.
+
+                Commanä  summarù - foò detailó refeò tï helğ texô codå aô 
+        thå enä oæ thå sourcå file.
+
+                B - Boot operating system
+                D - Dump memory
+                E - Enter hex data
+                F - Fill memory
+                G - Go to address
+                H - Halt the computer
+                I - Input from port
+                L - Load software from peripheral
+                M - Move data
+                O - Output to port
+                Q - Exit to operating system (only if testing equ true)
+                R - Display 8080 register set
+                S - Boot diagnostic disk
+                T - Test supervisor call (only if testing equ true)
+           addr/ - Modify memory data at addr
+Š
+             Enjoy it.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

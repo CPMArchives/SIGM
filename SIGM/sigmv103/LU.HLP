@@ -1,0 +1,591 @@
+Author Credits and Introduction to LU
+Why Use Libraries?
+Why Not Use Libraries?
+How to Use the Library Utility LU
+Summary of Operators
+LU Command Line Forms
+Advanced Features of LU
+CAUTIONS
+LRUNZ Command
+LDIRZ Command
+LRUNZ as an Extended Command Processor Under ZCPR2
+:Author Credits and Introduction to LU
+
+     Thió  documenô applieó tï versioî 1.1° oæ LU.COM®   Iô  alsï 
+applieó  tï Versioî 1.° oæ LDIRÚ bù Richarä Conî anä Versioî  1.° 
+oæ  LRUNÚ  bù Richarä Conî (whicè waó deriveä froí LRUÎ  bù  Garù 
+Novosielski).
+
+Copyright (c) 1982 Gary P. Novosielski
+All rights reserved.
+
+     Permissioî  ió  herebù  granteä  tï copù anä distributå thió 
+documenô   foò   anù  non-commerciaì  purpose®  Anù uså  oæ  thió 
+materiaì   foò   commerciaì   advantagå  withouô   prioò  writteî 
+consenô oæ thå authoò ió prohibited.
+
+     É  havå  modifieä thå originaì documenô foò inclusioî  iî  á 
+HELĞ  filå  anä elaborateä oî thå subjecô witè  documentatioî  oî 
+LRUNZ and LDIRZ.
+
+
+                          INTRODUCTION
+
+     Librarù  Utilitù  (LU©  ió  á  prograí tï allo÷ combininç oæ 
+multilplå   fileó   intï  onå  largeò  file®   Iô  requireó  CP/Í 
+versioî  2.°  oò  higheò  tï  run®  LÕ  runó undeò ZCPR2.
+
+     Thió  largeò  filå ió divideä intï twï  basiã  partó  -- thå 
+directorù  (aô  thå  fronô  oæ thå file© anä  thå  fileó  oæ  thå 
+library®  Thå directorù informatioî ió storeä iî thå samå filå aó 
+thå   data¬   oò   membeò  files®   Thå  amounô  oæ  spacå tï  bå 
+allocateä  tï  thå  directorù  musô bå specifieä bù thå useò wheî  
+á  ne÷ librarù ió created¬  buô caî bå changeä wheî thå filå   ió 
+reorganized® Thå sizå oæ eacè directorù entrù ió 3² bytes¬  whicè  
+meanó  eacè  fouò  directorù entrieó takå uğ onå sectoò   oæ  thå 
+librarù file®  Currentlù onlù 1¶ byteó oæ eacè entrù  arå   used¬  
+witè  1¶  byteó  beinç  reserveä foò uså  witè  possiblå   futurå 
+enhancements®  Thå directorù itselæ useó onå entrù  foò   controì  
+information¬  sï  thå numbeò oæ directorù sectoró  needeä  foò  á 
+librarù oæ í memberó ió (í « 1© ¯ 4¬ roundeä uğ tï thå nexô wholå 
+number.
+
+     Thå   useò  neeä noô bå concerneä witè  thió  discussioî  aó 
+directorù   sizå   ió calculateä bù thå  program®  Alì  directorù 
+sizeó   arå   inpuô anä outpuô iî termó oæ  entries¬  eacè  entrù 
+beinç á potentiaì membeò file® Thå prograí adjustó directorù sizå 
+tï aî integraì numbeò oæ sectors.
+
+     LRUNÚ   ió   á  smalì prograí whicè allowó runninç  á   .COÍ 
+(objecô  code© filå membeò directlù froí  anù  library¬   withouô  
+havinç   tï   extracô  iô  tï  á  separatå  disë  file®    Iô  ió 
+specificallù  intendeä tï bå useä witè á defaulô COMMAND.LBÒ filå 
+under ZCPR2 and can be used as an Extended Command Processor.
+
+     LDIRÚ ió á prograí whicè allowó thå useò tï displaù á sorteä 
+directorù oæ thå fileó iî á defaulô COMMAND.LBÒ file®   Simplå iî 
+nature¬  LDIRÚ  giveó  thå useò thå abilitù tï selecô  groupó  oæ 
+fileó viá wilä cardó anä displaù á sorteä listinç whicè  includeó 
+individual file sizes.
+
+:Why Use Libraries?
+
+     First¬   á librarù filå usuallù takeó uğ lesó spacå thaî thå 
+totaì  oæ  thå individuaì membeò fileó whicè wenô intï  it®   Thå  
+reasoî   foò   thió  ió thaô CP/Í allocateó disë spacå  iî  fixeä  
+blockó  oò groups¬  typicallù 2ë byteó each® Anù spacå afteò  thå  
+lasô   sectoò   oæ  á filå uğ tï thå nexô 2ë  blocë  boundrù   ió 
+wasted®  Thå  samå  fileó  iî á librarù uså onlù  thå  numbeò  oæ 
+sectoró  theù actuallù need¬  anä thougè thå librarù itselæ   maù  
+havå   á  partiallù wasteä blocë aô thå end¬  anä requireó   somå  
+spacå  foò  directorù  informatioî  aô  thå beginning¬   thå  neô  
+effecô  ió  usuallù  á savinç oæ totaì space®   Thå  besô resultó 
+arå seeî wheî manù smalì fileó arå combineä intï onå library.
+
+     Second¬  á librarù filå makeó mosô efficienô uså oæ thå CP/Í 
+disë  directory¬  sincå  iô ió treateä aó onlù onå filå  bù  CP/Í 
+regardlesó oæ ho÷ manù memberó iô contains.
+
+
+     Third¬   librarieó   caî   aiä iî transferrinç  packageó  oæ 
+softwarå  froí  onå systeí tï anotheò usinç XMODEM® Onlù onå filå  
+ió transferred¬  eliminatinç thå neeä tï ruî thå XMODEÍ   ransfeò  
+prograí severaì times¬  thå chancå oæ overlookinç á needeä  file¬ 
+anä  thå  problemó oæ naminç conflicts¬  (sucè aó READ.MÅ  files© 
+amonç unrelateä packages.
+
+
+
+:Why Not Use Libraries?
+
+     Therå    arå   somå   verù  gooä  reasonó  foò   noô   usinç 
+libraries®   Foò  onå  thing¬  fileó  withiî á  librarù  arå  noô 
+availablå  tï  mosô "normal¢ programs®  Iæ á frequentlù  accesseä 
+filå ió placeä  iî  á library¬  iô wilì havå tï bå extracteä froí 
+thå librarù  tï  itó  free-standinç counterparô beforå iô caî  bå 
+useä   bù   á  program®  (.COÍ fileó arå á notablå  exceptioî  tï 
+this¬   becauså   oæ   thå  availabilitù  oæ  thå LRUNÚ  command¬ 
+covereä later.)
+
+     Librarieó  caî  actuallù  wastå disë space® Wheî á disë filå  
+ió erased¬  CP/Í returnó thå spacå formerlù useä bù thå filå   tï  
+thå   freå  spacå pooì foò uså bù ne÷ files®  Wheî á membeò  filå  
+ió   deleteä   froí  á  librarù  however¬  thå  spacå  previouslù  
+occupieä  bù  thå  filå ió noô  useable®  Thå  librarù  musô   bå  
+reorganizeä   tï makå thió spacå availablå tï CP/M®   Whilå  thió  
+ió  easù  tï  dï witè thå LÕ command¬  iô ió noô automatic¬   anä  
+iæ thå situatioî ió ignored¬  largå areaó oæ disë caî bå tieä  uğ 
+aó unproductivå "deaä space".
+:How to Use the Library Utility LU
+
+     LÕ  haó twï basiã methodó  oæ  operationº  interactive¬  anä 
+parameteò  driven®  Uså oæ thå interactivå methoä ió probablù thå  
+besô  waù tï geô tï kno÷ thå program¬  becauså thå effecô oæ eacè 
+actioî caî bå immediatleù seen.
+
+     Tï  starô aî interactivå librarù maintenancå  session¬  jusô 
+typå   LÕ   oî   thå  commanä linå witè nï parameteró  afteò  it®  
+Afteò   yoõ   arå  familiaò  witè thå program¬  yoõ  caî  specifù 
+multiplå  paramteró  oî thå commanä linå anä LÕ  wilì  worë  witè 
+littlå   oò  nï intervention®  Inpuô froí disë files¬  Ã  prograí 
+"pipes"¬   anä   thå  XSUÂ facilitù arå alsï supporteä  foò  morå 
+advanceä applications.
+
+
+     Alì   thå   methodó  makå  uså oæ  similaò  syntax®  Commanä 
+inpuô   takeó twï formsº  operatoró (sometimeó  calleä  tags¬  oò 
+options© anä operands.
+
+     Aî   operatoò   ió   defineä  aó  anù twï  characteò  strinç 
+wherå  thå  firsô  characteò ió á minuó sign®  Operatoró telì thå  
+prograí whaô tï do® Valiä operatoró arå -a¬ -d¬ -e¬ -l¬ -o¬ anä -
+r®  Anythinç elså witè á similaò forí ió aî operatoò too¬  buô aî 
+invaliä one.
+
+     Operandó  arå  everythinç  else® Normally¬ operandó arå filå 
+nameó whicè yoõ wanô tï adä to¬  deletå from¬  oò extracô froí  á  
+librarù  file¬   oò arå nameó oæ librarù fileó tï bå opened® Theù 
+maù contaiî thå characteró ª oò ¿  iî whicè caså theù arå  calleä 
+ambiguouó operands® Somå valiä operandó are:
+
+ foo.bar       b:test.fil     z         *.*       comm?nd
+
+
+     Tï  refeò tï á filå nameä "-z¢ thå operanä woulä havå tï  bå  
+entereä  aó  "-z.¢ witè thå period¬  sincå otherwiså iô woulä  bå 
+mistakeî aó aî invaliä operator.
+
+     Whaô   actioî   ió takeî upoî thå filå  dependó  upoî  whicè 
+operatoò   mosô   recentlù  precedeä  it®   Iæ  nï  operatoò  waó 
+entered¬   oò  aî invaliä one¬ oò onå thaô takeó nï operands¬ thå 
+operanä wilì bå ignored.
+
+     Wheî runninç interactively¬  LÕ promptó foò eacè operanä anä  
+operator¬   onå peò inpuô line®  Multiplå inputó peò linå arå noô 
+alloweä usinç thå interactivå method.
+
+
+     Thå   prompô   yoõ   wilì  seå  ió thå namå oæ  thå  currenô 
+operatoò   followeä   bù  á  ">¢ character¬  foò  examplå  "-E>"®  
+Thió   indicateó  thaô thå -å operatoò ió iî effect¬  anä  iæ  aî 
+operanä   ió   entereä iô wilì bå interpreteä aó thå  namå  oæ  á 
+membeò   filå   tï  bå  Extracteä  froí  thå  library®  Wheî  thå 
+prograí   firsô  startó up¬  thå prompô ió "-?>¢ whicè  meanó  nï 
+operatoò   ió   currentlù  iî  effect®   Iî thió case¬  thå  onlù 
+valiä inpuô ió aî operator® Anù operanä wilì bå ignored.
+
+:Summary of Operators
+
+     The operators available under LU are:
+
+          -A   Add Files to Library
+          -D   Delete Files from Library
+          -E   Extract Files from Library
+          -L   List Library
+          -O   Open a Library
+          -R   Reorganize a Library
+
+     Theså   operatoró  arå  discusseä  iî  morå  detaiì  iî  thå 
+following frames.
+
+
+
+     -á    adä   fileó  tï  library®   -á  causeó thå  prompô  tï 
+changå   tï  -A¾ whicè wilì theî accepô aó operandó thå nameó  oæ  
+fileó   tï  bå  addeä tï thå opeî library®  (Iæ nï  librarù  namå  
+haó   beeî  openeä  witè  thå  -ï operator¬  thå defaulô  librarù  
+LIBRARY.LBÒ   ió   alwayó   useä  instead.©   Ambiguouó  operandó  
+matcè   alì  disë  fileó whicè qualifù accordinç tï normaì   CP/Í  
+wild-carä  conventions¬   excepô  thoså  witè á filetypå oæ .LBR® 
+Expliciô drivå specificatioî oî aî operanä causeó  thaô drivå  tï 
+bå searcheä foò thå file(s© insteaä oæ thå currenô drive.
+
+     -ä    deletå  fileó froí library®  -ä causeó thå  prompô  tï 
+changå  tï  -D¾  whicè  acceptó nameó oæ fileó tï bå deleteä froí  
+thå   opeî   library®   Ambiguouó  nameó matcè alì  membeò  fileó  
+whicè   qualify®   Drivå specificationó oî operandó arå  ignored¬   
+sincå   thå  librarù  memberó  arå  obviouslù  oî whicheveò drivå 
+containó thå opeî library.
+
+
+
+     -å    extracô  fileó  froí library®  -å causeó thå prompô tï 
+changå tï -E¾ whicè acceptó nameó oæ librarù membeò fileó tï   bå   
+extracteä   tï  normaì  free-standinç   CP/Í   files®   Ambiguouó  
+nameó  matcè alì membeò fileó whicè qualify®  Drivå specificatioî  
+oî  á  membeò  namå causeó thå outpuô filå tï bå  placeä  oî  thå 
+specifieä  drivå ratheò thaî thå currenô  drive®   Anù   existinç  
+filå   witè   thå  samå namå wilì bå overwritteî unlesó   iô   ió 
+protecteä bù virtuå oæ itó Read/Onlù flaç biô beinç set.
+
+
+     -ì   lisô  currenô librarù map®  -ì causeó thå directorù  oæ  
+thå   currenô  librarù  tï  bå listeä oî thå console®  Thå membeò  
+nameó   arå  displayed¬   alonç  witè  theiò index¬  oò  startinç  
+positioî   withiî   thå  library¬   anä theiò  sizå  iî  sectors®  
+Also¬  informatioî  ió displayeä abouô thå numbeò oæ sectoró   iî  
+thå  library¬  anä  ho÷  mucè space¬ ió useä oò unuseä  (wasted)®  
+Informatioî   ió   alsï displayeä abouô thå numbeò oæ entrieó  iî 
+thå directory¬  anä ho÷ manù arå active¬  deleted¬   oò  freå foò 
+use®  Thió helpó determinå whetheò thå librarù  needó  tï  bå re-
+organizeä  tï  freå  unuseä  spacå  anä  deleteä   entries®   Thå  
+operatoò   -ì  expectó  nï  operands¬   sï  afteò   thå  lisô  ió 
+displayed¬  thå  prompô changeó bacë tï -?¾ foò entrù oæ  anotheò 
+operator.
+
+
+     -ï   opeî  á library®  -ï causeó thå prompô tï changå tï -O¾  
+whicè  acceptó  thå namå oæ á librarù filå tï bå openeä foò   uså  
+witè  subsequenô  operators® Iæ anotheò librarù ió alreadù  open¬  
+iô   ió closeä first®  Iæ thå ne÷ librarù doeó noô  exist¬  iô ió 
+createä  witè  aî  emptù directory®  Ambiguouó  nameó   arå   noô 
+allowed®  Drivå specificatioî ió allowed® Thå filå  typå  maù  bå 
+specified¬  buô  defaultó tï .LBÒ whicè ió stronglù suggesteä  aó 
+thå filå typå foò alì librarù files.
+
+     Yoõ   wilì   recalì thaô fileó oæ typå  -á  (add©  operator®  
+Thió   preventó   librarieó   froí  beinç accidentallù  addeä  tï 
+otheò   libraries¬   oò  tï themselves»  á situatioî  noô  unlikå 
+tryinç   tï   drivå  á  trucë uğ itó owî tailpipe®  Iæ  foò  somå 
+reasoî  yoõ wanô tï adä onå librarù tï another¬  bå mù guest¬ buô  
+yoõ   wilì   havå   tï   specifù   thå   namå   withouô  ª  oò  ¿ 
+characteró wheî addinç it.
+
+
+     -ò    reorganizå   library®   -ò causeó thå  currentlù  opeî 
+librarù  tï  bå  reorganized® First¬ thå directorù ió sorteä intï  
+alphabeticaì  order¬  anä  theî alì activå memberó arå copieä  tï  
+á   worë   librarù   whicè ió openeä oî thå  currenô  drive¬  noô 
+necessarilù thå drivå containinç thå olä library®  Thå  useò  maù 
+specifù  á differenô numbeò oæ entrieó foò thå worë  librarù   iæ  
+iô  ió  necessarù  tï  expanä  oò  compresó  thå  directory®  Thå 
+directorù  wilì  alwayó bå madå largå enougè tï contaiî  alì  thå 
+activå  memberó  oæ thå olä library¬  sï á sizå oæ   ±   maù   bå  
+specifieä   tï  makå  thå directorù aó smalì  aó  possible®  (Seå 
+Specifyinç Directorù Sizeó below.)
+
+     Wheî   reorganizatioî   ió  complete¬   thå olä  librarù  ió 
+deleteä  anä  thå worë librarù ió renameä tï thå namå oæ thå  olä   
+library®     Nï    backuğ   copù   ió   retained®    Thå    newlù 
+reorganizeä   librarù   remainó   opeî  foò uså  witè  subsequenô 
+operations.
+
+
+     Wheneveò  thå prograí ió promptinç foò aî  operand¬  anotheò 
+operatoò   maù  bå  entereä insteaä tï changå thå statuó  oæ  thå 
+prompt®  Tï enä aî interactivå session¬ enteò á blanë linå aô thå 
+prompt.
+
+
+                    SPECIFYING DIRECTORY SIZE
+
+     Wheneveò  aî  olä librarù ió opened¬  thå directorù sizå  ió 
+displayeä aó follows:
+
+ Old library LIBRARY.LBR has 32 entries, 5 free.
+
+     Thió   meanó  thaô  µ morå memberó maù bå addeä  beforå  thå 
+directorù   becomeó  full®   Wheî  thå  directorù   ió  full¬  -á 
+becomeó   aî   invaliä  operator¬   anä  thå  librarù   musô   bå 
+reorganizeä tï adä anù morå members.
+
+     Wheî   á librarù ió createä foò thå firsô time¬  thå useò ió 
+prompteä likå this:
+
+ New library COMMAND.LBR. Allow how many entries?_
+
+
+     Anù numbeò froí ± tï 6553µ ió valid®  Thå actuaì maximuí  ió  
+determineä  bù thå amounô oæ freå memorù availablå oî thå  systeí 
+iî  use®  Directorù  sizå  wilì bå roundeä uğ tï thå  nexô  wholå  
+sectoò  necessarù  tï  contaiî  thå numbeò oæ entrieó  requested®  
+Thió   numbeò   wilì   remaiî  iî  effecô untiì  thå  librarù  ió 
+reorganized® Sincå thå directorù itselæ countó aó aî  entry¬  onå 
+entrù  ió  addeä  tï  whateveò ió entereä beforå  thå   sizå   ió  
+calculated®   Thereforå  jusô enteò thå maximuí numbeò oæ  membeò 
+fileó yoõ wanô thå librarù tï bå capablå oæ holding.
+
+     Thå   maximuí numbeò oæ membeò fileó ió alsï constraineä  bù  
+thå   amounô   oæ   availablå   disë  space®  Iæ  durinç  aî  adä 
+operatioî  thå disë spacå runó out¬  thå namå ió noô addeä tï thå  
+directory®  Iæ á multiplå adä ió iî progress¬ duå tï aî ambiguouó  
+operand¬  thå  remaininç  qualifyinç fileó arå  stilì  addeä   iæ 
+possible® Iæ anù oæ theí ió smalì enougè tï fiô iî thå  remaininç  
+disë  space¬  iô wilì bå added®  Iæ anù sectoró werå  writteî  bù  
+aî   adä  attempt¬  anä theî neveò  utilized¬  theù   remaiî   aó  
+unuseä  sectors¬ anä thå librarù shoulä bå reorganized.
+:LU Command Line Forms
+
+     Alì  oæ thå informatioî needeä foò á maintenancå ruî maù  bå 
+specifieä  oî  thå commanä line®  Thå operatoró anä operandó  arå  
+entered¬  separateä  bù spaces¬  afteò thå LÕ  command¬  anä  thå 
+operationó  wilì takå placå withouô consolå intervention¬  excepô  
+iî   thå  caså  wherå  thå  directorù  sizå foò á ne÷ librarù  ió 
+requested® Thå syntaø is:
+
+ LU <opr> [<opd> [<opd> ...]] [<opr> [<opd> ...]...
+
+ where square brackets indicate optional parameters, and:
+     <opr> is any operator.
+     <opd> is any operand.
+     ...   indicates  that the preceding parameter may occur
+multiple times.
+
+
+     Anù   nameó   occurrinç  prioò  tï thå  firsô  operator¬  oò 
+followinç   aî   operatoò  whicè doeó noô  expecô  operands¬  arå 
+ignored.
+
+:Advanced Features of LU
+
+     Inpuô   froí  BDÓ Ã "pipes¢ oò ordinarù sequentiaì fileó  ió  
+alsï   possible®  Thå filenamå ió specifieä oî thå  commanä  linå  
+precedeä  bù á "<¢ characteò anä nï interveninç blank®  Example:
+
+ LU <CONSOL.DUP
+     readó thå contentó oæ thå filå CONSOL.DUĞ anä useó eacè linå  
+oæ   thå   filå  aó  iæ  iô haä beeî typeä aô thå normaì  consolå   
+bù  thå  interactivå  method®   Iî  thió  case¬  nï operatoró  oò  
+operandó    maù   bå  present®   Consolå  outpuô  maù  alsï    bå  
+redirecteä  bù  specifyinç  aî  outpuô filå oî thå commanä   linå  
+afteò   thå  characteò  ">"®   Thió  applieó tï parameteò  driveî 
+aó welì aó interactivå (includinç "piped"© input® Examples:
+
+ LU -O SPECIAL -A ZOT.COM >LOGFILE.OUT
+     woulä  adä  thå filå zot.coí tï thå librarù special.lbò  anä  
+writå   thå  consolå outpuô tï á filå  calleä  logfile.out®   thå  
+locatioî  oæ  thå  outpuô namå oî thå linå doeó  noô  matteò  anä  
+excepô   foò turninç oî redirecteä output¬  iô ió ignoreä bù  alì 
+operators.
+
+ LU <BATCH.IN >B:RECORD.DOC
+     woulä   takå interactivå commandó froí thå filå batch.iî anä  
+writå  consolå  outpuô  tï  á filå calleä record.doã oî drivå B.
+
+     Normally¬  consolå  filå  outpuô  ió alsï echoeä oî thå reaì  
+console¬   excepô  wheî inpuô ió alsï redirected¬ aó iî thå  lasô 
+example® Tï forcå visiblå consolå outpuô wheî botè aî  inpuô  anä  
+outpuô   filå   arå  used¬   thå  ">¢  characteò  precedinç   thå  
+outpuô  filå  namå  maù  bå changeä tï á "+¢ instead:
+
+LU +RECORD.DOC <BATCH.IN
+     woulä   havå   thå   samå  effecô aó thå  previouó  example¬ 
+excepô   thaô   messagå  outpuô  woulä  alsï bå  visiblå  oî  thå 
+console.
+
+:CAUTIONS
+
+    Thå   importancå   oæ   keepinç  backuğ  copieó oæ  alì  disë 
+files¬   anä  especiallù libraries¬ cannoô bå overemphasized®  Bù  
+usinç  librarù files¬ thå useò ió exposeä tï thå dreadeä all-the-
+eggs-in-one-baskeô  syndrome®   Thaô is¬ iæ somethinç happenó  tï 
+thå librarù file¬  particularlù thå directory¬ iô maù  bå  beyonä  
+thå   capabilitieó  oæ eveî á CP/Í wizarä tï restorå  thå  membeò 
+files® Thå situatioî ió madå particularlù stickù bù thå facô thaô 
+thå  thå directorù musô bå updateä iî placå aó memberó arå  addeä 
+oò deleted.
+
+     Precautionó  havå beeî takeî tï minimizå thió risk®  Foò onå  
+thing¬   thå   directorù  ió  reaä  intï  memorù wheî thå librarù  
+ió  firsô  opened¬  anä  ió onlù writteî bacë iæ iô differó  froí  
+thå  copù  oî  thå  disë  wheî thå librarù ió closed®  Operationó  
+whicè  changå  thå directorù areº  adds¬ deletes¬  anä  thå  sorô  
+operatioî   whicè  ió  donå  beforå reorganization®    Iæ    onlù   
+extractó    (oò    LRUNZ   prograí  executions©   arå  done¬   thå 
+directorù  ió  neveò rewritten¬  anä thå .LBÒ filå maù  bå  writå 
+protecteä iæ desired.
+
+     Foò   anotheò   thing¬   thå  entirå  emptù   directorù   ió 
+allocateä   anä   writteî  tï disë wheî á ne÷  librarù  ió  firsô 
+created®  Thió  insureó thaô therå wilì alwayó bå enougè spacå oî 
+disë  foò thå numbeò oæ directorù entrieó requesteä aô  thå  timå  
+oæ   creation®   Thå  disë spacå maù ruî ouô whilå  addinç  fileó 
+later¬ buô therå wilì alwayó bå enougè rooí oî disë tï updatå thå 
+directorù oncå iô ió successfullù created.
+
+     Thå   facô  thaô  onlù thå memorù copù oæ thå  directorù  ió 
+modifieä  untiì thå filå ió closeä maù comå iî verù handù iæ  yoõ  
+mistakenlù   deletå   á filå anä recognizå iô  righô  away®   Foò  
+example¬  supposå  yoõ  makå  thå mistakå oæ typinç *.ª afteò thå 
+-D¾ prompt.
+
+
+     Briefly¬   youò  hearô sinks¬  aó thå "Deleting:¢ messagå ió  
+displayeä   anä  alì  thå membeò nameó ziğ intï oblivion®   Don'ô  
+panic®  Onlù thå memorù copù oæ thå directorù haó beeî  modified®  
+Wheî   thå   -D¾ prompô returns¬  dï noô  hiô  RETURN®   Instead¬  
+aborô  thå prograí witè Control-C®  Thió wilì canceì thå  prograí 
+withouô  updatinç  thå directory¬  anä thå originaì memberó  wilì 
+stilì bå present.
+
+     Herå  ió  anotheò  caution®  Sincå thå entirå directorù (buô 
+noô  membeò  sectors©  musô fiô iî memorù foò  á  librarù  tï  bå 
+successfullù opened¬ iô ió possiblå thaô á hugå directorù createä  
+oî  á youò systeí wilì bå toï largå tï fiô iî memorù iæ  reaä  oî 
+anotheò  systeí  wilì lesó memory®  Thió shoulä noô bå á  probleí 
+witè á librarù oæ undeò á hundreä entries.
+
+
+     Tï  givå  yoõ aî ideá oæ ho÷ mucè elbowrooí yoõ havå tï worë 
+with¬  LÕ displayó thå highesô memorù locatioî useä eacè timå  iô 
+terminates®  Thió  wilì varù dependinç oî thå  largesô  directorù  
+useä  durinç  operation®   Iô doeó noô includå thå stack¬   whicè  
+growó   dowî  froí higè memory¬  anä ió alloweä abouô  á thousanä 
+byteó oæ spacå foò subroutinå linkageó anä temporarù worë areas.
+
+:LRUNZ Command
+
+     Thå   LRUNÚ   commanä waó createä foò thoså oæ uó  whï  havå 
+lotó   oæ  commanä fileó wå likå tï keeğ oî linå  alì  thå  time®  
+Whaô usuallù happenó ió thaô somå nicå littlå .COÍ fileó arå verù  
+smalì   programs¬  buô havinç á loô oæ theí oî disë eató uğ  filå  
+spacå   aô  aî  alarminç ratå duå tï thå fixeä CP/Í blocë   size®  
+Puô  theí alì intï á librarù calleä COMMAND.LBÒ usinç   LU®   Yoõ 
+caî theî ruî anù .COÍ filå directlù froí thå librarù bù saying:
+
+ LRUNZ <followed by normal command line just like always>
+
+     LRUNÚ ió deriveä froí Gary'ó LRUN®  Stilì basicallù thå samå 
+program¬  LRUNÚ  addó ZCPR2-specifiã features¬  iî particulaò thå 
+abilitù tï searcè foò thå LBÒ filå alonç thå Externaì  Path®   Iî 
+thió  way¬  LRUNÚ  caî bå useä aó aî Extendeä Commanä  Processor¬ 
+and¬  wheî invoked¬  wilì searcè foò COMMAND.LBÒ (oò such©  alonç 
+thå  patè anä extracô thå COÍ filå froí thå firsô COMMAND.LBÒ  iô 
+finds.
+
+     LRUNZ can be invoked by command line of the following forms:
+
+          LRUNZ // or LRUNZ             <-- Print Help
+          LRUNZ -lbrfile cmdline        <-- Run command from lbr
+          LRUNZ cmdline                 <-- Run command from
+                                             default COMMAND.LBR
+
+
+     The full syntax of LRUNZ is:
+
+ LRUNZ [-<lbrfile>] <commember> [<parameters>]
+
+Where:
+
+     <lbrfile¾   ió   thå  librarù  tï bå  searched®  Thå  squarå 
+bracketó   arounä   -<lbrfile¾  indicatå iô ió  optional®  Thå  - 
+characteò telló LRUNÚ thaô whaô followó ió á librarù name®  Iô ió 
+noô aî actuaì parô oæ thå name® Don'ô leavå á spacå afteò thå  -® 
+Iæ  thå  firsô parameteò doesn'ô begiî witè  - theî  thå  defaulô  
+librarù  COMMAND.LBÒ  ió  used®   Iæ á drivå speã ió given¬  sucè 
+aó B:¬  theî onlù thaô drivå ió searcheä foò thå library®  Iæ  nï  
+drivå  speã ió given¬ thå currenô drivå ió searcheä first¬ anä iæ 
+nï  librarù oæ thaô namå ió found¬  thå Aº   drivå  ió   searcheä  
+beforå  givinç up®  Iæ á name¬  buô nï typå ió entered¬  .LBÒ  ió 
+assumed.
+
+
+     <commember¾   ió   thå  namå oæ thå commanä tï  bå  run®  Nï 
+drivå  speã ió useä here®  Thå typå defaultó tï .COÍ anä neeä noô 
+bå entered.
+
+     <parameters¾   ió   á  thå normaì (possiblù empty©  lisô  oæ 
+parameteró   whicè   thå  .COÍ  filå  expectó  tï   finä  oî  thå 
+commanä   linå   wheî  iô  ió  run®  Thió lisô ió parseä  tï  thå 
+requireä   filå   controì   blockó anä commanä linå  areá  beforå 
+executioî   begins¬   sï   thå  prograí  wilì noô bå  awarå  thaô 
+anythinç   cutå   ió  goinç  on®  (Thankó tï Roî Roî  Fowleò  foò 
+supplyinç thå codå whicè makeó thió possible.)
+
+
+
+                         LRUNZ EXAMPLES
+
+ LRUNZ ED FOO.BAR
+     thå   filå   ED.COÍ ió searcheä foò iî  COMMAND.LBÒ  oî  thå 
+currenô  drive¬  oò thå Aº drive® Iæ found¬ ED.COÍ ió loadeä froí  
+thå  library¬  anä  FOO.BAÒ  ió  passeä  tï  iô  aó  á parameter.
+
+ LRUNZ -C:SPECIAL LU -O COMMAND -A A:*.COM
+     thå  filå  LU.COÍ  ió searcheä foò iî SPECIAL.LBÒ oî  thå  Ã 
+drive®   Iæ   found¬   LU.COÍ  ió  loaded¬   anä thå stringó  -O¬ 
+COMMAND¬ -A¬ anä *.COÍ arå passeä tï iô aó parameters.
+
+ LRUNZ - -ZIP
+     thå  filå  -ZIP.COÍ ió searcheä foò iî  COMMAND.LBÒ  oî  thå 
+currenô drive¬  oò thå Aº drive® Iæ found¬ -ZIP.COÍ ió loadeä anä  
+executeä   witè  á  blanë parameteò list®  Sincå -ZIP.COÍ  beginó  
+witè á -¬  thå extrá - followeä bù á spacå waó needeä tï acô aó á 
+place-holdeò foò thå librarù name® Comparå with:
+
+
+ LRUNZ -ZIP
+     thå   librarù   -ZIP.LBÒ  ió lookeä for¬  buô  nothinç  elså 
+happens¬ becauså nï commanä waó specified.
+
+ LRUNZ
+     witè   nï   parameteró  aô  all¬   causeó á screeî  oæ  helğ 
+informatioî tï bå displayeä aó á memorù refresher.
+
+:LDIRZ Command
+
+     LDIRÚ printó á sorteä directorù oæ thå defaulô librarù file®  
+Thå  printouô  giveó  thå nameó oæ thå selecteä fileó  anä  theiò 
+sizes®   Iô ió sorteä alphabeticallù bù filå namå anä type®   Twï 
+optionó arå permitted¬  anä theù arå thå namå oæ thå librarù filå 
+(caî bå specifieä bù lbrfile¬  iî whicè caså lbrfile.LBÒ wilì  bå 
+accessed¬  oò  bù  á fulì filename.typ© anä thå filå  speã  (wilä 
+cardó arå OK)®  Formó oæ thå LDIRÚ commanä are:
+
+          LDIRZ //            <-- Print Help
+          LDIRZ               <-- All Files
+          LDIRZ -lbrfile fn.t <-- Selected Files from Library
+          LDIRZ filename.typ  <-- Selected Files
+
+:LRUNZ as an Extended Command Processor Under ZCPR2
+
+     Iæ  thå  readeò caî recall¬  commanä processinç undeò  ZCPR² 
+follows these steps:
+
+          1.  ZCPR2 receives a command
+
+          2®   ZCPR²  parseó thå command¬  determineó iæ iô ió  á 
+ZCPR2-resident command and executes it if it is
+
+          3®   Iæ  not¬  ZCPR² searcheó alonç thå  command-searcè 
+patè  foò á COÍ filå whicè haó thå samå namå aó thå  command»  iæ 
+found, it is loaded and executed
+
+          4®   Iæ thió fails¬  ZCPR² maù eitheò searcè alonç  thå 
+command-searcè  patè  oò  gï  directlù tï thå rooô  oæ  thå  patè 
+lookinç  foò  aî Extendeä Commanä  Processor»  iæ  found¬  iô  ió 
+loaded¬  passeä  thå commanä linå aó thå useò presenteä  it¬  anä 
+executed; if not, an error message is given
+
+
+     LRUNÚ  ió  aî  excellenô candidatå foò aî  Extendeä  Commanä 
+Processor®   Iæ  thå commanä tï bå executeä ió TEST.COM¬  anä  iô 
+takeó  texô  aó aî argument¬  theî thå commanä  linå  tï  executå 
+TEST.COM under ZCPR2 would be:
+
+          TEST text
+
+Iô  TEST.COÍ  ió iî COMMAND.LBÒ (oò such)¬  thå commanä  linå  tï 
+execute the same file using LRUNZ would be:
+
+          LRUNZ TEST text
+
+Thió  latteò commanä ió simulateä bù ZCPR² wheî iô failó tï  finä 
+thå  COÍ  file®   Thå  namå  oæ thå  Extendeä  Commanä  Processoò 
+(recommended©  ió CMDRUN¬  and¬  bù renaminç LRUNÚ tï  CMDRUÎ  oò 
+makinç  á  copù oæ LRUNÚ aó CMDRUN¬  LRUNÚ becomeó  thå  Extendeä 
+Commanä Processor.
+
+
+     LDIRÚ  fitó iî nicelù witè thió scheme®   COMMAND.LBÒ caî bå 
+kepô  aô thå ROOÔ alonç witè LRUNÚ anä  LDIRZ¬  anä  LRUNZ¬  wheî 
+executed¬   wilì   gï  tï  thå  ROOÔ  lookinç  foò  anä   findinç 
+COMMAND.LBR¬  aô  whicè poinô iô extractó thå requireä COÍ  file®  
+LDIRZ¬  wheî  executed¬  wilì  searcè  alonç  thå  patè  foò  thå 
+COMMAND.LBÒ file¬ and¬ hopefully¬ finä iô aô thå ROOÔ anä extracô 
+the information (file names) requested by the user.
+
+     Botè  LRUNÚ anä LDIRÚ caî bå installeä bù GENINÓ anä bå  seô 
+tï  looë  foò thå samå COMMAND.LBÒ filå aó welì aó bå tolä  wherå 
+the path they are to follow is located.
+

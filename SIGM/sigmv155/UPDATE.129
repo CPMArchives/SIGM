@@ -1,0 +1,57 @@
+     In SIG/M volume 129 we placed in the Public Domain a 
+comprehensive dBASEII order and inventory program which we wrote 
+to handle our software distribution. When we wrote the program we 
+were using dBASEII version 2.3 in both CP/M 80 and CP/M 86. We 
+now have updated to dBASEII 2.4 in both 80 and 86.
+
+     As those of you who have already done so, dBASEII version 
+2.4 is both more powerful and more demanding.  You could 'get 
+away' with some things in 2.3 that will give you an error in 2.4. 
+Therefore, to run volume 129 under 2.4 you will have to correct a 
+syntax error in the date verification program (the parenthesis 
+structure has to be changed at two points).  
+
+
+     You also will have to add 'RETURN' statements on the 
+program modules that take you back to menu.sig and some language 
+to menu.sig.  
+
+     We have included these modules on this disk for your 
+convenience. The program as update will run under borth 2.3 and 2.4.
+
+     Keith Plossl (who does the Atlanta Data Base Users Society 
+disks - the main programs on this volume) has done a revision of 
+129 and provided us with some rather good ideas as to how to 
+improve it.  He really did some nice work and came up with some 
+great ideas. However, rather than reissue 129, we will try to 
+incorporate them into another data base volume.
+
+     However, Keith provided us with a far better date validation 
+program, and we have included it on this disk as VALDATE.TST. He 
+also pointed out a great way to initialize blank fields. Thus:
+
+STORE '                                  ' TO BLNKS
+
+(put that into the start of the program or the start of the add 
+file with as many blank characters as you wish - he uses 64 and 
+if he needs more, he just adds to blnks togther). In subsequent 
+files he uses the code:
+             
+STORE $(BLNKS,1,<size as needed>) to <variable name>
+
+     This makes the variable length immediately apparent and 
+makes files easier to write, read and debug.  Don't I wish I 
+thought of that first!  Really is clever.
+
+     One last point on dBASEII version 2.4. In some of my data 
+bases a RETURN statement will not work because I want to go from 
+one point in a data base to a different point in another data 
+base - and do not want to return to the starting point.  The 
+answer turned out to be a simple program called DBOX.BOX, which 
+creates an invisible box for program transfers. I wrote an 
+article about it for the ACGNJ newsletters and the article and 
+program are included in the file DBOX.ART.
+
+                                         
+                                   STEVE LEON
+

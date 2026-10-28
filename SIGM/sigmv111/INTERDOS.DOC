@@ -1,0 +1,89 @@
+#JUST ON
+#offs 10
+#SPACE 2
+#TITLE INTERDOS DOCUMENTATION
+<INTERDOS
+ 
+    [INTERDOS is a CP/M program for moving data files from North Star
+disks to CP/M disks and back.  CP/M is a trademark of Digital Research,
+INTERDOS is not a Digital Research product.  INTERDOS works by loading
+the North Star DOS into memory while CP/M is loaded and making calls
+between the two operating systems to do the disk I/O.  In addition to
+simple file copy, INTERDOS will make certain format changes also.]
+    [The standard CP/M record format for ED or ASM files is the text line
+followed by a carriage return and a line feed.  There are several formats
+for North Star, but the one addressed in INTERDOS is the format used by
+SECRTARY, XEK, and several old assemblers.  This format is character
+count, four ASCII digits for the line number, and a carriage return.
+INTERDOS will copy either from North Star to CP/M or CP/M to North Star.
+If you are copying from North Star to CP/M, five conversion options are
+available.  First, of course, is file-to-file copy without conversion.
+Second, SECRTARY format to CP/M ASM format.  With this conversion the
+line numbers are stripped off, tabs are inserted in certain locations
+and both a carriage return and a line feed are added to the destination
+line.  The third format is similar to the second, but no tabs are
+inserted.  The fourth format is to create a file on CP/M that can be
+read for CP/M BASIC.  This is called the SECRTARY to CP/M BASIC conversion
+and is similar to the third option except that the line numbers are left
+on.  The output record will contain the four ASCII character line number,
+the text line without inserting tabs, and a carriage return and line feed
+at the end of the line.  The last option is the North Star BASIC to CP/M
+BASIC format.  North Star BASIC files contain the line number as a binary
+two byte field, and the BASIC keywords are kept as one byte tokens.  This
+conversion option converts the line number to four ASCII characters,
+converts the tokens to the ASCII equivalent and adds a carriage return
+and line feed at the end of the line.  NOTE: THE LINE NUMBERS IN THE BASIC
+PROGRAM MUST NOT BE GREATER THAN 9999.  Renumber the lines in BASIC before
+doing the file copy if necessary.  Also this only converts the lines and
+not the actual code.  There are several differences between North Star
+BASIC and CP/M BASIC which have to be changed before a North Star BASIC
+program can be run under CP/M.]
+    [When copying files from CP/M to North Star, there are two options.
+First is file-to-file copy without conversion.  Second, convert a CP/M
+hex file to North Star type 2 executable file.  The second conversion
+takes into account that ASM leaves gaps in the hex file where undefined
+code was reserved.  INTERDOS fills these gaps with zeroes.  It assumes
+that the file has the type and go address set properly so it ignores the
+hex file addresses except for filling gaps.  In both options, the file
+must have already been created under North Star DOS.]
+    [INTERDOS will work with single or double density disks.  The source
+code is given because you may want to change the density or add additional
+conversion formats of your own.  There are two equates at the beginning
+of the program that you may want to change.  The first is NSBOOT and is
+the address of the ROM on the North Star disk controller board.  This is
+used to jump to in order to boot in the DOS.  In older systems, this
+address was E900, but in the newer and double density systems, this
+address is E800.  The second equate that may be changed is DENSITY.  This
+is the density of the system and should be set to "S" for single density
+or "D" for double or quad density.]
+    [Operation of INTERDOS is simple.  Mount a disk into the North Star
+drive that contains the North Star DOS.  Then type the CP/M command
+INTERDOS.  INTERDOS will load, print the signon message and ask
+"REBOOT NORTH STAR DOS (Y/N)?".  At this point enter Y and the program
+will jump to E800 (or E900) to boot DOS.  DOS will gain control and type
+the * or +.  Type JP 100 to DOS to return to INTERDOS.  INTERDOS will
+reexecute and again ask "REBOOT NORTH STAR DOS(Y/N)?".  This time type N.
+Then it will ask "DESTINATION SYSTEM (C/N)? ".  Enter C to copy from
+North Star to CP/M or enter N to copy from CP/M to North Star.  A
+verification message will then be displayed.  Next it will list the
+possible formats and ask for character 0 thru 5.  If you enter an
+invalid format or a format that is invalid for that copy type (such as
+North Star BASIC to CP/M BASIC when you are copying CP/M to NS), the
+options will be relisted and you will again be asked to enter the format.]
+    [The program needs to know when to stop the copying process.  In most
+North Star formats, the end-of-file mark is an 01.  It can also count
+blocks and stop when the block count exceeds the amount listed in the
+directory.  The program will ask "EOF USING 01 OR BLOCK COUNT (1/B)?".
+Enter 1 if it should stop when it encounters an 01 byte or enter B if it
+should stop when it reaches the block count.]
+    [Then the program will tell you to mount the disks and enter return.
+This makes sure the disks are ready so that when it asks for the file name
+it can search the disk to be sure the file is there if it should be.]
+    [Finally it will ask for the file names.  The CP/M file name is in the
+standard format X:xxxxxx.ttt   If a carriage return is entered without
+entering any characters, INTERDOS returns to CP/M.  The North Star
+file name follows the North Star conventions including the optional comma
+and drive number at the end.  The file copy process will begin as soon
+as the files are verified.  As the files are copied under all formats,
+all printable characters are displayed at the console.]
+

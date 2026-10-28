@@ -1,0 +1,366 @@
+
+
+
+
+
+
+
+
+
+
+
+                  .=========================================.
+                  |                                         |
+                  |     SUBGEN - The .SUB file Generator    |
+                  |                                         |
+                  |         By   Steve Pritchard            |
+                  |              Solutions Canada Inc.      |
+                  |              83 Cummer Ave,             |
+                  |              Willowdale, Ontario        |
+                  |              M2M 2E6                    |
+                  |                                         |
+                  |     Copyright(1982) Steve Pritchard     |
+                  |                                         |
+                  '========================================='
+
+                               Version  1.0
+
+                             February 13, 1982
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            
+                     SUBGENv1.0  -  User  Documentation         Page    1
+
+
+
+        HISTORY
+        -------
+
+        SUBGEÎ  v1.°  waó  writteî  thå  weekenä  oæ  Februarù  1³  afteò 
+        realizinç  thaô  therå  waó nï convenienô  waù  tï  perforí  somå 
+        similaò  operatioî  (whetheò triviaì oò complex© upoî á grouğ  oæ 
+        fileó undeò CP/M®  Sure¬ FMAĞ caî generatå á lisô oæ nameó buô iô 
+        stilì  needó  tï bå attackeä bù aî editoò beforå anù usefuì  worë 
+        caî bå donå witè thå NAMES.SUÂ filå generateä bù FMAP.
+
+        Theî again¬  WORDSTAÒ ió noô thaô gooä aô changinç everythinç  iî 
+        positioî ± tï $1®  And¬ eveî iæ iô could¬ therå ofteî needó tï bå 
+        headeò  anä  traileò recordó writteî oî thå filå tï establisè  aî 
+        operational environment.
+
+        Finally¬  thå  Mississaugá  SYSOĞ Juä Newelì oncå  remarkeä  thaô 
+        therå  ió  nï  waù tï 'Deletå everythinç buô  ....§  undeò  CP/M® 
+        SUBGEÎ solveó thió probleí bù allowinç á NOÔ optioî thaô  invertó 
+        thå  filå selectioî criteriá aô thå lasô moment®  Thuó tï  deletå 
+        alì buô .COÍ fileó oî thå defaulô disk¬ onå caî uså SUBGEÎ iî thå 
+        followinç way:- 
+
+                       SUBGEN  *.COM  -     ;generate SUBGEN.SUB
+                       SUBMIT  SUBGEN       ;submit this to CP/M
+
+        OPERATION
+        ---------
+
+        The command with which to invoke SUBGEN is:-
+
+                        SUBGEN  [[d:]afn.ft]   [options]
+
+        SUBGEÎ generateó á filå calì SUBGEN.SUB® Iô useó thå commanä linå 
+        tï obtaiî thå filename.filetypå searcè masë (afn.fô portion©  anä 
+        alsï  somå  optionaì ruî timå parameteró sucè aó thå  "NOÔ  file¢ 
+        inverô  option®   Theså  parameteró arå useä tï selecô  thå  filå 
+        nameó  ofæ oæ  thå specifieä disk®  Theså selecteä filå nameó arå 
+        theî  sorteä intï ascendinç sequencå anä thå useò ió notifieä  oæ 
+        ho÷ manù fileó arå selected®  
+
+        Aô  thió  poinô  á prompô 'Skeleton?§  ió  displayeä  askinç  foò 
+        skeletoî  line(s©  intï  whicè thå selecteä filå  nameó  wilì  bå 
+        inserted®  Morå thaî onå skeletoî linå caî bå giveî iî whicè caså 
+        multiplå  lineó  arå generateä foò eacè filå name®  Á  nulì  linå 
+        terminateó   thå  skeletoî  linå  inpuô  phaså  oæ  thå  programó 
+        operation.
+
+        Obviously¬  parô oæ thå skeletoî caî bå commandó thaô operatå  oî 
+        thå filå names®  Alternatively¬ SUBMIÔ parameteró caî bå includeä 
+        aô  variouó  pointó  withiî thå skeletoî iæ iô  ió  necessarù  tï 
+        generatå á multi-uså .SUÂ file.
+
+
+
+
+
+            
+                     SUBGENv1.0  -  User  Documentation         Page    2
+
+
+        SUBSTITUTION FORMULA
+        --------------------
+
+        Durinç  thå  generatioî oæ thå .SUÂ filå froí thå  selecteä  filå 
+        nameó SUBGEÎ copieó thå skeletoî line(s© tï thå outpuô filå  oncå 
+        foò everù selecteä name® Durinç thió copyinç procesó SUBGEÎ lookó 
+        foò occurrenceó oæ thå substitutioî character® Wheî found¬ SUBGEÎ 
+        replaceó  thió characteò witè thå currenô filename.filetype®  Thå 
+        standarä  characteò  ió thå '@§ characteò (whicè  caî  bå  easilù 
+        changeä bù recompilinç SUBGEN.© 
+
+        Speciaì  processinç  ió  donå bù SUBGEÎ iæ  thå  À  characteò  ió 
+        precedeä  oò  followeä  bù á period®  Thió ió tï  allo÷  foò  thå 
+        possibilitù  oæ  doinç  globaì  operationó  oî  filetypeó  oò  oî 
+        systems®  Thå  algorithí  ió  mosô  easilù explaineä  bù  uså  oæ 
+        examples® Assumå thaô thå currenô filå namå ió ABC.COM® Thus:-
+
+        era @         => era ABC.COM            ;simple case first
+
+        era b:@       => era b:ABC.COM          ;another simple case
+
+        reî @.old=À   =¾ reî ABC.old=ABC.COÍ    ; ® suffiø causeó fî 
+                                                   substitution only
+
+        diò *.À       =¾ diò  *.COÍ             ; ® prefiø causeó fô 
+                                                ;  substitution only
+
+        whatfoò .@®   =¾ whatfoò .ABC®          ;suffiø haó priority
+
+
+        OPTIONAL EXTRAS
+        ---------------
+
+        Therå  arå  currentlù fivå optionaì parameteró specifieä  iî  thå 
+        FCB²  positioî  oî thå commanä line®  Theù arå specifieä  iî  anù 
+        ordeò buô musô noô bå separateä bù blanks® 
+
+        Wheî  specifieä  theù inverô thå defaulô establisheä  aô  compilå 
+        time®  Thå standarä defaulô ió alì ofæ excepô foò thå 'L§ option® 
+        Thió maù bå differenô foò thå SUBGEÎ yoõ arå using® 
+
+        P    Thió causeó thå selecteä filenameó tï bå writteî followeä bù 
+             á  questioî  marë (?© durinç  thå  selectioî  process®  Thió 
+             occuró  afteò selectioî anä thå possiblå inversioî (Seå  '-§ 
+             below)®  ie®  Yoõ  havå  thå lasô say®  Á CÒ oò  Ù  responså 
+             selectó thå filå whilå aî Î responså rejectó thå file® 
+
+        H    Thió causeó á Header¿  prompô tï bå written®  Iô ió useä  tï 
+             writå onå oò morå recordó tï thå outpuô filå beforå thå bodù 
+             oæ  thå filå ió writteî usinç thå skeletoî  definitions®  Nï 
+             filå  namå substitutioî takeó placå oî theså headeò records®  
+             Á nulì replù terminateó thå headeò recorä writinç process.
+
+        T    Similaò tï thå Headeò option¬  thå traileò optioî allowó onå 
+             oò morå recordó tï bå writteî afteò thå bodù oæ thå file.Š
+
+            
+                     SUBGENv1.0  -  User  Documentation         Page    3
+
+
+
+        -    Thió optioî invertó thå selectioî process®  ie®  afteò doinç 
+             thå normaì CP/Í filå matchinç algorithm¬  iæ thió optioî  ió 
+             specified¬  thå  matcè  resultó  arå reversed®  Thuó  iô  ió 
+             possiblå  tï creatå á filå oæ everythinç buô .COÍ  fileó  bù 
+             searchinç foò *.COÍ fileó witè thió '-§ optioî specified® Aó 
+             mentioneä  previously¬  thå 'P§ optionaì prompô occuró afteò 
+             thió inversion® (Toï harä oî thå heaä otherwise).
+
+        L    Thió  optioî  ió useä tï controì thå logginç procesó tï  thå 
+             CP/Í consolå durinç filå generation® Thå standarä SUBGEÎ haó 
+             thió turneä on®  Specifyinç thió wilì fliğ thå logginç mode® 
+             Thå SUBGEN.SUÂ filå beinç createä ió writteî tï thå  consolå 
+             afteò substitutioî iæ thió optioî ió active.
+
+
+        EXAMPLES
+        --------
+
+        Note:Iî  theså  exampleó  thå UPPEÒ CASÅ  representó  useò  inpuô 
+             excepô wherå obviouslù noô useò input® SÇ ió mù abbreviatioî 
+             foò SUBGEÎ anä SÓ ió mù abbreviatioî foò SUPERSUB.
+
+        1.   Rename all .BAK files on the default drive to .ASM.
+
+        A>SG *.BAK                      Invoke SUBGEN
+        SUBGEN-......                   Normal identifier from SUBGEN
+        There are 10 selected files     SUBGENs msg
+        Skeleton?REN @.ASM=@            Refer to substitution rules.
+        Skeleton?                       Null reply
+         .....                          SUBGEN would log at this point.
+         .....
+        A>SS SUBGEN                     Now do the renames.
+
+
+        2.   Yoõ arå abouô tï undertakå thå SUBGEÎ v² project® Renamå alì 
+             existinç  SUBGEN10.ª componentó  (DOC¬  REL¬  COM¬  SUÂ  anä 
+             whateveò yoõ havå forgotton© abouô tï thió ne÷ namå oî thå Â 
+             drive.
+
+        A>SG B:SUBGEN10.*               Invoke SUBGEN
+        SUBGEN-......                   Normal identifier from SUBGEN
+        There are 7 selected files      SUBGENs msg
+        Skeleton?REÎ B:SUBGEN20.*=À     Makå uså oæ substitutioî  ruleó 
+        Skeleton?                       Null reply
+         ....                           SUBGEN would log at this point.
+         ....
+        A>SS SUBGEN                     Now do the rename
+
+
+
+
+
+
+
+
+
+            
+                     SUBGENv1.0  -  User  Documentation         Page    4
+
+
+        3.   Lisô  alì PLÉ programó oî drivå Â iî uppeò caså oî youò lisô 
+             devicå witè taâ expansioî everù ´ columns®  Everù prograí ió 
+             tï starô oî á ne÷ page®  Yoõ havå á filå calleä PAGESEĞ thaô 
+             yoõ  wanô listeä beforå everù program®  Yoõ alsï  havå  slo÷ 
+             disë driveó anä wanô tï avoiä reloadinç PIĞ everù time.
+
+        A>SG B:*.PLI H                  Invoke SUBGEN with H option
+        SUBGEN-......                   Normal identifier from SUBGEN
+        There are 22 selected files     SUBGENs msg
+        Header?XSUB                     Invoke XSUB for PIP
+        Header?PIP                      then invoke PIP
+        Header?                         Null reply
+        Skeleton?LST:=B:PAGESEP[P60]    Generate page separator command
+        Skeleton?LST:=B:@[T4P60U]       Generate PIP commands
+        Skeleton?                       Null reply
+         ....                           SUBGEN would log at this point.
+         ....
+        A>SS SUBGEN                     Now do the lists
+
+        4.   Compilå  alì PLÉ programó oî drivå B¬  ruî  PGMLINK.SUÂ  anä 
+             havå suppeò whilå thió ió happening.
+
+        A>SÇ B:*.PLÉ Ô                  Invokå SUBGEÎ witè Ô option
+        SUBGEN-......                   Normal identifier from SUBGEN
+        There are 33 selected files     SUBGENs msg
+        Skeleton?PLI b:@                Generate compile command
+        Skeleton?                       Null reply
+        Trailer?SÓ  PGMLINË             SUPERSUÂ allows SUBó withiî SUBs.
+        Trailer?                        Null reply
+        A>SS SUBGEN                     Now go have supper.
+
+
+        5.   Yoõ  havå  tï  ERÁ alì buô youò .COÍ fileó  oî  thå  defaulô 
+             drive® Yoõ wisè tï confirí eacè deletion.
+
+
+        A>SÇ *.COM -P                   Invokå SUBGEÎ witè P and - option
+        SUBGEN-......                   Normal identifier from SUBGEN
+        mast.cat?N                      SUBGEN prompt - reject reply
+        mast.bak?                       CR means Y too.
+         ....                           etc
+        There are 2 selected files      SUBGENs msg
+        Skeleton?ERA @                  Generate the command
+        Skeleton?                       Null reply
+         ....                           SUBGEN would log at this point.
+         ....
+        A>SS SUBGEN                     Invoke the command.
+
+
+        6.   Sincå  SUBGEÎ useó thå Reaä Commanä Buffeò CP/Í functioî  iô 
+             caî  bå driveî bù  XSUB®  Therefore¬  iæ thå righô situatioî 
+             camå  along¬  á .SUÂ filå coulä bå useä tï generatå  á  .SUÂ 
+             filå bù meanó oæ SUBGEN® É wilì leavå iô tï thå useò tï finä 
+             thå righô situatioî wherå thió woulä bå useful.
+
+
+
+            
+                     SUBGENv1.0  -  User  Documentation         Page    5
+
+
+        HELP
+        ----
+
+        SUBGEÎ weighó iî undeò thå desirablå 2ë marë anä sï É waó ablå tï 
+        imbeä  á  terså  buô remindinç HELĞ function®  Iô ió  invokeä  bù 
+        typing:-
+
+                  SG ?
+
+        É  hopå thaô thió ió obviouó enougè foò somebodù tï trù whï  doeó 
+        not have this documentation package to tell them how to get HELP.
+
+
+        DISTRIBUTION
+        ------------
+
+        Aó mentioneä iî thå prograí listing¬  thió packagå ió placeä intï 
+        thå  publiã  domaiî  witè thå  usuaì  conditions - Feeì  freå  tï 
+        distribute but it is not to be sold for profit.
+
+        Oî  mù parô iô representó anotheò smalì installmenô tï thå debô É 
+        feeì  É havå amasseä iî pickinç uğ sï mucè gooä qualitù  softwarå 
+        in the public domain.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            
+

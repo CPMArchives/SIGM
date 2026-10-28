@@ -1,0 +1,636 @@
+;	B o o t   C P / M   f r o m   d i s k.
+;
+;	The CBOOT entry point gets control from the cold start
+;	loader and is responsible for the basic system initial-
+;	ization.  This includes outputting a sign-on message and
+;	initializing the following page zero locations:
+;
+;	   0,1,2: Set to the warmstart jump vector.
+;	       3: Set to the initial IOBYTE value.
+;	       4: Default and logged on drive.
+;	   5,6,7: Set to a jump to BDOS.
+;
+;	It also constructs the BIOS tables DPH, DSKOFF and DSKMSK
+;	for the current configuration.
+;
+;	Register A contains the logical unit number of the boot
+;	drive on entry.  The exit address is to the CCP routine.
+;
+;
+
+
+	JMP	STSINI		;STSCOPY initialization entry.
+				;Must be at CBOOT-3.
+;
+CBOOT:
+	STA	BTLUN		;Set boot logical unit number
+	STA	CIOBFS+1
+CBOOT0:
+;
+	LXI	SP,DBUF
+
+	CALL	URINIT		;Initialize unit record I/O
+
+STS:
+;Configure disk controller and BIOS.
+;
+	MVI	C,16*NDSK-1	;Clear DPH table
+	LXI	H,DPH
+	XRA	A
+	MOV	M,A
+	LXI	D,DPH+1
+	CALL	MOVDTA
+;
+	LXI	H,CONTBL	;HL=address of configuration table entry
+	MVI	B,CONTLN	;B=# entries in configuration table
+;
+;
+CON1:				;Major loop
+;
+;	Assign drive type
+;
+	MVI	A,0FFh		;Initialize 2nd byte of DTYPE entry.
+	STA	CONFS
+	MOV	A,M		;Set LUN into command buffer
+	STA	CIOADT+1
+	RLC			;Put LUN into message.
+	RLC
+	RLC
+	ANI	7
+	ADI	'0'
+	STA	ADTLUN
+	LDA	BTLUN		;Boot LUN?
+	CMP	M
+	JNZ	CN1
+	INX	H		;Yes
+	MOV	A,M		;Set boot TFC
+	STA	CIOBFS+5
+	INX	H		;Set CCP beginning sector
+	MOV	A,M
+	STA	BTSLA0
+	INX	H		;Set # sectors in CCP
+	MOV	A,M
+	STA	BTNSEC
+	PUSH	H
+	LXI	D,-DSKMSK	;Select the boot drive
+	LHLD	CONMSK
+	DAD	D
+	MOV	A,L
+	STA	CDISK
+	POP	H
+	JMP	CN2
+CN1:
+	INX	H		;Skip warm boot parameters
+	INX	H
+	INX	H
+CN2:
+	INX	H
+	MOV	A,M		;Set drive type into command buffer
+	STA	CIOADT+4
+	INX	H
+	CPI	0FFh		;Does controller have Class 6, op code 1
+	JZ	CON2
+	PUSH	B		;Yes. Save major loop count
+	PUSH	H		;Save table pointer
+	LXI	H,CIOADT	;Output command buffer
+	CALL	EXEC
+	CZ	WAITF		;Wait for function to complete
+	MOV	A,C		;Completion status
+	POP	H		;Restore table pointer
+	POP	B		;Restore major loop count
+	ANI	FERR
+	JZ	CON2
+	PUSH	B		;Save major loop count
+	PUSH	H		;Save table pointer
+	LXI	H,ADTMES
+	CALL	CONCHK		;Print message & check for host
+	POP	H		;Restore table pointer
+CON2:
+	MOV	A,M		;Get LUNiTYPE
+	STA	CONTYPE		; and save it.
+	INX	H
+	MOV	A,M		;Get track format codes
+	STA	CONTFC
+	INX	H
+	MOV	E,M		;Get # allocation blocks
+	INX	H
+	MOV	D,M
+	INX	H
+	XCHG			;  and save it.
+	SHLD	ALLBKS
+	XCHG
+	MOV	C,M		;Get minor loop count
+	INX	H
+	MOV	E,M		;Get number of sectors
+	INX	H
+	MOV	D,M
+	INX	H
+;
+;	Find DPB for this type
+;
+	PUSH	H		;Save table pointer
+	PUSH	B		;Save counts
+	LXI	H,FPYTYP	;Initialize floppy type pointer
+	LDA	CONTYPE
+	MOV	B,A
+	ANI	TYPEDRV		;Floppy?
+	MOV	A,B
+	POP	B		;Restore counts
+	JZ	CON4
+	ANI	TYPEN48+TYPEN96		;No. Mini?
+	JNZ	CON3
+	MVI	A,2		;No. Hard disk.
+	JMP	CON6
+CON3:
+	LXI	H,MINTYP
+CON4:
+	SHLD	FPYTY		;Save pointer to TFC table
+	LHLD	ALLBKS		;Normalize allocation block
+				; specification to single-density,
+	LDA	CONTYPE		; single-sided.
+	ANI	TYPESEC
+	RAR
+	MOV	D,A
+	CNZ	DBLSHR
+	MVI	D,1
+	LDA	CONTFC
+	ANI	10101010b	;Double-sided format codes
+	CNZ	DBLSHR
+	SHLD	ALLINC
+	LXI	D,0		;DSKOFF increment is 0.
+CON5:				;Minor loop return for floppy
+	LHLD	CONFS		;H=TFC selection bits, L=current TFC
+	MOV	A,H		;This TFC selected?
+CON51:
+	INR	L
+	RAR
+	JNC	CON51
+	MOV	H,A		;Save selection bits
+	SHLD	CONFS
+	PUSH	D		;Get DPB type and model
+	MVI	H,0
+	XCHG
+	LHLD	FPYTY
+	DAD	D
+	DAD	D
+	POP	D
+	MOV	A,M
+	STA	CONTYPE		;Save DPB type
+	INX	H
+	MOV	A,M		;Get DPB model
+CON6:
+	XCHG			;Save DSKOFF increment
+	SHLD	OFFINC
+	LXI	D,16		;Find prototype DPB
+	LXI	H,CONPBT
+CON7:
+	CMP	M
+	JZ	CON8
+
+	DAD	D
+	JMP	CON7
+CON8:
+	PUSH	B		;Save loop counts
+	LXI	D,CURDPB	;Move prototype DPB to buffer
+	MVI	C,16
+	CALL	MOVDTA
+	LXI	H,CURDPB	;Set type in DPB
+	LDA	CONTYPE
+	CPI	TYPEFPY+0	;Standard distribution format?
+	JZ	CON11		;If so, use DPB as is.
+	MOV	M,A
+	LXI	D,6		;Offset to # allocation blocks
+	DAD	D
+	XCHG
+	LHLD	ALLBKS		;Compute # allocation blocks for this TFC
+	MVI	C,0
+	MOV	B,A
+	ANI	TYPEFPY+TYPEMIN
+	JZ	CON10
+	LHLD	ALLINC
+	MOV	A,B
+	ANI	TYPESEC
+	RAR
+	MOV	C,A
+	MOV	A,B
+	ANI	1
+	JZ	CON9
+	INR	C
+CON9:
+	DCR	C
+	JM	CON10
+	DAD	H
+	JMP	CON9
+CON10:
+	DCX	H
+	XCHG
+	MOV	M,E		;Set # allocation blocks
+	INX	H
+	MOV	M,D
+CON11:
+	LXI	H,DPB
+CON12:				;Do we already have this DPB?
+	XCHG			;End of DPB table?
+	LHLD	CONPB
+	MOV	A,D
+	CMP	H
+	JNZ	CON13
+	MOV	A,E
+	CMP	L
+	JZ	CON16
+CON13:
+	PUSH	D		;Save entry pointer
+	MVI	C,16		;Compare entry
+	LXI	H,CURDPB
+CON14:
+	LDAX	D
+	CMP	M
+	JNZ	CON15
+	INX	D
+	INX	H
+	DCR	C
+	JNZ	CON14
+	JMP	CON17		;Have a match
+CON15:
+	POP	H		;Restore entry pointer
+	LXI	D,16		;Index to next entry
+	DAD	D
+	JMP	CON12
+CON16:
+	PUSH	H
+	XCHG			;Put new entry in DPB table
+	LXI	H,CURDPB
+	MVI	C,16
+	CALL	MOVDTA
+	XCHG
+	SHLD	CONPB		;Set new end of DPB table
+CON17:
+	POP	H
+	INX	H
+	SHLD	CONDPB		;Save DPB address
+;
+;  Compute allocation vector increment
+;
+	LHLD	CURDPB+6	;Get # allocation blocks
+	LXI	D,7		;Round up
+	DAD	D
+	MVI	D,3
+	CALL	DBLSHR
+	SHLD	ALVINC
+;
+;	Initialize current DPH entry
+;
+	LDA	CURDPB
+	CPI	TYPEFPY+0
+	LXI	H,0		;Set translate table address to zero
+	JNZ	CON18		;Standard distribution format?
+	LXI	H,XLTS		;Yes.  Do translation.
+CON18:
+	SHLD	CONXLT		;Save translate table address
+	LXI	H,0		;Set check vector address in CONDPH
+	LDA	CONTYPE
+	ANI	TYPEFPY+TYPEMIN		;Floppy?
+	JZ	CON20
+CON19:
+	LHLD	CSVALUE
+CON20:
+	SHLD	CONCSV
+	LXI	H,0		;Initialize current offset value
+	SHLD	OFFVAL
+	SHLD	OFFVAL+1
+	POP	B		;Restore counts
+;
+;
+;
+CON21:				;Minor loop return for hard disk
+	LHLD	CONTY		;Set DTYPE entry
+	LDA	CURDPB
+	MOV	M,A
+	INX	H
+	LDA	CONFS
+	MOV	M,A
+	INX	H
+	SHLD	CONTY
+
+	LHLD	CONMSK		;Set DSKMSK entry
+	LDA	CIOADT+1
+	MOV	M,A
+	INX	H
+	SHLD	CONMSK
+
+	LHLD	OFFVAL+1	;Set DSKOFF entry
+	XCHG
+	LHLD	CONOFF
+	LDA	OFFVAL
+	MOV	M,A
+	INX	H
+	MOV	M,D
+	INX	H
+	MOV	M,E
+	INX	H
+	SHLD	CONOFF
+	LHLD	OFFINC
+	DAD	D
+	SHLD	OFFVAL+1
+	JNC	CON22
+	LXI	H,OFFVAL
+	INR	M
+CON22:
+
+	PUSH	B		;Save loop counts
+	LHLD	CONDPH		;Move DPH entry
+	XCHG
+	LXI	H,CURDPH
+	MVI	C,16
+	CALL	MOVDTA
+	XCHG
+	SHLD	CONDPH
+	POP	B		;Restore loop counts
+	LDA	CONTYPE	
+	ANI	TYPEFPY+TYPEMIN		;Floppy?
+	LHLD	ALVINC
+	XCHG
+	JZ	CON24
+CON23:
+	PUSH	D		;Yes.  Floppy.
+	LHLD	CURDPB+12
+	XCHG
+	LHLD	CSVALUE		;Increment CSV value
+	SHLD	CONCSV
+	DAD	D
+	SHLD	CSVALUE
+	POP	D
+CON24:
+	LHLD	CONALV		;Increment ALV value
+	DAD	D
+	SHLD	CONALV
+
+	DCR	C		;Decrement minor loop count
+	JZ	CON25
+	LDA	CONTYPE
+	ANI	TYPEFPY+TYPEMIN		;Floppy?
+	JNZ	CON5
+	JMP	CON21
+;
+;
+CON25:
+	POP	H		;Restore table pointer
+	DCR	B		;Decrement major loop count
+	JNZ	CON1
+	LDA	CIOBFS+5	;Is boot drive a hard disk?
+	CPI	0FFh
+	JZ	CBOOT1
+	LXI	H,DTYPE+1	;No.  Find the boot drive.
+	MOV	B,A
+	LDA	CDISK
+	MOV	E,A
+	MVI	D,0
+	DAD	D
+	DAD	D
+	MOV	A,B
+CON26:
+	CMP	M		;This TFC?
+	JZ	CON27
+	INX	H		;No.
+	INX	H
+	INR	E
+	JMP	CON26
+CON27:
+	MOV	A,E
+	STA	CDISK
+
+CBOOT1:
+	LXI	H,SIGNON
+	CALL	PRINT
+
+	XRA	A
+	STA	IOBYTE
+	JMP	GOCPM		;Initialize for CP/M
+
+DBLSHR:
+	XRA	A		;Clear carry
+	MOV	A,H
+	RAR
+	MOV	H,A
+	MOV	A,L
+	RAR
+	MOV	L,A
+	DCR	D
+	JNZ	DBLSHR
+	RET
+;
+;Print error message and halt if host drive
+;
+;	Entry:	HL = address of error message
+;	Exit:	Only if not host drive
+;
+CONCHK:
+	CALL	PRINT
+	LXI	H,BTLUN		;Is error on host drive?
+	LDA	CIOADT+1
+	CMP	M
+	RNZ
+	LXI	H,ADTMS1	;Yes.  Thats all.
+	CALL	PRINT
+	HLT
+;
+;	STSCOPY initialization
+;
+STSERR:				;Fatal error return
+	LHLD	STSTACK		;Restore stack pointer
+	SPHL
+	MVI	A,0FFh		;Set error flag
+	RET
+
+STSINI:
+	LXI	H,0		;Save stack pointer
+	DAD	SP
+	SHLD	STSTACK
+	PUSH	PSW		;Save LUN
+	MVI	A,0C9h		;RET
+	STA	CBOOT0		;Don't do URINIT
+	STA	CBOOT1		;Return to STSINI
+	STA	PRINT		;No printouts
+	XRA	A		;NOP the HLT
+	STA	STSERR-1
+	POP	PSW		;Restore LUN
+	CALL	CBOOT
+	CALL	STS
+	XRA	A		;Clear error flag
+	RET
+
+STSTACK: DS	2		;STSCOPY stack pointer
+
+
+CIOADT:	DB	ADCMD,0,0,0,0,0
+;
+;	# SECTORS PER WARM BOOT
+;
+HCCPLN:	EQU	(CBIOS-CCP)/256		;Hard disk
+FCCPLN:	EQU	24+(CBIOS-CCP-24*128)/256	;8" floppy
+MCCPLN:	EQU	14+(CBIOS-CCP-14*128)/256	;5.25" floppy
+;
+;
+;	Configuration Table
+;
+CONTBL:
+	IF	LUN0
+	DB	0 SHL 5
+	DB	B0
+	DB	1+NF0+N48M0+N96M0
+	DB	NH0*HCCPLN+NF0*FCCPLN+(N48M0+N96M0)*MCCPLN
+	DB	LUN0DAT
+	DB	LUN0TYPE+TYPEN48*N48M0+TYPEN96*N96M0
+	DB	LUN0TFC
+	DW	((LUN0SEC/HSTSPT-2-N48M0-N96M0)*CPMSPT/HSTSIB)
+	DB	LUN0NLD
+	DW	LUN0SEC
+	ENDIF
+	IF	LUN1
+	DB	1 SHL 5
+	DB	B1
+	DB	1+NF1+N48M1+N96M1
+	DB	NH1*HCCPLN+NF1*FCCPLN+(N48M1+N96M1)*MCCPLN
+	DB	LUN1DAT
+	DB	LUN1TYPE+TYPEN48*N48M1+TYPEN96*N96M1
+	DB	LUN1TFC
+	DW	((LUN1SEC/HSTSPT-2-N48M1-N96M1)*CPMSPT/HSTSIB)
+	DB	LUN1NLD
+	DW	LUN1SEC
+	ENDIF
+	IF	LUN2
+	DB	2 SHL 5
+	DB	B2
+	DB	1+NF2+N48M2+N96M2
+	DB	NH2*HCCPLN+NF2*FCCPLN+(N48M2+N96M2)*MCCPLN
+	DB	LUN2DAT
+	DB	LUN2TYPE+TYPEN48*N48M2+TYPEN96*N96M2
+	DB	LUN2TFC
+	DW	((LUN2SEC/HSTSPT-2-N48M2-N96M2)*CPMSPT/HSTSIB)
+	DB	LUN2NLD
+	DW	LUN2SEC
+	ENDIF
+	IF	LUN3
+	DB	3 SHL 5
+	DB	B3
+	DB	1+NF3+N48M3+N96M3
+	DB	NH3*HCCPLN+NF3*FCCPLN+(N48M3+N96M3)*MCCPLN
+	DB	LUN3DAT
+	DB	LUN3TYPE+TYPEN48*N48M3+TYPEN96*N96M3
+	DB	LUN3TFC
+	DW	((LUN3SEC/HSTSPT-2-N48M3-N96M3)*CPMSPT/HSTSIB)
+	DB	LUN3NLD
+	DW	LUN3SEC
+	ENDIF
+CONTLN:	EQU	($-CONTBL)/12
+
+ADTMES:	DB	CR,LF,'Assign Drive Type error on logical unit '
+ADTLUN:	DB	'0.',0
+ADTMS1:	DB	CR,LF,'Cannot continue!',0
+
+;
+;	Variables
+;
+CONTYPE: DS	1		;Current LUN type
+CONFS:	DS	1		;Current track format code
+CONTFC:	DS	1		;Track format code selection
+ALLINC:	DS	2		;Normalized allocation blocks
+ALLBKS:	DW	0		;# allocation blocks - 1
+CSVALUE: DW	CSV		;Current check vector address
+OFFVAL:	DB	0		;Current offset value
+	DW	0
+OFFINC:	DS	2		;Current offset increment
+ALVINC:	DS	2		;Logical hard disk allocation
+				; vector increment
+;
+
+;	Table Pointers
+;
+CONDPH:	DW	DPH		;Address of current DPH entry
+CONPB:	DW	DPB		;Address of next DPB entry
+CONTY:	DW	DTYPE		;Address of current DTYPE entry
+CONMSK:	DW	DSKMSK		;Address of current DSKMSK entry
+CONOFF:	DW	DSKOFF		;Address of current DSKOFF entry
+FPYTY:	DW	FPYTYP		;Address of next floppy type
+;
+;	Current DPH entry
+;
+CURDPH:
+CONXLT:	DS	2		;Translate table address
+	DW	0,0,0		;Work area for CP/M
+	DW	DIRBUF		;Directory address
+CONDPB:	DS	2		;DPB address
+CONCSV:	DW	0		;Check vector address
+CONALV:	DW	ALV		;Allocation vector address
+
+; Current DPB entry
+;
+CURDPB:	DS	16
+;
+;8" Floppy Type Generation Table
+;Format:
+;	DB	DPB type or 0FFh
+;	DB	DPB model #
+;
+;DPB type bit 0 is # sided, bits 1-2 is sector size (0,1,2,3)
+;
+FPYTYP:
+	DB	TYPEFPY+0,0	;Single density, single-sided, FM
+	DB	TYPEFPY+1,1	;Single density, double-sided, FM
+	DB	0FFh,0		;Invalid
+	DB	0FFh,0		;Invalid
+	DB	0FFh,0		;Invalic
+	DB	0FFh,0		;Invalid
+	DB	TYPEFPY+2,1	;Double density, single-sided, MFM
+	DB	TYPEFPY+3,1	;Double density, double-sided, MFM
+;
+;5.25" Floppy
+TYPEMIN:  EQU	10000b		;Mini floppy
+;
+;
+MINTYP:
+	DB	TYPEMIN+0,3	;Single density, single-sided, 48 TPI
+	DB	TYPEMIN+1,3	;Single density, double-sided, 48 TPI
+	DB	TYPEMIN+0,3	;Single density, single-sided, 96 TPI
+	DB	TYPEMIN+1,3	;Single density, double-sided, 96 TPI
+	DB	TYPEMIN+2,3	;Double density, single-sided, 48 TPI
+	DB	TYPEMIN+3,3	;Double density, double-sided, 48 TPI
+	DB	TYPEMIN+2,3	;Double density, single-sided, 96 TPI
+	DB	TYPEMIN+3,3	;Double density, double-sided, 96 TPI
+;
+;Prototype DPBs
+;
+CONPBT:
+	DB	0
+	DW	26
+	DB	3,7,0
+	DW	((77-2)*26/CPMSIB)-1
+	DW	63
+	DB	11000000b,00000000b
+	DW	16,2
+
+	DB	1	;256 bytes/sector, MFM
+	DW	CPMSPT
+	DB	4,15,0
+	DW	0,127
+	DB	11000000b,00000000b
+	DW	32,2
+
+	DB	2	;logical hard disk
+	DW	CPMSPT
+	DB	4,15,0
+	DW	0,511
+	DB	11111111b,00000000b
+	DW	0,2
+
+	DB	3	;5.25" floppy
+	DW	CPMSPT
+	DB	4,15,0
+	DW	0,63
+	DB	10000000b,00000000b
+	DW	16,3
+
+CONPLN:	EQU	($-CONPBT)/16
+
+SIGNON:	DB	CR,LF,LF,'DTC '
+

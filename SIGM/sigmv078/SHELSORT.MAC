@@ -1,0 +1,154 @@
+.z80
+.comment !
+	shell-metzner sort routine in z80 code.
+	April 1982, Claude Almer
+		    Software Source Pty. Ltd.
+	no end statement in file
+	========================
+	sort-routine to be called as follows:
+	call	sort	;hl, de, bc set up as below:
+	on entry:	HL contains the number of elements
+	---------	DE points to location of first element
+			BC contains the length of the strings
+	on exit:	AF register destroyed.
+	--------	BC register destroyed.
+			DE register destroyed.
+			HL register destroyed.
+	reserved labels:	sort,sort1 through sort26
+	----------------
+	sort1  through sort10	sorting	 routine
+	sort11 through sort12	compare	 routine
+	sort13 through sort14	swap	 routine
+	sort15 through sort18	indexing routine
+	sort19 through sort26		 data area !
+
+;	>>>>>>>>>>>>>>		sort-routine
+;				============
+
+sort::	ld	(sort19),de	;area to sort
+	ld	(sort20),bc	;length to compare and swap
+sort1:	ld	(sort25),hl	;set arrays
+	ld	(sort26),hl	;initialise
+sort2:	ld	bc,(sort25)	;sort25/2
+	srl	b		;divide by 2
+	rr	c		;bc / 2
+	ld	(sort25),bc	;now sort25=sort25/2
+	ld	a,b		;if sort25=0 then return
+	or	c
+
+;	>>>>>>>>>>>>>>>>>	;exit if through
+
+	ret	z		;yes, RETURN
+				;===========
+
+sort3:	ld	hl,(sort26)	;calculate sort23
+	ld	de,(sort25)	;sort23 = sort26-sort25
+	or	a		;clear carry
+	sbc	hl,de		;sort23 now in hl
+	ld	(sort23),hl	;sort23 now stored
+	ld	hl,0		;clear sort22
+	ld	(sort22),hl	;sort22=1
+sort4:	ld	hl,(sort22)	;sort21=sort22
+	ld	(sort21),hl	;store
+sort5:	ld	hl,(sort21)	;sort24=sort21+sort25
+	ld	de,(sort25)	;get sort25
+	add	hl,de		;add it together
+	ld	(sort24),hl	;and store it
+sort6:	ld	hl,(sort21)	;for comparisons now
+	ld	de,(sort24)	;as well
+	call	sort11		;compare the two
+	jr	nc,sort10	;if sort21>=sort22 then sort10
+sort7:	call	sort13		;swap the two arrays
+sort8:	ld	hl,(sort21)	;sort21=sort21-sort25
+	ld	de,(sort25)	;get sort25
+	or	a		;clear carry
+	sbc	hl,de		;subtract sort25
+	ld	(sort21),hl	;and store it in sort21
+sort9:	ld	a,h		;if sort21 >=0 then sort5
+	or	a		;is sort21 greter ?
+	jp	p,sort5		;if positive it's greater
+sort10: ld	hl,(sort22)	;sort22=sort22+1
+	inc	hl		;+1
+	ld	(sort22),hl	;store back there
+	inc	hl		;adjust for flag below
+	ld	de,(sort23)	;if sort22>sort23 then sort2
+	or	a		;clear carry
+	sbc	hl,de		;sort22 greater then sort23 ?
+	jr	c,sort4		;not greater, goto sort4
+	jr	sort2		;if sort22>sort23 then sort2
+
+;	>>>>>>>>>>>>>>>>	compare routine
+;				===============
+
+sort11: call	sort15		;set up hl,de
+	ld	bc,(sort20)	;number of chars to compare
+sort12: ld	a,(de)		;get char in de
+	cp	(hl)		;compare it with (hl)
+	ret	nz		;return if not equal
+	inc	de		;point to next
+	cpi			;dec bc, inc hl
+	jp	pe,sort12	;pe if not zero
+	xor	a		;clear flags and exit
+	ret			;all the same
+
+;	>>>>>>>>>>>>>>>>	swap routine
+;				============
+
+sort13: call	sort15		;set up hl and de
+	ld	bc,(sort20)	;get the length
+sort14: ld	a,(de)		;get byter
+	push	bc		;keep counter
+	ld	c,a		;keep char
+	ld	a,(hl)		;get second char
+	ld	(de),a		;swap it
+	ld	(hl),c		;and the other one
+	pop	bc		;restore counter
+	inc	de		;point to next
+	cpi			;inc hl + dec bc
+	jp	pe,sort14	;pe if bc not 0
+	ret			;all done
+
+;	>>>>>>>>>>>>>>>>	indexing routine
+;				================
+
+sort15: ld	hl,(sort24)	;get sort24
+	call	sort16		;point hl to sort24'th position
+	push	hl		;keep it
+	ld	hl,(sort21)	;sort21
+	call	sort16		;hl to sort21'th. position
+	pop	de		;de now restored (sort24)
+	ret			;all indexing done
+sort16: ld	c,h		;mpr high
+	ld	a,l		;mpr low
+	ld	b,16		;count bits
+	ld	hl,0		;for result
+	ld	de,(sort20)	;length to multiply with
+sort17: srl	c		;right shift mpr h
+	rra			;r rotate mpr l
+	jr	nc,sort18	;carry ??
+	add	hl,de		;add mpd to result
+sort18: ex	de,hl		;for double shift
+	add	hl,hl		;doublebit-shift mpd left
+	ex	de,hl		;back to normal
+	djnz	sort17		;until all bits
+	ld	de,(sort19)	;add offset
+	add	hl,de		;add it to result
+	ret			;all done
+
+
+	>>>>>>>>>>>>>>>>	;data area
+				;=========
+
+sort19: dw	0		;string start position
+sort20: dw	0		;string length
+sort21: dw	0		;data area for sort
+sort22: dw	0		;data area for sort
+sort23: dw	0		;data area for sort
+sort24: dw	0		;data area for sort
+sort25: dw	0		;data area for sort
+sort26: dw	0		;data area for sort
+
+;	end of sort routine	<<<<<<<<<<<<<<<<<<<<<<<<
+
+
+

@@ -1,0 +1,394 @@
+* DATE 07/07/84  07:20
+* deposit entry screen
+ERAS
+SET INTENSITY ON
+SET COLON OFF
+STOR '                    ' TO blnks
+STOR $(blnks,1,2) TO mprop
+STOR $(blnks,1,4) TO mbank
+STOR $(blnks,1,8) TO mdate1
+STOR t TO more
+STOR t TO first
+STOR "When done, leave first amount blank and enter Control 'Q'" TO prompt
+DO WHIL more
+ STOR $(blnks,1,4) TO mchk1
+ STOR $(blnks,1,20) TO mpay1
+ STOR 'rent                ' TO mpay1a
+ STOR $(blnks,1,4) TO macc1
+ STOR 0.00 TO mamt1
+ STOR $(blnks,1,4) TO mchk2
+ STOR $(blnks,1,20) TO mpay2
+ STOR 'rent                ' TO mpay2a
+ STOR $(blnks,1,4) TO macc2
+ STOR 0.00 TO mamt2
+ STOR $(blnks,1,4) TO mchk3
+ STOR $(blnks,1,20) TO mpay3
+ STOR 'rent                ' TO mpay3a
+ STOR $(blnks,1,4) TO macc3
+ STOR 0.00 TO mamt3
+ STOR $(blnks,1,4) TO mchk4
+ STOR $(blnks,1,20) TO mpay4
+ STOR 'rent                ' TO mpay4a
+ STOR $(blnks,1,4) TO macc4
+ STOR 0.00 TO mamt4
+ STOR $(blnks,1,4) TO mchk5
+ STOR $(blnks,1,20) TO mpay5
+ STOR 'rent                ' TO mpay5a
+ STOR $(blnks,1,4) TO macc5
+ STOR 0.00 TO mamt5
+ STOR 'N' TO verify
+ IF first
+  @ 1,12 SAY "Cash Receipts Entry Screen  - Posted"
+  @ 1,51 SAY date()
+  @ 3, 4 SAY "Property:"
+  @ 3,37 SAY "Date:"
+  @ 4, 0 SAY "Bank Acct No:"
+  @ 6, 2 SAY "Account No:"
+  @ 6,26 SAY "Tenant No/Payor:"
+  @ 7, 1 SAY "Description:"
+  @ 7,36 say "Ck No:"
+  @ 7,50 SAY "Amount:"
+  @ 9, 2 SAY "Account No:"
+  @ 9,26 SAY "Tenant No/Payor:"
+  @ 10, 1 SAY "Description:"
+  @ 10,36 SAY "Ck No:"
+  @ 10,50 SAY "Amount:"
+  @ 12, 2 SAY "Account No:"
+  @ 12,26 SAY "Tenant No/Payor:"
+  @ 13, 1 SAY "Description:"
+  @ 13,36 SAY "Ck No:"
+  @ 13,50 SAY "Amount:"
+  @ 15, 2 SAY "Account No:"
+  @ 15,26 SAY "Tenant No/Payor:"
+  @ 16, 1 SAY "Description:"
+  @ 16,36 SAY "Ck No:"
+  @ 16,50 SAY "Amount:"
+  @ 18, 2 SAY "Account No:"
+  @ 18,26 SAY "Tenant No/Payor:"
+  @ 19, 1 SAY "Description:"
+  @ 19,36 SAY "Ck No:"
+  @ 19,50 SAY "Amount:"
+ ENDI first
+ STOR f TO first
+ @ 3,14 GET mprop PICTURE '99'
+ @ 3,44 GET mdate1 PICTURE '99/99/99'
+ @ 4,14 GET mbank PICTURE '9999'
+ @ 6,14 GET macc1 PICTURE '9999'
+ @ 6,43 GET mpay1 PICTURE '!XXXXXXXXXXXXXXXXXXX'
+ @ 7,14 GET mpay1a
+ @ 7,43 GET mchk1 PICTURE '9999'
+ @ 7,60 GET mamt1
+ @ 9,14 GET macc2 PICTURE '9999'
+ @ 9,43 GET mpay2 PICTURE '!XXXXXXXXXXXXXXXXXXX'
+ @ 10,14 GET mpay2a
+ @ 10,43 GET mchk2 PICTURE '9999'
+ @ 10,60 GET mamt2
+ @ 12,14 GET macc3 PICTURE '9999'
+ @ 12,43 GET mpay3 PICTURE '!XXXXXXXXXXXXXXXXXXX'
+ @ 13,14 GET mpay3a
+ @ 13,43 GET mchk3 PICTURE '9999'
+ @ 13,60 GET mamt3
+ @ 15,14 GET macc4 PICTURE '9999'
+ @ 15,43 GET mpay4 PICTURE '!XXXXXXXXXXXXXXXXXXX'
+ @ 16,14 GET mpay4a
+ @ 16,43 GET mchk4 PICTURE '9999'
+ @ 16,60 GET mamt4
+ @ 18,14 GET macc5 PICTURE '9999'
+ @ 18,43 GET mpay5 PICTURE '!XXXXXXXXXXXXXXXXXXX'
+ @ 19,14 GET mpay5a
+ @ 19,43 GET mchk5 PICTURE '9999'
+ @ 19,60 GET mamt5
+ @ 20,00
+ @ 21,00
+ @ 22,00
+ @ 22,10 SAY prompt
+ READ
+ CLEA GETS
+ @ 22,00
+ @ 21,20 SAY "DO YOU WANT TO MAKE ANY CHANGES ? [ ]"
+ @ 21,55 GET verify PICTURE '!'
+ READ
+ CLEA GETS
+ IF verify = 'Y'
+  @ 3,14 GET mprop PICTURE '99'
+  @ 3,44 GET mdate1 PICTURE '99/99/99'
+  @ 4,14 GET mbank PICTURE '9999'
+  @ 6,14 GET macc1 PICTURE '9999'
+  @ 6,43 GET mpay1 PICTURE '!XXXXXXXXXXXXXXXXXXX'
+  @ 7,14 GET mpay1a
+  @ 7,43 GET mchk1 PICTURE '9999'
+  @ 7,60 GET mamt1
+  @ 9,14 GET macc2 PICTURE '9999'
+  @ 9,43 GET mpay2 PICTURE '!XXXXXXXXXXXXXXXXXXX'
+  @ 10,14 GET mpay2a
+  @ 10,43 GET mchk2 PICTURE '9999'
+  @ 10,43 GET mamt2
+  @ 12,14 GET macc3 PICTURE '9999'
+  @ 12,43 GET mpay3 PICTURE '!XXXXXXXXXXXXXXXXXXX'
+  @ 13,14 GET mpay3a
+  @ 13,43 GET mchk3 PICTURE '9999'
+  @ 13,60 GET mamt3
+  @ 15,14 GET macc4 PICTURE '9999'
+  @ 15,43 GET mpay4 PICTURE '!XXXXXXXXXXXXXXXXXXX'
+  @ 16,16 GET mpay4a
+  @ 16,43 GET mchk4 PICTURE '9999'
+  @ 16,60 GET mamt4
+  @ 18,14 GET macc5 PICTURE '9999'
+  @ 18,43 GET mpay5 PICTURE '!XXXXXXXXXXXXXXXXXXX'
+  @ 19,14 GET mpay5a
+  @ 19,43 GET mchk5 PICTURE '9999'
+  @ 19,60 GET mamt5
+  @ 20,00
+  @ 21,00
+  @ 22,00
+  @ 22,10 SAY prompt
+  READ
+  CLEA GETS
+ ENDI verify
+* error checking routine
+* put in all of the other routines you may require
+ STOR t TO validate
+ DO WHIL VALIDATE
+  DO CASE
+  CASE mamt1 <> 0 .AND.($(mprop,2) = ' ')
+   STOR t TO error
+  CASE mamt1 <> 0 .AND.(mdate1 = ' ')
+   STOR t TO error
+  CASE mamt1 <> 0 .AND. ($(mbank,4) = ' ')
+   STOR t TO error
+  CASE mamt1 <> 0 .AND.($(macc1,4) = ' ')
+   STOR t TO error
+  CASE mamt1 <> 0 .AND.(LEN(TRIM(mpay1)) <4 .AND. $(mpay1,1,1) <> 'T')
+   STOR t TO error
+  CASE ($(mpay1,1,1) = 'T' .AND.(RANK($(mpay1,2)) <58)) .AND. (LEN(TRIM(mpay1)) <>4)
+   STOR t TO error
+  CASE mamt2 <> 0 .AND.($(macc2,4) = ' ')
+   STOR t TO error
+  CASE mamt2 <> 0 .AND.(LEN(TRIM(mpay2)) <4 .AND. $(mpay2,1,1) <> 'T')
+   STOR t TO error
+  CASE ($(mpay2,1,1) = 'T' .AND.(RANK($(mpay2,2)) <58)) .AND. (LEN(TRIM(mpay2)) <>4)
+   STOR t TO error
+  CASE mamt3 <> 0 .AND.($(macc3,4) = ' ')
+   STOR t TO error
+  CASE mamt3 <> 0 .AND.(LEN(TRIM(mpay3)) <4 .AND. $(mpay3,1,1) <> 'T')
+   STOR t TO error
+  CASE ($(mpay3,1,1) = 'T' .AND.(RANK($(mpay3,2)) <58)) .AND. (LEN(TRIM(mpay3)) <>4)
+   STOR t TO error
+  CASE mamt4 <> 0 .AND.($(macc4,4) = ' ')
+   STOR t TO error
+  CASE mamt4 <> 0 .AND.(LEN(TRIM(mpay4)) <4 .AND. $(mpay4,1,1) <> 'T')
+   STOR t TO error
+  CASE ($(mpay4,1,1) = 'T' .AND.(RANK($(mpay4,2)) <58)) .AND. (LEN(TRIM(mpay4)) <>4)
+   STOR t TO error
+  CASE mamt5 <> 0 .AND.($(macc5,4) = ' ')
+   STOR t TO error
+  CASE mamt5 <> 0 .AND.(LEN(TRIM(mpay5)) <4 .AND. $(mpay5,1,1) <> 'T')
+   STOR t TO error
+  CASE ($(mpay5,1,1) = 'T' .AND.(RANK($(mpay5,2)) <58)) .AND. (LEN(TRIM(mpay5)) <>4)
+   STOR t TO error
+  OTHE
+   STOR f TO validate
+   STOR f TO error
+  ENDC
+  IF error
+   @ 20,00
+   @ 21,00
+   @ 22,00
+   @ 21,14 SAY "PLEASE CORRECT THE INDICATED DATA"
+* keep looping till all fields are fixed
+   STOR t TO an:error
+   DO WHIL an:error
+* fix bad ones one at a time
+    DO CASE
+    CASE mamt1 <> 0 .AND.($(mprop,2) = ' ')
+     @ 22,00
+     @ 22,10 SAY "You must have a two number property account or '00'"
+     @ 3,14 GET mprop PICTURE '99'
+     READ
+    CASE mamt1 <> 0 .AND.(mdate1 = ' ')
+     @ 22,00
+     @ 22,10 SAY "You must have a transaction date"
+     @ 3,44 GET mdate1 PICTURE '99/99/99'
+     READ
+    CASE mamt1 <> 0 .AND.($(mbank,4) = ' ')
+     @ 22,00
+     @ 22,10 SAY "You must have a bank account"
+     @ 4,14 GET mbank PICTURE '9999'
+     READ
+    CASE mamt1 <> 0 .AND.(LEN(TRIM(mpay1)) <4 .AND. $(mpay1,1,1) <> 'T')
+     @ 22,00
+     @ 22,10 SAY "Tenant account is 'T' plus a three number code"
+     @ 6,43 GET mpay1 PICTURE '!XXXXXXXXXXXXXXXXXXX'
+     READ
+    CASE ($(mpay1,1,1) = 'T' .AND.(RANK($(mpay1,2)) <58)) .AND. (LEN(TRIM(mpay1)) <>4)
+     @ 22,00
+     @ 22,10 SAY "Tenant account is 'T' plus a three number code"
+     @ 6,43 GET mpay1 PICTURE '!XXXXXXXXXXXXXXXXXXX'
+     READ
+    CASE mamt1 <> 0 .AND.  ($(macc1,4) = ' ')
+     @ 22,00
+     @ 22,10 SAY "Account Number must be four numbers"
+     @ 6,14 GET macc1 PICTURE '9999'
+     READ
+    CASE mamt2 <> 0 .AND. (LEN(TRIM(mpay2)) <4 .AND. $(mpay2,1,1) <> 'T')
+     @ 22,00
+     @ 22,10 SAY "Tenant account is 'T' plus a three number code"
+     @ 9,43 GET mpay2 PICTURE '!XXXXXXXXXXXXXXXXXXX'
+     READ
+    CASE ($(mpay2,1,1) = 'T' .AND.(RANK($(mpay2,2)) <58)) .AND. (LEN(TRIM(mpay2)) <>4)
+     @ 22,00
+     @ 22,10 SAY "Tenant account is 'T' plus a three number code"
+     @ 9,43 GET mpay2 PICTURE '!XXXXXXXXXXXXXXXXXXX'
+     READ
+    CASE mamt2 <> 0  .AND. ($(macc2,4) = ' ')
+     @ 22,00
+     @ 22,10 SAY "Account Number must be four numbers "
+     @ 9,14 GET macc2 PICTURE '9999'
+     READ
+    CASE mamt3 <> 0 .AND.(LEN(TRIM(mpay3)) <4 .AND. $(mpay3,1,1) <> 'T')
+     @ 22,00
+     @ 22,10 SAY "Tenant account is 'T' plus a three number code"
+     @ 12,43 GET mpay3 PICTURE '!XXXXXXXXXXXXXXXXXXX'
+     READ
+    CASE ($(mpay3,1,1) = 'T' .AND.(RANK($(mpay3,2)) <58)) .AND. (LEN(TRIM(mpay3)) <>4)
+     @ 22,00
+     @ 22,10 SAY "Tenant account is 'T' plus a three number code"
+     @ 12,43 GET mpay3 PICTURE '!XXXXXXXXXXXXXXXXXXX'
+     READ
+    CASE mamt3 <> 0 .AND. ($(macc3,4) = ' ')
+     @ 22,00
+     @ 22,10 SAY "Account Number must be four numbers"
+     @ 12,14 GET macc3 PICTURE '9999'
+     READ
+    CASE mamt4 <> 0 .AND. (LEN(TRIM(mpay4)) <4 .AND. $(mpay4,1,1) <> 'T')
+     @ 22,00
+     @ 22,10 SAY "Tenant account is 'T' plus a three number code"
+     @ 15,43 GET mpay4 PICTURE '!XXXXXXXXXXXXXXXXXXX'
+     READ
+    CASE ($(mpay4,1,1) = 'T' .AND.(RANK($(mpay4,2)) <58)) .AND. (LEN(TRIM(mpay4)) <>4)
+     @ 22,00
+     @ 22,10 SAY "Tenant account is 'T' plus a three number code"
+     @ 15,43 GET mpay4 PICTURE '!XXXXXXXXXXXXXXXXXXX'
+     READ
+    CASE mamt4 <> 0 .AND. ($(macc4,4) = ' ')
+     @ 22,00
+     @ 22,10 SAY "Account Number must be four numbers "
+     @ 15,14 GET macc4 PICTURE '9999'
+     READ
+    CASE mamt5 <> 0 .AND. (LEN(TRIM(mpay5)) <4 .AND. $(mpay5,1,1) <> 'T')
+     @ 22,00
+     @ 22,10 SAY "Tenant account is 'T' plus a three number code"
+     @ 18,43 GET mpay5 PICTURE '!XXXXXXXXXXXXXXXXXXX'
+     READ
+    CASE ($(mpay5,1,1) = 'T' .AND.(RANK($(mpay5,2)) <58)) .AND. (LEN(TRIM(mpay5)) <>4)
+     @ 22,00
+     @ 22,10 SAY "Tenant account is 'T' plus a three number code"
+     @ 18,43 GET mpay5 PICTURE '!XXXXXXXXXXXXXXXXXXX'
+     READ
+    CASE mamt5 <> 0 .AND.($(macc5,4) = ' ')
+     @ 22,00
+     @ 22,10 SAY "Account Number must be four numbers"
+     @ 18,14 GET macc5 PICTURE '9999'
+     READ
+    OTHE
+     @ 20,00
+     @ 21,00
+     @ 22,00
+     @ 22,10 SAY prompt
+     STOR F TO validate
+     STOR f TO an:error
+    ENDC
+   ENDD WHILE an:error
+  ENDI error
+ ENDD validate
+ RELE error, an:error, validate
+ STOR $(mdate1,7,2) + $(mdate1,1,2) + $(mdate1,4,2) TO mdate2
+ IF mamt1 > 0
+  APPE BLANK
+  IF $(mpay1,1) = 'T'
+   STOR 'T' + mprop + $(mpay1,2,17) TO mpay1
+  ENDI
+  REPL date WITH mdate2
+  REPL data WITH mchk1+mprop+mbank+'D'+mpay1+date()+'R'
+  REPL amount WITH mamt1
+  STOR f TO posted
+  APPE BLANK
+  REPL date WITH mdate2
+  REPL data WITH mchk1+mprop+macc1+'C'+mpay1a+date()+'R'
+  REPL amount WITH (mamt1*-1)
+  STOR f TO posted
+  IF mamt2 > 0
+   APPE BLANK
+   IF $(mpay2,1) = 'T'
+    STOR 'T' + mprop + $(mpay2,2,17) TO mpay2
+   ENDI
+   REPL date WITH mdate2
+   REPL data WITH mchk2+mprop+mbank+'D'+mpay2+date()+'R'
+   REPL amount WITH mamt2
+   STOR f TO posted
+   APPE BLANK
+   REPL date WITH mdate2
+   REPL data WITH mchk2+mprop+macc2+'C'+mpay2a+date()+'R'
+   REPL amount WITH (mamt2*-1)
+   STOR f TO posted
+  ENDI mamt2
+  IF mamt3 > 0
+   APPE BLANK
+   IF $(mpay3,1) = 'T'
+    STOR 'T' + mprop + $(mpay3,2,17) TO mpay3
+   ENDI
+   REPL date WITH mdate2
+   REPL data WITH mchk3+mprop+mbank+'D'+mpay3+date()+R'
+   REPL amount WITH mamt3
+   STOR f TO posted
+   APPE BLANK
+   REPL date WITH mdate2
+   REPL data WITH mchk3+mprop+macc3+'C'+mpay3a+date()+'R'
+   REPL amount WITH (mamt3*-1)
+   STOR f TO posted
+  ENDI mamt3
+  IF mamt4 > 0
+   APPE BLANK
+   IF $(mpay4,1) = 'T'
+    STOR 'T' + mprop + $(mpay4,2,17) TO mpay4
+   ENDI
+   REPL date WITH mdate2
+   REPL data WITH mchk4+mprop+mbank+'D'+mpay4+date()+'R'
+   REPL amount WITH mamt4
+   STOR f TO posted
+   APPE BLANK
+   REPL date WITH mdate2
+   REPL data WITH mchk4+mprop+macc4+'C'+mpay4a+date()+'R'
+   REPL amount WITH (mamt4*-1)
+   STOR f TO posted
+  ENDI mamt4
+  IF mamt5 > 0
+   APPE BLANK
+   IF $(mpay5,1) = 'T'
+    STOR 'T' + mprop + $(mpay5,2,17) TO mpay5
+   ENDI
+   REPL date WITH mdate2
+   REPL data WITH mchk5+mprop+mbank+'D'+mpay5+date()+'R'
+   REPL amount WITH mamt5
+   STOR f TO posted
+   APPE BLANK
+   REPL date WITH mdate2
+   REPL data WITH mchk5+mprop+macc5+'C'+mpay5a+date()+'R'
+   REPL amount WITH (mamt5*-1)
+   STOR f TO posted
+  ENDI mamt5
+  STOR t TO more
+ ELSE
+  STOR f TO more
+ ENDI mamt1 > 0
+ STOR t TO first
+ENDD WHILE more
+SET COLON ON
+REST from manage.dat
+IF bright = 'I'
+ SET INTENSITY OFF
+ENDI bright
+RELE ALL
+STOR t TO account
+STOR ' ' TO command
+

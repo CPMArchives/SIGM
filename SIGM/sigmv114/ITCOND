@@ -1,0 +1,341 @@
+ITERATION AND CONDITIONAL MENU:
+copyright (C) 1983 by E. E. Bergmann
+iteration
+BEGIN ... END
+BEGIN .. IF ... END
+DO LOOPs
+IF ... THEN and IF ... ELSE ... THEN
+"case" construction
+"recursion"
+:
+::
+*********************************************************
+*							*
+* PISTOL-Portably Implemented Stack Oriented Language   *
+*			Version 2.0			*
+* (C) 1983 by	Ernest E. Bergmann			*
+*		Physics, Building #16			*
+*		Lehigh Univerisity			*
+*		Bethlehem, Pa. 18015			*
+*							*
+* Permission is hereby granted for all reproduction and *
+* distribution of this material provided this notice is *
+* included.						*
+*							*
+*********************************************************
+:
+::
+	PISTOL provides four means for iterative execution
+of a sequence of words, namely:
+
+BEGIN ... END
+
+	executes words between BEGIN and END until a
+condition is satisfied.
+
+BEGIN ... IF ... REPEAT
+
+	is similar to BEGIN ... END except the condition is
+tested at the beginning of the loop; iteration terminates
+when the tested condition is false.
+
+DO ... LOOP
+
+	executes the words between DO and LOOP, running an
+index [accessible as "I"] from a lower to upper limit,
+incrementing by one each time.
+
+DO ... n +LOOP
+
+	executes the words between DO and +LOOP, running
+an index from a lower to an upper limit, incrementing 
+by n each time.
+
+	Iterations may be nested subject to the normal
+restrictions on overlapping ranges, i.e. any iteration which
+is initiated within the range of another iteration must be
+terminated within that same range.  PISTOL has implemented a
+"check stack" to enforce this syntax rule and, as an aid to
+interactive programming, displays this stack in the prompt.
+
+:
+::
+BEGIN ... END
+=============
+	The BEGIN ... END syntax permits the user to execute
+a sequence of words and then, depending upon a computed
+logical variable, either loop back or continue on:
+
+BEGIN word1 word2 .... wordm END
+
+	The sequence word1, word2, ... is executed once.
+When END is reached, the top of the stack is popped and
+tested.  If it is true (non-zero) then control passes to the
+word following END.  If it is false (zero) then control
+passes back to the word following BEGIN.
+
+An example:
+
+	'EXAMPLE : BEGIN 1- DUP DUP = EQZ END DROP ;
+
+	defines the word EXAMPLE which might be called
+	as follows:
+
+	X>  5 EXAMPLE
+	4 3 2 1 0
+
+	Each time through the loop, the top of the stack
+	(initially the number 5) is decremented, printed and
+	compared to zero.  If it is not zero, the loop is
+	repeated; the loop terminates when it becomes zero.
+
+:
+::
+BEGIN ... IF ... REPEAT
+=======================
+	BEGIN ... IF ... REPEAT is similar to BEGIN ... END
+except that the test is at the beginning of the loop.  The
+words between BEGIN and IF are executed. The top of the
+stack is then popped and tested.  If it is true (non-zero)
+the words between IF and REPEAT are executed and control
+passes back to the first word after BEGIN. If the top of the
+stack had been tested false (zero) control would have passed
+to the word following REPEAT.
+
+An example:
+
+	'LENGTH : 0 BEGIN SWAP DUP IF W@ SWAP 1+ REPEAT UNDER ;
+
+	might be used to determine the length of a chain of
+	pointers terminated by zero.  The initial pointer
+	would be placed on the stack and LENGTH would be
+	invoked.  If one could not place the test at the
+	beginning of the iteration, one would have a problem
+	with a zero length chain (a zero initially on the
+	 stack).
+
+
+:
+::
+DO LOOPS
+========
+	A DO LOOP facility is provided by PISTOL for indexing
+through a sequence of words.  There are two forms of DO LOOP:
+
+HIGH LOW DO word1 word2 ... wordn LOOP
+
+HIGH LOW DO word1 word2 ... wordn STEP +LOOP
+
+	The limits HIGH and LOW (the top two stack entries) are
+compared.  If HIGH is less than or equal to LOW, control passes
+to the word following LOOP or +LOOP.  Otherwise, the sequence
+word1, word2, ... is executed.  LOOP causes the lower limit,
+LOW to be incremented and compared to the upper limit, HIGH.
+If LOW is greater than or equal to HIGH, the loop is
+terminated.  Otherwise another iteration is performed. The
++LOOP is identical to LOOP except that the LOW is incremented
+by the word on top of stack, STEP. Normally, STEP would be a
+positive number.
+
+	Within the range of a loop, the current value of the
+loop index is available by using "I".  If DO LOOPs are nested,
+I contains always the value of the innermost index.  The next
+outer indices are available using the words, J and K.  The word
+I' is used to obtain the value of (HIGH+LOW-I-1).  This is used
+to run an index backwards from HIGH-1 to LOW .  The words J'
+and K' are similarly defined.  When parenthesis (iteration
+brackets) are nested with DO LOOPs, they count as one level of
+indexing.  When I is used within the range of an iteration
+bracket the current iteration count (which runs from its
+initial value downwards to one) is placed on stack.
+
+	The word EXIT causes the innermost loop in which
+it is embedded to terminate unconditionally.
+
+Some examples:
+
+	5 0 DO I = LOOP
+
+	causes the numbers 0 to 4, inclusive to be typed out.
+
+	5 0 DO 5 0 DO J 5 * I + = LOOP CR LOOP
+
+	causes the numbers 0 through 24 inclusive to be
+	typed out as 5 lines of 5 numbers each.
+
+	5 0 DO I' = LOOP
+
+	causes the numbers 4 ... 0, inclusive to be output.
+
+	0 21 1 DO I + DUP = 2 +LOOP DROP
+
+	types out the first 10 perfect squares starting with 1.
+
+	When using I' (or J' or K') in conjunction with +LOOP,
+HIGH should be replaced by HIGH - STEP + 1  if it is desired
+to produce the same set of indices as with I .  For example:
+
+	X>  24 0  DO I = 4 +LOOP
+	0 4 8 12 16 20
+
+	X>  24 0 DO I' = 4 +LOOP
+	23 19 15 11 7 3 1
+
+	X>  24 4 - 1+ 0 DO I' = 4 +LOOP
+	20 16 12 8 4 0
+
+:
+::
+CONDITIONALS
+============
+
+	PISTOL has a powerful IF ... ELSE ... THEN construction
+which allows moderately complex logical tests to be performed.
+In addition, for more complex situations an OFCASE ... ENDCASE
+n-branch construction is provided also [the"CASE"construction].
+Conditionals may be nested within each other and within
+iteration loops with the same restrictions that apply to
+iterations.  The check stack enforces that proper nesting is
+maintained and will issue fatal error messages otherwise.  The
+prompt provides the user with information on the current
+nesting status.
+
+	For purposes of the conditional, "true" is considered
+to be any non-zero value; "false" is any zero value. [The
+"best" true value is -1, viz. all 1's in binary, in that
+"-1 N AND" will be always "true" unless N is "false".]
+
+val IF true1 true2 ... ELSE false1 false2 ... THEN
+
+	The top of stack, val is tested and
+
+	if true (non-zero), the words true1,true2,...
+	are executed; control passes then to the word
+	following THEN,
+
+	otherwise, if false (zero) control passes to false1 ,
+	false2 ... ; control passes then to the word
+	following THEN, 
+
+Two examples:
+
+	'ABS : DUP LTZ IF MINUS THEN ;
+
+	defines the word ABS which replaces the top of stack
+	with its absolute value.
+
+	'MAX : DDUP GT IF DROP ELSE UNDER THEN ;
+
+	defines the word MAX which compares the top two stack
+	entries and leaves the larger of the two.
+
+:
+::
+	The CASE construction simplifies many programs where
+the value of a variable is used to choose among many
+possibilities. Its syntax is necessarily more complex:
+
+value	OFCASE	<test1> C: <action1> ;C
+		<test2> C: <action2> ;C
+		.	.	.	.
+		.	.	.	.
+		<testn> C: <actionn> ;C
+	ENDCASE
+
+	The liberal use of carriage returns and tabs in the
+coding improves readability, but is not required by the syntax.
+OFCASE saves value and replaces it on the stack before each
+test. If <test1> is true then <action1> (which may be any
+number of words) is carried out and control skips to the first
+word after ENDCASE. Otherwise, if <test1> is false, value is
+again placed on stack and <test2> performed;  if it proves true
+then <action2> is done and control passes to the word following
+ENDCASE, etc. Thus the first successful test selects the action
+performed.
+
+	If every test, including <testn> is false, control
+reaches ENDCASE and a fatal error message is generated.
+An example should clarify this (notice how the prompt changes):
+
+X> 'SPELL : OFCASE
+X:C> 0 EQ C: 'ZERO ;C
+X:C> 1 EQ C: 'ONE ;C
+X:C> 2 EQ C: 'TWO ;C
+X:C> 2 GT C: 'MANY ;C
+X:C> ENDCASE MSG ;
+
+When testing this definition one finds:
+
+X> 2 SPELL
+TWO
+X> 3 SPELL
+MANY
+X> -1 SPELL
+CASE EXECUTION ERROR AT 11672 FOR THE VALUE -1       PISTOL
+
+	The fatal error message provides the address of ENDCASE
+and the value that created the problem.
+
+	OFCASE does not use the loop stack but uses its own
+"CASE" stack;  the words I , J , K , I' , J' , K' and EXIT will
+properly access the DO...LOOP counters when intermixed with
+this structure. The words, ICASE and JCASE, access the case
+variable of the innermost OFCASE structure and the next to
+innermost OFCASE structure, respectively.  They are somewhat
+analogous to the words I and J of the DO LOOP structure.
+
+:
+::
+RECURSION
+=========
+	Normally, a procedure cannot invoke itself because it
+is compiled before its own name is recorded;  therefore the
+word RECURSE is provided as a "stand-in" for the name of the
+procedure being defined.  This word also provides the means for
+recursing within the compile buffer, itself.  For example,
+one might wish to define FACTORIAL by:
+
+'FACTORIAL : DUP 1 EQ LNOT IF
+		DUP 1 - FACTORIAL * THEN
+	   ;
+
+However, FACTORIAL is not yet defined until this current
+definition has been compiled.  We should use the word,
+RECURSE, instead:
+
+'FACTORIAL : DUP 1 EQ LNOT IF
+		DUP 1 - RECURSE * THEN
+	   ;
+
+	It is possible to use RECURSE for directly executing
+code from the compile buffer as well:
+
+X> 3
+1X> DUP 1 EQ LNOT IF DUP 1 - RECURSE * THEN
+1X> =
+6
+
+	For recursion which requires forward references one
+has to make an extra effort (as one does in PASCAL, which
+requires the use of the reserved word, FORWARD). In PISTOL
+we must define first a variable, say, FORW, which is
+destined to contain the address of the forward reference.
+One defines then those routines that invoke the
+forward-referenced routine with the code:
+
+	... FORW W@ EXEC ...
+
+Eventually, one is in the position to define the routine that
+is needed to complete the recursive circle, say, LAST.  After
+defining LAST the recursive loop is established with:
+
+	'LAST ADDRESS FORW W!
+
+which records the address of LAST in the variable, FORW .
+
+:
+IAL is not yet defined until this current
+definition has been compiled.  We should use the word,
+RECURSE, instead:
+
+'FACT

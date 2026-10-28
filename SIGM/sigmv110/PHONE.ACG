@@ -1,0 +1,76 @@
+* phonlist.acg 03/16/83  hmvt
+
+* this module makes a phone list of names, home and office phones
+* it can be adjusted to print other information
+* make sure index is in right order
+SET INDEX TO lastname, company, zip
+
+* do entire file starting at top of file
+GOTO TOP
+
+* initialize variables
+STORE 0 TO pageno
+STORE t TO more
+
+DO WHILE more
+
+* do page counter etc
+
+STORE pageno + 1 TO pageno
+
+STORE 6 TO lineno
+
+ERASE
+
+* eject a page and skip down 2 lines
+
+EJECT
+
+* and write TITLE
+
+? '     NEW JERSEY AMATEUR COMPUTER GROUP  - TELEPHONE LIST'
+? ' '
+? '         ' + date() + '                                             PAGE:'+ STR(pageno,2)
+? ' '
+? '      NAME                   HOME PHONE         OFFICE PHONE'
+? ' '                                             
+
+* now fill up rest of page to 55 lines with names etc
+
+DO WHILE lineno < 55
+
+* now do a label if not end of file
+IF .NOT. EOF
+* make first name to length=10 and...
+* create a blank to pad names to constant length
+STORE TRIM(fname)+ ' '+ lastname TO mname
+STORE $(mname,1,23) TO mname
+*STORE TRIM(mname) TO mname
+*STORE LEN(mname) TO length
+*STORE 11 - length TO length
+*STORE $('         ',1,length) TO blank
+*? mname+ ' '+ lastname+ blank+ company1+ ' '+ $(ccity,1,10)+ ' '+ ophone
+
+? mname+ '      '+ phone + '      '+  ophone
+
+* if it is end of file quit
+ELSE 
+  STORE f TO more
+ENDIF not EOF
+
+* bump line counter and get next record
+STORE lineno +1 TO lineno
+SKIP
+
+ENDDO while lineno < 55
+
+ENDDO more
+
+* if it was on turn it off
+SET PRINT OFF
+
+* release local variables
+RELEASE pageno, lineno, mname
+
+* restore memory varibles 
+STORE t TO more

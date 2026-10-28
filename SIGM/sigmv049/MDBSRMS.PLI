@@ -1,0 +1,25 @@
+/********************************************************
+*                   MDBS CALL INTERFACE			*
+*							*
+*	THE FOLLOWING ARE THE CALL INTERFACE ROUTINES	*
+*  FOR THE PARTICULAR FUNCTIONS OF MDBS.  EACH ROUTINE  *
+*  INTERFACES TO THE COMMON ASSEMBLER ROUTINE 'MDBSCL'. *
+********************************************************/
+
+
+/* * *  REMOVE CURRENT MEMBER FROM A SET  * * */
+RMS:	 PROC (SETNAME,RTNCOD);
+	DCL MDBSCL ENTRY(BIN(7),CHAR(8),CHAR(8),CHAR(8),BIN(7),POINTER,
+			 BIN(15));
+	DCL RTNCOD BIN(7);	/* RETURN CODE FROM MDBS CALL */
+	DCL SETNAME CHAR(8);	/* SET NAME */
+	DCL NULPTR POINTER;	/* DUMMY VARIABLES */
+	DCL NULCHR CHAR(8);
+	CALL MDBSCL(42,'',SETNAME,'',RTNCOD,NULPTR,0);
+	END RMS;
+
+
+/********************************************************
+*               END OF MDBS CALL INTERFACE		*
+********************************************************/
+

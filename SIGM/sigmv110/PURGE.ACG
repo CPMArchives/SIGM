@@ -1,0 +1,46 @@
+* purge.cmd 02/08/832
+* remove records from the files
+* which have been marked for deletion
+
+* scare the user to make sure they want to remove the records
+ERASE
+?
+? '*****   WARNING!   *****   WARNING!   *****   WARNING!   ****' 
+?
+? 'This will PERMANENTLY remove any deleted records.' 
+?
+? 'Type Y to continue, any other key to cancel this operation' 
+
+SET console OFF
+WAIT TO next
+SET console ON
+
+* if they want to pack the files
+
+IF !(next) = 'Y' 
+  
+  * give the user somethhing to read while files is packed
+  ERASE
+  ?
+  ?
+  ?
+  ? 'Records which have been marked for deletion' 
+  ? 'are being removed from the file' 
+  ?
+  ? 'When that is completed, all records will then' 
+  ? 'be reindexed, so please be patient.' 
+  ?
+  *pack the files to remove deleted records
+  PACK
+  
+  INDEX ON !(lastname) TO lastname
+  INDEX ON !(company1) TO company
+  INDEX ON zip TO zip
+  SET INDEX TO lastname, company, zip
+  
+ENDIF !(next) = 'Y'  
+
+* release local variables
+RELEASE next
+
+

@@ -1,0 +1,51 @@
+FPRINT--FORMATTED PRINT ROUTINE
+
+Written by Russ Bakke
+
+This is a general purpose printing routine, which allows a
+number of options.  The call is the normal cpm command line:
+
+FPRINT FILENAME.EXT [/options] [#number of copies]
+
+If the filename is not included in the command line, it is
+prompted for.  If the options and/or count are not included
+in the command line, they are prompted for.
+
+The following options are available:
+
+B(ottom of page prompt (for single sheet printers)
+D(ouble spacing
+E(nd of text prompt (for friction feed printers, to re-align
+  paper)
+M(argin on left edge of page
+P(unch device (PUN:) instead of PRT:
+U(pper case alphabet only (does not affect non-alpha
+  characters)
+(Note that /B overrides /E)
+
+If the option letters are included in the command line,
+they must follow a '/', as '/DUM'.  (Note that the letters
+may be in any order).  A '/' with no options will suppress
+the prompt.  Note that no processing of the text is performed
+except these options; it is up to the preparer of the text
+to insure correct line lengths, etc.
+
+The number of copies to be printed may be included in the
+command line following the symbol '#'.  The default is one
+copy.  The maximum is 255.  If the symbol '#' is not in the
+command line, the number of copies will be prompted for.
+
+An error in either the number of copies or options will result
+in a prompt for that item.
+
+Examples:
+FPRINT TEXT.ASC / #  will print one copy of TEXT.ASC, with
+  no options.
+FPRINT B:SOURCE.PRN /BDEUMP #2  will print 2 copies of
+  B:SOURCE.PRN on the PUN: device, with all options in effect.
+
+Please send any comments/problems/corrections to the author:
+	M. Russell Bakke
+	121 Shadow Ridge Rd.
+	Stamford, CT 06905
+

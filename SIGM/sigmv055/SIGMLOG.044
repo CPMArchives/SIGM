@@ -1,0 +1,1072 @@
+Sig/M	Volume 44	Miscellaneous CP/M Utilities
+
+		-CATALOG.044	contents of Sig/M volume 44
+				released November 25, 1981
+		ACKLIST.044	acknowledgement file
+		CRCKLIST.044	checksum of Sig/M volume 44
+
+index	 name		size	description
+
+44.01	 CHAT16  .ASM	 8K	interactive remote/local operations		
+44.02	 CPM2HELI.DOC	 4K	CP/M to Helios
+44.03	 CPM2HELI.OBJ	 1K	 /
+44.04	 CPM2HELI.S  	 5K	/
+44.05	 DU-V77  .ASM	42K	updated disk utility
+44.06	 DU-V77  .DOC	 6K	 /
+44.07	 DU-V77  .OBJ	 6K	/
+44.08	 FLAGS   .DOC	 2K	edit file attributes
+44.09	 FLAGS12 .ASM	12K	/
+44.10	 FMAP4   .ASM	11K	update FMAP of cataloging system
+44.11	 FMAP4   .OBJ	 2K	/
+44.12	 HELI2CPM.OBJ	 1K	Helios to CP/M
+44.13	 HELI2CPM.S  	 5K	/
+44.14	 PIPPATCH.ASM	 5K	patch for PIP
+44.15	 SD-41   .ASM	46K	updated Super Directory
+44.16	 SD-41   .DOC	12K	/
+44.17	 UNERA   .HLP	 3K	UNERAse erased programs
+44.18	 UNERA11 .ASM	 6K	/
+44.19	 WASH-10 .DOC	16K	disk directory maintenance utility
+44.20	 WASH-16 .ASM	34K	/
+
+
+Copyright (C) 1981 by Sig/M-Amateur Computer Group
+of New Jersey Inc., Box 97, Iselin N.J. 08830-0097
+
+              CPM2HELI.DOC
+                     by
+            Jim Blackwood
+***************************************************************
+
+THE PROGRAMS CPM2HELI.OBJ AND HELI2CPM.OBJ CONVERT CPM TEXT
+FILES TO PROCESSOR TECH HELIOS II EDIT FILES, AND VICE-VERSA.
+TO CONVERT A CP/M FILE, LINEFEEDS, HTABS, AND CTRL/Z'S ARE
+REMOVED. IF THERE ARE 64 CHARACTERS WITHOUT A CR, ONE IS
+INSERTED. THIS MAKES EDIT DELIRIOUS WITH JOY. THE OTHER WAY,
+LINEFEEDS ARE ADDED AFTER EACH CR, AND CTRL/Z IS ADDED AT
+THE END. THE SOURCE VERSIONS ARE CPM2HELI.S AND HELI2CPM.S.
+THE PROGRAMS WILL NOT RUN, AND THE SOURCE WILL NOT ASSEMBLE
+UNDER CP/M. YOU NEED PTDOS1.4 OR 1.5. THE PROGRAMS READ BLOCKS
+OF THE INPUT FILE INTO A BUFFER. THE OFFENDING CHARACTERS
+ARE REMOVED (OR ADDED) AND THE MODIFIED FILE IS WRITTEN TO
+THE DISK. EDIT IS A SCREEN EDITOR, AND I'M MUCH MORE
+COMFORTABLE WITH IT THAN I AM WITH ED. THESE PROGRAMS LET
+ME ADAPT BASIC PROGRAMS, ASSEMBLY LANGUAGE PROGRAMS, ETC.
+FROM THE SIG/M LIBRARY TO MY OWN ENVIRONMENT. I SUSPECT THERE
+ARE VERY FEW FOLKS OUT THERE WHO CAN USE THIS STUFF, BUT
+IF YOU HAVE CP/M-LIFEBOAT-HELIOS, YOU MIGHT ENJOY IT. I
+GUESS I'M SUPPOSED TO MENTION THAT CP/M IS A PRODUCT OF
+DIGITAL RESEARCH AND THAT LIFEBOAT IS LIFEBOAT ASSOC.
+IF YOU HAVE QUESTIONS, FIND BUGS, ETC., YOU CAN GET ME AT
+201-233-1285. OH YES, YOU MUST SET BU=8000 (OR LOWER)
+OR YOU WILL GET A LOADER ERROR, & THINGS MAY BLOW UP.
+
+THE OBJECT PROGRAMS ARE ASSEMBLED AT 103H. THE FIRST TIME,
+PUT THE OBJECT CODE INTO AN IMAGE FILE. YOU CAN THEN
+PROCESS THE SOURCE FILES, AND ASSEMBLE THEM WHEREVER YOU
+WISH. USING DDT, PUT THE FILE INTO MEMORY STARTING AT 400H
+IN THE FOLLOWING MANNER. BE SURE THAT YOUR BOOTLOAD IS
+NOT ANYWHERE IN LOW MEMORY. I PUT MINE AT 0C900H. YOU HAVE
+TO PUT THE PROGRAMS AT 400H BECAUSE START.UP USES SOME
+LOW MEMORY.
+             DDT
+             -ICPM2HELI.OBJ
+             -R300
+
+NOW, BOOT UP HELIOS, AND ENTER:
+             IMAGE CPM2H:O,!250,403,64E,:103,103
+
+YOU CAN, OF COURSE, USE ANY NAME YOU WANT. TYPE THE
+NAME OF THE FILE, AND YOU ARE IN BUSINESS. THE PROGRAM
+WILL PROMPT FOR THE INPUT AND OUTPUT FILE NAMES.
+IF YOU WANT TO TRANSFER THE HELI2CPM.OBJ FILE, FOLLOW
+THE SAME PROCEDURE, EXCEPT THAT THE IMAGE COMMAND IS:
+          IMAGE H2CPM:O,!4C0,403,62B,:103,103
+
+TO TRANSFER FILES FROM CP/M TO HELIOS:
+  WHILE IN CP/M
+               DDT
+               -I(FNAME)
+               -R300
+  DDT WILL RESPOND WITH THE LAST LOAD ADDRESS, SAY XXXX
+  BOOT UP HELIOS AND ENTER:
+          WRITE FNAME,!4C0,400,XXXX
+  YOU MAY USE ANY BLOCK SIZE YOU WISH, I PICKED 04C0H.
+  IF THE FILE WON'T FIT INTO MEMORY, YOU WILL HAVE TO
+  BREAK IT INTO SMALLER FILES. BECAUSE DDT GIVES THE
+  LAST PAGE OF MEMORY LOADED, THERE MAY BE GARBAGE
+  AT THE END OF THE FILE, BUT PROCESSING THE FILE
+  SHOULD REMOVE THIS.
+
+TO TRANSFER TEXT FILES FROM HELIOS TO CP/M
+  WHILE IN HELIOS
+           READ FNAME,103
+  THEN BOOT UP CP/M
+           SAVE (PAGES) FNAME
+  READ WILL GIVE YOU THE NUMBER OF BYTES IN THE FILE
+  REMEMBER TO CONVERT HEX BYTES TO DECIMAL PAGES
+  NOW DO THE FOLLOWING, WHILE IN CP/M
+    ED FNAME
+    *A
+    *3D
+    *E
+  NOW YOU CAN TYPE IT, EDIT IT, ASSEMBLE IT, ETC.
+
+TO TRANSFER HEX FILES FROM HELIOS TO CP/M
+  WHILE IN HELIOS, TYPE THE FILE NAME OF THE IMAGE
+  FILE FOLLOWED BY A COMMA. READ WON'T WORK HERE.
+  THE IMAGE FILE SHOULD ORG AT 103. CAN'T IMAGINE
+  ANYONE WANTING TO DO THIS, AS THESE PROGRAMS WON'T
+  RUN UNDER CP/M. HOWEVER IT IS A WAY OF EXCHANGING
+  IMAGE FILES UNDER CP/M. IF YOU HAVE PREVIOUSLY
+  LISTED THE FILE, YOU WILL KNOW HOW MANY PAGES TO SAVE.
+  AT ANY RATE, ONCE YOU HAVE LOADED THE IMAGE FILE AT
+  103H, BOOT UP CP/M AND SAVE THE FILE. TO TRANSFER IT BACK
+  TO HELIOS, SEE ABOVE.
+  CHEERS.
+
+
+		     DU-V77.DOC
+	        by Ward Christensen
+  with additional notes by Ron Fowler and Keith Petersen
+		 (revised 7/23/81)
+
+	HOW TO USE DU ver 7.7 DISK UTILITY
+
+INSTALLATION:
+	The 7.0 and later versions of DU are designed to
+  be installed with a minimum of trouble.  In fact, in al-
+  most all cases, no changes to the source file should be
+  necessary to get DU up and running. This is because DU
+  uses the disk paramter block of CP/M to determine the
+  characteristics of the disk environment.  (see the dis-
+  claimer for certain non-standard versions of CP/M 1.4).
+	The only parameter that should need to be changed
+  will be the clock speed flag at 103H.  Leave this byte
+  zero if you have a 2 mhz clock.  Patch it non-zero for
+  4 mhz.  This is only needed for the "Z" (sleep) command.
+
+USE:
+
+Any valid command string may be placed as an
+operand of the original DU command, i.e.:
+
+     A>DU G0;D;G2;=OK<D><A><1A>;D
+
+Functions supported:
+
+	Tnn	Seek to track nn (no read)
+	Snn	Position to sector nn, and read
+	Gnn	Position to group nn and read.
+	G	Shows current position
+	V	Views the current sector.
+		(assumes ASCII data)
+	Vnn	Views nn sectors
+	Fname	print directory for file "name",
+		then positions to its directory 
+		sector. (Won't position under
+		CP/M 2.x, but see = command below.)
+
+	=string	Ascii search, starting at current
+		sector. <xx> hex may be imbedded,
+		or used alone:  To find "IN 0FEH":
+		=<db><fe>
+		Ignores bit 7 unless <xx> is used.
+
+	L	Re-logs in the current disk. You may pull
+		out a disk, put in a new, and "L" just
+		to log it in.
+
+	Lx	Logs in disk 'x', such as: LB
+
+	Ux	Logs user 'x' for next F command.  Gives
+		'?' error if not CP/M version 2.x.
+
+	D	Dump sector, hex + ASCII
+	A	Dump sector, ASCII only
+	H	Dump sector, hex only
+
+note all dump commands (D, A, H) may be optionally
+	followed by a starting and ending address:
+	D0,7F	is the same as just D
+	D3,5
+	A20,3F
+
+	CHaddr,val,val,val... change hex in sector
+	CAaddr,char string... change ASCII in sector
+		NOTE that <xx> may be hex imbedded
+		in the Ascii:  ca0,OK<d><a><1a>
+
+		----> Use W to write changes to disk.
+		Note that the C command echoes
+		the overlaid data for verification.
+
+	CHaddr-addr,byte
+ or	CAaddr-addr,byte	repeats a change
+
+	+	advance 1 sector (if below track 2,
+		this advances to next numerical, if
+		2 or >, advances based on CP/M's normal
+		sector scrambling algorithm, i.e. so +
+		will get the next logical sector of the file
+
+	-	backs up 1 logical sector
+
+		Note + and - may take an amount:
+		for example, +F steps in 15 sectors.
+
+		Note also that "-" issued at the first logical
+		sector of the disk will wrap back to the last.
+		Further, "+" issued at the last sector will
+		wrap forward to the first.
+
+	?	Gives command summary
+
+	#	Prints the disk parameters
+
+	M	Dumps a map of the group allocations
+		for files.
+	Mn	Shows which file is allocated to
+		group "n".
+
+	N	Resets CP/M via the BDOS.  This may
+		make it possible under some implementations
+		of CP/M to change the disk format (e.g., density,
+		sides, etc)
+
+	R	Reads the sector currently positioned to
+		into memory.  Note R (Read) is implicit in
+		the G, +, and - commands, but N-O-T in the
+		S and T commands (I did it because I was
+		tired of disk reading after T command before
+		I had a chance to issue the S command)
+
+	W	Write back the current sector (N-O-T-E may
+		not be used after an F command, as CP/M was
+		used to find the file in the directory
+
+	X	Exit back to CP/M (Must press return).  Ctl-c
+		was too easy to hit over modem lines, so I
+		decided on 2-byte (X, CR) to exit.
+
+	P	Toggle printer switch on/off
+
+	Y       Yanks current sector into sequential memory and
+		prints ending address.  This allows sectors to
+		be written sequentially into memory starting at
+		3000H, for later recovery by DDT, etc.
+
+	Z	Sleep - causes the program to pause, such
+		as to look at a dump.  Z is 1 sec.  Znn
+		is nn tenths of a second on a 2 MHz 8080.
+
+	<	Saves current sector in a save buffer
+
+	>	Gets saved buffer.  < and > may be used
+		to move a sector to another place.
+
+	/	Repeats entire command.  Defaults
+ or	/nn	to "forever".  NN may be 2 to 65535
+
+multiple commands may be separated by ";"
+
+Example: the following commands will erase the
+	 b disk directory to all E5's:
+
+	lb		log in b drive
+	g0		position to dir.
+	ch0-7f,e5	fill with e5
+	<		save the sector
+	>;w;+;/16	restore, write, next,
+			repeat 16
+
+----This could be shortened to:
+
+	lb;g0;ch0-7f,e5;<
+	>;w;+;/16
+
+
+
+INTERPRETATION OF DIRECTORY DATA PRESENTED BY THE DU PROGRAM
+
+
+The following explains the format of a CP/M directory entry
+as shown by DU, using either the "F" (find file) command,
+or just doing "D" (dump) of the directory sectors, which
+are located in groups 0 and 1 on a single density disk.
+		----------------
+Sample result of "FSID.COM" command:
+
+40  00534944 20202020  20434F4D 0000003A  *.SID     COM...:*
+50  33343536 3738393A  00000000 00000000  *3456789:........*
+
+First line -
+
+40  00534944 20202020  20434F4D 0000003A  *.SID     COM...:*
+||  |||                      |  ||    ||    |         |
+||  ||^----hex file name-----^  ||    ||    ^file name^
+||  ||                          ||    ||     in ASCII
+||  ||                   extent-^^    ||
+||  ||                                ||
+||  ||           file size in sectors-^^
+||  ||
+||  ^^-00 = file active
+||     E5 = file erased
+^^-displacement of line in directory sector
+
+Second line -
+
+50  33343536 3738393A  00000000 00000000  *3456789:........*
+    |				       |
+    |				       |
+    ^---allocation group numbers-------^
+
+END
+
+
+
+
+        FLAGS.ASM  is  a  screen  oriented  utility  to  edit  the  file 
+        attributes CP/M 2.X file names.  Assemble using MAC.
+
+        Remember  that Digital Research reserves flags F5 through F8  and 
+        T3.  Application programs should use only T1-T4.
+
+        It  is  assumed that you will be using FLAGS with a fairly  fast 
+        CRT terminal.  You'll really hate it on a printing terminal.
+
+        You  have to set several equates to match  your  terminal.   You 
+        need  to  have  a  screen clear  character.   If  your  terminal 
+        supports  a  Home  Cursor character,  you may  use  it  to  make 
+        updating the screen a bit easier.
+
+        Hopefully  more  people will write utilities that can be  easily 
+        configured without requiring fancy terminals.
+
+        I  plan to release a version that will allow flags to be  updated 
+        in multiple files.
+
+        If you have trouble with FLAGS,  make "improvements" or want  to 
+        make suggestions please let me know.
+
+                       Dick Lieber
+                       
+                       Voice:
+                            312-326-4014
+
+                       Computer: (RCPM at times)
+                            312-326-4392
+
+                  Or via the Chicago CBBS   312-545-8086
+
+                  or The Hyde Park RCPM     312-955-4493
+
+
+
+
+
+
+                    The SD Directory Program
+
+
+
+     This documentation file concerns SD-NEW.ASM and SD-NEW.OBJ,
+version  4.1  as  of  October  20,  1981.    Version  4.1  is  a
+significant  upgrade  of  the standard "super-directory" program
+that most RCP/M systems are  now  using as their "DIR" executor.
+SD-41 implements many new features  over version 3, and has been
+tested  on  a  wide variety of CP/M systems  prior  to  release.
+However, due to  the large number of equates in the source file,
+all possible permutations have NOT been tested, and it should be
+understood that revision  4.1  is  experimental  in  nature, and
+should  not  be  placed  on-line  in  remote  applications until
+sufficient  time  has elapsed to allow for initial  bug  reports
+from the field.  
+
+     The most significant  difference  between  version  4.1 and
+version  3.X  concerns  the  ability  of SD to search a range of
+drives and/or user areas for a specified  file.  This capability
+is patterned after FILEFIND, but is significantly more useful in
+that  SD will report the sizes of files matched.    A  new  BDOS
+intercept  routine  has been added, which although more involved
+than  the FILEFIND method,  is  more  generally  applicable  and
+should  run "as-is" on most CP/M systems.  Thus, by using SD-41,
+the use of a separate FILEFIND program should be unnecessary.  
+
+     The  basic operation of SD is as in previous releases.  You
+merely  type   "SD",   followed  by  an  optional  ambiguous  or
+unambiguous  filename (as  you  would  with  the  CCP  directory
+command).  Omitting  the  filename  (i.e.,  "SD  [CR]"), will be
+interpreted  as  "SD *.*".  Similarly, "SD A:" would  imply  "SD
+A:*.*" and "SD B:"  would  imply "SD B:*.*".  In addition to the
+filename option, up to 8 command  line options may be specified.
+If  options  are  to be specified, then  the  filename  must  be
+EXPLICITLY specified  by  at  least a drive code.  Option fields
+are  preceded  by a single dollar  sign  as  with  most  Digital
+Research programs  such as MAC, and may be essentially free-form
+in format.  Example:  SD  A:  $s  a  D  rn u0 fp.  Note that the
+reference  to the A drives in "A:" is mandatory.    Invoking  SD
+with a command  of the form "SD $s a D rn u0 fp" would result in
+SD thinking that  $S was the file to be searched for.  Note also
+that spaces and case  within  the option field are insignificant
+(i.e., "$ SADrNu0F p" is equivalent  to  "$  S A D R N U0 F P").
+The  only  exception concerns the "USER" option  which  will  be
+explained later.  Users should also be aware of two restrictions
+on the command  line  format.   SD scans the entire command line
+for a dollar sign preceded by at  least  1  blank to delimit the
+beginning  of  the option field.  For this reason,  invoking  SD
+with a command line  such as "SD $ $AR" is illegal since SD will
+consider the first dollar sign to be the option field delimiter.
+If you need to specify  a  a filename whose first character is a
+dollar sign, precede it with  a  drive  code as in "SD A:$ $AR".
+In  this  instance,  SD  will  consider  the first  dollar  sign
+insignificant as it is not preceded by a blank.  
+
+
+
+                                1
+SD-41 Documentation Notes
+
+
+
+
+
+
+     The second restriction is that command  line options may be
+specified once and only once per invocation.   That  is,  "SD A:
+$SDS"  would be illegal since the "S" option is specified twice.
+This shortcoming  is  due  to  the fact that options can be made
+into defaults at assembly time.  
+
+     The eight options recognized are:  
+
+  "S" - system option : system files will be included in
+        the output rather than being suppressed.  
+
+  "F"  -  file  option : the directory  output  will  be
+        echoed to  a  disk  file  named  "SD.DIR" on the
+        DEFAULT drive.  If SD.DIR already  exists,  then
+        the directory output will be APPENDED to the end
+        of  the file.  Otherwise, SD.DIR will be created
+        as a new file.  The append feature allows you to
+        build  up  one massive file on the default drive
+        containing the directories of all of your disks,
+        without  having   to  concantenate  a  swarm  of
+        individual directory  files.  If you plan to use
+        this feature often, it willbe simpler for you to
+        have a dedicated version  on  your  MASTCAT disk
+        with RESFLG set TRUE.  The advantage  of this is
+        that  you  can  work  through  a  pile  of disks
+        without  having  to  CTRL-C  or  specify the "R"
+        option everytime you SD a new disk.   Failing to
+        do  this  will  result in the allocation  vector
+        being invalid, and FREE size will be wrong.  
+
+  "U" - user option : allows  the  specification  of the
+        user  number for the directory of the form "Uxx"
+        where the  user  #  is  greater  than 0, but not
+        greater than a specified value not to exceed 15.
+        The user option specification will be illegal if
+        the user # is out of range, omitted,  or if U is
+        specified  on  a  pre-CP/M 2 system.  Note  that
+        since  the  user  option  requires  a  parameter
+        (i.e., the user number),  the  user  number must
+        immediately follow the "U" option on the command
+        field.    That is, "U1" is legal, but "U  1"  is
+        not.  In this respect, the U option differs from
+        the other options  in  that  embedded spaces ARE
+        significant.  
+
+  "A" - all users : causes SD to display  directories of
+        all  user  areas  starting  at  the  user   area
+        specified  in  the  U  option or, if U option is
+        omitted, the default user area and continuing up
+        to MAXUSR.  
+
+  "R" - reset option : allows for automatic resetting of
+        the disk prior to performing directory search so
+        that  the  allocation vector  will  be  updated.
+        Same as doing  a CTRL-C when changing disks, but
+        handy if you didn't  (such  as  when  running  a
+
+
+                                2
+SD-41 Documentation Notes
+
+
+
+
+
+
+        SUBMIT  file).  Note that the RESFLG equate will
+        force the  R option unconditionally each time SD
+        is run.  Useful  for SDing a stack of disks with
+        the "F" option, but  slows  down SD considerably
+        in normal use.  
+
+  "N"  - no page option : unconditionally  disables  the
+        page  pause  option.   Useful when running SD in
+        the "F" and/or "A" modes when you don't want the
+        page prompt slowing you  down.   Note that SD-41
+        will  not  put  the page-pause prompt  into  the
+        output file.  
+
+  "P" - printer option : forces all console output to be
+        echoed to the CP/M  list  device,  with the most
+        significant bit set to 0.  
+
+  "D" - all disk option : allows SD to search  all  disk
+        drives  on-line  starting  with  the  disk drive
+        specified  or  implied  with  the  command  line
+        filename.    For example, "SD B: $D" will result
+        in SD searching  all drives beginning with drive
+        B.  "SD *.* $D" will  result in SD searching all
+        drives beginning with the  drive  that is logged
+        in.  
+
+     If   an  unrecognized  option  (or  illegal   user   option
+specification) is detected, then the command line will be played
+back to the  console  up  to  the  point  where  the  error  was
+detected.    However,  if the REPERR option is disabled, then SD
+will keep its mouth shut  and  ignore  everything on the command
+line  past the illegal field.  In this situation,  an  illegally
+specified  user  number  would  default back to the current user
+number.  The option of DISABLING  error  reporting  was included
+primarily  for systems with hidden doors and secret passageways.
+Shooting off  rockets  and  clanging  bells  everytime a holswap
+starts  "experimenting" just calls attention to  the  fact  that
+there really  IS  something  behind  that  hollow- sounding wall
+after all (if you get my drift).  
+
+     As an added convenience, it is possible to "hard-wire" some
+or all of the command line options.  For example, if you want SD
+to ALWAYS perform a reset of the disk system  before putting its
+show  on the road, you can do just that.  For details,  see  the
+comments   preceding  the  option  field  lookup  table  in  the
+assembler source file.  
+
+     Finally,  if  the  all-disk  and/or  all-user  options  are
+enabled,   it  may  be  desirable  to  restrict  searches.    To
+facilitate this,  a  table is included in SD (beginning at label
+"LODRV" and continuing  through "HIDRV").  The table consists of
+a single byte for each drive  to  be  searched beginning with A.
+Each byte may be in the range of 0-15 mod  15  and  defines  the
+highest  user  number  that  SD  will search for that particular
+drive.  The highest drive number to  search  is  defined  by the
+length of the table.  If four DBs are present between LODRV  and
+
+
+                                3
+SD-41 Documentation Notes
+
+
+
+
+
+
+HIDRV,  then  drives  A-D  can  be  searched.    The source file
+includes the LODRV-HIDRV table in its maximum configuration  for
+16  drives.    However,  it  is  recommended that you delete DBs
+referencing  drives  that  aren't  available   on  your  system.
+Although  SD  will  intercept  attempts  to  search non-existant
+drives, there really isn't any point in allowing  SD  to  always
+search  drive  C  when  you  only  have  2  logical  drives; and
+depending  on  how  your  BIOS  is  constructed and how long  it
+monkeys around before advising the BDOS  of the select error, it
+could save some time.  
+
+     
+               A THOUGHT FROM "THE LAST REVISOR"
+
+     If you sit down and figure out the number  of  permutations
+of  options  and  equates  in the latest versions of SD,  you'll
+understand why there aren't  any warranties as to the absence of
+entomological cybernoids.  I leave  it  to the CP/M community to
+smoke  out  what bugs may pop-up when a certain  combination  of
+variables occurs.    If  you  find  any  bugs,  please  leave an
+advisory or a fix on either TCBBS or the Hyde Park RCP/M so that
+they can be exterminated.  
+
+     Finally, my latest revisions expanded the size of the  load
+module considerably, and it is now weighing in at just under  2K
+if all of the options are enabled.  A program of this type has a
+tendency  to be widely propogated throughout a disk library, and
+since 2K is  the  block  size  of  most  double and quad-density
+systems, I feel that it is important to try and keep SD under 2K
+if at all possible.  That's why some of my  code  may be cryptic
+in some places - I've sacrified clarity for code reductions.  If
+you  plan  to make public-domain enhancements to SD which  would
+push it over  the  2K mark, ask yourself whether its worth tying
+up an additional disk  block.    This  is also an invitation for
+someone less lazy than myself to further  optimize  the  code to
+reduce SD to as compact a package as possible (thus making  room
+for more enhancements).  For my part, I quit when I got it under
+2K.    It  works,  it  fits and I'm ready to move onto something
+else.  
+
+     
+                       I pass the torch.
+
+                          David Boruff
+                      Knoxville, Tennessee
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                4
+SD-41 Documentation Notes
+
+File "WASH.DOC"
+
+		Documentation on the operation of:
+			  "WASH.COM"
+		by:
+			Michael J. Karas
+			Micro Resources
+			2468 Hansen Court
+			Simi Valley, California 93065
+
+
+	This program is a super-duper CP/M disk directory maintence utility 
+that is designed as an "almost" all inclusive routine to make it easy to do 
+disk directory house keeping. The inspiration to produce this program came 
+from use of an older utility program called "CLEAN" that I came across at a 
+meeting of the Valley Computer Club about a year and a half ago. At that time 
+"CLEAN" seemed like a dream come true. Unfortunately it had several major 
+problems that limited its overall usefullness. The disadvantages of CLEAN have
+all been overcome with the new WASH program. Program features are listed 
+below:
+
+	a) Alphabetical list oriented file operations
+
+	b) Any legal CP/M drive (A: to P:) may be selected
+
+	c) Operator interface to the file list is at the console
+	   in sequential apha order in forward or backup mode.
+
+	d) The file list is treated as a circular buffer. Forward
+	   or backward scanning of the list wraps around the list
+	   back to the beginning or ending respectively.
+
+	e) The current list position file can be viewed at the 
+	   Console, printed on the CP/M List device, or sent
+	   to the CP/M Punch device.
+
+	f) The current list position file may be deleted or renamed.
+	   If renamed, only the new name must be entered.
+
+	g) The current list position file may be copied, with the
+	   same name, to any other operator selected disk drive.
+	   The copy utilizes all of available memory as the copy
+	   buffer for the ultimate in copy speed.
+
+      	h) The current list can be deleted and the "WASH" operation
+	   may be begun upon another operator selected disk drive.
+
+	i) The program is fully implemented in 8080 assembly language
+	   for speed, small size, and portability to any CP/M 2.2
+	   or 1.4 system. No assumption is made upon the maximum
+	   number of directory files other than available memory 
+	   space for the list. (A directory with 1024 directory
+	   file names takes 12 K bytes of storage. Assuming the
+	   copy buffer minimum size requirement of 128 bytes, then
+	   WASH should easily run in the minimum CP/M 2.2 20K 
+	   System with no problems at all.) ALL directory and
+	   disk I/O is handled through calls to the BDOS. This
+	   will guarentee WASH compatibility with any CP/M system
+	   implementation. This makes the program disk media
+	   independent (all you have to do is get WASH.COM onto
+	   your diskette or hard disk in the first place.
+
+	This Program was Written by:
+
+	Michael J. Karas
+	MICRO RESOURCES
+	2468 Hansen Court
+	Simi Valley, California 93065
+	(805) 527-7299
+	September 20, 1981
+
+	NOTE:  The WASH program, its source code, documentation file,
+       	       and object code, has been released to the PUBLIC DOMAIN
+               by Michael J. Karas. This program may be modified to suit
+               your personal requirements or those of your friends. In 
+               any case no COMMERCIAL or MONEY MAKING ventures with
+               regard to SOFTWARE SALES or MODIFICATION and the subsequent
+               SALE of the WASH program in WHOLE or any PART is permitted
+               by the author. Further modification and public domain
+       	       distribution of the WASH program must include:
+
+		a) This NOTE,
+
+		b) The name "WASH" must be retained,
+
+		c) The original authorship notice
+		   from above, and
+
+		d) The MICRO RESOURCES Name in the Sign-on
+		   Menu.
+
+	MICRO RESOURCES reserves the right to modify this program at any
+time for any purpose. The Intent of the above NOTE is intended for the public 
+domain distribution of the WASH program and MICRO RESOURCES reserves the right
+to utilize the WASH program for any application whatsoever including but not 
+limited to commercial distribution and modification for custom applications
+with or without the "WASH" name.
+
+
+Modification of WASH
+--------------------
+
+	If you modify, enhance, or correct bugs in this program, please 
+include a short statement of the modifications done and include your name 
+and the date. The modification history log should be kept intact with the
+source code file in "most recent first" order. Changes to program structure 
+will generally require a change in the program version. The version number 
+is documented in the signon message and the distribution program name as 
+"WASH-10.ASM" in the specific case of the initial release 1.0.
+ 
+	The format for update notices in the source file should follow the
+format shown below:
+
+Date: Sept. 20, 1981   Version Number: 1.0  Name: Michael J. Karas
+
+Initial release to the public domain via the CP/M NET remote 
+software access program operated by Kelly Smith, 3055 Waco Ave,
+Simi Valley, CA 93063. (805) 527-9321/ PMMI modem.
+
+
+
+Running WASH
+------------
+
+	The WASH program is run as a transient command under CP/M 2.2
+or CP/M 1.4 as follows. The program creates a working list of all selected
+file names on the selected drive. Examples of command formats are:
+
+	A>WASH<cr>		<== WASH forms working list
+				    of all files from default drive A:.
+
+	A>WASH B:<cr>		<== WASH forms working list of all
+				    files from selected drive B:.
+
+	A>WASH *.COM<cr>	<== WASH formas working list of all
+				    ".COM" files from default drive A:.
+
+	WASH will boot up and read all selected file names from the selected
+drive into a "MEMORY" list that is in ascending alphabetical order. The first
+file name will be displayed with a ":" prompt awaiting some command from the
+operator. The following summary describes WASH commands.
+
+WASH Commands
+-------------
+
+	The Wash program permits entry of various commands while the console
+cursor is positioned at a ":" prompt after the currently displayed file name
+in the file name list.
+
+**** File List Manipulation Comands.
+
+	File Forward (SPACE or CARRIAGE RETURN) Command
+	-----------------------------------------------
+
+	This command will increment the displayed list pointer and 
+	then display the  next file name in the list. If last file
+	name in list is currently displayed, the message "End of List"
+	is displayed and file name display wraps around to the first 
+	file name.
+
+	Backup (B) Command
+	------------------
+
+	This command will decrement the displayed list pointer and
+	display the previous file name from the list. If the first file 
+	name in the list is currently displayed, the message "Beginning
+	of List" is displayed and the file name display wraps back to
+	the last file name in the list.
+
+
+**** File Operation Commands.
+
+	View (V) File Command
+	---------------------
+	
+	The contents of the currently displayed file name is output
+	to the console screen. Text is normally assumed to be ASCII
+	and file display ceases upon encountering a logical end of 
+	file character (01AH) (ctl-z).
+
+	Punch (P) File Command
+	----------------------
+
+	The contents of the currently displayed file name output
+	to the CP/M logical Punch device. Text is normally assumed to 
+	be ASCII and file punching ceases upon encountering a logical end 
+	of file character (01AH) (ctl-z).
+
+	List (L) File Command
+	---------------------
+ 
+	The contents of the currently displayed file name is output
+	to the CP/M logical List device. Text is normally assumed to 
+	be ASCII and file listing ceases upon encountering a logical 
+	end of file character (01AH) (ctl-z).
+
+	Copy (C) File Command
+	---------------------
+
+	This command allows the complete contents of the currently
+	displayed file name to copied to a file on another operator
+	selected drive with the same name. If the file name already 
+	exists on the destiantion disk, the operator is asked if it
+	should be replaced.
+
+	Delete (D) File Command
+	-----------------------
+
+	The file with name corresponding to the currently displayed 
+	list name is deleted from the disk directory. After deletion
+	the message "Deleted" is displayed at the console. Deleted 
+	file name is also removed from the in memory list.
+
+	Rename (R) File Command
+	-----------------------
+
+	The file name currently displayed is renamed to the operator 
+	entered name in response to the "New Name ?" prompt. The list
+	in memory is also updated to reflect the new file name.
+
+**** Miscellaneous Commands.
+
+	Exit (X) Command
+	----------------
+
+	Command when entered will terminate WASH operation and return
+	system control to the CP/M Console Command Processor via a
+	warm boot operation.
+
+	Start (S) over on New Drive Command
+	-----------------------------------
+
+	Entry of the Start over command will cause the WASH program
+	to make up a new directory name list in memory from the drive
+	designator entered by the operator in response to the "New 
+	Drive ?" prompt.
+
+
+OPERATIONAL NOTES ON WASH
+-------------------------
+
+	Command entries not understood by WASH will cause display of a 
+"?" character followed by redisplay of the same current list position
+file name. Command entries, other than Backup, will generally execute
+and then return to the command mode with the next file name from the list
+displayed.
+
+	Entry of a carriage return in response to the "New Name ?" prompt
+of the Rename command or to the "New Drive ?" prompt of the Start Over
+command will abort the command function and cause display of the next file
+name in the file name list.
+
+	The WASH program contains a liberal number of error checking
+functions not normally seen by the operator unless an error condition
+arises. These are always displayed with leading and trailing pairs of the 
+plus sign character as:
+
+	++ Error Message ++
+
+Some of the error conditions are:
+
+	++ Not Found ++
+
+		command line wild card file specification
+		name list is empty, or disk is empty.
+
+		-or-
+
+		delete, rename, copy source files not found.
+		(most likely due to a diskette change)
+
+	++ Name Already Exists ++
+
+		attempt to rename a file to a name already present
+		on the disk.
+
+	++ File Cannot Be Opened ++
+
+		output file for view, list, or punch, cannot be
+		opened for reading. Most probable cause is due to
+		a disk change.
+
+	++ Source File Cannot Be Opened ++
+
+		source file on a copy operation cannot be found on
+		the disk. Most likely casued by a disk change.
+
+	++ Cannot Select Same Disk as Source ++
+
+		the copy to destination disk selected by the operator 
+		must be different than the source disk.
+
+	++ Destination Directory Full ++
+
+		The destination file on a copy operation cannot be opened
+		because the destination disk directory is full.
+
+	++ No Memory Available For Copy Buffer ++ 
+
+		Caused when size of in memory list is so large that an
+		attempted copy operation can find no buffer space.
+
+	++ Disk or Directory Full on Write ++
+
+		Caused when a copy operation attempts to place a file 
+		on a destination disk that does not have enough room
+		for the file, or not enough room to contain all the 
+		directory extent entries for the destination file.
+
+	++ Destination Close Error ++
+
+		Destination file on a copy operation cannot be closed
+		most likely due to a full directory.
+
+Looking at WASH in Action
+-------------------------
+
+	The following text is an example session with WASH at the console.
+This dislay was made possible through use of Kelly Smith's new console
+i/o capture program I/O-CAP.COM. The intepretation of the action below
+should be self evident via the descriptions in the above sections.
+The text "<== xxxxxxxxxxxx" indicates text typed in for documentation
+purposes and not by the WASH program.
+
+
+A>WASH<cr>				<== start up wash for *.* on A:
+
+
+   MICRO RESOURCES DIRECTORY "WASH UTILITY" Ver 1.0
+
+         Command	Function
+         -------    ----------------------------
+            V       View file at Console
+            L       Print file to List Device
+            P       Send file to Punch Device
+            C       Copy file to another Disk
+            R       Rename file
+            D       Delete file
+            X       Exit to CP/M
+            B       Backup one file in List
+            S       Restart on another Drive
+         sp or cr   Forward to next file in List
+
+
+A: /       .COM   :  			<== space bar to go forward
+A: ADIR    .COM   :  
+A: ASM     .COM   :  
+A: CONCAP  .COM   : B			<== B to backup
+<  A: ASM     .COM   : B
+<  A: ADIR    .COM   : B
+<  A: /       .COM   : B
+
+      Beginning of List			<== Backup past top of list
+
+<  A: XSUB    .COM   : B
+<  A: WORDMAS .COM   : B
+<  A: WM      .HLP   : B
+<  A: WASH    .HEX   : B
+<  A: WASH    .DOC   : B
+<  A: WASH    .COM   : B
+<  A: WASH    .BAK   : B
+<  A: WASH    .ASM   : B
+<  A: USQ     .COM   : B
+<  A: TYPESQ14.DQC   : B
+<  A: TSQ     .COM   : B
+<  A: SYSGEN  .COM   :  		     <== forward again
+A: TSQ     .COM   : C  Destination Drive ? B <== Copy two files to B:
+A: TYPESQ14.DQC   : C  Destination Drive ? B
+A: USQ     .COM   :  
+A: WASH    .ASM   :  
+A: WASH    .BAK   :  
+A: WASH    .COM   :  
+A: WASH    .DOC   :  
+A: WASH    .HEX   :  
+A: WM      .HLP   :  
+A: WORDMAS .COM   : B
+<  A: WM      .HLP   : B
+<  A: WASH    .HEX   : B
+<  A: WASH    .DOC   : B
+<  A: WASH    .COM   : B
+<  A: WASH    .BAK   : D  Deleted		<== delete an old file
+A: WASH    .COM   :  				<== I didn't want
+A: WASH    .DOC   : S  New Drive ? B		<== Start over on new drive
+
+						<== WASH signs on again for 
+						    Drive B:
+   MICRO RESOURCES DIRECTORY "WASH UTILITY" Ver 1.0
+
+         Command        Function
+         -------    ----------------------------
+            V       View file at Console
+            L       Print file to List Device
+            P       Send file to Punch Device
+            C       Copy file to another Disk
+            R       Rename file
+            D       Delete file
+            X       Exit to CP/M
+            B       Backup one file in List
+            S       Restart on another Drive
+         sp or cr   Forward to next file in List
+
+
+B: /       .COM   :  
+B: TSQ     .COM   : B
+<  B: /       .COM   : D  Deleted		<== delete a file on B:
+B: TSQ     .COM   :  
+B: TYPESQ14.DQC   :  
+B: WASH    .ASM   :  
+B: WASH    .BAK   : D  Deleted			<== and another
+B: WASH    .COM   :  
+B: WASHTEST.DOC   :  
+B: WM      .HLP   : B
+<  B: WASHTEST.DOC   : V			<== View a text file at crt
+        JUST A SHORT MESSAGE TO DEMONSTRATE THE PHYSICAL
+I/O CAPABILITIES OF "WASH" OF DOCMENTATION.
+
+
+B: WM      .HLP   : B
+<  B: WASHTEST.DOC   : P		<== Send text file to my TI-820
+B: WM      .HLP   : B			    on the PUNCH port of CP/M
+<  B: WASHTEST.DOC   : L		<== Send text file to printer on
+B: WM      .HLP   :  			    the LIST port of CP/M
+B: WORDMAS .COM   :  
+B: Z2      .      :  
+B: Z3      .      :  
+B: Z4      .      :  
+
+      End of List			<== forward scroll of list 
+					    past end of list
+B: TSQ     .COM   :  			<== to first one again
+B: TYPESQ14.DQC   :  
+B: WASH    .ASM   :  
+B: WASH    .COM   :  
+B: WASHTEST.DOC   :  
+B: WM      .HLP   :  
+B: WORDMAS .COM   :  
+B: Z2      .      :  
+B: Z3      .      : B
+<  B: Z2      .      : C  Destination Drive ? A  <== copy to A:
+B: Z3      .      :X			<== exit back to logged drive
+
+A>   
+
++++ End of Documentation File
+
+

@@ -1,0 +1,45 @@
+;
+; VLIB Module Name:  VID1
+; Author:  Richard Conn
+; VLIB  Version Number:  1.0
+; Module Version Number:  1.0
+; Module Entry Points:
+;	CLS
+; Module External References:
+;	VIDPTR	VIDOUT
+;
+	ext	vidptr,vidout
+;
+; Clear Screen
+;	Return with A=0 and Zero Flag Set if not done
+;
+cls::
+	push	h	;save regs
+	push	d
+	lhld	vidptr	;pt to environment
+	mov	a,m	;no terminal?
+	cpi	' '+1
+	jc	clserr
+	lxi	d,14h	;pt to cls delay
+	dad	d
+	mov	d,m	;get it
+	inx	h	;pt to cls string
+	inx	h
+	inx	h
+	mov	a,m	;get first char of string
+	ora	a	;if no string, error
+	jz	clserr
+	call	vidout	;output string with delay
+	pop	d	;done
+	pop	h
+	xra	a	;return NZ
+	dcr	a
+	ret
+clserr:
+	pop	d	;done
+	pop	h
+	xra	a	;return Z
+	ret
+
+	end
+

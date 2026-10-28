@@ -1,0 +1,25 @@
+*PROCEDURE READQ( VAR KEY : CHAR );
+*                           A PASCAL/Z EXTERNAL PROCEDURE.
+* READS THE CONSOLE AND RETURNS THE KEY STRUCK IN THE VARIABLE "KEY"
+* ECHOES THE CHARACTER BUT DOES NOT WAIT FOR A CARRIAGE RETURN AS 
+* DOES THE PASCAL/Z READ PROCEDURE.
+
+
+VBYTES EQU 02              2 BYTES ON THE STACK
+KEYADR EQU 09
+
+                     EXT CHARIN
+                     NAME READQ
+                     ENTRY READQ
+
+READQ:   ENTR D,2,0
+         CALL CHARIN
+         MOV H,KEYADR(IX)
+         MOV L,KEYADR-1(IX)
+         MOV M,A
+         EXIT D,VBYTES
+
+                      END READQ
+
+
+

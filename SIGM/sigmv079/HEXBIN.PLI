@@ -1,0 +1,20 @@
+
+/* hexbin - convert two hex digits to binary byte value */
+	hexbin: proc(s) returns(fixed(15));
+	dcl
+	    s        char(8) varying,
+	    v        fixed(15),
+	    i        fixed(7);
+	
+	%replace
+	    HEXDIGITS  by '123456789ABCDEF';
+
+	v = 0;
+	    do i = 1 to length(s);
+	    v = v * 16 + index(HEXDIGITS, substr(s,i,1));
+	    end;
+	return(v);
+	end hexbin;
+
+
+

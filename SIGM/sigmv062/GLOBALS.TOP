@@ -1,0 +1,132 @@
+{++++++++++++++++++++++++++++++++++++++++++++++++++++++++}
+{+  GLOBALS FOR KFORMAT Text Output Processor.		+}
+{++++++++++++++++++++++++++++++++++++++++++++++++++++++++}
+
+CONST
+  BACKSPVAL = 8;
+  COMNDFLAG = '.';
+  DEFAULT   = 255;	{ The default length such that all strings   }
+			{ do not have to be 255 chars in length      }
+  DQUOTE    = '"';
+  EOSVAL    = 0;	{ same as a null value	}
+  FOMARGDEF = 3;	{ default footer margin }
+  HEMARGDEF = 3;	{ default header margin }
+  HUGE	    = 32000;	{ not quite infinity }
+  MAXBUF    = 255;	{ maximum allowed string length }
+  MINUS     = '-';
+  maxargc   = 5;
+  null	    = 0;
+  PAGENUM   = '#';
+  PAGWIDDEF = 60;	{ default page width }
+  PAGLENDEF = 66;	{ default page length }
+  PLUS	    = '+';
+  SMAX	    = 255;	{ MAXIMUM ALLOWED STRING LENGTH }
+  SPACE     = ' ';
+  SQUOTE    = '''';
+
+
+TYPE
+  byte	  = 0..255;
+  int	  = INTEGER;
+  DSTRING = STRING DEFAULT;
+  MSTRING = STRING SMAX;{ Max string }
+  S$0	  = string  0 ;
+  S$255   = string SMAX ;{ Max string }
+  CMDVAL  = packed array [1..2] of char;	{ *** 3-81 *** }
+  BUFFER  = MSTRING;
+
+  CMDSET =
+      (CMD0,{ command set lower limit			  }
+       bp,  {<+,-><n> Begin Page & set page number	  }
+       br,  {	      BReak, finish current line	  }
+       ce,  {<n>      CEnter n lines <DEFAULT=1>	  }
+       fi,  {	      FIll <fill lines but not justify>   }
+       fo,  {<text>   FOoter text			  }
+       he,  {<text>   HEader text			  }
+       ind, {<+,-><n> INdent n columns			  }
+       ls,  {<+,-><n> Set Line Spacing			  }
+       nf,  {	      Lines Not Filled <justify OFF>	  }
+       pl,  {<+,-><n> Page Length n lines		  }
+       rm,  {<+,-><n> Right margin n columns		  }
+       sf,  {	      Space Fill lines <justify text>	  }
+       sp,  {<n>      Break and SPace n lines <DEFAULT=1> }
+       ti,  {<+,-><n> temporary indent n columns	  }
+       ul,  {<n>      underline n lines <DEFAULT=1>	  }
+       UNKN);{command set upper limit, command error flag }
+
+
+VAR
+  {++++++++++++++++++++++++++++++++++++++++++++}
+  {+  VARIABLES USES IN EXTERNAL PROCEDURES.  +}
+  {++++++++++++++++++++++++++++++++++++++++++++}
+  argc : byte;
+  argv : ARRAY [1..maxargc] OF DSTRING;{ * proc STDOPEN * }
+  infile,				{ * proc STDOPEN * }
+  outfile,
+  params : byte;
+  xeof, 	{ end of file flag }
+  xeoln:BOOLEAN;{ end of line flag }
+  ioresult,
+  con_wanted,
+  printer_wanted : boolean;
+
+  EOS,		{ holds value of END-OF-STRING character }
+  BACKSPACE,	{ holds value of back-space		 }
+  BLANK,	{ holds value of space			 }
+  NEWLINE,	{ holds value of END-OF-STRING character }
+  TAB		{ holds value of tab char		 }
+	:CHAR;
+
+  STDIN,	{ standard input file			 }
+  STDOUT	{ standard output file			 }
+	:TEXT;
+
+  spacefill,	{ straight left and right      INIT = FALSE    }
+  direction,	{ control for space filling    INIT = FALSE    }
+  fill		{ fill if TRUE		       INIT = TRUE     }
+	:BOOLEAN;
+
+  lsval,	{ current line spacing	       INIT = 1        }
+  inval,	{ current indent >= 0	       INIT = 0        }
+  rmval,	{ current right margin	       INIT = PAGWIDDEF}
+  tival,	{ current temporary indent     INIT = 0        }
+  ceval,	{ number of lines to center    INIT = 0        }
+  ulval,	{ number of lines to underline INIT = 0        }
+  spval,	{ number of lines to space     INIT = 0        }
+  curpag,	{ current output page number   INIT = 0        }
+  newpag,	{ next output page number      INIT = 1        }
+  lineno,	{ next line to be printed      INIT = 0        }
+  plval,	{ page length in lines	       INIT = PAGLENDEF}
+  m1val,	{ margin before and inc header INIT = HEMARGDEF}
+  m2val,	{ margin after header	       INIT = 2        }
+  m3val,	{ margin after last text line  INIT = 2        }
+  m4val,	{ bottom margin incl footer    INIT = FOMARGDEF}
+  bottom	{ last text line on page = plval-m3val-m4val   }
+	:int;
+
+  header,	{ top of page title	       INIT = NEWLINE  }
+  footer	{ bottom of page title	       INIT = NEWLINE  }
+	:BUFFER;
+
+  cmdlist	{ array used for command decoding	       }
+	:ARRAY [CMD0..UNKN] of CMDVAL;
+
+  outp, 	{ last char position in output INIT = 0        }
+  outw, 	{ current WIDTH of outbuf      INIT = 0        }
+  outwds	{ number of words in outbuf    INIT = 0        }
+	:int;
+
+  inbuf,	{ input buffer work area		       }
+  outbuf	{ output buffer work area		       }
+	:BUFFER;
+
+
+{++++++++++++++++++++++++++++++++++++++++++}
+{+ COMPILER OPTIONS FOR PASCAL/Z COMPILER +}
+{++++++++++++++++++++++++++++++++++++++++++}
+{$C-}{ * control-c checking OFF 		* }
+{$F-}{ * floating point error checking OFF	* }
+{$M-}{ * integer mult & divd error checking OFF * }
+
+l-c checking OFF 		* }
+{$F-}

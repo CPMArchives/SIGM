@@ -1,0 +1,164 @@
+VOLUME 42
+
+(1) Disassemblers; 
+(2) Diablo Driver;
+(3) Clock routines;
+..and much more
+
+NUMBER	SIZE	NAME		COMMENTS
+
+		-CATALOG.042	CONTENTS OF CP/M VOL. 42
+	   	ABSTRACT.042	Abstracts on some of the files
+42.1	9K	BIDI.ASM	(2) Bidirect. diablo driver
+42.2	3K	CLKROM.ASM	(3) Computime(R) routines
+42.3	1K	CT82.COM	SWTPC CT82 initializer
+42.4	6K	CT82.Z80	TDL Z-80 source for above
+42.5	44K	DIS.ASM		(1) TDL Z-80 Disassembler
+42.6	5K	DIS.DOC		(1) Doc on above
+42.7	3K	HOW2BS.DOC	Put backspace into your BIOS
+42.8	2K	INIT.TEL	ZTEL-CT82 routines
+42.9	17K	LIFE8.ASM	Fast, comprehensive life..
+42.10	3K	LIFE8.COM	..program for the VDM
+42.11	2K	LIFE8.DOC	Doc on above
+42.12	27K	MNEMONIC.ASM	Memory test (look up MNEMONIC
+				in your dictionary)
+42.13	7K	NBIOS.ASM	BIOS for TEI CP/M
+42.14	4K	PTSRCNVT.ASM	Proc. Tech. Pkg. 1 or ALS-8..
+42.15	2K	PTSRCNVT.COM	..to CP/M file conversion..
+42.16	2K	PTSRCNVT.DOC	..program
+42.17	13K	QUOTES.PRN	Words of wit and wisdom re-
+				lated to computers.
+42.18	6K	RESOURCE.COM	(1) Conversational disassembler
+42.19	26K	RESOURCE.DOC	(1) Doc on above
+42.20	5K	START.ASM	Compucolor 8001 initializer
+42.21	1K	START.COM	COM of above
+42.22	2K	T.ASM		(3) Print time on..
+42.23	1K	T.COM		    ..console
+42.24	3K	TIME.ASM	(3) Compu-time (R) routine
+42.25	2K	TIME.BAS	(3) Time display in MBASIC
+42.26	5K	TIMESET.BAS	(3) Time set/read in MBASIC
+42.27	25K	XT.ASM		(3) List to printer with..
+42.28	2K	XT.COM		    ..time/date stamp
+42.29	1K	XYZZY.COM	[[Type it and see]] (if you
+				don't know "Adventure", you
+				won't understand)
+
+
+
+-------------------- VOLUME 42 ABSTRACTS ----------------------
+
+TITLE:  DISASSEMBLERS, TERMINAL INIT, TIME BOARD, DIABLO DRIVER
+
+BIDI.LIB contains a software driver for a diablo
+Hy-Type I printer.  It is the first in the users group to
+offer bidirectional printing and high speed tabbing.  It
+may be integrated into your favorite CBIOS or file listing
+program.  Memory requirements are about 190 bytes of code
+space (ROM or RAM) and about 130 bytes of data area (RAM).
+Timing tests indicate that it runs about 20% faster than
+previous single directional drivers available from the
+users group.  It requires a Diablo Hy-Type I printer
+interfaced through 3 parallel output ports and one input
+port.  The code is well commented and should be fairly
+easy to maintain and modify.  Reviewed by Robert A. Van Valzah.
+
+CLKROM.ASM and TIME.ASM are corrected programs originally
+printed in Interface Age magazine.  They are intended for the
+Compu-time real time clock/calendar board.  If you have one
+of the clocks, you'll know what these are good for, I don't.
+Related programs are T.ASM and T.COM which prints the time
+on the console and XT.ASM and XT.COM which sends a file to
+the list device with the time and date at the top of each page.
+TIMESET.BAS is for setting the time and date from basic.
+Reviewed by Robert A. Van Valzah.
+
+CT82.Z80 contains source for a 'STAT' like utility for changing
+the mode of a SWTPC CT82 terminal.  The source is written in
+Zilog mnemonics and I have no idea what you'd use to assemble
+it.  Requires a Z-80 for execution.  The source seems to be
+well commented and should be easy to adapt to another set of
+mnemonics.  CT82.COM contains the object code.
+Reviewed by Robert A. Van Valzah.
+
+DIS.ASM is a Z-80 dissambler written using the TDL mnemonics
+and disassembling to TDL mnemonics.  It requires the TDL
+macro assembler for assembly.  Assembly is necessary beacuse
+the code does not (as yet) relocate itself to the top of
+memory in the way DDT does.  One unique feature is that it
+is capable of writing a TDL assembler compatible .ASM file
+to disk for re-assembly.  The original source code appeared
+in Dr. Dobbs Journal, Volume 4, Issue 5.  It is base on 
+Ward Christensen's disassembler, DDJ February, 1977.  This
+version was CP/Mified by Tim Burke.  DIS.ASM is devoid of
+comments, but the DDJ article has good comments which should
+still apply.  Reviewed by Robert A. Van Valzah.
+
+HOW2BS.DOC contains instructions on how to patch CP/M version
+1.4 to echo 'DEL' (RUBOUT) as 'BS'.  On many CRT's, this will
+have the effect of moving the cursor backwards over the
+deleted character.  With this installed, it is much easier
+to correct typing mistakes when using a CRT.  Be forwarned,
+though, that it makes correcting things harder on a hard-copy
+terminal.  This patch requires a Z-80 processor because it
+takes advantage of the relative jump instruction of the Z-80.
+Installing this patch would require at least a working
+knowledge of the use of DDT and SYSGEN procedures.  Reviewed
+by Robert A. Van Valzah.
+
+INIT.TEL conatains initialization commands for the TDL text
+editor running with a South West Technical Products CT-82
+terminal.  This file would be useful to you if you have this
+combination of editor and terminal or it may be used as a
+sample to write you own initialization commands.  Reviewed by
+Robert A. Van Valzah.
+
+MNEMONIC.ABS contains source for a memory testing program.
+Two tests are provided, fill with and check for pseudo-random
+pattern and exhaustive unique addessing test.  The former will
+find most all failures and is quite fast.  The latter fills
+memory with zeros, sets a single bit, and then checks all other
+bits in memory to see if they have changed.  This should find
+even the stickest problems but takes a long time (2 1/2 hours
+for 4K).  The code is very well written and well structured.
+It reads the front panel to select the test, though this
+could be easily changed.  I/O is done directly to the console
+so that memory used by CP/M can be tested too.  Re-assembly
+will be necessary to make it work on your system.
+Reviewed by Robert A. Van Valzah.
+
+QUOTES.PRN contains many quotations which are applicable to
+computer programming.  Many have to do with the coordination
+of a team of programmers all working on the same large project.
+These quotes will be humorous to anyone who has ever programmed
+a computer.  They are included in the users group to inject a
+little levity into the life of programmers everywhere.  A must
+for every programming office wall, in my oppinion.  Reviewed by
+Robert A. Van Valzah.
+
+RESOURCE.COM is an interactive 8080 disassembler.  It has the
+ability to generate lables and then to replace them with
+meaningful labels as the disassembly progresses.  The mode
+(instruction, DB, DW, or DS) can be dynamically changed,
+and is stored in a table such that the listing switches
+from mode to mode at the appropriate addresses.   ASCII DB's
+may be automatically searched for.  The resulting source code,
+including an ORG statement to the load address, and EQUates for
+references outside of the program, can be written to disk for
+assembly.  The symbol table, control table, and comments table
+may also be written to disk, and later reloaded, allowing you
+to continue a disassembly at a later time.  Editorial:  This
+disassembler is so good that it is dangerous.  In the hands of
+any experienced programmer, RESOURCE can give a complete
+disassembly (even with comments!) of any piece of code in a
+very short time.  You have to use it to believe it.  It is
+hoped that RESOURCE will be used to customize commercially
+available software where source is not provided, but only for
+the use of an individual.  See documentation in RESOURCE.DOC. 
+Source is not provided (we had to leave you something to
+practice on!).  Reviewed by Robert A. Van Valzah. 
+
+START.ASM contains the source for a utility to initialize the
+Compucolor 8001 CRT display for normal use as a terminal.  It
+sets the forground and background colors and prints the time
+of day.  Reviewed by Robert A. Van Valzah.
+

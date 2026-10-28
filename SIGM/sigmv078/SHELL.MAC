@@ -1,0 +1,577 @@
+        aseg
+	org	0100h
+	.z80
+;********************************************************
+;*							*
+;* 					      		*
+;* 	 SHELL V4.4   Barrie Hall 5/3/1982		*
+;* 	 --------------------------------- 		*
+;* 	This program simulates CPM submit. 		*
+;*							*
+;*	Bugs, comments, abuse to:			*
+;*		Barrie Hall				*
+;*		3 Maycock St				*
+;*		East Denistone				*
+;*		2112 NSW, Australia			*
+;*		ph: 802200 a.h				*
+;*     OR 						*
+;*         leave a message on Software Tools		*
+;*	   RCPM on Sydney (02)997-1836			*
+;*							*
+;*							*	
+;* The first form will load the named command file into	*
+;* characters to CP/M one at a time. If a $<1..9> is	*
+;* encoutered, a string will be substituted.		*
+;* This string comes from the command line, it is the	*
+;* nth space bounded string typed.			*
+;*							*
+;*  0A>sh <filename> par1 par2 ... parN		 	*
+;*							*
+;*  0A>sh   ;typed with a blank command line		*
+;*							*
+;* will invoke the INTERACTIVE mode. Shell will prompt	*
+;* with a single ">" and wait for you to type a command	*
+;* lines.  The  lines are  transfered  to  the command 	*
+;* Buffer after each <CR> , to exit, type a "@", the	*
+;* command lines are now passed to CP/M, one char at a	*
+;* time.						*
+;*							*
+;* 0A>sh						*
+;* >type hmm.txt					*
+;* >type hello.asm					*
+;* >stat :dsk						*
+;* >@							*
+;*------------------------------------------------------*
+;* Now the system executes those commands		*
+;*------------------------------------------------------*
+;*							*
+;*	 Advantages over CP/M submit/xsub		*
+;* 	--------------------------------		*
+;* SHELL will work with ANY program using CONSOLE input.*
+;*							*
+;* SHELL is memory based, not disk based, so it runs	*
+;* much more quickly, with no disk accesss to fetch	*
+;* commands.						*
+;*							*
+;* SHELL has an interactive mode for sequences you dont	*
+;* want to write a submit file for, but still want to	*
+;* execute in a "BATCH MODE", like  lots of printing	*
+;* or compilation.					*
+;*							*
+;* Errors,panic exit					*
+;* -----------------					*
+;* If SHELL cant find your SUBMIT file, it will tell	*
+;* you, and exit.					*
+;*							*
+;* If your submit file trys to use parameters that you	*
+;* didn't type, it will exit with a warm boot, With NO	*
+;* message...						*
+;*							*
+;* If you hit a key while SHELL has control of the	*
+;* keyboard calls, it will exit with a warm boot.	*
+;*							*
+;*	  Converting SUBMIT files to SHELL files	*
+;*	  --------------------------------------	*
+;*  Simple, just delete the XSUB command if its there...*
+;*							*
+;*							*
+;*		 Installation-operation			*
+;*		 ----------------------			*
+;* This prog runs hidden from CP/M, SO you have	to find	*
+;* about 220 bytes + Buffer size of memory above your	*
+;* BIOS, or between your BIOS and CP/M, if you have	*
+;* some	there.						*
+;*							*
+;* Be SURE you know what you are doing here, but if your*
+;* BIOS finishes before the end of memory (including 	*
+;* sector buffers ,etc) the memory above it is probably	*
+;* ok to use.						*
+;*							*
+;* A lot of systems use a memory mapped video board,	*
+;* there is usually some unused memory above this.	*
+;*							*
+;* Equate the first location of this memory to DEST.	*
+;*							*
+;* SECTORS defines how big a command buffer you want,	*
+;* 1/2k is more than enough for 99% of submit files,	*
+;* 1/4k is probably ok.					*
+;* 							*
+;* Shell intercepts BIOS keyboard calls, CP/M thinks its*
+;* coming from the keyboard, so SHELL will work with ANY*
+;* program that uses keyboard input normally.		*
+;*							*
+;* Any calls to BIOS keyboard status will return 00,	*
+;* (no chars), so if a program hangs under SHELL, thats	*
+;* why. (I havent found any yet)			*
+;*							*
+;* Use M80 to assemble this program, I don't know about	*
+;* ZASM. SHELL uses M80's ".phase" op, which allows you	*
+;* to assemble code to run at a location different from *
+;* the load address. Once SHELL has loaded a command	*
+;* file from disk or interactively. It will block move	*
+;* 220 bytes of runtime stuff to your high mem and then *
+;* hook into the BIOS jump table. When it runs out of	*
+;* chars, it does a normal RETURN, (NOT WARM BOOT), so	*
+;* you can stay in the last program loaded.		*
+;*							*
+;* If you hit ANY KEY while SHELL is in control, SHELL	*
+;* will remove its hooks and warm boot the system.	*
+;*							*
+;*		  Improvements				*
+;*		  ------------				*
+;* It is very easy to add some SIMPLE control structures*
+;* like a LOOP--ENDLOOP with a constant number iter-	*
+;* ations and a variable parameter number so we could 	*
+;* do this:						*
+;* 							*
+;*    #loop 5						*
+;*    cc1 $n						*
+;*    #end						*
+;*           :this would compile five programs named on	*
+;* the command line after sh <file>. I plan to do this 	*
+;* when I get some time, BUT MAYBE you could do it for	*
+;* yourself????						*
+;*							*
+;*		Barrie Hall , August 1982		*
+;*							*
+;********************************************************
+;
+; History - most recent first.
+; ---------------------------
+; Doco added to front: 4/8/1982 bjh
+;
+;
+;update: 22/7/82  expands 1-9 parameters in the command lin
+;bjh 
+;
+;update: 21/7/82 ,only Warm Boots when a key has
+;	 been hit, otherwise, returns to sender
+;
+; update: 18/7/82 to ret to ccp instead of warm boot
+; bjh.
+;
+;-------------------------------------------------------
+dest	equ	0f800h		;my spare memory
+sectors	equ	2		;1/2k of commands???
+fdos	equ	0005h
+fcb	equ	005ch
+fcbcr	equ	fcb+32
+cmdbuf	equ	80h	   ;cpm command line tail
+true	equ	0
+false	equ	not true	;a lie???
+
+;main program
+;fcb is default fcb at 5c
+; work out how big our tpa is
+; get fdos addr from 6 and 7
+;
+; This program runs hidden from cpm
+; at f800h so we must do a block move
+; before execution
+; 
+bmove::	ld	hl,start
+	ld	de,dest
+	ld	bc,len-dest
+	ldir
+;moved the runtime stuff up high
+;***************************************************
+;* We must check for a filename on the command line
+;* If there is one, skip it and get the parameters
+;* from the command line and put them in the 
+;* parameter buffers 1-9.
+;*  If there is NO file name, enter interactive mode.
+;****************************************************
+
+parse::	ld	hl,cmdbuf
+	ld	a,(hl)
+	cp	0
+	jp	z,inter		;interactive mode
+
+;move the command tail to a safe place
+	ld	hl,cmdbuf
+	ld	de,param
+	ld	c,a
+	inc	c
+	ld	b,0
+	ldir		;move it
+
+stfil::	xor	a
+	ld	(fcbcr),a	 ;clear current rec field
+getfil::
+	ld	de,fcb
+	call	open
+	ld	de,opmess
+	cp	0ffh
+	jp	z,error
+; file is open, now read it in
+	ld	hl,buff		;hl is buff pointer
+	ld	b,sectors	;read B sectors maximum
+rloop::	ld	d,h
+	ld	e,l
+	call	setdma	;update dma for read
+	ld	de,fcb
+	call	read
+	cp	0
+	jr	nz,endfil
+	ld	de,128	;sector size
+	add	hl,de
+	djnz	rloop	;next sector
+
+;file read in
+
+;
+; the rest of prog
+;NOW we have the command file in memory
+;lets hook into the bios, first we have 
+;to compute the address of the jump table
+;at the front of the bios.
+;
+endfil::
+ghook::	ld	hl,(01h)  ;address of warm boot
+	ld	bc,0004h  ;offset to consts:
+	add	hl,bc
+	ld	a,(hl)
+	ld	(kbst),a
+	inc	hl
+	ld	a,(hl)
+	ld	(kbst+1),a
+	inc	hl
+	inc	hl
+	ld	(hokad),hl  ;save for later
+	ld	a,(hl)	;save real conin add
+	ld	(kb),a
+	inc	hl
+	ld	a,(hl)
+	ld	(kb+1),a
+	dec	hl
+	ld	(hl),low hook
+	inc	hl
+	ld	(hl),high hook
+	ld	de,logon
+	ld	a,false
+	ld	(pflag),a
+	ld	hl,buff
+	ld	(point),hl
+;the hooks are in so return to cpm and stand back???
+error::	call	pmess
+	ret
+
+inter::				;interactive mode
+
+;this mode is invoked when there is no file name
+;on the command line..
+;we must print a prompt and read a LINE of input
+;from CPM and then transfer it to the SHELL buffer
+;when we get a blank line,execute the line by
+;installing the shell hooks...
+
+	ld	hl,buff
+	ld	(point),hl	;set up pointer into cmd
+prmt::	ld	e,'>'
+	call	cout
+	ld	de,interbuf
+	ld	a,40h		;longest line
+	ld	(de),a
+	call	lchin
+	call	crlf
+	ld	de,(point)
+	ld	hl,interbuf+1	;chars in the interbuff
+	ld	a,(hl)
+	cp	00		;blank line???
+	jr	z,blank		;do it
+	ld	c,a
+	inc	hl
+	ld	a,(hl)		;first char of line
+	cp	'@'		;exit condition 
+	jr	z,exec		;go and do it...
+	ld	b,0
+	ldir			;move a line into final buff
+blank::	ld	a,0dh		;carraige ret
+	ld	(de),a
+	inc	de
+	ld	(point),de	;for next line
+	jr	prmt		;next line...
+exec::	ld	hl,(point)
+	ld	(hl),1ah	;EOF
+	inc	hl
+	ld	(hl),1ah	;EOF - just in case...
+	jr	endfil
+
+;cpm routines
+
+crlf:	ld	e,0ah
+	call	cout
+	ld	e,0dh
+	call	cout
+	ret
+;	
+cout:	push	bc
+	push	de
+	push	hl
+	ld	c,2
+	jr	cpm
+;
+chin:	push	bc
+	push	de
+	push	hl	
+	ld	c,1	
+	jr	cpm
+;
+lchin::	push	bc
+	push	de
+	push	hl
+	ld	c,10
+	jr	cpm
+
+
+pmess::	push	bc
+	push	de
+	push	hl
+	ld	c,9
+	jr	cpm
+
+open::	push	bc
+	push	de
+	push	hl
+	ld	c,15		;open cp/m file code
+	jr	cpm
+
+read::	push	bc
+	push	de
+	push	hl
+	ld	c,20		;read cp/m file code.
+	jr	cpm
+
+
+setdma::
+	push	bc
+	push	de
+	push	hl
+	ld	c,26		;set dma address code.
+	jr	cpm
+
+cpm::	call	fdos		;go to cp/m
+	pop	hl		;restore all registers pushed
+	pop	de
+	pop	bc
+	ret			;back to the main program
+logon::
+	db	'(Shell v4.4 installed)',0ah,0dh,'$'
+opmess::
+	db	'Shell: Cant find command file',0dh,0ah,'$'
+interbuf::
+	ds	40h
+;----------------------------------------------------------
+
+;this part lives in high memory somewhere
+
+start	equ	$
+	.phase	dest		;your spare memory
+;********************************************************
+;*			      				*
+;* This part of the program mimics CP/M CONIN routine	*
+;*							*
+;********************************************************
+
+;We handle the parameters by checking for a '$' sign
+;and then jumping to a routine which 1. Finds if that
+;parameter was given on the command line. 2. Sets up
+;a flag which tells this prog to get a char from the
+;parameter exp rather than the the main text submit..
+; If this flag is set, the next call to the kb routine
+;will vector to EXPAR, which returns a char from the
+;the parameter being expanded...
+
+
+hook::	push	hl
+	push	bc
+	push	de
+	ld	a,(pflag)	;are we doing a parameter
+	cp	true
+	jr	z,expar		;get a char from it instaed
+	ld	hl,(point)  ;get pointer to command text
+hooka::	ld	a,(hl)
+	inc	hl
+	cp	1ah	;eof
+	call	z,rhook	;remove hooks and leave
+	cp	0ah	;piss off line feeds
+	jr	z,hooka
+;check for $n paramter
+	cp	'$'
+	call	z,subs
+	ld	(point),hl  ;save pointer to text
+pret::			    ;back here if we did a par char
+	push	af
+;
+;now check kb status routine and get out
+;if a key has been pushed
+;
+	ld	hl,rtlab
+	push	hl	;return address
+	ld	hl,(kbst)
+	jp	(hl)	;computed gosub
+rtlab::	cp	0
+	jr	nz,panic  ;key pushed,get out
+	pop	af
+	pop	de
+	pop	bc
+	pop	hl
+	ret
+
+;get out ,remove hook
+
+panic::	call	rhook
+	jp	0	;warm boot
+
+rhook::	ld	hl,(hokad)
+	ld	a,(kb)
+	ld	(hl),a
+	inc	hl
+	ld	a,(kb+1)
+	ld	(hl),a
+	ld	a,0dh	;we return with a return to prog
+;hooks removed, return to what ever called us
+	ret
+;return to prog by ret..Hooks in CBIOS removed...
+
+;-----------------------------------------------------------
+; Expand the parameter, this code returns the next
+; char from the parameter we are expanding..
+
+expar::	ld	a,(cnt)
+	dec	a
+	jr	z,finpar	;no more chars
+	ld	(cnt),a
+	ld	hl,(ppp)	;get parameter pointer
+	ld	a,(hl)
+	inc	hl
+	cp	' '		;exit if space 
+
+;if it is a space, we have come to the end of the
+;current parameter expansion, clear the flag
+;and return a space in A.
+;This code will not be used again until there is 
+;another $n in the main submit text..
+
+	jr	z,finpar	;clear flag etc..
+	ld	(ppp),hl
+	jr	pret		;go back to main
+
+finpar::	
+	ld	a,false
+	ld	(pflag),a
+	ld	a,' '
+	jr	pret
+
+
+;The following code is called when a $ is encountered in
+;the main submit file, it points (ppp) at the beginning
+;of the relevant string from the command line which
+;we moved to PARAM buffer.
+; This code MUST return the first character of the new
+;expansion..
+
+subs::
+	push	hl
+	ld	a,(hl)		;get paramter number..
+	sub	'0'
+	ld	l,a
+	push	hl		;save parameter num
+
+;and point at the correct one
+;parameter ranges from $1 to $9
+;GETS returns DE pointing to the next string in the
+;the command line copy at PARAM, B equal to the 
+;number of chars in the string, or 00 if no string
+;available...
+
+	ld	hl,param
+	ld	a,(hl)
+	ld	(cnt),a
+	inc	hl
+	ld	(cmdpt),hl	;start GETS at front of buff
+	pop	hl		;get back parameter number
+	call	gets		;skip filename
+fnd::	call	gets
+	xor	a
+	cp	b
+	jr	z,perror	;parameter error
+	dec	l
+	jr	nz,fnd
+	ld	a,b
+	ld	(cnt),a		;length of parameter
+	cp	1		;only one char in this par??
+	jr	z,nexp		;return it and be done!!
+	inc	de		;points at first char in par
+	ld	(ppp),de	;save pointer to param
+	ld	a,true		;set par flag
+	ld	(pflag),a
+	dec	de
+nexp::	ld	a,(de)		;first char of parameter
+	pop	hl
+	inc	hl
+	ret
+perror::	
+	jr	panic	;warm boot, parameter error
+
+;------------------------------------------------------
+;routine returns pointer to a
+;space bounded string in DE
+;and its length in B or if out of chars B=0.
+;stuffs up BC,DE,AF saves HL
+
+gets::	push	hl
+	ld	b,0
+	ld	hl,(cmdpt)
+	ld	a,(cnt)
+	ld	c,a		;get chars left
+sllp::	ld	a,(hl)
+	inc	hl
+	cp	' '		;but if that wasnt a space
+	jr	nz,thro
+	dec	c
+	jr	z,exlop
+	jr	sllp
+thro::
+	ld	d,h
+	ld	e,l
+	dec	de	;correction
+	inc	b	;1 char already
+	dec	c
+	jr	z,exlop
+lenlop::
+	ld	a,(hl)
+	inc	hl
+	inc	b		;another char
+	dec	c
+	jr	z,exlop
+	cp	' '
+	jr	nz,lenlop	;measure the string
+	dec	b		;correction
+	ld	(cmdpt),hl	;save our place on line
+	ld	a,c
+	ld	(cnt),a		;save count
+	pop	hl
+	ret
+exlop::
+	ld	a,1
+	ld	(cnt),a	;zero out count
+	pop	hl
+	ret
+
+;--------------------------------------------------------
+len::				;label for bmove
+ppp::	ds	2
+pflag::	ds	1
+cmdpt::	ds	2
+cnt::	ds	1
+kbst::	ds	2
+point:  ds	2
+hokad::	ds	2
+kb::	ds	2
+buff::	ds	sectors*128	;command buffer
+param::	ds	40h		;space for cpm command line
+
+; and end to it all......
+	end
+

@@ -1,0 +1,81 @@
+	IF	I696
+	DB	' -- IEEE 696 Host Adapter.'
+	ENDIF
+	IF	I796
+	DB	' -- IEEE 796 Host Adapter.'
+	ENDIF
+	DB	CR,LF,MSIZE/10+'0',MSIZE mod 10 +'0'
+	DB	'K CP/M ',VERS/10+'0','.',VERS mod 10 +'0'
+	DB	CBIOSV+'@',0
+;
+;
+	ORG	URINIT
+;
+;
+;	CP/M disk work space.
+
+ALV:
+	IF	LUN0
+	DS	LUN0NLD*(((((LUN0SEC/HSTSPT-2)*CPMSPT/HSTSIB)-1)+7)/8)
+	ENDIF
+	IF	LUN1
+	DS	LUN1NLD*(((((LUN1SEC/HSTSPT-2)*CPMSPT/HSTSIB)-1)+7)/8)
+	ENDIF
+	IF	LUN2
+	DS	LUN2NLD*(((((LUN2SEC/HSTSPT-2)*CPMSPT/HSTSIB)-1)+7)/8)
+	ENDIF
+	IF	LUN3
+	DS	LUN3NLD*(((((LUN3SEC/HSTSPT-2)*CPMSPT/HSTSIB)-1)+7)/8)
+	ENDIF
+CSV:	DS	(NOFDD+NOMINI)*32
+;	Disk access information.
+;	This area is organized into the following groups
+;		disk drive
+;		track number
+;		sector number
+;		drive type
+;	Each of these groups has four cells for the
+;	current disk request, ACTual disk transfer,
+;	and active host disk.
+
+SEKDSK:	DS	1		;Current request
+SEKTYP:	DS	1		;Current disk's type
+SEKTRK:	DS	2		;Current request
+SEKSEC:	DS	1		;Current request
+
+ACTDSK:	DS	1		;Actual transfer operation
+ACTTYP:	DS	1		;Actual disk's type
+ACTTRK:	DS	2		;Actual transfer operation
+ACTSEC:	DS	1		;Actual transfer operation
+
+HSTDSK:	DS	1		;Active host disk
+HSTTYP:	DS	1		;Active disk's type
+HSTTRK:	DS	2		;Active host disk
+HSTSEC:	DS	1		;Active host disk
+;
+;
+;
+;
+;	Disk transfer flags and counters.
+
+RDFLAG:	DS	1		;Read flag
+ERFLAG:	DS	1		;Error reporting
+WRTYPE:	DS	1		;Write operation type
+
+SAVSEC:	DS	1		;Save sector
+NUMSEC:	DS	1		;Number of sectors
+
+CIOPL:	EQU	9
+CIOPB:	DS	CIOPL		;Disk command buffer
+TEMPBF:	DS	8		;Result status cells
+ESPACE:
+
+
+	ORG	MSIZE*K-HSTSIZ-128
+
+DIRBUF:	DS	128		;Directory buffer
+HSTBUF:	DS	HSTSIZ		;Host buffer
+
+
+	END
+

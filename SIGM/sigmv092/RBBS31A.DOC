@@ -1,0 +1,218 @@
+Changes for RBBS 3.1:
+
+1.  User now receives the message ">>>ACCESS DENIED<<<" if he attempts
+to enter CP/M and there is an asterisk next to his entry in USERS.
+
+2.  The Kill Command reprompts for another message to kill in the same
+fashion as the Read command.
+
+3.  A ^K during a forward sequential Read just skips the rest of the
+current message being displayed and goes on to the next one.
+--------------------
+
+                  RBBS 3.0 Preliminary Documentation
+
+RBBS Version 3.0 is based on RBBS 2.4 and incorporates several mods
+from RBBS-RTN.001.  However, it goes far beyond those mods to fix many
+longstanding bugs as well as add many new features.
+
+The major new feature is a working user password scheme which
+minimally impacts present systems running older versions of RBBS.
+
+The first version of this program has been in use for about a month on
+three RCP/M systems in the El Paso, TX area and has received a
+thorough debugging which led directly to this first public release.
+
+To run this version, you will also need MENURBBS and NEWCOM text
+files, as well as making up your own versions of PWDS, BULLETIN, INFO,
+and ENTERCPM text files.  Only MENURBBS and ENTERCPM are new, and
+ENTERCPM may be extracted from your existing RBBS source file to use.
+
+Users running older versions of RBBS will have to edit their USERS
+file to replace the blanks between fields with semicolons and add a
+new field for the initial default password as follows:
+
+JOE USER;ANYCITY, USA;DEFAULT
+
+Be sure to us overwrite rather than insert mode to make these changes.
+
+The only major drawback to bringing this program up in .COM file
+format is that you will not only need BASCOM and L80, but also a TPA
+of at least 54K to run L80.  Alternately, if you have access to
+PLINKII, you will not have a problem with linking this program.
+
+You will also have to make some trivial mods to the source to
+customize it for you local implementation:
+
+1.  Change VERS1$ in line 190 to be your own system name.
+
+2.  Change SYS1$ and SYS2$ in line 200 to your (the SYSOP's) first and
+last name, respectively.
+
+3.  Change DSK$ in line 220 to the drive containing all the files read
+or used by RBBS.
+
+4.  Remove the REM in lines 890 and 7140 if you want RBBS to store the
+first four characters of the caller's last name beginning at 40H.
+This information may then be used by other programs, such as special
+versions of XMODEM, to log the caller's name in some file.
+
+5.  Change the value for the OUT statement in line 4290.  It is
+presently set up to output a zero in port 82H for a DCHayes modem
+addressed at 80H.
+
+6.  Change your PWDS file to add two new fields, ending up looking
+like the following format:
+
+field1,field2,field3,field4
+
+where:
+
+field1 is the "first name" for direct entry to CP/M
+
+field2 is the "last name" used for the SYSOP login
+
+field3 is the "password" or answer to the prompt in field4 (or NOPASS,
+in which case no password is required of the user)
+
+field4 is the prompt string that the user must answer to match field3.
+
+Enjoy!
+
+--Frank Wancho
+
+------------------------------------------------------------
+
+     EARLIER DOCUMENTATION DISTRIBUTED WITH VERSION 2.2
+     ==================================================
+
+	This is a preliminary documentation file for the 2.0
+version of RBBS (Remote Bulletin Board System).  More com-
+plete documentation, to include a complete overview as well
+as more detailed implementation notes, is planned.
+
+============================================================
+
+RBBS PROGRAM
+
+    The RBBS software has four new features with the 2.0
+implementation:
+	
+	1) Personal messages:  A caller can leave a personal
+	   message to anyone else by entering the password
+	   "*".  This causes the message to be invisible in
+	   summary commands, and retrieve and kill, for any-
+	   one but the sender and receiver.  An attempt to
+	   Kill a personal message by anyone other than the
+	   sender or receiver (and, of course, the SYSOP),
+	   will result in a "message not found".
+
+	2) Re-entry:  when a user has exited to the operating
+	   system, RBBS will retain his name in a file called
+	   "LASTCALR".	If RBBS is subsequently re-entered
+	   with RBBS P (the "P" was arbitrarily chosen), the
+	   system will retrieve his name from the "LASTCALR"
+	   file, and skip the sign-on printing.  Note that if
+	   you are using a loader program to load RBBS from
+	   another user area (under cp/m 2.x), you can make
+	   this function automatic, by having the loader fill
+	   in the "P" immediately before it transfers control
+	   to RBBS.  In this case, your BYE program should
+	   store a non-"P" character at location 5DH (default
+	   cp/m file control block).
+
+	3) Killed messages will now have additional information
+	   in the record used to store the message number:
+			0:<#>:<user name>
+	   where 0 indicates a killed message to RBBS, <#> is
+	   the original message number, and <user name> is the
+	   name of the user who killed the message.  This should
+	   be helpful in restoring messages improperly killed
+	   by inept/malicious individuals.  Note that after
+	   using an editor to restore the message (be careful
+	   here - the editor must not choke on blank-filled
+	   lines), the "BUILDSUM" function of the RBBSUTIL pro-
+	   gram can be used to generate a new summary file.
+
+	4) Message passwords, previously only stored in the sum-
+	   mary file, are now duplicated in the message file.  
+	   This was necessary to allow the BUILDSUM function of
+	   RBBSUTIL to generate a complete summary file.
+
+==============================================================
+
+RBBS UTILITY PROGRAM (RBBSUTIL)
+
+	The utility program has the following changes with the
+2.0 upgrade:
+
+	1) When transferring a disk file to the message file,
+	   the files must have already been purged.  This in-
+	   sures that the files will have been backed up prior
+	   to any messages being added.  Note also that the
+	   file "COUNTERS" will also be backed up by purge.
+
+	2) The purge function writes deleted messages to an ar-
+	   chive file called <DATE>.ARC, where the date is sup-
+	   plied by the operator when purge is invoked.  The
+	   archive file is written sequentially, and lines are
+	   unpacked before writing to conserve space.
+
+	3) The purge function allows renumbering of the messages
+	   starting at any number specified when purge is in-
+	   voked.  You may choose not to use this option if you
+	   maintain archives, because duplicate message numbers
+	   can be left in the archive files.
+
+	4) A new function, "B", will build a summary file from
+	   the message file.  This can be useful after editing
+	   the message file.  It also allows only the message
+	   file to be saved when doing back-up operations, as
+	   the summary file can now be derived from the message
+	   file.  Note that releases of RBBS previous to 2.0 did
+	   not save the passwords in the message file, there-
+	   fore, a summary file, rebuilt from such a message
+	   file will not have password protection.
+
+					Ron Fowler
+					Nov 18, 1980
+					Westland, Mich.
+
+
+	  PREVIOUS DOCUMENTATION OF THE RBBS SYSTEM
+	  =========================================
+
+
+		    RBBS.DOC as of 10/23/80
+
+   RBBS is short for "Remote Bulletin Board System".
+   RBBS.ASC is a file that was created with MBASIC 5.2.  Do
+not try to edit it with a CP/M text editor because some  of
+the multiple line statements may have special end-of-line
+sequences which may mess up a video-oriented editor, making it
+impossible to see some of the lines.  Use MBASIC 5.2 to edit the
+file.  This is public-domain software, feel free to use it on
+your own system.  The  best  way to run this program is to com-
+pile it with the MBASIC compiler, making a COM file out of it.
+It will run much faster  that way.  This is what Bruce Ratoff
+did, and it works great on his system. 
+   The POKES to address 0000h change the C3 to a CD during
+execution  of this program.  Bruce Ratoff tests for this in
+his DCHBYE55  remote  console program. This testing is also done
+in the PMMIBY63 remote console program. In the input from modem
+port routine a test is made to see if address 0000h is a CD, if
+so it causes the input routine to ignore control-C, changing it
+to to a null character instead.  This makes it impossible for
+the user to control-C  out of RBBS.   When the program is done,
+if you are exiting to CP/M for file transfers, it changes the CD
+back to a C3 and then jumps to 0000h (warm boot).
+   RBBSPURG.ASC is a program for purging dead messages out of
+the RBBS message files.  This should be done periodically to
+compactthe message files, since  the "Kill" function simply
+deletes  the pointer to the message, not the message itself.
+
+-------
+ NOTE: The above RBBSPURG.ASC has been superceded by
+	 RBBSUTIL.ASC	  rgf
+-------
+

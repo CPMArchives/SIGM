@@ -1,0 +1,164 @@
+VOCABULARY RELATED WORDS:
+copyright (C) 1983 by E. E. Bergmann
+definitions in alphabetical(ASCII) order
+:
+::
+*********************************************************
+*							*
+* PISTOL-Portably Implemented Stack Oriented Language	*
+*			Version 2.0			*
+* (C) 1983 by	Ernest E. Bergmann			*
+*		Physics, Building #16			*
+*		Lehigh Univerisity			*
+*		Bethlehem, Pa. 18015			*
+*							*
+* Permission is hereby granted for all reproduction and *
+* distribution of this material provided this notice is *
+* included.						*
+*							*
+*********************************************************
+:
+::
+(PISTOL<)	Variable that contains pointer to most recent
+		definition in the PISTOL< vocabulary branch;
+		see PISTOL<, below.
+
+(UNLINKED<)	Variable that contains pointer to most recent
+		definition in the UNLINKED< vocabulary branch;
+		see UNLINKED<, below.
+
+.V		--> (pointer to top of vocabulary stack)
+		It is the vocabulary stack pointer.
+
+>		Pops (removes from) the top of the Vocabulary
+		Stack, which contains a list of Vocabulary
+		Branches to be searched by the interpreter or
+		by the FIND command.
+
+ADDRESS		'<name> --> (its address)
+		If the word is not found, an error diagnostic
+		is provided.
+
+BLIST		Utility that types out a list of all Vocabulary
+		Branches that exist ("Branch List").
+
+BRANCH		Creates a new "catagory" or "heading" for
+		definitions; creates a new vocabulary whose
+		name is what has been placed on the stack.
+		For example:
+		X> 'SPECIAL< BRANCH
+		X> SPECIAL<  DEFINITIONS
+		X> 'FIRST : ....    ;
+		.
+		.
+		X> > DEFINITIONS  % finish definitions for
+		X>		  % SPECIAL< vocabulary
+
+CURRENT		Variable containing pointer to Vocabulary
+		Branch into which the next word definition
+		will be placed.  Normally, this pointer points
+		at the last definition.
+
+DEFINITIONS	Changes the CURRENT pointer to match the latest
+		Vocabulary Branch on the Vocabulary Stack.
+		Thus, further word definitions will be placed
+		in the Branch that is currently on the top of
+		the Vocabulary stack (see the example given
+		above for BRANCH).
+
+FENCE		Variable containing lower limit for FORGET, see
+		below.
+
+FIND		'<name> --> (its address) if found
+			--> FALSE	if not found
+
+FORGET		'<name> -->
+		Removes all definitions recently defined back
+		back to and including the defintion of <name>.
+		Will ABORT if the address of <name> is below
+		(before) the value of FENCE, see above.
+
+NAME		TOS -->
+		Takes the TOS as an address of a definition or
+		a "primitive" ( an "opcode" that can be
+		interpreted, even so it is not an address)
+		and prints its name.  NAME is used by the
+		disassembler, by TRACE, and by the definition
+		listers, such as NEXT10, below.
+
+NEXT10		TOS --> ADDR
+		Takes the TOS as the address of a definition;
+		That definition and the preceding 9 definitions
+		in the same vocabulary are listed by address
+		and NAME.  Upon completion, the address of the
+		next logically listable definition, ADDR, is
+		left on stack.  So, for example, to list the
+		last thirty definitions one could type:
+		X> TOP10 NEXT10 NEXT10 DROP
+
+PISTOL<		Accesses the original vocabulary branch of
+		PISTOL.  Invoking this word will place
+		(PISTOL<) on the top of the vocabulary stack
+		so that this branch will be first in the
+		search path.
+
+PREVIOUS	Variable that contains the address of the
+		previous link to the definition last found
+		by FIND or VFIND.  It is used by UNLINK and
+		RELINK to obtain the link to the item searched
+		for.
+
+PRIMITIVE?	TOS --> TRUE|FALSE
+		Decides whether the TOS is a suitable value to
+		be an "opcode" to be executed directly by the
+		PISTOL "primitive" interpreter, PINT, as
+		opposed to the address of a higher level
+		definition.  It is used by NAME to decide
+		that TOS is not the address of a definition
+		entry.
+
+RELINK		'<name> -->
+		Searches the UNLINKED< Vocabulary Branch for
+		the <name> definition;  if found, it is removed
+		from that Branch and (re)attached to the
+		Vocabulary Branch that is at the top of the
+		Vocabulary Stack.
+
+TOP10		--> ADDR
+		Lists the ten most recent definitions in the
+		CURRENT vocabulary branch.  It leaves the
+		address of the next definition to be listed
+		on the stack to be available for NEXT10; see
+		the example of use above for NEXT10.
+
+UNLINK		'<name> -->
+		Searches for the <name> definition; if found,
+		it is removed from its vocabulary branch and
+		attached to the UNLINKED< vocabulary branch.
+		It is used to removed from the usual search
+		path those definitions which are no longer of
+		use or which are too dangerous to be easily
+		accessible.
+
+UNLINKED<	Vocabulary branch into which all UNLINKed
+		definitions are placed (see UNLINK, RELINK).
+		Invoking UNLINKED< will place (UNLINKED<)
+		at the top of the vocabulary stack.
+
+VADDRESS	'<name> VOCAB --> (address)
+		Similar to ADDRESS, but only the specified
+		vocabulary branch is searched.
+
+VFIND		'<name> VOCAB --> (address)|FALSE
+		Similar to FIND, except that only the specified
+		vocabulary branch is searched.
+
+VLIST		--> ADDR
+		Lists the ten most recent definitions in the
+		topmost branch on vocabulary stack.  It leaves
+		the address of the next definition to be listed
+		on the stack to be available for NEXT10;
+		similar to TOP10 (see above).
+
+:
+r NEXT10

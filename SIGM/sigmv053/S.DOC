@@ -1,0 +1,40 @@
+"S.COM" is an example of the use of SAM76 in autorun
+mode of operation. In effect "S.COM" is nothing
+more than (in this case ILRAW primed with CPMSETL)
+a version of the SAM76 interpreter which has been
+reloaded prior to saving with a script written to
+recognize a command string and act on it.
+
+Procedure is as follows:
+
+1. Bring in a copy of SAM76, either through the
+sequence ZLRAW/ILRAW and CPMSETL/ZAPSETL or if you
+prefer just S.
+
+2. Bring the file "G.SAM" thus:
+
+%bf,g.sam/=
+
+3. Examine the text "G" that has been brought in
+and desirably analyze it - use %vt,G/=.
+
+4. Execute G thus:	%G/=
+
+5. This will take you back to the operating system
+and now save the file thus:  SAVE 63 xxx.COM.
+
+Use of xxx.COM allows you to specify a command string
+which is examined by "G" in the following manner:
+
+xxx yyy drive
+
+where xxx is the name of the file you saved,
+and  yyy is a file (yyy.sam) which contains the script
+you wish to invoke, the first of which must be named
+upper case "A" (at least as long as you do not change G).
+and drive is the drive number on which yyy.sam exists.
+
+If you omit drive, then drive 0 is assumed, if you omit
+yyy then you will get SAM76 in its normal form.
+
+

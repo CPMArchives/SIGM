@@ -1,0 +1,436 @@
+.comment \
+				LDIR.MAC   ver 2.2
+			     07-28-84 - by S. Kluger
+
+NOTE:
+=====
+	If you feel the urge to "improve" this program,
+	PLEASE, call the SENECA RCPM first to see if there
+	is a later version. THEN send me your update.
+	(214) 553-1363  300/1200
+
+ Assembly language is great, especially with SYSLIB...
+
+ Revision history:
+
+ 07/28/84	added wildcard capability (LDIR M7OVRL M7HZ*.*  etc)
+		added new external function MATCHF. This function is
+		available as SMATCHF.MAC and serious users of SYSLIB
+		should add it to SYSLIB (anywhere except as the last
+		module!) See SMATCHF.MAC for documentation.
+ 07/21/84	fixed up for use with SYSLIB3
+ 04/15/84	Added directory CRC verification, fixed bug in dir read rtn
+ 01/25/84	Added total size display
+ 01/24/84	Reworked code for use with M80, changed drive/user
+		boundary check so it will work if logged into
+		a restricted user area. SFK
+ 01/03/84	Major rewrite. Added SORT, now reads all
+		of the directory first. Only size in k now   SFK.
+ 12/09/83	Added code to save/restore drive/user	SFK.
+ 12/05/83	Did I really forget a ^C check? (added ^C/^S) SFK.
+ 10/25/83	Added CRC display option for LU300 files
+		added fence character (except on S option).
+ 10/18/83	Rewritten for use with modified RMAC, added
+		command line option for sector display. {SFK}
+ 10/16/83	Initially written.
+
+
+ NOTE:	The sort used here is a shell-metzner sort not contained
+	in SYSLIB, but supplied as SORT.ASM. Be sure to link it
+	first, i.e. LINK LDIR,SORT,MATCHF,SYSLIB[S] or
+		L80 /P:100,LDIR,SORT,MATCHF,SYSLIB/S,LDIR/N/E
+\
+;
+	EXTRN	MATCHF	;see comment above
+	EXTRN	SORT	;my shell-metzner sort
+	EXTRN	BDOS	;SYSLIB BDOS call
+	EXTRN	CONDIN	;SYSLIB conditional input
+	EXTRN	CIN	;SYSLIB character in
+	EXTRN	COUT	;SYSLIB character out
+	EXTRN	CRLF	;SYSLIB newline
+	EXTRN	DIVHD	;SYSLIB hl / de
+	EXTRN	F$OPEN	;SYSLIB open file
+	EXTRN	F$READ	;SYSLIB file read
+	EXTRN	FNAME	;SYSLIB file name parser
+	EXTRN	GETUD	;SYSLIB restore default user/drive
+	EXTRN	LOGUD	;SYSLIB log drive/user
+	EXTRN	PADC	;SYSLIB print A as decimal
+	EXTRN	PAFDC	;SYSLIB print A as floating decimal
+	EXTRN	PFN1,PFN2	;SYSLIB print filename
+	EXTRN	PHLFDC	;SYSLIB print HL floating decimal
+	EXTRN	PHL4HC	;SYSLIB print HL as 4 hex char
+	EXTRN	PRINT	;SYSLIB print routine
+	EXTRN	PUTUD	;SYSLIB save current user/drive
+	EXTRN	RETUD	;SYSLIB return drive/user
+	EXTRN	crcUPD,crcCLR,crcDONE	;SYSLIB CRC routines
+;
+cr	equ	0dh
+lf	equ	0ah
+;
+dbuf	equ	80h		;default buffer
+dfcb	equ	5ch		;default fcb
+dfcb2	equ	6ch		;second default fcb
+;
+begin:	jmp	contn		;skip parameters
+;
+cols:	db	4		;dir columns per line
+maxdrv:	db	1+'P'-40H	;highest accessible drive + 1
+maxusr:	db	1+15		;highest accessible user + 1
+;
+contn:	lxi	h,0		;save CP/M stack pointer
+	shld	totsec		;take the opportunity and zero count
+	dad	sp
+	shld	stack
+	lxi	sp,stack	;set up local stack
+	call	crcclr		;set up CRC accumulator
+	call	print
+	db	'LDIR v2.2  (c) ESKAY 07-28-84',cr,lf,0
+	call	putud		;put away default DU
+	lda	dfcb+1		;check if no file name specified
+	cpi	' '
+	jz	what		;give help if no argument
+	call	retud		;get current drive/user
+	mov	h,b
+	mov	l,c
+	shld	userno		;save current DU
+	lxi	h,dbuf+2	;point to argument
+	lxi	d,fcb		;hopefully .lbr file
+	call	fname		;make fcb
+	jz	what		;not a valid file name
+	lxi	h,dfcb2+1
+	mov	a,m		;get first byte of second filename
+	cpi	' '		;if not blank...
+	jnz	sk2q		;..then don't fill with '?'
+	mvi	a,11		;char count
+fql:	mvi	m,'?'		;else fill with '?'
+	inx	h
+	dcr	a
+	jnz	fql
+sk2q:	lxi	h,fcb+1
+	mvi	a,'?'		;see if there is any...
+	mvi	e,11		;...ambiguity in the file spec
+ckamlp:	cmp	m
+	jz	noamb		;complain if ambiguous fn
+	inx	h
+	dcr	e
+	jnz	ckamlp
+	inx	b		;check if current DU:
+	mov	a,b
+	ora	c
+	dcx	b		;restore DU: value
+	jz	currdu		;skip this if current
+	mov	a,b		;get specified drive
+	dcr	b		;get into range 0..f
+	cpi	0ffh		;ff means current drive
+	lxi	h,maxdrv
+	jnz	newdsk		;skip if different
+	lda	driveno
+	mov	b,a
+	jmp	curdsk
+;
+newdsk:	cmp	m
+	jnc	illdu		;yes - complain
+curdsk:	mov	a,c		;get specified user area
+	cpi	'?'		;all user areas???
+	jz	illdu		;yes - complain
+	cpi	0ffh		;current user area?
+	jnz	newusr
+	lda	userno
+	mov	c,a
+	jmp	curusr
+;
+newusr:	inx	h		;illegal user specified?
+	cmp	m
+	jnc	illdu		;yes - complain
+curusr:	call	logud		;log into specified DU:
+currdu:	lxi	h,FCB+9		;default to .LBR
+	mvi	m,'L'		;default to .LBR
+	inx	h
+	mvi	m,'B'
+	inx	h
+	mvi	m,'R'
+	lxi	d,fcb
+	call	f$open		;attempt to open file
+	jnz	nofile		;barf if not found
+	lda	cols
+	sta	column		;set column count to 2
+	call	print
+	db	cr,lf
+	db	'LBR directory for ',0
+	lxi	d,fcb+1
+	call	pfn2		;print LBR file name
+	mvi	a,':'
+	call	cout
+	dcx	d
+	call	f$read		;read first sector
+	jnz	rderr
+	lxi	h,dbuf
+	mov	a,m
+	ora	a
+	jnz	baddir		;bad directory
+	inx	h
+	mvi	b,11		;eleven chars to check
+cklp:	mov	a,m
+	cpi	' '
+	jnz	baddir
+	dcr	b
+	inx	h
+	jnz	cklp
+	inx	h		;now point to size
+	inx	h
+	mov	a,m		;no dir ever > 255 sectors!?!?!
+	sta	dirsiz		;save dir size
+	push	psw		;save it to stack too
+	add	a
+	add	a
+	dcr	a		;dirsec*4-1 total entries
+	sta	entries
+	pop	psw		;get dir size back
+	mov	b,a
+	mvi	l,90h		;point to CRC
+	mov	a,m
+	inx	h
+	mov	h,m
+	mov	l,a
+	shld	dcrc		;save directory CRC
+	lxi	h,0		;reset dir crc
+	shld	90h
+	lxi	h,dirbuf
+	shld	dbufp
+rlp:	call	ccrc		;compute crc for dbuf
+	call	move
+	lxi	d,fcb
+	call	f$read
+	jnz	rderr
+	dcr	b
+	jnz	rlp
+	call	crcdone		;CRC calculation finished
+	xchg
+	lhld	dcrc
+	mov	a,h
+	cmp	d
+	jnz	badcrc
+	mov	a,l
+	cmp	e
+	jz	crcok
+badcrc:	mov	a,h
+	ora	l
+	jz	crcok		;skip if LU 2.xx
+	call	print
+	db	cr,lf
+	db	'** directory questionable **',cr,lf
+	db	'CRC is ',0
+	xchg
+	call	phl4hc
+	call	print
+	db	', should be ',0
+	xchg
+	call	phl4hc
+;
+; directory is in RAM - print it now.
+;
+crcok:	call	crlf
+	call	crlf
+	lxi	h,dirbuf+20h	;skip directory itself
+	shld	dbufp
+	lda	entries		;get # of records
+	mov	c,a
+	mvi	b,0		;into BC
+	lxi	d,20h		;record length into DE
+	push	h		;save dir buffer
+	call	sort		;sort the stuff
+	pop	h		;get pointer back
+dloop:	mov	a,m
+	inx	h
+	ora	a		;entry deleted?
+	jnz	nolf		;yes, skip
+	lda	diract		;number of displayed files
+	inr	a
+	sta	diract
+	push	d
+	lxi	d,dfcb2+1	;point to match fn
+	call	matchf		;match the filenames
+	pop	d
+	jnz	nolf		;skip if no match
+	lda	dirdis		;number of displayed files
+	inr	a
+	sta	dirdis
+	lda	cols
+	mov	b,a
+	lda	column		;determine if we need fence
+	cmp	b
+	jz	nofenc		;no fence if first or last col
+	call	print
+	db	' | ',0
+nofenc:	call	fnout		;print the file name
+	mvi	a,' '		;single space breather
+	call	cout
+	inx	h
+	inx	h
+	mov	e,m
+	inx	h
+	mov	d,m
+	lhld	totsec		;get total sector count
+	dad	d		;add new file
+	shld	totsec		;save updated value
+	xchg			;size in sectors now in HL
+;
+; convert sectors to k, then print
+; assuming no individual member will be >255k, we'll
+; print the file size in a 3-character field.
+;
+kout:	lxi	d,7		;round size...
+	dad	d		;...to nearest k
+	inx	d		;DE=8 (divisor)
+	call	divhd		;divide hl/de
+	mov	a,l		;get size into A
+	call	padc		;print size
+	mvi	a,'k'		;print the k
+	call	cout
+	lda	column		;get column
+	dcr	a		;count down
+	sta	column		;and save it
+	jnz	nolf		;skip this if not 0
+	lda	cols		;get old col count
+	sta	column		;restore running count
+	call	crlf		;start new line
+nolf:	lhld	dbufp		;skip to next dir entry
+	lxi	d,20h
+	dad	d
+	shld	dbufp
+	lda	entries
+	dcr	a
+	sta	entries
+	jnz	dloop
+	lda	cols
+	mov	b,a
+	lda	column
+	cmp	b
+	cnz	crlf
+	call	print
+	db	cr,lf
+	db	'Members ',0
+	lxi	d,dfcb2+1
+	call	pfn2
+	call	print
+	db	' displayed ',0
+	lda	dirdis
+	call	pafdc
+	call	print
+	db	' of ',0
+	lda	diract
+	call	pafdc
+	call	print
+	db	' active : ',0
+	lhld	totsec
+	call	phlfdc
+	call	print
+	db	' sectors (',0
+	lxi	d,7		;round to nearest full k
+	dad	d
+	inx	d		;DE=8 (sectors/k)
+	call	divhd
+	call	phlfdc
+	call	print
+	db	'k).',cr,lf,0
+	jmp	quit		;quit if all printed
+;
+; buffer move routine. moves default buffer into dir buffer.
+;
+move:	lhld	dbufp
+	lxi	d,dbuf
+movlp:	ldax	d
+	mov	m,a
+	inx	h
+	inr	e
+	jnz	movlp
+	shld	dbufp
+	ret
+;
+; Print the file name
+;
+fnout:	xchg
+	call	pfn1
+	xchg
+	lxi	d,11
+	dad	d
+	call	condin		;check ^C/^S
+	rz			;no char available
+	cpi	'C'-40h		;^C?
+	jz	quit		;yes, time to get out
+	cpi	'S'-40h		;^S?
+	rnz			;no, skip
+	jmp	cin		;wait for char typed
+;
+; check CRC of dbuf
+;
+ccrc:	push	h
+	lxi	h,dbuf
+ccrcl:	mov	a,m
+	call	crcupd
+	inr	l
+	jnz	ccrcl
+	pop	h
+	ret
+;
+; Here are the messages
+;
+rderr:	call	print
+	db	cr,lf
+	db	'Error reading file',cr,lf,0
+	jmp	quit
+;
+baddir:	call	print
+	db	'Bad directory - not LBR format',cr,lf,0
+	jmp	quit
+;
+illdu:	call	print
+	db	cr,lf
+	db	'Drive/user out of bounds',cr,lf,0
+	jmp	what
+;
+nofile:	call	print
+	db	cr,lf
+	db	'No such file on disk',cr,lf,0
+	jmp	quit
+;
+noamb:	call	print
+	db	cr,lf
+	db	'No ambiguous LBR file names allowed',0
+what:	call	print
+	db	cr,lf
+	db	'USAGE: LDIR [du:]ufn[.LBR][ afn]',cr,lf
+	db	'Where: du: = drive and user, ufn = LBR file name',cr,lf
+	db	'       afn=optional match filename (find files in LBR).'
+	db	cr,lf
+	db	'Examples:',cr,lf
+	db	'A0>LDIR C3:TEST',cr,lf
+	db	'B2>LDIR 0:TEST1',cr,lf
+	db	'B0>LDIR TEST1',cr,lf
+	db	'C1>LDIR M7-OVL M7HZ*.*',cr,lf,lf,0
+quit:	call	crlf
+	call	getud		;restore default DU
+	lhld	stack
+	sphl
+	ret
+;
+dbufp:	dw	0	;dir buffer pointer
+totsec:	dw	0	;total number of sectors in lbr
+dirsiz:	db	0	;# of total dir sectors
+diract:	db	0	;# of active dir entries
+dirdis:	db	0	;# of displayed entries
+dcrc:	dw	0	;directory CRC
+entries:db	0	;total # of entries in dir
+column:	db	0	;column count
+userno:	db	0	;current user #
+driveno:db	0	;current drive
+fcb:	ds	36	;out fcb
+	ds	40	;20 level stack
+stack:	dw	0	;save CP/M stack pointer here
+dirbuf	equ	1000h	;directory buffer starts here
+	end
+0
+	jmp	quit
+;
+noamb:	call	print
+	db

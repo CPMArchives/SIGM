@@ -1,0 +1,466 @@
+                             FTNOTE.DOC
+                             ----------
+                    Documentation for FTNOTE.COM
+                        (C)1984,  Eric Meyer
+                      (Version 1.4 - 84/08/27)
+
+           Requires: CP/M operating system and WordStar(tm)
+
+This program and its documentation are released to the public domain.
+They may be used, copied, and distributed by all as long as NO charge
+          is involved, and NO unauthorized changes are made.                  
+                             Eric Meyer
+                          427 N. Washington
+                        Bloomington, IN 47401
+---------------------------------------------------------------------
+
+                          I. INTRODUCTION
+
+     FTNOTE.COM is a formatting utility for WordStar files.  Its main
+function is to allow the printing of WordStar documents with page-bottom
+footnotes, but it does internal page referencing and improved block
+formatting as well.
+     FTNOTE will automatically move your footnotes into and out of your
+text file; number them for use as end notes; or produce a printable file
+with them at page bottom.
+     FTNOTE is an effective but simple program.  It does NOT attempt to
+duplicate the existing capabilities of WordStar: editing, justification,
+or printing.  It is a utility to be used in conjunction with WordStar.
+
+FEATURES:   * simple, natural file format
+            * automatic separation of text and notes
+            * will produce end notes or footnotes as desired
+            * automatic footnote numbering
+            * numbering can match up across multiple files
+            * page-mode or continuous footnote numbers
+            * long notes will continue on next page
+            * many formatting options allow flexible results
+            * automatic internal page reference numbering
+            * useful improved figure-block formatting
+            * can be run FROM WORDSTAR with Main Menu "R" command
+
+TYPICAL USE SEQUENCE:
+ (1) Create the source file (text with notes)  WHATEVER.DOC
+ (2) Extract notes to separate file WHATEVER.NOT: run FTNOTE WHATEVER -E
+ (3) Combine the DOC and NOT files for printing:  run FTNOTE WHATEVER
+ (4) Print or Mergeprint the output file  WHATEVER.PRN
+
+---------------------------------------------------------------------
+
+           II. THE COMMAND LINE: MODES, OPTIONS, FILES
+
+SYNTAX:     FTNOTE [D:]FILENAME -mode        (utility modes)
+         or FTNOTE [D:]FILENAME [options]    (formatting)
+
+Do not include the filetype on the FTNOTE command line.  FTNOTE
+will look for files (of filename FILENAME) with the filetypes DOC,
+NOT, D#C, N#T, and PRN as appropriate.  (See FILE USAGE.)
+
+EXAMPLES:
+   ftnote dissert -e     extracts DISSERT.NOT from DISSERT.DOC
+   ftnote art1 #an^      combines ART1.DOC and ART1.NOT into 
+                        ART1.PRN for printing (see options below)            
+
+In the following instructions, the phrase "the DOC file" means the
+file with your specified name, and filetype DOC, i.e. ART1.DOC.  "The
+NOT file" is then ART1.NOT, etc.
+
+UTILITY MODES:
+     If you wish to create the needed NOT file by extracting footnote
+text from your DOC file, use the "-e" mode.
+     If you later wish to replace the footnotes into the DOC file,
+which makes major editing of the document a lot easier, use "-r" mode.
+     If you wish to have end notes instead of footnotes, once you
+have the DOC and NOT files separate, the "-n" mode will simply number
+the notes in each sequentially, producing files D#C and N#T.  This
+mode does NO other formatting.
+     The default mode is formatting mode, which combines the DOC and
+NOT files into a PRN output file with notes at page bottom, etc.  Most
+of the following instructions apply to the preparations for or use of
+this format mode.
+
+FORMATTING OPTIONS:
+     If you are ready to format (combine the DOC and NOT files into a
+PRN file ready to print), the option string may contain any of the
+following:    (1) the character "#".
+              (2) the character "^".
+              (3) any ONE of characters =, ~, _, @.
+              (4) any PAIR of characters A, N, Q, W, E, R, Y.
+These allow you to choose the following optional features.
+     (1) By default, footnote numbers run continuously from 1 to 99
+(or 999).  However, if you use the "#" option, you can instead have the
+numbers start over at 1 on each page.
+     (2) By default, footnotes are printed at the bottom of the
+page even when the text ends higher up.  Use the "^" option if you
+would prefer the notes to be right under the text regardless.
+     (3) By default, page bottom notes are preceded by a blank line
+followed by a short line of dashes (-).  The length of this line can
+be changed via a user patch, below.  You can change this to a line of
+=, ~, or _ if you prefer.  (For _, this line will precede the blank
+line, so it doesn't collide with footnote superscripts.)  If you want
+no visible line, use @, and you will simply get two blank lines.
+     (4) You may choose to have footnotes print out in a different
+print style than the body of the text.  If you have a set of ^P codes
+installed in WordStar to use such a feature of your printer (for
+example, compressed print mode on a matrix printer), put the appro-
+priate pair of letters in the option string.  For example, if you
+have set up ^PA to enter compressed mode and ^PN to return to normal
+print, use "AN" in the option string.  (Remember to format the note
+file accordingly; use wider margins for smaller print, so the text
+and notes will have the same physical line width in the PRN file.)
+
+FILE USAGE:
+Be sure to give your original source file the filetype "DOC".
+     All files to be used by FTNOTE must be on the same drive: the
+one you specified on the command line (or the logged drive).
+     Here is a summary of FTNOTE's file usage.  Note that in order
+not to fill up your disk, it does not create BAK files. 
+       MODE       INPUT FILE(S)   KEPT?      OUTPUT FILE(S)
+       ----       -------------   -----      --------------   
+        -n          .DOC, .NOT     yes         .D#C, .N#T
+        -e             .DOC        NO          .DOC, .NOT 
+        -r          .DOC, .NOT     NO            .DOC    
+     (format)       .DOC, .NOT     yes           .PRN  
+Always keep a backup copy of your document and notes, in case something
+goes wrong.  Note that in the "-e" and "-r" modes, FTNOTE replaces or
+erases the existing DOC and NOT files when it is finished.  (Unless it
+aborts, in which case it will merely leave a ".$$$" file behind.)  To
+protect your existing notes, the "-e" mode will refuse to run if a NOT
+file already exists.
+     Make sure you always have enough space on the disk to hold another
+full copy of your entire document, whatever mode you are using.
+     When using format or "-n" modes, every DOC file must have its
+corresponding NOT file, even if it makes no footnote calls!  Running
+"-e" on a DOC file with no footnotes will produce an empty (0 K) NOT
+file, which must exist for format or "-n" mode to work.
+     You can print the PRN file with WordStar or MailMerge, but be
+cautious about editing it.  Don't insert or delete lines, or the page
+breaks will get misplaced.  If you want to revise the document, edit
+the DOC file, and run FTNOTE again.
+     Very large files are best broken up into manageable pieces (this
+is true even when not using FTNOTE).  Output can be recombined using
+the .FI dot command, or page and footnote numbers can be made to mesh
+using the .PN and .FN commands to start each piece with the appropriate
+numberings.
+
+-------------------------------------------------------------------
+
+                     III. USING FOOTNOTES
+
+FILE FORMAT:
+     Unlike some commercial programs, FTNOTE does not use non-Wordstar
+type imbedded commands that disturb the appearance of your text file.
+You can create your text just as you have in the past.
+     Whenever you need to insert a footnote, a place is held for its
+number with two "##" characters.  (When you want to start again with
+note 1, use "#1".)  These must be enclosed within a pair of characters
+of your choice, called "delimiters".  Typical delimiters are pairs of
+brackets "[##]" or WordStar superscript codes "^T##^T", or a leading
+space and a following period " ##.".  You must use the same delimiters
+consistently throughout your text, but you may use a different set in
+the notes.
+     The footnotes must be entered into the file following a <CR> (hard
+carriage return), typically (but not necessarily) the one that ends the
+paragraph in which they were called; and in the proper order.  Each
+note must begin with another delimited "##" (or "#1") flush left.  At
+the end of the block of notes, enter a "]" followed by a <CR>, and then
+continue with the text.
+     You might write the file ART1.DOC like this (each "<" flag in
+Wordstar indicates a hard carriage return):
+
+              |  ...seafood derivatives in the native  population
+   (text)     |  as a whole. [##]  This result agrees with recent
+              |  findings, as well as the classic  study [##]  of
+              |  Jenkins and Namabi.                               <
+------------- |   ##. This does, of course, vary greatly with the
+ (block of    |  season.  See Hirsch (1944), chapter XII.          <
+   notes)     |   ##. B. Jenkin and S. Namabi (1961), "Seafood in
+------------- |  the Native Population", JGH 7:156-78. ]           <
+ (more text)  |       On the other hand, fairly little is known...
+
+Note the use of brackets as delimiters in the text; a space and a
+period as delimeters in the notes; and the "]" ending the note block.
+     Running FTNOTE in the "-e" (extract) mode will then remove all
+these footnotes into a separate file.  (Alternatively, if you find it
+convenient, you may write them in a separate file yourself to begin with,
+as version 1.0 required.  No closing "]"s are needed in the NOT file.)
+     Now you have a file ART1.DOC which looks in part like this:
+
+        |  ...seafood derivatives in the  native population
+        |  as a whole. [##]  This result agrees with recent
+        |  findings, as well as the classic  study [##]  of
+        |  Jenkins and Namabi.                               <
+        |       On the other hand, fairly little is known...
+
+and you have a file ART1.NOT which looks in part like this:
+
+        |   ##. This does, of course, vary greatly with the
+        |  season.  See Hirsch (1944), chapter XII.          <
+        |   ##. B. Jenkin and S. Namabi (1961), "Seafood in
+        |  the Native Population", JGH 7:156-78.             <
+
+Finally, running FTNOTE in "format" mode will produce the output
+file ART1.PRN, a non-document file looking something like this:
+
+        |...found to be far greater than the average intake  |
+        |  of seafood derivatives in the  native population  |
+        |  as a whole. [19]  This result agrees with recent  |
+        |  findings, as well as the classic  study [20]  of  |
+        |  Jenkins and Namabi.                               |
+        |       On the other hand, fairly  little is  known  |
+        |  of possibly similar practices in the neighboring  |
+        |                                                    |
+        |  ------------------------                          |
+        |   19. This does, of course, vary greatly with the  |
+        |  season.  See Hirsch (1944), chapter XII.          |
+        |   20. B. Jenkin and S. Namabi (1961), "Seafood in  |
+        |  the Native Population", JGH 7:156-78.             |
+
+Observe that the text will remain formatted exactly as it was in the
+DOC file, and the notes as they were in the NOT file.
+
+     Note: if you are going to use "-n" mode for end notes, you MUST
+use "#1" in the corresponding footnote each time you use it in the
+text, or your end notes will be misnumbered.  Use of "#1" in the notes
+is not required for format mode, but is recommended for consistency.
+
+THREE-DIGIT FOOTNOTES:
+     With larger documents, you may find that you need the footnote
+numbering to continue past 99.  It is now possible to use FTNOTE with
+footnotes up to 999: instead of using "##" (or "#1") as shown in the
+examples above, simply use "###" (or "##1").  If you do not need the
+larger note numbers, you will find that the two-digit form above will
+produce more attractive results.  Note that whether you choose two- or
+three-digit footnotes, you must be consistent throughout your document
+and notes.
+
+ADVANCED TECHNIQUES:
+     With a little ingenuity, you can get FTNOTE to handle a variety
+of format requirements that I didn't have in mind when I wrote it.
+Here are some problems people have had in the past.
+     Example 1:  FTNOTE requires footnote text to begin in column 1,
+but you want your whole document (text and notes) to print out with
+a ten-space left margin.  Solution: write your file without the
+margin (all those extra spaces waste disk space anyway).  Use a dot
+command, either .LM or .PO, to create the margin at print time.
+     Example 2:  MLA footnote style requires the first line of each
+footnote to be indented, and the number superscripted.  Solution:
+use a fixed tab (^PI) and a superscript as your delimiters in the
+notes (e.g. ^I##^T).  Then after formatting, edit the PRN file and
+change all ^I##^T to ^I^T##^T, completing the superscript toggles.
+     Example 3:  You want to take advantage of Figure Blocks, page
+referencing, etc, but you want end notes, not footnotes.  Solution:
+Run "-n" mode first.  (This produces a D#C file which has no "##"
+footnote calls, and a N#T file.)  Then rename the D#C file to NEW.DOC,
+the N#T file to NEW.NOT, and format these with FTNOTE NEW.  The NEW.PRN
+file will then be your final text, and NEW.NOT is the endnotes for it.
+
+--------------------------------------------------------------------
+
+                      IV. PAGE REFERENCING
+
+     The automatic internal page referencing feature available in format
+mode allows you to refer in the course of your text to a number of other
+locations in your text by page number.  The two most common uses for
+this are in constructing a table of contents, and referring to figures
+and other references.  FTNOTE allows 52 separate locations to be marked
+for this use; references may be made either earlier or later in the text.
+(This feature cannot be used to build an index; the number of markers is
+too small, and each should be set at only one location.)
+     Page references are delimited by the control character ^P, placed in
+your WordStar text like any other control-P code, by typing ^P, then P.
+Referencing will not be invoked if no ^P is found in your DOC file.  It
+is a two-pass operation, so it will double the formatting time for your
+document, if used.  You will get a message "Scanning ahead..." when page
+referencing begins, and "Scan complete" at the end of the first pass.
+
+SUMMARY:  To set reference marker A:   ^PA^P     (no adjacent spaces)
+          To call for its value:       ^PAAA^P   (spaced normally)
+
+     Page reference markers run from "A" to "Z", and from "a" to "z".  To
+set marker "A", identifying a location for further reference, you enter
+the sequence "^PA^P" in your text between an appropriate pair of words,
+with NO intervening spaces: for example, "CHAPTER^PA^PIV. ASTRONOMY."
+You can now refer to the page on which "CHAPTER IV" occurred by asking
+for the value of marker "A", by entering the sequence "^PAAA^P" where you
+want the page number: for example, "Chapter IV...........page ^PAAA^P."
+In formatting, the marker setting "^PA^P" will be replaced by a space " ",
+and any marker references "^PAAA^P" will be replaced by that page number,
+giving for example "Chapter IV............page 29.", assuming the heading
+"CHAPTER IV. ASTRONOMY." winds up on page 29. 
+     Page references may be in a different file from the corresponding
+marker setting, only if the files are chained with the .FI command.
+Otherwise the attempt to reference a nonexistent marker gives an error.
+
+--------------------------------------------------------------------
+
+                     V. TECHNICAL DETAILS
+
+DOT COMMANDS:
+     You should be aware that certain WordStar/Mailmerge dot commands
+work in a nonstandard manner with FTNOTE, and a few are not allowed.
+The nonstandard group are interpreted by FTNOTE, and often are removed
+from the PRN output file.  These include: 
+        .PL will change the page length.  (See PRINTER FORMAT.)  It may
+occur only once, at the top of your DOC file.
+        .HE, .PA, and .PNnnn,  all have their normal effects, except that
+the default header is a blank line with page number at column 74.
+        .CPnn will work as intended unless the text it covers includes
+footnotes, which may cause a page break earlier than expected.
+        .LSnn will change the line spacing of the text in the formatted
+output, but will leave footnotes and Figure Blocks single spaced.  When
+entering consecutive blank lines, remember that each one will be multi-
+plied by the current LS spacing.
+        .FI NEWNAME.DOC, as the last line of the DOC file, will chain to
+a new pair of input files, NEWNAME.DOC and NEWNAME.NOT, while still using
+the same output file(s).  Thus you can break a large document up into
+small pieces, and have the output combined properly upon formatting or
+numbering.  The alternative would be to use the .PN and .FN commands at
+the beginning of each piece to match up the page and footnote numbers,
+and process and print each separately.  .FI works in "-n" mode also; it
+is ignored by "-e" and "-r".  Do not specify a drive; all files will be
+sought on the same drive as the original ones.
+     (.LS and .FI are MailMerge commands, but you don't have to use
+Mailmerge for them to work, because FTNOTE is processing them itself.)
+
+     The dot commands that are not allowed are those that would upset
+the vertical page formatting FTNOTE is doing.  These are .FM, .FO, .HM,
+.LH, .MB, and .MT.  (Note: the formfeed character ^PL should not be used 
+either.)  Upon encountering any of these commands, FTNOTE will issue
+a warning message, and suppress the command.  (If you really know better,
+you can edit the PRN file: you will find the offending dot command with
+".IG" stuck in front of it, which you can remove.  But the result will
+probably be misplaced page breaks.)
+
+     FTNOTE also offers two dot commands of its own:
+        .FB (Figure Block) provides another formatting capability WordStar
+lacks.  ".FB nn" will force the next 'nn' lines of text to print as a
+contiguous block at the top of the next new page; the current page con-
+tinues until full, in contrast to the .CP command.  This block may, for
+example, contain the text of a table, or blank lines for a figure to be
+pasted in.  At most a whole page can be reserved (Page Length - 1 - Header
+Margin - Bottom Margin, by default 66 - 1 - 3 - 8 = 54), so any larger value
+of 'nn' will default to one page.
+        .FN (Footnote Number): ".FN nnn" sets the next footnote number to
+'nnn'.  This is most useful in combination with .PN at the beginning of a DOC 
+file.  (.FN works in "-n" mode also, IF it is the first line of the file.)
+     WordStar itself ignores these two FTNOTE dot commands.
+
+PRINTER FORMAT:
+     The default page format for FTNOTE is intended for standard
+11" paper at 6 lines per inch, giving 66 lines per page.  In this
+case FTNOTE actually prints 54 lines per page.
+     You can vary the placement of text on the page by moving the
+platen and resetting top-of-form on your printer.  If you want to
+use different forms, such as legal paper, the page length may be 
+changed via the .PL command or user patch.  If you have installed
+WordStar with a default page length other than 66, you should change
+the .PL user patch to get FTNOTE's page length to agree.  When
+printing the PRN file, instruct WordStar to use formfeeds, if that
+is not your default.
+     The size of the top and bottom margins may also be changed by user
+patches.  These changes cannot be made merely by editing the dot commands
+that begin an existing PRN file: they affect the page length, and page
+breaks would be misplaced.
+
+CAVEATS:
+     Don't try to put footnotes, dot commands, or ^P page references in
+the text of a Figure Block or a footnote.  FTNOTE won't recognize them.
+Don't use the page reference code (^P) for any other purpose.
+     Be sure to follow the instructions on FILE FORMAT above exactly.
+A small error could cause a note to be ignored, or a portion of your
+text to be misplaced.  In particular, be careful not to misuse the "#"
+or "]" characters.   If you see a problem in your output, a little
+experimentation should lead you to a solution.
+     You must be in single spacing (^OS1) before entering footnote
+text.  This should be no problem: since .LS can control line spacing,
+you should never need to use the ^OS command anyway.
+     Be careful while using alternate print modes (including underline,
+italics, etc) in your document.  If a page break occurs while the text
+is in such a mode, for example, any footnotes on that page, along with
+the next page header, will also appear in that alternate print mode.
+You may have to edit the PRN file and insert extra print codes.
+     Proofread your output carefully!
+
+----------------------------------------------------------------------
+
+                  VI. FURTHER TECHNICAL NOTES
+
+USER CUSTOMIZATION:
+     You can change several default parameters in FTNOTE.COM, if you
+wish, by using DDT, SID or equivalent to patch the following bytes:
+ADDRESS  DEFAULT  LEGAL RANGE   DESCRIPTION
+-------  -------  -----------   ------------------------------------
+ 08D8H   23H (#)   20H - 7FH    Footnote number character
+ 08D9H   5DH (])   20H - 7FH    Character marking end of note block
+ 08DAH   03H (3)   00H - 08H    Lines between header and text (.HM)
+ 08DBH   08H (8)   00H - 08H    Lines left blank at page end (.MB)
+ 08DCH   42H (66)  08H - 7FH    Physical page length in lines (.PL)
+ 08DDH   4AH (74)  01H - 7FH    Column number for page number
+ 08DEH   10H (^P)  01H - 1DH    Control code for page referencing
+ 08DFH   14H (20)  01H - 7FH    Length of dashed line for footnotes
+Thus you can, for example, avoid complications in a text that contains
+many "#" signs by changing to "@" for your number marker character; or
+get more lines on the same size page by decreasing the .MB number.
+     You can also change the filetypes used by FTNOTE, if for example
+you prefer "TXT" to "DOC".  The default filetypes DOC, NOT, PRN, D#C,
+and N#T appear from address 08E0H to 08F3H.
+     NO changes to the object code of FTNOTE.COM by the user are auth-
+orized outside the address range 08D8-08F3 provided for this purpose.
+
+ERROR MESSAGES:
+     These are immediate error messages:
+! no file             (no file name specified)
+! bad option X        (illegal or contradictory format option specified)
+! NOT file exists     ("-e" won't run if there's already a NOT file)
+! bad user patch      (an illegal default value has been patched in)
+     These are non-fatal warning messages; be aware that something may
+not be working as you intended.  Abort with ^C if you wish.
+? ignored .XX              (unacceptable dot command)
+? ignored .XX; bad argt    (bad number in .CP, .FN, .FB, .LS, or .PN)
+? extra notes              (better check for missing references in text)  
+     These errors will cause formatting to abort; the PRN file will
+end abruptly where the error was detected.
+! missing notes       (there's no note body for a footnote call in text) 
+! buffer full         (you probably forgot to terminate a footnote)
+! duplicate ref X     (you tried to set this marker a second time)
+! not set: ref X      (you tried to reference a marker that wasn't set)
+! bad ref ^P$         (invalid page marker reference attempt)
+! can't open MY.DOC   (can't find (or write to?) the specified file)
+
+VERSION HISTORY:
+     This program was developed on an Osborne Executive computer with
+CP/M 3.0 and WordStar 3.3, using the Software Toolworks C/80 compiler.
+It has been much improved since, largely in response to user feedback.
+Note: files created with earlier versions should be upward compatible,
+but not necessarily vice versa.  [Exception: page referencing codes
+from versions 1.3x are not compatible with version 1.4.]
+  84/03/29    FTNOTE 1.0   8K
+         The basic program, with "formatting" mode only.  Options allow
+    numbering and print mode control.  Requires the user to write a
+    separate file of notes.  Offers .FB figure block command.
+  84/04/09    FTNOTE 1.1   10K
+         Added "-e" and "-r" modes: note texts can be entered in the
+    document, immediately following the "[##]" call, making writing (and
+    editing) easier.  Added the .FN dot command.
+  84/04/25    FTNOTE 1.2   12K
+         Notes can be entered en bloc at paragraph bottom.  Added "-n"
+     mode for folks who want end notes.  Allowed dot commands .LS and .PL.
+     Options: vary line character; print notes up with text on short pages.
+     NOTE --->  Version 1.21 corrected a bug in the page header.
+  84/06/14    FTNOTE 1.3   16K
+         Better algorithm allows more flexible options for delimiters,
+     fewer recognition errors.  Added page referencing feature, .FI dot
+     command.  Several default parameters made user-patchable.
+     NOTE --->  Versions 1.31-33 corrected minor bugs: more dot commands
+     are now "acceptable"; last-line note calls no longer cause trouble.
+  84/08/27    FTNOTE 1.4   17K
+         Allows larger page and (optionally) footnote numbers.  Page ref-
+     erence codes modified for larger numbers (no longer compatible with
+     versions 1.3x).  Footnote separator line options improved.  Minor
+     bugs associated with use of ".FI" and "#1" fixed.
+
+------------------------------[ END ]----------------------------------
+ bugs associated with use of ".FI" and "#1" fixed.
+
+---------------------------

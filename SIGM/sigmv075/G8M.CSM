@@ -1,0 +1,437 @@
+	include	bds.lib
+	include	z80.lib
+	page	55
+;
+;********************************************************
+;*							*
+;*		BDS-C Supplementary Library		*
+;*			release 3			*
+;*							*
+;*		Steve de Plater, May. 1982		*
+;*		      66 Priam St.			*
+;*		      Chester Hill,			*
+;*		      NSW, 2162 			*
+;*		      Australia 			*
+;*		Phone: (02) 644 4009			*
+;*							*
+;********************************************************
+;
+;  THE (IN)FAMOUS BDS-C SUPPLEMENTARY LIBRARY
+;    FOR THE EXIDY SORCERER COMPUTER SYSTEM
+;
+; int supp();
+;
+;   Returns the release number of the SUPP.CRL file
+;   as a 16 bit number (heaven forbid)!
+
+	function	supp
+
+release equ	3	;DATE INSTALLED: 28 May 82
+			;-------------------------
+
+	lxi	h,release
+	ret
+
+	endfunc
+;
+;=============================================================
+;
+; int fillb(a1,a2,c,mode)
+;  char c;
+;  int a1, a2, mode;
+;
+;   if (mode==0)
+;     Fills memory from address a1 to address a2 (inclusive)
+;     with the byte c.
+;   else
+;     Fills memory from address a1 for a2 bytes with byte c.
+;
+	function	fillb
+
+	call	arghak
+	push	b
+
+	lda	arg4		;"from/to" or "from/count"
+	ora	a		;"from/to" - jump
+	jz	fillb2
+	lhld	arg2		;"COUNT" value
+	push	h		;move it to
+	pop	b		;BC
+	jmp	fillb4		;and jump
+
+fillb2: lhld	arg1		;"FROM" address
+	mov	a,l		;turn it
+	cma			;round
+	mov	e,a		;into the DE pair
+	mov	a,h
+	cma
+	mov	d,a		;to form"1's comp"
+	inx	d		;and now"2's comp"
+	lhld	arg2		;and now get"TO" addr
+	dad	d		;ie"TO" - "FROM" = range
+	push	h		;move it to
+	pop	b		;BC (bytes to fill)
+	inx	b		;include the end address too!
+
+fillb4: lhld	arg1		;"FROM" address
+	lda	arg3		;byte to fill with
+	mov	e,a		;just somewhere to put it!
+
+fillb6: mov	m,a		;and fill it in there!
+	inx	h		;point to next fill address
+	dcx	b		;one less to go!
+	mov	a,b
+	ora	c		;finished ?
+	jz	fillb8		;yes - jump
+	mov	a,e		;get fill byte again
+	jmp	fillb6		;and fill with it
+
+fillb8: pop	b		;all over
+	ret
+
+	endfunc
+;
+;=============================================================
+;
+; char *fill(saddr,eaddr,string,opt)
+;   char *string;
+;
+;   If (opt==0)
+;     Fills a contiguous block of RAM starting at saddr and
+;     ending at eaddr with the string pointed to by"string".
+;   else
+;     Fills a contiguous block of RAM starting at saddr of
+;     length eaddr bytes with the string pointed to.
+;
+;   The string is reused until the fill is complete.
+;   Returns the address of the fill string.
+;
+	function	fill
+
+	call	arghak
+	push	b
+
+	lda	arg4		;"from/to" or "from/count"
+	ora	a
+	jz	fill02		;"from/to" - jump
+	lhld	arg2		;get"COUNT"
+	push	h		;and move to
+	pop	b		;BC
+	jmp	fill04		;then jump
+
+fill02: lhld	arg1		;"FROM" address
+	mov	a,l		;turn it
+	cma			;round
+	mov	e,a		;into the DE pair
+	mov	a,h
+	cma
+	mov	d,a		;to form"1's comp"
+	inx	d		;and now"2's comp"
+	lhld	arg2		;and now get"TO" addr
+	dad	d		;ie"TO" - "FROM" = range
+	push	h		;move it to
+	pop	b		;BC (bytes to fill)
+	inx	b		;include the end address too!
+
+fill04: lhld	arg1		;"FROM" address
+	xchg			;to DE
+	lhld	arg3		;pointer to the "fill string"
+	mov	a,m		;get first char to fill with
+	ora	a		;null string ?
+	jz	fill08		;if so then quit
+
+fill06: stax	d		;and fill it in there!
+	inx	d		;point to next fill address
+	inx	h		;and next"fill string" char
+	dcx	b		;one less to go!
+	mov	a,b
+	ora	c		;finished ?
+	jz	fill08		;yes - jump
+	mov	a,m		;get the next char to fill with
+	ora	a		;is it a 0 (end of string)
+	jnz	fill06		;no - fill with it then
+	lhld	arg3		;back to the start of string
+	mov	a,m		;get the first char
+	jmp	fill06		;and fill with it
+
+fill08: lhld	arg3		;return addr of the fill str
+	pop	b		;all over
+	ret
+
+	endfunc
+;
+;==============================================================
+;
+; char *strrot(mode,s)
+;   char *s;
+;
+;    Rotates the string (end around) pointed to by"s".
+;    If mode==0 then rotate LEFT, and
+;    if mode<>0 then rotate RIGHT.
+;    Returns the address of the string.
+;
+	function	strrot
+
+	call	arghak
+	push	b
+
+	lhld	arg2		;point to string
+	push	h
+	pop	d		;in DE as well
+	inx	d		;and point ahead one
+	mvi	c,0		;a counter to zero!
+	lda	arg1		;get MODE switch
+	ora	a		;rotate left ?
+	jnz	strr06		;no - jump
+
+	mov	a,m		;get char to rotate
+	mov	b,a		;and save it
+strr02: ldax	d		;get char
+	ora	a		;have we reached end of str
+	jz	strr04		;yes - jump
+	mov	m,a		;rotate the char
+	inx	h		;next please
+	inx	d
+	jmp	strr02		;and back for more
+strr04: mov	a,b		;"the first shall be last.."
+	mov	m,a
+	jmp	strr14
+
+strr06: mov	a,m		;first scan for end
+	inx	h
+	inr	c		;chars in string
+	ora	a		;there yet ?
+	jnz	strr06		;no - back we go
+	dcx	h		;point back to the null
+	dcx	h		;and then to last char
+	dcr	c		;we don't count the null
+	push	h		;and copy
+	pop	d		;to DE
+	dcx	d		;back one more
+	mov	a,m		;the end char to save
+	mov	b,a		;in B
+strr10: dcr	c		;have we rotated enough ?
+	jz	strr12		;yes - jump
+	ldax	d		;get char to rotate
+	mov	m,a		;and rotate it!
+	dcx	h		;back one more
+	dcx	d
+	jmp	strr10		;next please
+strr12: mov	a,b		;".and the last shall be first"
+	mov	m,a
+strr14: lhld	arg2		;return string address
+	pop	b
+	ret
+
+	endfunc
+;
+;
+;=============================================================
+;
+; int hi(i)
+;  int i;
+;
+;   Returns the high byte of i.
+;
+	function	hi
+
+	call	ma1toh
+	mov	l,h
+	mvi	h,0
+	ret
+
+	endfunc
+;
+;=============================================================
+;
+; int lo(i)
+;  int i;
+;
+;   Returns the low byte of i.
+;
+	function	lo
+
+	call	ma1toh
+	mvi	h,0
+	ret
+
+	endfunc
+;
+;============================================================
+;
+; int cursor(x,y);
+;
+;   moves the cursor to position x (line), y (column) of
+;   the Sorcerer screen. (if possible)!
+;   Returns the offset from the beginning of the screen RAM
+;   of the new cursor position.
+
+	function	cursor
+
+	call	arghak		;get the arguements
+	push	b		;we need it!
+
+getiy	equ	0e1a2h		;Exidy Monitor entry points
+wcur	equ	0e9cch		;write cursor
+rec	equ	0e9e8h		;remove the old one
+ptrset	equ	0e9d6h		;find the cursor address
+
+	lda	arg2		;get the column
+	ora	a
+	jm	curses		;you can't have a -ve column!
+	cpi	64
+	jnc	curses		;or one > 63
+	lda	arg1		;get the line
+	ora	a
+	jm	curses		;you can't have a -ve line!
+	cpi	30
+	jnc	curses		;or one > 29
+
+	lda	arg1+1
+	ora	a
+	jnz	curses
+	lda	arg2+1
+	ora	a
+	jnz	curses
+
+	call	getiy
+	call	rec
+	lda	arg1
+	mov	e,a		;and multiply it be 64
+	mvi	d,0
+	mvi	b,6
+cur04:	sla	e
+	rl	d
+	dcr	b
+	jnz	cur04
+	stiy	e,68h		;and save it in the MWA
+	stiy	d,69h		;(both bytes)
+	lda	arg2		;now get the column
+	stiy	a,6ah		;and save it too
+	stiyi	0,6bh		;high byte is zero
+	call	wcur		;and put the cursor there!
+
+curses: call	ptrset		;just in case we hadn't
+	pop	b		;told you we'd need it
+	ret			;home we go
+
+	endfunc
+
+pushix	equ	0e5ddh
+pushiy	equ	0e5fdh
+inxix	equ	023ddh
+scan	equ	0e225h
+;
+;==============================================================
+;
+; int remcur()
+;
+;   Removes the cursor from the screen.
+;   Returns the cursor address.
+;
+	function	remcur
+
+	push	b
+	call	getiy
+	call	rec
+	pop	b
+	ret
+
+	endfunc
+;
+;==============================================================
+;
+; int mwa();
+;
+;   Returns the MWA address.
+;
+	function	mwa
+
+	call	getiy
+	dw	pushiy
+	pop	h
+	ret
+
+	endfunc
+;
+;=============================================================
+;
+; int exycall();
+;
+;   Calls the Exidy Standard Monitor
+;   using the monitor command found at MWA.
+;   Returns 0 if illegal command (or no command)
+;     or    1 if command successfully executed.
+;
+;   WARNING: This function may not return AT ALL if you
+;   crash it in the Monitor itself! ;BE WARNED!
+;
+	function	exycall
+
+	push	b		;just in case!
+	dw	pushiy		;move IY
+	pop	h		;  to HL
+	call	scan		;get delims
+	jz	exyc5 		;NONE!
+	db	0ddh,021h,012h,0e3h
+exyc1:	push	h
+	dw	pushix
+	mvi	b,2
+exyc2:	db	0ddh,07eh,00h
+	cmp	m
+	jnz	exyc4
+	inx	h
+	dw	inxix
+	dcr	b
+	jnz	exyc2
+	pop	d
+	pop	d
+	lxi	b,exyc6
+	push	b
+exyc3:	db	0ddh,06eh,00h
+	db	0ddh,066h,01h
+	pchl
+exyc4:	db	0ddh,0e1h
+	pop	h
+	dw	inxix
+	dw	inxix
+	dw	inxix
+	dw	inxix
+	db	0ddh,07eh,00h
+	ora	a
+	jnz	exyc1
+exyc5:	lxi	h,0
+	pop	b
+	ret
+exyc6:	lxi	h,1
+	pop	b
+	ret
+
+	endfunc
+;
+;=============================================================
+;
+; int hidecur(c)
+;   char c;
+;
+;	Hides the character passed under the cursor (so that
+;	when the cursor is moved then"all secrets will be
+;       made known" (or at least displayed on the screen))!
+;
+;	Returns the cursor address.
+;
+	function	hidecur
+
+	call	arghak
+	push	b
+
+	call	getiy			;we may not have it
+	lda	arg1			;the char to hide
+	stiy	a,067h			;and hide it there!
+	call	ptrset			;get cursor address
+
+	pop	b
+	ret				;and return
+
+	endfunc
+

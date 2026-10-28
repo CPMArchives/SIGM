@@ -1,0 +1,1282 @@
+
+.op
+..File CONSRC.DOC Source code documentation for ATS confidence
+..tests
+
+
+
+
+
+
+
+
+
+
+
+
+                        ADVANCED TERMINAL SYSTEMS
+
+                      CONFIDENCE TESTS DOCUMENTATION
+
+
+
+                               Version 1.0
+
+                       Date of Issue: February 1981
+
+
+
+
+
+
+
+
+
+
+
+
+                              Prepared for:
+
+                       Lister Hill National Center
+                                   for
+                        Biomedical Communications
+                       National Library Of Medicine
+
+
+
+                               Prepared By:
+
+                              Dan A. Steele
+              Information Development and Applications, Inc.
+                           10759 Tucker Street
+                        Beltsville, Maryland 20705
+.op
+.paŠ
+
+                            Table of Contents
+
+
+                                                          Page
+
+     Overview ...........................................   1
+     Background Monitor .................................   2
+     MCP CPU Test .......................................   4
+     MCP RAM Test .......................................   6
+     Disk Drive System Test .............................   8
+     Serial Ports Test ..................................   9
+     MCP APU Test .......................................   10
+     MCP Data Link Test .................................   12
+     GCP Down-load Test .................................   14
+     Plasma Panel Test ..................................   16
+     Touch Panel Test ...................................   18
+     Keyboard Test ......................................   19
+     GCP CPU Test .......................................   20
+     GCP RAM Test .......................................   22
+     GCP EPROM Test .....................................   24
+     GCP APU Test .......................................   24
+
+.paŠ.pn 1
+     Á  numbeò oæ confidencå testó arå provideä tï thå useò witè thå  ATS®  
+Theså  testó arå designeä tï checë ouô variouó basiã operationó oæ thå ATÓ 
+iî ordeò thaô thå useò maù gaiî confidencå thaô thå systeí ió  functioninç 
+correctly®   Iæ thå systeí werå tï develoğ anù majoò problem¬  theså testó 
+woulä  mosô likelù noô function®   Theiò primarù valuå ió tï helğ thå useò 
+isolatå  aî illusivå probleí anä displaù codeä informatioî oî thå  consolå 
+whicè wilì bå oæ helğ tï thå servicå personnel.
+
+     Onlù functionó internaì tï thå ATÓ arå tested¬  thereforå nï externaì 
+equipmenô  ió requireä foò anù oæ thå tests®   Fourteeî testó arå  iî  thå 
+packagå anä arå covereä individuallù below®  
+
+     Thå  ATÓ confidencå testó arå madå uğ oæ á collectioî oæ Pascal-Ú anä 
+assemblù  languagå routines®   Thå maiî driveò foò alì oæ thå testó ¨  thå 
+monitor©  ió writteî iî Ithicá Intersystems§ Pascal-Z®   Thió waó donå  tï 
+takå advantagå oæ Pascal'ó consolå I/Ï capabilities¬  whicè arå needeä  iî 
+thió portioî oæ thå system¬  aó welì aó thå selæ documentinç propertieó oæ 
+Pascal®   Thió  prograí  wilì  bå  linkeä iî witè  thå  ATÓ  librarù  filå 
+(ATSLIB.REL©  anä thå assemblù languagå portioî oæ thå testó thaô  operatå 
+iî  thå MCĞ ('GTESTS.REL')®   Alì oæ thå testó whicè wilì functioî iî  thå 
+MCP¬  sï  thaô theù maù bå linkeä tï thå monitor¬  arå writteî iî Ithica'ó 
+assemblù language®   Thå remaindeò oæ thå programs¬  thaô functioî iî  thå 
+GCP¬  anä thå utilitieó (ie® CRCGEN© arå writteî tï bå compatablå witè MAÃ 
+thå Digitaì Researcè assembleò whicè waó useä foò otheò developmenô oæ thå 
+ATÓ systeí software.
+
+     Alì  oæ  thå testó thaô executå iî thå GCĞ arå locateä iî thå  sourcå 
+filå 'GCPMON.ASM'®  Theù eacè havå á smalì counterparô (whicè wilì executå 
+iî thå GCP© thaô ió locateä iî GTESTS.SRC®   GTESTS.SRÃ wilì contaiî  codå 
+tï  down-loaä datá tï thå GCĞ aó welì aó routineó tï senä thå  appropriatå 
+executå commanä foò thå variouó GCĞ tests.
+
+     Alì  testó arå declareä iî thå monitoò aó externaì  functions®   Thió 
+wilì  easå  thå paiî iæ thå neeä shoulä ariså tï changå á tesô oò adä  ne÷ 
+tests®   Iî alì tests¬ thå resultó wilì bå returneä tï thå monitoò prograí 
+iî  thå forí oæ á twï bytå word®   Thió wilì theî bå decodeä anä displayeä 
+iî  thå diagnostiã field¬  aô thå enä oæ á serieó oæ tests¬  aó á  1¶  biô 
+binarù number®   Normallù thió field¬ whicè ió locateä tï thå righô oæ thå 
+numbeò  oæ  failures¬  wilì bå blanë indicatinç thaô therå werå nï  erroró 
+detected®   Iî  thå evenô oæ aî erroò beinç detected¬  thió fielä wilì  bå 
+lefô blanë filleä anä righô zerï filled®   Blankó wilì bå indicateä bù 'b§ 
+iî thå tesô resultó covereä below®  
+
+     Foò  thå  monitoò anä eacè test¬  therå wilì bå á  brieæ  descriptioî 
+followeä  bù á Dijkstrá typå charô tï illustratå thå generaì flo÷ oæ  thaô 
+module®   Aó alì oæ thå sourcå codå ió selæ documentinç nï attempô ió madå 
+tï  delvå deeplù intï thå tests®   Ratheò iô ió suggesteä thaô thå  persoî 
+whï needó aî iî deptè knowledgå jusô refeò tï thå sourcå codå listings.
+
+     Iî thå flo÷ diagrams¬  wordó iî alì capitaì letteró arå actuaì labeló 
+iî thå sourcå code.
+
+.paŠBACKGROUND MONITOR
+
+     Thå  monitoò  foò thå tesô ió entirelù menõ driveî tï  allo÷  someonå 
+witè littlå oò nï experiancå tï ruî anä witè thå helğ otheò thaô thå  'ATÓ 
+Confidencå Testó Operator'ó Manual§ interpreô alì oæ thå tests.
+.cp52Š     Monitor flow:
+  _____________________________ |
+ /                             \|
+|                            INIT
+|                               |
+|                        Write the Menu
+|                               |
+|                  Get Test Numbers To Execute
+|                               |
+|                  Get the Number of Repititions
+|                               |
+|                Get the Device to Put Output On
+|                               |
+|                    Output Device = Disk ?
+|                               |
+|                  ____no______/ \_____yes____
+|                 /                           \
+|                |                     Open Output File
+|                 \____________   ____________/
+|                              \ /
+|                     Disk Test Selected ?
+|                               |
+|                  ____no______/ \_____yes____
+|                 /                           \
+|                |                       Get Drive To Test
+|                 \____________   ____________/
+|                              \ /
+|                               |
+|                         Ready to Go ?
+\______________________no______/|
+                                |yes
+                          RepsDone := 0
+                                |
+                             X := 1
+  _____________________________ |
+ /                             \|
+|                           Do Case X
+|                               |
+| _________________________________________________________________
+| Tesô ± Tesô ² Tesô ³  .   .   .   .   .   .   .   .   .   Tesô 14
+|   |      |      |                                           |
+| _________________________________________________________________
+|                               |
+|                           X := X+1
+|                               |
+|                   RepsDone := RepsDone + 1
+|                               |
+|                      Print the Failures
+|                               |
+|                             Delay
+|                               |
+|        RepsDone = Repititions and Repititions <> 999 ?
+ \_____________________________/|
+                                |yes
+                              ExitŠ
+
+MCP CPU
+
+     Thå  firsô  tesô  oî thå menõ ió thå MCĞ CPÕ test®   Thió  tesô  wilì 
+executå  anä  checë thå resultó oæ severaì instructionó  iî  eacè  logicaì 
+grouğ  oæ thå Z-8° instructioî set®   Alì instructionó wilì noô bå  testeä 
+noò  wilì  alì  flagó bå testeä foò eacè instructioî aó  iô  ió  executed®  
+Therå arå somå instructionó thaô arå useä sï ofteî bù thå operatinç systeí 
+thaô iô ió noô necessarù tï tesô them®  Theså woulä includå 'PUSH'¬ 'POP'¬ 
+'IN'¬ anä 'OUT'.
+
+     Thå  sourcå codå foò thió tesô ió iî filå 'CPUTST.SRC§ anä ió writteî 
+iî Ithica'ó assembly®  Thå tesô ió linkeä witè thå monitoò anä ió includeä 
+iî 'ATSLIB.REL'.
+
+The Z-80 instructions tested are listed below:
+
+          Hex       Mnemonic                 Hex       Mnemonic
+Calls:    C4        CNZ            Jumps:    C2        JNZ
+          DC        CC                       DA        JC
+          E4        CNV                      E2        JNV
+          FC        CM                       FA        JM
+          CC        CZ                       CA        JZ
+          F4        CP                       F2        JP
+          EC        CPE                      EA        JPE
+
+Returns:  C0        RNZ            Rotates:  1F        RAR
+          D8        RC                       0F        RLC
+          E0        RNV                      
+          F8        RM             Blk.Moves:EDB0      LDIR
+          C8        RZ                       EDB8      LDDR
+          E8        RPE            
+          F0        RP             Moves:    3E        MVI
+          C9        RET                      67        MOV H,A
+                                             6C        MOV L,H
+Load/     01        LXI B                    55        MOV D,L
+Stores:   0A        LDAX B                   5A        MOV E,B
+          02        STAX B                   43        MOV B,E
+          3A        LDA                      48        MOV C,B
+          32        STA                      71        MOV M,C
+          2A        LHLD                     46        MOV B,M
+          ED4B      LBCD                     
+          ED5B      LDED           Adds:     ED4A      DADC B
+          22        SHLD                     ED5A      DADC D
+          ED43      SBCD
+          ED53      SDED           Inc./Dec.:23        INX H
+                                             25        DCR H
+Accum.:   C6        ADI                      2C        INR L
+          CE        ACI                      2B        DCX H
+          FE        CPI                      102E      DJNZ
+          DE        SBI                      25        DCR H
+          B0        ORA B
+          A8        XRA B
+          90        SUB BŠ
+     Iî additioî tï thå abovå instructioî tests¬ therå ió á timinç tesô tï 
+assurå thaô thå processoò ió workinç aô thå propeò speed®  Aô thå starô oæ 
+thå timinç test¬ aî 'S§ ió displayeä aô thå console®  Aô thå finisè aî 'F§ 
+ió displayed®  Theså shoulä occuò approximatelù 1¸ secondó apart.
+.cp3
+
+Results from MCP CPU Test
+     FEDCBA9876543210
+     ---------------x --> b = passed  1 = failed
+.cp30
+
+
+MCP CPU Test Flow:
+
+                             CPUTST
+                                |
+                  CPUERR (Clear the error flag)
+                                |
+               CALLT (Test the conditional calls)
+                                |
+            RETT (Test conditional returns and flags)
+                                |
+             JMPT (Test conditional jumps and flags)
+                                |
+                       ROTT (Test rotates)
+                                |
+                     BMT (Test Block Moves)
+                                |
+                        MOVT (Test Moves)
+                                |
+                  LOADT (Test Loads and Stores)
+                                |
+             DADT (Test Double Adds and Subtracts)
+                                |
+          INCT (Test Register Increment and Decrement)
+                                |
+              ACCT (Test Accumulator Instructions)
+                                |
+                       TIMT (Timing test)
+                                |
+                              Exit
+
+.cp25ŠMCP RAM
+
+     Tesô twï ió thå MCĞ RAÍ test®   Iô wilì tesô 64Ë oæ RAÍ iî 1Ë blocks®  
+Thå  testó arå donå withouô destroyinç anù portioî oæ RAÍ witè thå  excep
+tioî oæ thå 5Ë blocë jusô belo÷ CP/M.
+ 
+     Thå  tesô wilì firsô filì memorù witè 0FFÈ theî checë  foò  0FFH»  iô 
+wilì theî filì witè 0° anä theî checë foò 00®   Followinç thå testó foò 0° 
+anä  0FFH¬  á tesô wilì bå donå tï checë foò crosseä addresó lines®   Thió 
+wilì bå donå bù writinç 88È tï thå firsô bytå iî thå tesô block®  Countinç 
+upwardó iî memorù eacè locatioî ió writteî witè thå valuå oæ thå  previouó 
+locatioî  rotateä  righô witè carrù whicè wilì causå aî uneveî patterî  iî 
+memorù anä allo÷ thå check®   Afteò thió 1ë blocë haó beeî testeä thå nexô 
+blocë ió tested.
+
+     Thió  test¬  whicè ió writteî iî Ithica'ó assembly¬  haó beeî  linkeä 
+intï the ATÓ librarù filå 'ATSLIB.REL§ anä musô bå linkeä tï thå monitor.
+
+     Unlikå otheò tests¬  thió onå wilì prinô ouô tï thå consolå thå  tesô 
+resultó  immediatelù  afteò iô executes®   Thå resultó wilì  indicatå  thå 
+numbeò  oæ 1Ë blockó thaô erroró werå detecteä iî anä whicè 4ë blockó  thå 
+erroró werå locateä in®   Seå thå sourcå codå foò additionaì documentatioî 
+oî thió routine.
+
+.cp19
+Results from MCP RAM Test
+     FEDCBA9876543210    b or ° ½ passeä  ± ½ failed
+     ---------------x --> blocë 0000H tï 0FFFÈ  
+     --------------x- --> block 1000H to 1FFFH
+     -------------x-- --> block 2000H to 2FFFH
+     ------------x--- --> block 3000H to 3FFFH
+     -----------x---- --> block 4000H to 4FFFH
+     ----------x----- --> block 5000H to 5FFFH
+     ---------x------ --> block 6000H to 6FFFH
+     --------x------- --> block 7000H to 7FFFH
+     -------x-------- --> block 8000H to 8FFFH
+     ------x--------- --> block 9000H to 9FFFH
+     -----x---------- --> block A000H to AFFFH
+     ----x----------- --> block B000H to BFFFH
+     ---x------------ --> block C000H to CFFFH
+     --x------------- --> block D000H to DFFFH
+     -x-------------- --> block E000H to EFFFH
+     x--------------- --> block F000H to FFFFH
+.cp47ŠMCP RAM Test Flow:
+
+                             MEMTST
+                                |
+                  Get the current stack pointer
+                                |
+                        Start a new stack
+                                |
+                   Save the old stack pointer
+                                |
+                        INIT (Initialize)
+                                |
+              SAVEME (Move test code to save area)
+   ____________________________ |
+ /                             \|
+|        SAVE (Save the data in the block to be tested)
+|                               |
+|             TEST1 (Do the 0FFH and 00 fill tests)
+|                               |
+|             TEST2 (Do crossed address line test)
+|                               |
+|         REST (Restore data to the block just tested)
+|                               |
+|                        Did test fail ?
+|                               |
+|                    _____no___/ \___yes____
+|                   /                       \
+|                  |             FAIL (Set the error flag)
+|                   \__________   __________/
+|                              \ /
+|                               |
+|                  Move test block base up 1K
+|                               |
+|              Are we getting close to save area ?
+|                  ____no______/ \_____yes____
+|                 /                           \
+|                ü      RESTMÅ (Jumğ back to original execution area)
+|                 \____________   ____________/
+|                              \ /
+|                               |
+|                      Is the test done ?
+ \_____________________no______/|
+                                |yes
+                        DONE ( Set flags)
+                                |
+                  Restore the old stack pointer
+                                |
+                              Exit
+
+
+
+.cp12ŠDisk Drive System
+
+     Thå thirä tesô ió foò thå disë drivå system®   Thió onå ió relativelù 
+simplå anä streighô forward®   Iô ió writteî iî Pascal-Ú anä ió  thereforå 
+selæ documenting®  Brieflù whaô happenó ió thaô 1² sectoró oæ thå disë arå 
+writteî  anä theî alì 1² sectoró arå reaä bacë anä compaireä witè whaô waó 
+written®   Anù discrepancieó wilì causå thå erroò flaç tï bå  incremented®  
+Aó  BDOÓ  doeó continuouó checkó oî disë activity¬  anä thió wilì bå  dis
+playeä iæ anù erroró arå detested¬ thió tesô ió onlù designeä tï checë foò 
+thoså typeó oæ erroò thaô maù noô bå detecteä bù BDOS.
+
+.cp3
+
+Results from Disk Drive System Test:
+     FEDCBA9876543210
+     xxxxxxxxxxxxxxxx --> The the failure count in binary.
+.cp22
+.paŠDisk Drive System Flow:
+
+                        Zero error flags
+                                |
+                 Set 128 byte array with MAXINT
+                                |
+                         Reset test file
+  _____________________________ |
+ /                             \|
+|                          Read record
+|                               |
+|                      Is it as written ?
+|                               |
+|                  ____no______/ \_____yes____
+|                 /                           \
+|          Increment error flag                |
+|                 \____________   ____________/
+|                              \ /
+|                               |
+|                         Last record ?
+|                               |
+ \_____________________no______/|
+                                |yes
+                                |
+                              Exit
+
+
+
+.cp10
+Serial Ports
+
+     Tesô fouò wilì bå oæ thå twï seriaì portó iî thå MCP®   Thå twï UARTÓ 
+arå  testeä bù puttinç theí intï locaì loopbacë modå anä sendinç datá  anä 
+checkinç RxRDÙ anä readinç datá anä checkinç TxRDY.
+
+     Thå  sourcå codå oæ thió tesô ió writteî iî Ithica'ó  assembly®   Thå 
+tesô musô bå linkeä witè thå monitoò anä iî includeä iî 'ATSLIB.REL'.
+.cp4
+
+Results from Serial Ports Test:
+     FEDCBA9876543210         0 or b = passed  1 = failed
+     ---------------x --> UART based at 0
+     --------------x- --> UART based at 4 
+
+.cp25ŠSerial Ports Test Flow:
+
+                             SERTST
+                                |
+                         Zero error flag
+                                |
+                  Note the test to be performed
+  _____________________________ |
+ /                             \|
+|          Save the current command and mode registers
+|                               |
+|                Set the UART to local loopback
+|                               |
+|                          Do the test
+|                               |
+|               Restore command and mode register
+|                               |
+|                  Increment to the next UART
+|                               |
+|                         Are we done ?
+|                               |
+ \_______________________no____/|yes
+                                |
+                              Exit
+
+
+
+.cp24
+MCP APU
+
+     Tesô  fivå  ió tï insurå thaô thå APÕ ió seô uğ anä functioninç  pro
+perly®  Thió ió donå bù performinç á numbeò oæ operationó anä checkinç thå 
+results®  
+
+     Beforå  anù operationó arå done¬  thå APÕ ió seô uğ witè  á  softwarå 
+routinå tï assurå thaô it'ó internaì stacë pointeò ió oî á 1¶ biô boundry®  
+Thå tesô wilì assurå thå internaì stacë oæ thå APÕ ió functioninç properlù 
+aó welì as dï thå severaì tesô operations®  
+
+     Thå tesô operationó includå DDAD¬  DSUB¬ DMUL¬ DDIV¬ SQRT¬ PWR¬ FIXD¬ 
+FLTD¬  anä CHSF®  Normallù thå APÕ busù biô ió checkeä beforå aî operatioî 
+resulô  ió read®   Thió ió noô truå oî thå Busù Biô Test®   Thió tesô wilì 
+perforí aî operatioî anä immediatelù attempô tï reaä á result®   Bù  doinç 
+this¬  á  checë  wilì  bå madå tï seå thaô thå pauså linå tï  thå  CPÕ  ió 
+dropped¬  aó  iô  shoulä be¬  iî thå evenô á datá reaä ió donå beforå  thå 
+operatioî ió complete®  
+
+     Thå sourcå codå ió locateä iî 'APUTST.SRC§ anä ió writteî iî Ithica'ó 
+assembly®   Iô  ió  locateä iî 'ATSLIB.REL§ anä musô bå  linkeä  witè  thå 
+monitor.
+
+.cp12ŠResults from MCP APU Test:   0 or b = passed  1 = failed
+     FEDCBA9876543210
+     ---------------x --> APU bus test
+     --------------x- --> APU stack test
+     -------------x-- --> DADD test (32 bit add)
+     ------------x--- --> DSUB test (32 bit subtract)
+     -----------x---- --> DMUL & DDIV test
+     ----------x----- --> Skip busy bit test
+     ---------x------ --> 16 bit arithmetic test
+     --------x------- --> Misc function test
+     ------x--------- --> Time out
+     xxxxxx-x-------- --> Unused
+
+.cp24
+MCP APU Test Flow:
+
+                       Zero the error flag
+                                |
+                    INIT (Initialize the APU)
+                                |
+                        Test the APU bus
+                                |
+                     Test the internal stack
+                                |
+                            DADD test
+                                |
+                            DSUB test
+                                |
+                        DMUL & DDIV test
+                                |
+                          Busy bit test
+                                |
+                     16 bit arithmetic test
+                                |
+                       Misc. operation test
+                                |
+                              Exit
+
+
+
+
+.cp16ŠMCP Data Link
+
+     Tesô siø ió designeä tï checë thå bidirectionaì datá linë betweeî thå 
+MCĞ anä thå GCP®   Thå tesô prograí iî thå GCĞ takeó controì oæ alì I/Ï iî 
+thaô  sidå oæ thå system®   Thå MCĞ sendó acrosó á binarù count®   Aó eacè 
+characteò ió senô bù thå MCĞ iô ió receiveä anä returneä bù thå  GCP®   Aó 
+thå  GCĞ  receiveó eacè characteò thå communicatioî protocoì  ió  checked®  
+Wheî  thå characteò ió receiveä bacë bù thå MCĞ iô ió confirmeä tï bå  thå 
+samå aó thå characteò senô beforå thå nexô characteò ió sent.
+
+
+     Thå MCĞ sourcå codå foò thió tesô ió locateä iî thå filå 'GTESTS.SRC§ 
+anä thå GCĞ portioî ió locateä iî 'GCPMON.ASM'.
+
+     Thió tesô wilì diffeò froí thå otheró iî thaô iô executeó iî botè thå 
+GCĞ anä thå MCĞ durinç thå entirå test.
+
+.cp7
+Results from MCP Data Link Test:
+     FEDCBA9876543210
+     --------xxxxxxxx -->  The number of protocol errors in the 
+     ----------------      GCP in binary.
+     xxxxxxxx-------- -->  The number of character errors in
+                           binary.
+
+.paŠMCP Data Link Test Flow:
+
+                             MCPLNK
+                                |
+                       Zero the error flag
+                                |
+                   Set output character to 20H
+  _____________________________ |
+ /                             \|
+|               Send output character to the GCP
+|                               |
+|                      Wait for its return
+|                               |
+|            Is it the same as the character sent ?
+|                               |
+|                  ____no______/ \_____yes____
+|                 /                           \
+|          Increment error flag                |
+|                 \____________   ____________/
+|                              \ /
+|                               |
+|                  Was it the last character ?
+|                               |
+ \_____________________no______/|
+                                |yes
+                              Exit
+
+
+                             GCPLNK
+                                |
+                       Zero the error flag
+  _____________________________ |
+ /                             \|
+|                 Wait for first protocol byte
+|                               |
+|                         Get that byte
+|                               |
+|                          Is it a 3 ?
+|                               |
+|                  ____no______/ \_____yes____
+|                 /                           \
+|          Increment error flag                |
+|                 \____________   ____________/
+|                              \ /
+|                               |
+|                  Wait for next protocol byte
+|                               |
+|                            Get it
+|                               |
+|                         Is it a 50H ?
+|                               |
+|                  ____no______/ \_____yes____
+|                 /                           \
+|          Increment error flag                |
+|                 \____________   ____________/Š|                              \ /
+|                               |
+|                  Wait for next protocol byte
+|                               |
+|                            Get it
+|                               |
+|                          Is it a 1 ?
+|                               |
+|                  ____no______/ \_____yes____
+|                 /                           \
+|          Increment error flag                |
+|                 \____________   ____________/
+|                              \ /
+|                               |
+|                  Wait for the text character
+|                               |
+|                            Get it
+|                               |
+|                    Send it back to the MCP
+|                               |
+|                  Was it the last character ?
+|                               |
+ \______________________no_____/|
+                                |yes
+                              Exit
+
+
+
+
+.cp8
+GCP Down-load 
+     
+     Tesô  seveî ió designeä tï tesô thå GCĞ down-loaä datá linë anä  wilì 
+requirå aî additionaì filå calleä 'DOWNLOAD.COM§ tï bå oæ drivå 'A'®   Thå 
+MCĞ  portioî  oæ thå routinå wilì down-loaä thió datá filå tï thå GCĞ  anä 
+theî  starô thå test®   Eacè bytå thaô waó down-loadeä ió checkeä  againsô 
+thå knowî patterî anä thå erroò flaç wilì bå incrementeä eacè timå á  bytå 
+ió incorrect.
+
+Results from GCP Down-load Test:
+     FEDCBA9876543210
+     xxxxxxxxxxxxxxxx --> The binary count of the number of bytes
+                          detected to be in error.
+.cp29ŠGCP Data Down-load Flow:
+
+                             GCPDWN
+                                |
+                       Zero the error flag
+                                |
+               Set pointer to down-load data area
+                                |
+                      Set the test pattern
+   ____________________________ |
+ /                             \|
+|                       Do bytes match ?
+|                               |
+|                  ____no______/ \_____yes____
+|                 /                           \
+|          Increment error flag                |
+|                 \____________   ____________/
+|                              \ /
+|                               |
+|                  Increment the data pointer
+|                               |
+|                    Rotate the test pattern
+|                               |
+|                    Is this the last byte ?
+ \_______________________no____/|
+                                |yes
+                                |
+                              Exit
+
+
+
+
+
+
+.cp46ŠPlasma Panel
+
+     Tesô  eighô ió designeä tï ruî iî thå GCĞ anä tesô graphiã operationó 
+oæ thå plasmá panel®   Eacè differenô displaù testó á spacifiã portioî  oæ 
+thå hardwarå necessarù tï operatå thå panel®  Eacè oæ thå seveî testó wilì 
+bå  displayeä  foò  approximatelù 1° secondó eacè anä  theî  automaticallù 
+cyclå tï thå next.
+
+     Tesô onå shoulä firsô cleaò thå screeî anä theî filì iô witè horizon
+taì lineó 1¶ dotó apart®  Thió ió theî overlayeä witè verticaì lineó whicè 
+arå  1¶ dotó aparô anä theî overlayeä witè diagonaì lineó 1¶  dotó  apart®  
+Thió patterî wilì bå helä foò 1° secondó beforå goinç tï tesô two.
+
+     Tesô  twï  wilì  cleaò thå screeî anä theî displaù á  1¶  biô  binarù 
+counter®  Startinç aô thå loweò left¬ onå biô wilì bå on.® theî two.® etc® 
+foò thå entirå screen.
+
+     Tesô threå wilì blanë thå screen®   Iô shoulä staù blanë foò abouô 1° 
+seconds.
+
+     Test four will fill the screen (all bits will be on).
+
+     Tesô  fivå  runó  immediatelù  afteò  tesô  fouò  filló  thå  screen®  
+Diagonaì  lineó 1¶ bitó aparô wilì bå erased®   Thió patterî wilì bå  dis
+playeä foò abouô 1° seconds®  
+
+     Tesô  siø  wilì eraså thå screeî anä display¬  startinç aô thå  loweò 
+left¬ á stairsteğ patterî tï thå uppeò right®  
+
+     Tesô  seveî wilì eraså thå screeî anä theî displaù eighô columnó  anä 
+eighô rows®  Foò referencå thå columns/rowó wilì bå numbereä froí thå lefô 
+anä thå bottoí respectively.
+
+     Column/row          Action
+          1              On for its entire length
+          2              Off for its entire length but flashes
+                         for the upper/right half
+          3              Same as 2
+          4              On for the entire length
+          5              Off for lower/left half, on for the
+                         upper/right half
+          6              Same as 2
+          7              Same as 5
+          8              On for its entire length
+
+
+.cp3
+Results from Plasma Panel Test:
+
+     Thió tesô wilì neveò indicatå aî erroò aó thå operatoò musô  visuallù 
+checë thå panel.
+
+
+.cp56ŠPlasma Panel Test Flow:
+
+                             GCPPNL
+                                |
+            PSETUP (Set up the plasma panel hardware)
+                                |
+                   SERASE (Do a screen erase)
+                                |
+                 HLINES (Print horizontal lines)
+                                |
+                  VLINES (Print vertical lines)
+                                |
+                   SAW (Print diagonal lines)
+                                |
+                              Delay
+                                |
+                             SERASE
+                                |
+                             PSETUP
+                                |
+              PART (Display 16 bit binary counter)
+                                |
+                              Delay
+                                |
+               PARTE (Erase 16 bit binary counter)
+                                |
+                              Delay
+                                |
+                             PSETUP
+                                |
+                     FILLS (Fill the screen)
+                                |
+                   SAWS (Erase diagnol lines)
+                                |
+                              Delay
+                                |
+                             SERASE
+                                |
+                             PSETUP
+                                |
+                LONG (Display stair-step pattern)
+                                |
+                              Delay
+                                |
+                             SERASE
+                                |
+                             PSETUP
+                                |
+                    Do 8 bit column/row test
+                                |
+                             SERASE
+                                |
+                             PSETUP
+                                |
+                              ExitŠ
+.cp14
+Touch Panel
+
+     Aô  thå  starô oæ tesô ¹ 'Toucè Panel§ wilì bå displayeä oî thå  con
+sole®   Thå  useò  maù  theî checë thå toucè paneì   bù  touchinç  variouó 
+positions®   Wheî á positioî ió touched¬ thå tesô wilì prinô ouô iî heø tï 
+thå consolå thå X,Ù coordinateó whicè havå beeî touched®   Thå loweò  lefô 
+oæ  thå paneì wilì bå coordinatå 0° anä thå uppeò righô wilì bå coordinatå 
+FF®   Eacè timå thå paneì ió touched¬  therå shoulä bå á 'beep'®  Thå tesô 
+wilì  continuå  aó  lonç aó thå operatoò continueó  tï  toucè  thå  panel®  
+Approximatelù  1°  seconä afteò thå lasô touch¬  thå tesô  wilì  terminatå 
+automatically.
+
+     This test executes in the GCP.
+
+.cp3
+Results from Touch Panel Test:
+
+     Thió  tesô wilì neveò indicatå aî erroò aó thå operatoò musô visuallù 
+checë thå panel.
+
+
+.cp32
+Touch Panel Test Flow:
+
+                              GCPTP
+                                |
+                   Print 'Touch Panel' message
+                                |
+                            Set timer
+  _____________________________ |
+ /                             \|
+|                        Decrement timer
+|                               |
+|                         Is time up ?
+|                               |
+|                             no|\___yes______________________
+|                               |                             \
+|                 Get the Pouch Panel's status                 |
+|                               |                              |
+|                 Is there a character ready ?                 |
+|                               |                              |
+|\______________________no_____/|yes                           |
+|                            Read it                           |
+|                               |                              |
+|                   Print the X,Y coordinates                  |
+|                               |                              |
+|                        Reset the timer                       |
+|                               |                              |
+ \_____________________________/                               |
+                                  ____________________________/
+                                 /
+                                |
+                              Exit
+
+
+Š.cp12
+Keyboard
+
+     Tesô teî ió á keyboarä test®  Aô thå start¬  'Keyboard§ ió printeä oî 
+thå screen®  Aô thió poinô alì characteró typeä aô thå keyboarä arå echoeä 
+tï thå consolå witè theiò ASCIÉ equivalent®   Alì controì characteró  wilì 
+bå indicateä bù á '^§ beinç printeä beforå thå equivalenô ASCIÉ character®  
+Thió tesô wilì continuå aó lonç aó typinç ió continued®  Teî secondó afteò 
+thå useò stopó typinç thå tesô wilì terminatå automatically.
+
+     Thå  keyboarä  tesô  wilì executå iî thå MCĞ anä ió  locateä  iî  thå 
+'GTESTS.SRC§ file.
+
+.cp3
+Results from Keyboard Test:
+
+     Thió  tesô wilì neveò indicatå aî erroò aó thå operatoò musô visuallù 
+checë thå panel.
+.cp38
+
+Keyboarä Tesô Flow:
+
+                             KEYBRD
+                                |
+                        Print 'Keyboard'
+                                |
+                          Set the timer
+  _____________________________ |
+ /                             \|
+|                       Was there input ?
+|                               |
+|           ____________no_____/ \_____yes____________
+|          /                                          \
+|         |                                            |
+|         |                                   Get the character
+|         |                                            |
+|         |                                 Is it a control character ?
+|         |                                            |
+|         |                                  ______no_/ \___yes__
+|         |                                 /                    \
+|         |                                |                 Subtract 40H
+|         |                                |                      |
+|         |                                |                   Print '^'      
+|         |                                 \________ß   ________/
+|         |                                           \ /
+|         |                                            |
+|         |                                   Print the character
+|         |                                            |
+|         |                                     Reset the timer
+|          \___________________   ____________________/
+|                              \ /
+|                               |
+|                      Decrement the timer
+|                               |
+|                          Is it zero
+ \________________________no___/|
+                                |yes
+                              ExitŠGCP CPU
+
+     Tesô eleveî oî thå menõ ió thå GCĞ CPÕ test®   Thió test¬  whicè runó 
+iî thå GCP¬  wilì executå anä checë thå resultó oæ severaì instructionó iî 
+eacè logicaì grouğ oæ thå Z-8° instructioî set®  Alì instructionó wilì noô 
+bå  testeä  noò  wilì alì flagó bå testeä foò eacè instructioî  aó  iô  ió 
+executed®   Therå  arå  somå instructionó thaô arå useä sï  ofteî  bù  thå 
+operatinç  systeí  thaô  iô ió noô necessarù tï tesô  them®   Theså  woulä 
+includå 'PUSH'¬ 'POP'¬ 'IN'¬ anä 'OUT'.
+
+The Z-80 instructions tested are listed below:
+
+          Hex       Mnemonic                 Hex       Mnemonic
+Calls:    C4        CNZ            Jumps:    C2        JNZ
+          DC        CC                       DA        JC
+          E4        CNV                      E2        JNV
+          FC        CM                       FA        JM
+          CC        CZ                       CA        JZ
+          F4        CP                       F2        JP
+          EC        CPE                      EA        JPE
+
+Returns:  C0        RNZ            Rotates:  1F        RAR
+          D8        RC                       0F        RLC
+          E0        RNV                      
+          F8        RM             Blk.Moves:EDB0      LDIR
+          C8        RZ                       EDB8      LDDR
+          E8        RPE            
+          F0        RP             Moves:    3E        MVI
+          C9        RET                      67        MOV H,A
+                                             6C        MOV L,H
+Load/     01        LXI B                    55        MOV D,L
+Stores:   0A        LDAX B                   5A        MOV E,B
+          02        STAX B                   43        MOV B,E
+          3A        LDA                      48        MOV C,B
+          32        STA                      71        MOV M,C
+          2A        LHLD                     46        MOV B,M
+          ED4B      LBCD                     
+          ED5B      LDED           Adds:     ED4A      DADC B
+          22        SHLD                     ED5A      DADC D
+          ED43      SBCD
+          ED53      SDED           Inc./Dec.:23        INX H
+                                             25        DCR H
+Accum.:   C6        ADI                      2C        INR L
+          CE        ACI                      2B        DCX H
+          FE        CPI                      102E      DJNZ
+          DE        SBI                      25        DCR H
+          B0        ORA B
+          A8        XRA B
+          90        SUB B
+
+     Iî additioî tï thå abovå instructioî tests¬ therå ió á timinç tesô tï 
+assurå thaô thå processoò ió workinç aô thå propeò speed®  Aô thå starô oæ 
+thå timinç test¬ aî 'S§ ió displayeä aô thå console®  Aô thå finisè aî 'F§ 
+ió displayed®  Theså shoulä occuò approximatelù 1¸ secondó apart.
+.cp3ŠResults from GCP CPU Test:
+     FEDCBA9876543210
+     ---------------x --> b = passed  1 = failed
+.cp30
+
+GCP CPU Test Flow:
+
+                             CPUTST
+                                |
+                  CPUERR (Clear the error flag)
+                                |
+               CALLT (Test the conditional calls)
+                                |
+            RETT (Test conditional returns and flags)
+                                |
+             JMPT (Test conditional jumps and flags)
+                                |
+                       ROTT (Test rotates)
+                                |
+                     BMT (Test Block Moves)
+                                |
+                        MOVT (Test Moves)
+                                |
+                  LOADT (Test Loads and Stores)
+                                |
+             DADT (Test Double Adds and Subtracts)
+                                |
+          INCT (Test Register Increment and Decrement)
+                                |
+              ACCT (Test Accumulator Instructions)
+                                |
+                       TIMT (Timing test)
+                                |
+                              Exit
+
+
+
+
+.cp19ŠGCP RAM
+
+     Tesô twelvå ió thå GCĞ RAÍ test®   Iô wilì tesô alì RAÍ iî thå GCĞ iî 
+1Ë blocks®   Thå testó arå donå withouô destroyinç anù portioî oæ RAÍ witè 
+thå exceptioî oæ thå 5Ë blocë aô 0A000H.
+ 
+     Thå  tesô wilì firsô filì memorù witè 0FFÈ theî checë  foò  0FFH»  iô 
+wilì theî filì witè 0° anä theî checë foò 00®   Followinç thå testó foò 0° 
+anä  0FFH¬  á tesô wilì bå donå tï checë foò crosseä addresó lines®   Thió 
+wilì bå donå bù writinç 88È tï thå firsô bytå iî thå tesô block®  Countinç 
+upwardó iî memorù eacè locatioî ió writteî witè thå valuå oæ thå  previouó 
+locatioî  rotateä  righô witè carrù whicè wilì causå aî uneveî patterî  iî 
+memorù anä allo÷ thå check®   Afteò thió 1ë blocë haó beeî testeä thå nexô 
+blocë ió tested.
+
+     Thió tesô ió essentiallù thå samå aó thå MCĞ RAÍ tesô buô executeó iî 
+thå GCP®  Seå thå sourcå codå foò additionaì documentatioî oî thió routine.
+
+.cp19
+Results from GCP RAM Test:
+     FEDCBA9876543210    b or ° ½ passeä  ± ½ failed
+     ---------------x --> blocë 0000H tï 0FFFÈ  
+     --------------x- --> block 1000H to 1FFFH
+     -------------x-- --> block 2000H to 2FFFH
+     ------------x--- --> block 3000H to 3FFFH
+     -----------x---- --> block 4000H to 4FFFH
+     ----------x----- --> block 5000H to 5FFFH
+     ---------x------ --> block 6000H to 6FFFH
+     --------x------- --> block 7000H to 7FFFH
+     -------x-------- --> block 8000H to 8FFFH
+     ------x--------- --> block 9000H to 9FFFH
+     -----x---------- --> block A000H to AFFFH
+     ----x----------- --> block B000H to BFFFH
+     ---x------------ --> block C000H to CFFFH
+     --x------------- --> block D000H to DFFFH
+     -x-------------- --> block E000H to EFFFH
+     x--------------- --> block F000H to FFFFH
+.cp47ŠGCP RAM Test Flow:
+
+                             MEMTST
+                                |
+                  Get the current stack pointer
+                                |
+                        Start a new stack
+                                |
+                   Save the old stack pointer
+                                |
+                        INIT (Initialize)
+                                |
+              SAVEME (Move test code to save area)
+   ____________________________ |
+ /                             \|
+|        SAVE (Save the data in the block to be tested)
+|                               |
+|             TEST1 (Do the 0FFH and 00 fill tests)
+|                               |
+|             TEST2 (Do crossed address line test)
+|                               |
+|         REST (Restore data to the block just tested)
+|                               |
+|                        Did test fail ?
+|                               |
+|                    _____no___/ \___yes____
+|                   /                       \
+|                  |             FAIL (Set the error flag)
+|                   \__________   __________/
+|                              \ /
+|                               |
+|                  Move test block base up 1K
+|                               |
+|              Are we getting close to save area ?
+|                  ____no______/ \_____yes____
+|                 /                           \
+|                ü         RESTMÅ (Jumğ back to original execution area)
+|                 \____________   ____________/
+|                              \ /
+|                               |
+|                      Is the test done ?
+ \_____________________no______/|
+                                |yes
+                        DONE ( Set flags)
+                                |
+                  Restore the old stack pointer
+                                |
+                              Exit
+
+
+
+
+.cp9ŠGCP EPROM
+
+     Tesô thirteeî is á checë oæ thå EPROÍ iî thå GCP®   Iî ordeò foò thió 
+routinå  tï function¬  thå filå 'CRCC.DAT§ musô residå oî drivå  'A'®   Iô 
+wilì  holä  thå  CRCÃ whicè ió generateä aô thå timå thå  GCĞ  EPROMÓ  arå 
+changed®  Thió filå ió reaä bù thå MCĞ portioî oæ thå test®  Á ne÷ CRCÃ ió 
+theî  calculateä foò thå ROÍ spacå anä returneä tï thå MCĞ portioî oæ  thå 
+tesô wherå iô ió compareä witè thå valuå reaä froí thå file®   Iæ theù arå 
+noô thå samå thå erroò flaç ió set.
+
+.cp3
+Results from GCP EPROM Test:
+     FEDCBA9876543210
+     ---------------x --> b = passed  1 = failed
+
+.cp7
+GCP EPROM Test Flow:
+     
+                             GCPROM
+                                |
+                     Do the CRCC calculation
+                                |
+                              Exit
+
+
+.cp19
+GCP APU
+
+     Tesô fourteeî ió tï insurå thaô thå GCĞ APÕ ió seô uğ anä functioninç 
+properly®   Thió ió donå bù performinç á numbeò oæ operationó anä checkinç 
+thå  results®   Thå tesô wilì checë thaô thå internaì stacë oæ thå APÕ  ió 
+functioninç properlù aó welì as dï thå severaì tesô operations®   
+
+     Beforå  anù operationó arå done¬  thå APÕ ió seô uğ witè  á  softwarå 
+routinå  tï  assurå  thaô  it'ó  internaì stacë pointeò ió  oî  á  1¶  biô 
+boundary®  
+
+     Thå tesô operationó includå DDAD¬  DSUB¬ DMUL¬ DDIV¬ SQRT¬ PWR¬ FIXD¬ 
+FLTD¬  anä CHSF®  Normallù thå APÕ busù biô ió checkeä beforå aî operatioî 
+resulô  ió read®   Thió ió noô truå oî thå Busù Biô Test®   Thió tesô wilì 
+perforí aî operatioî anä immediatelù attempô tï reaä á result®   Bù  doinç 
+this¬  á  checë  wilì  bå madå tï seå thaô thå pauså linå tï  thå  CPÕ  ió 
+dropped¬  aó  iô  shoulä be¬  iî thå evenô á datá reaä ió donå beforå  thå 
+operatioî ió complete®  
+.cp12
+
+Results from GCP APU Test    0 or b = passed  1 = failed
+     FEDCBA9876543210
+     ---------------x --> APU bus test
+     --------------x- --> APU stack test
+     -------------x-- --> DADD test (32 bit add)
+     ------------x--- --> DSUB test (32 bit subtract)
+     -----------x---- --> DMUL & DDIV test
+     ----------x----- --> Skip busy bit test
+     ---------x------ --> 16 bit arithmetic test
+     --------x------- --> Misc function test
+     ------x--------- --> Time out
+     xxxxxx-x-------- --> Unused
+Š.cp24
+GCP APU Test Flow:
+
+                       Zero the error flag
+                                |
+                    INIT (Initialize the APU)
+                                |
+                        Test the APU buss
+                                |
+                     Test the internal stack
+                                |
+                            DADD test
+                                |
+                            DSUB test
+                                |
+                        DMUL & DDIV test
+                                |
+                          Busy bit test
+                                |
+                     16 bit arithmetic test
+                                |
+                       Misc operation test
+                                |
+                              Exit
+
+.paŠ.op
+                           Appendix A
+
+                ATS Confidence Tests Source Code
+     
+     Thå  followinç  wilì summarizå alì oæ thå sourcå fileó foò  thå  con
+
+fidencå  tests®   Theså  fileó  wilì bå locateä oî  thå  diskettå  labeleä 
+
+'Confidencå  Testó  Sourcå  Code§ anä wilì contaiî alì codå  useä  iî  thå 
+
+tests.
+
+
+     FILE             DESCRIPTION
+..                      L-----------------------------------------R
+..L----!----!----!----!----!----!----!----!----!----!----!--------R
+
+     CONTESTS.PAS       Thå maiî driveò prograí foò alì oæ thå tests®  
+
+     GTESTS.SRC         Alì  oæ  thå assemblù languagå tesô programó  thaô 
+                        ruî iî thå MCP®   Iô ió writteî iî Ithica'ó assem
+                        blù anä needó tï bå linkeä witè CONTESTS.
+
+     ATSLIB.REL         Á librarù filå linkablå witè Ithica'ó Link®   Con
+                        tainó  somå  oæ thå MCĞ tesô routineó aó  welì  aó 
+                        somå utilitù routines.
+
+     CPUTST.SRC         Ió containeä iî ATSLIB®   Thå CPÕ tesô useä iî thå 
+                        MCP.
+
+     AND.SRC            Containeä iî ATSLIB®   Á utilitù routinå tï returî 
+                        tï Pascal-Ú truå oò falså baseä oî thå resultó  oæ 
+                        á logicaì AND.
+
+     APUT.SRC           Containeä iî ATSLIB®   Thå tesô oæ thå 951± APÕ iî 
+                        thå MCP.
+
+     DTST.PAS           Containeä iî ATSLIB®  Thå ATÓ disë test.
+
+     SERT.SRC           Containeä iî ATSLIB®  Thå tesô foò thå UARTS.
+
+     LOGIAND.SRC        Containeä  iî  ATSLIB®   Aî externaì  routinå  foò 
+                        Pascal-Z¬  wilì  perforí á logicaì ANÄ anä  returî 
+                        thå results.
+
+     LOGIOR.SRC         Containeä  iî  ATSLIB®   Aî externaì  routinå  foò 
+                        Pascal-Z¬ wilì perforí á logicaì OÒ anä returî thå 
+                        results.
+
+     MEMTST.SRC         Containeä iî ATSLIB®  Thå tesô oæ thå ATÓ MCĞ RAM.
+
+     GCPMON.ASM         Alì  oæ thå testó tï bå down-loadeä anä ruî iî thå 
+                        GCP.
+
+     DOWNLOAD.ASM       Tesô datá useä bù thå down-loaä test.
+
+Š     TESTSAVE.ASM       Useä tï savå GCPMOÎ aó á down-loadablå COÍ file.
+
+     CRCGEN.ASM         Generateó á CRCÃ foò thå ROÍ tesô iî thå GCP.
+
+     GOCRCGEN.ASM       Down-loadó  thå  CRCGEÎ  prograí tï  thå  GCĞ  anä 
+                        beginó execution.
+
+     CONFIDEN.DOC       Thå  Confidencå Tesôs Operator'ó Manual.
+
+     LIB.REL            Pascal-Z's library file.
+
+
+File types are:
+
+     .ASM      Digital Research MAC source file.
+     .PAS      Ithica's Pascal-Z source file.
+     .SRC      Ithica's ASMBL source file.
+     .DOC      Wordstar document file.
+
+.paŠ                           Appendix B
+
+                  Creating a CRCC New Data File
+
+     1.   Run 'GOCRCGEN'.
+
+     2.  Recorä  thå resultó printeä oî thå screeî foò lo÷ bytå anä  higè 
+         byte.
+
+     3.  Run 'DDT'.
+
+     4.  Enter 'F100,1FF,00' to zero 1 page of memory.
+
+     5.  Uså  'S§ commanä tï puô lo÷ bytå froí GOCRCGEÎ aô  locatioî  100È 
+         anä higè bytå aô 101È aó follows.
+
+               Enter 'S100'
+               Response will be '100 00'
+               Enter low byte value obtained from GOCRCGEN
+               Response will be '101 00'
+               Enter high byte value obtained from GOCRCGEN
+               Response will be '102 00'
+               Enter '.'
+
+     6.  Enter 'G0' to warm boot.
+
+     7.  Creatå thå ne÷ datá filå witè thå savå commanä aó follows:
+
+               'SAVE 1 CRCC.DAT'
+
+
+ 

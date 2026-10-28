@@ -1,0 +1,39 @@
+SOME MISCELLANEOUS LIBRARY ROUTINES I'VE TOSSED IN
+
+GETINT.LIB
+You pass a message and the minimum and maximum values and this function
+asks for a value to be entered. It will not proceed until the value
+falls within the designated limits. This avoids unpleasant surprises
+when someone enters bad data. I'm afraid compilers aren't quite as
+unforgiving of this problem as are interpreters. Often, a lot of data
+is lost through a little foul-up.
+
+CAPCHAR.LIB
+CAPSTR.LIB
+The former makes lower case letters into cap ones, the latter passes
+through a string capitalizing where necessary. Numbers and symbols
+are unaffected.
+	I'm not sure, but I suspect that the boolean comparison used
+here is more efficient than the set-inclusion test used in Z-UG's
+STRLIB.
+
+PADSTR.LIB
+DEPAD.LIB
+PADSTRr sticks spaces at the end of a string until is hits the length
+passed as part of the function call. I implemented this as a function
+so that the original string can be left intact if desired.
+	This serves two purposes:
+	[1] Pretty printouts, since ver 3.2 pads strings to the left, just
+like numbers, rather than to the right, which means that simply going
+str:20 isn't satisfactory.
+	[2] Microsoft stores strings in random access records padded with
+blanks rather than with a length byte [used in Pascal/Z]. Personally,
+InterSystem's approach has its advantages, since you get back exactly
+what you stored, rather than a fixed-length string. But I also have
+SuperSort, which does not support the length byte [although it can
+always be passed over in setting up the keys], which means that padding
+the stored records prevents unpleasant surprises during the sort.
+	DEPAD starts dropping spaces off the right side of a string until
+it hits the first non-space character. Again, this is a function rather
+than a procedure, in case the original string needs to be left intact.
+

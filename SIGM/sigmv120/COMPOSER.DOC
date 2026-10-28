@@ -1,0 +1,263 @@
+
+
+
+
+
+
+
+
+                    Composer Documentation 
+
+*****************************************************************
+
+     Thió  disë  containó  thå  prograí  COMPOSER.COÍ  bù   Chucë 
+Chatham®  Thå prograí waó origionallù designeä foò á Heath/Zenitè 
+H8¹ equippeä witè Raù Albrektson'ó sound/clocë board®  Iô ió alsï 
+usablå  oî otheò CP/Í systeí usinç thå AY3-891° PSÇ sounä chiğ aô 
+anù  porô  addressablå locatioî providinç youò  versioî  oæ  CP/Í 
+includeó á 2mó clocë aô memorù locatioî 000Bh®  Iô ió recommendeä 
+thaô  thå  boarä bå modifieä tï providå threå  seperatå  couplinç 
+capacitoró  iæ  noô  alreadù provideä betweeî  thå  threå  chaneì 
+outputó  oæ  thå AY3-891° alonç witè á resistor  betweeî eacè  oæ 
+pinó 3,4¬  anä 38»  anä ground®   Thå resistoró shoulä bå 2Ë ohmó 
+anä  thå capacitoró shoulä bå ± tï µ mFä anä maù bå µ volô  typeó 
+witè  thå  positivå terminaì connecteä tï thå PSÇ chip'ó  output®  
+Iæ  thå  threå outpuô channeló arå lefô tieä  togetheò  witè  onå 
+resistoò anä couplinç capacitor¬  therå wilì bå aî extremelù higè 
+leveì   oæ  distortioî  wheî  multiplå  channeló  arå  addressed®  
+However¬ onå parô musiã wilì stilì probablù bå acceptable.
+
+*****************************************************************
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Š
+
+
+     Iæ   yoõ  arå  usinç  á  boarä  otheò  thaî  thå   Albrektoî 
+sound/clocë boarä iî aî H-89¬ yoõ wilì havå tï modifù thå prograí 
+tï  matcè thå porô addresó oæ thå sounä chips®   Thió caî bå donå 
+bù  modifyinç thå COMPOSER.ASÍ filå aô thå labeló  PSGxx®   Afteò 
+thió  modificatioî  yoõ  musô reassemblå anä  loaä  thå  modifieä 
+assemblù  program®   Foò  eacè oæ youò sounä chipó  (uğ  tï  six© 
+changå  thå  addresó afteò thå labeì PSGAø tï matcè  thå  addresó 
+porô oæ youò chip®  Theî puô thå writå addresó (usuallù thå basiã 
+porô addresó pluó two© afteò labeì PSGBx®  Thuó iæ yoõ havå threå 
+AÙ  891°  chipó iî youò boarä anä yoõ wanô tï addresó  thå  thirä 
+chiğ  aô addresó 323Q¬  yoõ woulä modifù thå ASÍ filå startinç aô 
+labeì PSGB³ aó follows:
+
+     PSGB3     DB   325Q
+     PSGA3     DB   323Q
+
+     Iæ  yoõ prefeò yoõ maù alsï seô thå porô addresseó bù  usinç 
+DDT®   Tï dï sï yoõ musô uså thå Ó (Set© commanä tï seô thå  porô 
+address as a Hex number.  To do so use the addresses as follows:
+
+     PSGB1     13E       PSGB2     15E       PSGB3     17E
+     PSGA1     13F       PSGA2     15F       PSGA3     17F
+     
+     PSGB4     19E       PSGB5     1BE       PSGB6     1DE
+     PSGA4     19F       PSGA5     1BF       PSGA6     1DF
+
+     Aó aî example¬  iæ yoõ wisè tï seô thå addresó oæ thå seconä 
+sound chip to 323Q (D3H) you would use DDT as follows:
+
+A>DDT COMPOSER.COM
+DDT VERS 2.2
+NEXT PC
+1080 0100
+-S15E
+015E 00   D5<CR>
+15F  00   D3<CR>
+160  1A   <SPACE><CR>
+?
+-^C
+A>SAVE 16 B:MUSIC.COM
+
+     Thió  wilì  seô thå baså addresó tï D³ (323Q© anä thå  Writå 
+addresó tï Dµ (325Q© foò thå #² chiğ anä savå iô aó  "MUSIC.COM"®  
+
+
+****************************************************************
+
+
+
+
+
+Š
+
+
+
+     YOU ARE NOW READY TO PLAY THE PREWRITTEN SAMPLE SONGS
+
+     Tï  operatå  thå prograí simplù typå COMPOSEÒ aô thå  prompô 
+anä  typå  thå  namå oæ thå musiã scorå filå namå iî  uppeò  caså 
+letteró wheî asked®   Wheî askeä foò thå tempï simplù typå á  RTÎ 
+oò  á  tempï  valuå betweeî 3° anä 25¶  beató  peò  minute®   Thå 
+prograí ió self-prompting®  Wheî yoõ desirå tï Quiô anä returî tï 
+thå  operatinç  systeí typå 'Q§ foò Quit®    Tï replaù  thå  sonç 
+currentlù  iî memorù typå 'P§ foò Play®   Iæ yoõ wisè tï  plaù  á 
+differenô  sonç typå 'S§ foò Select®   Iæ yoõ wanô tï changå  thå 
+tempï anä plaù agaiî typå 'T§ foò Tempo®  
+
+     "PRAISE¢  anä "VOICE¢ arå twï voicå domonstratioî scoreó  tï 
+sho÷  á  samplå  oæ  thå differenô voicinç  capabilitieó  oæ  thå 
+"Composer¢   prograí  witè  thå  AY-891°  PSG®    Witè  á  littlå 
+experimentatioî  yoõ  caî creatå manù speciaì  effectó  witè  thå 
+voiceó  provided¬  oò  yoõ caî patcè thå supplieä sourcå codå  tï 
+modify the voices at will.  
+
+
+*****************************************************************
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Š
+
+
+     INSTRUCTIONS FOR BUILDING MUSIC FILES FOR COMPOSER.COM
+
+
+     Musiã scorå fileó maù bå generateä oî anù editoò anä consisô 
+of the following:
+
+     Measure Markers          \M30\
+                    Consist of "M" followed by the measure number
+                    from 0 to 999
+
+     Tempo Change Values      \T110\
+                    "T" followed by the beats per minute (30-159)
+
+     Quoted Word Values       \'xxxxxxx\
+                    "'¢  followeä bù wordó tï bå printeä aô  plaù 
+                    time
+
+     Voicing Selections       \V1A\
+                    "V¢  followeä bù numbeò oæ PSÇ Addresseä  (uğ 
+                    tï  six©  anä  letteò foò voicinç  optioî  (Á 
+                    througè Z)
+
+     Jump Instructions        \J10\     Jump to measure 10
+                              \K10Ü     Jumğ  tï measurå 1°  onå 
+                                        time only
+                              \L10\     Jump alternate times 
+                                        starting this time
+                              \M10\     Jump alternate times
+                                        starting next time
+
+     Note Values    \A,B,C,D\
+                              A=PSG# and Chanel  ex: 1A  2C
+                                   (Each PSG has Channels A-C)
+                              B=Octave # and note value
+                                  Octave = 0 to 7
+                                  Notå½Á tï Ç (F=Flaô #=Sharp)
+                              C=Note time    1=whole
+                                             2=half
+                                             4=quarter
+                                             8=eighth
+                                             6=16th
+                                             3=32nd
+                                             4.=dotted quarter
+                                             4T=triad
+                                             4-=tied note
+                              D=Volume Hex value 0 to F
+                                   (omit for selected voice)
+
+     Thå  ¨ Ü © seperatoò musô bå betweeî eacè instructioî  word®  
+Carriagå  returnó musô onlù bå placeä afteò á seperatoò oò iî thå 
+texô tï bå typeä aô plaù timå anä thå scorå musô alwayó enä  witè 
+á triplå seperatoò ¨ \\Ü ).Š
+     Voiceó  Á  thrõ  È arå decayinç toneó sucè aó  á  strucë  oò 
+pluckeä string®  Thuó \V1AÜ woulä seô chiğ #± tï sounä similaò tï 
+á pianï wherå \V1HÜ woulä bå morå likå á pluckeä violin®   Voiceó 
+É thrõ Í arå repeateä decayinç toneó sucè aó á banjï oò mandolin®  
+Voiceó Î thrõ Ô arå warblinç toneó sucè aó á harmonica®   Voicå Õ 
+ió  á rapiä attacë voicå similaò iî sounä tï aî  accordian®   Thå 
+remaindinç  V-Ú arå speciaì sounä affectó ranginç froí á  brusheä 
+druí  tï  á  gunshot®   Alì  oæ theså voiceó caî  bå  changeä  bù 
+modifyinç  thå valueó iî thå voicå tablå iî  COMPOSER.ASM®   Eacè 
+voicå  ió defineä bù á fivå bytå tablå wherå thå firsô bytå  setó 
+thå  Noiså perioä (registeò 6© oæ thå PSG¬  thå seconä bytå  setó 
+thå Enablå bytå (registeò 7)¬ thå nexô twï byteó seô thå envelopå 
+perioä  witè courså bytå firsô theî finå anä thå lasô  bytå  setó 
+thå envelopå shape/cycle®   Thå voicå tablå beginó witè thå labeì 
+VOICEA®  Thuó yoõ caî modifù thå voicinç tï providå variouó otheò 
+musiã anä noiså voiceó aó welì aó thoså provideä bù modifyinç thå 
+ASÍ filå theî reassembling®  
+
+
+*****************************************************************
+
+
+     Thió prograí ió capablå oæ operatinç uğ tï siø PSÇ chipó  aô 
+useò  selecteä  porô locations®   Unfortunatelù É dï noô  havå  á 
+musiã  boarä  aô  presenô  witè  multiplå  chipó  installeä   anä 
+thereforå  havå  noô includeä samplå musiã scoreó  witè  multiplå 
+chipó addressed®   Thió versioî oæ thå prograí doeó noô allo÷ foò 
+reaì  timå  playinç  froí thå computeò keyboard¬  buô  iæ  enougè 
+interesô ió expresseä iî thió capability¬  É wilì updatå Composeò 
+iî thå futurå tï includå it®   Happù COMPOSING!
+
+     Permissioî  ió  herebù granteä foò thå duplicatioî  oæ  thió 
+prograí foò non-commerciaì uses®  Alì otheò rightó arå reserved.
+  
+                    Maj Chuck Chatham
+                    PSC Box 2811    (Until June 15, 1983)
+                    RAF Bentwaters
+                    APO NY 09755
+    
+
+               or   P.O. Box 74    (After June 15, 1983)
+                    Royal Arkansas
+                         71968
+
+(noteº  CP/Í  ió  á  registereä trademarë  oæ  Digitaì  Research¬ 
+Pacific Grove, Ca.)

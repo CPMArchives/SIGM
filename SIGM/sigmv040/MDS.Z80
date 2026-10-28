@@ -1,0 +1,637 @@
+; INTEL MDS FDC CARD EMULATOR
+;
+; SOURCED NOV 79 BY TREVOR MARSHALL
+;		    Dept E & E Eng
+;		    University of West Australia
+;		    NEDLANDS, W.A. 6009
+;
+; This version of the source produces, after linking,
+; object code in memory from 600H to A000H to enable
+; a Prom Programmer resident in the host system
+; to directly program the object file
+;
+; A version ORGed at F800H is compiled seperately
+; and is provided on the master disk as MDSABS.Z80
+;
+;
+; REGISTER USAGE DURING READ AND WRITE:
+; D contains the (auto wait) drive control byte
+; IX points to the IOPB base
+; HL points to the current memory DMA address
+; B contains the input byte counter for INI & OUTI
+; C contains DDATA for INI & OUTI
+; B' (alternate) contains the number of records required
+; D' (alternate) contains the current sector address
+; E' (alternate) contains the retry count
+; H' (alternate) contains the previously logged track
+; AF' (alternate) contains the previous drive mask
+; to skip read trk# if it is already logged
+; and allow for fast response without interleaving
+;
+; FDC CONTROLLER DEFINITIONS:
+DCONTROL:EQU	63H	;Control Port
+DFLAGS:	 EQU	63H	;FDC Status Port
+DDATA:   EQU	67H	;1793 Data Port
+DSTATUS: EQU	64H	;1793 Status Port
+DCOMMAND:EQU	64H	;1793 Command Port
+DTRACK:	 EQU	65H	;1793 Track Port
+DSECTOR: EQU	66H	;1793 Sector Port
+DSIDE:	EQU	4	;Bit 1=0 selects side 1
+			; of D/S drives
+;
+; DISK CONTROL PORT HARDWARE ENVIRONMENT
+; Bits 0-3 select drives 1-4
+; Bit 7 enables auto wait on accesses to DDATA
+; Bit 5 enables dsk drive motors 
+; Bit 4 selects single density (S/D)
+;
+; DISK STATUS PORT HARDWARE REQUIREMENTS
+; Bit 0 is 1793 INTREQ status output
+; Bit 5 indicates head is loaded
+;
+; DISK DENSITY DEFINITIONS
+MAXSECTORS: EQU 1AH  ;Single Density
+MAXTRACKS:   EQU 4CH  ; 8" Disks
+;
+; PIO DEFINITIONS:
+ACOMMAND:EQU	7AH
+ADATA:   EQU	78H
+BCOMMAND:EQU	7BH
+BDATA:   EQU	79H
+;
+; BUS CONTROL:
+RELEASE: EQU	7FH	;I/O To this addr releases bus
+HOLD:    EQU	7CH	;I/O to this addr requests bus
+;
+; MDS PORT DEFINITIONS:
+STATUS:  EQU	7EH	;S100 Bus reads 78H
+;Note that port 78H is referenced directly in ASERVICE
+;TYPE:	Not Implemented
+RESULT:  EQU	7DH	;S100 Bus reads 7BH
+;RESET: Not Implemented
+IOPBLOW: EQU	79H
+IOPBHIGH:EQU	7AH
+;
+; DISKETTE INSTRUCTION CODES:
+NOP:     EQU	0	
+SEEK:	 EQU	1
+FORMAT:	 EQU	2
+RECALIB: EQU 	3
+READ:	 EQU	4
+VERIFY:	 EQU	5
+WRITE:	 EQU	6
+WRITEDEL:EQU	7	;Write deleted data mark;
+;
+; AS THERE IS NO STACK RAM AVAILABLE ALL CODE
+; MUST BE SEQUENTIAL
+;
+; THE PROM PROGRAMMER REQUIRES AN ADDRESS OFFSET
+; OF 0F200H FOR THIS ORG 0F800H CODE
+;
+; THE FOLLOWING MACROS FORM COMMONLY USED ROUTINES
+;
+STOP:	MACRO
+	LD	SP,STACK; Point at ROM stack
+	IN	A,RELEASE
+	RETI
+	MEND
+DONE: MACRO   ;Set up status port & stop
+	LD	A,0FH
+	OUT	STATUS,A
+	STOP
+	MEND
+;
+INTREQ:	MACRO	;Wait for intreq
+LL#SYM:	IN	A,DFLAGS ;Loop until 1793 INTREQ active
+	RRA
+	JR	NC,LL#SYM
+	MEND
+;
+ERRORS: MACRO	#LOOP,#MASK ;Check 1793 for errors
+	INTREQ
+	IN	A,DSTATUS
+	EXX	;Save working registers
+	LD	C,A	;Save error byte
+	AND	80H	;Not ready mask
+	EXX
+	JR	NZ,#LOOP	;Loop until drive ready
+	EXX
+	LD	A,C
+	AND	#MASK	;General error mask
+	JP	NZ,SELECT+OFFSET ;Retry if any errors
+	EXX
+	MEND
+;
+SETUP:	MACRO	;Set up read and write common parameters
+LP:	DL	AA#SYM
+AA#SYM:	INC	D	;Sector #
+	LD	A,D
+	OUT	DSECTOR,A
+	EXX
+	LD	A,D
+	OUT	DCONTROL,A
+	LD	B,80H	;Input byte count
+	IN	A,DFLAGS ;Is head loaded?
+	AND	20H
+	JR	Z,J2#SYM ;No
+	LD	A,0
+	JR	J3#SYM
+J2#SYM: LD	A,04H    ;Head load mask for 1793
+J3#SYM	DL	$
+	MEND
+;
+CHECK:	MACRO	;See if read or write is complete
+	EXX
+	DJNZ	LP
+	EXX
+	LD	B,0	;Done
+	JP	FINISH+OFFSET
+	MEND
+;
+; NOTE THAT THE 1793 NEEDS TIME TO CALCULATE CRC
+; BEFORE THE ERROR STATUS IS AVAILABLE
+; IF THE DRQ IS NOT SERVICED
+; The following delay loop is sufficient (4MHz Z-80)
+DELAY:	MACRO
+	LD	B,30H	;12 to 15 give CRC errors
+; 0 to 12 give BUSY flag
+	DJNZ	$
+	MEND
+;
+; Check for 1793 errors during read and write
+DERROR: MACRO	#MASK
+	INTREQ
+	IN	A,DSTATUS
+	EXX
+	LD	C,A	;Save error byte
+	EXX
+; Note that we will not check for deleted data marks
+	AND	#MASK
+	JP	NZ,S2+OFFSET ; Retry errors
+	MEND
+
+; LINKER AND PROM PROGRAMMER CODE REQUIREMENTS
+	ORG	100H
+	JP	0
+OFFSET: EQU	0F800H-600H
+; Setup vectors at top of ROM
+	ORG	9F4H	;Effectively FBF4
+VEC1:	DW	ASERVICE+OFFSET
+VEC2:	DW	BSERVICE+OFFSET
+WAIT:	EI
+	HALT	;wait for interrupt
+; STACK: To enable interrupt structure we need a 'stack'
+	DW	WAIT+OFFSET
+STACK:	EQU	$+OFFSET
+	DW	WAIT+OFFSET 
+	DW	WAIT+OFFSET
+;
+; Hardware Reset Code
+	ORG	600H
+START:	JP	0F804H
+	NOP
+; The ORG address is now effectively F804H
+; Now setup PIO & Interupts
+;
+	IM2
+	LD	A,0FBH
+	LD	I,A	;Int vector table near FBF2
+	LD	A,0F4H	;IVEC(A) = FBF4
+	OUT	ACOMMAND,A
+	LD	A,0F6H	;IVEC(B) = FBF6
+	OUT	BCOMMAND,A
+	LD	A,4FH	;MODE 1
+	OUT	ACOMMAND,A
+	OUT	BCOMMAND,A
+	IN	A,ADATA	;Set READY handshake
+	IN	A,BDATA
+	LD	A,87H	;Enable PIO interrupt mode
+	OUT	ACOMMAND,A
+	OUT	BCOMMAND,A
+; Now setup output latches
+	LD	A,00
+	OUT	RESULT,A
+	LD	A,0BH	;:F0:,:F1: ready, not D/D
+	OUT	STATUS,A
+	EX	AF,AF'
+	LD	A,0	;Clear drive select mask
+	EX	AF,AF'
+	EXX
+	LD	H,0FFH	;Clear logged trk
+	EXX
+	LD	SP,STACK
+	EI
+	HALT
+; Routine to service PIO inputs
+; (79) go to IX lower, (7A) to IX upper
+;
+ASERVICE: DI
+	OUT	HOLD,A	; Lock out bus until done
+	NOP	;Allow time for bus control
+	NOP
+	IN	A,78H ; S100 Status port read (& reset)
+;		      ; must be done during bus access
+	IN	A,ADATA
+	LD	IX,0
+	LD	C,A
+	LD	B,0
+	ADD	IX,BC	;Now have A in IX
+	STOP
+BSERVICE: DI
+	 OUT	HOLD,A	; Lock out bus until done
+	IN	A,BDATA
+	LD	B,A
+	LD	C,0
+	ADD	IX,BC	; IX now points to IOPB
+; Now select side 0 of disks
+	LD	A,2	;Set bit 1
+	OUT	DSIDE,A
+;
+	EXX
+	LD	E,0AH	;10 retries
+	JR	SELECT
+;
+; NOW BEGIN DECODING COMMAND WORD
+; 
+; FIRST SELECT THE DRIVE (:F0:=A:, :F1:=C:)
+;
+S2:	EXX
+	LD	H,0FFH	;Log off track if error occurs
+;			;This will cause a RESTORE cmd
+;			;To be executed for SEEK errors
+SELECT:	LD	A,E
+	CP	0	;Have we retried 10 times?
+	LD	A,C	;Error byte
+
+	JP	Z,EXIT+OFFSET
+	DEC	E
+	EXX
+	LD	A,(IX+0)
+	AND	3FH ;Check for acceptable channel word
+	JP	NZ,CHERROR+OFFSET ; Channel error
+;
+;If the op is NOP,FORMAT or RECALIBRATE 
+;Dont check address field
+	LD	A,(IX+1)
+	AND	07H	;Now have opcode field
+	CP	1	;Seek
+	JR	Z,DONTSKIP
+	SUB	4
+	JR	C,SKIP	; <=3
+DONTSKIP:
+
+; Now check for valid IOPB addresses
+N12:	LD	A,(IX+3) ;Track address
+	SUB	MAXTRACKS+1  ;max track # + 1
+	JP	NC,ADDERROR+OFFSET
+	LD	A,(IX+4)
+;
+; Must reset bits 4 & 5 of sector byte (a drive select bit)
+; to retain compatibility with S/D MDS systems
+	AND	A,09FH
+	JP	Z,ADDERROR+OFFSET ;Zero sector #
+	SUB	MAXSECTORS+1 ;Max sector # + 1
+	JP	NC,ADDERROR+OFFSET
+	LD	A,(IX+4) ;Sector addr
+;
+; Must reset bit 5 of sector byte (a drive select bit)
+; to retain compatibility with S/D MDS systems
+	AND	A,09FH
+	LD	C,(IX+2) ;Number of records requested
+	ADD	A,C
+	SUB	A,MAXSECTORS+2
+	JP	NC,ADDERROR+OFFSET ;Final sector >1AH
+; Address errors trapped, now seek to required track
+;
+SKIP:	LD	A,(IX+1) ;Instruction word
+	AND	30H	;Get drive mask
+	RRC	A
+	RRC	A
+	RRC	A
+	RRC	A
+	CP	3 ; S/D MDS drive #1 mask
+	JR	Z,BSELECT ;Select drive B
+; Dont allow for more than 2 drives
+	LD	D,0B1H	;Auto wait,motor on,S/D,A:
+	JR	J3
+BSELECT: LD	D,0B2H	;Auto wait,motor on,S/D,B:
+; D contains the drive control byte with auto wait set
+;
+; Now check for recalibrate, nop & format instructions
+;
+J3:	LD	A,(IX+1)
+	AND	07H
+	CP	RECALIB	
+	JR	Z,RESTORE
+	CP	NOP
+	JR	Z,DONOP
+	CP	FORMAT
+	JR	Z,DONOP
+	JR	DOSEEK;Not one of these ops
+DONOP:	LD	B,0
+	JP	FINISH+OFFSET
+RESTORE: LD	A,D	;Drive control byte
+	AND	7FH	;Reset auto wait
+	OUT	DCONTROL,A
+	 LD	A,0DH	;1793 Restore command
+	OUT	DCOMMAND,A
+	ERRORS	RESTORE,99H
+	LD	B,0
+	JP	FINISH+OFFSET
+;
+DOSEEK: 	;Read, write, verify & seek
+		;all require a seek op first
+; Now check if drive is logged
+; trk # will then be available without the read addr op
+;
+	EX	AF,AF'
+	CP	A,D	;Is it the same as the last?
+	LD	A,D
+	JR	NZ,LOG	;No, log it
+	EX	AF,AF'
+	EXX
+	LD	A,H	; fetch last trk #
+	EXX
+	LD	B,A	;Save it
+	CP	(IX+3) ;Is the desired trk the same?
+	JR	NZ,LOG2 ;No, read address
+	JP	LOGGED+OFFSET
+; Check current track # by reading address from disk
+;NOTE THAT THE 1793 DOES NOT HEAD LOAD ON 'READ ADDRESS'
+; IF THE READY INPUT IS NOT ACTIVE
+; so we must issue a dummy SEEK command first
+;
+LOG:	EX	AF,AF'
+; Will first execute a RESTORE command on the new drive
+REST1:	LD	A,D
+	AND	7FH	;Reset auto wait
+	OUT	DCONTROL,A
+	LD	A,0DH	;1793 Restore command
+	OUT	DCOMMAND,A
+	ERRORS	REST1,99H
+;
+; Now seek to desired track
+LOG2:	LD	A,D
+	AND	7FH	;Reset auto wait
+	OUT	DCONTROL,A
+	IN	A,DTRACK
+	OUT	DDATA,A ;desired trk=current one
+L3:	LD	A,1AH   ;Seek, no verify
+	OUT	DCOMMAND,A
+	ERRORS	LOG2,99H
+;
+L2:	LD	A,0C4H	;1793 Read address cmd
+	OUT	DCOMMAND,A
+  ;Discard the data bytes
+	INTREQ
+	DELAY
+	IN	A,DSTATUS
+	AND	19H	; status would not be valid
+	JR	NZ,L2
+	IN	A,DSECTOR   ;where the 1793 puts the trk
+	LD	B,A	  ;Save it
+	EXX
+	LD	H,A	; log it
+	EXX
+;
+; Now must clear the data request by reading DDATA
+	IN	A,DDATA
+;
+LOGGED:	LD	A,B	;Fetch current track addr
+	CP	(IX+3)  ;Is it the same?
+	OUT	DTRACK,A
+	JR	Z,J11	;Yes, skip read addr
+	LD	A,(IX+3)
+	OUT	DDATA,A
+S1:	LD	A,D
+	AND	7FH
+	OUT	DCONTROL,A ;Disable auto wait
+	LD	A,1DH	;Seek with verify
+	OUT	DCOMMAND,A
+	ERRORS	S1,99H
+; Now have desired track, check to see if op was seek
+;
+J11:	LD	A,(IX+1)
+	AND	07H
+	CP	SEEK
+	JP	Z,FINISH+OFFSET ; was seek only
+;
+; Now calculate the number of records
+; and setup dedicated register values
+;
+	EXX
+	LD	B,(IX+2)  ;Number of records
+	LD	A,(IX+4)
+;
+; Must reset bit 5 of sector byte (a drive select bit)
+; to retain compatibility with S/D MDS systems
+	LD	D,09FH
+	AND	A,D
+	LD	D,A
+	DEC	D	 ;Initial sector (-1 for SETUP)
+	EXX
+;
+	LD	H,(IX+6) 
+	LD	L,(IX+5)
+	LD	C,DDATA
+;
+; Was it a read, write or writedel operation?
+	LD	A,(IX+1)
+	AND	07H
+	CP	READ
+	JR	Z,DOREAD
+	CP	WRITE
+	JP	Z,DOWRT+OFFSET
+	CP	WRITEDEL
+	JP	Z,DOWRTDEL+OFFSET
+	CP	VERIFY
+	JP	DOVERIFY+OFFSET
+;
+DOREAD: EXX
+	SETUP
+	ADD	A,88H	;1797 Read command
+	OUT	DCOMMAND,A
+J13:	IN	A,DFLAGS
+	RRA
+	JR	C,J12 ;INTREQ = error or read complete
+	INI
+	JP	NZ,J13+OFFSET ;Fetch next data byte
+; Z set when B=0, ie 128 bytes have been read
+J12:	DERROR	9DH
+	CHECK
+;
+DOVERIFY: EXX	;Similar to DOREAD
+	SETUP
+	ADD	88H	;1797 compatible
+	OUT	DCOMMAND,A
+J14:	IN	A,DFLAGS
+	RRA
+	JR	C,J15
+	IN A,(C)	;Discard input data
+	JP	J14+OFFSET
+J15:	DERROR	9DH
+	CHECK
+;
+DOWRT:	EXX	;Similar to read in structure
+	SETUP
+	ADD	A,0A8H	;1797 compatible
+	OUT	DCOMMAND,A
+J16:	IN	A,DFLAGS
+	RRA
+	JR	C,J17
+	OUTI
+	JP	NZ,J16+OFFSET
+J17:	DERROR 0FDH
+	CHECK
+;
+DOWRTDEL: EXX
+	SETUP
+	ADD	A,0A9H	;1797 compatible
+	OUT	DCOMMAND,A
+J20:	IN	A,DFLAGS
+	RRA
+	JR	C,J19
+	OUTI
+	JP	NZ,J20+OFFSET
+J19:	DERROR	0FDH
+	CHECK
+;
+; Address and Channel error routines
+;
+;THIS ENTRY IS VALID DURING ERROR TRAPS
+A1:	LD	A,08H
+	OUT	RESULT,A
+	JP	STAT+OFFSET
+;
+; 1793 Error exit routines
+;
+; Will print out error messages for ease of debugging
+; Will use the RST7,RST6 area of RAM for stack
+;
+EXIT:	EXX
+	LD	SP,0038H ; Out of ISIS area
+	PUSH	AF
+	CALL	PMSGFOLLOWING+OFFSET
+	DB	0DH,'1793',0A0H
+	POP	AF
+	PUSH	AF
+	CALL	P2HEX+OFFSET
+	CALL	PRINTIOPB+OFFSET
+	POP	AF
+	LD	B,0	;Use B to hold result byte
+	BIT	0,A
+	JR	Z,J5
+	SET	0,B
+	SET	7,B
+J5	BIT	1,A	;DRQ error
+	JR	Z,J6
+	SET	4,B
+J6:	BIT	2,A	;Lost data
+	JR	Z,J7
+	SET	4,B
+J7:	BIT	3,A	;CRC
+	JR	Z,J8
+	SET	1,B
+J8:	BIT	4,A	;Seek error
+	JR	Z,J9
+	SET	2,B
+J9:	BIT	6,A
+	JR	Z,FINISH
+	SET	5,B
+FINISH:	LD	A,B
+	OUT	RESULT,A
+; The following code has been nulled as it
+; causes the motors to 'cycle' in speed too much.
+; A delayed turnoff is needed
+; Switch off the drive motors
+;	LD	A,D
+;	AND	5FH	;motors + wait off
+;	OUT	DCONTROL,A
+STAT:	DONE
+;
+; OUTPUT MESSAGE ROUTINES
+PRINTIOPB: CALL	PMSGFOLLOWING+OFFSET
+	DB	' ERROR, IOPB A',0D4H
+	PUSH	IX
+	POP	HL
+	CALL	SPACE+OFFSET
+	CALL	PMSGFOLLOWING+OFFSET
+	DB	', CONTENTS:',0A0H
+	LD	A,(IX+0)
+	CALL	P2HEX+OFFSET
+	LD	A,(IX+1)
+	CALL	P2HEX+OFFSET
+	LD	A,(IX+2)
+	CALL	P2HEX+OFFSET
+	LD	A,(IX+3)
+	CALL	P2HEX+OFFSET
+	LD	A,(IX+4)
+	CALL	P2HEX+OFFSET
+	LD	L,(IX+6) ;Print in reverse order
+	LD	H,(IX+5)
+	CALL	SPACE+OFFSET
+	CALL	PMSGFOLLOWING+OFFSET
+	DB	0DH,8AH
+	RET
+ADDERROR: LD	SP,0038H ;Not in ISIS area
+	CALL	PMSGFOLLOWING+OFFSET
+	DB	0DH,'ADDRESS',0A0H
+	CALL	PRINTIOPB+OFFSET
+	JP	A1+OFFSET
+CHERROR: LD	SP,0038H
+	CALL	PMSGFOLLOWING+OFFSET
+	DB	0DH,'CHANNEL',0A0H
+	CALL	PRINTIOPB+OFFSET
+	JP	A1+OFFSET
+PMSG:	PUSH	AF
+PS1:	LD	A,(HL)
+	INC	HL
+	CALL	PCHR+OFFSET
+	RLA
+	JR	NC,PS1
+	POP	AF
+	RET
+PMSGFOLLOWING:
+	EX	(SP),HL
+	CALL	PMSG+OFFSET
+	EX	(SP),HL
+	RET
+PCHR:	PUSH	AF
+;SJ2:	IN	A,0F7H	;CRT STATUS
+;	AND 	1
+;	JR	Z,SJ2
+;	POP	AF
+;	PUSH	AF
+;	OUT	0F6H,A	;CRT DATA
+SJ1:	IN	A,0FBH	;PRINTER STATUS
+	AND	1
+	JR	Z,SJ1
+	POP	AF
+	OUT	0FBH,A	;PRINT DATA
+	RET
+SPACE:	LD	A,20H
+	CALL	PCHR+OFFSET
+	LD	A,H
+	CALL	P2HEX+OFFSET
+	LD	A,L
+P2HEX: PUSH	AF
+	LD	A,20H
+	CALL	PCHR+OFFSET
+	POP	AF
+	 CALL	P1HEX+OFFSET
+	RRA
+P1HEX:	RRA
+	RRA
+	RRA
+	RRA
+	PUSH	AF
+	AND	0FH
+	CP	10
+	JR	C,PH1
+	ADD	7
+PH1:	ADD	30H
+	CALL	PCHR+OFFSET
+	POP	AF
+	RET
+	END	START
+

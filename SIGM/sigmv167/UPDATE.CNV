@@ -1,0 +1,62 @@
+
+[UPDATE.CNV]
+[Harold V. McIntosh, 28 January 1984]
+
+[]
+
+[[Generate FILE.ONE using FILE.TWO and FILE.DIF]]
+
+
+
+[record difference line]
+(()()(3 4)(
+	((PWS,a: )(or),);
+	(<-->(^Z),(b,(T)));
+	(File 1<,> Line <3>: <4>,(c,(A))(D)):
+	(File 2<,> Line <3>: <4>,(d,(B))(D)):
+	(,(D)):
+  )) a
+
+[copy remainder of file]
+(()()(2)(
+	(<-->(^Z),);
+	(<2>,(%W,<9>.ONE,<2>(%|))(T)):
+  )) b
+
+[insert at given line]
+(()()()(
+	(<3>,(4));
+	(,(2)(A)(,(B))):
+  )) c
+
+[delete a given line]
+(()()()(
+	(<3>,(,(T)));
+	(,(2)(,(A))(B)):
+  )) d
+
+[main program]
+((
+  )(
+	((%R,CTR:F1)) A
+	((%R,CTR:F2)) B
+	((%R,<9>.TWO)) T
+	((%R,<9>.DIF)) D
+	((%W,<9>.ONE,(T)(%|))) 2
+	((%W,<9>.ONE,<4>(%|))) 4
+  )(9)(
+	((PWS)(or),);
+	(<9>(or, ,.,<>),<<
+		>>(%Or,<9>.TWO)<<
+		>>(%Or,<9>.DIF)<<
+		>>(%Ow,<9>.ONE)<<
+		>>(%Or,CTR:F1)<<
+		>>(%Or,CTR:F2)<<
+		>>(%W,CTR:F1,0,1)<<
+		>>(%W,CTR:F2,0,1)<<
+		>>(a,(D))<<
+		>>(%E));
+  ))
+
+[end]
+

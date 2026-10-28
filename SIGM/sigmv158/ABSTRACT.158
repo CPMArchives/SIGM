@@ -1,0 +1,99 @@
+
+
+                      December 19, 1983
+                         Radnor, PA
+
+1.  This incarnation of YAM: YAMC86, is **BASED ON** YAM by Chuck
+    Forsberg.  The conversion to C86 syntax was performed by
+    Paul Homchick, and consequently, support for this version is
+    NOT available from Mr. Forsberg.
+
+2.  This conversion is based on the 8-bit BDS C version (4.26).
+    Syntax and certain sections of code have been changed so that
+    it will now compile with the Computer Innovations C86 8086
+    Compiler for use under CP/M 86.  The program will also work
+    under CP/M 86 PLUS.  Version 1.33c of the C86 compiler was used
+    during development of these files.
+
+3.  This version has not been tested above 1200 baud.  Terminal emulation
+    at 19.2K baud is probably beyond its capabilities.
+
+3a. The YTERM() function was not translated to the 16-bit environment.
+
+4.  An entry in the phones.t file that begins with the three letters:
+    'cis' will cause yamc86 to enter t2 (cis 'a' protocol) mode instead
+    of t mode, upon successful completion of a call.
+
+5.  Since the files represent a direct translation from the 8-bit BDS C
+    version, references in the documentation referring to the features
+    of 16-bit versions may, or may not, be valid.
+
+6.  Two yam5 / yamsys file combinations are provided.
+
+	A.  PMMI MM-103 s-100 modem.
+
+	B.  Hayes Smartmodem 1200 interfaced through a
+	    CompuPro Interfacer 3/4 serial i/o board.
+
+    These installations have been tested, and are known to work.
+    Installation on other hardware will require writing your own
+    yamsys.h and yam5.c (or modifying the supplied files).
+
+7.  The XMODEM define has not been tested, so don't expect anything
+    from it.
+
+8.  The only defines that HAVE been tested are those defined in yampmmi.h
+    and yamsmi4.h.
+
+9.  The updcrc() and crck() fuctions which, in the 8-bit version, lived in
+    yam8.csm and yam9.csm, are supplied as .a86 files suitable for use with
+    the CI cvth86 program.  Use asm86.cmd to assemble updcrc.a86 and crck.a86.
+    Use cvth86.cmd to transform the .h86 files from the assembler into .o
+    files for use with the CI cl linker.
+
+10. The manuals are supplied as Greenlaw-type squeezed files (YAMMAN.LQT &
+    YAMIMPL.LQT).  A cp/m-86 version of the unsqeeze program (usq.cmd) is
+    included with the distribution to expand the .LQT files.  Use the
+    following syntax:
+
+			usq x: y:*.lqt
+                            |   \
+                            |    - drive the distribution files are on
+                            |
+			    +----- drive you want the unsqeezed files on
+
+    Make sure the destination drive (x:, above) has sufficient room.
+    YAMIMPL.LST is a 44K file, and YAMMAN.LST is a 68K file.
+ 
+11. YAM is for 'C' and communications wizards, or VERY ambitious beginners.
+    To install YAM, you have to be proficient in interfacing to hardware
+    using the 'C' language.  Like most (all?) Public Domain Software,
+    handholding, support, and tutoring is available (if at all) only on an
+    ad-hoc basis.
+
+
+    FILE			DESCRIPTION
+------------	  ---------------------------------------
+CRCK    .A86      from yam8.csm, use asm86 & cvth86
+MAKE1YAM.SUB      compile & link for one file
+MAKEYAM .SUB      compile & link for all yam*.c files
+PHONES  .T        phone number list for auto-dialing
+READ    .ME       caveats & disclaimers
+UPDCRC  .A86      from yam9.csm, use asm86 & cvth86
+USQ     .CMD      cp/m-86 version of usq.com
+YAMC86  .H        defines and globals for yamc86
+YAM10   .C        utilities and usq stuff
+YAM1    .C        main()
+YAM2    .C        christensen protocol handler
+YAM3    .C        conversation with data capture
+YAM4    .C        cis 'a' protocol
+YAM5PMMI.C        modem stuff for pmmi mm-103
+YAM5SMI4.C        modem stuff for smartmodem & IF 3/4
+YAM7    .C        cp/m-86 stuff
+YAMHELP .T        'on-line' help file
+YAMIMPL .LQT      how to install yam
+YAMMAN  .LQT      how to use yam
+YAMPMMI .H        yamsys.h for pmmi
+YAMSMI4 .H        yamsys.h for smartmodem with IF 4
+
+

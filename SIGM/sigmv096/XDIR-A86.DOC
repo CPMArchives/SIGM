@@ -1,0 +1,119 @@
+
+                    The XDIR Directory Program
+
+     XDIR  (Extended Directory Display) is an enhanced version of 
+the  Digital Research 'built-in' CP/M command 'DIR' which  allows 
+the  userto  search  a range of drives and/or user  areas  for  a 
+specified   file,  and creat a sorted  directory  display.   This 
+capability is patterned after FILEFIND, but is significantly more 
+useful in that  XDIR will report the sizes of files matched.    A  
+new  BDOS intercept  routine  has been added, which although more 
+involved   than   the  FILEFIND  method,    is   more   generally  
+applicable  and should  run "as-is" on most CP/M systems.   Thus, 
+by using XDIR,  the use of a separate FILEFIND program should  be 
+unnecessary.  
+
+                    XDIR - Basic User Operation
+
+     You  merely   type   "XDIR",    followed  by   an   optional  
+ambiguous   or  unambiguous  filename (as  you  would  with   the  
+CCP  directory command).   Omitting  the  filename  (i.e.,  "XDIR  
+[CR]"),  will be interpreted  as  "XDIR *.*".   Similarly,  "XDIR 
+A:" would  imply  "XDIR A:*.*" and "XDIR B:"  would  imply  "XDIR 
+B:*.*".   In  addition  to the filename option,  up to 8  command  
+line  options  may  be  specified.    If   options   are   to  be 
+specified, then  the  filename  must  be EXPLICITLY specified  by  
+at  least a drive code.  Option fields are  preceded  by a single 
+dollar  sign  as  with  most  Digital Research programs  such  as 
+MAC,  and may be essentially free-form in format.  Example:  XDIR  
+A:  $s  a  D  rn u0 fp.  Note that the reference  to the A drives 
+in  "A:" is mandatory.     Invoking  XDIR with a command  of  the 
+form  "XDIR  $s a D rn u0 fp" would result in XDIR thinking  that  
+$S  was the file to be searched for.   Note also that spaces  and 
+case   within   the  option field  are  insignificant  (i.e.,  "$ 
+SADrNu0F p" is equivalent  to  "$  S A D R N U0 F P").  The  only  
+exception  concerns the "USER" option  which  will  be  explained 
+later.   Users  should also be aware of two restrictions  on  the 
+command  line  format.   XDIR scans the entire command line for a 
+dollar  sign  preceded  by  at  least  1  blank  to  delimit  the 
+beginning   of  the option field.   For  this  reason,   invoking  
+XDIR  with a command line  such as "XDIR $ $AR" is illegal  since 
+XDIR  will consider the first dollar sign to be the option  field 
+delimiter.   If  you  need to specify  a  a filename whose  first 
+character is a dollar sign, precede it with  a  drive  code as in 
+"XDIR A:$ $AR".   In  this  instance,   XDIR  will  consider  the 
+first   dollar   sign insignificant as it is not  preceded  by  a 
+blank.  
+ 
+
+     The  second restriction is that command  line options may be 
+specified once and only once per invocation.    That  is,   "XDIR 
+A:  $XDIRS"   would be illegal since the "S" option is  specified 
+twice.   This shortcoming  is  due  to  the fact that options can 
+be made into defaults at assembly time.  
+
+     The eight options recognized are:  
+
+  "S"  - system  option :  system files will be included  in  the 
+         output rather than being suppressed.  
+
+  "F"  -  file  option :  the directory  output  will  be  echoed 
+         to   a   disk  file  named  "XDIR.DIR"  on  the  DEFAULT 
+         drive.  If XDIR.DIR already  exists,  then the directory 
+         output  will  be  APPENDED  to the  end  of   the  file.  
+         Otherwise,  XDIR.DIR will be created as a new file.  The 
+         append feature allows you to build  up  one massive file 
+         on  the default drive containing the directories of  all 
+         of  your  disks,  without  having   to  concantenate   a  
+         swarm  of individual directory  files.
+
+  "U"  - user option :  allows  the  specification  of  the  user  
+         number  for  the directory of the form "Uxx"  where  the  
+         user   #   is  greater  than 0,  but not greater than  a 
+         specified  value  not to exceed  15.   The  user  option 
+         specification  will  be illegal if the user # is out  of 
+         range,  or omitted.  Note  that since  the  user  option  
+         requires   a  parameter (i.e.,  the user  number),   the  
+         user   number must immediately follow the "U" option  on 
+         the command field.    That is, "U1" is legal, but "U  1"  
+         is not.   In this respect, the U option differs from the 
+         other   options    in    that    embedded   spaces   ARE 
+         significant.  
+
+  "A"  - all users :  causes XDIR to display  directories of  all  
+         user   areas   starting  at  the  user   area  specified  
+         in   the   U  option or,  if U option  is  omitted,  the 
+         default  user  area  and continuing up  to  the  maximum 
+         number of user directories (15).  
+
+  "R" - reset option : allows for automatic resetting of the disk 
+         prior  to  performing  directory  search  so  that   the  
+         allocation vector  will  be  updated.   Same as doing  a 
+         CTRL-C  when  changing disks,  but handy if  you  didn't  
+         (such  as  when  running  a SUBMIT  file).   Useful  for 
+         XDIRing a stack of disks with the "F" option, but  slows  
+         down XDIR considerably in normal use.  
+
+  "N"  - no  page option :  unconditionally  disables   the  page  
+         pause   option.    Useful  when running XDIR in the  "F" 
+         and/or  "A"  modes when you don't want the  page  prompt 
+         slowing you  down.    Note that XDIR will  not  put  the 
+         page-pause prompt  into  the output file.  
+
+  "P" -  printer option : forces all console output to be  echoed 
+         to  the CP/M  list  device,   with the most  significant 
+         bit set to 0.  
+
+  "D" - all disk option : allows XDIR to search  all  disk drives  
+         on-line   starting  with  the  disk drive specified   or  
+         implied   with   the   command   line  filename.     For 
+         example, "XDIR B: $D" will result in XDIR searching  all 
+         drives  beginning  with  drive B.   "XDIR *.*  $D"  will  
+         result  in XDIR searching all drives beginning with  the  
+         drive  that is logged in.  
+
+     If   an  unrecognized  option  (or  illegal   user    option 
+specification) is detected,  then the command line will be played 
+back  to the  console  up  to  the  point  where  the  error  was 
+detected.
+

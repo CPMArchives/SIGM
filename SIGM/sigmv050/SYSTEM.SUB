@@ -1,0 +1,67 @@
+;SYSTEM.SUB		June 16, 1981
+;
+;Type SUBMIT SYSTEM z xxx mm hhhh y, where 'z' is the destination
+;drive for the output of the SYSTEM.SUB file (this file),
+;mm is the memory size - 2 in 1K byte units, hhhh is the
+;hexadecimal offset for loading the BIOS, and y has the value
+;P if the PRN files are to be printed, else y is ;.  For example,
+;if the memory size is 64K, the mm is 62 and hhhh is 2D80.
+;
+;	Assemble ROM file
+PIP $1:DTCROM.ASM=CONFIG,DTC,ROM[V]
+ASM $1:DTCROM
+ERA $1:DTCROM.ASM
+$5IP PRN:=$1:DTCROM.PRN[T6]
+ERA $1:DTCROM.PRN
+;
+;The DTCROM.HEX file contains the EPROM code for a 2716
+;to load the BOOT sector from either floppy disk or hard disk.
+;
+;	Assemble BOOT file
+PIP $1:DTCBOOT.ASM=CONFIG,DTC,BOOT[V]
+ASM $1:DTCBOOT
+ERA $1:DTCBOOT.ASM
+$5IP PRN:=$1:DTCBOOT.PRN[T6]
+ERA $1:DTCBOOT.PRN
+;
+;The DTCBOOT.HEX file loads the CCP, BDOS and BIOS from the
+;logical unit passed in the A register by DTCROM.
+;
+;	Assemble BIOS
+PIP $1:DTCBIOS.ASM=CONFIG,DTC,BIOS1,BIOS2,$2,BIOS3,MODEL,BIOS4[V]
+ASM $1:DTCBIOS
+ERA $1:DTCBIOS.ASM
+$5IP PRN:=$1:DTCBIOS.PRN[T6]
+ERA $1:DTCBIOS.PRN
+;
+;	Construct DTCCPM.COM
+;MOVCPM.COM is used to generate a copy of the CCP and BDOS of
+;the desired size.  The special loader DTCLOAD.COM, provided
+;on the DTC distribution diskette, loads HEX files to memory
+;with offset.
+MOVCPM $3 *
+DTCLOAD $1:DTCBOOT O=0780
+DTCLOAD $1:DTCBIOS O=$4
+;Maximum system size is 57
+SAVE 57 $1:DTCCPM.COM
+;
+;
+;	Assemble FORMAT file
+PIP $1:DTCFORM.ASM=CONFIG,DTC,FORMAT[V]
+ASM $1:DTCFORM
+ERA $1:DTCFORM.ASM
+$5IP PRN:=$1:DTCFORM.PRN[T6]
+ERA $1:DTCFORM.PRN
+LOAD $1:DTCFORM
+ERA $1:DTCFORM.HEX
+;
+;	Assemble INSTALL file
+PIP $1:DTCINSTL.ASM=CONFIG,DTC,INSTALL[V]
+ASM $1:DTCINSTL
+ERA $1:DTCINSTL.ASM
+$5IP PRN:=$1:DTCINSTL.PRN[T6]
+ERA $1:DTCINSTL.PRN
+LOAD $1:DTCINSTL
+ERA $1:DTCINSTL.HEX
+;SYSTEM.SUB done.
+

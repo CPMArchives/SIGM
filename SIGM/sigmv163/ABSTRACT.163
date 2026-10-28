@@ -1,0 +1,243 @@
+     The  following  information is extracted  from  the  on-disk 
+newsletters  for volumes 1 and 2 of the CBASIC USERS GROUP.  They 
+can be contacted as follows:
+
+                       CBUG
+                       3208 Magicwoods Circle
+                       Sacramento, CA 95827
+                       ATTN: Joe Butler
+                       Phone: (916) 366-7840
+ 
+HARDWARE SECTION 
+ 
+All  the software that comes on a diskette from the Cbasic  users 
+group  will run on CP/M,  CDOS,  and MOS/80.  How do I know this?  
+Well, I checked the software myself. I might add that most of the 
+software  that  I  have written  lately,  will  be  'laced'  with 
+assembler  code.  Isn't it wonderful what you can do with Cbasic? 
+So please check the code very carefully. I know that it works, so 
+if you have any bugs, it is in your operating system. 
+    
+ 
+ 
+PROBLEMS AND BUGS
+ 
+     While working with a Kaypro machine,  I ran across an inter-
+esting  bug.  On  the Cbug diskette,  you will notice  a  program 
+called  'DIRECTIO'.  Well,  I've been writing an application  for 
+this  machine  that needed a console input  without  any  special 
+characters coming across (e.g.  ^S, ^P, line feed characters.) It 
+seems  that the customer needs strained console I/O,  so the pro-
+gram 'DIRECTIO' works just fine, except that the disk drives stay 
+on, until you depress any character on the keyboard. I've got the 
+routine  at D000 hex and it is below the  operating  system.   So 
+far,  I haven't any clues. Anybody out there know what the answer 
+is?  I've  called  Linear  Systems,  and they haven't  any  idea. 
+Anywho, somebody let me know.
+    
+     David  Kroutil,  of American Data,  Inc.  has run across  an 
+interesting bug in Cbasic. To give you a little background, David 
+is  selling a beefed-up version of the McGraw-Hill software  with 
+all the bells and whistles you can think of.  The price,  I might 
+add,  is very reasonable, too. He even has documentation! I don't 
+know the price, but I'll find out. Anyways, David ran his Payroll 
+package and gets this weird error:  ERROR EO 54. David has called 
+Compiler Systems,  the originator of Cbasic, and Digital Research 
+Inc., but to no avail. It seems that either they won't  help them 
+because they don't know,  or they don't want to tell anyone  what 
+the error is. If anyone knows this one, or knows anyone who does, 
+I'll give the next diskette of software away to him free! 
+    
+     Clark of Lodestar Computer Systems,  has come up with a good 
+bug.  The details are in PRBLM001.TXT. Briefly, the problem looks 
+like  this:   Whenever you use the common statement to pass vari-
+ables  and strings to other programs,  you can only  transmit  so 
+many.  In  other words,  it looks like there is a ceiling on  the 
+amount  of space for the common statements.  I haven't found any-
+thing in the CBASIC manual to dictate otherwise. Anyone know this 
+one?
+    
+     I came across an interesting bug,  or so I  thought.  Later, 
+after talking with Digital Research, I found that the answer was 
+in  their  new  manual on page  4.  Boy,  that  was  embarassing! 
+Anyways,  look  at the programs,  TRY1 and TRY2.  I was trying to 
+pass a string array in a common statement for another program  to 
+access.  My  problem was,  that I redimensioned the string in the 
+second program.  That's a no-no when the string array is  already 
+dimensioned  in  the primary program.  All I ended up  doing  was 
+nulling the array! Be careful of that one!
+ 
+The following is a blow by blow description of the programs:
+    
+CBAS.TST   Program to test the MEMTEST function in CBASIC.  Check 
+on CBASTEST.ASM  and TEST.BAS.  These programs came from Mr. Jack 
+Owens of Sacramento, Ca. 
+ 
+By now,  I bet that you are trying to figure out how I got a copy 
+of the directory using X.COM,  in this newsletter.  Well,  if you 
+look at CONS.COM, CONS.ASM, CONSGRAB.ASM, AND CLOSE.COM, you will 
+find  out.  I  wrote these programs a while ago  to  capture  the 
+console  I/O.  They  will work on CP/M just fine.  For  CDOS  and 
+MOS/80,  give me a buzz.  They are a S.O.B.  to change.  There is 
+only  one  small problem to this;  you have to be able to get  to 
+your BIOS to add CONSGRAB.ASM to it.
+    
+DIR.BAS   This is a program to call up the directory  in  CBASIC. 
+The program will accept ambiguous and unambiguous markers to find 
+the files on the directory.  What you also are thinking about is, 
+this  program  can  be  adapted  for a front  end  menu  for  any 
+application;  e.g.  like MENU MASTER. It's a neat little program, 
+combining Assembler and Cbasic.  It should be a good tutorial for 
+those  programmers  out there,  who are  having  difficulty  with 
+assembler.
+    
+DIRECTIO.BAS  This program,  again a combination of Assembler and 
+Cbasic,  demonstrates  a direct console I/O,  which bypasses  the 
+operating system.  I mean,  that if some ignorant person tries to 
+do  a control C in my application,  he's in for a  surprise!  The 
+program  pokes a maching language routine way up at A000 hex  and 
+does  a  call  to it when it needs to do  some  work.  From  this 
+example, the whole world of BDOS and BIOS calls are open to you.
+    
+DOW.BAS  You've always wanted a Day of the Week  routine,  right?  
+Well,  here it is.  If you look at the code, you will see a nifty 
+routine to duplicate the HEX$ routine of MBASIC.  the DOW routine 
+lets you put in a MMDDYY format and come out with the day of  the 
+week. Further study will give you the Julian date if you need it.
+    
+FINDCTL.BAS This is just a little routine to show you the min and 
+max  tracks and sectors allocated for a particular  cluster.  The 
+reason  that I wrote this routine,  is that the Digital  Research 
+manuals  are  a  bit  scarce  in information  when  it  comes  to 
+pertinent  info.  on the disk parameters.  To complicate  matters 
+further,  I have a copy of MOS/80 from Infosoft and Mostek, and I 
+was trying to access a hard disk,  block by block.  Anyways,  you 
+will  probably want to use the algorithm for direct block  access 
+to a foreign disk. That's what I am now using it for.
+    
+GNXXXXXX.BAS These programs are a skeleton database for use  with 
+any straight and easy application, using the KISS philosiphy. You 
+know,  keep it simple stupid! There are three programs; a menu, a 
+screen  input/output,   and  a  report  program.   All  you,  the 
+programmer has to do,  is fill in the missing blanks. Now you are 
+probably wondering what the modules are for and what do all those 
+variables mean?  If you will look on the diskette,  you will find 
+the following:
+    
+GNXXXXXX.LIN - Text explaining what the modules mean.
+GNXXXXXX.XRF - Text explaining what all the variables mean.
+    
+As long as you don't change any of the text in the programs, they 
+will work fine.  But if you do, I hope that you know what you are 
+doing, but if you don't, drop me a letter with the problem. 
+By  the  way,  you  will  need two other programs  to  run  these 
+programs. SCREEN.FIL and COMPANY.DA. 
+    
+SCREEN.FIL is a file that has all your CRT parameters.  Check  on 
+GNMENU.BAS for the particular layout.
+    
+COMPANY.DA  is a file that has the company info, date of creation, 
+password,  etc.  The  program only uses the company and  date  of 
+creation  and one other variable to store the present  date.  The 
+rest are yours to use.
+    
+SLEUTH.BAS This is a program right from the latest MICROCOMPUTING 
+magazine,  written by James Monagan. This is one of the best XREF 
+type programs I've seen in a long time. Not only that, the son of 
+a gun works! Not many people know this, but XREF has a bug in it. 
+It  will  only take so many variables.  No comment  from  Digital 
+Research.  Anyways,  James Monagan has done a helluva job on this 
+one. 
+ 
+COMPANY.DA is a file that has the company info, date of creation, 
+password,  etc.  The  program only uses the company and  date  of 
+creation  and one other variable to store the present  date.  The 
+rest are yours to use.
+
+The following programs belong together as a database application:
+NADMENU.BAS, NADSCRN.BAS, NADREPT.BAS, NADMAIL.BAS, NAD.FIL.
+    
+NADMENU.BAS is the menu to the Name & Address with Mailing Labels 
+Application.  If  you take the time to type the program out,  you 
+will find that I am using my skeleton of GNMENU.BAS for  it.  You 
+will  also notice that I have a machine language routine in  high 
+memory. This is the screen input routine. It grabs all characters 
+and  filters  them.  It  is called BDOS #6 in  the  CP/M  Manual. 
+Anyways,  you should find a lot of use with this application, not 
+to  mention  using  this  menu program as a  skeleton  for  other 
+applications.
+    
+NADSCRN.BAS is the screen and file I/O for the application.  This 
+program uses a lot of new tricks in screen input.  You will  also 
+notice that I again used a skeleton: that of GNSCREEN.BAS.  
+    
+NADREPT.BAS  is  the  report program of all  the  information  in 
+NAD.FIL. Again, I have used a skeleton; that of GNREPORT.BAS.
+    
+NADMAIL.BAS is the mailing label report program.  As you can see, 
+I have modified the skeleton of GNREPORT.BAS a little to make the 
+mailing label module.
+    
+NAD.FIL is, of course, the application file. The parameters are:
+    
+         Record length: 224 characters.
+         Field count  : 10
+         Field case   : String
+         Delimiter    : Comma
+    
+There  is  another program on this diskette that I know that  you 
+will enjoy!  The program is called CREATE.BAS.  This program lets 
+you  create  any  type  of  CBASIC data  file  with  just  a  few 
+parameters. Hence the way the information for NAD.FIL is given. I 
+use  this  program in my Database that I created.  I  think  this 
+program will get a lot of use.
+    
+    
+The following programs belong together as a database application:
+BIBLIO.BAS, BIBBLD.BAS, BIBSRCH.BAS, BIBSR2.BAS, CMPRBIB.BAS, 
+PARMS.BAS, VOCBLD.BAS, VOCLST.BAS
+    
+You can find all the particulars in BYTE Magazine. The article is 
+on page 389 of the March 1983 Issue.  John Obermeier,  out newest 
+member,  deserves the credit of typing all these programs in,  so 
+he gets a free disk of software. Thanks John. The only thing that 
+I have done, is clean it up. Anyways, enjoy!
+    
+GRABCOM.BAS  is  a  program I wrote for CB-80  to  show  the  GET 
+function.  It  is  not documented very well in the CB-80  Manual. 
+What it does is Open X.COM and spill the bytes out to the  screen 
+one by one. Basically, all I wanted to show is how to use the GET 
+command in CB-80 correctly.
+    
+POKEHI.BAS  is  a MBASIC program.  I wrote this little  thing  to 
+deprotect MBASIC programs that I bought recently. The package was 
+the  tax  programs from EAZI-TAX.  They have a bunch of  bugs  in 
+them,  and  I called the people to get them fixed.  They couldn't 
+give me satisfaction,  so I did it myself.  It just bugs me  that 
+companies  are  selling  software  and  they  don't  support  it. 
+Anyways,  this little program has a machine language routine that 
+is poked up in high memory. You run this program first, type NEW, 
+then load your protected program in and do the following: 
+              
+                 A=&HB000:CALL A   
+    
+That's all there is to it!  Just list your program and/or save to 
+disk. Then you can convert your MBASIC program over to CBASIC and 
+send it to me!
+    
+SMUGRBBS.DCP is the manual on how to use the RBBS by the Users
+group, SMUG. Also, it describes the two other diskettes of
+software. Just type it out to your printer.
+    
+ 
+SUMMARY 
+ 
+ 
+For further information, problems, suggestions, please contact:
+ 
+ 
+                  Joseph Butler
+                  916 366 7840
+ 
+ 
+

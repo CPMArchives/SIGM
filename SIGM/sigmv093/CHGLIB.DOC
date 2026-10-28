@@ -1,0 +1,76 @@
+                DOCUMENTATION FOR CHGLIB
+
+     The  purpose  of  CHGLIB  is  to  make  insertions  and 
+deletions  to the dial library of MODEM7 without  having  to  
+reassemble the entire file.
+
+     The  program uses and changes the COM file and does not 
+touch or use the ASM file at all.
+
+     NOTE:This  program  will function properly only if  the 
+dial library is faithfully constructed as spelled out in the 
+MODEM7 documentation.
+          
+     CHGLIB  operates by loading the present COM version  of 
+MODEM7  into  ram,allows  you to make your  changes  to  the 
+library,  and then saves the new COM file on disk.  It  does 
+not delete your orig MODEM7 COM file. For example...       
+
+          CHGLIB MODEM7.COM B:MODEM7A.COM
+
+     Note   that   two(2)  arguments  must  be   used   when 
+invoking  CHGLIB.  The first is the current file  name,  the 
+second is the file name you assign to the new  version.   As 
+for  the   second  argument  CHGLIB  will  not   accept  any 
+file  name  that  is currently  active on that disk.  If you 
+wish   to  keep   the same  file name,  you must delete  the 
+old  version   and  then 'REN' the new version  after  using 
+CHGLIB.
+
+     The  first question the program asks you is if you know 
+the  start address of the dial library in the  MODEM7  file.   
+If  you  answer 'Y',  then the program prompts you for  that 
+address.Enter the address in hex(4 chars are expected).   If  
+you  answer 'N',you are asked if you wish the program to  do 
+an AUTO SEARCH for the start address.  If you answer 'N'  to 
+AUTO  SEARCH  the  prog will terminate and  reboot  to  your 
+system.  If   answer   is 'Y' then CHGLIB will do  the  auto  
+search  for  the  start  of  the  dial  library.NOTE--CHGLIB 
+searches  only the first  255  bytes  of the MODEM7 file  as 
+this  is  where  the library is generally located.      When 
+CHGLIB  beleives  that  it  has found the  library  it  will  
+display   the   start  address and  the   library   on   the 
+console.  It  will then ask you if the library  looks  ok(in 
+other  words,has  CHGLIB  found the  correct  start).If  you 
+answer no,then the program will continue the search.  If you 
+answer  'Y',CHGLIB will keep track of the address and jmp to 
+the  command  function.After  the  start  address  has  been 
+established  you  will then get a  command  prompt.      The 
+COMMANDS are as follows.               
+          NOTE:   *  denotes a valid char A-Z
+     1)^C      Exit to cpm.
+     2)D*      Delete one phone nbr line
+     3)I*      Insert one phone nbr line
+     4)P       Prints dial library on list device
+     5)R       Rereads source file(current changes are lost)
+     6)Vc      View one line 
+     7)V?      View entire library
+     8)W       Write new file to disk 
+
+    NOTE:User can leave INSERT mode without changes if a  CR   
+is  typed  with no characters entered on command  line.  For 
+example,if user has started to type in chars and decides not  
+to  make  any  changes,just  delete  chars typed in and  hit 
+a  CR.If user enters 'I' but has not typed in any chars,then 
+just  hit  a  CR.The  program will  return  to  the  command 
+mode.Follow the the format shown on the INSERT mode  command 
+line.You  must  enter  exactly 28  chars.Align  your   input   
+with  the guide chars located above the cursor.  I have been 
+using   this   program  for  awhile  and  find   it     very 
+satisfactory.It makes changes to the library very fast.
+                    TRY IT,YOU WILL LIKE IT                    
+
+                    TONY RIBEIRO
+                    AVENEL NJ
+                    FEB 1982
+

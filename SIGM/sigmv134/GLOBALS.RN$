@@ -1,0 +1,25 @@
+CONST
+    rnleft   = 9;                 {digits to left of decimal point    }
+    rnright  = 2;                 {digits to right of decimal point   }
+    rnmax    = rnleft + rnright;
+    rnlen    = rnmax + ((rnleft-1) div 3) + 2;
+
+TYPE
+    rndex    = 1..rnmax;          {No. display digits to be handled   }
+    rnlendx  = 0..rnlen;          {Index to real-number string        }
+    rnpair   = ARRAY [1..2] OF REAL;
+    rnlist   = ARRAY [rndex] OF rnpair;
+    rnstr    = string rnlen;
+    rn$ind   = (full,compact);
+    longstr  = string longlength;
+    string0    = string 0;          {types for length and setleng     }
+
+VAR
+    rnset     : rnlist;
+    rnlimit   : REAL;              {can't convert numbers this big    }
+    rnmin     : REAL;              {value for half-adjusting          }
+    rntoobig  : BOOLEAN;           {indicator: real number too big    }
+    grerror   : BOOLEAN;           {indicator: invalid character given}
+
+PROCEDURE setlength (var y: string0;  x: INTEGER);   EXTERNAL;
+

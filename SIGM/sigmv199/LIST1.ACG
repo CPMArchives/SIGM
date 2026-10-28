@@ -1,0 +1,58 @@
+* DATE 08/27/84  13:09
+* list1.acg
+STOR CHR(peek (063)) TO dr
+SET INDEX TO &dr.:lastname
+STOR DATE() TO stdat
+@ 18,12 SAY 'Files after what date are to be printed'
+@ 18,57 GET stdat PICTURE '99/99/99'
+READ
+STOR $(stdat,7,2)+$(stdat,1,2)+$(stdat,4,2) TO stdate
+GO TOP
+STOR 0 TO pageno
+STOR t TO more
+SET MARGIN TO 10
+DO WHIL more
+ STOR pageno + 1 TO pageno
+ STOR 6 TO lineno
+ ERAS
+ EJEC
+ ? '  '
+ ? '==================== LIST UPDATES AFTER - ' + stdat+ ' ============='
+ ? ' '
+ ? '         ' + date() + '                                            PAGE: '+ STR(pageno,3)
+ ? ' '
+ DO WHIL lineno < 55
+  IF .NOT. EOF
+   STOR $(update,7,2)+$(update,1,2)+$(update,4,2) TO stdate1
+   IF stdate1 >= stdate
+    ? '-------------------------------------------------------------------'
+    ? '     ' +  "Name: "+ mr + TRIM(fname) +' ' + lastname
+    ? '     ' + "Spouse: " + spouse + "Address as: " + dear
+    ? '     ' + "Title: " + title
+    ? '     ' + "Company: " + company1
+    ? '     ' + "       : " + company2
+    ? '     ' + "Address: " + caddress + "  " + suite
+    ? '     ' + "         " + ccity +', ' + cst + '  ' +czip
+    ? '     ' + "Home address: " + address + "  " + apt
+    ? '     ' + "              " + city +', '+  st + '  ' +zip
+    ? '     ' + 'Phones - office: ' + ophone + ' home: ' + phone
+    ? '     ' + "Codes:  " + cs1 + ' ' + cs2 + ' ' + cs3 + ' ' + cs4 + ' ' + cs5 + ' ' + cs6
+    ? '     ' + "Send to office: " + send
+    ? '     ' + "Date update: " + update
+    STOR lineno +13 TO lineno
+    SKIP
+   ELSE
+    SKIP
+   ENDI stdate1
+  ELSE
+   STOR f TO more
+   STOR 60 TO lineno
+  ENDI .NOT. EOF
+ ENDD while lineno < 55
+ENDD while more
+EJEC
+SET PRINT OFF
+RELE pageno, lineno, stdat, stdate
+STOR t TO more
+STOR t TO first
+

@@ -1,0 +1,129 @@
+PISTOL CONSTANTS:
+copyright (C) 1983 by E. E. Bergmann
+definitions in alphabetical(ASCII) order
+:
+::
+*********************************************************
+*							*
+* PISTOL-Portably Implemented Stack Oriented Language	*
+*			Version 2.0			*
+* (C) 1983 by	Ernest E. Bergmann			*
+*		Physics, Building #16			*
+*		Lehigh Univerisity			*
+*		Bethlehem, Pa. 18015			*
+*							*
+* Permission is hereby granted for all reproduction and *
+* distribution of this material provided this notice is *
+* included.						*
+*							*
+*********************************************************
+:
+::
+A'		ORD('A')
+
+CHKLMT		Capacity of the checkstack.
+
+COMPBUF		RAM boundary; beginning of compile buffer and
+		and maximum dictionary may reach up to.
+
+CSIZE		Capacity of case stack.
+
+EDITBUF		String area boundary.  Top of input line buffer
+		and the bottom of buffer area of editor.
+
+FALSE		(logical "false") 0
+
+LINEBUF		String area boundary.  Top limit of
+		ordinary string storage and start of input line
+		buffer.
+
+LSIZE		Capacity of loop stack.  An active DO .. LOOP
+		requires three entries in this stack.
+
+MAXINT		largest (signed) integer value a word can have
+		without overflow.  It is analogous to the use
+		MAXINT has in PASCAL.
+
+MAXLINNO	Largest line number that can or should be used
+		by the editor in the buffered file (in the
+		edit buffer).  Used by LOAD to distinguish
+		between line numbers and pointer to string
+		(for filename).
+
+MAXORD		Max(ord(char)).Typically 127 (for 7 bit ASCII).
+
+MININT		Most negative integer value a word can have
+		without underflow. (Cf with MAXINT, above).
+
+NEWLINE		Typically ord(<CR>) or ord(<LF>); implemented
+		char value used to separate line of text from
+		next in internal PISTOL representation.  I/O
+		routines must convert external (system file
+		and console i/o conventions) to NEWLINE in
+		PISTOL.
+
+Q'		Ord('Q').
+
+RAMMAX		System constant that points to the end of
+		accessible RAM.
+
+RAMMIN		System constant that points to the start of
+		accessible RAM; the area between RAMMIN and
+		USER contains system constants that can be read
+		from but not written to.
+
+READ-PROTECT	Boolean system constant.  If it is true, then
+		operators that access memory for reading are
+		checked for legal ranges.  For example,
+		addresses must be in the range,[RAMMIN..RAMMAX]
+		for W@ and [STRINGSMIN..STRINGSMAX] for C@ .
+		If the address during a read is outside these
+		limits, an error "READ VIOLATION" is generated
+		and the	program does an ABORT.
+
+RSIZE		Capacity of the return stack.
+
+SAFE-END
+
+SSIZE		Capacity of (parameter stack).
+
+STRINGSMAX	System constant that points to the end of the
+		strings area.
+
+STRINGSMIN	System constant that points to the start of the
+		strings area.
+
+TRUE		Not FALSE. Usually set to -1 which is
+		represented by all binary 1's.
+
+USER		System constant that points to near the bottom
+		of RAM.  It points to the lowest system
+		variable location and marks the top of the area
+		where the system constants are in RAM; these
+		constants can be read with W@, but not changed
+		by W!
+
+VBASE		Bottom limit in RAM of vocabulary stack.
+
+VERSION		20 for PISTOL versioo 2.0.
+
+VMAX		Upper limit in RAM of vocabulary stack.
+
+VSIZE		Capacity of vocabulary stack.
+
+W		Size in address units of a word in RAM.
+
+WRITE-PROTECT	Boolean system constant.  If it is true, then
+		operators that access memory for writing are
+		checked for legal ranges.  For example,
+		addresses must be in the range,	[USER..RAMMAX]
+		for W! and [STRINGSMIN..STRINGSMAX] for C! .
+		If the address during a write is outside these
+		limits, an error "WRITE VIOLATION" is generated
+		and the	program does an ABORT.
+
+:
+N	System constant that points to the start of the
+		strings area.
+
+TRUE		Not

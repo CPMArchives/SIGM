@@ -1,0 +1,274 @@
+                       --- DISK DUMP ---
+
+                       -- Version 2.15 --
+
+                                        By Bill Bolton
+                                        Software Tools,
+                                        P.O. Box 80,
+                                        Newport Beach,
+                                        NSW, 2106,
+                                        AUSTRALIA
+
+Introduction
+------------
+
+    This program is an improved disk dump utility for CP/M.  Any 
+CP/M  file may be dumped to the console.  In addition any sector 
+or  group  of  sectors may be dumped in  the  same  format.  The 
+utility  can  be  made to handle any CP/M  2.X  disk  system  as 
+outlined later.
+
+     The  program  is referred to as DD6 when  refering  to  the 
+latest    implementation   or   DDX   when   refering   to   all 
+implementations including the latest one.
+
+                        --- OPERATION ---
+
+    The program may be run either by typing DD6, or DD6 followed 
+by  the  file  name or track and sector.  If DD6  is  typed  the 
+program responds with a heading, followed by a '*' and waits for 
+more  user  input.  Operation in this mode is similar  to  other 
+utilities such as PIP or DDT.
+
+     The operation desired may then be typed in as follows:
+
+          DD6 file.nam
+          DD6 A:file.nam
+          DD6 C:file.nam
+
+     or may be typed separately as:
+
+          DD6
+
+          *file.nam      (the * is the program prompt)
+          *B:file.nam
+
+    The  file  is  dumped by examining its  directory  entry  to 
+obtain   block  allocation,   number  of  records   and   extent 
+information.  The file is then dumped on a block by block basis, 
+this allows display of the track and sector numbers as a file is 
+dumped.  The  last block of a file is only dumped up to the last 
+sector actually used by the file.
+
+    All   sector dumps display hex addresses in the range 00  to 
+7F  as a 2 digit hex number,   except in the case of a COM  file 
+dump.  When  a  COM file is being dumped,   the first sector  is 
+assumed  to  start  at 0100H and all  subsequent  addresses  are 
+incremented  from this base address and displayed as a  4  digit 
+hex number.  
+
+    A sector dump heading is displayed at the top of each sector 
+dumped   and  indicates  the drive selected,   whether  1  or  2  
+sided,  its  physical  sector size,  the track  number,  logical  
+sector number and a dump count:
+
+ Drive A: 1S/2D/1024 - Track 2  Logical Sector 14  Dump Count 1
+
+    The  dump count displays the running total of sectors dumped 
+from  a  single  command line.  This is useful  for  locating  a 
+particular sector of a file or block.  A modified version of the 
+CP/M  User's Group binary COMPARE utility,  which indicates file  
+differences   with  decimal  sector numbers that   are  directly  
+equivalent    to DDX Dump Count numbers,   is   available   from  
+Software Tools.
+
+    The  program may also be used to dump disk sectors  directly 
+and  dump  any  CP/M  sector  block  (or  group)  - block   size 
+information  is  obtained from the CP/M 2.X DPB (Disk  Parameter 
+Block)  of  the  drive concerned.  The  sectors  containing  the 
+directory  may dumped with a simple single command and a map  of 
+the block allocations may be likewise displayed.
+
+          DD6 TRACK 3 SECTOR 7
+          DD6 TRACK 5   SECTOR 3 - 9
+          DD6 TRACK 6  (dumps all sectors on the track)
+          DD6 GROUP 19
+          DD6 DIR
+          DD6 MAP
+
+     The  words  TRACK,  SECTOR and GROUP may be abbreviated  as 
+ follows:
+
+          DD6 T 7 S 3-4
+          DD6 G 4
+          *TRACK 5 S 6
+          *SECTOR 2-9 T 14
+          DD6 B:    TRACK 3
+          DD6 A: T 9    S 4-6
+          DD6 B:   G    5
+          DD6 B:MAP
+
+    Note  that  the format is quite  free.  Spaces  are  usually 
+ignored.  They  are only required after the words TRACK,  SECTOR 
+and GROUP or T, S and G and after the word DD6.
+ 
+     In  previous  versions  of DDX the  block  or  cluster  was 
+refered  to as a "group" as this term is still used as a command 
+to  maintain  compatibility  with  previous  versions.   Digital 
+Research  now  use the term "block" instead of "group" and  this 
+file   and most of the comments in the source file use the  term 
+"block".
+
+                         -- EDITING ---
+
+    A limited editing feature is included in the dump utility to 
+allow changing of data on disk.  The edit works as follows - any 
+single  logical sector of any drive may be edited by  requesting 
+display of the sector followed by the word EDIT.
+ 
+          DD6 D:TRACK 4 SECTOR 2  EDIT
+
+    The   requested   sector will be displayed  followed  by  an  
+edit prompt:
+
+     EDIT -
+
+    Enter  the  address of the first byte  to  be  changed.  The 
+program  will respond by typing back the address entered and the 
+present contents of that address.  To change the contents, enter 
+the  new byte followed by a carriage return.  The  program  will 
+display the next address and its contents. To stop entering data 
+type  a period,  the sector will then be redisplayed showing the 
+changes.  The  edit  feature works almost exactly like  the  'S' 
+command in DDT, typing only a carriage return omits entry.
+
+    The  change is not made permanent until it is  written  back 
+onto the disk, you exit the edit mode by typing;
+
+        WRITE  (write the changed sector back onto disk)
+        STOP   (stop the edit without writing to disk)
+
+    All  edit  entries  must be made in hex.  Entering  non  hex 
+characters results in an error message.  The permissable address 
+range is from 00 to 7F,  larger addresses give an error message. 
+When entering a block of bytes the addresses are computed modulo 
+128, the next address after 7F is 00.
+
+    The  edit  feature  should be used with  caution  as  it  is 
+possible to edit CP/M to "death" by changing a single byte.  One 
+occasionally  valuable  use is to restore files which have  been 
+accidentally erased.  Erasing a file using the ERA command  does 
+not erase the data from the disk, but only writes an E5 into the 
+first byte of its directory entry.  To restore the file, display 
+the  directory  using  the  DD6 DIR  command.  Find  the  sector 
+containing  the entry in question and display it using the  EDIT 
+feature.  Change the byte preceeding the file name from E5 to 00 
+and  write the sector back on disk.  This will restore the  file 
+provided that you have not used any programs which write data to 
+disk since erasing the file. *** BE WARNED *** If you have run a 
+program that writes data to disk since erasing the file you  may 
+find  that the erased file's allocated blocks have been used for 
+another  file  and the integrity of the  erased  file  therefore 
+destroyed.
+
+                        --- CP/M 2.X ---
+
+     This latest version of DDX benefits from running under CP/M 
+2.X.  As the DPB location is now accessable via BIOS calls it is 
+possible to extract nearly all the  information needed to  allow 
+dynamic  determination  of a drives characteristics.
+
+     There  are only two hardware dependent subroutines,  one is 
+optional  and simply sets up the sector display header  to  suit 
+your requirements. As it is not possible to determine the actual 
+density  or  number  of sides directly from  the  DPB,  as  CP/M 
+doesn't care about that information,   you must write the  code.  
+The 1791  controller chip has this available as  status  inform
+ation  and  most other controller chips seem to  have  something 
+similar.
+
+     The  other hardware dependent routine concerns the handling 
+of  Track  0.  In all IBM compatible formats Track 0  is  always 
+single  density  3740 format.  You must be able to  overide  all 
+dynamically    set  parameters  of  DD6  and  force  your   disk 
+controller  to  read Track 0 as single density,  26 x  128  byte 
+sectors.  The  Morrow Disk Jockey 2D and Godbout Disk 1 do  this 
+automatically  so it was simply a matter of feeding the  correct 
+sector  numbers to the controller.  Fortunately Track 0  is  not 
+involved  in file or block dumps  so  it is easy to treat it  as 
+an exception and  only  one subroutine needs to be altered.
+
+    SECTOR  NUMBERING   - Single density CP/M maintains  a  skew 
+factor  of  6 on 8" IBM 3741 compatible disks (i.e the  standard 
+implementation).  This means that logical sector 1 on a track is 
+physical sector 1 while logical sector 2 is physical sector 7 on 
+that  track  etc.  This  is done to  provide  greatest  internal 
+efficency of operation for CP/M in accessing disks.
+
+    CP/M  sees each 128 byte sector on a single density disk  as 
+one  logical  record so there is a direct  relationship  between 
+sector  size  and  data block size.  With  double  density  disk 
+recording  systems there are several possible sizes for sectors. 
+The IBM 2D standard allows for sector sizes of 256,  512 or 1024 
+bytes.  Double  density and Hard disk implementations which  use 
+physical  sectors sizes that are multiples of 128 bytes have  to 
+DEBLOCK the physical sector into  128 byte logical sectors.
+ 
+     The BIOS handles all blocking and deblocking, so that legal 
+sector  numbers  for BIOS set sector calls are 1 to the  maximum 
+number  of 128 byte sectors for the track size,  the  BIOS  then 
+does  the deblocking and translation to physical sectors on  the 
+disk.  The  BIOS accesses all data bytes of a physical sector by 
+reading  them  into a buffer in memory and then  accessing   the 
+required 128 byte section of the buffer to give 128 byte logical 
+sectors. 
+
+    BLOCK  SIZE  - Standard CP/M 1.4 is set up to recognise  243 
+blocks per disk.  The block is the smallest amount of disk space 
+which  can  be allocated and disk space is allows  allocated  in 
+blocks.  In  a  standard  single  density  system  on  IBM  3741 
+compatible  8" disk the block size is 1K bytes or 8  sectors  of 
+128 bytes each.
+
+     Block sizes for double density and hard disks vary but  are 
+always  a  multiple of 1K bytes.  The actual size is  determined 
+form the DPB.
+
+    When  using  the DD6 GROUP N command a  calculation  of  the 
+sector  numbers  covered by any particular block is made  and  a 
+look  up  of the XLT (sector translation tables) in the BIOS  is 
+used to take into account the skew factor in use on the specific 
+CP/M implementation. 
+
+    The   current  source listing is for a Godbout "Disk 1" based 
+CP/M 2.X system and a 24 x 80 video display.  If you have a 16  x 
+64  video  display  you will need to remove some  of  the  spaces 
+inserted in the dump display by the PRTSEC routine. 
+
+
+     DD6 should be readily adaptable to other CP/M 2.X  systems, 
+including hard disk systems. As far as possible all values which 
+might  reasonably  be expected to exceed 256 in  any  realisable 
+disk  system  are manipulated as 16 bit  values.  Therefore  the 
+large  sectors  sizes,   sector numbers and track numbers likely  
+to  be found  on  a hard disks should present no  problem.   The  
+program  does  make  a few assumptions  about the way  CP/M  2.X 
+handles  the disk parameter block allocation,   it assumes  that 
+it  is all done dynamically  in the BIOS.   As all the  multiple 
+density  CP/M  2.X systems   that  I have come across manage  to 
+do  this (some  more elegently than others !) I think that it is 
+a safe assumption.
+ 
+                     --- OTHER DETAILS ---
+
+    As with other CP/M utilities a ^S 'freezes' the display  and 
+^C returns to CP/M.  Hitting the 'space bar' will abort the dump 
+currently  in  progress  and either exit or  return  to  command 
+level,  depending  on  how you entered the utility.  Dump  cont
+ains   many  error  and  consistancy  checks.    The   resulting  
+messages  are generally self explanatory.
+
+    DD6  was assembled using the CP/M MAC assembler and  uses  a 
+large  library  of macros called MACRO3.LIB which  is  available 
+from  Software  Tools.   (N.B.   MACRO3.LIB  is an  revision  of 
+MACRO.LIB, as used by Sam Singer's single density version,  with 
+extensions  to  the CALLBIOS  and DISKIO macros to  handle  CP/M 
+2.2,  and several new macros added).
+
+    This disk dumper is in a continuing state of development and 
+refinement.  There  is now a version for the Morrow Designs Hard 
+Disk  controller  with a DJ2D or a Godbout  Disk  1  controller,  
+called DDH.   Many new features are planned and will be added in 
+the towards the end of 1981.
+
+

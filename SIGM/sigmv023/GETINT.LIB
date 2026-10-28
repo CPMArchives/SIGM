@@ -1,0 +1,29 @@
+
+{	GETINTEGER
+
+	The calling program must pass a MSG to be issued in the input
+	prompt and MIN and MAX values for the returned value.
+	Function will not exit until entered data is within range.
+
+	Requires PROMPT.
+}
+
+FUNCTION getinteger (min, max : integer; msg : string255) : integer;
+
+VAR	data : integer;
+
+begin
+	repeat
+		prompt (msg);
+		readln (data);
+		if (data>max) then
+			writeln (' *** Value of ',msg,' cannot exceed ',
+				max:1,' ***')
+		else if (data<min) then
+			writeln (' *** Value of ',msg,' must exceed ',
+				min:1,' ***')
+	until (data <= max) and (data >= min);
+	getinteger := data
+end;
+
+

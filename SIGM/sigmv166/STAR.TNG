@@ -1,0 +1,80 @@
+
+[STAR.TNG]
+
+[move head back and forth until the nearest * is found]
+
+[Q0 looks for an initial star, halts or shifts right]
+[Q1 looks for an immediate star, halts or places the right marker]
+[Q2 places the left marker, halt is illusory]
+[Q3 runs right until it finds the right fence]
+[Q4 extends the right fence, bounces]
+[Q5 erases the left marker]
+[Q6 extends the left fence, bounces]
+[Q7 erases the right marker]
+[Q8 runs left and halts over the star]
+[Q9 runs left until it finds the left fence]
+[Q10 runs right and halts over the star]
+
+[A Turing machine has a very limited scope of vision, but it can
+ use as many states as necessary to remember what it is running 
+ back and forth looking for. It can also use up as much tape as it
+ wants to record intermediate results, but at the price of placing
+ markers to identify the information or using more states to recall
+ where it was deposited.]
+
+[It is well known that a Turing machine obtains results through an
+ incredibly complicated series of movements; its principal reason
+ for existence is that the simplicity of its definition and oper-
+ ation permits theorems to be proven about its operation or non-
+ operation, which then apply to any other computation, according
+ to Church's thesis.]
+
+[It is quite instructive to set up the generally used programming
+ concepts, such as the use of veriables, the introduction of
+ subroutines, and even structured programming, in terms of the
+ set theory of the state space of a Turing machine. The tradeoff
+ between the number of symbols on the tape and the number of states
+ in the machine can be studied experimentally, as well as most of
+ the other traditional results of Turing machine theory, ending
+ with the construction of a Universal machine.]
+
+[[
+This Turing machine seeks the nearest "1" on its tape.
+Type the initial tape, using * for 1, . for 0, but be sure
+to place a # in front of the bit which is under the reading
+head. End the tape with a carriage return.  For example -
+
+	....*........#........
+
+Each succeeding keystroke will display one step of the
+Turing machine`s operation, showing a segment of the tape
+followed by the state which produced the line shown.
+]]
+
+
+
+[* at once, quit]		(Q0,*,*,H,0)
+[go right, look there]		(Q0,.,.,Q1,+)
+[found it]			(Q1,*,*,H,0)
+[make right fence, go left]	(Q1,.,*,Q2,-)
+[this won't happen]		(Q2,*,*,H,0)
+[set left fence, go right]	(Q2,.,*,Q3,+)
+[erase fence, look beyond]	(Q3,*,.,Q4,+)
+[keep looking for fence]	(Q3,.,.,Q3,+)
+[found *, go erase l fence]	(Q4,*,*,Q9,-)
+[set in new fence, go left]	(Q4,.,*,Q5,-)
+[erase fence, look beyond]	(Q5,*,.,Q6,-)
+[keep heading left]		(Q5,.,.,Q5,-)
+[found *, go erase r fence]	(Q6,*,*,Q7,+)
+[set in new fence, go right]	(Q6,.,*,Q3,+)
+[found fence, go left to *]	(Q7,*,.,Q8,-)
+[keep looking for fence]	(Q7,.,.,Q7,+)
+[here's * we're looking for]	(Q8,*,*,H,0)
+[keep on looking left]		(Q8,.,.,Q8,-)
+[found fence, go right to *]	(Q9,*,.,Q10,+)
+[keep looking for fence]	(Q9,.,.,Q9,-)
+[here's * we're looking for]	(Q10,*,*,H,0)
+[continue rightward search]	(Q10,.,.,Q10,+)
+
+[end]
+

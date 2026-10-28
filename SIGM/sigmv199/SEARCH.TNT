@@ -1,0 +1,172 @@
+* DATE 07/20/84  18:07
+* search.cmd
+IF moveit
+ REST from move additive
+ FIND &linker
+ RELE linker
+ STOR f TO moveit
+ENDI
+STOR t TO first
+STOR t TO more
+DO WHIL more
+ IF first
+* set up screen and prompts
+  ERAS
+  STOR 'Search by <C>ode number, <A>ny part of tenant database or <Q>uit searching' TO prompt1
+  STOR '<B>ackward, <F>orward, <D>elete/recall, <E>dit or <P>rint' TO prompt2
+  STOR 'Tenant Search Menu' TO mode
+* show the current record
+  @ 0,26 SAY mode
+  @ 1, 0 SAY " -------------------------------------------------"
+  @ 1,50 SAY "----------------------------"
+  @ 1,50 SAY "-----------------------------"
+  @ 3, 2 SAY "Tenant:"
+  @ 3,53 SAY "Code:"
+  @ 4, 4 SAY "Unit:"
+  @ 4,26 SAY "Building:"
+  @ 5, 1 SAY "Contact:"
+  @ 5,52 SAY "Phone:"
+  @ 6,09 SAY "Alternate mailing address:"
+  @ 7,01 SAY "Address:"
+  @ 8,01 SAY "City:"
+  @ 10, 4 SAY "Type:"
+  @ 10,19 SAY "Addl Percentage:"
+  @ 10,48 SAY "1st Lease:"
+  @ 11,04 SAY "Base:"
+  @ 11,47 SAY "Expiration:"
+  @ 12, 0 SAY "Security:"
+  @ 12,30 SAY "Bank:"
+  @ 12,48 SAY "Late Date:"
+  @ 13, 4 SAY "Rent:"
+  @ 13,25 SAY "Late Chgs:"
+  @ 13,48 SAY "Addl Rent:"
+  @ 14, 3 SAY "G & E:"
+  @ 14,24 SAY "Other Chgs:"
+  @ 14,47 SAY "Total Rent:"
+  @ 15, 0 SAY "Rent Due:"
+  @ 15,22 SAY "Last Payment:"
+  @ 15,49 SAY "Amt Paid:"
+  @ 16,00 SAY "Total Yr:"
+  @ 16,30 SAY "Flag:"
+  @ 16,52 SAY "Total:"
+  @ 18, 3 SAY "Notes:"
+  @ 18,51 SAY "Update:"
+  @ 19, 0 SAY " -------------------------------------------------"
+  @ 19,50 SAY "-----------------------------"
+ ENDI first
+ STOR f TO first
+ STOR '?' TO command
+ STOR '     ' TO name
+* find out if the current record is marked for deletion
+ IF *
+  STOR 'Deleted' TO deleted
+ ELSE
+  STOR '       ' TO deleted
+ ENDI *
+ STOR trent TO trentx
+ IF ttype = 'P'
+  IF (trentpc*(trentpcr/100)/12)>trent
+   STOR (trentpc*(trentpcr/100)/12) TO trentx
+  ENDI (trentpc)
+ ENDI ttype = 'P'
+ IF ttype = 'O'
+  STOR ((trentpc*(trentpcr/100)/12)+trent) TO trentx
+ ENDI ttype = 'O'
+ STOR (trentx + tlatec + taddl + trente + trentm) TO trentxx
+* show the current record, and find out what to do next
+ @ 0, 0 SAY deleted
+ @ 3,10 SAY tenant
+ @ 3,59 SAY bcode
+ @ 4,10 SAY tunit
+ @ 4,36 SAY baddr
+ @ 5,10 SAY tcontac
+ @ 5,59 SAY tphone
+ @ 6,36 SAY alt
+ @ 7,10 SAY altad
+ @ 8,10 SAY altcty
+ @ 10,10 SAY ttype
+ @ 10,36 SAY trentpc USING '99.9999'
+ @ 10,59 SAY tfirst
+ @ 11,10 SAY trentpcr USING '$999,999,999'
+ @ 10,59 SAY texpir
+ @ 12,10 SAY tsec USING '$99,999.99'
+ @ 12,36 SAY tsecb
+ @ 12,59 SAY tlate
+ @ 13,10 SAY trent USING '$99,999.99'
+ @ 13,36 SAY tlatec USING '$99,999.99'
+ @ 13,36 SAY tflag
+ @ 13,59 SAY taddl USING '$99,999.99'
+ @ 14,10 SAY trente USING '$99,999.99'
+ @ 14,36 SAY trentm USING '$99,999.99'
+ @ 14,59 SAY trentxx USING '$99,999.99'
+ @ 15,10 SAY trentd USING '$99,999.99'
+ @ 15,36 SAY trentpd PICTURE '99/99/99'
+ @ 15,59 SAY trentp USING '$99,999.99'
+ @ 16,10 SAY trenty USING '$99,999.99'
+ @ 16,59 SAY trentt USING '$99,999.99'
+ @ 18,10 SAY tnotes
+ @ 18,61 SAY tupdate
+ @ 20,00
+ @ 21,00
+ @ 22,00
+ @ 20,03 SAY prompt1
+ @ 21,03 SAY prompt2
+ @ 22,56 SAY "WHAT NEXT ?"
+ @ 22,70 GET command PICTURE '!'
+ READ
+* perform selected functions
+ DO CASE
+ CASE (command = 'B' .OR. command = ',' )
+* move backwards one record
+  SKIP -1
+ CASE command = 'D'
+  IF *
+   RECA
+  ELSE
+   DELE
+  ENDI *
+ CASE (command = 'F' .OR. command = '.' )
+* move forward one record
+  SKIP
+ CASE command = 'C'
+  STOR # TO rec:number
+  @ 20,00
+  @ 21,00
+  @ 22,00
+  @ 21,12 SAY "Please enter code number "
+  @ 21,40 GET name PICTURE '99999'
+  READ
+  STOR TRIM(name) TO name
+* look for matching record
+  STOR CHR(PEEK(063)) TO dr
+  SET INDEX TO &dr.:codea
+  FIND &name
+  @ 20,00
+  @ 21,00
+  @ 22,00
+* if it isn ' t in the files
+  IF # = 0
+* say that name can ' t be found
+   @ 20,12 SAY name+ ' is not in the file'
+   @ 21,12 SAY 'Press ENTER to Continue'
+   SET console OFF
+   WAIT
+   SET console ON
+   GO rec:number
+  ENDI # = 0
+ CASE command = 'E'
+  DO EDIT.tnt
+ CASE command = 'P'
+  DO PRINT.tnt
+ CASE command = 'A'
+  DO search1.tnt
+ CASE command = 'Q'
+  STOR t TO keepitup
+  STOR t TO first
+  STOR 2 TO box
+  RETU
+ ENDC
+ RELE name
+* loop back again
+ENDD WHILE more
+

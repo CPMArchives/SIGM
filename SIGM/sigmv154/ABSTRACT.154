@@ -1,0 +1,128 @@
+                          ABSTRACT.154
+
+This disk contains source and COM files for a public domain
+implementation of FORTH compatible with the FORTH 83 standard.
+
+This version is for an 8080 CP/M system.
+
+Here is what is on this disk:
+
+ABSTRACT.154    This is the file that you are reading.
+
+F83.COM         A compiled and ready to use FORTH system including an
+                editor, assembler, and many FORTH utilities.
+
+F83.DOC         A message from the primary implementors including instructions
+                on how to use F83 to compile itself.
+
+META80.BQK      The meta source and F83 screens in squeezed format.
+
+EXTEND.BQK      The extension screens in squeezed format.
+
+CPU8080.BQK     Assembler, debugging and multitasking source in squeezed format.
+
+UTILITY.BQK     The CP/M interface, editor, and high level multitasking
+                support in squeezed format.
+
+DIRECT.BQK      Support screens for direct BIOS I/O in squeezed format.
+
+KERNEL.HEX      A file that can be loaded to form a COM file of the F83
+                kernel.
+
+USQ.COM         The unsqueeze program that can be used to unsqueeze all of
+                the files of type BQK.
+
+
+                          Unsqueezing the Sources
+
+These instructions apply to people who have disk drives that only hold
+240K bytes, such as single-density, 8-inch drives.
+
+Format a blank disk and use SYSGEN to copy your system tracks to it.
+Put the new disk in drive A and this disk in drive B. After the "A>" type:
+
+                A>b:usq b:meta80.bqk
+
+This will produce an unsqueezed META80.BLK on disk A that takes the
+whole 240K disk space.
+
+Format a second blank disk and unsqueeze the other BQK files.  They will
+all fit on it.  Copy F83.COM to it also.
+
+You can now use F83 to look at the source or print listings of the source
+if you have a printer.
+
+Start FORTH by typing:
+
+                 A>F83
+
+You can type WORDS to see the words in the primary vocabulary. You can
+type SEE ORDER to use the SEE decompiler to decompile the word ORDER.
+You can type VIEW ORDER and F93 will open EXTEND.BLK and list the
+screen that contains the source code for the word ORDER.
+Now that this block is opened, you can print a listing of it, including
+shadow screens by typing the word LISTING.
+
+ [The following is a fine point and can be ignored by first time users.
+ I have modified (PRINT) in screen 67 of META80.BLK to work with
+ all CP/M systems.  All CP/M systems have an entry LISTST in their BIOS.
+ Its purpose is to test the printer status and return 0 if it is busy and
+ 0FFH if it is not. Digital Research's documentation says that if this test
+ is not implemented, it shoudld return 0.  This is probably wrong, because
+ a program that is using this entry will always loop waiting for the 0FFH
+ which never occurs.  If your BIOS implements the test, and you want to use
+ a multitasking background spooler, you should change the definition back to
+
+ : (PRINT) BEGIN PAUSE 0 15 BIOS UNTIL 5 BIOS DROP 1 #OUT +! ;
+
+ and recompile your system. Or you could just patch the address of BIOS
+ in place of the address of NIP.]
+
+                        Metacompiling a New System
+
+If you have a system that will hold 500KB on one disk you will have no problem
+recompiling the F83 system by following the directions in F83.DOC. If you
+have two single-density disks of 240K, you can follow this procedure.
+
+Put F83.COM on a disk by itself and put it in drive A. Put the disk with
+META80.BLK in drive B. Start FORTH after the prompt by typing:
+
+                        A>F83 b:meta80.blk
+
+After FORTH starts, type "OK".  This is defined as a word to load the meta-
+compiler and start it generating a new kernel.  The kernel will automatically
+be saved on drive A as KERNEL.COM.  Type BYE to return to CP/M, then log
+in B as the default drive by typing "B:". Put the disk with the other *.BLK
+files on it in drive B.  Start the kernel by typing:
+
+                        B>a:kernel extend80.blk
+
+After the kernel is loaded, type the FORTH word "START".  The word is
+defined to load the first screen in extend80.blk which will in turn load
+all of the other extensions.
+
+After this process is almost finished, you will see an error message
+"unable to open file".  This is because the META80.BLK file is not available.
+You can type the rest of the few lines by hand.  They are:
+
+  1 ' META80.BLK   >BODY 40 + !
+  DEFINE EXTEND80.BLK
+  2 ' EXTEND80.BLK >BODY 40 + !
+  ' META80.BLK     VIEW-FILES 0 + !
+  ' EXTEND80.BLK   VIEW-FILES 2 + !
+  ' CPU8080.BLK    VIEW-FILES 4 + !
+  ' UTILTITY.BLK   VIEW-FILES 6 + !
+  2 LOAD
+
+After this, you should receive a message telling you that the new system
+has been loaded, and what its size is. Type the word "BYE" and you will
+return to CP/M with a message of how many pages to save. Type
+
+                        B>save 95 a:f83.com
+
+for example, to save your new system on disk A.
+
+
+Ted Shapin, 10/28/83. 
+
+

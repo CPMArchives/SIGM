@@ -1,0 +1,161 @@
+* DATE 08/01/84  18:50
+* detailed string search
+STOR CHR(peek(063)) TO dr
+SELE PRIMARY
+USE &DR.:build
+SET INDEX TO
+ERAS
+@ 10,20 SAY 'SELECT FIELD NUMBER '
+@ 12,20 SAY 'ENTER SEARCH DATA '
+@ 14,0 SAY ' 1. Address     2. Code        3. City        4. State       5. Zip        '
+@ 15,0 SAY ' 6. Manager     7. Phone       8. Type        9. # Units    10. Acquired   '
+@ 16,0 SAY '11. Rent Co.   12. Phone      13. Street     14. City       15. Checks     '
+@ 17,0 SAY '16. Notes      17. Updated    '
+STOR '  ' TO EVAR
+DO WHIL VAL(EVAR) < 1 .OR. VAL(EVAR) > 17
+ @ 10,20 SAY 'SELECT FIELD NUMBER ' GET EVAR PICTURE '99'
+ READ
+ENDD
+STOR '                              ' TO EPART
+@ 12,20 SAY 'ENTER SEARCH DATA ' GET EPART
+READ
+IF VAL(EVAR) = 1
+ STOR 'BADDR' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 2
+ STOR 'BCODE' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 3
+ STOR 'BCITY' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 4
+ STOR 'BCITY' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 5
+ STOR 'BCITY' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 6
+ STOR 'BDATA' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 7
+ STOR 'BDATA' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 8
+ STOR 'BDATA' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 9
+ STOR 'BDATA' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 10
+ STOR 'BDATA' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 11
+ STOR 'REMIT' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 12
+ STOR 'PHONE' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 13
+ STOR 'REMITAD' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 14
+ STOR 'REMITC' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 15
+ STOR 'CHECKS' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 16
+ STOR 'BNOTES' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 17
+ STOR 'BUPDATE' TO PARTFIELD
+ENDI
+STOR TRIM(EPART) TO EPART
+RELE EVAR
+GO BOTTOM
+STOR # TO LASTREC
+GO TOP
+STOR 0 TO RECNO
+STOR T TO PARTSRCH
+STOR ' ' TO EOPTION
+STOR T TO FIRSTLOOP
+DO WHIL PARTSRCH
+ IF EOPTION = 'S'
+  STOR # TO RECNO
+  STOR F TO PARTSRCH
+  LOOP
+ ENDI
+ IF EOPTION = 'R'
+  STOR 0 TO RECNO
+  STOR F TO PARTSRCH
+  LOOP
+ ENDI
+ IF RECNO = LASTREC
+  STOR 'R' TO EOPTION
+  LOOP
+ ENDI
+ IF FIRSTLOOP
+  LOCA FOR !(EPART) $ !(&PARTFIELD)
+ ENDI
+ IF .NOT.FIRSTLOOP
+  CONT
+ ENDI
+ STOR F TO FIRSTLOOP
+ STOR # TO RECNO
+ IF # = LASTREC .AND.(.NOT. EPART $ &PARTFIELD)
+  STOR 'R' TO EOPTION
+  LOOP
+ ENDI
+ ERAS
+ @ 0,26 SAY "Detailed Building Search Mode"
+ @ 1,0 SAY " -------------------------------------------------"
+ @ 1,50 SAY "----------------------------"
+ @ 3,1 SAY 'Address:                                              Code:'
+ @ 4,4 SAY 'City:                            State:             Zip:'
+ @ 6,1 SAY 'Manager:                                             Phone:'
+ @ 7,4 SAY 'Type:                                   Number of Units:'
+ @ 9,0 SAY 'Acquired:                                    Purchase Price:'
+ @ 11,28 SAY "Send Rental Payments To:"
+ @ 12,00 SAY "Company:"
+ @ 12,54 SAY "Phone:"
+ @ 13,01 SAY "Street:"
+ @ 14,03 SAY "City:"
+ @ 15,00 SAY "Chks To:"
+ @ 16,2 SAY 'Notes:'
+ @ 18,52 SAY 'Updated:'
+ @ 19,0 SAY ' ------------------------------------------------------------------------------'
+ @ 3,10 SAY baddr
+ @ 3,61 SAY bcode
+ @ 4,10 SAY $(bcity,1,20)
+ @ 4,44 SAY $(bcity,21,2)
+ @ 4,61 SAY $(bcity,23,5)
+ @ 6,10 SAY $(bdata,1,25)
+ @ 6,61 SAY $(bdata,26,13)
+ @ 7,10 SAY $(bdata,39,2)
+ @ 7,61 SAY $(bdata,41,3)
+ @ 9,10 SAY $(bdata,44,8)
+ @ 9,61 SAY bprice USING '$99,999,999.99'
+ @ 12,10 SAY remit
+ @ 12,61 SAY phone
+ @ 13,10 SAY remitad
+ @ 14,10 SAY remitc
+ @ 15,10 SAY checks
+ @ 17,10 SAY bnotes
+ @ 18,61 SAY bupdate
+ STOR ' ' TO EOPTION
+ @ 21,7 SAY 'N (NEXT), S (SELECT), R (RETURN)'
+ DO WHIL EOPTION <> 'N' .AND. EOPTION <> 'S' .AND. EOPTION <> 'R'
+  @ 21,40 GET EOPTION PICTURE '!'
+  READ
+ ENDD
+ENDD
+RELE PARTSRCH
+RELE EMETH, EOPTION, EPART, FILESRCH, LASTREC, FIRSTREC
+RELE PARTFIELD, FIRSTLOOP, EKEYOPT, INCREMENT
+STOR t TO first
+STOR CHR(PEEK(063)) TO dr
+STOR TRIM(BCODE) TO name
+SET INDEX TO &dr.:code
+FIND &name
+RETU
+

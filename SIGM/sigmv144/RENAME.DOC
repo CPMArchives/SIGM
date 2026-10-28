@@ -1,0 +1,100 @@
+FILES NEEDED:
+        rename.c
+        rename.doc
+        bdos.h
+
+Compiled under BDS C 1.5A and is known not to work reliably with 1.46.
+
+
+------------------------------------------------------------------------
+
+
+This program allows wildcard renaming of files
+
+         Usage: rename new_afn old_afn
+
+e.g.     rename *.asm *.mac
+                   change all .MAC to .ASM
+
+         rename b:fred.* b:joe.*
+                   change JOE's files into FRED's on drive B
+
+         rename 4/???1-1.* 4/???1-2.*
+                   change version number of ??? on user 4
+
+         rename 18/d:*.sav 18/d:*.$$$
+                   hang on to temp files in .SAV files on
+                   drive D user level 18
+
+Formally, the file names are of form:
+
+        [user#/][drive:]ambiguous.ambiguous
+
+This can lead to some constructs that are meaningless. My definition
+of a "reasonable" ambiguous reference is as follows:
+
+    For any character position in the name,
+        1) You CANNOT change from unambiguous to ambiguous. This
+              would imply generating HEAPS of files with different
+              names to satisfy the reference.
+
+        2) You can change from ambiguous to unambiguous, in
+              which case the unambiguous character is in the
+              output name.
+
+        3) You can change from ambiguous to ambiguous, where
+              the output character is the character in the
+              current input file name.
+
+        4) You can change from unambiguous to unambiguous. The
+              characters are just substituted.
+
+These definitions were cooked up as I wrote the program. My
+logic says that they are correct, but then Version 1 did not
+work, so there you go....
+Š
+If you try to rename to an existing name, the program asks
+you what to do:
+
+    e.g. drive F, user 8 contains the files
+                        FRED.ASM
+                        FRED.MAC
+                        JOE.MAC
+        If we enter "rename 8/f:joe.*   8/f:fred.*", then
+        the problem arises of JOE.MAC -> FRED.MAC
+
+If this happens , there are 3 options:
+        (Q)uit : quit program. These will leave all
+                 files so far renamed. The files are renamed
+                 on a first-come first-served basis in the
+                 directory entries, so who knows what will
+                 be renamed...
+
+        (S)kip : skip this rename. Rename all the files that
+                 match except this one.
+
+        (K)ill : kill the output file-name. Deletes the destination
+                 file, and then continues renaming.
+
+
+
+The programs builds 3 lists in memory before starting to rename
+things:
+
+   List 1   Original name
+   List 2   New name
+   List 3   All files on disk
+
+This makes it a memory hog, but it does work a bit faster.
+Note that will need (3*30*dir_entries) bytes of free space
+in the worst case.  e.g. for 128 entries 'bout 12k
+
+DAVID BROWN    (SYDNEY (02) 387-6539 for complaints)
+
+P.S. On my keyboard I can't type the OR and bitwise-OR char
+     thus I use the #defines in BDSCIO.H:
+
+                #define OR  (2 chars) /* logical */
+                #define BOR (1 chars) /* bitwise */
+
+

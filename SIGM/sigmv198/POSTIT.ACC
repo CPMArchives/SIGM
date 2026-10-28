@@ -1,0 +1,368 @@
+* DATE 06/24/84  17:05
+* postit.acc - module to update the file
+STOR CHR(PEEK(063)) TO dr
+SELE PRIMARY
+USE &dr.:account
+SET INDEX TO &dr.:account
+STOR f TO ok
+ERAS
+STOR 'Y' to comm
+@ 10,00 SAY 'Do you want to post the tenant rent payments to the tenant accounts ?'
+@ 10,70 GET comm PICTURE '!'
+READ
+DO WHIL @(comm,'YN') = 0
+ @ 10,00 SAY 'Do you want to post the tenant rent payments to the tenant accounts ?'
+ @ 10,70 GET comm PICTURE '!'
+ READ
+ENDD
+IF comm = 'Y'
+ STOR t TO accrue1
+ELSE
+ STOR f TO accrue1
+ENDI
+STOR 'Y' TO comm1
+@ 12,10 SAY 'Do you want to post the monthly rent accruals ?'
+@ 12,59 GET comm1 PICTURE '!'
+READ
+DO WHIL @(comm1,'YN') = 0
+ @ 12,10 SAY 'Do you want to post the monthly rent accruals ?'
+ @ 12,59 GET comm1 PICTURE '!'
+ READ
+ENDD
+IF comm1 = 'Y'
+ STOR date() to mdate1
+ @ 14,10 SAY 'What is the rent accrual date (MM/DD/YY) ? '
+ @ 14,59 GET mdate1 PICTURE '99/99/99'
+ READ
+ STOR t TO accrue
+ELSE
+ STOR f TO accrue
+ENDI comm1
+IF accrue1
+ STOR 0 TO latech
+ LOCA for $(data,7,3) = '104' .AND. $(data,12,1) = 'T' .AND.(.NOT. posted)
+ DO WHIL accrue1
+  STOR # TO rec:no
+  STOR $(data,13,5) TO name
+  STOR $(date,5,2) TO mlate
+  STOR amount to mamount
+  SELE secondary
+  USE &dr.:tenant
+  SET index to &dr.:codea
+  FIND &name
+  IF # <> 0
+   STOR trentd TO mtrentd
+   STOR trentt TO mtrentt
+   STOR trenty TO mtrenty
+   STOR tlatec TO mtlatec
+   IF VAL(mlate) > VAL(tlate)
+    STOR latech + mtlatec TO latech
+    STOR mtlatec + mtrentd TO mtrentd
+    REPL watchit WITH t
+   ENDI VAL(mlate)
+   REPL trentd WITH (mtrentd-mamount), trentt WITH (mtrentt+mamount)
+   REPL trenty WITH (mtrenty+mamount), posted WITH t, tupdate WITH DATE()
+   STOR t TO ok
+  ELSE
+   STOR f TO ok
+  ENDI # <) 0
+  SELE primary
+  USE &dr.:account
+  SET INDEX TO &dr.:account
+  GO rec:no
+  IF ok
+   REPL posted WITH t
+  ENDI ok
+  CONT
+  IF EOF
+   STOR f TO accrue1
+  ENDI EOF
+ ENDD WHILE accrue1
+ IF latech > 0
+  SET INDEX TO
+  GO BOTTOM
+  STOR f TO firstup
+  DO WHIL .NOT. firstup
+   IF $(data,1,1) = 'J'
+    STOR VAL($(data,2,3)) TO entryno
+    STOR t TO firstup
+   ELSE
+    SKIP -1
+   ENDI
+  ENDD WHILE .NOT. firstup
+  SET INDEX TO &dr.:account
+  STOR entryno + 1 TO entryno
+  STOR entryno + 1000 TO entry
+  STOR 'J' + $(entry,2,3) TO entry
+  APPE BLANK
+  REPL date WITH date()
+  REPL data with entry + '993020C'+'acc late chgs - all ' + date()+'J'
+  REPL amount WITH (latech*-1)
+  APPE BLANK
+  REPL date WITH date()
+  REPL data with entry + '991040D'+'acc late chgs - all ' + date()+'J'
+  REPL amount WITH latech
+ ENDI latech
+ RELE latech, firstup, entryno, entry, rec:no, accrue1, ok, comm
+ RELE name, mlate, mamoubt, mtrentd, mtrentt, mtrenty, mtlatec
+ENDI accrue1
+IF accrue
+ SELE SECONDARY
+ USE &dr.:TENANT
+* if more than 10 properties, will have to adjust this
+ STOR 0 TO rent01
+ STOR 0 TO rent02
+ STOR 0 TO rent03
+ STOR 0 TO rent04
+ STOR 0 TO rent05
+ STOR 0 TO rent06
+ STOR 0 TO rent07
+ STOR 0 TO rent08
+ STOR 0 TO rent09
+ STOR 0 TO rent10
+ GO TOP
+ DO WHIL .NOT. EOF
+  IF $(bcode,1,2) = '01'
+   STOR rent01 + (trent + taddl) TO rent01
+   REPL trentd WITH (trentd + trent + taddl)
+  ENDI $(bcode,1,2) = '01'
+  IF $(bcode,1,2) = '02'
+   STOR rent02 + (trent + taddl) TO rent02
+   REPL trentd WITH (trentd + trent + taddl)
+  ENDI $(bcode,1,2) = '02'
+  IF $(bcode,1,2) = '03'
+   STOR rent03 + (trent + taddl) TO rent03
+   REPL trentd WITH (trentd + trent + taddl)
+  ENDI $(bcode,1,2) = '03'
+  IF $(bcode,1,2) = '04'
+   STOR rent04 + (trent + taddl) TO rent04
+   REPL trentd WITH (trentd + trent + taddl)
+  ENDI $(bcode,1,2) = '04'
+  IF $(bcode,1,2) = '05'
+   STOR rent05 + (trent + taddl) TO rent05
+   REPL trentd WITH (trentd + trent + taddl)
+  ENDI $(bcode,1,2) = '05'
+  IF $(bcode,1,2) = '06'
+   STOR rent06 + (trent + taddl) TO rent06
+   REPL trentd WITH (trentd + trent + taddl)
+  ENDI $(bcode,1,2) = '06'
+  IF $(bcode,1,2) = '07'
+   STOR rent07 + (trent + taddl) TO rent07
+   REPL trentd WITH (trentd + trent + taddl)
+  ENDI $(bcode,1,2) = '07'
+  IF $(bcode,1,2) = '08'
+   STOR rent08 + (trent + taddl) TO rent08
+   REPL trentd WITH (trentd + trent + taddl)
+  ENDI $(bcode,1,2) = '08'
+  IF $(bcode,1,2) = '09'
+   STOR rent09 + (trent + taddl) TO rent09
+   REPL trentd WITH (trentd + trent + taddl)
+  ENDI $(bcode,1,2) = '09'
+  IF $(bcode,1,2) = '10'
+   STOR rent10 + (trent + taddl) TO rent10
+   REPL trentd WITH (trentd + trent + taddl)
+  ENDI $(bcode,1,2) = '10'
+  SKIP
+ ENDD WHILE .NOT. eof
+ SELE PRIMARY
+ USE &dr.:ACCOUNT
+ SET INDEX TO
+ GO BOTTOM
+ STOR f TO firstup
+ DO WHIL .NOT. firstup
+  IF $(data,1,1) = 'J'
+   STOR VAL($(data,2,3)) TO entryno
+   STOR t TO firstup
+  ELSE
+   SKIP -1
+  ENDI
+ ENDD WHILE .NOT. firstup
+ STOR $(mdate1,7,2) + $(mdate1,1,2) + $(mdate1,4,2) TO mdat1
+ IF rent01 > 0
+  STOR entryno + 1 TO entryno
+  STOR entryno + 1000 TO entryn
+  STOR STR(entryn,4) to entry
+  STOR 'J' + $(entry,2,3) TO entry
+  APPE BLANK
+  REPL date WITH mdat1
+  REPL data WITH entry+'013020C'+'rent accrual        '+date()+'J'
+  REPL amount WITH (rent01*-1)
+  APPE BLANK
+  REPL date WITH mdat1
+  REPL data WITH entry+'011040D'+'rent accrual        '+date()+'J'
+  REPL amount WITH rent01
+ ENDI rent01 > 0
+ IF rent02 > 0
+  STOR entryno + 1 TO entryno
+  STOR entryno + 1001 TO entryn
+  STOR STR(entryn,4) to entry
+  STOR 'J' + $(entry,2,3) TO entry
+  APPE BLANK
+  REPL date WITH mdat1
+  REPL data WITH entry+'023020C'+'rent accrual        '+date()+'J'
+  REPL amount WITH (rent02*-1)
+  APPE BLANK
+  REPL date WITH mdat1
+  REPL data WITH entry+'021040D'+'rent accrual        '+date()+'J'
+  REPL amount WITH rent02
+ ENDI rent02 > 0
+ IF rent03 > 0
+  STOR entryno + 1 TO entryno
+  STOR entryno + 1001 TO entryn
+  STOR STR(entryn,4) to entry
+  STOR 'J' + $(entry,2,3) TO entry
+  APPE BLANK
+  REPL date WITH mdat1
+  REPL data WITH entry+'033020C'+'rent accrual        '+date()+'J'
+  REPL amount WITH (rent03*-1)
+  APPE BLANK
+  REPL date WITH mdat1
+  REPL data WITH entry+'031040D'+'rent accrual        '+date()+'J'
+  REPL amount WITH rent03
+ ENDI rent03 > 0
+ IF rent04 > 0
+  STOR entryno + 1 TO entryno
+  STOR entryno + 1001 TO entryn
+  STOR STR(entryn,4) to entry
+  STOR 'J' + $(entry,2,3) TO entry
+  APPE BLANK
+  REPL date WITH mdat1
+  REPL data WITH entry+'043020C'+'rent accrual        '+date()+'J'
+  REPL amount WITH (rent04*-1)
+  APPE BLANK
+  REPL date WITH mdat1
+  REPL data WITH entry+'041040D'+'rent accrual        '+date()+'J'
+  REPL amount WITH rent04
+ ENDI rent04 > 0
+ IF rent05 > 0
+  STOR entryno + 1 TO entryno
+  STOR entryno + 1001 TO entryn
+  STOR STR(entryn,4) to entry
+  STOR 'J' + $(entry,2,3) TO entry
+  APPE BLANK
+  REPL date WITH mdat1
+  REPL data WITH entry+'053020C'+'rent accrual        '+date()+'J'
+  REPL amount WITH (rent05*-1)
+  APPE BLANK
+  REPL date WITH mdat1
+  REPL data WITH entry+'051040D'+'rent accrual        '+date()+'J'
+  REPL amount WITH rent05
+ ENDI rent05 > 0
+ IF rent06 > 0
+  STOR entryno + 1 TO entryno
+  STOR entryno + 1001 TO entryn
+  STOR STR(entryn,4) to entry
+  STOR 'J' + $(entry,2,3) TO entry
+  APPE BLANK
+  REPL date WITH mdat1
+  REPL data WITH entry+'063020C'+'rent accrual        '+date()+'J'
+  REPL amount WITH (rent06*-1)
+  APPE BLANK
+  REPL date WITH mdat1
+  REPL data WITH entry+'061040D'+'rent accrual        '+date()+'J'
+  REPL amount WITH rent06
+ ENDI rent06 > 0
+ IF rent07 > 0
+  STOR entryno + 1 TO entryno
+  STOR entryno + 1001 TO entryn
+  STOR STR(entryn,4) to entry
+  STOR 'J' + $(entry,2,3) TO entry
+  APPE BLANK
+  REPL date WITH mdat1
+  REPL data WITH entry+'073020C'+'rent accrual        '+date()+'J'
+  REPL amount WITH (rent07*-1)
+  APPE BLANK
+  REPL date WITH mdat1
+  REPL data WITH entry+'071040D'+'rent accrual        '+date()+'J'
+  REPL amount WITH rent07
+ ENDI rent07 > 0
+ IF rent08 > 0
+  STOR entryno + 1 TO entryno
+  STOR entryno + 1001 TO entryn
+  STOR STR(entryn,4) to entry
+  STOR 'J' + $(entry,2,3) TO entry
+  APPE BLANK
+  REPL date WITH mdat1
+  REPL data WITH entry+'083020C'+'rent accrual        '+date()+'J'
+  REPL amount WITH (rent08*-1)
+  APPE BLANK
+  REPL date WITH mdat1
+  REPL data WITH entry+'081040D'+'rent accrual        '+date()+'J'
+  REPL amount WITH rent08
+ ENDI rent08 > 0
+ IF rent09 > 0
+  STOR entryno + 1 TO entryno
+  STOR entryno + 1001 TO entryn
+  STOR STR(entryn,4) to entry
+  STOR 'J' + $(entry,2,3) TO entry
+  APPE BLANK
+  REPL date WITH mdat1
+  REPL data WITH entry+'093020C'+'rent accrual        '+date()+'J'
+  REPL amount WITH (rent09*-1)
+  APPE BLANK
+  REPL date WITH mdat1
+  REPL data WITH entry+'091040D'+'rent accrual        '+date()+'J'
+  REPL amount WITH rent09
+ ENDI rent09 > 0
+ IF rent10 > 0
+  STOR entryno + 1 TO entryno
+  STOR entryno + 1001 TO entryn
+  STOR STR(entryn,4) to entry
+  STOR 'J' + $(entry,2,3) TO entry
+  APPE BLANK
+  REPL date WITH mdat1
+  REPL data WITH entry+'103020C'+'rent accrual        '+date()+'J'
+  REPL amount WITH (rent10*-1)
+  APPE BLANK
+  REPL date WITH mdat1
+  REPL data WITH entry+'101040D'+'rent accrual        '+date()+'J'
+  REPL amount WITH rent10
+ ENDI rent10 > 0
+ENDI accrue
+SELE PRIMARY
+USE &dr.:account
+SET INDEX TO account
+STOR 'Y' TO command
+ERAS
+TEXT
+
+          This module updates the accounting files so that statements
+          can be prepared.    The steps to do this are to reindex the
+          file - and then to set the accrual and statement dates.
+
+          If all you want to do is update the rental  records to send
+          out monthly rent bills - you need not reindex.  You also do
+          not have to reindex if no entries were made since your last
+          reindexing.
+
+                      SHALL WE REINDEX  ?
+
+
+
+
+
+
+
+
+
+
+ENDT
+@ 11,43 GET command PICTURE '!'
+READ
+IF command = 'Y'
+ @ 14,15 SAY 'Reindexing............please be patient'
+ @ 15,15 SAY '......................but I will keep you posted'
+ @ 16,00
+ SET TALK ON
+ SET ECHO ON
+ INDE ON date + $(data,7,4) + $(data,5,1) TO &dr.:account
+ SET TALK OFF
+ SET ECHO OFF
+ENDI command = 'Y'
+RELE all
+STOR CHR(PEEK(063)) TO dr
+USE &dr.:account
+SET INDEX TO &dr.:account
+ERAS
+STOR t TO account
+

@@ -1,0 +1,93 @@
+* DATE 06/23/84  19:01
+* add.bld
+STOR 'A' TO choice
+ERAS
+TEXT
+
+    Welcome to the 'ADD' Menu.  We can now add new buildings to the
+    data file - or add new tenants to existing buildings already in
+    the data base.                                               
+                                                                       
+    Note that when you add a building, you will be given the option
+    of adding the tenants or the units at the same time.
+
+          <A> add a new building                                    
+          <B> add tenants to a building already in the data base
+          <C> return to main menu without adding
+
+
+
+
+
+
+
+
+
+
+
+ENDT
+@ 13,10 SAY 'How shall we proceed ? '
+@ 13,42 GET choice picture '!'
+READ
+DO WHIL @(choice, 'ABC') = 0
+ @ 13,42 GET choice PICTURE '!'
+ READ
+ CLEA GETS
+ENDD while @(choice
+DO CASE
+CASE choice = 'A'
+ DO add1.bld
+ STOR t TO first
+CASE choice = 'B'
+ STOR '99' TO findit
+ @ 13,00
+ @ 13,10 SAY 'What is the code number of the building (99 to quit) ? '
+ @ 13,65 GET findit PICTURE '99'
+ READ
+ IF findit = '99'
+  STOR t TO first
+  RETU
+ ENDI
+ FIND &findit
+ DO WHIL # = 0
+  STOR '  ' TO findit
+  @ 13,65 GET findit PICTURE '99'
+  READ
+  IF findit = '  '
+   STOR t TO first
+   RETU
+  ENDI
+  FIND &findit
+ ENDD
+ DO add2.bld
+CASE choice = '?'
+ ERAS
+TEXT
+
+
+                  A D D   M E N U   H E L P   S C R E E N
+
+
+      The options are rather simple.  In a normal case you would add a 
+      building and at the same time add all of the units. (Add them even
+      if vacant - just leave the tenant name blank - so that it will 
+      appear on the vacancy list).
+
+      When a unit becomes vacant - we suggest you not delete the record
+      - but that you delete the name of the tenant. Note, however, the
+      automatic rent posting program will post the rental to the unit - 
+      so you will have to make an offsetting journal entry for vacancy 
+      losses.  Most people do that anyway.
+
+      However, if you want to add a tenant who was never in the data base
+      you have that option on this menu.
+
+
+                          Press any key to continue 
+
+ENDT
+CASE choice = 'C'
+ RELE ALL
+ STOR t TO first
+ENDC
+

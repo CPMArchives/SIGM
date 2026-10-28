@@ -1,0 +1,84 @@
+;E5 - wipe the disk...
+;
+; A program to fill all free disk space with E5
+; By S. Kluger 04/21/84
+;
+cr	equ	0dh
+lf	equ	0ah
+;
+	cseg
+;
+begin:	mov	bx,offset e5s
+	mov	dl,128
+	mov	dh,0e5h
+fill:	mov	[bx],dh
+	inc	bx
+	dec	dl
+	jnz	fill
+	mov	dx,offset msg1
+	call	print
+	mov	dx,offset fcb
+	mov	cl,22
+	int	224
+	mov	dx,-1
+	mov	word ptr count,dx
+loop:	call	dots
+	push	bx
+	mov	dx,offset fcb
+	mov	cl,21
+	int	224
+	pop	bx
+	or	al,al
+	jz	loop
+	mov	dx,offset fcb
+	mov	cl,16
+	int	224
+	mov	dx,offset fcb
+	mov	cl,19
+	int	224
+	mov	dx,offset msg2
+	call	print
+	mov	cl,0
+	mov	dx,0
+	int	224
+;
+dots:	mov	dx,word ptr count
+	inc	dx
+	mov	word ptr count,dx
+	mov	bx,offset decimal
+	call	hexdec
+	mov	dx,offset msg3
+print:	mov	cl,9
+	int	224
+	ret
+;
+	include hexdec
+;
+	dseg
+;
+	org	80h
+;
+e5s	rb	128
+fcb	db	0,'GARBAGE $$$',0,0,0,0,0,0,0,0,0,0
+	db	0,0,0,0,0,0,0,0,0,0,0,0,0,0
+msg1	db	cr,lf,lf
+	db	'*** All free disk space will now be set to E5...'
+	db	cr,lf,lf,'$'
+msg2	db	cr,lf,lf
+	db	'*** Operation completed - returning to CP/M-86...'
+	db	cr,lf,'$'
+msg3	db	cr,'Writing sector number '
+decimal db	'00000$'
+count	rw	1
+	end
+
+	cseg
+;
+begin:	mov	bx,offset e5s
+	mov	dl,128
+	mov	dh,0e5h
+fill:	mov	[bx],dh
+	inc	bx
+	dec	dl
+	jnz	fill
+	mov	dx,offset

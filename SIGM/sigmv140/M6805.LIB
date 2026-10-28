@@ -1,0 +1,585 @@
+;;	This Macro library provides Motorola MC6805 opcodes.
+;;	It requires Digital Research's MAC assembler, patched
+;;	to suppress all 8080 opcode menmeonics.  (XMAC.COM)
+;;
+;;	6805 Menmonics supported are not exactly as specified
+;;	by Motorola.  This arises from parameter specification
+;;	rules under the MAC assembler.  Many of the ideas used
+;;	here have been taken from the Digital Research supplied
+;;	macro library for Z-80 instruction extensions, Z80.LIB
+;;
+;;	Due to the requirements of MAC under forward reference
+;;	conditions (undefined on first pass), all such forward
+;;	references are forced to the appropriate long form.
+;;
+;;	This library must be invoked by  "MACLIB  M6805"
+;;
+;;		Register with Memory operation class
+;;
+;;	LDAI	nn		Specific Menmonic, immediate value
+;;	LDA	nn		Direct address, 0 page
+;;	LDA	nnnn		Extended address, all of memory
+;;	LDA	,X		Index Register pointer, in 0 page
+;;	LDA	nn,X		Index+8 bit unsigned offset
+;;	LDA	nnnn,X		Index+16 bit unsigned offset
+;;
+;;		Modify A,X, or memory (8 bit address) class
+;;
+;;	INCA			Specific Menmonic, register A
+;;	INCX			Specific Menmonic, register X
+;;	INC	nn		Direct address, 0 page
+;;	INC	,X		Index Register pointer, in 0 page
+;;	INC	nn,X		Index+8 bit unsigned offset
+;;
+;;		Relative Branch instruction class
+;;
+;;	BRA	label		Op, 8 bit signed offset to label
+;;
+;;		Bit test & Relative Branch instruction class
+;;
+;;	BRSET	b,nn,label	Op, Direct 0 page add, 8 bit signed offs.
+;;
+;;		Individual bit set & clear instruction class
+;;
+;;	BSET	b,nn		Opcode + bitnumber*2, Direct 0 page address
+;;
+;;		Control Instruction class
+;;
+;;	TAX			Specific Menmonic for each instruction
+
+
+FCB	MACRO	?N
+	DB ?N
+	ENDM
+
+FDB	MACRO	?N
+	 ?LN SET LOW ?N
+	 ?HN SET HIGH ?N
+	 DB ?HN,?LN
+	ENDM
+
+?ARM	MACRO	?N,?X
+	IF NUL ?X
+	 IF NUL ?N
+	  ?AC SET 0F0H
+'Address is missing'
+	 ELSE
+	  IF ?N LT 256
+	   ?AC SET 0B0H
+	  ELSE
+	   ?AC SET 0C0H
+	  ENDIF
+	 ENDIF
+	ELSE
+	 IF NOT NUL ?N
+	  IF ?N LT 256
+	   ?AC SET 0E0H
+	  ELSE
+	   ?AC SET 0D0H
+	  ENDIF
+	 ELSE
+	  ?AC SET 0F0H
+	 ENDIF
+	ENDIF
+	ENDM
+
+?SIZ	MACRO	?OP,?N
+	IF NOT NUL ?N
+	 IF ?N LT 256
+	  DB ?OP,?N
+	 ELSE
+	  ?LN SET LOW ?N
+	  ?HN SET HIGH ?N
+	  DB ?OP,?HN,?LN
+	 ENDIF
+	ELSE
+	 DB ?OP
+	ENDIF
+	ENDM
+
+
+
+LDAI	MACRO	?N
+	DB	0A6H,?N
+	ENDM
+LDA	MACRO	?N,?X
+	?ARM ?N,?X
+	?SIZ 06H+?AC,?N
+	ENDM
+
+LDXI	MACRO	?N
+	DB	0AEH,?N
+	ENDM
+LDX	MACRO	?N,?X
+	?ARM ?N,?X
+	?SIZ 0EH+?AC,?N
+	ENDM
+
+STA	MACRO	?N,?X
+	?ARM ?N,?X
+	?SIZ 07H+?AC,?N
+	ENDM
+
+STX	MACRO	?N,?X
+	?ARM ?N,?X
+	?SIZ 0FH+?AC,?N
+	ENDM
+
+ADDI	MACRO	?N
+	DB	0ABH,?N
+	ENDM
+ADD	MACRO	?N,?X
+	?ARM ?N,?X
+	?SIZ 0BH+?AC,?N
+	ENDM
+
+ADCI	MACRO	?N
+	DB	0A9H,?N
+	ENDM
+ADC	MACRO	?N,?X
+	?ARM ?N,?X
+	?SIZ 09H+?AC,?N
+	ENDM
+
+SUBI	MACRO	?N
+	DB	0A0H,?N
+	ENDM
+SUB	MACRO	?N,?X
+	?ARM ?N,?X
+	?SIZ 00H+?AC,?N
+	ENDM
+
+SBCI	MACRO	?N
+	DB	0A2H,?N
+	ENDM
+SBC	MACRO	?N,?X
+	?ARM ?N,?X
+	?SIZ 02H+?AC,?N
+	ENDM
+
+
+ANAI	MACRO	?N
+	DB	0A4H,?N
+	ENDM
+ANA	MACRO	?N,?X
+	?ARM ?N,?X
+	?SIZ 04H+?AC,?N
+	ENDM
+
+ORAI	MACRO	?N
+	DB	0AAH,?N
+	ENDM
+ORA	MACRO	?N,?X
+	?ARM ?N,?X
+	?SIZ 0AH+?AC,?N
+	ENDM
+
+EORI	MACRO	?N
+	DB	0A8H,?N
+	ENDM
+EOR	MACRO	?N,?X
+	?ARM ?N,?X
+	?SIZ 08H+?AC,?N
+	ENDM
+
+CMPI	MACRO	?N
+	DB	0A1H,?N
+	ENDM
+CMP	MACRO	?N,?X
+	?ARM ?N,?X
+	?SIZ 01H+?AC,?N
+	ENDM
+
+CPXI	MACRO	?N
+	DB	0A3H,?N
+	ENDM
+CPX	MACRO	?N,?X
+	?ARM ?N,?X
+	?SIZ 03H+?AC,?N
+	ENDM
+
+BITI	MACRO	?N
+	DB	0A5H,?N
+	ENDM
+BIT	MACRO	?N,?X
+	?ARM ?N,?X
+	?SIZ 05H+?AC,?N
+	ENDM
+
+
+
+JMP	MACRO	?N,?X
+	?ARM ?N,?X
+	?SIZ 0CH+?AC,?N
+	ENDM
+
+JSR	MACRO	?N,?X
+	?ARM ?N,?X
+	?SIZ 0DH+?AC,?N
+	ENDM
+
+
+
+?AS	MACRO	?N,?X
+	IF NUL ?N
+	 IF NUL ?X
+'Address is missing'
+	 ENDIF
+	 ?AC SET 70H
+	ELSE
+	 IF NUL ?X
+	  IF ?N GE 256
+'Direct address out of 8 bit range'
+	  ENDIF
+	  ?AC SET 30H
+	 ELSE
+	  IF ?N GE 256
+'Offset value out of 8 bit range'
+	  ENDIF
+	  ?AC SET 60H
+	 ENDIF
+	ENDIF
+	ENDM
+
+?SIS	MACRO ?OP,?N
+	IF NOT NUL ?N
+	 DB ?OP,?N
+	ELSE
+	 DB ?OP
+	ENDIF
+	ENDM
+
+
+
+INCA	MACRO
+	DB	4CH
+	ENDM
+INCX	MACRO
+	DB	5CH
+	ENDM
+INC	MACRO	?N,?X
+	?AS ?N,?X
+	?SIS 0CH+?AC,?N
+	ENDM
+
+DECA	MACRO
+	DB	4AH
+	ENDM
+DECX	MACRO
+	DB	5AH
+	ENDM
+DEC	MACRO	?N,?X
+	?AS ?N,?X
+	?SIS 0AH+?AC,?N
+	ENDM
+
+CLRA	MACRO
+	DB	4FH
+	ENDM
+CLRX	MACRO
+	DB	5FH
+	ENDM
+CLR	MACRO	?N,?X
+	?AS ?N,?X
+	?SIS 0FH+?AC,?N
+	ENDM
+
+COMA	MACRO
+	DB	43H
+	ENDM
+COMX	MACRO
+	DB	53H
+	ENDM
+COM	MACRO	?N,?X
+	?AS ?N,?X
+	?SIS 03H+?AC,?N
+	ENDM
+
+NEGA	MACRO
+	DB	40H
+	ENDM
+NEGX	MACRO
+	DB	50H
+	ENDM
+NEG	MACRO	?N,?X
+	?AS ?N,?X
+	?SIS 00H+?AC,?N
+	ENDM
+
+ROLA	MACRO
+	DB	49H
+	ENDM
+ROLX	MACRO
+	DB	59H
+	ENDM
+ROL	MACRO	?N,?X
+	?AS ?N,?X
+	?SIS 09H+?AC,?N
+	ENDM
+
+RORA	MACRO
+	DB	46H
+	ENDM
+RORX	MACRO
+	DB	56H
+	ENDM
+ROR	MACRO	?N,?X
+	?AS ?N,?X
+	?SIS 06H+?AC,?N
+	ENDM
+
+LSLA	MACRO
+	DB	48H
+	ENDM
+LSLX	MACRO
+	DB	58H
+	ENDM
+LSL	MACRO	?N,?X
+	?AS ?N,?X
+	?SIS 08H+?AC,?N
+	ENDM
+
+LSRA	MACRO
+	DB	44H
+	ENDM
+LSRX	MACRO
+	DB	54H
+	ENDM
+LSR	MACRO	?N,?X
+	?AS ?N,?X
+	?SIS 04H+?AC,?N
+	ENDM
+
+ASLA	MACRO
+	DB	48H
+	ENDM
+ASLX	MACRO
+	DB	58H
+	ENDM
+ASL	MACRO	?N,?X
+	?AS ?N,?X
+	?SIS 08H+?AC,?N
+	ENDM
+
+ASRA	MACRO
+	DB	47H
+	ENDM
+ASRX	MACRO
+	DB	57H
+	ENDM
+ASR	MACRO	?N,?X
+	?AS ?N,?X
+	?SIS 07H+?AC,?N
+	ENDM
+
+TSTA	MACRO
+	DB	4DH
+	ENDM
+TSTX	MACRO
+	DB	5DH
+	ENDM
+TST	MACRO	?N,?X
+	?AS ?N,?X
+	?SIS 0DH+?AC,?N
+	ENDM
+
+
+
+
+?BR	MACRO	?L
+	?BO SET ?L-$-2
+	IF (?BO GT 7FH) AND (?BO LT 0FF80H)
+'Relative Branch out of range'
+	ENDIF
+	ENDM
+
+
+
+BHI	MACRO	?L
+	?BR ?L
+	DB	22H,?BO
+	ENDM
+
+BLS	MACRO	?L
+	?BR ?L
+	DB	23H,?BO
+	ENDM
+
+BCC	MACRO	?L
+	?BR ?L
+	DB	24H,?BO
+	ENDM
+
+BHS	MACRO	?L
+	?BR ?L
+	DB	24H,?BO
+	ENDM
+
+BCS	MACRO	?L
+	?BR ?L
+	DB	25H,?BO
+	ENDM
+
+BLO	MACRO	?L
+	?BR ?L
+	DB	25H,?BO
+	ENDM
+
+BNE	MACRO	?L
+	?BR ?L
+	DB	26H,?BO
+	ENDM
+
+BEQ	MACRO	?L
+	?BR ?L
+	DB	27H,?BO
+	ENDM
+
+BHCC	MACRO	?L
+	?BR ?L
+	DB	28H,?BO
+	ENDM
+
+BHCS	MACRO	?L
+	?BR ?L
+	DB	29H,?BO
+	ENDM
+
+BPL	MACRO	?L
+	?BR ?L
+	DB	2AH,?BO
+	ENDM
+
+BMI	MACRO	?L
+	?BR ?L
+	DB	2BH,?BO
+	ENDM
+
+BMC	MACRO	?L
+	?BR ?L
+	DB	2CH,?BO
+	ENDM
+
+BMS	MACRO	?L
+	?BR ?L
+	DB	2DH,?BO
+	ENDM
+
+BIL	MACRO	?L
+	?BR ?L
+	DB	2EH,?BO
+	ENDM
+
+BIH	MACRO	?L
+	?BR ?L
+	DB	2FH,?BO
+	ENDM
+
+
+BRA	MACRO	?L
+	?BR ?L
+	DB	20H,?BO
+	ENDM
+
+BRN	MACRO	?L
+	?BR ?L
+	DB	21H,?BO
+	ENDM
+
+BSR	MACRO	?L
+	?BR ?L
+	DB	0ADH,?BO
+	ENDM
+
+?BIT	MACRO	?BN,?DA
+	IF ?DA LT 256
+	 ?DAO SET ?DA
+	ELSE
+	 ?DAO SET 0
+'Bit operation address out of range (0-255)'
+	ENDIF
+	IF ?BN LE 7
+	 ?BNO SET ?BN
+	ELSE
+	 ?BNO SET 0
+'Bit number out of range (0-7)'
+	ENDIF
+	ENDM
+
+
+BRSET	MACRO	?BN,?DA,?L
+	?BR ?L-1
+	?BIT ?BN,?DA
+	DB	00+2*?BNO,?DAO,?BO
+	ENDM
+
+BRCLR	MACRO	?BN,?DA,?L
+	?BR ?L-1
+	?BIT ?BN,?DA
+	DB	01+2*?BNO,?DAO,?BO
+	ENDM
+
+BSET	MACRO	?BN,?DA
+	?BIT ?BN,?DA
+	DB	10H+2*?BNO,?DAO
+	ENDM
+
+BCLR	MACRO	?BN,?DA
+	?BIT ?BN,?DA
+	DB	11H+2*?BNO,?DAO
+	ENDM
+
+
+TAX	MACRO
+	DB	97H
+	ENDM
+
+TXA	MACRO
+	DB	9FH
+	ENDM
+
+SEC	MACRO
+	DB	99H
+	ENDM
+
+CLC	MACRO
+	DB	98H
+	ENDM
+
+SEI	MACRO
+	DB	9BH
+	ENDM
+
+CLI	MACRO
+	DB	9AH
+	ENDM
+
+SWI	MACRO
+	DB	83H
+	ENDM
+
+RTS	MACRO
+	DB	81H
+	ENDM
+
+RTI	MACRO
+	DB	80H
+	ENDM
+
+RSP	MACRO
+	DB	9CH
+	ENDM
+
+NOP	MACRO
+	DB	9DH
+	ENDM
+
+STOP	MACRO
+	DB	8EH
+	ENDM
+
+WAIT	MACRO
+	DB	8FH
+	ENDM
+
+

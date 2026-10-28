@@ -1,0 +1,18 @@
+b:   
+; compiler, linker & libraries on a: ,  source on b:
+; synonym :  p = mtplus, pl = paslib, l = linkmt, fp = fpreals	
+; the root segment
+a:p ccp #oa
+; symbol table init overlay
+a:p init #oa
+; the compiler overlay
+a:p compile #oa
+; the interpreter overlay
+a:p interpre #oa
+a:
+; and link 'em
+l b:ccp,pl/s/v1:2000/d:7600/x:1800
+l b:ccp=b:ccp/o:1,b:init,pl/s/p:2000
+l b:ccp=b:ccp/o:2,b:compile,pl/s/p:2000/x:0040
+l b:ccp=b:ccp/o:3,b:interpre,fp/s,pl/s/p:2000/x:0300
+

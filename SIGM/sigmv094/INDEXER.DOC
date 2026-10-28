@@ -1,0 +1,282 @@
+		      The INDEXER Program
+
+The Indexing Problem
+
+An index is a table that lists the important topics of a book in
+alphabetical order, showing for each the numbers of the pages on
+which that topic is mentioned.	An index is an indispensable
+part of any non-fiction book.  Even a poor index can give better
+access to a book than a table of contents can, while a good
+index increases the utility of a book many times.
+
+Indexing a book is a skilled job.  The indexer must understand
+the subject of the book well, so as to know what the important
+topics are.  The indexer must read the book and comprehend it,
+so as to know when a reference to a topic is important enough
+to merit an index entry.  The indexer must understand the
+intended use, and users, of the book well, so as to know the
+terms that they will expect to find in the index.
+
+An index of sorts can be built automatically by sorting the
+words of a document file, eliminating duplicates, and appending
+the page numbers on which the words appeared.  The indexes of
+the Pascal/Z manuals appear to have been made by such a process,
+and they demonstrate the failings of the method.  It only
+indexes words, it does not index topics.  It works only to the
+extent that the topics of the book are fully expressed in single
+words (and to the extent that the words were used consistently).
+It is completely unselective, showing every reference no matter
+how trivial.  There can be no provision for sub-entries under a
+major topic, nor for multiple entries for a topic under
+different terms.
+
+A good index can be built automatically by some word processing
+programs.  The writer embeds indexing commands within the text
+of a document.	When the program formats the document for
+printing, it writes each embedded index term to a disk file with
+the page number on which it appeared.  This method can work
+well, since the entries are topical terms chosen by the writer,
+who embeds them only at the relevant points.  I have developed
+and used such a system for documents formatted by Magic Wand.
+
+Both automatic methods fail if the book is to be typeset.  They
+rely on page numbers as they exist in the machine-printed form
+of the work.  The page numbers of the typeset work will be
+different, so the machine-made index will have to be heavily
+edited or completely remade.
+
+And of course, the automatic methods can't work when the book to
+be indexed is not available in machine-readable form.  In these
+cases, the index must be made by hand.	In the traditional
+method, the indexer sets up a file of 4x5 (index!) cards, one
+for each topic to be indexed.  Then he/she reads the book and,
+wherever a topic appears, writes the page number on its card.
+The sorted cards provide the material for typing the index.
+
+The INDEXER program is a machine aid for a human indexer.  It
+does the job of the pile of index cards, and it makes the
+finished index automatically, as a disk file that can be edited
+or printed.
+
+
+INDEXER's Operations
+
+
+The INDEXER program works as follows.  When invoked as a CP/M
+command, it looks for a file containing a saved index in
+internal form.	If there is such a file (one named INDEXER.TRE
+on the default drive), the program loads it, and work can
+continue from where you left off before.
+
+Once initialized, INDEXER prompts for a "term."  You may type an
+index term of up to 64 characters.  Spaces, commas, and indeed
+any printable characters are allowed.  You may use the backspace
+key to correct typing errors.  The end of the term is signalled
+with the Return key.
+
+INDEXER files the term in storage and prompts for a "page."  It
+expects the page number of a reference to the term just entered,
+an integer from 1 to 32767.  It will accept a negative integer
+and store it.  It will also accept a zero, but for reasons of
+its own it will store a page number of zero as -32767.	The
+program stores any term or subterm only once.  It collects all
+the page references for that term and stores them in a list with
+the term.
+
+You may go on entering terms and pages as long as you like.
+When you want to stop work, enter a term of length zero; that
+is, press Return at the "term" prompt.	Then INDEXER writes the
+index to disk in two forms.  It writes its collection of terms
+and pages in internal form as INDEXER.TRE, so that it will be
+able to reload them and pick up work where it left off.  It also
+writes a finished index file as INDEXER.OUT.  This file can be
+edited with any word processor for final printing.
+
+
+Using Sub-terms
+
+
+INDEXER allows any term to have sub-terms and sub-sub-terms to a
+depth of nine.	Subterms are very useful in indexes; they allow
+you to group subtopics under a main topic entry.  Some readers
+will look for a topic under its general term; others will look
+for it under a very specific term.  For example, a good index
+for the Pascal/Z manual might index the CASE statement two or
+even three ways:
+	   ...
+      CASE statement 27
+	 ELSE allowed 4, 69
+	 option J 41
+	 speed of vs. IF 43
+	  ...
+      ELSE clause 27
+	 with CASE 4, 69
+	  ...
+      statement types
+	 assignment 25
+	 BEGIN 32
+	 CASE 27
+	  ...
+
+To INDEXER, each group of subterms is a little index of its own.
+Its terms are stored and sorted, and their page numbers are
+collected, just as is done for the main terms.	When it prepares
+the output file, INDEXER indents once for each sub-term level.
+
+To enter a subterm, you first enter its main term.  But instead
+of ending the main term by pressing Return, you end it by
+pressing LineFeed (or control-J if your terminal lacks a
+LineFeed key).	INDEXER then prompts for a " . .term," indenting
+one level on the screen.  Enter the subterm just as you would a
+main term.  End it, too, with LineFeed if you are entering a
+sub-subterm.  When you eventually end a term with Return, you
+will be prompted for a page number as usual.  That page number
+will be associated with the subterm, not with its superior
+term(s).
+
+
+Term Recall
+
+
+Typing all these terms is tedious, but INDEXER has a feature
+which can save a lot of the labor.  The feature is called Term
+Recall, and it serves two purposes.
+
+You recall a term by typing some of its initial letters, then
+pressing the Escape key.  INDEXER searches its list of terms for
+the alphabetically-lowest one that matches the initial letters
+you have typed to that point.  It then completes the term on the
+screen by typing the remaining letters of that term.  If that is
+the term you wanted to recall, you may then press Return or
+LineFeed just as if you had typed the whole term yourself.  Or
+you can modify the term as it appears then by backspacing and
+retyping part of it.
+
+If the term is not the one you want, just press Escape again.
+INDEXER will wipe out the letters it supplied, find the next
+term in alphabetic order, and show its final letters.  If you
+keep pressing Escape, you will be shown all the terms that match
+the initial letters you typed.	When there are no more, INDEXER
+beeps the console alarm.
+
+If you decide that you don't want any of the recalled terms,
+press the Delete key.  INDEXER will restore the line to just the
+characters you had typed initially.
+
+Term Recall can save a lot of typing.  It also provides a way to
+review the terms you have defined so far.  Press Escape without
+typing any initial letters at all; INDEXER will complete your
+non-existent entry by showing you the first of all the terms it
+has, and will step through all the terms as you press Escape.
+
+
+How To Index With INDEXER
+
+
+Start by marking up a copy of the book.  Read through it
+carefully with a pencil and a highlighting pen in hand.  Mark
+every term to be indexed, and note in the margins where a topic
+should be entered under more than one term.
+
+Then, book in lap, start up INDEXER using the INDEXER.SUB submit
+file:
+
+      SUBMIT INDEXER bookname
+
+This submit file contains CP/M commands that will keep INDEXER's
+two output files as bookname.TRE and bookname.INX, so you can
+have index work in progress for several different books at once.
+
+When INDEXER starts up, begin entering terms and pages in the
+order they occur in the book. When you have finished the book,
+or when you want to stop, just hit Return at the "term" prompt.
+INDEXER will write its files, and the submit file will rename
+them.  If you are not finished, come back to the index later
+with the same submit command; you will be able to pick up where
+you left off.
+
+You may print bookname.INX, or edit it with your favorite word
+processor to insert print-formatting commands.	One reason for
+editing the file is to delete errors.  There is no way to get
+INDEXER to forget a term once you have entered it.  If you enter
+a term incorrectly, give it a page number of zero.  That will
+show up in the output file as page 32767.  You can find such
+lines with your editor and delete them.
+
+
+INDEXER's Limitations
+
+
+Please do not enter many index terms in alphabetical order.  The
+scheme for term storage (a binary tree) assumes that terms will
+be entered in approximately random sequence.  If they are all
+given in alphabetic order, the program will fail.
+
+INDEXER's storage is large, but not too large.  To put it as a
+formula, INDEXER uses 15+(2*termlength) bytes for every unique
+term or subterm, and four bytes for every page number.	If terms
+average about 20 bytes each, and if there are about two page
+numbers per term, INDEXER can handle about 500 terms in a 64KB
+machine.  If the program runs out of storage, it will crash with
+a run-time error message.  So if your index is approaching 500
+terms (about nine pages as printed), save your work often.
+
+
+Programmer Details
+
+
+INDEXER stores terms as character strings.  I chose to do my own
+strings rather than using the Pascal/Z string type, so that the
+program could be ported to other compilers.  Since most terms
+are shorter than the 64 bytes allowed, keeping every term as an
+independent string would waste storage.  Except when they are
+being entered or written, terms are stored compactly in blocks
+of 2048 bytes, and referenced by a block number and an offset
+index.	I've allowed for up to 16 blocks (32Kb).  The code is
+about 18Kb, so what with Pascal stack space and the binary tree
+nodes, the full 16 blocks will probably never be allocated.
+
+Terms are stored in a binary tree, and subterms under a term are
+stored in a tree dangling from the superior term's node.  Page
+references are stored in an ordered chain anchored in the term's
+node.  In some cases, the trees are processed with recursive
+algorithms, as traditional (see J and W program 11.5).	But more
+often, recursion was inconvenient and would have eaten up too
+much stack space.  Where a tree is to be "walked" in lexical
+(in-) order, it is done by setting up a tree-walk record which
+is processed by a "treestep" function.	That figures out the
+next node and returns a pointer to it, saving the state of the
+walk in the tree-walk record.  I played a lot of games with the
+trees, some of which are (I think) quite clever.  The Term
+Recall feature is based on tree-walking, and it turned out to be
+a really slick user interface.
+
+An index has to be in true alphabetical, not ASCII, order.  The
+only way to make "Apple" come after "anteater" is to do all
+comparisons in upper case.  To keep the speed up, I stored every
+term two ways: as entered, and in all-caps.  The all-caps form
+is used for all comparisons; the as-entered form is used for all
+output.  This has the side effect that the terms "Apple" and
+"apple" are identical, and only the first one entered will
+appear in the output.  If storage was critical, it would be
+possible to store only the original form of a term, and convert
+it to all-caps prior to any comparison.
+
+There is no provision for odd page number systems.  The program
+can't handle hyphenated or alphabetical page numbers.  It can be
+done, but it requires making a page number into a string, not an
+integer.  It also introduces complications in keeping page
+numbers in order (getting page "7-2" to collate before page
+"7-10") and in eliding sequential page numbers (compressing page
+numbers 7-1, 7-2, and 7-3 into a single reference).  Since the
+program is designed for use on real books, integers are fine.
+
+At 800+ lines, INDEXER is one big program.  I wouldn't be at all
+surprised if it still contained a bug or two, so be alert.  It
+compiles, assembles, and links in less than 10 minutes on a 4
+MHZ system with double density drives.	I tried applying the
+PASOPT program to it, with unimpressive results.  PASOPT read
+that immense source file and managed to save 108 bytes of
+machine code, or less than one percent.  Wowee.
+lts.  PASOPT read
+that immense source file and managed to sa

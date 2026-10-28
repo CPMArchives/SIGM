@@ -1,0 +1,105 @@
+COMPB/COMPBC  -- Compare Vectors
+COMPHD        -- Compare HL to DE
+INSTR         -- Substring Search
+SCANNER       -- Vector Search
+:Vector Comparison Routines
+     Routine Names:  COMPB, COMPBC
+
+     Functionº
+
+     Vectoò Comparå Routines®  Comparå thå vectoò pointeä tï 
+bù  HÌ  witè  thaô pointeä tï bù DÅ (Vectoró  arå  oæ  equaì 
+length)®   Vectoró  arå Â byteó lonç foò COMPÂ anä BÃ  byteó 
+lonç  foò COMPBC®   Oî return¬  Zerï Flaç Seô (Z© =¾  HL=DE¬ 
+Carrù Flaç Seô (C© =¾ HL<DE¬  Zerï Flaç Cleaò (NZ© anä Carrù 
+Flaç Cleaò (NC© =¾ HL>DE.
+
+     Inputs:  HL, DE -- Pointers to vectors to compare
+              B (for COMPB), BC (for COMPBC) -- number of
+                    bytes in vectors
+
+     Outputs:  Zero and Carry Flags
+
+     Registers Affected:  PSW
+
+
+     SYSLIB Routines Called:  -None-
+
+     Special Error Conditions:  -None-
+
+:Value Comparision Routine
+     Routine Name:  COMPHD
+
+     Functionº
+
+     Comparå  HÌ  tï DE®   Oî return¬  Zerï Flaç Seô (Z©  =¾ 
+HL=DE¬ Carrù Flaç Seô (C© =¾ HL<DE¬ Zerï Flaç Cleaò (NZ© anä 
+Carrù Flaç Cleaò (NC© =¾ HL>DE.
+
+     Inputs:  HL, DE -- Values to compare
+
+     Outputs:  Zero and Carry Flags
+
+     Registers Affected:  PSW
+
+     SYSLIB Routines Called:  -None-
+
+     Special Error Conditions:  -None-
+
+:Substring Search
+     Routine Name:  INSTR
+
+     Functionº
+
+     INSTRINÇ  Function®   Scaî thå strinç pointeä tï bù  HÌ 
+foò  thå strinç pointeä tï bù DE®   Á strinç ió á vectoò  oæ 
+byteó terminateä bù á binarù 0.
+
+     Oî return¬  iæ found¬ Zerï Flaç ió Seô anä HÌ pointó tï 
+1sô bytå oæ substrinç withiî scanneä string»  iæ noô  found¬ 
+Zerï Flaç ió noô seô anä HÌ ió noô affected.
+
+     Inputs:  HL = Pointer to string to be scanned
+              DE = Pointer to string to scan for
+
+     Outputs:  If found, Zero Set and HL pts to located substring
+               If not found, Zero Reset and HL unaffected
+
+
+     Registers Affected:  PSW, HL
+
+     SYSLIB Routines Called:  -None-
+
+     Speciaì Erroò Conditionsº   Automatiã succesó iæ strinç 
+searcheä foò ió null.
+
+:Vector Search
+     Routine Name:  SCANNER
+
+     Functionº
+
+     SCANNEÒ  scanó thå vectoò oæ byteó pointeä tï bù HÌ foò 
+thå vectoò oæ byteó pointeä tï bù DE®  Thå HL-bytå vectoò ió 
+Â  byteó lonç anä thå DE-bytå vectoò ió Ã  byteó  long®   Oî 
+return¬ iæ found¬ HÌ pointó tï thå beginninç locatioî withiî 
+thå  originaì  HÌ vectoò oæ thå locateä vectoò anä thå  Zerï 
+Flaç ió Set»  iæ noô found¬  Zerï Flaç ió noô seô anä HÌ  ió 
+noô  affecteä  (pointó tï thå beginninç oæ thå originaì  HL-
+bytå vector).
+
+     Inputs:  HL = Pointer to vector to be scanned
+              DE = Pointer to vector to scan for
+              B = Number of bytes in HL-vector
+              C = Number of bytes in DE-vector
+
+     Outputs:  If found, Zero Set and HL pts to located vector
+               If not found, Zero Reset and HL unaffected
+
+     Registers Affected:  PSW, HL
+
+     SYSLIB Routines Called:  -None-
+
+     Speciaì Erroò Conditionsº   Automatiã succesó iæ vectoò 
+searcheä foò ió null.
+
+

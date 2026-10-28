@@ -1,0 +1,263 @@
+
+
+
+               -- THE ART OF THE PSEUDO RUN --
+                        Ron Winter     3/13/83
+             Iô  ió  possiblå tï singlå steğ á  z8°  s-10° 
+        systeí  iî  softwarå withouô decodinç  thå  `next§ 
+        instruction. All that is required is a 74ls74.
+             Thå  z8° ¦ É assumå thå 8080¬  808µ allo÷ onå 
+        instructioî  afteò  aî  EÉ tï  occuò  eveî  iæ  aî 
+        interrupô  ió pending®  Thió ió tï allo÷ aî REÔ iî 
+        aî  interrupô  handleò so thaô á  stacë  runawaù 
+        doesn't occur under a barrage of interrupts.
+             Leô  uó finä aî instructioî tï placå  betweeî 
+        thå EÉ anä REÔ thaô wilì generatå aî interrupô twï 
+        instructionó  lateò thaô preserveó  alì  registeró 
+        foò ouò interrupô handler®  Consideò thå followinç 
+        circuit.
+
+         ________________________________________________
+        |                                                |
+        |                              pu  enable-p      |
+        |                            10|     |           |
+        |                           ___o___  |  __       |
+        |           _________    12|   S   |9|-|  \      | 
+        |         4|         |  pu-|D     Q|---+   |o-   |
+        |       ___o___      |     | 1/2   |   |__/  |   |
+        |     2|   S   |5    |   11| ls74 _|8        o   |       
+        |     _|D     Q|-----------|> (b) Q|o-nc    / \  |
+        | _  | |  1/2  |     |     |   R   |       o   o |
+        | M1 |3| ls74 _|6    |     |___o___|       |   | |
+        | ==>--|> (a) Q|o_   |       13|          VIn NMI|
+        | 44 | |   R   |  |  |_________|                 |
+        |    | |___o___|  |            |                 |
+        |    |    1|pu    |            |                 |
+        |    |____________|            ^                 |
+        |                             arm-n              |
+        |                          [OUT (XX),A]          |
+        |------------------------------------------------|
+
+             Witè  thå aiä oæ anù porô (XX© thaô  onå  caî 
+        safelù writå tï anä geô á lo÷ goinç pulså  iî the
+        `write' window, we have the follwing sequence.
+
+        1®  witè  nï  interrupô pendinç iî  ouò  interrupô 
+            handler we do an EI.
+
+        2®  wå  nexô dï OUÔ (XX),Á anä Qá goeó  high¬  Qâ 
+            goes low.
+
+        3®  wå dï aî REÔ anä oî thå trailinç edgå oæ  M1¬ 
+            Qa goes low, Qb no change.
+
+        4®  Nexô pã beginó anä oî itó M± enä Qá goeó higè 
+            clocking Qb to high causing an interrupt.
+
+            Thió  leaveó thå wonderfuì dilemná oæ whaô tï 
+        do with it!Š
+
+                                        1
+
+
+
+
+
+
+
+
+
+             
+             Leô  må describå whaô É do®  Á smalì  prograí 
+        sets up the system as follows.
+
+        1®    Loaä á jumğ vectoò tï á safå placå iî (high© 
+        memorù aô rst¶ (30hex© anä wirå outpuô oæ  circuiô 
+        tï  VI¶  (S-10° piî 10)®  Notå circuiô  shoulä  bå 
+        disabled at this time.
+
+        2®    Aô thå vector¬ writå aî interrupô handleò tï 
+        do whatever you please!
+
+        3®    Displaù  somethinç oî thå screeî tï  signifù 
+        thaô thå circuiô ió availablå anä exiô bacë tï thå 
+        system.
+
+        4®   Executå thaô whicè onå wisheó tï studù anä aô 
+        anù  convenienô  timå enablå á  VI6®  Á  momentarù 
+        switch will work.
+
+        5.   Voila, I am in my interrupt handler.
+
+
+             Tï  makå lifå easieò leô uó saù thå interrupô 
+        handleò   doeó  thå  following®   Iô   saveó   alì 
+        registers¬  saveó  thå  currenô  cursoò  position¬ 
+        paintó  á prettù displaù oî somå protecteä parô oæ 
+        thå screeî anä polló thå keyboarä foò input® Iæ nï 
+        keù theî restorå cursor¬  restorå registeró anä dï 
+        EI, OUT (XX),A and RET.
+             Sï  untiì  á keù ió strucë  durinç  interrupô 
+        handleò thå processoò `pseudï runs'® Thå effectivå 
+        speeä ió thå timå iô takeó tï ruî one'ó  interrupô 
+        handler¬  sï  thå quickeò anä dirtieò thå codå thå 
+        better! 
+             Notå  oæ warning®  Iô ió generallù  safeò  tï 
+        surrounä  one'ó  BIOÓ IÏ hardwarå  dependenô  codå 
+        witè  DÉ anä EÉ tï prevenô `terminaì confusion§ aô 
+        one'ó hardware¡ Thuó onå shoulä copù one'ó IÏ codå 
+        inlinå intï thå interrupô handler®  Thió wilì alsï 
+        save time (less system jumps etc.)
+             Tï  makå  lifå eveî  easier¬  structurå  youò 
+        interrupô `monitor§ tï enablå futurå additionó anä 
+        options. Currently mine does the following:
+
+             Oî  firsô  entrù iæ nï  keù  ió  struck¬  uså 
+        `last§  keù  whicè ió preseô tï <space¾ tï  enablå 
+        singlå steğ witè pause®  Thaô is¬  iæ nï keù  theî 
+        polì again®  Iæ keù theî test® Á <ret¾ switcheó tï 
+        `pseudï run§ bù storinç <ret¾ aô `lasô key'® Á <B¾ 
+        promptó foò aî addresó anä setó á breakpoinô (somå 
+        otheò rsô instruction¬ saveó thå bytå overwritten¬ 
+        anä  thå  vectoò aô `other§ rsô restoreó  originaì 
+        bytå  anä  theî enteró codå foò  `monitor§  havinç Š
+
+                                        2
+
+
+
+
+
+
+
+
+        lefô á <space¾ aô `last§ key®  Notå thió enableó á 
+        full speed run. 
+             Iæ  yoõ  havå availablå anotheò porô yoõ  caî 
+        writå tï thaô caî latcè á leveì yoõ caî 
+        enable/disablå thå `stepper§ undeò softwarå 
+        control¡ É do¬ sï mù initiaì codå disableó iô anä 
+        requestó á breakpoinô theî jusô exitó tï thå 
+        system® Nï switcheó necessary¬ aó á matteò oæ facô 
+        iô jusô sitó iî mù systeí aó jusô anotheò utility® 
+        Wheî É wisè tï uså iô É jusô ruî iô likå anù otheò 
+        transienô program.
+            Somå suggesteä optionó &/oò additionó thaô onå 
+        caî implimenô iî one'ó onå personaì `pseudï 
+        machine§ oò emulatoò iæ yoõ will.
+        1®   optioî tï modifù registeò aô anù time  (verù 
+             easy).
+        2®   displaù anä savå onlù whaô onå needó tï speeä 
+             up the emulation (not so easy).
+        3®   ruî  untiì  certaiî  opcodes¬  REÔ  family¬ 
+             etc. (not to hard).
+        4®   ruî  untiì anù registeò  equaló  somå  valuå 
+             (very easy).
+        5.   set any number of breakpoints (easy).
+
+             So far I have only implimented 3. 
+
+             Final warnings and notes:
+        Iô  ió  á ne÷ experiencå tï controì á prograí  anä 
+        interacô  witè iô simultaneouslù aô  onå  console¬ 
+        especiallù  programó thaô dï á loô oæ consolå  IO® 
+        Thå  cursoò  wilì dancå froí targeô tï controì  sï 
+        fasô  yoõ  wilì havå á harä  timå  decidinç  whicè 
+        prograí  yoõ  arå controlling¡  É usuallù  seô  mù 
+        breakpointó  arounä á sectioî oæ IÏ unlesó thaô ió 
+        whaô É wisè tï study® Iæ yoõ havå aî extrá consolå 
+        iô  coulä bå thå `emulator§ IÏ anä theî yoõ  woulä 
+        reallù havå á nicå setup® 
+             É havå drawî aî optioî foò NMÉ interrupô thaô 
+        caî bå implimenteä iæ desired® No÷ one'ó vectoò ió 
+        aô  66heø anä onå caî blithelù singlå steğ througè 
+        codå thaô ió `protected§ froí interrupts® Onå musô 
+        onlù  observå thå statå oæ thå interrupô flaç  anä 
+        restorå iô aô thå enä oæ thå routine¬  thaô ió  oî 
+        thå z8° changå EÉ OUÔ (XX),Á anä REÔ tï OUÔ (XX),Á 
+        anä RETÎ.  
+             Sï thaô ió whaô á 74ls7´ caî dï witè á littlå 
+        softwarå  iî  youò system®  Whï  haó  thå  fastesô 
+        disassembleò  (opcodå  tï  mnemoniã  algorithm©  É 
+        wonder?
+
+
+
+
+
+
+
+
+                                        3
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                        4
+
+
+
+
+
+

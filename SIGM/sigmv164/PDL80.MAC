@@ -1,0 +1,1119 @@
+
+;	=======================================================
+;	REC module for the operators and predicates pertaining
+;	to the pushdown list, other than the most important
+;	ones already contained in the REC nucleus.  They are
+;
+;		arithmetic
+;
+;			+	sum modulo 2**16
+;			-	difference modulo 2**16
+;			*	product modulo 2**16
+;			/	remainder, quotient
+;			=	equality
+;			~	complement or negative
+;			d	decrement, false on zero
+;			^	increment
+;			N	comparison
+;
+;		modification of arguments
+;
+;			H	hex ASCII string to binary
+;			!	binary to hex ASCII string
+;			%	restrict argument to one byte
+;			\	embed argument in two bytes
+;			&	exchange top arguments
+;			|	concatinate top arguments
+;
+;		block movements
+;
+;			G	fetch a block from memory
+;			g	address fetch
+;			r	replace address by contents
+;			u	incrementing byte fetch
+;			y	incrementing word fetch
+;			P	put buffer block in memory
+;			S	store block in memory
+;			s	store into buffer
+;			v	incrementing byte store
+;			m	move arg to end of PDL space
+;			n	recover arg from end of PDL
+;
+;		generate pointers
+;
+;			c	reserve block, generate pointer
+;			p	put px, py-px on PDL
+;			l	put pz on PDL
+;			$	form addr of variable cell
+;
+;	-------------------------------------------------------
+;	Version of REC released during the summer school, 1980
+;	-------------------------------------------------------
+;
+;		     PDL80  -  Copyright (C) 1980
+;		    Universidad Autonoma de Puebla
+;		         All Rights Reserved
+;
+;	          [Harold V. McIntosh, 28 August 1980]
+;
+;	May 20, 1983 - Predicate N for comparison
+;	May 22, 1983 - Multiple purpose arithmetic
+;	May 28, 1983 - & exchanges arguments of any length
+;	May 28, 1983 - ~ discontinued: use m&n instead
+;	May 28, 1983 - ~ for complement or negative
+;	July 7, 1983 - $ with char arg yields subroutine addr
+;	=======================================================
+
+;	Often used constant.
+
+ze	equ	0000H
+
+;	Addresses located in REC's RAM area.
+
+	ext	px,py,pz		;pushdown pointers
+
+;	Service routines located in the REC nucleus.
+
+	ext	mduc,miuc
+	ext	narg,oarg,rarg
+	ext	psiz,ucl,cucl
+	ext	skp,sieq,rer,rr1,rtn,rnd,vrt
+
+;	=======================================================
+;	A collection of subroutines for two-byte arithmetic,
+;	including loading and storage of the 8080 registers
+;	from the pushdown list.
+;	=======================================================
+
+;	-------------------------------------------------------
+;	Load and store subroutines for 2-byte arithmetic.
+;	-------------------------------------------------------
+
+;	Arithmetic Load Negative.  Load the negative of the
+;	top argument into BC, erase it from PDL, load the
+;	second into DE, but hold the space it occupied to
+;	write an eventual result.  Place zero in HL.  Used
+;	principally by subtraction and division.
+
+arln::	lhld	px	;pointer to the top argument
+	mov	a,m	;fetch low order byte
+	cma		;complement it
+	mov	c,a	;place the result in register C
+	inx	h	;advance to high order byte
+	mov	a,m	;fetch it into accumulator
+	cma		;complement it
+	mov	b,a	;and place it in register B
+	inx	b	;negative is complement plus one
+	call	ucl	;erase top argument conserving BC
+	mov	e,m	;HL now points to second argument
+	inx	h	;which will be loaded into DE
+	mov	d,m	;one byte at a time
+	lxi	h,ze	;load zero into HL
+	ret
+
+;	Arithmetic Store.  Reuses the two bytes left by the
+;	last argument in an arithmetic operation. That avoids
+;	closing off the previous argument and verifying that
+;	space is available, which would have to be done if a
+;	new argument were to be formed. Use ARST if the result
+;	lies in HL; ARSU if it lies in DE.
+
+arst::	xchg		;put the result in DE
+arsu::	lhld	px	;get the address of the PDL
+	mov	m,e	;save the low order byte
+	inx	h	;advance the pointer
+	mov	m,d	;store the high order byte
+	inx	h	;pointer always shows next free space
+	shld	py	;pointer to end of argument
+	ret
+
+;	Push a one-byte value onto the PDL.  The value to be
+;	pushed should be placed on the 8080's stack in the
+;	low byte position (say by using <push psw>) before
+;	calling PUON.
+
+puon::	lxi	b,01H	;one byte is required
+	call	narg	;close old variable, reserve space
+	xchg		;put destination into DE for now
+	pop	h	;source was pushed before calling
+	xthl		;but it lies under the return address
+	xchg		;destination ought to be in HL
+	mov	m,e	;store byte, which is low order
+	inx	h	;pointer to next byte
+	shld	py	;close new argument
+	ret
+
+;	Push a two-byte value onto the PDL.  The value to be
+;	pushed should be placed on the 8080's stack before
+;	calling PUTW.
+
+putw::	lxi	b,02H	;two bytes are required
+	call	narg	;close old variable, reserve space
+	xchg		;put destination into DE
+	pop	h	;source was pushed before calling
+	xthl		;but it lies under the return address
+	xchg		;destination ought to be in HL
+	mov	m,e	;store low order byte
+	inx	h	;on to high order destination
+	mov	m,d	;store high order byte
+	inx	h	;always leave pointer in good condition
+	shld	py	;close top argument
+	ret
+
+;	(&) Exchange top two arguments. Using m and n additional
+;	permutations are possible: for three arguments use the
+;	following table.
+;
+;		(123)		;no movement
+;		(132)	m&n	;exchange second two
+;		(213)	&	;exchange top two
+;		(231)	&m&n	;cyclic exchange
+;		(312)	m&n&	;anticyclic exchange
+;		(321)	&m&n&	;exchange first and third
+
+exch::	lhld	py	;end of top argument
+	xchg		;
+	lhld	px	;beginning of top argument
+	mov	a,e	;their difference is length
+	sub	l	;which we get byte by byte
+	mov	c,a	;
+	mov	a,d	;
+	sbb	h	;
+	mov	b,a	;BC = py-px
+	dcx	h	;uncover under argument
+	mov	d,m	;high byte
+	dcx	h	;then low byte
+	mov	e,m	;DE = old px, HL = old py
+	mov	a,e	;is under argument present?
+	ora	d	;not if DE holds 0000
+	cz	rer	;no argument
+	mov	a,l	;length of under argument
+	sub	e	;also byte by byte
+	mov	l,a	;
+	mov	a,h	;
+	sbb	d	;
+	mov	h,a	;HL = old py-px
+	mov	a,l	;are lengths equal?
+	sub	c	;check byte by byte
+	jnz	xtne	;cant' be, go xtne
+	mov	a,h	;compare high bytes
+	sbb	b	;
+	jnz	xtne	;xtne if not same length
+	lhld	px	;HL=top px, DE=under px, BC=size
+xteq:	mov	a,c	;loop when arguments have same size
+	ora	b	; because they can be exchanged in
+	rz		; place
+	dcx	b	;
+	push	b	;
+	mov	c,m	;
+	ldax	d	;
+	mov	m,a	;
+	mov	a,c	;
+	stax	d	;
+	inx	h	;
+	inx	d	;
+	pop	b	;
+	jmp	xteq	;
+
+;	If the arguments are of different lengths, we copy the
+;	under argument as a new argument on top of the pushdown
+;	list, then move what was the top argument down to fill
+;	the space vacated, and finally move the under argument
+;	back down on top of that so that no holes are left.
+
+xtne:	push	h	;under size
+	push	h	;
+	lhld	px	;HL=top origin
+	xthl		;HL=under size, PD=top origin
+	push	b	;top size
+	push	d	;under origin
+	push	d	;under origin
+	mov	c,l	;BC=under size
+	mov	b,h	;
+	call	narg	;be sure there's space, new px
+	pop	d	;under origin
+	call	miuc	;make duplicate of under arg
+	pop	h	;under org is now destination
+	pop	b	;top size
+	pop	d	;top origin
+	push	h	;under origin
+	call	miuc	;overwrite under arg w/ top arg
+	pop	d	;under origin
+	mov	m,e	;pointer spanning new under arg
+	inx	h	; has to be put in place before
+	mov	m,d	; we can establish the new top arg
+	inx	h	;
+	push	h	;org of new top arg
+	lhld	px	;org of copy of old under arg
+	xthl		;exchange them
+	shld	px	;update px, it is now dest
+	pop	d	;copy of old under is now source
+	pop	b	;old under size
+	call	miuc	;old under is on top and in place
+	shld	py	;its end is now py
+	ret
+
+;	Load top three arguments into BC,DE,HL.  In
+;	reality so many permutations exist for places to put
+;	the arguments as they are taken off the REC stack that
+;	they are simply transferred to the 8080 stack, to be
+;	popped into the desired registers on return from the
+;	corresponding call.  It is assumed that all quantities
+;	involved in these transactions are of two bytes.  A
+;	sequence of entry points is provided so as to pop off
+;	one, two, or three arguments.
+
+thrg::	lhld	px	;get pointer to top argument
+thrl::	mov	e,m	;enter here if HL already loaded
+	inx	h	;low byte loaded, advance to high
+	mov	d,m	;DE holds two bytes loaded indirectly
+	xchg		;place them in HL
+	xthl		;thence to 8080 stack under top address
+	push	h	;keep the return address on the stack
+	call	ucl	;pop top argument, load HL from px
+twol::	mov	e,m	;continue, or entry for two args
+	inx	h	;low byte loaded, advance to high
+	mov	d,m	;DE has two bytes loaded through HL
+	xchg		;place them in HL
+	xthl		;tuck them onto 8080 stack
+	push	h	;beneath return address
+	call	ucl	;pop argument, put px in HL
+onel::	mov	e,m	;continue, or entry for one argument
+	inx	h	;low byte loaded, advance to high
+	mov	d,m	;two bytes in DE loaded through HL
+	xchg		;pass them to HL
+	xthl		;and onto the 8080 stack
+	push	h	;keep the 8080 return address on top
+	jmp	ucl	;pop the last argument, quit
+
+;	Transfer px, py-px to 8080's stack.
+
+arpo:	pop	b	;set aside the return address
+	lhld	px	;load px
+	xchg		;put it in DE
+	lhld	py	;load py
+	mov	a,l	;HL = py-px
+	sub	e	;
+	mov	l,a	;
+	mov	a,h	;
+	sbb	d	;
+	mov	h,a	;
+	push	d	;put px on stack first
+	push	h	;then py-px
+	push	b	;put return where it can be used
+	ret		;and use it
+
+;	Load up the 8080's registers with data for the two
+;	arguments of a binary operator. Only the top argument
+;	is popped, supposing that the other argument will be
+;	reused to hold the result. Taking 1 as the top argument
+;	and 2 as the second, BC holds their common size, HL
+;	holds org1 and DE org2. RER is called if the sizes
+;	are different, or if the common size exceeds 255. The
+;	low byte of the size is placed in A.
+
+args:	call	arpo	;put org1, siz1 on 8080's stack
+	call	ucl	;pop top argument
+	call	arpo	;put org2, siz2 on 8080's stack
+	pop	b	;siz 1
+	pop	h	;org 1
+	pop	d	;siz 2
+	mov	a,e	;compare lengths
+	sub	c	;
+	mov	a,d	;
+	sbb	b	;
+	cnz	rer	;arguments not same length
+	mov	a,b	;
+	ora	a	;
+	cnz	rer	;unreasonable length
+	pop	d	;org 2
+	mov	a,c	;length into A
+	ret
+
+;	-------------------------------------------------------
+;	Two-byte arithmetic according to the four operations.
+;	-------------------------------------------------------
+
+;	(+)  Add top registers on pdl: <a,b,+> leaves (a+b).
+;	The sum is calculated modulo 2**16, no evidence of any
+;	overflow remains behind. However, if the arguments are
+;	one byte in length, their logical OR is calculated.
+
+sum::	call	args	;load 8080 registers with arg pointers
+	cpi	01	;
+	jz	sum1	;single byte argument means OR
+	cpi	02	;
+	jz	sum2	;double byte argument means sum
+	call	rer	;unrecognized argument type
+
+sum1:	ldax	d	;fetch arg1
+	ora	m	;OR it to arg2
+	mov	m,a	;reuse arg2 for result
+	ret
+
+sum2:	ldax	d	;fetch arg1
+	add	m	;add arg2
+	mov	m,a	;reuse arg2 for result
+	inx	d	;repeat for second byte
+	inx	h	;
+	ldax	d	;
+	adc	m	;taking carry into account
+	mov	m,a	;
+	ret
+
+;	(-)  Subtract top from next: <a,b,-> leaves (a-b).
+;	Reverse subtraction can be accomplished by exchanging
+;	arguments: write <a,b,&,-> to get (b-a).  Subtraction
+;	is carried out modulo 2**16; thus -1 = FFFF hex. If
+;	the arguments are one byte in length, their exclusive
+;	or, XOR, is calculated.
+
+dif::	call	args	;load 8080 registers with arg pointers
+	cpi	01	;1-byte argument is logical, take XOR
+	jz	dif1	;
+	cpi	02	;2-byte arg is arithmetic, take diff
+	jz	dif2	;
+	call	rer	;other arg is error
+dif1:	ldax	d	;XOR bytes
+	xra	m	;
+	mov	m,a	;
+	ret
+dif2:	xchg		;subreact byte pairs
+	ldax	d	;
+	sub	m	;
+	stax	d	;
+	inx	d	;
+	inx	h	;
+	ldax	d	;
+	sbb	m	;
+	stax	d	;
+	ret
+
+;	(*)  Multiply top: <a,b,*> leaves (a*b).  The product
+;	is for integer arithmetic, modulo 2**16, and so is not
+;	directly suitable for a 32-bit product.  Should it turn
+;	out that both arguments are one byte in length, their
+;	logical AND is calculated.
+
+mpy::	call	args	;load 8080 registers with arg pointers
+	cpi	01	;1-byte argument, take AND
+	jz	mpy1	;
+	cpi	02	;2-byte arguments are multiplied
+	jz	mpy2	;
+	call	rer	;unrecognized argument type
+mpy1:	ldax	d	;AND of single bytes
+	ana	m	;
+	mov	m,a	;
+	ret
+mpy2:	mov	c,m	;one factor in BC
+	inx	h	;
+	mov	b,m	;
+	xchg		;
+	mov	e,m	;other factor in DE
+	inx	h	;
+	mov	d,m	;
+	lxi	h,0000	;initial HL = 0000
+	call	pr	;HL=BC*DE
+	jmp	arst	;store product
+
+;	(/)  Divide top: <a,b,/> leaves rem(a/b), int(a/b).
+;	Reverse division is possible by exchanging arguments;
+;	thus <b,a,&,/> leaves rem(b/a), int(b/a).  If just
+;	the remainder is required, write <a,b,/,L>, while if
+;	only the quotient is desired, write <a,b,/,&,L>, and
+;	finally, if the order of the remainder and quotient is
+;	not satisfactory, they can be exchanged.  The division
+;	is unsigned integer division.  It can also be used to
+;	split a two-byte word into two parts through division
+;	by the corresponding power of two.
+
+dvd::	call	arln	;-b into BC, a into DE, 0 into HL
+	call	qn	;quotient with args in 8080 registers
+	push	d	;put quotient to one side
+	call	arst	;store remainder over a from HL
+	call	rarg	;close argument, ready to reuse next
+	pop	d	;recover quotient
+	jmp	arsu	;store quotient over b from DE
+
+;	(~)  Complement or negate the top of the pushdown list
+
+comp::	call	arpo	;px and py-px to 8080 stack
+	pop	b	;py-px to BC
+	pop	h	;and px to HL
+	mov	a,b	;test argument length
+	ora	a	;
+	cz	rer	;reject 2-byte length
+	mov	a,c	;
+	cpi	01	;logical complement of single byte
+	jz	com1	;
+	cpi	02	;negative of double byte
+	jz	com2	;
+	call	rer	;reject other lengths
+com1:	mov	a,m	;complement
+	cma		;
+	mov	m,a	;
+	ret
+com2:	mov	a,m	;negatve
+	cma		;
+	mov	e,a	;
+	inx	h	;
+	mov	a,m	;
+	cma		;
+	mov	d,a	;
+	inx	d	;
+	mov	m,d	;
+	dcx	h	;
+	mov	m,e	;
+	ret
+
+;	(^)  Increment the top of the pushdown list.
+
+incr::	lhld	px	;pointer to argument
+	mov	a,m	;fetch low byte
+	adi	01H	;increment (inr doesn't affect carry)
+	mov	m,a	;replace low byte
+	inx	h	;advance pointer
+	mov	a,m	;fetch high byte
+	aci	ze	;high byte of increment
+	mov	m,a	;replace high byte
+	ret
+
+;	(d)  Decrement top of PDL if it is not zero; otherwise
+;	FALSE, erasing the counter.  Equivalent to ((0=;1-)).
+
+decr::	lhld	px	;fetch pointer to argument
+	mov	a,m	;low byte of counter
+	sui	01H	;decrement counter - dcr doesn't work
+	mov	m,a	;replace low byte
+	inx	h	;advance pointer
+	mov	a,m	;fetch high byte
+	sbi	ze	;high byte of decrement
+	mov	m,a	;replace high byte
+	jnc	skp	;no carry means TRUE
+	jmp	ucl	;when FALSE, erase counter
+
+;	(N) Numerical comparison of top two elements on PDL. <a,b,N>
+;	is true if a .LE. b; both arguments are erased irrespective
+;	of the result.  Assuming numerical arguments means they are
+;	two byte integers in the machine representation of addresses.
+;	In the case of single byte arguments, their logical AND is
+;	calculated, but they are both popped from the pushdown list.
+;	N is FALSE if the AND is zero, meaning that if the bit tested
+;	in one argument by using the other as a mask was zero, then
+;	N failed.
+
+ucn::	call	args	;load 8080 registers with arg pointers
+	cpi	01	;TEST one-byte arguments
+	jz	un1	;
+	cpi	02	;COMPARE two-byte arguments
+	jz	un2	;
+	call	rer	;reject others
+un1:	ldax	d	;TEST
+	ana	m	;
+	jz	ucl	;
+	jmp	cucl	;
+un2:	ldax	d	;COMPARE
+	sub	m	;
+	inx	d	;
+	inx	h	;
+	ldax	d	;
+	sbb	m	;
+	jc	ucl	;
+	jmp	cucl	;
+
+;	Carry out the modular product of two 16-bit numbers.
+;	On entry, BC holds one factor, DE the other, and
+;	HL should be zero.  On exit, BC is zero, DE is
+;	unchanged, while HL holds the 16 bit modular product
+;	which is the result of the multiplication.
+
+pr:	mvi	a,10H	;we want a 16 bit product
+pr1:	dad	h	;shift partial product left
+	push	h	;save it
+	mov	l,c	;shift the factor in BC left
+	mov	h,b	;can only be done placing it in HL
+	dad	h	;high bit goes into carry flag
+	mov	c,l	;shifted factor back into BC
+	mov	b,h	;
+	pop	h	;recover partial product
+	jnc	pr2	;add 2nd factor according
+	dad	d	;to high bit of 1st
+pr2:	dcr	a	;counter for 16 bit product
+	jnz	pr1	;repeat cycle
+	ret
+
+;	Calculate remainder, quotient of two 16-bit numbers. On
+;	entry, BC holds the negative of the denominator, DE
+;	holds the numerator, and HL should be zero. On exit,
+;	BC is unchanged, DE holds the 16 bit quotient, and
+;	HL holds the 16 bit remainder.
+
+qn:	mvi	a,10H	;we have a 16-bit quotient
+qn1:	dad	h	;shift partial remainder left
+	xchg		;we have to shift num/quot too
+	dad	h	;
+	xchg		;
+	jnc	qn2	;bytes shifting out of DE enter HL
+	inx	h	;
+qn2:	push	h	;save partial numerator/remainder
+	dad	b	;trial subtraction of denominator
+	pop	h	;recover num/rem
+	jnc	qn3	;if we can't subtract, just shift
+	dad	b	;subtract the denominator
+	inx	d	;add one to quotient low bit
+qn3:	dcr	a	;count out 16 bits
+	jnz	qn1	;repeat the cycle
+	ret
+
+;	-------------------------------------------------------
+;	Conversion between binary and hexadecimal ASCII strings
+;	-------------------------------------------------------
+
+;	Return if not hexadecimal. A unchanged if not hex, else
+;	reduced to binary.
+
+rnh::	cpi	'G'	;no hex characters beyond F
+	jnc	rtn	;
+	cpi	'A'	;hex letters equal A or beyond
+	jc	rnd	;otherwise test for decimal digit
+	sui	'7'	;compensate the gap between 9 and A
+	ret
+
+;	Cummulation to convert a hex ASCII string to binary.
+
+hxp::	dad	h	;shift left 4 bits
+	dad	h	;
+	dad	h	;
+	dad	h	;
+	ora	l	;or in the nibble in the accumulator
+	mov	l,a	;return it to HL
+	ret
+
+;	(H) Convert a hex ASCII string on the PDL into binary.
+;	Whatever the length of the argument, conversion will be
+;	made to a two-byte binary number.  Thus, if more than
+;	four hex digits are present, the result will be reduced
+;	modulo 2**16.  It should be noted that the conversion
+;	starts with the first byte of the argument and procedes
+;	onward.
+
+he::	lxi	b,02H	;two bytes required for result
+	call	oarg	;check if they are available
+	lhld	py	;fetch terminal address of string
+	mvi	m,ze	;zero signals its end
+	lhld	px	;fetch beginning of string
+	xchg		;place pointer in DE
+	lxi	h,ze	;place zero in HL to prime conversion
+h1:	ldax	d	;fetch ASCII character
+	inx	d	;ready for the next one
+	ora	a	;check the terminator byte
+	jz	h2	;when end reached, close off argument
+	call	rnh	;if not hex digit, forget it all
+	call	hxp	;otherwise times 16 plus new digit
+	jmp	h1	;repeat the cycle
+h2:	xchg		;binary number into DE
+	lhld	px	;place to store the result
+	mov	m,e	;store low byte
+	inx	h	;on to high byte
+	mov	m,d	;store high byte
+	inx	h	;pointer must always be one ahead
+	shld	py	;store terminal address
+	jmp	skp	;TRUE return from predicate
+
+;	(!)  Convert a two-byte binary number into an ASCII
+;	string.  A one-byte number will also be converted, but
+;	into two nibbles rather than four, to serve in some
+;	applications where the leading zeroes are not wanted.
+
+hx::	call	psiz	;decide whether it's one or two bytes
+	mov	a,c	;suppose length less than 256
+	cpi	01H	;see if it's one byte
+	jnz	hs	;if not, continue elsewhere
+hn:	lxi	b,02H	;two nibble result for 1 byte
+	call	oarg	;see that there's that much space
+	lhld	px	;pointer to argument
+	mov	e,m	;load low bit
+	jmp	hsi	;
+hs::	lxi	b,04H	;four nibble result for 2 bytes
+	call	oarg	;be sure there's space for it
+	lhld	px	;pointer to first byte
+	mov	e,m	;load low byte
+	inx	h	;advance pointer
+	mov	d,m	;load high byte
+	dcx	h	;put pointer back to beginning
+	mov	a,d	;separate high byte first
+	call	hsa	;write out left nibble
+	mov	a,d	;high byte again
+	call	hsb	;write out right nibble
+hsi:	mov	a,e	;separate low byte
+	call	hsa	;write out left nibble
+	mov	a,e	;low byte second trip
+	call	hsb	;write out right nibble
+	shld	py	;store end of argument
+	ret
+
+hsa:	rrc		;shift byte right four bits
+	rrc		;
+	rrc		;
+	rrc		;
+hsb:	ani	0FH	;mask in right nibble
+	adi	90H	;prepare for some carries from <daa>
+	daa		;create gap if nibble beyond 10
+	aci	40H	;code for @ if we have a letter
+	daa		;decide 3 for digit, 4 for letter
+	mov	m,a	;record the ASCII digit
+	inx	h	;pointer ready for next deposit
+	ret
+
+;	-------------------------------------------------------
+;	Fetch and store bytes, addresses, and blocks to and fro
+;	between the PDL and the memory.  The following chart
+;	shows the relation between all the different operators
+;	which are available.
+;
+;				byte	word	block
+;				----	----	-----
+;
+;	replace			-	r	G
+;	fetch, nonincrement	g	-	-
+;	fetch, increment	u	y	-
+;
+;	store			-	-	S
+;	store, increment	-	-	v
+;	store w.r.t. limit	-	-	s
+;	store into buffer	-	-	P
+;
+;	variable head cell	-	$	-
+;
+;	The main operators for saving and fetching variables
+;	are G and S.  The remainder were especially chosen
+;	on the one hand to scrutinize the memory under REC
+;	control, and on the other to give the widest possible
+;	latitude in defining variables in applications of REC.
+;
+;	The following chart shows how to employ variables:
+;
+;	    'data' n$ S		define 2-byte variable
+;	     n$ r		fetch 2-byte variable
+;	    'data' ml n$ S	save fixed variable
+;	     n$ ryG		fetch fixed variable
+;	    'data' n$rs		redefine existing fixed var
+;	     kc Lml n$ S	create k-byte buffered variable
+;	     kc n$ S		alternative k-byte buffered var
+;	    'data' n$r P	redefine buffered variable
+;	     n$ ryLyG		fetch buffered variable
+;
+;	Memory can be examined bytewise with the following
+;	combinations:
+;
+;	    org g		fetch a byte, keep origin
+;	    org u		autoincrementing byte fetch
+;	    org v		autoincrementing byte store
+;	    org (g ... v:;)	read, modify, store, ready next
+;	    o1 o2 (u~...v&:;)	move from o1 to o2
+;
+;	-------------------------------------------------------
+
+;	(g) (u)  Fetch a byte from memory and leave on PDL. The
+;	sequence <org, g> leaves <org, (org)[1 byte]> on PDL.
+;	The sequence <org, u> leaves <org+1, (org)[1 byte]> on
+;	PDL.
+
+gb::	lhld	px	;/g/ pointer to top argument
+	mov	e,m	;fetch low byte of origin
+	inx	h	;increment pointer
+	mov	d,m	;fetch high byte of origin
+	jmp	gbj	;if the origin is not to be incremented
+gbi::	lhld	px	;/u/ pointer to arg, which is org
+	mov	a,m	;fetch low byte of origin
+	mov	e,a	;keep it as low byte of (DE)
+	adi	01H	;increment A (inr doesn't change carry)
+	mov	m,a	;replace incremented origin low byte
+	inx	h	;move on to high byte
+	mov	a,m	;load high byte in accumulator
+	mov	d,a	;keep it as high byte of (DE)
+	aci	ze	;now add in a carry if there was one
+	mov	m,a	;and repl in memry as incrmented origin
+gbj:	push	d	;save the original origin
+	lxi	b,01H	;require space for one byte
+	call	narg	;close old arg, check space, open new
+	pop	d	;here's the origin we saved
+	ldax	d	;fetch the byte there
+	mov	m,a	;store on the PDL
+	inx	h	;pointer always ready for next byte
+	shld	py	;right deliniter of argument
+	ret
+
+;	(y)  Fetch two bytes from memory and leave on PDL.
+;	The sequence <org, y> leaves <org+2, (org)[2 bytes]>
+;	on PDL.
+
+gw::	lhld	px	;/ / pointer to the argument
+	mov	e,m	;low byte of origin
+	inx	h	;on to high byte
+	mov	d,m	;now (DE) holds origin
+	jmp	gwj	;common continuation of gw, gwi
+gwi::	lhld	px	;/y/ pointer to the argument
+	mov	a,m	;place low byte in A
+	mov	e,a	;and also in E
+	adi	02H	;origin to be incremented by 2
+	mov	m,a	;and returned to the PDL
+	inx	h	;move on to high byte
+	mov	a,m	;load it into accumulator
+	mov	d,a	;while keeping the original value in D
+	aci	ze	;add in any carry from low byte
+	mov	m,a	;incremented origin into memory
+gwj:	push	d	;save the origin for later use
+	lxi	b,02H	;require space for two bytes
+	call	narg	;close old arg, check space, open new
+	pop	d	;now we're ready for that origin
+	ldax	d	;fetch the byte sitting there
+	mov	m,a	;and store it on PDL
+	inx	d	;there are two bytes to be moved
+	inx	h	;and to be stored
+	ldax	d	;fetch the second byte
+	mov	m,a	;store it too
+	inx	h	;keep the pointer moving along
+	shld	py	;value's finished, store its end
+	ret
+
+;	(G)  Fetch a block from memory, leave on PDL.
+;	<org,siz, G> leaves (org, ..., org+siz-1) on PDL.
+
+ga::	call	bcld	;load siz into (BC)
+	call	oarg	;reuse the argument, but with siz bytes
+	lhld	px	;fetch the destination address
+	mov	e,m	;but the source address is stored there
+	inx	h	;high byte of source address
+	mov	d,m	;(DE) will hold the source address
+	dcx	h	;(HL) will hold the destination address
+	call	miuc	;block move subroutine
+	shld	py	;(HL) holds the destination terminator
+	ret
+
+;	(S)  Store a block forward from the designated memory
+;	location.  <'data' org S> stores 'data' starting at
+;	org; leaves no residue on the PDL.
+
+sa::	call	bcld	;fetch destination origin
+	push	b	;save it for a while
+	call	psiz	;set up data length (BC), source (DE)
+	pop	h	;put destination in (HL)
+	call	miuc	;move by increment until count
+	jmp	ucl	;pop the second argument too
+
+;	(v)  Store a block, leaving incremented address.
+;	<org,'data' v> leaves org+size['data'] on PDL, stores
+;	'data' starting from org.
+
+sai::	call	psiz	;determine length of data
+	push	d	;set the source origin aside for moment
+	call	ucl	;pop top argument, exposing second
+	mov	e,m	;(HL) has px, which is destn address
+	inx	h	;after loading low byte, go for high
+	mov	d,m	;(DE) now has destination address
+	xchg		;destination origin into (HL)
+	push	h	;it will be needed later
+	dad	b	;add siz to get destination end
+	xchg		;put that into (DE), px into (HL)
+	mov	m,d	;high byte of org+siz
+	dcx	h	;on to low byte
+	mov	m,e	;PDL now holds org+siz
+	pop	h	;destination origin
+	pop	d	;source origin
+	jmp	miuc	;block move
+
+;	(s)  Store into an area of limited size. The sequence
+;	<'data' org s> will store 'data' beginning at org+2,
+;	supposing that siz('data') is less than or equal to
+;	(org, org+1).  In either event no residue is left, but
+;	an error notation is generated if the data doesn't fit.
+;	No data at all is stored if all will not fit.  If it
+;	matters to know how much of the space was used, the
+;	operator P should probably be used instead.
+
+lcs::	call	bcld	;fetch destination origin
+	push	b	;save it while calling psiz
+	call	psiz	;determine length of data
+	pop	h	;destination in (HL)
+	mov	a,m	;low byte of capacity
+	inx	h	;
+	sub	c	;subtract low byte of data length
+	mov	a,m	;high byte of capacity
+	inx	h	;
+	sbb	b	;subtract high byte of data length
+	cc	rer	;note error, return if it won't fit
+	call	miuc	;move by increment until count
+	jmp	ucl	;pop second argument
+
+;	(P)  Store into a buffer and note length.  Used to
+;	store data of variable length into an area whose
+;	maximum length is fixed.  The buffer has the form
+;
+;	   /available/used/data/data/.../data/.../end/
+;
+;	The sequence <'data' org P> will store the data
+;	in the buffer beginning at org. (org, org+1) holds
+;	the maximum length of data that may be stored in the
+;	buffer, (org+2, org+3) is siz('data'), and 'data' is
+;	stored from org+4 onward if it will fit.  If it will
+;	not, P is a noop and error is set.
+
+ucp::	call	bcld	;pointer to destination
+	push	b	;save destination while calling psiz
+	call	psiz	;load (BC) with length of data
+	inx	b	;data has to appear two bytes larger
+	inx	b	;to include cell showing its size
+	pop	h	;pointer to destination buffer header
+	mov	a,m	;low byte of destination capacity
+	inx	h	;
+	sub	c	;subtract low byte of size
+	mov	a,m	;high byte of destination capacity
+	inx	h	;
+	sbb	b	;subtract high byte of size
+	cc	rer	;capacity exceeded: mark error, return
+	dcx	b	;we want to store the true size
+	dcx	b	;subtract out the two byte margin
+	mov	m,c	;low byte into usage cell
+	inx	h	;just keep moving along
+	mov	m,b	;high byte usage cell
+	inx	h	;ready to start moving data
+	call	miuc	;move by increment until count
+	jmp	ucl	;lift second argument, leave nothing
+
+;	(r)  Replace address on top of pdl by its contents.
+
+ind::	lhld	px	;pointer to top argument
+	mov	e,m	;load low byte
+	inx	h	;advance
+	mov	d,m	;load high byte
+	xchg		;(HL) now has top argument
+	mov	e,m	;low byte of indirect address
+	inx	h	;next byte
+	mov	d,m	;high byte of indirect address
+	lhld	px	;address of top argument again
+	mov	m,e	;store low indirect byte
+	inx	h	;to second byte
+	mov	m,d	;store high indirect byte
+	ret
+
+;	($)  Generate the address of the nth cell in the array
+;	of variables, which is a block of two-byte addresses.
+;	These cells may be used to store data directly - for
+;	example counters or addresses - or indirectly through
+;	pointers to the actual location of the data.  A one-byte
+;	argument will get the location of a subroutine address.
+;	This program has the structure that it does because the
+;	variable table and the subroutine table are adjacent.
+
+vble::	call	psiz	;get argument length
+	mov	a,c	;and put it in A
+	cpi	02H	;2 bytes means variable
+	jz	vblf	;so take care of it
+	lxi	b,02H	;longer result than argument
+	call	oarg	;so reserve another byte
+	lhld	px	;get the argument
+	mov	e,m	;
+	mvi	d,00H	;and extend it with zeroes
+	jmp	vblg	;go on to table lookup
+vblf:	lhld	px	;pointer to argument
+	mov	e,m	;fetch low byte of variable number
+	inx	h	;advance pointer
+	mov	d,m	;high byte of variable number
+vblg:	lhld	vrt	;base address of variable table
+	dad	d	;add variable's number
+	dad	d	;add it again to multiply by 2
+	xchg		;address of variable cell in table
+	lhld	px	;location of argument on PDL
+	mov	m,e	;store low byte
+	inx	h	;return to low byte
+	mov	m,d	;store high byte
+	inx	h	;
+	shld	py	;
+	ret
+
+;	(l)  Load pz onto PDL.  The combination ly is equivalent
+;	to p or q in the sense that they identify an interval in
+;	some structure.
+
+lcl::	lhld	pz	;fetch pz
+	push	h	;putw requires arg on 8080 stack
+	call	putw	;record two-byte argument
+	ret		;can't use simply <jmp putw>
+
+;	(m)  Set aside top argument on PDL.  It is moved to the
+;	other end of the array reserved for the PDL, which can
+;	be used as a temporary storage stack without name.  The
+;	mechanism by which pz is moved and the block size is
+;	recorded makes this an attractive mechanism to create
+;	storage space for REC variables.
+
+lcm::	call	psiz	;get length of top argument
+	push	b	;save length
+	push	h	;save source origin = py
+	call	ucl	;pop top argument
+	pop	d	;recover source origin
+	lhld	pz	;load destination origin
+	call	mduc	;block move from high addresses down
+	dcx	h	;
+	pop	b	;recover length
+	mov	m,b	;store high byte of length
+	dcx	h	;
+	mov	m,c	;store low byte of length
+	shld	pz	;record new PDL end
+	ret
+
+;	(n)  Recover segment which was set aside.
+
+lcn::	lxi	b,ze	;there won't be any net length change
+	call	narg	;close old argument, ready for new
+	xchg		;place destination origin in (DE)
+	lhld	pz	;place source origin in (HL)
+	mov	c,m	;place low byte of length in (BC)
+	inx	h	;advance to high byte
+	mov	b,m	;high byte completes length in (BC)
+	inx	h	;the actual source origin
+	xchg		;source in (DE), destination in (HL)
+	call	miuc	;move by increment until count
+	shld	py	;end of destination is end of argument
+	xchg		;end of source is old pz
+	shld	pz	;update pz
+	ret
+
+;	(|)  Concatinate the top arguments on the PDL.
+
+conc::	call	psiz	;get length of top argument
+	push	d	;set it aside
+	call	ucl	;pop top argument, set up pntrs to next
+	xchg		;new py is destination
+	pop	d	;old px is source
+	call	miuc	;block move
+	shld	py	;record new terminal address
+	ret
+
+;	(%)  Restrict multiple-byte argument to one byte.
+
+pe::	call	psiz	;get length of argument
+	mov	a,c	;low order byte of length
+	ora	b	;high order byte of length
+	rz		;leave a null argument in peace
+	xchg		;put px into (HL)
+	inx	h	;add one to it
+	shld	py	;store as limit to the argument
+	ret
+
+;	(\)  Embed a single byte in a pair.
+
+ip::	lxi	b,02H	;we want to have two bytes
+	call	oarg	;verify that that much space remains
+	lhld	px	;pointer to argument
+	inx	h	;pass over first byte
+	mvi	m,ze	;make high byte zero
+	inx	h	;pass on to next byte
+	shld	py	;record end of argument
+	ret
+
+;	(p)  Put px and siz on the pushdown list.
+
+gxs::	call	psiz	;calculate length of top argument
+	push	b	;put length on 8080 stack
+	push	d	;put origin on 8080 stack
+	call	putw	;put top of 8080 stack on REC PDL
+	call	putw	;put the next item there too
+	ret		;can't combine <call, ret> into <jmp>
+
+;	(c) Reserve a block on the pushdown list. <n,c> creates
+;	a block of length n, then a pointer to itself. If n is
+;	2 or larger, n-2 is stored in the first two bytes of the
+;	block as a size indicator; no other initialization is
+;	made. Such an arrangement is useful if the block is to
+;	be used as a buffer. 
+
+blok::	lhld	px	;pointer to argument
+	mov	a,m	;fetch low byte
+	mov	c,a	;it will be used in (BC)
+	sui	02H	;subtract 2 for header
+	mov	m,a	;store low byte of header
+	inx	h	;on to second byte of argument
+	mov	a,m	;fetch high byte to accumulator
+	mov	b,a	;making up the rest of (BC)
+	sbi	00H	;take care of a possible borrow
+	mov	m,a	;store high byte of header
+	call	oarg	;is there enough space to reuse arg?
+	shld	py	;increment in (HL), it goes into py
+	lhld	px	;px has origin of block just formed
+	push	h	;putw expects argument on 8080 stack
+	call	putw	;record block origin as new argument
+	ret		;can't replace <call putw, ret> by jmp
+
+;	Load a single variable into (BC) from the pushdown
+;	list.  No register is sure to be preserved.
+
+bcld::	lhld	px	;pointer to argument
+	mov	c,m	;fetch low order byte
+	inx	h	;advance pointer
+	mov	b,m	;fetch high order byte
+	jmp	ucl	;erase argument [(BC) is unchanged]
+
+;	Load register pair (DE) from the pushdown list.
+;	(BC) will be preserved, (HL) not.
+
+deld::	lhld	px	;pointer to argument
+	mov	e,m	;fetch low order byte
+	inx	h	;advance pointer
+	mov	d,m	;fetch high order byte
+	push	d	;save (DE) on the 8080 stack
+	call	ucl	;erase argument
+	pop	d	;restore (DE) since UCL modified it
+	ret
+
+;	(=)  Test the two top arguments on the pushdown list
+;	for equality.  The arguments may be of any length, but
+;	will be equal only when of the same length and composed
+;	of the same sequence of bytes. The top argument will be
+;	popped whatever the outcome, but when equality is true
+;	both will be popped.
+
+eql::	call	psiz	;obtain length of top argument
+	push	d	;save beginning of top argument
+	call	ucl	;lift top argument
+	push	h	;save beginning of under argument
+	call	sieq	;compare lengths
+	pop	h	;clean up 8080 stack
+	pop	h	;by popping two pushes
+	ret		;FALSE return for inequality
+	mov	c,l	;limit goes into (BC)
+	mov	b,h	;
+	pop	d	;under argument for comparison
+	pop	h	;over argument for comparison
+ciul:	mov	a,c	;check whether limit has been reached
+	cmp	e	;compare low bytes
+	jnz	cil	;low bytes disagree, can't be limit
+	mov	a,b	;compare high bytes
+	cmp	d	;
+	jz	cucl	;both agree, erase second arg, TRUE
+cil:	ldax	d	;fetch byte of one  argument
+	cmp	m	;compare byte of other argument
+	rnz		;disagree so FALSE
+	inx	d	;on to next byte
+	inx	h	;for both arguments
+	jmp	ciul	;repeat the cycle
+
+;	-------------------------------------------------------
+;	Some of the service routines which are likely to be
+;	external references in other modules are:
+;
+;		arln	arithmetic load negative same pair
+;		arst	arithmetic store from (HL)
+;		arsu	arithmetic store from (DE)
+;		puon	push one byte on PDL
+;		putw	push address on PDL
+;		thrl	load  three arguments onto 8080 stack
+;		twol	load two arguments onto 8080 stack
+;		onel	load one argument onto 8080 stack
+;		bcld	load (BC) from PDL, pop PDL
+;		deld	load (DE) from PDL, pop PDL
+;	-------------------------------------------------------
+
+	end
+

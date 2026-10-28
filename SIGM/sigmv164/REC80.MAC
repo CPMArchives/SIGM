@@ -1,0 +1,1218 @@
+
+;	*******************************************************
+;	*  REC module containing the REC nucleus and some of  *
+;	*  the really indispensable operators and predicates  *
+;	*  such as those defining two byte binary numbers and *
+;	*  ASCII constant strings.  The model of a pushdown   *
+;	*  list is assumed in the expectation that additional *
+;	*  operators and predicates will also follow reversed *
+;	*  Polish notation. There are additionally many small *
+;	*  service routines which may be used externally.     *
+;	*						      *
+;	*  The source language for these programs is the one  *
+;	*  used by the Microsoft M80 macro assembler.	      *
+;	*						      *
+;	*  REC.MAC contains the following compiling entries:  *
+;	*						      *
+;	*	reclp	left parenthesis		      *
+;	*	recco	colon				      *
+;	*	recsc	semicolon			      *
+;	*	recrp	right parenthesis		      *
+;	*	recop	operator			      *
+;	*	recpr	predicate			      *
+;	*	recsq	single quotes			      *
+;	*	recdq	double quotes			      *
+;	*	reccm	comments			      *
+;	*	reco1	operator with one ASCII parameter     *
+;	*	recp1	predicate with one ASCII parameter    *
+;	*	recms	unary minus sign		      *
+;	*	recdd	decimal digit			      *
+;	*						      *
+;	*  REC.MAC contains the following operators and       *
+;	*  predicates:					      *
+;	*						      *
+;	*	'	single quote			      *
+;	*	"	double quote			      *
+;	*	nu	two byte decimal number		      *
+;	*	O	decimal ASCII string to number	      *
+;	*	#	number to decimal ASCII string	      *
+;	*	L	erase argument (lift)		      *
+;	*	@	execute subroutine		      *
+;	*	{	initiate program segment	      *
+;	*	}	discontinue program segment	      *
+;	*	?	report detected error		      *
+;	*						      *
+;	*  The following are initialization programs which    *
+;	*  can be called at the outset of a compilation.      *
+;	*						      *
+;	*	inre	initialize REC temporary registers    *
+;	*						      *
+;	* * * * * * * * * * * * * * * * * * * * * * * * * * * *
+;	*						      *
+;	*  Version circulated at the Summer School, 1980.     *
+;	*						      *
+;	*	    REC80  -  Copyright (C) 1980	      *
+;	*	   Universidad Autonoma de Puebla	      *
+;	*		All Rights Reserved		      *
+;	*						      *
+;	*       [Harold V. McIntosh, 28 August 1980]	      *
+;	*						      *
+;	28 April 1982 - RER only records first error	      *
+;	12 May 1983 - @@ consults PDL for subroutine name     *
+;	*******************************************************
+
+;	External references to REC RAM memory, situated in FXT.
+
+	ext	read,tyin,tyou	;I-O subroutines
+	ext	xpd,ypd,zpd	;program reference points
+	ext	px,py,pz	;pointers to pushdown list
+	ext	c1		;pointers to compiling area
+	ext	fxt,vrt		;pointers to directories
+	ext	er		;error deposit
+
+;	=======================================================
+;	The nucleus of REC is a compiler for control symbols,
+;	operators and predicates, some auxiliary subroutines,
+;	and an initilazation routine.
+;
+;	The compiler proper uses only the folowing external
+;	references:
+;
+;		RAM storage		xpd, ypd, zpd
+;		I-O routine		read
+;		skip instruction	skp
+;
+;	The RAM storage must be initialized, which may be
+;	accomplished by calling inre.
+;
+;	The location in which the object code is placed is
+;	passed along through the register pair DE, which is
+;	continually updated to reflect the next available byte.
+;	None of the other registers are either conserved nor
+;	significant after the completion of compilation.
+;
+;	The usage of the registers is the following
+;
+;		pair BC contains the execution pointer
+;		pair DE contains the object program counter
+;		pair HL contains the compiling address
+;
+;	=======================================================
+
+;	Equivalences defining INTEL 8080 instructions and some
+;	constants.
+
+ca	equ	(call)	;call
+ju	equ	(jmp)	;jump
+rn	equ	(ret)	;return
+po	equ	(pop h)	;pop h
+pu	equ	(push h);push h
+lh	equ	(lhld)	;lhld
+sh	equ	(shld)	;shld
+ix	equ	(inx h)	;inx h
+lx	equ	(lxi h)	;lxi h,
+xt	equ	(xthl)	;xthl
+ze	equ	0000H	;zero
+ff	equ	00FFH	;one byte complement of zero
+
+;	Compile a left parenthesis.
+
+reclp::	lhld	zpd	;save the linkage to semicolon exits
+	xthl		;which must be put under return address
+	push	h	;
+	lhld	ypd	;save the higher linkage to false jumps
+	xthl		;which is also tucked away
+	push	h	;
+	lhld	xpd	;save the repeat references
+	xthl		;as are all three data
+	push	h	;
+	lxi	h,ze	;initialze the new chains
+	shld	zpd	;null TRUE exit list
+	shld	ypd	;null FALSE jump list
+	dad	d	;
+	shld	xpd	;new parenthesis level begins here
+	ret
+
+;	Compile a colon.
+
+recco::	lhld	xpd	;pick up reference to left parenthesis
+	call	recju	;and insert a jump to its location
+	jmp	recfy	;fill in any FALSE predicate jumps
+
+;	Compile a semicolon.
+
+recsc::	lhld	zpd	;pick up link to TRUE exit chain
+	call	recju	;insert this one on it too
+	shld	zpd	;store it as the new head of the chain
+	jmp	recfy	;fill in any FALSE predicate jumpe
+
+;	Compile an operator.
+
+recop::	mvi	a,ca	;get the 8080 code for a CALL
+	stax	d	;include it in the compiled code
+	inx	d	;advance DE to receive next byte
+	ldax	b	;BC points to subroutine address
+	inx	b	;we got low byte, get ready for high
+	stax	d	;low byte into CALL instruction
+	inx	d	;advance pointers at first opportunity
+	ldax	b	;fetch high byte
+	stax	d	;incorporate it in compiled code
+	inx	d	;keep DE positioned
+	ret
+
+;	Compile a predicate.
+
+recpr::	call	recop	;call its subroutine, same as operator
+recyj:	lhld	ypd	;linkage to FALSE exits
+	call	recju	;incorporate a jump if result FALSE
+	shld	ypd	;update for new head of chain
+	ret
+
+;	Compile a right parenthesis.
+
+recrp::	pop	h	;recover xpd, which is hidden
+	xthl		;under return to <call recrp>
+	shld	xpd	;replace it
+	mov	a,h	;xpd = 0 is signal for top level
+	ora	l	;test HL for zero
+	jz	recfp	;if so, continue with recfp
+	pop	h	;recover wpd
+	xthl		;hidden under same return address
+	call	recju	;link expr to ypd on its own level
+	push	h	;but save pointer until we finish up
+	call	recfy	;false predicates in last segment
+	pop	h	;back to higher level
+	shld	ypd	;replace ypd for higher level
+	lhld	zpd	;now we have destination for semicolons
+	call	recfc	;so insert all the correct addresses
+	pop	h	;recover old zpd
+	xthl		;which is also under return address
+	shld	zpd	;replace old zpd
+	ret
+
+;	Final right parentheses get a different treatment.
+
+recfp:	pop	h	;fetch return to <call recrp>
+	xchg		;exchange it with compile pointer
+	mvi	m,rn	;store a <ret> for false exit
+	inx	h	;ready for next byte
+	push	h	;save compile pointer
+	lxi	d,skp	;address of skip - TRUE exit from REC
+	call	recfy	;use it for last segment
+	lhld	zpd	;destination of semicolons now known
+	call	recfc	;so fill out that chain
+	pop	d	;compile pointer that was saved
+	pop	h	;old ypd
+	shld	ypd	;restore it
+	pop	h	;old zpd
+	shld	zpd	;restore it
+	ret		;return one level higher than expected
+
+;	Insert a new element in a chain of jmp's which will
+;	eventually have destination addresses.  In the interim
+;	each is given the address of its predecessor. On entry
+;	DE holds the address where the instruction will be
+;	stored and HL holds the address of its predecessor.
+;	On exit, DE is incremented by 3 to point to the next
+;	free byte, and HL has the starting value of DE.
+
+recju:	xchg		;HL and DE exchanged is better
+	mvi	m,ju	;store the jump instruction
+	inx	h	;advance pointer
+	push	h	;preserve location of new link
+	mov	m,e	;store low order byte of old link
+	inx	h	;advance pointer
+	mov	m,d	;store high order byte of old link
+	inx	h	;advance pointer
+	pop	d	;recover new link
+	xchg		;restore original roles to DE, HL
+	ret
+
+;	When the destination of a linked chain of jumps is
+;	finally known, the destination can be substituted into
+;	each one of the links.  On entry, HL contains the
+;	address of the first link unless it is zero signifying
+;	a null chain.
+
+recfc:	mov	a,l	;look at low byte of link address
+	ora	h	;superimpose the high byte
+	rz		;if the address was zero, chain ends
+	mov	c,m	;save low byte of next link
+	mov	m,e	;store low byte of destination
+	inx	h	;advance to high byte
+	mov	b,m	;save high byte of next link
+	mov	m,d	;store high byte of destination
+	mov	l,c	;update low byte of link
+	mov	h,b	;update high byte of link
+	jmp	recfc	;continue
+
+;	Call recfc with the intention of filling the y chain.
+
+recfy:	lhld	ypd
+	call	recfc
+	shld	ypd
+	ret
+
+;	Subroutine which will initialize the temporary
+;	registers used by the REC compiler.
+
+inre::	lxi	h,ze
+	shld	xpd
+	shld	ypd
+	shld	zpd
+	ret
+
+
+;	=======================================================
+;	The following are specialized compiling subroutines
+;	which apply to special structures and depend on the
+;	model of a pushdown list with a linked chain structure
+;	and special registers px and py delimiting the top
+;	segment on the chain.
+;	=======================================================
+
+;	-------------------------------------------------------
+;	Compilation of quoted expressions.  Single and double
+;	quotes may alternate with one another to an arbitrary
+;	depth.  Both kinds of quotes are executed in the same
+;	way, by loading the quoted expression from the program
+;	onto the pushdown list.
+;	-------------------------------------------------------
+
+;	Compile single quotes.
+
+recsq::	call	recop	;record call to qu
+	inx	d	;set aside two bytes
+	inx	d	;to hold length of ASCII chain
+	push	d	;keep beginning for future reference
+	lxi	h,enqu	;cleanup subroutine
+	push	h	;delay its execution until ret
+sq:	call	read	;read the next character
+	cpi	''''	;test for single quote
+	rz		;if so go after entire chain
+	cpi	'"'	;test for double quotes
+	cz	dq1	;if so, read it all
+sq1:	stax	d	;otherwise keep on storing
+	inx	d	;and advancing pointer
+	jmp	sq	;go after next character
+
+;	Compile double quotes.
+
+recdq::	call	recop	;record call to qu
+	inx	d	;set aside two bytes
+	inx	d	;to hold length of chain
+	push	d	;put chain origin away for reference
+	lxi	h,enqu	;cleanup subroutine
+	push	h	;delay its execution until ret
+dq:	call	read	;read the next character
+	cpi	'"'	;test for double quotes
+	rz		;if so chain finished
+	cpi	''''	;check for single quotes
+	cz	sq1	;if so go after whole chain
+dq1:	stax	d	;otherwise keep on storing
+	inx	d	;and advancing pointer
+	jmp	dq	;go after next character
+
+;	Cleanup for both quote compilers.
+
+enqu:	xchg		;put compile pointer in HL
+	pop	d	;put origin of chain into DE
+	call	siz	;length returns in BC
+	xchg		;address of chain front back in HL
+	dcx	h	;back one byte
+	mov	m,b	;store high order byte of length
+	dcx	h	;back another byte
+	mov	m,c	;store low order byte of length
+	ret
+
+;	(') (")   Execute single or double quote.
+
+qu::	pop	h	;get call location off the 8080 stack
+	mov	c,m	;low order byte of count
+	inx	h	;
+	mov	b,m	;high order byte of count
+	inx	h	;
+	push	h	;save source origin
+	dad	b	;calculate source end = return adress
+	xthl		;exchange it for source origin
+	push	h	;but we're not ready to use it yet
+	call	narg	;check space, put dest. pointer in HL
+	pop	d	;put source pointer in DE
+	call	miuc	;move from program to pushdown list
+	shld	py	;record end of argument
+	ret
+
+;	-------------------------------------------------------
+;	Comments are enclosed in square brackets, which must be
+;	balanced.  Code may be disabled by enclosing it in
+;	square brackets, but care must be taken that the
+;	expression so isolated does not contain individual
+;	brackets, such as arguments of arrobas or quoted
+;	brackets, which might disrupt the balance. Since
+;	comments are ignored by the compiler they are not
+;	executed.
+;	-------------------------------------------------------
+
+;	Compile comments by ignoring them.
+
+reccm::	call	read	;get next character
+	cpi	']'	;test for closing ]
+	rz		;if so we're done
+	cpi	'['	;test for beginning of new level
+	cz	reccm	;if so go after it recursively
+	jmp	reccm	;otherwise keep on reading
+
+;	-------------------------------------------------------
+;	Sometimes, notably in compiling arroba as a call to a
+;	subroutine named by a single letter, a parameter will
+;	follow a subroutine call as its calling sequence.
+;	-------------------------------------------------------
+
+;	Operator with one ASCII parameter.
+
+reco1::	call	recop	;always compile the subroutine call
+	call	read	;read the parameter
+	stax	d	;store as a 1-byte calling sequence
+	inx	d	;always ready for next byte
+	ret
+
+;	Predicate with one ASCII parameter.
+
+recp1::	call	reco1	;compile as the analogous operator
+	jmp	recyj	;then take account of false exit
+
+;	-------------------------------------------------------
+;	Decimal numbers are of such frequent occurrence in the
+;	form of counters, arguments, or just data that it is
+;	convenient to compile them on sight without requiring
+;	any special delimiters.  Likewise, negative numbers are
+;	easier to designate using a minus sign than using their
+;	modular form, but this should not prevent the use of a
+;	minus sign as an operator.
+;	-------------------------------------------------------
+
+;	Compile a minus sign. This involves determining whether
+;	it is followed immediately by a decimal digit, in which
+;	case it is compiled as part of a negative number.
+
+recms::	call	read	;read in one byte
+	call	ms1	;decide whether it is a digit
+	push	psw	;it was not, save it
+	call	recop	;compile call to binary minus
+	pop	psw	;recover the extra character
+	jmp	skp	;skip because we have next character
+
+ms1:	call	rnd	;return if not digit
+	inx	sp	;erase call to ms1
+	inx	sp	;
+	call	recds	;read and convert digit string
+	lxi	b,gnu	;fake that it was nu, not ms
+	push	psw	;save terminating character
+	call	nhl	;negate HL
+	jmp	dd1	;continue as though positive number
+
+gnu:	dw	nu
+
+;	Compile a decimal digit, which requires reading any
+;	further digits which follow, and saving the terminator.
+
+recdd::	rrc		;undo multiplication by 4
+	rrc		;
+	push	b	;save execution address
+	call	recds	;read and transform rest of digits
+	pop	b	;recover execution address
+	push	psw	;recover terminating character
+dd1:	call	recop	;compile subroutine call
+	xchg		;DE and HL must be interchanged
+	mov	m,e	;put low order byte in calling sequence
+	inx	h	;
+	mov	m,d	;put high order byte there too
+	inx	h	;ready for next byte
+	xchg		;put DE and HL back as they were
+	pop	psw	;recover terminating character
+	jmp	skp	;skip over character read call
+
+;	Negate HL.  BC and DE are conserved.
+
+nhl:	mov	a,l	;fetch low byte into accumulator
+	cma		;complement it
+	mov	l,a	;replace it in HL
+	mov	a,h	;fetch high byte into accumulator
+	cma		;complement it
+	mov	h,a	;replace it in HL
+	inx	h	;negatice is complement plus 1
+	ret
+
+;	Multiply HL by 10 and add A.  DE is conserved.
+
+txp:	mov	b,h	;transfer HL to BC
+	mov	c,l	;
+	dad	h	;multiply HL by 2
+	dad	h	;another 2 makes 4
+	dad	b	;the original HL makes 5
+	dad	h	;another 2 makes 10
+	add	l	;add in the accumulator
+	mov	l,a	;returning sum to low byte
+	rnc		;nothing more if no carry
+	inr	h	;otherwise increment high byte
+	ret
+
+;	The heart of number compilation.
+
+recds:	ani	0FH	;mask ASCII down to binary value
+	mov	l,a	;put it into register pair HL
+	mvi	h,ze	;fill out H with a zero
+rd1:	call	read	;read the next character
+	call	rnd	;quit if it is not another digit
+	call	txp	;multiply HL by ten and add A
+	jmp	rd1	;continuing while digits keep coming
+
+;	Execute a number, which means load it on pdl.
+
+nu::	lxi	b,02H	;two bytes will be required
+	call	narg	;close last argument, open new
+	pop	d	;get beginning of calling sequence
+	ldax	d	;fetch the low order byte
+	mov	m,a	;and copy it over
+	inx	d	;on to the high order byte
+	inx	h	;and the place to store it
+	ldax	d	;pick it up
+	mov	m,a	;and set it down
+	inx	d	;move on to program continuation
+	inx	h;	;always leave PDL ready for next byte
+	push	d	;put back the return address
+	shld	py	;mark end of the argument
+	ret
+
+;	(O) Transform an ASCII character string on the PDL into
+;	a two-byte number.  Predicate - false if the argument
+;	is not a digit string or null, leaving the argument
+;	unchanged.
+
+uco::	lxi	b,2	;two bytes are required
+	call	oarg	;check that they are available
+	lhld	py	;fetch the end of the argument string
+	mvi	m,ze	;put a zero there to mark its end
+	lhld	px	;load pointer to argument string
+	xchg		;put it in register DE
+	lxi	h,ze	;zero in HL to start the conversion
+o1:	ldax	d	;fetch one character
+	inx	d	;get ready for next
+	ora	a	;test for zero
+	jz	o2	;go to accumulation phase
+	call	rnd	;FALSE, chain unaltered if non-digit
+	call	txp	;otherwise continue to work up value
+	jmp	o1	;and keep on reading bytes
+o2:	xchg		;safeguard converted number in DE
+	lhld	px	;get pointer to argument
+	mov	m,e	;store low byte
+	inx	h	;increment pointer
+	mov	m,d	;store high byte
+	inx	h	;increment pointer again
+	shld	py	;store to close argument
+	jmp	skp	;TRUE exit from predicate
+
+;	(#)  Change two-byte binary number into a decimal-based
+;	ASCII string without sign. The special cases of a zero-
+;	byte or a one-byte argument are also considered.
+
+ns::	lxi	b,05H		;five bytes may be required
+	call	oarg		;reuse the old argument
+	call	psiz		;get length of argument
+	mov	a,c		;suppose length less than 256
+	xchg			;pointer to low byte into HL
+	lxi	d,ze		;put zero in DE for default
+	ora	a		;test for zero bytes
+	jz	ns1		;load nothing
+	mov	e,m		;load low byte
+	dcr	a		;test for one byte
+	jz	ns1		;only byte and it's loaded
+	inx	h		;advance to high byte
+	mov	d,m		;load high byte
+	dcx	h		;back to low byte
+ns1:	push	h		;save pointer for ASCII string
+	mvi	a,'0'		;prepare to write a zero
+	lxi	h,-10000	;will there be 5 digits?
+	dad	d		;
+	jc	ns2		;
+	lxi	h,-1000		;will there be 4 digits?
+	dad	d		;
+	jc	ns3		;
+	lxi	h,-100		;will there be 3 digits?
+	dad	d		;
+	jc	ns4		;
+	lxi	h,-10		;will there be 2 digits?
+	dad	d		;
+	jc	ns5		;
+	jmp	ns6		;write one no matter what
+ns2:	lxi	b,-10000	;ten thousands digit
+	call	nsa		;
+ns3:	lxi	b,-1000		;thousands digit
+	call	nsa		;
+ns4:	lxi	b,-100		;hundreds digit
+	call	nsa		;
+ns5:	lxi	b,-10		;tens digit
+	call	nsa		;
+ns6:	add	e		;units digit
+	pop	h		;recover pointer to PDL
+	mov	m,a		;store the digit
+	inx	h		;position pointer for next byte
+	shld	py		;done, store it as terminator
+	ret
+
+nsa:	mov	l,c	;put power of ten in HL
+	mov	h,b	;
+	dad	d	;subtract it once
+	jnc	nsb	;can't subtract
+	inr	a	;increase the count
+	xchg		;put diminished number in DE
+	jmp	nsa	;repeat the cycle
+nsb:	pop	h	;get <call nsa> return address
+	xthl		;we really wanted pointer to PDL
+	mov	m,a	;store new digit
+	inx	h	;advance pointer
+	xthl		;put it back on 8080 stack
+	mvi	a,'0'	;load a fresh ASCII zero
+	pchl		;return to the <call nsa>
+
+;	=======================================================
+;	Some simple procedures to compile REC expressions into
+;	subroutines, deposit a reference to them in a symbol
+;	table, and eventually to recover the space and erase
+;	the symbol table reference. Compiling and execution are
+;	two separate activities, for the latter the predicates
+;	@ or x have to be used.  The pair emcu, emcv are used
+;	by REC's main program, and can be used as parts of
+;	subroutines in other REC modules to go through their
+;	execution sequence. Compilation is the province of the
+;	two entry points emce and emcx.
+;	=======================================================
+
+;	Table look up.  On entry, A holds the serial number
+;	of a table reference, HL the origin of the table.
+;	On exit, HL holds HL+4*A, DE is preserved, the
+;	other registers to be ignored.  The entry point tlv
+;	produces the same results with the exception that HL
+;	becomes HL+2*A.
+
+tlu::	add	a	;multiply A by 2
+tlv::	add	a	;multiply A by 2
+	mov	c,a	;insert A as low byte of BC
+	mvi	b,ze	;make the high byte zero
+	jnc	tlw	;finished if A was small
+	inr	b	;carry if A was larger
+tlw:	dad	b	;add to base address
+	ret
+
+;	Table search. The table whose address is stored at fxt
+;	is consulted for its pair of addresses at position 4*A.
+;	Thus on entry, A holds the table index.  This table
+;	alternates the address of a compiling subroutine with
+;	the execution address of the same entry.  On exit, BC
+;	holds the execution address, DE is preserved, and a
+;	jump is made to the compiling address.
+
+rects:	lhld	fxt	;load base address of table
+	call	tlu	;read the table
+	mov	c,m	;put the first entry in BC
+	inx	h	;low byte first, then high byte
+	mov	b,m	;
+	inx	h	;keep advancing the pointer
+	push	b	;jump address activated by a ret
+	mov	b,h	;table pointer is going
+	mov	c,l	;to be stored in BC
+	ret		;then off to the compilation
+
+;	Advance to following ( or { bypassing [comments]
+
+left::	call	read
+	cpi	'('
+	rz
+	cpi	'{'
+	rz
+	cpi	'['
+	cz	reccm
+	jmp	left
+
+;	A main program to compile characters one by one as
+;	they are read in from the console.  Note that the
+;	compiling programs invoked by rects can generate skips
+;	when they have already read the following character.
+;	This occurs most notably when compiling digits. Also
+;	note that svc normalizes characters when it accepts
+;	them.
+
+recre::	call	read	;read a character from whereever
+recrr::	call	svc	;check for space, control character
+	jmp	recre	;not valid, go back for another
+	call	rects	;look up in table and compile it
+	jmp	recre	;read another character and repeat
+	jmp	recrr	;repeat but next character already read
+
+;	A subroutine which will pass over comments, and wait
+;	for an opening left parenthesis before compiling a REC
+;	expression.  A series of definitions may be enclosed in
+;	braces, along with a subroutine to be executed.
+
+emce::	call	ucl	;entry here erases an argument from PDL
+emcx::	call	left	;only ( or { can enclose a REC expression
+	lhld	c1	;next location available in compile area
+	xchg		;take it as compiling origin
+	lhld	c1	;but also save it to restore later
+	xthl		;save it under ret on PDL
+	push	h	;
+	call	recrr	;compiling prgrm one char already read
+	xchg		;location for code which follows this one
+	shld	c1	;for which c1 is the pointer
+	ret
+
+;	<call emcu> executes the subroutine whose address is on the
+;	top of the 8080's stack, but then removes its definition from
+;	REC's compiling area - as well as any subsequent definitions.
+;	The cleanup is done by emcv (true) or emcw (false).
+
+emcu::	pop	d	;<call emcu>'s return address
+	pop	h	;subroutine address
+	push	d	;we don't need the return yet
+	push	h	;emcv will need the origin, so we
+	lxi	d,emcv	;load them both onto the 8080 stack
+	push	d	;to be used after the subroutine call
+	pchl		;execute the subroutine
+emcv::	jmp	emcw	;it is a predicate, this is FALSE return
+	pop	h	;and this its TRUE return
+	shld	c1	;original origin erases definition
+	jmp	skp	;pass on TRUE return to original call
+emcw:	pop	h	;same as above but FALSE return
+	shld	c1	;
+	ret		;
+
+;	({)  Any REC expression (xxx) may have a series of subroutine
+;	definitions associated with it, but then the entire sequence
+;	should be enclosed in braces: {(...) a (...) b ... (xxx)}.
+;	Each of the secondary subroutines is compiled, as well as the
+;	primary subroutine, but their initial addresses are not yet
+;	recorded in the definition table VRT.  Rather, some special
+;	code is generated, in which a call to the primary subroutine
+;	will be surrounded by a series of pushes and then pops, which
+;	are chosen so that the symbols representing subroutines have
+;	the assignments within the braces only while the principal
+;	subroutine is being executed. Consequently, any subroutine
+;	definition made at a given brace level is valid throughout
+;	that whole level, superceding any previous definitions of
+;	the same subroutines, and of course susceptible to being
+;	superceded within any of its own subbraces.
+
+lbr::	mvi	a,ca	;start with: call special
+	stax	d	;	     jmp  false
+	inx	d	;	     jmp  true
+	mov	c,e	;place to put <call> address - keep in BC
+	mov	b,d	;
+	inx	d	;make room
+	inx	d	;
+	call	recyj	;link into 'predicate false' chain
+	call	recju	;a <jmp> to the 'true' continuation
+	push	h	;keep this address until very end
+	lhld	xpd	;force the appearance of a main program
+	push	h	;
+	lxi	h,ze	;initialize definition counter
+	shld	xpd	;this is top level for ensuing subroutines
+lb1:	push	d	;record entry point to subroutine
+	inx	h	;increment count of subroutines
+	push	h	;keep it next to top on stack
+	push	b	;call address at entry - keep it on top
+	call	left	;ignore non-REC-expressions
+	call	recrr	;compile one subroutine
+lb2:	call	read	;get possible name of subroutine
+	cpi	'}'	;no name so it's principal
+	jz	lb3	;we compile the principal for execution
+	call	svc	;convert name into serial number
+	jmp	lb2	;punctuation instead of name
+	adi	' '	;32 variables in VRT - leave space for them
+	lhld	vrt	;
+	call	tlv	;convert serial to offset
+	pop	b	;get this out of the way
+	xthl		;store table address, put subr count in HL
+	jmp	lb1	;on to next definition
+
+;	The preface and the code for all the subroutines has now been
+;	compiled. The top of the 8080 stack has the location of the
+;	call instruction to the special code which we are now going
+;	to compile. DE as always is the next address where code will
+;	be deposited.  Still more information is on the 8080 stack -
+;	the number of subroutines, their names and starting addresses,
+;	the saved value of XPD, address of the 'true' jump.
+
+lb3:	pop	h	;origin of brace compilation
+	mov	m,e	;store next compilation address there
+	inx	h	;
+	mov	m,d	;
+	pop	b	;number of subroutines
+	push	b	;we'll need it again later
+	mov	l,c	;put it in HL
+	mov	h,b	;
+	dcx	h	;calculate SP+4(HL-1),
+	dad	h	;which is space used by names, addrs
+	dad	h	;
+	dad	sp	;
+	xchg		;
+lb4:	dcx	b	;loop: count off the secondary subroutines
+	mov	a,c	;
+	ora	b	;
+	jz	lb5	;finished: compile special code
+	mvi	m,lh	;for each defined symbol we insert the
+	inx	h	;code which will set it up in the jump
+	ldax	d	;table, namely
+	mov	m,a	;	lhld table entry
+	inx	h	;	xthl
+	inx	d	;	push h
+	ldax	d	;	lxi  h,jump address
+	mov	m,a	;	shld table entry
+	inx	h	;
+	inx	d	;
+	mvi	m,xt	;
+	inx	h	;
+	mvi	m,pu	;
+	inx	h	;
+	mvi	m,lx	;
+	inx	h	;
+	ldax	d	;
+	mov	m,a	;
+	inx	h	;
+	inx	d	;
+	ldax	d	;
+	mov	m,a	;
+	inx	h	;
+	dcx	d	;
+	dcx	d	;
+	dcx	d	;
+	mvi	m,sh	;
+	inx	h	;
+	ldax	d	;
+	mov	m,a	;
+	inx	h	;
+	inx	d	;
+	ldax	d	;
+	mov	m,a	;
+	inx	h	;
+	dcx	d	;
+	dcx	d	;
+	dcx	d	;
+	dcx	d	;
+	dcx	d	;
+	jmp	lb4	;
+
+;	We have compiled all the subroutines, including the
+;	principal one. Now we compile a call to it, followed
+;	by an adjustment to the pushdown stack which will
+;	remember whether it was TRUE or FALSE as a predicate.
+
+lb5:	pop	b	;number of subroutines
+	pop	d	;origin of principal subroutine
+	push	b	;we don't want this right now
+	mvi	m,ca	;after the definitions are set up we
+	inx	h	;will call the executable subexpression
+	mov	m,e	;and then adjust it for a delayed skip
+	inx	h	;so as not to have to put the code which
+	mov	m,d	;follows twice in two flow branches
+	inx	h	;	call	principal
+	mvi	m,ju	;	jmp	$+6
+	inx	h	;	xthl
+	push	h	;	inx	h
+	inx	h	;	inx	h
+	inx	h	;	inx	h
+	mvi	m,xt	;	xthl
+	inx	h	;
+	mvi	m,ix	;
+	inx	h	;
+	mvi	m,ix	;
+	inx	h	;
+	mvi	m,ix	;
+	inx	h	;
+	mvi	m,xt	;
+	inx	h	;
+	xchg		;
+	pop	h	;
+	mov	m,e	;
+	inx	h	;
+	mov	m,d	;
+	xchg		;
+	pop	b	;
+
+;	Restore original meaning of all subroutine names.
+
+lb6:	dcx	b	;loop to compile pops
+	mov	a,c	;count out number of definitions
+	ora	b	;
+	jz	lb7	;go compile termination
+	mvi	m,po	;after an expression in braces finishes
+	inx	h	;execution, all its definitions are
+	mvi	m,xt	;erased and the earlier ones replaced
+	inx	h	;	pop h
+	mvi	m,sh	;	xthl
+	inx	h	;	shld table entry
+	pop	d	;
+	mov	m,e	;
+	inx	h	;
+	mov	m,d	;
+	inx	h	;
+	pop	d	;
+	jmp	lb6	;
+
+;	Terminal code must be compiled, and XPD restored to its
+;	original level.  There are two cases - when we are dealing
+;	with a main program, and when a brace lies within a larger
+;	REC expression.
+
+lb7:	mvi	m,rn	;'false' exit is always <ret>
+	inx	h	;PC ready for next byte
+	xchg		;PC back in DE
+	pop	h	;saved XPD
+	shld	xpd	;restored
+	mov	a,l	;test it for zero
+	ora	h	;
+	pop	h	;address of 'true' jump
+	jz	lb8	;zero means main program
+	mov	m,e	;jump up to here to continue
+	inx	h	;
+	mov	m,d	;
+	ret
+
+;	Terminal code for a main program or defined subroutine.
+;	Here there is a stack pointer adjustment which suppresses
+;	the return from <call rects> following recrr. The reason is
+;	that lbr has already detected }, the closing right brace,
+;	which therefore will not appear in the input stream to be
+;	interpreted through FXT, as recrr would expect.
+
+lb8:	lxi	b,skp	;'true' exit realized by <jmp skp>
+	mov	m,c	;
+	inx	h	;
+	mov	m,b	;
+	dcx	h	;'false' exit realized by <jmp here>,
+	dcx	h	;
+	dcx	h	;
+	mov	m,d	;
+	dcx	h	;
+	mov	m,e	;
+	xchg		;
+	mvi	m,rn	;a terminal <ret>,
+	inx	h	;and an updated PC.
+	xchg		;
+	inx	sp	;we won't go back to recrr
+	inx	sp	;
+	ret
+
+;	(@) Subroutine which will transform an ASCII character
+;	into a table reference, and then jump to the address
+;	so encountered.  This is essentially REC's subroutine
+;	call mechanism, necessarily a predicate since it calls
+;	a REC expression, which is itself a predicate.
+
+ar::	pop	h	;entry if name is a parameter
+	mov	a,m	;read the calling sequence
+	inx	h	;advance pointer for return
+	push	h	;put it back on 8080 stack
+	cpi	'@'	;@@ means consult PDL for subroutine
+	jnz	xar	;otherwise proceed
+nar::	lhld	px	;entry if subroutine index is argument
+	mov	a,m	;get low byte of argument
+	push	psw	;put it in temporary storage
+	call	ucl	;lift the pushdown list, erasing it
+	pop	psw	;recover index
+xar::	lhld	vrt	;entry when index is in register A
+	call	tlv	;locate entry in directory (vrt)
+	mov	e,m	;low byte of entry into E
+	inx	h	;on to high byte
+	mov	d,m	;place it in D
+	xchg		;first exchange entry into HL
+	pchl		;then use it as jump address
+
+;	=======================================================
+;	Some general service routines.
+;	=======================================================
+
+;	Skip on valid character, meaning, not control symbol.
+;	If valid, 20H (space) is subtracted, making A = 1, etc.
+
+svc::	cpi	'!'	;reject space, excl is lower limit
+	rc		;control or space - no skip
+	cpi	7FH	;seven bits is upper limit
+	rnc		;no skip if upper limit passed
+	sui	' '	;normalize to begin with (excl) = 1
+	jmp	skp	;generate skip for printable ASCII
+
+;	Return if not decimal. A unchanged if not decimal, else
+;	reduced to binary.
+
+rnd::	cpi	':'	;colon follows 9 in ASCII alphabet
+	jnc	rtn	;not decimal at or beyond this limit
+	cpi	'0'	;ASCII zero is lower limit
+	jc	rtn	;not decimal below this limit
+	sui	'0'	;normalize to get binary values
+	ret
+
+;	Return if equal. Return out of calling routine if HL
+;	is equal to DE, otherwise normal return to sequential
+;	execution in calling program.
+
+req::	mov	a,e	;compare low bytes
+	cmp	l	;
+	rnz		;not zero means equality impossible
+	mov	a,d	;compare high bytes
+	cmp	h	;
+	rnz		;not zero means not equal
+rtn::	inx	sp	;entry for general "returns"
+	inx	sp	;eliminate return address
+	ret		;return is to next higher level
+
+;	Second level return on error.
+
+rr2::	pop	h	;entry to clear two items from PDL
+	xthl		;
+rr1::	pop	h	;entry to clear one item from PDL
+	xthl		;
+rer::	push	h	;
+	lxi	h,er	;
+	mov	a,m	;
+	inx	h	;
+	ora	m	;
+	pop	h	;
+	xthl		;get return address into HL
+	jnz	rrr	;
+	shld	er	;so that it can be recorded
+rrr:	pop	h	;but preserve the original HL
+	ret
+
+;	(?)  Test whether an error has been reported: predicate
+;	which is true if er is nonzero, in which case it will
+;	reset er.  It will also, if TRUE, place the calling
+;	address of the last reported error on the pushdown
+;	list.  If false, only a FALSE return is generated. Note
+;	the ironic circumstance that, if PDL is exhausted, qm
+;	can generate an error trying to report an error - but
+;	the TRUE result will still be valid. (?!TL;;) will give
+;	minimal evidence of an error. Generally an error handling
+;	subroutine will have the form (?(<correction>;<more drastic
+;	correction>;...<fatal error message>_;);). If the error
+;	cannot be ignored or handled within a simple subroutine,
+;	then the treatment of errors should have been incorporated
+;	into the whole structure of the program from the beginning.
+
+qm::	lhld	er	;fetch the error cell
+	xchg		;set it aside in DE
+	lxi	h,ze	;load zero into HL
+	shld	er	;use it to reset er
+	mov	a,e	;prepare to test whether er was
+	ora	d	;zero by superposing D and E
+	rz		;FALSE return if no error
+	push	d	;keep DE on the 8080 stack
+	lxi	b,02H	;we want two bytes for error address
+	call	narg	;check space, prepare for new argument
+	pop	d	;we are ready to store error address
+	mov	m,e	;store low byte
+	inx	h	;advance for high byte
+	mov	m,d	;store it also
+	inx	h	;pointer must always advance
+	shld	py	;end of the argument
+	jmp	skp	;TRUE return - there was an error
+
+;	Generate a skip (skp), which is often combined with the
+;	erasure of an argument on the pushdown list (cucl).
+
+cucl::	call	ucl	;erase the top argument
+skp::	xthl		;get the return address, but save HL
+	inx	h	;assume the skip will be over a
+	inx	h	;three-byte instruction, such as a jump
+	inx	h	;
+	xthl		;restore HL, which must be preserved
+	ret		;return to the altered address
+
+;	Calculate the length of a proposed insertion on PDL.
+;	On return, BC holds HL - DE, which means py - px.
+;	However, the alternative entry <siz> can be used when
+;	HL and DE have been previously loaded.
+
+psiz::	lhld	px	;get the beginning of the segment
+	xchg		;pass it to DE
+	lhld	py	;get the end of the segment
+siz::	mov	a,l	;-- alternate entry for other sizes --
+	sub	e	;subtract the beginning
+	mov	c,a	;from the end
+	mov	a,h	;to get the length
+	sbb	d	;of the interval
+	mov	b,a	;which is placed in BC
+	ret
+
+;	Skip on not greater. On entry, HL holds an address,
+;	DE a limit.  A skip is generated if the address is
+;	less than or equal to the limit.  BC is not altered.
+;	An alternate entry sing (skip if increment not greater)
+;	expects to find an increment in BC, which is added
+;	to HL and remains with it.
+
+sing::	dad	b	;add the increment
+sng::	mov	a,e	;put limit low byte in the accumulator
+	sub	l	;compare with low byte of address
+	mov	a,d	;put limit high byte in accumulator
+	sbb	h	;compare with high byte of address
+	rc		;return if it is greater
+	jmp	skp	;generate skip if less or equal
+
+;	Skip on equal. On entry, DE and HL contain two-byte
+;	numbers.  Comparison is made, which at most alters A;
+;	if they are equal a skip is generated. The alternate
+;	entry <sieq> (skip if increment equal) permits testing
+;	whether an increment to HL located in BC will reach
+;	equality with DE, but then HL remains incremented.
+
+sieq::	dad	b	;add the increment
+seq::	mov	a,e	;two byte comparison
+	cmp	l	;of the registers DE
+	rnz		;and HL generating
+	mov	a,d	;a return when they
+	cmp	h	;are not equal and
+	rnz		;a three-byte skip when
+	jmp	skp	;they are equal
+
+;	Move by increment until count.  On entry, BC contains
+;	the number of bytes to be moved, DE the address of
+;	the source, and HL the destination.  On exit, BC is
+;	zero, DE lies beyond the source, and HL shows
+;	the next byte following the end of the destination.
+
+miuc::	mov	a,c	;determine whether zero bytes
+	ora	b	;remain to be moved
+	rz		;if so return
+	ldax	d	;fetch source byte
+	mov	m,a	;deposit in destination
+	dcx	b	;decrement counter
+	inx	d	;increment source pointer
+	inx	h	;increment destination pointer
+	jmp	miuc	;repeat the cycle
+
+;	Move by decrement until count. On entry, BC holds the
+;	number of bytes to be moved, DE the byte beyond the
+;	source, and HL the byte beyond the destination.  On
+;	exit, BC is zero, DE lies at the beginning of the
+;	source, and HL lies at the front of the destination.
+
+mduc::	mov	a,c	;determine whether zero bytes
+	ora	b	;remain to be moved
+	rz		;if so, return
+	dcx	b	;decrement count
+	dcx	d	;retract source pointer
+	dcx	h	;retract destination pointer
+	ldax	d	;fetch source byte
+	mov	m,a	;store at destination
+	jmp	mduc	;repeat the cycle
+
+;	Test PDL space beginning at top argument. On entry BC
+;	contains the total space required.  On exit, BC stays
+;	unchanged, DE holds pz, while HL holds px+BC.
+;	If the space is not available, return is made from the
+;	calling program after noting the error.  Otherwise
+;	normal return to the calling program occurs. The likely
+;	use of oarg is to record a result without having to go
+;	through ucl, narg.
+
+oarg::	lhld	pz	;load limit of PDL
+	dcx	h	;keep one byte margin
+	xchg		;place it in DE
+	lhld	px	;load beginning of current argument
+	call	sing	;check available space
+	jmp	rer	;no, note error, quit calling program
+	ret		;yes, continue normally
+
+;	Check space for, and then set up, a new argument. On
+;	entry, BC should contain the amount of additional
+;	space required.  The program will automatically add
+;	two more bytes for the pointer which would close the
+;	argument and then, if the required space is available,
+;	close it, define the new px, and leave its value in
+;	HL.  DE will contain the old value of px to be used
+;	in case the superseded argument is still interesting.
+;	When space is not available, the error return rer is
+;	taken.
+;
+;	The entry RARG can be taken when it is known that
+;	sufficient space is available but the pointers still
+;	have to be set up.
+
+narg::	lhld	pz	;load limit of PDL
+	dcx	h	;keep one byte margin
+	xchg		;place it in DE
+	lhld	py	;load end of current argument
+	inx	h	;include a margin of 2
+	inx	h	;for the link closing current arg
+	call	sing	;check available space
+	jmp	rer	;no, note error, quit calling program
+rarg::	lhld	px	;entry if no space check needed
+	xchg		;put beginning of arg in DE
+	lhld	py	;end of argument into HL
+	mov	m,e	;low byte of closing link
+	inx	h	;on to high byte
+	mov	m,d	;argument ends with pointer to front
+	inx	h	;beginning of new space
+	shld	px	;which is recorded by px
+	ret		;and remains in HL
+
+;	(L)  Remove argument from pushdown list. There are no
+;	requirements for entry to ucl.  On exit, BC remains
+;	unchanged, DE holds the end of the former argument
+;	and HL holds the beginning of the former argument -
+;	the one that was exposed when the current argument was
+;	erased. Erasing non-existent arguments creates an error
+;	condition which is noted and ignored.
+
+ucl::	lhld	px	;pointer to current argument
+	dcx	h	;just behind the present
+	mov	d,m	;argument is the address
+	dcx	h	;of the previous argument
+	mov	e,m	;load it into DE
+	mov	a,e	;zero signals non-existent argument
+	ora	d	;so we always test out of caution
+	cz	rer	;record error if pointer was zero
+	shld	py	;HL now holds end of previous arg.
+	xchg		;exchange pointers
+	shld	px	;pointer to beginning of prev. arg.
+	ret
+
+;	Null program for undefined operators.
+
+noop::	ret
+
+;	=======================================================
+;
+;	Some of the service routines, which might be external
+;	references in other modules, are:
+;
+;		psiz	size of argument on PDL
+;		siz	size of an interval
+;		oarg	space when reusing an argument
+;		narg	close old argument, space for new
+;		rarg	same as narg when space is assured
+;		sng	skip when not greater
+;		sing	skip when increment not greater
+;		seq	skip when equal
+;		sieq	skip when increment equal
+;		skp	generic skip
+;		req	return on equal
+;		rer	return on error
+;		rr2	rer after popping two addresses
+;		rtn	generic return
+;		miuc	move by increment until count
+;		mduc	move by decrement until count
+;		ucl	lift argument from PDL (L)
+;		cucl	lift argument, then skip
+;
+;	Three entry points can be used according to the variant
+;	of the compiling operator C desired.  One of them could
+;	also be used by a main program.
+;
+;		emce	lift pushdown, open block, compile
+;		emcx	compile a sequence of subroutines
+;
+;	=======================================================
+
+	end
+

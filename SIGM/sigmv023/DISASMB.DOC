@@ -1,0 +1,270 @@
+DISASMB -- A TABLE DRIVEN DISASSEMBLER WRITTEN IN MICROSOFT BASIC
+
+This package consists of two main programs and a set of support programs
+and files.
+
+Among its features:
+
+-- By loading assembler mnenomics tables at run-time, the program can
+   disassemble into any assembly language for which tables are available.
+
+-- Output can be sent to the console, printer and/or a disk file.
+
+-- A cross-reference file can be created as part of disassembly,
+   sorted, and listed on the printer and/or console.
+
+-- Source code can be either a disk file or located in memory.
+
+-- All 16-bit values are converted to labels, which permit relocation.
+
+-- Every byte of code is disassembled. The program treats secondary code
+   as a comment.
+
+-- In addition to its mnenomic value, the hex value and ASCII equivalent
+   of each byte is listed. This facilitates location of data and text
+   blocks.
+
+-- The program runs reasonably fast under the Basic interpreter and can
+   presumably be compiled with the Microsoft Basic compiler, although
+   this does require a few modifications of the program.
+
+----------
+
+RUNNING DISASMB.BAS
+
+To begin with, you have to have Microsoft Basic-80 ver 5.1 or later,
+since this program makes use of the long variable names facilitated
+as part of ver 5.
+
+The disassembler first requests the name of the assembly language to
+be used. A .LST file, which contains the opcode and operand mnenomics,
+and a .TAB file, which contains a table to define the names of each
+byte, must be available under that name. Thus, if INTEL is specified,
+the files INTEL.LST and INTEL.TAB must be found. Otherwise, an error
+message will be printed and a new name will be requested.
+
+Once the tables have been loaded, a menu is displayed and the user is
+allowed to specify actions to be taken. The options available are:
+
+-- END
+   Self explanatory.
+
+-- CONSOLE toggle
+   PRINTER toggle
+   Switching these will determine where generated listings will be
+   displayed. If the printer is enabled, hitting "P" disables it,
+   hitting "P" again re-enables it.
+
+-- TABLE LOAD
+   If you want to switch assembly languges you can do so. If the
+   .LST file is not found an error message is issued and the old files
+   remain loaded.
+
+-- LIST OPCODES
+   This generates a table showing the mnenomic equivalent for each
+   opcode under the currently loaded assembly language tables. Note
+   that since Zilog index codes are disassembled by testing for
+   reference to the HL register, these codes are not listed in this
+   table.
+
+-- WRITE LISTING TO DISK
+   The dissembled code is written to disk. The standard source file
+   extension is provided as part of the .LST file, and this is used
+   as a default value. If a cross-reference file has been specifed,
+   this file name is used as a default as well. A new name and/or
+   extension can, of course, be provided.
+
+-- X-REF FILE GENERATION
+   A cross-reference file is generated, listing each 16-bit value loaded,
+   the current address and whether it is appears to be a primary or
+   secondary [ie: not necessarily valid] value.
+
+-- MEMORY DISASSEMBLE
+   The first value requested is the starting address in memory for the
+   program to be disassembled. A second program starting address is then
+   required. The memory starting address is assumed, but if a different
+   value is entered the diassembler assumes the program has been
+   relocated in memory and acts accordingly. The final value to be
+   entered is the program end address, relative to the program starting
+   address, NOT the memory start.
+
+-- DISK DISASSEMBLE
+   This disassembles from a disk file. If a write or x-ref file has been
+   specified that file name is assumed, as is the extension .COM. The
+   program start is assumed to be at 100H, but a different value can
+   be entered.
+
+Miscellaneous notes:
+
+To begin with, the disassembler has no real way of knowing what is
+machine instruction and what is data. Similarly, it can not know
+if a 16-bit value loaded into a register is an absolute value or a
+memory reference. Thus, for a file to be re-assembled it will first
+have to be edited. Some of this is easy -- blocks of text will stick
+out in the ASCII column -- but determining whether a 16-bit value
+should be be converted from a label to an absolute value, by removing the
+the prefix "x", can prove a bit tricky, although the x-ref listings
+should help.
+
+It is also important to keep in mind that every byte of source code
+generates 30-40 bytes of disassembled disk file. Which means that
+even rather small source files can generate rather large output files.
+
+Commands issued from the menu are entered via the INPUT$(1) command,
+which means that simply hitting a key serves to enter the command.
+By the time you hit a return it's too late.
+
+When an assumed value is given, hitting a return means that it will
+be used.
+
+The menu is updated to show the status of each function, including the
+names of any designated output disk files.
+
+Output disk files are disabled at the end of any disassembly cycle
+but console and printer status are not changed.
+
+The program includes a convert-to-caps routine, so that data can be entered
+as lower case if desired.
+
+----------
+
+USING XREF.BAS
+
+Since this program is not table-dependent, the menu is displayed
+immediately. The options available are:
+
+-- CONSOLE TOGGLE
+   PRINTER TOGGLE
+   These work the same as with DISASMB.BAS.
+
+-- SORT FILE
+   This sorts an .XRF file generated by DISASMB and then prints it.
+
+-- LIST FILE
+   This takes a sorted file and simply lists it.
+
+The sort program is a heap sort but under the interpreter this still
+takes time. So a submit file, XREF.SUB, is provided to permit MicroPro's
+SuperSort to do the deed with great dispatch.
+
+The first column of the listing is the destination address, the second
+column contains primary source addresses, the third column contains
+secondary source addresses.
+
+The listing is paginated and normally displays two columns to a page.
+Both of these values can be changed by modifying indicated constants at
+the start of the program.
+
+----------
+
+CREATING .LST AND .TAB FILES
+
+This package contains four sets of files:
+
+-- INTEL -- standard Intel mnenomics for the 8080 and CP/M assembler.
+
+-- 8085 -- adds the SIM and RIM instructions to INTEL.
+
+-- ZILOG -- standard Zilog mnenomics with extension .MAC for Macro-80.
+
+-- TDL -- TDL's Intel-extended-to-Zilog mnenomics with extension .SRC
+   for the InterSystems assembler.
+
+I have included the TAB<name>.BAS and LST<name>.BAS programs which
+generated these files in order to facilitate changes.
+
+The .LST file contains the mnenomic names and miscellaneous values
+for the disassemblers. The order is:
+	ALEN -- The number of columns in the .TAB file. Standard
+		Intel has 3, Zilog has 9.
+	ZCOM -- The comment character/string, generally ";".
+	ZLAB -- The label terminator string. This is optional but
+		permissible to most assemblers, but Macro-80 apparently
+		requires it.
+	ZBYTE -- The byte pseudo-op.
+	ZEXT -- The extension assumed by the assembler.
+	AZIL -- Since the index register codes can be easily
+		disassembled by testing for use of the HL registers,
+		this approach was used. However, this requires
+		language-dependent code, so this value tells the
+		disassembler what, if any, procedures to use.
+		The provided values are:
+			0 - no index-register codes
+			1 - standard Zilog mnenomics
+			2 - TDL mnenomics
+	Number of operands
+	null operand
+	1..n operands
+	Number of opcodes
+	null operand
+	"N" operand
+	"NN" operand
+	"(NN)" operand
+	relative displacement operand
+	5..n non-reserved operands
+
+The reserved operands must be allowed for, whether or not the language
+provides for that instruction. Other than that, opcodes and operands
+may be listed in any order.
+
+The .TAB file contains the .LST position of the opcode and the first
+and second operands for each byte. The values are stored as bytes.
+New .LST and .TAB files can be checked using the list opcodes procedure
+in DISASMB.
+
+----------
+
+FINAL BITS OF INFORMATION
+
+[1] MBasic allows strings to be of an arbitrary length. There is a price,
+however: When a string is created or changed it is simply tossed on top
+of the string stack. From time to time this process exhausts available
+memory and the intepreter has to stop to purge the stack of extraneous
+strings. Thus, during the generation of a disassembler listing the
+process will stall for a number of seconds to permit the purge.
+
+[2] In order to conserve memory, the opcode, operand and table arrays
+are dynamically redimensioned in DISASMB. If this program is to be
+compiled using BASCOM, these have to be changed to absolute values.
+The maximum values for the various tables are:
+	
+	name		opcodes		operands	table
+	INTEL		 80		22		2,255
+	8085		 80		22		2,255
+	ZILOG		 67		48		8,255
+	TDL		136		22		8,255
+
+[3] There are two ways which MBasic can tell whether it has reached
+the end of an input file: (a) It is told by CP/M that it is on the
+last sector of the current extent and that there are no further
+last sector of the current extent and taht there are no further extents
+or (b) it encounters a control-z code at the start of a logical block
+(a line in a sequential file or a sector in a random file).
+
+There are some problems with this approach. Since DISASMB reads source
+files as a series of sector-long records it has been instructed to
+continue reading if both EOF is true and the first byte on the sector
+is a 1AH (control-z). This may cause the program to read past the end
+of a file, but ultimately it will be forced to initialize a sector
+which will result in a proper stop.
+
+For .XRF files the end of file is indicated by two 0FFH bytes followed
+by 1AH's. This is the FFZZ end flag for SuperSort.
+
+[4] Disassembled disk files use horizontal tabs to separate columns in
+order to compress the length of the files at least a little.
+
+[5] MBasic clears the input buffer for normal data input but not for
+INPUT$. With interrupt-based input, however, this means that it is
+possible to accidently enter commands in response to the menu's prompt.
+
+[6] XREF.BAS creates and then erases two files named XREFWORK.### and
+XREFWORK.$$$. XREF.SUB creates and then erates XREFWORK.###.
+
+----------
+
+Scott Custin
+2410 20th St NW #10
+Washington DC 20009
+
+

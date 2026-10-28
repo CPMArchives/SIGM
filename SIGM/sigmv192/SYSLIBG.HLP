@@ -1,0 +1,89 @@
+:CRC Routines
+
+     Thå  CRÃ Routineó maù bå useä tï checë thå validitù  oæ 
+aî  incominç seriaì bytå streaí oæ arbitrarù length®   Theså 
+routineó  computå anä checë á truå 16-biô Cycliã  Redundancù 
+Codå (CRC).
+
+     The use of these routines will guarantee detection of:
+          1) all single- and double-bit errors
+          2) all errors with an odd number of error bits
+          3) all burst errors of length 16 or less
+
+     Additionally, the following statistics:
+          1) 99.9969% of all 17-bit error bursts
+          2) 99.9984% of all possible longer error bursts
+
+     Thå followinç screeî displaù illustrateó á typicaì  waù 
+tï uså theså routines:
+
+     CRC$MAKE:                ; ROUTINE TO ESTABLISH OUTGOING CRC VALUE
+          CALL CRCCLR    ; CLEAR CRC
+          <loop CALLing CRCUPD>    ; ACQUIRE VALUES
+          CALL CRCDONE   ; GET VALUE
+          SHLD CRCVAL    ; SAVE VALUE
+     CRC$CHECK:          ; ROUTINE TO CHECK INCOMING CRC VALUE
+          CALL CRCCLR    ; CLEAR CRC
+          <loop CALLing CRCUPD>    ; ACQUIRE VALUES
+          CALL CRCDONE   ; GET VALUE
+          XCHG           ; VALUE IN DE
+          LHLD CRCVAL    ; GET FIRST VALUE IN HL
+          CALL COMPHD    ; COMPARE HL TO DE
+          JNZ  ERROR     ; CRC'S DON'T MATCH IF NOT EQUAL
+
+     Thå   followinç   screeî  displayó  describå  thå   CRÃ 
+routines®    Thå   CRC- routineó  uså  thå   X^16+X^12+X^5+± 
+polynomial¬   thå  CRC1- routineó  uså  thå  X^16+X^15+X^2+± 
+polynomial¬     anä     thå    CRC2-routineó     uså     thå 
+X^16+X^15+X^13+X^7+X^4+X^2+X+± polynomial.
+     Routine Name:  CRCCLR, CRC1CLR, CRC2CLR
+
+     Functionº
+
+     Cleaò  thå  internaì CRÃ Accumulatoò iî preparatioî  tï 
+CRÃ computation.
+
+     Inputs:  None
+
+     Outputs:  None
+
+     Registers Affected:  None
+
+     SYSLIB Routines Called:  None
+
+     Special Error Conditions:  None
+
+
+     Routine Name:  CRCUPD, CRC1UPD, CRC2UPD
+
+     Functionº   Updatå  thå CRÃ Accumulatoò valuå witè  thå 
+nexô byte.
+
+     Input:  A=byte to be included in CRC
+
+     Outputs:  None
+
+     Registers Affected:  None
+
+     SYSLIB Routines Called:  None
+
+     Special Error Conditions:  None
+
+     Routine Name:  CRCDONE, CRC1DONE, CRC2DONE
+
+     Functionº
+
+     Terminatå   CRÃ  valuå  accumulatioî  anä  returî   thå 
+calculateä 16-biô CRÃ value.
+
+     Inputs:  None
+
+     Output:  HL = calculated CRC value
+
+     Registers Affected:  HL
+
+     SYSLIB Routines Called:  None
+
+     Special Error Conditions:  None
+
+

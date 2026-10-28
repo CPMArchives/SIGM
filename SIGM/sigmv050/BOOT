@@ -1,0 +1,345 @@
+
+
+;
+;
+;
+;BOOT - Data Technology Corporation CP/M 2.2 BOOT.
+;
+;	+-----------------------+
+;	|			|
+;	|	B O O T 	|
+;	|			|
+;	+-----------------------+
+;
+;
+;
+;	Version number:	2.2B
+;	Version date:	March 19, 1981
+;
+;	Update date:	March 24, 1981
+;
+;	Update date:	June 26, 1981
+;			No longer support boot from single-density
+;			diskette.
+;
+;			Boots from logical unit number in A
+;			register on entry.
+;
+;	The following code is supplied to customers who
+;	purchase a hard/floppy disk system from DTC.
+;	The following code is written onto track 0 sector 0
+;	of the hard disk.  This routine is read into memory
+;	at location 0 by the user's PROM.   This routine then
+;	loads the rest of the system into memory.
+;
+;
+;	The format of the Hard Disk Boot sectors are as follows:
+;
+;	Logical		Routine
+;	Sector		Name
+;
+;	  0		Boot program
+;
+;	1 thru 8	CCP
+;
+;	9 thru 22	BDOS
+;
+;	23 thru 32	DTC CBIOS
+;
+	
+
+
+
+
+VERS:	EQU	22
+
+
+
+
+
+
+
+	
+
+
+;Enter and exit with A = logical unit # of the boot device
+
+
+	ORG	100h
+BOOT:
+	LXI	SP,BOOT
+	LXI	H,DT		;Find parameters
+	LXI	D,DTELN
+	MVI	B,NLUN
+BOOT2:
+	CMP	M
+	JZ	BOOT3
+	DAD	D
+	DCR	B
+	JNZ	BOOT2
+	LXI	H,DT
+	XRA	A
+BOOT3:
+	INX	H
+	STA	LUN		;Set logical unit number
+	STA	CIOAD+1
+	STA	CIOFS+1
+	MOV	A,M
+	STA	CIOPB+3		;Set starting sector
+	INX	H
+	MOV	A,M
+	STA	CIOPB+4		;Set # sectors
+	INX	H		;Set drive type
+	MOV	A,M
+	INX	H
+	CPI	0FFh
+	JZ	BOOT0
+	STA	CIOAD+4
+	PUSH	H
+	LXI	H,CIOAD
+	CALL	EXEC
+	CZ	WAITF
+	POP	H
+BOOT0:
+	MOV	A,M
+	CPI	0FFh
+	JZ	BOOT1
+	STA	CIOFS+5
+	LXI	H,CIOFS
+	CALL	EXEC
+	CZ	WAITF
+BOOT1:
+	LXI	D,CCP
+	LXI	H,CIOPB
+	CALL	RDISK
+	ORA	A
+	JNZ	BOOT1
+	MOV	A,C
+	ANI	FERR
+	JNZ	BOOT1
+
+	LDA	LUN
+	JMP	CBIOS 
+
+
+CIOAD:	DB	ADCMD,0,0,0,0,0
+CIOFS:	DB	FSCMD,0,0,0,0,0
+CIOPB:	DB	RDCMD
+LUN:	DB	0
+
+	DB	0,1
+	DB	0		;Read two tracks less BOOT
+	DB	0		;Perform not retries
+
+BOTSIZ:	EQU	BIOCOD+CBIOS-CCP
+HBTLN:	EQU	BOTSIZ/256
+FBTLN:	EQU	24+(BOTSIZ-24*128)/256
+MBTLN:	EQU	14+(BOTSIZ-14*128)/256
+
+DT:
+	IF	LUN0
+	DB	0 SHL 5
+	DB	1+NF0+N48M0+N96M0
+	DB	NH0*HBTLN+NF0*FBTLN+(N48M0+N96M0)*MBTLN
+	DB	LUN0DAT
+	DB	B0
+	ENDIF
+	IF	LUN1
+	DB	1 SHL 5
+	DB	1+NF1+N48M1+N96M1
+	DB	NH1*HBTLN+NF1*FBTLN+(N48M1+N96M1)*MBTLN
+	DB	LUN1DAT
+	DB	B1
+	ENDIF
+	IF	LUN2
+	DB	2 SHL 5
+	DB	1+NF2+N48M2+N96M2
+	DB	NH2*HBTLN+NF2*FBTLN+(N48M2+N96M2)*MBTLN
+	DB	LUN2DAT
+	DB	B2
+	ENDIF
+	IF	LUN3
+	DB	3 SHL 5
+	DB	1+NF3+N48M3+N96M3
+	DB	NH3*HBTLN+NF3*FBTLN+(N48M3+N96M3)*MBTLN
+	DB	LUN3DAT
+	DB	B3
+	ENDIF
+DTELN:	EQU	5
+DTLEN:	EQU	($-DT)/DTELN
+
+;	Disk I/O Routines
+;
+;
+	IF	I696
+;	E X E C
+
+EXEC:	MVI	B,BUSY		;Wait for not busy.
+	MVI	C,BUSY and (not BUSY)
+	CALL	WAITM
+	RNZ
+	
+
+	MVI	A,SLCT		;Alert controller
+	OUT	DIO+1
+EXEC1:
+	MOV	C,B		;Wait for controller busy
+	CALL	WAITM
+	RNZ
+
+	MVI	A,DODTA		;Enable data in
+	OUT	DIO+1
+
+EXEC2:	IN	DIO+2		;Get status
+	XRI	0FFh
+	JM	EXEC2		;If not requesting next byte
+	ANI	CMND+DIROUT
+	JNZ	EXEC3		;If CMND or DIROUT false
+	MOV	A,M
+	INX	H
+	OUT	DIO		;Send byte from command buffer
+	JMP	EXEC2
+
+EXEC3:	CMP	A		;Z:=1
+	RET
+;
+;
+;
+;
+;	RDISK - Input to memory buffer.
+;
+;	Entry:	HL = command buffer address
+;		DE = data buffer address
+
+RDISK:	CALL	EXEC
+	RNZ			;Return if timeout
+RDISK1:	IN	DIO+2		;Read status
+	ORA	A
+	JP	RDISK1		;If request is present
+	ANI	CMND
+	JNZ	GCMPS
+	IN	DIO
+	STAX	D
+	INX	D
+	JMP	RDISK1
+;
+;
+;
+;
+;	WAITF - Wait for function to complete.
+
+WAITF:	MVI	B,REQ+CMND	;Wait for both REQ and CMND
+	MOV	C,B
+	CALL	WAITM
+	RNZ
+;
+;	Get completion status.
+
+GCMPS:	IN	DIO		;Get completion status
+	MOV	C,A
+
+GCMP1:	IN	DIO+2
+	ORA	A
+	JP	GCMP1		;If REQ not set
+
+	MOV	B,A
+	IN	DIO		;Get message byte
+	RET
+	ENDIF
+;
+
+;
+;
+;
+	IF	I796
+;	EXEC - Output the command
+;
+;	Enter:	HL is the command buffer address
+;		DE - data transfer address.
+
+EXEC:
+	MOV	A,E		;Output DMA address
+	OUT	DIO+2
+	MOV	A,D
+	OUT	DIO+3
+	MOV	A,L
+	OUT	DIO+4
+	MOV	A,H
+	OUT	DIO+5
+	MVI	A,0
+	OUT	DIO+6
+	OUT	DIO+7
+	OUT	DIO
+	CMP	A		;Z:=1
+	RET
+
+
+;	Disk read/write
+;
+;	Entry:	same as EXEC
+;
+RDISK:
+WDISK:	CALL	EXEC
+	RNZ			;Return if timeout
+
+;	WAITF - Wait until transfer done
+;
+;	Enter:	none
+;	Exit:	when transfer completed
+
+WAITF:	MVI	B,CMDDON	;Wait for CMDDON
+	MOV	C,B
+	CALL	WAITM
+	RNZ			;Return if timeout
+;
+
+;	GCMPS - Get completion status
+;
+;	Enter:	none
+;	Exit:	Status in C
+GCMPS:	IN	DIO+1
+	MOV	C,A
+	RET
+	ENDIF
+
+;	WAITM - Wait for controller with timeout
+;
+;	Entry:	B=Status mask
+;		C=Status value
+;	Exit:	Z=1 if OK, else timeout with A=C=TERR
+;
+WAITM:
+	PUSH	D		;Save D
+	PUSH	H
+	LXI	H,138		;Two minute timeout
+	LXI	D,0		;Max wait @4MHZ is 868 ms
+WAITML:
+	IF	I696
+	IN	DIO+2
+	ENDIF
+	IF	I796
+	IN	DIO
+	ENDIF
+	ANA	B		;Mask wait bits
+	CMP	C		;Check value
+	JZ	WAITM1
+	DCX	D		;Not ready.  Decrement time
+	MOV	A,D
+	ORA	E
+	JNZ	WAITML
+	DCX	H
+	MOV	A,H
+	ORA	L
+	JNZ	WAITML
+	MVI	B,0		;Timeout
+	MVI	A,TERR
+	ORA	A
+WAITM1:
+	POP	H
+	POP	D		;Restore D
+	MOV	C,A		;Return status in C
+	RET
+
+
+	END
+

@@ -1,0 +1,488 @@
+;
+; MATHLIB: a 16 Bit Arithmetic Package for 8048
+; Sourced Nov-Dec '80 by Trevor Marshall
+;			SYSOP, Thousand Oaks Tech RBBS
+;
+; This package may be freely distributed but not for profit
+; (C) 1980 Trevor Marshall
+;-----------------------------------------------
+;
+; This S/R shifts the register pair whose LSB
+;   is being pointed at by R0 right one position
+; All registers are preserved
+ROTATERIGHTR0: CLR C
+SHIFTRIGHTR0: INC R0	;R0 points to the LSB
+	MOV	A,@R0	;get MSB
+	RRC	A
+	MOV	@R0,A	;Result MSB
+	DEC	R0	;point at LSB
+	MOV	A,@R0	;get it
+	RRC	A
+	MOV	@R0,A	;Store result LSB
+	RET
+;
+;----------------------------------------------
+;
+; This S/R shifts the register pair whose LSB
+;   is being pointed at by R1 right one position
+; All registers are preserved
+ROTATERIGHTR1: CLR C
+SHIFTRIGHTR1: INC R1	;R1 points to the LSB
+	MOV	A,@R1	;get MSB
+	RRC	A
+	MOV	@R1,A	;Result MSB
+	DEC	R1	;point at LSB
+	MOV	A,@R1	;get it
+	RRC	A
+	MOV	@R1,A	;Store result LSB
+	RET
+;
+;-----------------------------------------------
+;
+; This S/R shifts the register pair whose LSB is
+;  being indicated by R0 left one position
+; All registers are preserved
+ROTATELEFTR0: CLR C
+SHIFTLEFTR0: MOV A,@R0 ;get LSB
+	RLC	A
+	MOV	@R0,A	;Result LSB
+	INC	R0	;Point at MSB
+	MOV	A,@R0
+	RLC	A
+	MOV	@R0,A	;store MSB
+	DEC	R0	;restore R0
+	RET
+;
+;------------------------------------------------
+;
+; This S/R shifts the register pair whose LSB is
+;  being indicated by R1 left one position
+; All registers are preserved
+ROTATELEFTR1: CLR C
+SHIFTLEFTR1: MOV A,@R1 ;get LSB
+	RLC	A
+	MOV	@R1,A	;Result LSB
+	INC	R1	;Point at MSB
+	MOV	A,@R1
+	RLC	A
+	MOV	@R1,A	;store MSB
+	DEC	R1	;restore R1
+	RET
+;
+;---------------------------------------------------
+;
+; This S/R, ADD, adds a 16 Bit number pointed at by R1
+;  to a sum indicated by R0. The sum (@R0) is updated
+;  @R1 is not changed
+; All registers preserved
+ADD:	CLR	C	;Add without carry, or with it:
+ADDC:	MOV	A,@R0	;LSB of sum
+	ADDC	A,@R1	; + LSB of number
+	MOV	@R0,A	;New sum LSB to @R0
+	INC	R0
+	INC	R1	;point at MSBs
+	MOV	A,@R0	;MSB of sum
+	ADDC	A,@R1	; + MSB of number
+	MOV	@R0,A	;New sum MSB to @R0
+	DEC	R0	;Restore R0, R1
+	DEC	R1
+	RET
+;
+;----------------------------------------------------
+;
+; A S/R to complement a 16 Bit number indicated by R0
+; All registers preserved
+COMPLEMENTR0: INC R0
+	MOV	A,@R0	;get MSB
+	CPL	A
+	MOV	@R0,A	;store its compl
+	DEC	R0
+	MOV	A,@R0	;get LSB
+	CPL	A	;Have 1s complemented it, add 1
+	CLR	C
+	ADD	A,#1
+	MOV	@R0,A	;Store LSB
+	INC	R0
+	MOV	A,@R0	;get MSB
+	ADDC	A,#0	;use carry
+	MOV	@R0,A	;store MSB
+	DEC	R0	;restore R0
+	RET
+;
+;------------------------------------------------------
+;
+;MULTIPLY:  16 x 16 Bit multiplication
+;
+;result (@R0) = multiplicand (@R1) x multiplier (@R0)
+;
+; It overflows safely, but without indication
+; Registers R4,R5,R6,R7 are destroyed
+;
+;	Example: 5 x 3
+;		101
+;	     x  011
+;	----------------
+;		101	(Shifted LSBit=1)
+;	       101	(Shifted LSBit=1)
+;	      000	(Shifted LSBit=0,no add)
+;	----------------
+;	      01111	(Result)
+;
+MULTIPLY: MOV	R7,#16	;Loop count in R7
+	CLR	A	;Clear result 
+	MOV	R6,A	;R6 is result MSB
+	MOV	R5,A	;R5 is LSB
+; shift and test if multiplier LSBit = 1 
+ZZMULT:	CALL	ROTATERIGHTR0 ;0-> MSBit,LSBit-> C
+	JNC	ZZNOADD ;LSBit not 1, Don't add
+;
+	MOV	A,R0	;Save R0 in
+	MOV	R4,A	; R4
+	MOV	R0,#5	;Point at the result R5,R6
+	CALL	ADD	;Add result, multiplicand @R1
+	MOV	A,R4	;Restore
+	MOV	R0,A	;R0
+; (Could test for overflow here:)
+;
+;Now we shift left the multiplicand
+ZZNOADD: CALL	ROTATELEFTR1 ;0->LSBit, MSBit->Carry
+;
+	DJNZ	R7,ZZMULT	;Loop for 16 Bits
+; Now shift the result to @R0
+	MOV	A,R1	;Save R1
+	MOV	R4,A	;in R4
+	MOV	R1,#5	;Point to R5,R6
+	MOV	A,@R1	;Get LSB
+	MOV	@R0,A	;Put LSB
+	INC	R0
+	INC	R1
+	MOV	A,@R1	;Get MSB
+	MOV	@R0,A	;Put MSB
+	DEC	R0	;Restore R0
+	MOV	A,R4	;Restore R1
+	MOV	R1,A
+;
+	RET	; ***** DONE *****
+;
+;-------------------------------------------------------
+; MPY8X8, 8 x 8 multiply, 16 Bit product
+;
+; On Entry
+;	R6	contains multiplicand
+;	R7	   "	multiplier
+; On Exit
+;	A	contains the result LSB
+;	R2	   "		    MSB
+;
+; DESTROYS R5, USES A,R5,R6,R7
+;
+MPY8X8:	CLR	A	;Clear Result LSB
+	MOV	R2,A	;  "	 "    MSB
+	MOV	R5,#8	;Bit cntr
+;
+SHIFT:	CLR	C	;Shift multiplicand 16 Bits
+	RLC	A
+	XCH	A,R2	;Prepare to
+	RLC	A	;RLC R2
+	XCH	A,R2
+; Shift left multiplicand
+	XCH	A,R6
+	RLC	A
+	XCH	A,R6
+;Test carry
+	JNC	DECR
+;Else add multiplier
+	ADD	A,R7
+	XCH	A,R6
+	ADDC	A,#0
+	XCH	A,R6
+DECR:	DJNZ	R5,SHIFT
+	RET	
+;
+;-------------------------------------------------------
+; DIVIDE  Low byte count 15 / 15 divide
+; 		the MSBs must not be 1
+;
+;			divisor(@R1)
+;	result(R6,R7) = ---------------
+;			dividend(@R0)
+;
+;Operands are in reverse order to improve efficiency
+;DESTROYS divisor(@R0),dividend(@R1),R0,R1,R6,R7
+;The dividend is successively subtracted fromthe divisor
+;First check if dividend is 0
+DIVIDE: MOV	A,@R0	;Is LSByte=0 ?
+	JNZ	OK	;Skip if OK
+	INC	R0	;Otherwise test MSByte
+	ORL	A,@R0	;A was 0
+	JZ	DIVIDEBYZERO
+	DEC	R0
+;First form the complement of @R0 IN @R0
+OK:	CALL	COMPLEMENT	;@R0
+;Now clear result area
+	CLR	A
+	MOV	R7,A
+	MOV	R6,A
+;ADD destroys @R0, so swap R1,R0
+	MOV	A,R0
+	XCH	A,R1
+	MOV	R0,A
+;
+DIVLOOP: CALL	ADD ;Add (subtract) once
+	INC	R0
+	MOV	A,@R0	;if MSBit is 1, negative, done
+	DEC	R0
+	JB7	DONEDIVIDE   ;Done if -ve result
+;Else increment R6,R7
+; (Trick courtesy of SIGNETICS 2650)
+	INC	R6	;Increment LSB, but dont
+	MOV	A,R6
+	JNZ	NXT9
+	INC	R7	;incr MSB unless new LSB is 0
+;
+NXT9:	JMP	DIVLOOP	;And try to subtract again
+;
+DIVIDEBYZERO: MOV	R6,#0FCH ;nearly infinite
+	MOV	R7,#0FFH
+DONEDIVIDE:	RET
+;
+;------------------------------------------------
+;
+; BINTOBCD: Converts an 8 Bit Binary value to BCD
+;
+;------------------------------------------------
+;
+; The Binary value is in A
+; R0 is pointer to the packed BCD string storage
+; DESTROYS R1, R5, R6, R7
+BINTOBCD: XCH	A,R0	;Get R0 to R1
+	MOV	R1,A	;without changing A
+	XCH	A,R0
+;
+	MOV	R7,#2	;2 is digit byte count
+;			;  extension register
+;
+BINLP1: MOV	@R1,#0	;Clear the BCD area
+	INC	R1
+	DJNZ	R7,BINLP1
+;
+	MOV	R6,#8	;Bit count
+; now do A = A*2
+; to get the MSBit into the carry
+BINLP2:	CLR	C
+	RLC	A
+; now do  BCD = BCD*2 + Carry
+	XCH	A,R0	;Get R0
+	MOV	R1,A	;to R1
+	XCH	A,R0
+	MOV	R7,#2	;2 is digit byte count
+	MOV	R5,A	;save A in R5
+BINLP3:	MOV	A,@R1	;fetch LSByte of BCD
+	ADDC	A,@R1	;double it + carry
+	DA	A
+	MOV	@R1,A	;store it back
+	INC	R1	;point at next BCD byte
+	DJNZ	R7,BINLP3 ;process it too
+	MOV	A,R5	;Retrieve A
+; If carry from BCDacc could GOTO error exit
+	JC	BINERROR
+; Count=count-1, until count=0 :
+	DJNZ	R6,BINLP2
+	CLR	C ;Reset Indicates normal termination
+BINERROR: RET	  ; C set if error termination
+;
+;-------------------------------------------------------
+;
+; BCDTOBIN: Converts a 3 digit BCD value to 8 Bit Binary
+;
+;-------------------------------------------------------
+;
+;at entry R0 points to the LSByte of a packed BCD string
+;
+;at exit A has the result
+;	 Carry is set if overflow has occurred
+; DESTROYS R4,R5,R6,R7
+;
+; Point at most significant digitpair
+; R0 = R0 + #digitpairs - 1
+	MOV	A,R0
+	ADD	A,#1	; 2 packed bytes - 1
+	MOV	R0,A
+; count = #digitpairs
+	MOV	R7,#2
+; BIN = 0
+	CLR	A
+	MOV	R4,A
+; BIN = BIN*10
+BCDLP1:	CALL	MUL10
+	JC	CONVERSIONERROR
+; BIN = BIN + MSNibble(@R0)
+	MOV	R5,A	;save BIN*10
+	MOV	A,@R0	;get MSDigitpair
+	SWAP	A	;mask except
+	ANL	A,#0FH	;the MSNibble
+; Now have the most significant BCD nibble in A
+	ADD	A,R5	;Add BIN*10
+	XCH	A,R4	;to A in
+	ADDC	A,#0	;double
+	XCH	A,R4	;precision
+	JC	CONVERSIONERROR
+; BIN = BIN * 10
+	CALL	MUL10
+	JC	CONVERSIONERROR
+; bin = bin + LSNibble(@R0)
+	MOV	R5,A	;save R5
+	MOV	A,@R0
+	ANL	A,#0FH ;get LSNibble of MSDigit
+	ADD	A,R5	;add it to BIN
+	XCH	A,R4	;in
+	ADDC	A,#0	;double
+	XCH	A,R4	;precision
+	JC	CONVERSIONERROR
+; point now to the next lower digitpair
+	DEC	R0
+; count = count-1 until 0 repeat proceedure
+	DJNZ	R7,BCDLP1
+CONVERSIONERROR: RET	; C cleared normal return
+;			;   set if error return
+;
+; Utility to multiply BIN by 10
+MUL10:	MOV	R5,A	;save A
+	XCH	A,R4	;save R4
+	MOV	R6,A
+	XCH	A,R4
+; BIN = BIN * 2
+	CLR	C
+	RLC	A
+	XCH	A,R4
+	RLC	A
+	XCH	A,R4
+	JC	MUL10ERROR
+; BIN = BIN * 4
+	RLC	A
+	XCH	A,R4
+	RLC	A
+	XCH	A,R4
+	JC	MUL10ERROR
+; BIN = BIN * 5
+	ADD	A,R5
+	XCH	A,R4
+	ADDC	A,R6
+	XCH	A,R4
+	JC	MUL10ERROR
+; BIN = BIN * 10
+	RLC	A
+	XCH	A,R4
+	RLC	A
+	XCH	A,R4
+;
+MUL10ERROR: RET	; C set if error on return
+;
+;--------------------------------------------
+;
+;*************THIS ROUTINE DID NOT WORK*****************
+;
+;DIVIDE: 16 Bit by 16 Bit Integer Division
+;
+;		  dividend (@R0)
+;  result (@R0) = --------------  + remainder (@R6)
+;		  divisor (@R1)
+;
+; DESTROYS ALL REGISTERS except R0,R1, in MB0
+;	and DESTROYS  R7' (R31) in MB1
+; DO NOT CALL THIS ROUTINE WHILST IN MB1
+;
+; The divisor is successively subtracted from the high 
+;   order bits of the dividend. After each subtraction 
+;   the result is used instead of the initial dividend
+; The result is increased by 1 each time.
+; When the result of the subtraction is negative the 
+;   partial result is restored by adding the divisor 
+;   back to it.
+; The result is simulataneously decremented by 1
+;
+;First check if divisor is 0
+;
+;*************THIS ROUTINE DID NOT WORK*****************
+;
+DIVIDE:	MOV	A,@R1	;Is LSByte=0 ?
+	JNZ	OK	;Skip if OK
+	INC	R1	;Otherwise test MSByte
+	ORL	A,@R1	;A was 0
+	JZ	DIVIDEBYZEROERROR
+	DEC	R1
+; Dividend is @R0
+;clear result register pair
+OK:	CLR	A
+	MOV	R7,A ;Use R6, R7 as result pair
+	MOV	R6,A
+;loop counter,R5
+	MOV	R5,#16
+;
+	CLR	C
+;Rotate Dividend left 
+ZZDIV1:	CALL	SHIFTLEFTR0 ; C  -> LSBit
+;				MSBit -> Carry
+;Rotate Remainder left
+	MOV	A,R0	;Save R0 in 
+	MOV	R4,A	; R4
+	MOV	R0,#6	;Point at R6,R7
+	CALL	SHIFTLEFTR0 ;C -> LSBit, MSBit-> C
+;Trial subtraction of divisor from result
+; Problems here, as need to complement (& change)
+;  divisor before we can subtract it.
+; So have to use R2,R3 as scratch
+	MOV	A,@R1 ;get divisor in R2,R3
+	MOV	R2,A
+	INC	R1
+	MOV	A,@R1
+	MOV	R3,A
+	DEC	R1  ;still points at divisor
+; Now we could do:
+;	MOV	R0,#2	;Point at R2,R3
+;	MOV	R1,#6	;Point at R6,R7
+; !!!! CLANG !!!! have destroyed pointer R1
+; So we must destroy R7' (R31)
+	MOV	R0,#31
+	MOV	A,R1	;Save R1
+	MOV	@R0,A	; in R31
+	MOV	R0,#2
+	MOV	R1,#6
+	CALL	COMPLEMENTR0
+	CALL	ADD	;Result in scratch R2,R3
+	MOV	A,R2	;Copy result to R6,7
+	MOV	R6,A
+	MOV	A,R3
+	MOV	R7,A
+;
+	MOV	R0,#31
+	MOV	A,@R0	;Get divisor pointer
+	MOV	R1,A	;to R1 again
+; Carry must be 1 if borrow occurred (@R0 >= @R1)
+	JNC	ZZPOS
+;otherwise negative, restore dividend
+	MOV	R0,#6	;remainder regs
+	CALL	ADD
+;	
+ZZPOS:	CPL	C ;Calc result bit
+;Restore R0
+	MOV	A,R4
+	MOV	R0,A
+;
+	DJNZ	R5,ZZDIV1 ;Loop for 16 bits
+;
+; Shift in last result bit
+	CALL	SHIFTLEFTR0
+; On exit the result is in @R0, the remainder in R6,R7
+;
+	RET	; ***** DONE ****
+;
+DIVIDEBYZEROERROR: MOV A,#0FFH ;Move #infinity to
+	MOV	@R0,A	;@R0
+	INC	R0
+	MOV	@R0,A
+	DEC	R0
+; Output a diagnostic message if desired
+	RET
+;
+

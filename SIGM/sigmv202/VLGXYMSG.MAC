@@ -1,0 +1,72 @@
+;
+; VLIB Module Name:  VLGXYMSG
+; Author:  Richard Conn
+; VLIB  Version Number:  1.0
+; Module Version Number:  1.0
+; Module Entry Points:
+;	GXYMSG	VPRINT
+; Module External References:
+;	GOTOXY	STNDOUT	STNDEND	COUT
+;
+	ext	gotoxy,stndout,stndend,cout
+
+;
+; Position Cursor and Print Following Message
+; Usage:
+;	call	gxymsg
+;	db	row,col
+;	db	'message'
+;	db	0
+; Message may contain the special byte values of 1 and 2 to begin and
+; end standout mode, resp.  For instance:
+;
+;	call	gxymsg
+;	db	5,10
+;	db	'Hello ',1,'World',2,' - How are things?',0
+;
+; prints "Hello " and " - How are things?" normally, but "World" is in
+; Standout Mode.
+;
+gxymsg::
+	xthl		;pt to coords
+	push	d	;save DE
+	mov	d,m	;get row in D
+	inx	h
+	mov	e,m	;get col in E
+	inx	h	;pt to message
+	xchg		;HL pts to coords
+	call	gotoxy	;position cursor
+	xchg		;HL pts to message
+	pop	d	;restore DE
+	xthl		;restore return address and fall thru to soprint
+;
+; Print String At Return Address with STNDOUT/STNDEND Processing
+; Like PRINT, but 1 invokes STNDOUT and 2 invokes STNDEND (see above)
+;
+vprint::
+	xthl
+	push	psw	;save A
+vp1:
+	mov	a,m	;get char
+	inx	h	;pt to next
+	ora	a	;done?
+	jz	vp4
+	cpi	1	;stand out?
+	jz	vp2
+	cpi	2	;stand end?
+	jz	vp3
+	call	cout	;print char
+	jmp	vp1
+vp2:
+	call	stndout	;enter standout mode
+	jmp	vp1
+vp3:
+	call	stndend	;exit standout mode
+	jmp	vp1
+vp4:
+	pop	psw	;restore A
+	xthl
+	ret
+
+	end
+

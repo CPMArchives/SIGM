@@ -1,0 +1,132 @@
+;TYPE
+;$STRING255= STRING 255;
+;$STRING80 = STRING 80;
+;$STRING0 = STRING 0;
+;BYTE = 0..255;
+;
+; VAR
+;C:CHAR;
+;NUMBER:INTEGER;
+;
+;FUNCTION LENGTH(X:$STRING255):INTEGER;EXTERNAL;
+	EXTD	L168,LENGTH  
+;PROCEDURE SETLENGTH(VAR X:$STRING0; Y:INTEGER);EXTERNAL;
+	EXTD	L169,SETLENGT
+;
+;{function to repeat "x" number of times a character"y";  especially
+;useful in write commands...
+;requires pascal/z's external functions length and setlength..}
+;
+;FUNCTION REPEAT_CHAR (X:BYTE; Y:CHAR):$STRING255;
+;LABEL 1;
+;VAR
+;RC:$STRING255;
+;I:INTEGER;
+;
+;BEGIN
+L170
+	NAME REPEAT_CHAR
+	ENTRY REPEAT_CHAR
+REPEAT_CHAR: 
+	ENTR	D,2,258
+;SETLENGTH(RC,0);
+	STMT	D,1
+	PUSH	IX
+	POP	H
+	DCX	H
+	DCX	H
+	PUSH	H
+	MOV	H,A
+	MOV	L,A
+	PUSH	H
+	CALL	L169
+;IF (I < 1) OR (I > 255) THEN GOTO 1;
+	STMT	D,2
+	MOV	L,-1(IX)
+	MOV	H,0(IX)
+	LXI	D,1
+	LESS	D,0
+	JC	L186
+	MOV	L,-1(IX)
+	MOV	H,0(IX)
+	LXI	D,255
+	GRET	D,0
+	JNC	L185
+L184
+L186	EQU	L184
+	STMT	D,3
+	CTRL	M,3
+	JMP	L171
+L185
+;
+;{note well:  this will permit writing any character, printable or
+; otherwise....e.g. a series of x's or a series of bells ringing!}
+;
+;FOR I:= 1 TO X DO APPEND(RC,Y);
+	STMT	D,4
+	MOV	0(IX),A
+	MVI	-1(IX),1
+	PUSH	IX
+	MOV	H,A
+	MOV	L,9(IX)
+	XTHL
+L213
+	MOV	D,M
+	DCX	H
+	MOV	E,M
+	XTHL
+	PUSH	H
+	GE	D,0
+	JNC	L214
+	STMT	D,5
+	PUSH	IX
+	POP	H
+	DCX	H
+	DCX	H
+	PUSH	H
+	LXI	H,255
+	PUSH	H
+	MOV	H,A
+	MOV	L,8(IX)
+	INR	H
+	PUSH	H
+	LXI	H,2
+	PUSH	H
+	CALL	L137
+	CTRL	M,5
+	POP	H
+	XTHL
+	INR	M
+	INX	H
+	JRNZ	L233
+	INR	M
+	JV	L234
+L233
+	JMP	L213
+L214
+	POP	D
+L234
+	POP	D
+;
+;1:
+	STMT	D,6
+L171
+;REPEAT_CHAR:=RC;
+	STMT	D,7
+	PUSH	IX
+	POP	H
+	DCX	H
+	DCX	H
+	RCHK	S,255
+	XCHG
+	PUSH	IX
+	POP	H
+	LXI	B,265
+	DADD	B
+	XCHG
+	LXI	B,256
+	LDDR
+;END;
+	STMT	D,8
+	EXIT	D,2
+

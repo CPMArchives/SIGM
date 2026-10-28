@@ -1,0 +1,174 @@
+M	SET	          0
+C	SET	          0
+F	SET	          0
+;type
+;byte = 0..255;
+;$string255 = string 255;
+;
+;var
+;answer:char;
+;procedure move_cursor(x,y:byte);external;
+	EXTD	L156,MOVE_CUR
+;procedure keyin (var cix:char);external;
+	EXTD	L157,KEYIN   
+;FUNCTION QUERY(X,Y:BYTE;MESSAGE:$STRING255;BELL:BOOLEAN):BOOLEAN;
+;
+;{function to move the cursor to position x,y, display an interrogative
+; message, ring a bell to alert the operator, if desired, and then accept
+; either an upper or lower case "y" or "n", in answer to the message.
+; This function returns a boolean TRUE if the answer to the question is
+; affirmative (yes).}
+;
+;
+;BEGIN
+L158
+	NAME QUERY
+	ENTRY QUERY
+QUERY:
+	ENTR	D,2,0
+;	REPEAT
+	STMT	D,1
+;	MOVE_CURSOR(X,Y);
+L160
+	STMT	D,2
+	MOV	H,A
+	LXI	B,266
+	PUSH	IX
+	DADX	B
+	MOV	L,0(IX)
+	POP	IX
+	MOV	H,L
+	PUSH	H
+	INX	S
+	MOV	H,A
+	RCHK	H,0,255
+	MOV	H,A
+	LXI	B,265
+	PUSH	IX
+	DADX	B
+	MOV	L,0(IX)
+	POP	IX
+	MOV	H,L
+	PUSH	H
+	INX	S
+	MOV	H,A
+	RCHK	H,0,255
+	CALL	L156
+;	IF BELL = TRUE THEN WRITE(CHR(7),MESSAGE) ELSE WRITE(MESSAGE);
+	STMT	D,3
+	MOV	H,A
+	MOV	L,8(IX)
+	MOV	A,L
+	CMPI	D,1
+	MOV	A,H
+	JNZ	L174
+	STMT	D,4
+	LXI	H,7
+	STMT	M,4
+	PUSH	H
+	LXI	H,769
+	XTHL
+	LXI	B,1
+	PUSH	B
+	MOV	H,L
+	PUSH	H
+	INX	S
+	LXI	H,1793
+	PUSH	H
+	LXI	B,256
+	PUSH	B
+	LXI	H,-256
+	DADD	S
+	SPHL
+	XCHG
+	PUSH	IX
+	POP	H
+	LXI	B,9
+	DADD	B
+	LXI	B,256
+	LDIR
+	LXI	B,265
+	CALL	L111
+	JMP	L199
+L174
+	STMT	D,5
+	LXI	H,1793
+	PUSH	H
+	LXI	B,256
+	PUSH	B
+	LXI	H,-256
+	DADD	S
+	SPHL
+	XCHG
+	PUSH	IX
+	POP	H
+	LXI	B,9
+	DADD	B
+	LXI	B,256
+	LDIR
+	LXI	B,260
+	CALL	L111
+L199
+;	KEYIN(ANSWER);
+	STMT	D,6
+	PUSH	IY
+	CALL	L157
+;	WRITE(ANSWER);
+	STMT	D,7
+	LXI	H,769
+	PUSH	H
+	LXI	B,1
+	PUSH	B
+	MOV	H,A
+	MOV	L,0(IY)
+	MOV	H,L
+	PUSH	H
+	INX	S
+	LXI	B,5
+	CALL	L111
+;	UNTIL ANSWER IN ['y','n','Y','N'];
+	STMT	D,8
+	CTRL	M,8
+	MOV	H,A
+	MOV	L,0(IY)
+	PUSH	H
+	CSET	D,0
+	LXI	D,121
+	CSET	D,1
+	LXI	D,110
+	CSET	D,1
+	LXI	D,89
+	CSET	D,1
+	LXI	D,78
+	CSET	D,1
+	MEMB
+	JNC	L160
+;	QUERY:= ( (ANSWER = 'Y') or (ANSWER = 'y') );
+	STMT	D,9
+	MOV	H,A
+	MOV	L,0(IY)
+	MOV	A,L
+	CMPI	D,89
+	MOV	A,H
+	JZ	L256
+	MOV	H,A
+	MOV	L,0(IY)
+	MOV	A,L
+	CMPI	D,121
+	MOV	A,H
+	JRNZ	L251
+L250
+L252	EQU	L250
+L255	EQU	L252
+L256	EQU	L255
+	INR	A
+L251
+	MOV	L,A
+	XRA	A
+	MOV	H,A
+	RCHK	H,0,1
+	MOV	2(IX),L
+;END;
+	STMT	D,10
+	EXIT	D,259
+

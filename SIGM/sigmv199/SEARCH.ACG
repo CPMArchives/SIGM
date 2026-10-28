@@ -1,0 +1,145 @@
+* DATE 08/27/84  12:45
+* search.cmd
+STOR t TO first
+STOR t TO more
+STOR CHR(PEEK (063)) TO dr
+DO WHIL more
+ IF first
+  ERAS
+  STOR 'Search for record by <L>ast name or <A>ny data in data base' TO prompt1
+  STOR '<B>ackward or <F>orward, <D>elete/Recall' TO prompt2
+  STOR '<E>dit, <P>rint, or <Q>uit searching' TO prompt3
+  STOR 'Record Search Module' TO mode
+  @ 1,25 SAY mode
+  @ 2, 0 SAY "+---------------------------------------"
+  @ 2,39 SAY "---------------------------------------+"
+  @ 3, 3 SAY "Lastname:"
+  @ 3,46 SAY "First & MI:"
+  @ 4, 5 SAY "Spouse:"
+  @ 4,46 SAY "Address as:"
+  @ 6, 6 SAY "Title:"
+  @ 7, 1 SAY "Company #1:"
+  @ 8, 9 SAY "#2:"
+  @ 9, 0 SAY "Co. Address:"
+  @ 9,51 SAY "Suite:"
+  @ 10, 7 SAY "City:"
+  @ 10,36 SAY "ST:"
+  @ 10,53 SAY "Zip:"
+  @ 12, 2 SAY "Home Addr:"
+  @ 12,53 SAY "Apt:"
+  @ 13, 7 SAY "City:"
+  @ 13,36 SAY "ST:"
+  @ 13,53 SAY "Zip:"
+  @ 14, 2 SAY "Telephone  Office:"
+  @ 14,46 SAY "Home phone:"
+  @ 15, 1 SAY "Salutation:"
+  @ 15,42 SAY "Send to office:"
+  @ 16, 4 SAY "Codes 1-"
+  @ 16,21 SAY "2-"
+  @ 16,32 SAY "3-"
+  @ 16,43 SAY "4-"
+  @ 16,55 SAY "5-"
+  @ 16,66 SAY "6-"
+  @ 17,50 SAY "Update:"
+  @ 18, 0 SAY "+---------------------------------------"
+  @ 18,39 SAY "---------------------------------------+"
+  @ 19,12 SAY prompt1
+  @ 20,12 SAY prompt2
+  @ 21,12 SAY prompt3
+ ENDI first
+ STOR f TO first
+ STOR 'L' TO command
+ STOR '                          ' to name
+ IF *
+  STOR 'Deleted' TO deleted
+ ELSE
+  STOR '       ' TO deleted
+ ENDI *
+ @ 1, 0 SAY deleted
+ @ 3,13 SAY lastname
+ @ 3,58 SAY fname
+ @ 4,13 SAY spouse
+ @ 4,58 SAY mr
+ @ 6,13 SAY title
+ @ 7,13 SAY company1
+ @ 8,13 SAY company2
+ @ 9,13 SAY caddress
+ @ 9,58 SAY suite
+ @ 10,13 SAY ccity
+ @ 10,41 SAY cst
+ @ 10,58 SAY czip
+ @ 12,13 SAY address
+ @ 12,58 SAY apt
+ @ 13,13 SAY city
+ @ 13,41 SAY st
+ @ 13,58 SAY zip
+ @ 14,21 SAY ophone
+ @ 14,58 SAY phone
+ @ 15,13 SAY dear
+ @ 15,58 SAY send
+ @ 16,13 SAY cs1
+ @ 16,24 SAY cs2
+ @ 16,35 SAY cs3
+ @ 16,46 SAY cs4
+ @ 16,58 SAY cs5
+ @ 16,69 SAY cs6
+ @ 17,58 SAY update
+ @ 22,46 SAY "What next?"
+ @ 22,57 GET command picture '!'
+ READ
+ DO CASE
+ CASE command = 'A'
+  DO search1.acg
+ CASE (command = 'B' .OR. command = ',')
+  SKIP -1
+ CASE command = 'D'
+  IF *
+   RECA
+  ELSE
+   DELE
+  ENDI
+ CASE (command = 'F' .OR. command = '.')
+  SKIP
+ CASE command = 'E'
+  DO edit.acg
+ CASE command = 'P'
+  DO print.acg
+ CASE command = 'L'
+  STOR CHR(PEEK (063)) TO dr
+  SET INDEX TO &dr.:lastname
+  STOR # TO rec:number
+  @ 19,00
+  @ 20,00
+  @ 21,00
+  @ 22,00
+  @ 19,12 SAY 'Please enter Last Name' GET name
+  READ
+  CLEA GETS
+  STOR TRIM(name) TO name
+  STOR !(name) TO name
+  FIND &name
+  @ 19,00
+* if it isn't in the file
+  IF # = 0
+   @ 20,00
+   @ 20,12 SAY name+' is not in the file'
+   @ 22,12 SAY 'Press RETURN to Continue'
+   SET CONSOLE OFF
+   WAIT
+   SET CONSOLE ON
+   GO rec:number
+   @ 20,00
+   @ 22,00
+  ENDI #=0
+  @ 19,12 SAY prompt1
+  @ 20,12 SAY prompt2
+  @ 21,12 SAY prompt3
+ CASE command = 'Q'
+  STOR f  TO more
+ ENDC
+ENDD
+RELE ALL
+STOR CHR(PEEK (063)) TO dr
+SET INDEX TO &dr.:lastname
+STOR t TO first
+

@@ -1,0 +1,200 @@
+SANDR.DOC
+
+
+                    'Search AND Replace'
+
+
+		(C) Copyright 1983 Garry Womack
+		All Rights Reserved
+
+			DISCLAIMER
+Soft Circuits, Inc. and the author make no claims or warranties, 
+either express or implied, with respect to the contents or accuracy 
+of this manual or with respect to the described software, their quality, 
+performance, merchantibility or fitness for any particular purpose.  This
+manual and the described software are sold 'AS IS' and the entire risk
+as to their quality and performance rests with the buyer.  The user must
+assume the entire risk of using the program.  Any liability of seller or
+manufacturer will be limited exclusively to product replacement or refund
+of the purchase price.
+The right is reserved to make any changes to this manual without
+obligation to notify any person of such changes.
+
+
+
+			DESCRIPTION
+This is a utility which will search for any string up to 255 bytes
+long (binary and/or ascii), part of which may contain wildcard characters
+and substitute a specified string up to 255 bytes long (binary and/or ascii),
+part of which may contain wildcard copy indicators.
+
+The original file is renamed to filename.BAK and the new file is renamed to
+the input file name.
+The source and destination disk may be specified.
+
+The command line:
+SANDR [d1:]FN.FT [d2:]
+	\    \	  \--optional destination drive spec (default drive used
+	 \    \		if not specified)
+	  \    \--source filename.filetype
+	   \-optional source drive spec (default drive used if not specified)
+
+A temporary file named FN.$$$ is used for the output file until processing
+is finished.  At that time the source file is renamed to FN.BAK and FN.$$$
+is renamed to FN.FT
+
+The number of matches/substitutions is printed to console after processing.
+
+note: CR is abbreviation for carriage return in following descriptions
+
+3 prompts then follow:
+
+
+
+
+
+
+
+PROMPT1:
+IS SOURCE FILE BINARY OR ASCII ? (B/A) ->
+enter either B or A  (this information is used to process the end of file
+minimizing the destination file length)
+
+PROMPT2:
+SEARCH=
+special characters for search prompt are
+	:	ascii indicator, only has significance when in binary input
+		mode or used as 1st character after SEARCH prompt
+		(at all other times it is interpreted as an ascii colon) 
+		-causes input mode to toggle to ascii (all following char-
+		 characters will be interpreted as ascii)
+	/	-causes input mode to toggle to binary (described under
+		 prompt3)
+	*	wildcard -will match any byte in search
+		cannot be the 1st character specified
+	CR	ends input string, a linefeed will also end input
+		a control C if typed as 1st character after prompt will
+		cause a CP/M warmboot
+
+PROMPT3:
+SUB===>
+special characters for substitution string prompt are
+	:	same definition as for prompt2
+	/	-causes input mode to toggle to binary
+		all following input is assumed to be in 2 digit hex format
+	0-9	hex digit
+	A-F	hex digit
+	,	optional byte separator (to aid user to keep byte specifiers
+		legibly separated)
+	*	wildcard copy indicator -see below
+	CR	same definition as for prompt2
+
+normal CP/M command line editing functions are used when entering an input
+line (if the 1st character typed is control C then warm boot is done)
+
+
+
+how search and replace works:
+relative byte			  1 1 1 1 1 1 1 1 1 1
+position index->1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 etc
+WINDOW--------->~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ each element==window(I)
+SEARCH STRING-->~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ each element==search(I)
+SUB STRING----->~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ each element==sub(I)
+
+the window length is the greater of the search string length or substitution
+string length (up to 255)
+
+note - window(1) is always defined as the 1st byte in window after the
+window is repositioned
+
+step#0: the window is slid to the beginning of the source file
+step#1: I is set to 1,then search(I) is compared to window(I),
+if match is not found--step#1A: window(1) is written to output file and the
+window is shifted to the right by 1, then step#1 is repeated
+if match is found--step#1B:  I=I+1, search(I) is compared to window(I)
+	if at anytime a match doesn't occur, then step#1A is next
+	if search(I) was specified with the wildcard character '*' then
+step#1B is next
+	if all bytes in the search string match (up to the length of the
+	search string) all the bytes in the window then:
+step#2: I=1, subcnt is set to the length (in bytes) of substitution string
+step#2A:if subcnt=0 then step #3 is next
+	if sub(I) was not specified as the wildcard '*' then sub(I) is
+	written to the output file, I=I+1, subcnt=subcnt-1, then step#2A
+	if sub(I) was specified as the wildcard '*' then window(I) is
+	written to the output file, I=I+1, subcnt=subcnt-1, then step#2A
+step#3: the window is shifted right for the # of bytes in search string
+	then step#1
+
+EXAMPLES:
+SEARCH=:brown dog
+	\	\-string to find
+	 \-ascii mode (the following characters interpreted as ascii)
+SUB===>:black dog/0D,0A
+        \  \      \\ \ \-hex for linefeed
+         \  \      \\ \-comma (makes reading for user easier) optional
+          \  \      \\-hex for carriage return
+           \  \      \-binary mode indicator
+            \  \-ascii string
+             \-ascii indicator
+every occurrance of 'brown dog' is replaced with 'black dog' and a CR LF
+
+SEARCH=:b**** dog
+SUB===>:black********
+if     'beige dog is ' is in the source file then when
+       'beige dog' is found it would be replaced with
+       'black dog is '
+if     'brown dog can' is in the source file then when
+       'brown dog' is found it would be replaced with
+       'black dog can'
+
+
+
+ SEARCH=/0d0a******09
+ SUB===>/0D0A******::/09  (note that the 1st ':' toggles to ascii mode
+			so I wouldn't have to look up hex code for ':')
+if	CRLF'label3'TAB is in the source file it would be replaced with
+	CRLF'label3:'TAB   (TAB is the tab byte 09hex)
+this is an example of how a colon could be inserted after labels in a
+source file for an assembler, by specifying the search to start with
+CRLF, this forces the match to occur only at the beginning of a line
+
+ SEARCH=:      	(6 ascii spaces)
+ SUB===>/09
+this replaces all occurances of 6 contigious spaces with a tab (decreases
+file length)
+
+ SEARCH=/09
+ SUB===>:       (6 ascii spaces)
+expands all tabs in file to 6 ascii spaces
+
+ SEARCH=/0C
+ SUB===>        (null or empty string)
+removes all form feeds from file
+
+NOTE:	a literal '*' must be specified in binary mode (hex) in SEARCH or SUB
+	a literal ':' must be specified in either binary or after an
+earlier':'
+	a literal '/' must be specified in binary mode in hex
+
+
+ SEARCH=/cd,05,00
+ SUB===>:CALL BDOS
+could search a '.COM' file for all occurances of a call to BDOS with an
+ascii statement 'CALL BDOS', the file could then be examined by DUMPA.COM
+or DDT dump to find out if and where bdos calls were in a program
+
+ SEARCH=/1B**
+ SUB===>:^^^  ( 3 up arrows)
+could detect if any 3 byte escape sequences existed in an ascii source file
+(they will now appear as ^^^ in ascii file)
+
+If it is desired to just find out the number of occurances of a byte/string
+in a file, just enter search string, and '*' in the substitution string for
+each byte in the search string- the file will not be altered but the count
+of the occurances will be shown.
+
+
+end.
+
+

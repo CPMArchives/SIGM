@@ -1,0 +1,82 @@
+
+
+
+
+
+
+
+                                 Q W I K K E Y
+
+
+
+                        A Keyboard Redefinition Program
+                               V1.1  20-Sep-1983
+
+
+                        Copyright (c) 1983 by Tony Fleig
+             QWIKKEY may be used for non-commercial purposes only.
+              No commercial use of QWIKKEY may be made without the
+                      author's express written permission.
+
+
+
+             QWIKKEY allows any key(s) on your keyboard to  be  replaced
+        by  a  character  string  of  your  choosing.  The string can be
+        anything,  but  would  most  usefully  be  a  frequently  issued
+        command.   Keys  may  be defined at any time, even while you are
+        running a program (except WORDSTAR, in this version  at  least).
+        Key  definitions  remain across warm boots, but are lost on cold
+        boots;  the utility is meant to be used  on-the-fly,  to  define
+        commands  as you need them, rather than redefining a set of keys
+        for a particular program.
+
+             Install QWIKKEY by running the  QWIKKEY.COM  program  (e.g.
+        A>QWIKKEY  -  this will  have  to be done after each cold boot).
+        QWIKKEY  will  then   prompt  for  an   "attention"   character.
+        This is the character which will signal QWIKKEY that you wish to
+        enter  a new key definition.  The best choice for this character
+        is a character that is not used for any other purpose  (commonly
+        a  control  character).  QWIKKEY positions itself just below the
+        CCP and  intercepts  all  console  input,  looking  for  defined
+        characters.   After  running QWIKKEY, no characters are defined,
+        so your system should behave just as it did before.
+
+             To define a key, enter the attention  character  -  QWIKKEY
+        will  prompt  with:   "Key:".   At this point, press the key you
+        wish  to  define  (control  keys  are  generally   popular   for
+        redefinition).   After echoing the key entered, followed by "=",
+        QWIKKEY will now  wait  for  the  definition.   Definitions  may
+        contain  any  character  including  carriage returns, line feeds
+        etc.  (note that a carriage return is echoed  as  "^M" and  line
+        feed as "^J") except ^Z. ^Z is used to terminate the definition.
+        Example:
+
+                  A>Key: ^A = PIP A:=B:*.*[V]^M  <--- ^Z here to end
+
+
+             If you want to remove a definition, simply define a key  to
+        be  itself.  There is a limit of 16 definitions of 30 characters
+        each.
+
+QWIKKEY                                                                   Page 2
+
+
+             This is version 1.1, and was really done just to see if the
+        concept   was  valid.   It  appears  to  work  fine,  with  some
+        drawbacks:  XSUB  thinks  it's  already  loaded  if  QWIKKEY  is
+        installed,  and  therefore  is unusable, WORDSTAR overwrites the
+        CCP and everything below it as far as I  can  tell,  wiping  out
+        QWIKKEY,  and itself in the process.  There must be other things
+        that are broken by QWIKKEY V1.1 that I haven't discovered.   For
+        V2.0,  I plan to include the ability to store key definitions in
+        a file and retrieve them at will, and the capability of handling
+        keys  that  generate  escape  sequences,  such  as the alternate
+        keypad mode of the DEC VT100 terminal.  It  also  occurs  to  me
+        that  this  same technique could be applied to output as well as
+        input, allowing a program to send, for example, escape sequences
+        peculiar  to the Lier-Siegler ADM-3A, but have the corresponding
+        VT100 escape sequences delivered to the console terminal.
+
+             My  thanks   to  Gary  Novosielski   for   the   relocation
+        technique used in version 3.0 of his UNSPOOL program.
+

@@ -1,0 +1,68 @@
+;WILDEX.A86 as of 04/27/84
+;S. Kluger
+;
+; ENTRY:
+; [BX] = buffer
+; [DX] = afn fcb
+;
+; EXIT:
+; BX = number of files
+; AL = 0 = error
+; buffer contains BX filenames of 16 char each
+;
+sfirst	equ	17
+snext	equ	18
+;
+wildex:	mov	word ptr bufptr,bx
+	mov	bx,0
+	mov	word ptr count,bx
+	mov	cl,sfirst
+	push	dx
+	int	224
+	pop	dx
+	cmp	al,0ffh
+	jnz	good
+	ret
+;
+good:	call	moven
+wloop:	mov	cl,snext
+	push	dx
+	int	224
+	pop	dx
+	cmp	al,0ffh
+	jz	done
+	call	moven
+	jmps	wloop
+;
+done:	or	al,al
+	mov	bx,word ptr count
+	ret
+;
+moven:	push	dx
+	mov	bx,word ptr bufptr
+	add	al,al
+	add	al,al
+	add	al,al
+	add	al,al
+	add	al,al
+	add	al,80h
+	mov	dl,al
+	mov	dh,0
+	mov	cl,16
+movlp:	mov	si,dx
+	mov	al,[si]
+	mov	[bx],al
+	inc	bx
+	inc	dx
+	dec	cl
+	jnz	movlp
+	mov	word ptr bufptr,bx
+	pop	dx
+	mov	bx,word ptr count
+	inc	bx
+	mov	word ptr count,bx
+	ret
+;
+bufptr	dw	0
+count	dw	0
+=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`[BX] = number of filesä; AL = 0 = errorä; buffer contains BX filenames of 16	abx]ä	endä

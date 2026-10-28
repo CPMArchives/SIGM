@@ -1,0 +1,130 @@
+Z-80/8080 TDL BASED DISASSEMBLER
+
+The program will disassemble any Z-80 or 8080 object program
+and reconstruct a TDL assembly format compatible source file
+on the console or disk. The object file resides in memory at
+any location up to the starting address of the disassembler.
+Binary files may  be loaded  at any time and  utilities are
+provided to manipulate and examine loaded files. Disassembly
+may be effected  in multi-segment passes,  with each segment
+starting at any location  and ending at  any location within
+the range  0000-ORIGIN.  The latter  may or  may not  be the
+execution locations   of   the  object   program.  For  each
+segment/pass, run-time options may be specified as follows:
+
+	[a] Use the  symbol table  for the label
+	field and address field (see option g)
+
+	[b] Do not  initialize the  symbol table
+	nor the disk  source file  (see option i
+	for  exception).  Use   this  option  to
+	append entries to  the symbol  table and
+	new lines to the disk file.
+
+	[c] Build symbol  table using  the Lxxxx
+	format    for     extended     reference
+	instructions. (see options  a and  g for
+	execptions)
+
+	[d] Generate labels Lxxxx instead of the
+	default HEX values xxxxH.
+
+	[e] Generate ASCII  characters in quotes
+	depending on option  f.  If option f  is
+	true,  all  printable  ASCII  characters
+	will be placed  in quotes  following the
+	.Byte pseudo  opcode.  If  option  f  is
+	false, all two operand instructions with
+	data will  be followed  as a  comment by
+	the quoted ASCII character corresponding
+	to the data.
+
+	[f] Generate .BYTE pseudo opcode instead
+	of  default  assembly   code.  Use  this
+	option   for   proper   disassembly   of
+	segments consisting of  tables and ASCII
+	strings.
+
+	[g] Normally the operands  of LXI instr.
+	are treated as  2 byte  data rather than
+	as an address.  Use this  option to over
+	ride this  default.  If  this  option is
+	selected, the  2  byte  operand  of  LXI
+	instructions will be  used to  build the
+	symbol table and  if already  there, the
+	symbol entries will be  used in place of
+	the default HEX format.
+
+	[h] Write/Build  a  reconstructed SOURCE
+	FILE in disk and  in a compatible format
+	ready for re-assembly  by the  TDL MACRO
+	RELOCATING ASSEMBLER. If the source file
+	is new, you  will  be  prompted  for the
+	filename.
+
+	[i] Restart the disk  file regardless of
+	option b. Use  this option  to over ride
+	the APPEND mode  without  affect  on the
+	specified action on the symbol table.
+
+	[j] Close the source  file at the normal
+	termination of this segment/pass.
+
+	[k] Suppress  console  output.  Use this
+	option  during  symbol   table  building
+	pasess to expedite disassembly.
+
+ALL OPTION ARE SELECTED  WITH THE 'O'   COMMAND. ALL OPTIONS
+ARE INITIALIZED OFF. EACH TIME THE 'O'  COMMAND IS USED, ALL
+DESIRED OPTIONS MUST  BE SELECTED  SINCE THE  COMMAND RESETS
+EACH OPTION.
+
+The  following   describes   the   command   mode   of   the
+disassembler.  All line   editing   features   of   CPM  are
+available in the command  mode except Control-C.  DO NOT USE
+CONTROL-C TO RETURN TO CPM.
+
+RUBOUT		delete and echo the last character typed
+
+ctl-U		delete entire line
+
+ctl-X		(same as ctl-U)
+
+ctl-R		retype current line
+
+ctl-E		physical end of line
+
+ctl-S		stop the console output temporalily
+
+D aaaa,bbbb	Disassemble memory from start address aaaa to
+		end address bbbb
+
+R drive:file	Read a binary file into memory. All files must
+		have a 'COM' extension. Files are loaded at
+		start address 100H and the length of the file
+		will be displayed at the console.
+
+O a,b,c,...	Set runtime options. All options are reset
+		with this command and selectively set.
+
+Q		Quit session and return to CPM. The number of
+		current symbol table entries is displayed.
+
+M aaaa,bbbb,cccc	Move memory starting at aaaa and 
+			ending at bbbb address cccc.
+
+H aaaa,bbbb	Hex math. The sum and difference will be
+		displayed.
+
+S aaaa,bbbb	Show memory in HEX.
+
+T aaaa,bbbb	Type memory in ASCII.
+
+C		Close source file. Use this command when write
+		errors occur or end of medium.
+
+	---ALL PARAMETERS ARE IN HEX ---
+
+AUTHOR: Timothy Mark Burke
+DATE:   October, 1979
+

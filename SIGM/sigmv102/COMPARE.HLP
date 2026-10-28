@@ -1,0 +1,203 @@
+File Comparison Utilities Under ZCPR2
+CRC Check Utility Under ZCPR2
+Examples
+:File Comparison Utilities Under ZCPR2
+
+     TwÔ† utilitieÛ† arÂ† provide‰ witË ZCPR≤ tÔ† comparÂ† filesÆ  ç
+Both utilities are simple in form to use.  These utilities are:
+
+     COMPARE -- Compares two files by reading one, computing its
+                    CRC value, saving its CRC and size, and then
+                    reading the other and seeing if they match
+
+     DIFF -- Prints out a difference listing between two files;
+                    different bytes encountered at the same
+                    relative displacements from the beginning of
+                    thÂ fileÛ arÂ printe‰ iÓ hexadecimal¨
+                    decimal, and ASCII forms
+
+
+     These commands are invoked by the following forms:
+
+          COMPARE or COMPARE //                   <-- Print Help
+          COMPARE dir:file1.typ,dir:file2.typ M   <-- Compare
+
+          DIFF or DIFF //                         <-- Print Help
+          DIFF dir:file1.typ,dir:file2.typ M      <-- Compare
+
+     ThÂ† filÂ specÛ musÙ bÂ unambiguouÛ oÚ aÓ erroÚ wilÏ resultÆ  ç
+ThÂ DIR∫† prefi¯ iÛ optional¨† an‰ ma˘ bÂ · name‰ director˘ oÚ† · ç
+DU: form.
+
+     ThÂ "M¢ iÛ optional¨ and¨ iÊ present¨ selectÛ · MultiplÂ RuÓ ç
+ModÂ† iÓ whicË thÂ useÚ iÛ allowe‰ tÔ changÂ diskÛ aÛ hÂ desires¨ ç
+· COMPAR≈ oÚ DIF∆ iÛ done¨† an‰ theÓ thÂ procesÛ continueÛ† untiÏ ç
+the user aborts it.
+
+:CRC Check Utility Under ZCPR2
+
+     ThÂ† CR√† ChecÎ Utilit˘ distribute‰ witË ZCPR≤ computeÛ† CR√ ç
+valueÛ† foÚ† · lisÙ oÊ filesÆ†  IÙ useÛ thÂ samÂ† CR√† polynomiaÏ ç
+employe‰ b˘ KeitË PeterseÓ iÓ hiÛ CRCÀ program¨† and¨† naturally¨ ç
+the values come out the same.
+
+     ThÂ† CR√ ChecÎ Utilit˘ computeÛ thÂ CR√ valueÛ oÊ · selecte‰ ç
+seÙ† oÊ fileÛ an‰ printÛ ouÙ thÂ filÂ† names¨† theiÚ† sizes¨† an‰ ç
+theiÚ CR√ valueÛ iÓ hexadecimalÆ  ¡ lisÙ oÊ ambiguouÛ fileÛ nameÛ ç
+ma˘† bÂ† provide‰† tÔ CRC¨† an‰ iÙ alsÔ respondÛ tÔ ·† serieÛ† oÊ ç
+options.
+
+     The general form of the CRC command is:
+
+          CRC dir:afn1,dir:afn2,... ooo...
+
+     IÓ† alÏ† ambiguouÛ† filÂ† references¨† thÂ† DIR∫† prefi¯† iÛ ç
+optionalÆ†  ThiÛ prefi¯ ma˘ bÂ · name‰ director˘ oÚ ·† DU∫† formÆ  ç
+The options available under CRC are:
+
+
+          C - Comment Output; the user is given an opportunity
+                    to enter comments for each file
+
+          D - Disk Output; send output to the disk file CRC.CRC
+                    as well as to the console
+
+          I - Inspect and approve file before CRC is computed
+
+          P - Printer Output; send output to the printer as
+                    well as to the console
+
+     ThesÂ optionÛ ma˘ bÂ combine‰ iÓ an˘ manneÚ desiredÆ†  ¡ CR√ ç
+command of the form "CRC" or "CRC //" prints a help message.
+
+:Examples
+
+B7>compare help:lu.hlp,zcpr:lu.hlp
+COMPARE  Version 1.4
+Source File 1 -- A 16: LU      .HLP
+Source File 2 -- A 11: LU      .HLP
+** Files are Identical **
+
+B7>compare help.txt,s100.txt
+COMPARE  Version 1.4
+Source Fie 1 -- B  7: HELP    .TXT
+Source File 2 -- B  7: S100    .TXT
+** Files are Different **
+
+B7>compare help:lu.hlp,c0:
+COMPARE  Version 1.4
+Source File 1 -- A 16: LU      .HLP
+Source File 2 -- C  0: LU      .HLP
+LU      .HLP  File Not Found
+
+
+B7>compare help:du2.hlp,c0:
+COMPARE  Version 1.4
+Source File 1 -- A 16: DU2     .HLP
+Source File 2 -- C  0: DU2     .HLP
+** Files are Identical **
+
+B7>compare help:du2.hlp,c0: m
+COMPARE  Version 1.4
+Source File 1 -- A 16: DU2     .HLP
+Source File 2 -- C  0: DU2     .HLP
+  Change Disks if Desired and Type ^C or A to Abort or <RETURN> to Continue - 
+Source File 1 -- A 16: DU2     .HLP
+Source File 2 -- C  0: DU2     .HLP
+** Files are Identical **
+COMPARE  Version 1.4
+Source File 1 -- A 16: DU2     .HLP
+Source File 2 -- C  0: DU2     .HLP
+  Change Disks if Desired and Type ^C or A to Abort or <RETURN> to Continue - 
+
+
+B7>diff help:du2.hlp,c0:
+DIFF  Version 1.6
+Source File 1 -- A 16: DU2     .HLP
+Source File 2 -- C  0: DU2     .HLP
+NO Differences Noted in Files
+
+
+
+B7>save 1 test.bin
+B7>zsid test.bin
+ZSID VERS 1.4
+NEXT  PC  END
+0200 0100 A2FF
+#s100
+0100 C3 0
+0101 70 1
+0102 01 2
+0103 FF .
+#s1f0
+01F0 09 0
+01F1 3C 0
+01F2 3D 0
+01F3 32 .
+#^C
+B7>save 1 test2.bin
+
+
+B7>compare test.bin,test2.bin
+COMPARE  Version 1.4
+Source File 1 -- B  7: TEST    .BIN
+Source File 2 -- B  7: TEST2   .BIN
+** Files are Different **
+
+B7>diff test.bin,test2.bin
+DIFF  Version 1.6
+Source File 1 -- B  7: TEST    .BIN
+Source File 2 -- B  7: TEST2   .BIN
+ Rel Offset   B  7: TEST    .BIN     B  7: TEST2   .BIN
+ Hex    Dec       Hex  Dec Asc           Hex  Dec Asc
+0000      0        C3  195  C             00    0  .
+0001      1        70  112  p             01    1  .
+0002      2        01    1  .             02    2  .
+00F0    240        09    9  .             00    0  .
+00F1    241        3C   60  <             00    0  .
+00F2    242        3D   61  =             00    0  .
+
+
+B7>crc *.* di
+CRC  Version 2.0
+
+** File Inspection **
+COMPARE .HLP -- Select (Y/N/S=Skip Rest/Q=Quit/other=Y)? Y        Selected
+CRC     .CRC -- Select (Y/N/S=Skip Rest/Q=Quit/other=Y)? N        NOT Selected
+HELP    .TXT -- Select (Y/N/S=Skip Rest/Q=Quit/other=Y)? Y        Selected
+S100    .TXT -- Select (Y/N/S=Skip Rest/Q=Quit/other=Y)? S
+** Inspection Complete **
+
+    1 File: COMPARE .HLP -- Size:     4K -- CRC: 9F 8E
+    2 File: HELP    .TXT -- Size:     4K -- CRC: 77 6E
+
+B7>type crc.crc
+
+    1 File: COMPARE .HLP -- Size:     4K -- CRC: 9F 8E
+    2 File: HELP    .TXT -- Size:     4K -- CRC: 77 6E
+
+B7>crc *.* icd
+CRC  Version 2.0
+
+** File Inspection **
+COMPARE .HLP -- Select (Y/N/S=Skip Rest/Q=Quit/other=Y)? Y        Selected
+CRC     .CRC -- Select (Y/N/S=Skip Rest/Q=Quit/other=Y)? N        NOT Selected
+HELP    .TXT -- Select (Y/N/S=Skip Rest/Q=Quit/other=Y)? Y        Selected
+S100    .TXT -- Select (Y/N/S=Skip Rest/Q=Quit/other=Y)? S
+** Inspection Complete **
+
+    1 File: COMPARE .HLP -- Size:     4K
+        Comment? Help File for COMPARE and DIFF and CRC
+ -- CRC: 9F 8E        Comment: Help File for COMPARE and DIFF and CRC
+    2 File: HELP    .TXT -- Size:     4K
+        Comment? Note on Help Files
+ -- CRC: 77 6E
+        Comment: Note on Help Files
+
+B7>type crc.crc
+
+    1 File: COMPARE .HLP -- Size:     4K -- CRC: 9F 8E
+        Comment: Help File for COMPARE and DIFF and CRC
+    2 File: HELP    .TXT -- Size:     4K -- CRC: 77 6E
+        Comment: Note on Help Files
+

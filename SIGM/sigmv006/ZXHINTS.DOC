@@ -1,0 +1,143 @@
+
+*****	Notes on ZX65R v 2.1 and ZXLDR v 2.1	9/80	RMK
+
+	The ZX65R program and source listings on this disk represent a
+substantial improvement over those published in DDJ #47.  The 'R' in the
+program names means 'relocatable', and that means that the same ZX65
+.COM file will now run on any size CP/M machine (except Heath/Zenith,
+TRS80, and any others using odd memory configurations).  This has been
+accomplished mainly through a new loader, ZXLDR.  This loader contains
+a complete relocation map for ZX65R.  It finds your CBIOS by examining
+the warm start vector at 0001H.  It then insinuates ZX65 just below CBIOS,
+after first calculating and inserting new values for all non-relocatable
+operands in the 'prototype' ZX65R code.  The loader and the main program
+appear as two separate source modules which have been concatenated using
+a linking loader, resulting in the run-able ZX65.COM file.  To run the
+program, transfer ZX65.COM onto a CP/M system disk using PIP.  Boot up
+this disk in drive A, and place a blank disk that you want to use for
+6502 programs and data in drive B.  Type 'ZX65'.  Drive B will operate
+briefly and the ZX65 prompt will appear on the console.  You are now in
+ZX65's command mode.  Refer to the Dobb's article or file ZXTAB1.DOC for
+a command summary.
+
+	If you compare the source code for ZX65R with that published
+in DDJ, you will notice what appear to be substantial differences in the
+listing.  The most obvious change is in the header comments and the 'eq-
+uates' which set up memory locations for the system. Even though this
+looks quite a bit different, it is for the benefit of relocatability and
+has no effect on the operation of the program once it is loaded.  If you
+will look a little further and compare the actual instructions, you will
+see that they are mostly unchanged.  There are two exceptions. The first
+involves the code from line 339 to line 428. These are the instruction
+processors for JMP, JSR, RTS, and RTI, and the new code corrects for im-
+proper stack handling in the original version. The second change is down
+near the end of the code in the console I/O handler. A patch there accom-
+odates a few BIOS console output routines which do not return with the
+output character still in the accumulator.
+
+	Notice that the memory locations for the USER subroutine link-
+ages shown in Table 3 apply only after loading is complete.  To insert
+your own subroutine addresses, the best method is to load ZX65.COM under
+DDT. You will then find the USER jump table at the following locations:
+
+	USR0		0FCCH *		* The first two locations are
+	USR1		0FCFH *		initialized to console I/O and
+	USR2		0FD2H 		will be relocated during load-
+	USR3		0FD5H		ing. The last three will not
+	USR4		0FD8H		be relocated.
+
+You may also wish to change the 16-bit 'BRK' vector:
+
+	BRK VECTOR	0FDBH		Not relocated during loading.
+
+Once you have inserted the desired changes under DDT, you may either ex-
+ecute the program directly by typing G100, or save it to disk following
+warm start with the command 'SAVE 20 ZX65.COM'.
+
+
+	CP/M COMPATABILITY: As of this writing, I have not yet succum-
+bed to Digital Research's efforts to get me to buy the new CP/M 2. From
+what I have been able to figure out, it offers very little to me in the
+way of advantages. Suffice it to say that ZX65 was written and debugged
+using V 1.4, and I cannot say whether or not it will run under any other
+version. (My guess is that it will work with V 1.3, but not v 2.X.) The
+main reason for any incompatibility will probably have to do with the
+fact that my self-contained mini DOS operates the disks and console dir-
+ectly through CBIOS rather than by using calls to BDOS which is the more
+conventional method. (There is a good reason for this madness which I
+will explain shortly.) In any event, since you have spent your hard-
+earned nickels for this copy, I suspect that you are resourceful enough
+to overcome such problems and implement any necessary patches. If you
+do come up with a running version patched for CP/M 2 or for some other
+disk format (i.e. North Star etc.), how about submitting it for possible
+publication in Dobb's? (No, I'm not on their payroll, but they are re-
+ceptive to this type of material and lots of 'hard core' dedicated
+computerists read their mag.)
+
+	SOME NITTY-GRITTY: As promised, here is the explanation of why
+I have interfaced through CBIOS rather than using BDOS: If you have
+done any work at all with the 6502 processor, you will recall that page
+zero of memory (0000H to 00FFH) is sacred to it. There are short forms
+of many instructions for use on page zero, and the very powerful indirect
+indexing modes always use page zero. Now ZX65 by design uses no memory
+mapping at all...that is, if your 6502 program is ORG'd at 2000H, that
+is exactly where you will load it. (This is in contrast to at least one
+TRS80-based simulator that I know of.) Having gone this far, it is only
+reasonable to expect that page zero will be totally available to the
+6502 program. As you have probably realized by now, the catch here is
+that BDOS also likes page zero, and uses large chunks of it during disk
+accesses. With one possible limitation (which I will discuss in a bit)
+ZX65 totally removes the host system from page zero...even the vectors
+at the bottom of memory need not be saved.  ZX65 is, in fact, confined
+to the top 1100H bytes of user memory (more if your CBIOS is longer than
+512 bytes), and ALL space below that is available for 6502 programs and
+data. The one possible conflict that I mentioned is system-dependent,
+and may or may not apply in your case. CP/M V 1.4 has a reserved 'scr-
+atch' area of 16 bytes located from 0040H to 004FH. Some disk controllers
+use this area for temporary data storage during all disk transfers, whe-
+ther initiated by CP/M or not. If this is true of your controller, then
+you have very little choice but to accept the fact that this portion of
+page zero will be messed up whenever you do a disk access from ZX65.
+There is still one alternative (I know because I did it!): you may be
+able to move this scratch area out of page zero into high memory. Even
+if you have this conflict, 6502 programs that use page zero only for
+temporary data storage will probably run normally unless the 6502 pro-
+gram itself accesses the disk. (Yes, it is possible, using the 'system'
+subroutine calls.)
+
+	ZXDOS COMMENTS: Having destroyed BDOS as described above, I was
+obliged to include an embedded disk operating system in ZX65. Now, ZXDOS
+will never win any awards for versatility, but it is, I think, adequate
+for the application. All internal disk access is confined to drive B (a
+two drive system is assumed). ZXDOS files are not CP/M compatible. A dir-
+ectory is maintained on track zero, and the remainder of the disk is
+available for program/data storage. Each directory entry is 16 bytes long,
+and contains the file name (format same as CP/M but file type has no spe-
+cial meaning), the load address, the disk location, the number of sectors,
+and an active/dead flag byte. During a directory display or search, the
+directory is paged through a buffer within ZX65 one sector at a time,
+continuing until an 'end of directory' mark is located. Files are stored
+sequentially and on sequential sectors (no interleaving). A new file will
+normally be appended at the tail end of existing files, unless the entire
+file will fit into the space allocated for a dead file. Thus a rudimentary
+form of dynamic disk space allocation is used, but a full disk will still
+contain quite a few empty slots. Killing a file does not actually erase
+anything, but simply resets the active status flag in the directory for
+that entry. The 'initialize' command writes a properly formatted empty
+directory to the disk.
+
+	Finally, it is be possible to use ZX65 with only one drive. To
+implement this, load ZX65.COM using DDT, and change the value at address
+484H from '01' to '00'.  Save the modified code back to a system disk
+following warm start using a 'SAVE 20 ZX65.COM' command. To operate in
+this mode, first start ZX65, then immediately remove the system disk
+and insert the ZX65 data disk.  From this point operation will be the
+same. This works because once loaded, ZX65 does not itself require any
+further disk access.
+
+	CONCLUSION: Have fun with ZX65!		-RMK
+
+
+e
+ZX65 data disk.  From this point operation will be the same. This works
+because once loaded, ZX65 does nеееееееее

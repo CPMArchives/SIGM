@@ -1,0 +1,281 @@
+[REGRS.DOC of JUGPDS Vol.12]
+
+      ** MULTIPLE LINEAR REGRESSION ANALYSIS WITH INTERVAL ESTIMATION **
+                 (¾Ý¹² ¼Þ­³¶²· ÌÞÝ¾· Ä ¸¶Ý½²Ã²)
+
+	Yoshio MONMA (JUG-CP/MS No.43)			85-03-21	
+	1514-63 Takata-cho, Khohoku-ku
+	Yokohama 223, Japan
+        Phone: 03-719-2271 (office), 045-543-5232 (home)
+
+1. INTRODUCTION
+	The multiple regression analysis is one of statistical methods 
+commonly used in various applications.	Although this technique is well-
+developed for the mainframe machines from early stage of computer usage,
+here is a version for CP/M on the micro.  The program has been written 
+in Microsoft's FORTRAN-80 (Version 3.44) under CP/M-80 V.2.2.
+
+	Due to the restriction of memory space available in CP/M, I had
+to split the program into two parts: REGRS1.FOR(REG1.COM) and 
+REGRS2.FOR(REG2.COM).  The main job of input data, the regression 
+procedure, the analysis of variance, and the interval estimation are
+processed by REGRS1, while REGRS2 plots the scatter diagrams of the
+residuals to the LST: device (printer).
+
+2. THEORY
+	Since there are many good text books in this field [1-5],
+I won't repeat the details of mathematical manipulation which will
+require several pages to be complete.  Instead only minimal informa-
+tion needed to use the present program is given in the followings.
+
+	The present version is largely based on the programs shown in
+the book titled ¢¶²·ÌÞÝ¾·Ä ¼­¾²ÌÞÝÌÞÝ¾·£ ("Regression Analysis and 
+Principal Component Analysis") by T. Haga and S. Hashimoto [1].  Those
+who want the general idea and the theoretical background should get 
+this book.  What I have added here to the original version by them,
+which was written in the conventional Fortran language for the 
+machines of minicomputer or above, is the implementation of statis-
+tical interval estimation (Ä³¹²Ã· ¸¶Ý ½²Ã²).  Also I owe it to 
+Professor T. Sawa through his exellent text book [2].
+
+	The data matrix looks like as follows:
+                                                                       
+               1      2          J         JP    JPY  JPY1             
+              X1     X2   ...   XJ   ...   XP   XP+1  XP+2             
+         1  X(1,1) X(1,2) ... X(1,J) ... X(1,P) Y(1)   1               
+         2  X(2,1) X(2,2) ... X(2,J) ... X(2,P) Y(2)   1               
+         .    ...    ...  ...   ...  ...   ...   ..    .               
+         .    ...    ...  ...   ...  ...   ...   ..    .               
+         I  X(I,1) X(I,2) ... X(I,J) ... X(I,P) Y(I)   1               
+         .    ...    ...  ...   ...  ...   ...   ..    .               
+         .    ...    ...  ...   ...  ...   ...   ..    .               
+        IN  X(N,1) X(N,2) ... X(N,J) ... X(N,P) Y(N)   1               
+                                                                       
+where JP is the number of independent variables, and IN is the
+data (sample) size.
+
+	For I=1,IN data points the multiple regression model is:
+                                                                      
+             Y(I) = B0 + B1*X(I,1) + B2*X(I,2) + ... + BP*X(I,P),      
+                                                                       
+where B0,B1,B2,...BP are the partial regression coefficients.     
+                                                                       
+3. EXPLANATION OF THE PROGRAM
+   3.1	Nomenclature 
+
+     IN	       No. of Samples (n)
+     JPY       No. of Variables (p+1) 
+     MPL       Degree of Polynomial Regression (When JPY=2)
+     INP0      File reference no. for data input device (FORT0X.DAT)
+     INP1      File reference no. for X(I,J), usually INP1=INP0
+               INP0 and INP1 must be between 6 and 9 (FORT06.DAT - 
+               FORT09.DAT.
+     KDTA      When KDTA=1 no out put of the raw data
+     ISWP      If ISWP=1, the computation process is output
+     IRES      When IRES=1, no output of residual table and graph
+     JGRH      If JGRH=1, graphs of residuals vs. X(J) are output.
+                                                                       
+     INTV       Index of Interval Estimation:
+          = 0   Average (Mean Estimate) only,
+          = 1   Avg. + Confidence Intervals (CI),                      
+         ¼Ý×²-¸¶Ý = Ä¸Ã² É ¾ÂÒ²-ÍÝ½³Á Æ À²µ³½Ù ¼Þ­³¿Þ¸-ÍÝ½³ (Y) É      
+                    ·À²Á ¶Þ ICFL(%) É ¼Ý×²ÄÞ ÃÞ Ì¸ÏÚÙ Ø®³²·.           
+          = 2   Avg. + Simultaneous Conf. Intervals (SCI),             
+         ÄÞ³¼Þ-¼Ý×²-¸¶Ý = 1 ¸Ð É Ë®³ÎÝ-¶Ý¿¸Á DATA ¶× 1Â É ¶²·¼· ¦      
+              ½²Ã² ¼, Ì¸½³º É ºÄÅÙ ¾ÂÒ²-ÍÝ½³ Æ À²µ³½Ù Y É ·À²Á ¶Þ      
+              ¼Ã²½Ù ¼Ý×²ÄÞ ÃÞ Ì¸ÏÚÙ Ø®³²·.                             
+          = 3   Avg. + Prediction Intervals (PI),                      
+         Ö¿¸-¸¶Ý = Ä¸Ã² É ¾ÂÒ²-ÍÝ½³ Æ À²µ³½Ù Y ¦ 1¶² ÀÞ¹ Ö¿¸ ½Ù.       
+          = 4   Avg. + Tolerance Intervals (TI),                       
+         ·®Ö³-¸¶Ý = Ä¸Ã² É ¾ÂÒ²-ÍÝ½³Á Æ À²µ³½Ù Ö¿¸ ¦ ¸Ø¶´¼             
+                  µºÅ³Ä·, ¿º Æ Ì¸ÏÚÙ ¶¸ØÂ ¶Þ ½¸Å¸ÄÓ IPRB(%) ÃÞ±Ù Ä²³ºÄ 
+                  ¦ ¼Ý×²ÄÞ ICFL(%) ¦Ó¯Ã ¼­Á®³ ÃÞ·Ù ÊÝ².                
+          = 5   Avg. + Simultaneous Tolerance Intervals (STI)          
+         ÄÞ³¼Þ-·®Ö³-¸¶Ý = 1 ¸Ð É Ë®³ÎÝ-¶Ý¿¸Á DATA Æ ÓÄÂÞ·, ½²Ã²¼À      
+                  ¶²·¼· ¦ ÓÁ²Ã, ²¸Â¶ É ºÄÅÙ ¾ÂÒ²-ÍÝ½³Á Æ À²¼Ã  
+                  ¼Ý×²ÄÞICFL(%) É Ö¿¸ ¦ ÅÝ¶² Ó µºÅ¯ÀÄ·, ¿É     
+                  '¾²º³ØÂ' ¶Þ ±×¶¼ÞÒ ¼Ã²»ÚÀ IPRB(%) Æ ËÄ¼²Ö³Å ¸¶Ý. 
+                                                                       
+     ICFL      Confidence level (%)                                   
+     IPRB      Probability level (%) for TI and STI                   
+     NPRD      No. of predictions to be made                          
+     CMNT       Any comments (18A4 = 72 characters)                    
+     SAMP      Sample/lot no. (A8)                                    
+     VARS      Description of variables (18A4)                        
+     FMT       Variable format (18A4)
+     X(I,J)    Data matrix                                            
+     XX(I,J)   Specified values of predictor variables to make
+	       the estimation
+     ITRS(J)   Transformation code for variable X(I,J):               
+             = 0   No transformation
+             = 1   Linear: (X --> A*X+B)
+             = 2   Inversion: (X --> 1/X)
+             = 3   X --> LOG10(X)
+             = 4   X --> LOG(X)
+             = 5   X --> SQRT(X)
+             = 6   X --> X**2
+             = 7   X --> X**P
+             = 8   X --> 10.0**X
+             = 9   X --> EXP(X)
+             =10   Logistic: (X --> LOG(X/1.0-X))
+                                                                      
+     S(JP,JP)   Sum of squares
+     R(JP,JP)   Correlation matrix
+     JP         No. of independent variables
+     NDF        Degree of freedom (n-p-1 = IN-JP-1)                    
+     AVEX(J)    Average of X(J)                                        
+     SIGX(J)    Sigma of X(J)                                          
+     YEST(I)    Estimate of Y(I)                                       
+     RES(I)     Residuals                                               
+     TOL(J)     Tolerance to remove variables with high correlation
+
+   3.2 Subprograms
+        Subprograms needed are:
+     BIGCHR, SSSP, ANOVA, ESTIM, MINMAX, DWRTIO  [REG1.FOR: This file]  
+     TRNSV0, MATPRI, VECPRI, CORREL, SWEEP1 [MATSUB.FOR]
+     PF, PT, PNOR, PCHI2 [PRBSUB.FOR]
+
+BIGCHR	Print cndensed and enlarged string on RP-80
+TRNSV0	Transformation of a vector
+MATPRI	Print-out of a matrix  
+MINMAX	Minimum and maximum of a vector (one-dimensional array)
+VECPRI	Print out of a vector
+SSSP	Read the data matrix from FORT10.DAT and computes sum of squares
+	and sum of products
+ANOVA	Analysis of variance
+ESTIM	Estimation by the regression and residuals
+INTRVL	Interval estimation
+DWRTIO	Durbin-Watson ratio
+PT	Percentage point of t-distribution
+PF	Percentage point of F-distribution
+PNOR	Percentage point of the normal distribution
+PCHI2	Percentage point of Chi-squared distribution
+
+   3.3 Structure of the program	
+	Here is an outline of the subroutine hierarchy for REGRS1.
+
+REGRS1 (Main)
+	BIGCHR
+	TRNSV0
+	MATPRI
+	MINMAX
+	VECPRI
+	SSSP
+	ANOVA
+		PF
+		PT
+	ESTIM
+		PT
+		INTRVL
+			PF
+			PT
+			PNOR
+			PCHI2
+	DWRTIO
+
+	As for REGRS2 it looks like:
+
+REGRS2 (Main)
+	BIGCHR
+	MINMAX
+	GRAPH1
+
+	The data matrix is read from FORT0X.DAT(INP1) and is saved to 
+FORT10.DAT.  The subroutine SSSP reads the data matrix from FORT10.DAT
+to make successive calculation of sums of squares and products with
+high accuracy.  The regression coefficients, residuals and interval
+estimation are also written to FORT10.DAT so that the data to plot
+the scatter diagrams of residuals is read by REGRS2.
+
+4. RESTRICTIONS AND HARDWARE DEPENDENCY
+	This program has been designed for Microsoft's FORTRAN-80 and 
+EPSON's RP-80 printer, therefore you must modify some statements 
+if you are going to run this program under another system.  I am going
+to implement this program for MS-Fortran.  It will be relatively easy 
+job, I think.  Here are some points:
+
+        1) The data file must be PIPed before the execution because 
+this program uses the convention of defaulted file reference no. in 
+FORTRAN-80 from 6 (FORT06.DAT) to 9 (FORT09.DAT).  Examine the batch
+(*.SUB) files how to do this.  Don't use TAB code to make the data
+file I had experienced some difficult time to recognize the problem.
+The file FORT10.DAT is used to work and to save the data matrix and 
+results.
+
+	2) Max. data size = 80(100) and  max. no. of independent 
+variables = 12(15) are dependent on the TPA size; 56k(64k).
+
+	3) The printer routines BIGCHR and GRAPH are hardware dependent.
+You must be careful to check control code of your printer.  Both are
+not essential routines.
+
+	I have checked this program with NEC PC-8001 Mk-II and 
+Kohjinsha's MICRO DECISION.  The latter machine was advantageous over
+the former because of larger TPA size (see above) and faster disk I/O.
+
+5. THE DATA FILE
+ ====================================================================  
+     ** List of Input Data (Card Image File) **
+---------------------------------------------------------------------
+   FMT          Data (Variables)                        No. of cards  
+---------------------------------------------------------------------
+(14I5)       IN,JPY,MPL,INP1,KDTA,ISWP,IRES,JGRH,                 
+              INTV,ICFL1,IPRB1,ICFL2,IPRB2,NPRD                       
+ (18A4,A8)    CMNT,SAMP                                        1       
+ (18A4)       VARS                                            JPY      
+ (18A4)       FMT                                              1       
+ FMT         ((X(I,J),J=1,JP),I=1,IN)                      variable    
+ ------------------------------------------------------------------       
+ [If NPRD<>0, read specified values of predictor var. ]               
+ (18A4)       FMT                                              1       
+ (FMT)        ((XX(I,J),J=1,JP),I=1,NPRD)                  variable    
+ -------------------------------------------------------------------      
+ (12I5)       (ITRS(J),J=1,JPY)                                1
+ --------------------------------------------------------------------        
+ [If ITRS(J)=1, read (A,B) for X = A*X+B]      
+ (2F10.3)          A,B                                         1       
+ [If ITRS(J)=7, read P for X = X**P]
+ (F10.2)           P                                           1
+ ====================================================================  
+
+	Note that if 'TRNSV0' needs the parameters they must be supplied
+in the data file FORT0X.DAT.
+
+6. INSTALLATION
+   6.1 If you don't have FORTRAN-80 but available RP-80
+	Read carefully this document and prepare the data file in 
+such a way described in the previous section.  Run it just as shown
+in REGTST1.SUB and REGTST2.SUB.
+
+   6.2 If you have both FORTRAN-80 and RP-80
+	You may recompile the source program with F80 and link with
+L80 to produce the COM files.  I have provided the complete command
+sequence to do this in REGRS.SUB.  Prior to issue the SUBMIT command
+you must copy the batch file to Drive A: (I think you know why) via:
+	A>PIP A:=B:*.SUB
+Note that you have your Fortran system (F80.COM and L80.COM) and the
+batch programs (SUBMIT.COM and XSUB.COM) on Drive A:, while the source
+code (*.FOR) must be in Drive B:.
+
+	Then simply issue the batch command:
+	A>SUBMIT REGRS
+And if it seems to give satisfactory results, then try the other test 
+programs:
+	A>SUBMIT REGTST1
+	A>SUBMIT REGTST2 
+
+   6.3 If you wish to modify or improve the program
+	Place your Fortran system and editor on Drive A:, *.FOR and 
+*.DAT files in Drive B:, respectively.  Do the cyclic loop of edit, 
+compile, link, and run until you are satisfied.
+
+  
+REFERENCES                                                     
+[1] Ê¶Þ¥Ê¼ÓÄ (Haga and Hashimoto): ¢¶²·ÌÞÝ¾· Ä ¼­¾²ÌÞÝÌÞÝ¾·£ (REGRESSION
+    ANALYSIS AND PRINCIPAL COMPONENT ANALYSIS), Æ¯¶·ÞÚÝ (JUSE) (1980)
+[2] »Ü À¶ÐÂ (T. Sawa): ¢¶²·ÌÞÝ¾·£ (REGRESSION ANALYSIS), ±»¸×¼®ÃÝ (1979)
+[3] µ¸É Î¶ (Okuno & others): ¢ÀÍÝØ®³¶²¾·Î³£ (MULTIVARIATE ANALYSIS),
+    Vol.1(1971), Vol.2(1976), Æ¯¶·ÞÚÝ (JUSE).
+[4] M.G. Kendall: MULTIVARIATE ANALYSIS, Griffin, (1975).
+[5] 
+

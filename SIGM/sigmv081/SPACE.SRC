@@ -1,0 +1,22 @@
+* Free space determination
+
+* This function may be called from Pascal.  It returns the distance
+* between the stack and the heap as an unsigned 16-bit integer.
+* IX contains the stack address, and the alternate HL pair contains
+* the heap address.  It appears to Pascal as:
+
+*	function space : integer;
+*	    external;
+
+	entry	space
+
+space	push	ix
+	pop	h		HL = stack address
+	exx
+	push	h
+	exx
+	pop	d		DE = heap address
+	dsbc	d		HL := distance between stack and heap
+	xchg			DE := HL (function return in Pascal)
+	ret
+

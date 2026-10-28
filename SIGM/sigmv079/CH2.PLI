@@ -1,0 +1,18 @@
+ch2: proc options(main);	/* chain subroutine tester */
+
+	dcl 1 fcb static,
+	      2 drive fixed(7) init(0),
+	      2 name char(8) init('CH1'),
+	      2 type char(3) init('COM'),
+	      2 ext(4) fixed(7) init(0,0,0,0),
+
+	    dummy char(16) based(dp),
+	    dp pointer,
+	chain entry(char(16));
+
+	put skip list('Chain Test program 2');
+	dp = addr(fcb);
+	call chain(dummy);
+	put skip(2) list('Shouldn''t be here !!');
+end ch2;
+

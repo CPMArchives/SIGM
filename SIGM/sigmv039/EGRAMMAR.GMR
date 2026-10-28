@@ -1,0 +1,37 @@
+$ ***EXTENDED GRAMMAR FOR INPUT GRAMMAR TO LL(1) ANALYZER***
+
+<GRAMMAR> -> <RULE> '<EOF>'
+ 	  ;
+
+<RULE> -> '<IDENT>' <ALT> ';' <RULE>
+       ->
+       ;
+
+<ALT> -> '->' <RE> <ALT>
+      ->
+      ;
+
+<RE> -> <RT> <RE_LIST>
+     ;
+
+<RE_LIST> -> '|' <RT> <RE_LIST>
+          ->
+          ;
+
+<RT> -> <RP> <MD> <RT>
+     ->
+     ;
+
+<MD> -> '?'			$   0 OR 1 REPETITIONS
+     -> '*'			$   0 OR MORE REPETITIONS
+     -> '+'			$   1 OR MORE REPETITIONS
+     -> 'LIST' '<STRING>'	$   LIST OF ONE OR MORE <RP>'S
+  				$        SEPERATED BY '<STRING>'S
+     ->
+     ;
+  
+  <RP> -> '<STRING>'
+       -> '<IDENT>'
+       -> '(' <RE> ')'
+       ;
+

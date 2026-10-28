@@ -1,0 +1,1050 @@
+;BACKMW.MAC v2.70 as of 07/25/84
+; (c) ESKAY Software Service
+; S. Kluger
+;
+; See BACKMW.DOC for info
+;
+; The existence of this file proves that backups are
+; a requirement -- BACKMW is back from the dead,
+; thanks to RESOURCE!
+;
+cr	equ	0dh
+lf	equ	0ah
+tbuff	equ	80h
+;
+.request syslib		;make that SYSLIB3!!
+;
+; SYSLIB externals
+;
+	extrn	print,pstr,cin,cout,bbline,condin,phl5dc,padc
+	extrn	madc,f$mopen,f$open,f$read,f$write,bdos,bios
+	extrn	initfcb,crcclr,crcupd,crcdone,codend,eval10
+	extrn	f$delete,f$close,fname,divhd,mulhd,comphd
+	extrn	mhl5dc,phl4hc,crlf,capine
+;
+; Start of program
+;
+BEGIN:	JMP	HOPOVR
+;
+HIDRV:	DB	'E'		;hard disk high drive
+FLOPPY:	DB	'F'		;floppy drive
+CRCDRV:	DB	'F'		;crc file drive
+HDCYL:	DW	306		;number of cylinders
+SECPT:	DW	432		;432 sectors/cylinder
+;
+HOPOVR:	LXI	SP,STACK
+	CALL	PRINT
+	DB	CR,LF,'BACKMW v2.70 as of 07-25-84 (c) S. Kluger'
+	DB	CR,LF,0
+	MVI	C,12
+	CALL	BDOS
+	MOV	A,H
+	ORA	A
+	JNZ	NOMPM
+	MOV	A,L
+	CPI	23H
+	MVI	A,0FFH
+	JNC	CPM3
+	INR	A
+CPM3:	STA	CPMPL
+	CALL	CODEND
+	SHLD	CRCBUF
+MENU:	xra	a
+	sta	recf
+	sta	crcrf
+	LHLD	HDCYL
+	LXI	D,32
+	CALL	DIVHD
+	INX	H
+	MOV	H,L
+	MVI	L,0
+	XCHG
+	CALL	CODEND
+	DAD	D
+	SHLD	DBUFF
+rstrt:	CALL	PRINT
+	DB	CR,LF,LF
+	DB	'Select function:',CR,LF,LF
+	DB	'T  -  TOTAL backup of hard disk',CR,LF
+	DB	'I  -  INCREMENTAL backup of hard disk',CR,LF
+	DB	'C  -  CONFIGURATION changes',CR,LF
+	DB	'R  -  RESTART',CR,LF
+	DB	'Q  -  QUIT to CP/M',CR,LF,LF
+	DB	'Your choice : ',0
+	CALL	CAPINE
+	CPI	'T'
+	JZ	TOTAL
+	CPI	'I'
+	JZ	INCREM
+	CPI	'C'
+	JZ	CONFIG
+	CPI	'R'
+	JZ	RESTRT
+	CPI	'Q'
+	JZ	0
+	CALL	PRINT
+	DB	CR,LF,7
+	DB	'ERROR - invalid selection',CR,LF,LF,0
+	JMP	MENU
+;
+; restart - set CRC-file-read flag true, then go back to menu
+;
+restrt:	mvi	a,1
+	sta	crcrf
+	call	print
+	db	cr,lf,lf
+	db	'*** restarted ***',cr,lf,0
+	jmp	rstrt
+;
+; display and edit configuration
+;
+CONFIG:	CALL	PRINT
+	DB	CR,LF,LF,LF
+	DB	'CURRENT CONFIGURATION:',CR,LF,LF
+	DB	'High hard drive      : ',0
+	LDA	HIDRV
+	CALL	COUT
+	CALL	PRINT
+	DB	':',CR,LF
+	DB	'Floppy backup drive  : ',0
+	LDA	FLOPPY
+	CALL	COUT
+	CALL	PRINT
+	DB	':',CR,LF
+	DB	'CRC file drive       : ',0
+	LDA	CRCDRV
+	CALL	COUT
+	CALL	PRINT
+	DB	':',CR,LF
+	DB	'Number of CYLINDERS  : ',0
+	LHLD	HDCYL
+	CALL	PHL5DC
+	CALL	PRINT
+	DB	CR,LF
+	DB	'Number of SECTORS/CYL: ',0
+	LHLD	SECPT
+	CALL	PHL5DC
+	CALL	PRINT
+	DB	CR,LF,LF
+	DB	'CHANGE? (H,F,C,T,S,Q,?) ',0
+	CALL	CAPINE
+	CPI	'H'
+	JZ	HDRV
+	CPI	'F'
+	JZ	FDRV
+	CPI	'C'
+	JZ	CDRV
+	CPI	'T'
+	JZ	CYLS
+	CPI	'S'
+	JZ	SECS
+	CPI	'Q'
+	JZ	QCFG
+	CALL	PRINT
+	DB	CR,LF,LF,LF
+	DB	'H = set hard drive letter',CR,LF
+	DB	'F = set floppy drive letter',CR,LF
+	DB	'C = set CRC file drive letter',CR,LF
+	DB	'T = set number of cylinders (tracks)',CR,LF
+	DB	'S = set number of sectors per cylinder',CR,LF
+	DB	'Q = return to main menu',0
+	JMP	CONFIG
+;
+SECS:	CALL	PRINT
+	DB	CR,LF
+	DB	9,'Enter number of sectors per cylinder : ',0
+	CALL	GETDEC
+	SHLD	SECPT
+	JMP	CONFIG
+;
+CYLS:	CALL	PRINT
+	DB	CR,LF
+	DB	9,'Enter number of cylinders (tracks) : ',0
+	CALL	GETDEC
+	SHLD	HDCYL
+	JMP	CONFIG
+;
+CDRV:	CALL	PRINT
+	DB	CR,LF
+	DB	9,'Enter drive to write BACKMW.CRC to : ',0
+	CALL	GETDR
+	STA	CRCDRV
+	JMP	CONFIG
+;
+FDRV:	CALL	PRINT
+	DB	CR,LF
+	DB	9,'Enter floppy drive letter : ',0
+	CALL	GETDR
+	STA	FLOPPY
+	JMP	CONFIG
+;
+HDRV:	CALL	PRINT
+	DB	CR,LF
+	DB	9,'Enter highest hard disk drive : ',0
+	CALL	GETDR
+	STA	HIDRV
+	JMP	CONFIG
+;
+;  get drive letter
+;
+GETDR:	MVI	A,1
+	CALL	BBLINE
+	ORA	A
+	JZ	EXF
+	MOV	A,M
+	CPI	'A'
+	JC	EXF
+	CPI	'Q'
+	RC
+EXF:	POP	H
+	JMP	CONFIG
+;
+; get decimal value < 1000
+;
+GETDEC:	CALL	BBLINE
+	CPI	4
+	JNC	EXF
+	CALL	eval10
+	XCHG
+	MOV	A,H
+	ORA	L
+	JZ	EXF
+	RET
+;
+FSE:	CALL	PRINT
+	DB	CR,LF,7
+	DB	'File error - try again',0
+QCFG:	CALL	PRINT
+	DB	CR,LF,LF
+	DB	'END OF CONFIGURATION. SAVE TO DISK? ',0
+	MVI	A,1
+	CALL	BBLINE
+	MOV	A,M
+	CPI	'Y'
+	JNZ	MENU
+	CALL	PRINT
+	DB	'Enter full filespec including drive letter > ',0
+	MVI	A,1
+	CALL	BBLINE
+	LXI	D,TFCB
+	CALL	INITFCB
+	CALL	FNAME
+	JZ	FSE
+	MOV	A,B
+	STAX	D
+	CALL	F$MOPEN
+	LXI	D,100H
+WRL:	CALL	CODEND
+	MOV	A,H
+	CMP	D
+	JNZ	WCNT
+	MOV	A,L
+	CMP	E
+	JZ	WEND
+WCNT:	LXI	H,TBUFF
+MLP:	LDAX	D
+	MOV	M,A
+	INX	D
+	INR	L
+	JNZ	MLP
+	PUSH	D
+	LXI	D,TFCB
+	CALL	F$WRITE
+	ORA	A
+	POP	D
+	JZ	WRL
+	CALL	PRINT
+	DB	CR,LF,7
+	DB	'Disk write error - aborted',CR,LF,0
+	LXI	D,TFCB
+	CALL	F$DELETE
+	JMP	MENU
+;
+WEND:	LXI	D,TFCB
+	CALL	F$CLOSE
+	JMP	MENU
+;
+; total hard disk backup
+;
+TOTAL:	CALL	PRINT
+	DB	CR,LF,LF,LF
+	DB	'You have selected TOTAL hard disk backup. In order to',CR,LF
+	DB	'perform total backup you must supply a sufficient',CR,LF
+	DB	'number of blank, formatted floppy disks. All disks',CR,LF
+	DB	'must be of the same format!',CR,LF
+	DB	'Please enter your floppy size in k bytes : ',0
+	CALL	BBLINE
+	ORA	A
+	JZ	MENU
+	CALL	eval10
+	MOV	A,D
+	ORA	A
+	JNZ	FSOK
+	CALL	PRINT
+	DB	CR,LF,LF,7
+	DB	'*** NOTE ***',CR,LF,LF
+	DB	'You have selected a floppy size of less than 256k.',CR,LF
+	DB	'The number of floppies necessary for backup will',CR,LF
+	DB	'be very large and it would be better if you could use',CR,LF
+	DB	'something bigger.',CR,LF
+	DB	'Please hit a "Y" to continue with backup,',CR,LF
+	DB	'or anything else to re-specify floppy size : ',0
+	CALL	CAPINE
+	CPI	'Y'
+	JNZ	TOTAL
+FSOK:	XCHG
+	SHLD	FLOPK
+	CALL	PRINT
+	DB	CR,LF,LF,'With a floppy size of ',0
+	CALL	PHL5DC
+	CALL	PRINT
+	DB	'k, you need',0
+	LHLD	SECPT
+	LXI	D,8
+	CALL	DIVHD
+	PUSH	H
+	XCHG
+	LHLD	HDCYL
+	CALL	MULHD
+	XTHL
+	PUSH	H
+	XCHG
+	LHLD	FLOPK
+	CALL	DIVHD
+	MOV	A,L
+	STA	CYLPF
+	XCHG
+	POP	H
+	CALL	MULHD
+	XCHG
+	POP	H
+	CALL	DIVHD
+	INX	H
+	MOV	A,L
+	STA	FLPYS
+	CALL	PADC
+	CALL	PRINT
+	DB	' floppies!',CR,LF,LF,0
+	CALL	GETID
+	MVI	A,1
+	STA	FLPNUM
+	STA	CCFL
+	LXI	H,0
+	SHLD	CURCYL
+	CALL	INSFLP
+;
+; This is the total backup loop, which is
+; executed <flpys> times.
+;
+TOTLP:	CALL	RCURCY
+	LHLD	HDCYL
+	XCHG
+	LHLD	CURCYL
+	INX	H
+	SHLD	CURCYL
+	CALL	COMPHD
+	JNZ	TOTLP
+	CALL	WRCRCF
+	CALL	PRINT
+	DB	CR,LF,LF
+	DB	'TOTAL BACKUP COMPLETED',CR,LF,0
+	JMP	MENU
+;
+; get the ID field (date)
+;
+GETID:	CALL	PRINT
+	DB	CR,LF
+	DB	'Please enter 8-char disk ID or <RET> to abort : ',0
+	MVI	A,1
+	CALL	BBLINE
+	CPI	8
+	JNZ	MENU
+	LXI	D,DATE
+	CALL	MOV8
+	LXI	D,CYLFCB+1
+	CALL	MOV8
+	LXI	D,CRCFCB+1
+	JMP	MOV8
+;
+; incremental backup/restore
+;
+INCREM:	XRA	A
+	STA	dirctn
+	inr	a
+	sta	recf
+	CALL	PRINT
+	DB	CR,LF,LF
+	DB	'Incremental backup/restore. Select option:',CR,LF
+	DB	'B = backup  (HD -> FLOPPY)',CR,LF
+	DB	'R = restore (FLOPPY -> HD)',CR,LF,LF
+	DB	'Choice (RET to exit) ? ',0
+	CALL	CAPINE
+	CPI	'B'
+	JZ	BAC
+	CPI	'R'
+	JNZ	MENU
+	MVI	A,1
+	STA	DIRCTN
+BAC:	CALL	GETID
+	lda	crcrf
+	ora	a
+	CZ	RDCRCF
+	CALL	CODEND
+	SHLD	CRCBUF
+scno:	call	print
+	db	cr,lf,lf
+	db	'Enter cylinder number to start at : ',0
+	call	bbline
+	call	eval10
+	lhld	hdcyl
+	dcx	h
+	call	comphd
+	jnc	sco
+	call	print
+	db	cr,lf,7
+	db	'ERROR - cylinder too high. Must be <= ',0
+	call	phl5dc
+	jmp	scno
+;
+sco:	call	print
+	db	cr,lf,lf,0
+	lxi	h,0
+	mvi	b,8		;8 bytes in CRC record
+ccrcl:	dad	d
+	dcr	b
+	jnz	ccrcl
+	push	d
+	xchg
+	lhld	crcbuf
+	dad	d
+	pop	d
+	shld	crcbuf
+	xchg
+	SHLD	CURCYL
+	SHLD	TEMP3
+NEXTCY:	LXI	H,1
+	SHLD	CURSEC
+	call	condin
+	cpi	3
+	jz	wrcrcf
+noab:	CALL	CRCK
+	PUSH	H
+	lxi	d,0eaf8h	;EAF8 = all E5s (blank)
+	call	comphd
+	jnz	noe5
+	call	print
+	db	'. Blank -- skipping.',cr,lf,0
+	LHLD	CRCBUF
+	inx	h
+	inx	h
+	inx	h
+	MOV	M,E
+	INX	H
+	MOV	M,D
+	LXI	D,4
+	DAD	D
+	SHLD	CRCBUF
+	jmp	contcr
+;
+noe5:	LHLD	CRCBUF
+	INX	H
+	INX	H
+	INX	H
+	MOV	E,M
+	INX	H
+	MOV	D,M
+	POP	H
+	CALL	COMPHD
+	JZ	SAMEC
+	CALL	PRINT
+	DB	' OLD = ',0
+	XCHG
+	CALL	PHL4HC
+	CALL	PRINT
+	DB	'. Now recopying...',CR,LF,0
+	LHLD	CRCBUF
+	INX	H
+	INX	H
+	MOV	A,M
+	inx	h
+	SHLD	CRCBUF
+	LXI	D,DSKNO
+	CALL	MADC
+	STA	FLPNUM
+RQFLP:	MVI	C,0DH
+	CALL	BDOS
+	LXI	D,DSKFCB
+	CALL	INITFCB
+	LDA	FLOPPY
+	SUI	'@'
+	STAX	D
+	CALL	F$OPEN
+	JZ	FLISIN
+	CALL	PRINT
+	DB	CR,LF,'Insert floppy number',0
+	LDA	FLPNUM
+	CALL	PADC
+	CALL	PRINT
+	DB	' and press RETURN',CR,LF,0
+	CALL	BBLINE
+	JMP	RQFLP
+;
+FLISIN:	CALL	CYLTOF
+	LXI	D,CYLFCB
+	CALL	INITFCB
+	LDA	FLOPPY
+	SUI	'@'
+	STAX	D
+	CALL	F$OPEN
+	JNZ	RQFLP
+	LDA	dirctn
+	ORA	A
+	JZ	HDTOF
+	LXI	H,1
+	SHLD	CURSEC
+	CALL	CRLF
+	CALL	WCURCY
+	lxi	d,5
+	JMP	ADVCRC
+;
+HDTOF:	CALL	RCURCY
+	MVI	A,1
+	STA	TEMP3
+	JMP	CONTCR
+;
+SAMEC:	CALL	PRINT
+	DB	' unchanged',CR,LF,0
+	LXI	D,8
+ADVCRC:	LHLD	CRCBUF
+	DAD	D
+	SHLD	CRCBUF
+CONTCR:	LHLD	HDCYL
+	XCHG
+	LHLD	CURCYL
+	INX	H
+	SHLD	CURCYL
+	CALL	COMPHD
+	JNZ	NEXTCY
+	call	print
+	db	cr,lf,7
+	db	'*** INCREMENTAL B/R COMPLETED ***',cr,lf,0
+	LDA	TEMP3
+	ORA	A
+	JZ	MENU
+	lda	dirctn
+	cpi	1
+	cnz	wrcrcf
+	JMP	MENU
+;
+WCURCY:	LHLD	DBUFF
+	SHLD	BUFFER
+	XRA	A
+	STA	INBUF
+LP16K:	LXI	D,CYLFCB
+	CALL	F$READ
+	ORA	A
+	JNZ	PURGE
+	LXI	D,TBUFF
+	LHLD	BUFFER
+WCYM:	LDAX	D
+	MOV	M,A
+	INX	H
+	INR	E
+	JNZ	WCYM
+	SHLD	BUFFER
+	LDA	INBUF
+	INR	A
+	STA	INBUF
+	CPI	80H
+	JNZ	LP16K
+	CALL	PURGE
+	JMP	WCURCY
+;
+PURGE:	LHLD	DBUFF
+	SHLD	BUFFER
+PURGEB:	LHLD	BUFFER
+	LXI	D,TBUFF
+PURGL:	MOV	A,M
+	STAX	D
+	INX	H
+	INR	E
+	JNZ	PURGL
+	SHLD	BUFFER
+	CALL	PRINT
+	DB	CR,'Now writing cylinder  #',0
+	LHLD	CURCYL
+	CALL	PHL5DC
+	CALL	PRINT
+	DB	' sector #',0
+	LHLD	CURSEC
+	CALL	PHL5DC
+	MVI	A,1
+	CALL	BIOSIO
+	LHLD	CURSEC
+	INX	H
+	SHLD	CURSEC
+	LDA	INBUF
+	DCR	A
+	STA	INBUF
+	JNZ	PURGEB
+	RET
+;
+RCURCY:	LXI	H,1
+	SHLD	CURSEC
+	CALL	CRCCLR
+	lda	recf		;recovery?
+	ora	a
+	CZ	GETCFL
+	LHLD	DBUFF
+	SHLD	BUFFER
+	XRA	A
+	STA	INBUF
+CCCY1:	CALL	PRINT
+	DB	CR,'Now reading cylinder  #',0
+	LHLD	CURCYL
+	CALL	PHL5DC
+	CALL	PRINT
+	DB	'  sector #',0
+	LHLD	CURSEC
+	CALL	PHL5DC
+	XRA	A
+	CALL	BIOSIO
+	LHLD	BUFFER
+	LXI	D,TBUFF
+	PUSH	D
+CRCLP:	LDAX	D
+	CALL	CRCUPD
+	INR	E
+	JNZ	CRCLP
+	POP	D
+FILLB:	LDAX	D
+	MOV	M,A
+	INX	H
+	INR	E
+	JNZ	FILLB
+	SHLD	BUFFER
+	LDA	INBUF
+	INR	A
+	STA	INBUF
+	CPI	80H
+	CZ	FLUSHB
+	LHLD	SECPT
+	XCHG
+	LHLD	CURSEC
+	INX	H
+	SHLD	CURSEC
+	DCX	H
+	CALL	COMPHD
+	JNZ	CCCY1
+	CALL	FLUSHB
+	LXI	D,CYLFCB
+	CALL	F$CLOSE
+	CALL	CRCDONE
+	CALL	PRINT
+	DB	' - CRC = ',0
+	CALL	PHL4HC
+	CALL	CRLF
+	XCHG
+	LHLD	CRCBUF
+	MOV	M,E
+	INX	H
+	MOV	M,D
+	LXI	D,4
+	DAD	D
+	SHLD	CRCBUF
+	RET
+;
+FLUSHB:	CALL	FLUSHQ
+FLUSH1:	LDA	INBUF
+	ORA	A
+	JZ	FLUSHQ
+	DCR	A
+	STA	INBUF
+	LHLD	BUFFER
+	LXI	D,TBUFF
+FLSHL:	MOV	A,M
+	STAX	D
+	INX	H
+	INR	E
+	JNZ	FLSHL
+	SHLD	BUFFER
+	LXI	D,CYLFCB
+	CALL	F$WRITE
+	ORA	A
+	JZ	FLUSH1
+	JMP	WRERR
+;
+FLUSHQ:	LHLD	DBUFF
+	SHLD	BUFFER
+	RET
+;
+BIOSIO:	ORA	A
+	MVI	A,0DH
+	JZ	BIORD
+	INR	A
+BIORD:	STA	RWOPER
+	LDA	HIDRV
+	SUI	'A'
+	MOV	C,A
+	MVI	E,1
+	MVI	A,9
+	CALL	BIOSC
+	LHLD	CURCYL
+	MOV	B,H
+	MOV	C,L
+	MVI	A,10
+	CALL	BIOSC
+	LHLD	CURSEC
+	MOV	B,H
+	MOV	C,L
+	MVI	A,11
+	CALL	BIOSC
+	LXI	B,TBUFF
+	MVI	A,12
+	CALL	BIOSC
+	MVI	A,0
+RWOPER	EQU	$-1
+	CALL	BIOSC
+	ORA	A
+	RZ
+	CALL	PRINT
+	DB	CR,LF,LF,7,7
+	DB	'BIOS ERR ON R/W - ABORTED',CR,LF,0
+	RST	0
+;
+INSFLP:	CALL	PRINT
+	DB	CR,LF,7
+	DB	'Insert BLANK floppy number',0
+	CALL	PADC
+	CALL	PRINT
+	DB	' and press RETURN',CR,LF,0
+	CALL	BBLINE
+	MVI	C,0DH
+	CALL	BDOS
+	LDA	FLPNUM
+	LXI	D,DSKNO
+	CALL	MADC
+	LXI	D,DSKFCB
+	CALL	INITFCB
+	LDA	FLOPPY
+	SUI	'@'
+	STAX	D
+	CALL	F$MOPEN
+	JMP	F$CLOSE
+;
+WRCRCF:	CALL	CODEND
+	SHLD	CRCBUF
+	CALL	GETCD
+	LXI	D,CRCFCB
+	CALL	INITFCB
+	LDA	CRCDRV
+	SUI	'@'
+	STAX	D
+	CALL	F$MOPEN
+	LHLD	HDCYL
+	LXI	D,10H
+	CALL	DIVHD
+	MOV	B,H
+	MOV	C,L
+	INX	B
+WCRCL:	PUSH	B
+	LHLD	CRCBUF
+	LXI	D,TBUFF
+WC1:	MOV	A,M
+	STAX	D
+	INX	H
+	INR	E
+	JNZ	WC1
+	SHLD	CRCBUF
+	LXI	D,CRCFCB
+	CALL	F$WRITE
+	ORA	A
+	JNZ	WRERR
+	POP	B
+	DCX	B
+	MOV	A,B
+	ORA	C
+	JNZ	WCRCL
+	CALL	F$CLOSE
+	JMP	MENU
+;
+BDOSER:	CALL	PRINT
+	DB	CR,LF,LF,7,7
+	DB	'*** PERMANENT BDOS ERROR - ABORTING ***',CR,LF
+	DB	'*** SAVING CRC FILE TO DRIVE A: ***',CR,LF,0
+	MVI	A,'A'
+	STA	CRCDRV
+	JMP	WRCRCF
+;
+WRERR:	CALL	PRINT
+	DB	CR,LF,LF,7,7
+	DB	'WRITE',0
+	JMP	ERRDSP
+;
+RDERR:	CALL	PRINT
+	DB	CR,LF,LF,7,7
+	DB	'READ',0
+	JMP	ERRDSP
+;
+MAKERR:	CALL	PRINT
+	DB	CR,LF,LF,7,7
+	DB	'MAKE',0
+	JMP	ERRDSP
+;
+OPNERR:	CALL	PRINT
+	DB	CR,LF,LF,7,7
+	DB	'OPEN',0
+ERRDSP:	CALL	PRINT
+	DB	' FATAL ERROR in file ',0
+	MVI	B,8
+	INX	D
+ERRLP1:	LDAX	D
+	ORA	A
+	CNZ	COUT
+	INX	D
+	DCR	B
+	JNZ	ERRLP1
+	MVI	B,3
+	MVI	A,'.'
+	CALL	COUT
+ERRLP2:	LDAX	D
+	ORA	A
+	CNZ	COUT
+	INX	D
+	DCR	B
+	JNZ	ERRLP2
+	CALL	PRINT
+	DB	' - ABORTED.',CR,LF,0
+	JMP	MENU
+;
+NOMPM:	CALL	PRINT
+	DB	CR,LF,7
+	DB	'Unable to run under MP/M',cr,lf,0
+	RST	0
+;
+RDCRCF:	CALL	CODEND
+	SHLD	CRCBUF
+	CALL	GETCD
+	LXI	D,CRCFCB
+	CALL	INITFCB
+	LDA	CRCDRV
+	SUI	'@'
+	STAX	D
+	CALL	F$OPEN
+	JNZ	RDCRCF
+	LHLD	HDCYL
+	LXI	D,10H
+	CALL	DIVHD
+	MOV	B,H
+	MOV	C,L
+	INX	B
+RCRCL:	PUSH	B
+	LXI	D,CRCFCB
+	CALL	F$READ
+	ORA	A
+	JNZ	RDERR
+	LHLD	CRCBUF
+	LXI	D,TBUFF
+RC1:	LDAX	D
+	MOV	M,A
+	INX	H
+	INR	E
+	JNZ	RC1
+	SHLD	CRCBUF
+	POP	B
+	DCX	B
+	MOV	A,B
+	ORA	C
+	JNZ	RCRCL
+	JMP	F$CLOSE
+;
+MOV8:	PUSH	H
+	MVI	B,8
+M8L:	MOV	A,M
+	STAX	D
+	INX	H
+	INX	D
+	DCR	B
+	JNZ	M8L
+	POP	H
+	RET
+;
+GETCD:	CALL	PRINT
+	DB	CR,LF,LF,7
+	DB	'Insert disk with file ',0
+	LXI	H,DATE
+	CALL	PSTR
+	CALL	PRINT
+	DB	'.crc in drive ',0
+	LDA	CRCDRV
+	CALL	COUT
+	CALL	PRINT
+	DB	':, then press RETURN',CR,LF,0
+	CALL	BBLINE
+	MVI	C,0DH
+	JMP	BDOS
+;
+GETCFL:	LDA	CCFL
+	DCR	A
+	MOV	B,A
+	LDA	CYLPF
+	CMP	B
+	JNZ	NONW
+	MVI	A,1
+	STA	CCFL
+	LDA	FLPNUM
+	INR	A
+	STA	FLPNUM
+	CALL	INSFLP
+NONW:	LDA	CCFL
+	INR	A
+	STA	CCFL
+	CALL	CYLTOF
+	LXI	D,CYLFCB
+	CALL	INITFCB
+	LDA	FLOPPY
+	SUI	'@'
+	STAX	D
+	CALL	F$MOPEN
+	ORA	A
+	JNZ	MAKERR
+	LHLD	CURCYL
+	XCHG
+	LHLD	CRCBUF
+	MOV	M,E
+	INX	H
+	MOV	M,D
+	INX	H
+	LDA	FLPNUM
+	MOV	M,A
+	INX	H
+	SHLD	CRCBUF
+	RET
+;
+CYLTOF:	LHLD	CURCYL
+	LXI	D,TBUFF
+	CALL	MHL5DC
+	LXI	H,TBUFF+2
+	LXI	D,CYLNO
+	MVI	B,3
+ML1:	MOV	A,M
+	STAX	D
+	INX	D
+	INX	H
+	DCR	B
+	JNZ	ML1
+	RET
+;
+; crc check a cylinder
+;
+CRCK:	CALL	CRCCLR
+	CALL	PRINT
+	DB	'CRC checking cylinder #',0
+	LHLD	CURCYL
+	CALL	PHL5DC
+	LXI	H,1
+	SHLD	TEMP1
+	LDA	HIDRV
+	SUI	'A'
+	MOV	C,A
+	MVI	E,1
+	MVI	A,9
+	CALL	BIOSC
+	LHLD	CURCYL
+	MOV	B,H
+	MOV	C,L
+	MVI	A,10
+	CALL	BIOSC
+	LXI	B,TBUFF
+	MVI	A,12
+	CALL	BIOSC
+CRCL1:	LHLD	TEMP1
+	MOV	B,H
+	MOV	C,L
+	MVI	A,11
+	CALL	BIOSC
+	MVI	A,13
+	CALL	BIOSC
+	LXI	H,TBUFF
+CRLP:	MOV	A,M
+	CALL	CRCUPD
+	INR	L
+	JNZ	CRLP
+	call	condin
+	cpi	3
+	jz	wrcrcf
+	LHLD	SECPT
+	XCHG
+	LHLD	TEMP1
+	INX	H
+	SHLD	TEMP1
+	DCX	H
+	CALL	COMPHD
+	JNZ	CRCL1
+	CALL	CRCDONE
+	SHLD	TEMP2
+	CALL	PRINT
+	DB	'  CRC = ',0
+	CALL	PHL4HC
+	RET
+;
+; BIOS call dispatcher
+;
+BIOSC:	LXI	H,CPMPL
+	INR	M
+	JZ	CPLUS
+	DCR	M
+	JMP	BIOS
+;
+CPLUS:	DCR	M
+	STA	BIOSPB
+	MOV	H,B
+	MOV	L,C
+	SHLD	BCREG
+	XCHG
+	SHLD	DEREG
+	MVI	C,50
+	LXI	D,BIOSPB
+	JMP	BDOS
+;
+BIOSPB:	DB	0
+	DB	0
+BCREG:	DW	0
+DEREG:	DW	0
+	DW	0
+;
+DATE:	DB	'00/00/00',0
+TEMP1:	DW	0
+TEMP2:	DW	0
+TEMP3:	DW	0
+crcrf:	db	0		;crc restart flag
+CPMPL:	DB	0
+dirctn:	DB	0
+CRCBUF:	DW	0
+FLOPK:	DW	0
+CYLPF:	DB	0
+FLPYS:	DB	0
+FLPNUM:	DB	0
+CCFL:	DB	0
+CURCYL:	DW	0
+CURSEC:	DW	0
+RECF:	DB	0		;increm/norm flag
+DBUFF:	DW	0
+INBUF:	DB	0
+BUFFER:	DW	0
+DSKFCB:	DB	0,'-disk no'
+DSKNO:	DB	'000'
+	DS	24
+CRCFCB:	DB	0,'00/00/00crc'
+	DS	24
+TFCB:	DS	36
+CYLFCB:	DB	0,'00/00/00'
+CYLNO:	DB	'000'
+	DS	24
+	DS	40
+STACK	EQU	$
+	END
+13
+	CALL	BIOSC
+	LXI	H,TBUFF
+CRL

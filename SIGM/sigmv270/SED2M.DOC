@@ -1,0 +1,228 @@
+                                        ;
+                                        ; pushtop
+                                        ;
+  0000'   21 buffer             PUSHT:  LD HL,BUFFER
+  0003'   7E                            LD A,(HL)
+  0004'   ED 5B ptop                    LD DE,(PTOP)
+  0008'   13                            INC DE
+  0009'   B7                            OR A
+  000A'   28 06                         JR Z,PUSHT1
+  000C'   06 00                         LD B,0
+  000E'   4F                            LD C,A
+  000F'   23                            INC HL
+  0010'   ED B0                         LDIR
+  0012'   EB                    PUSHT1: EX DE,HL
+  0013'   36 0D                         LD (HL),0DH
+  0015'   23                            INC HL
+  0016'   36 0A                         LD (HL),0AH
+  0018'   22 ptop                       LD (PTOP),HL
+  001B'   C9                            RET
+                                        ;
+                                        ; poptop
+                                        ;
+  001C'   2A ptop               POPT:   LD HL,(PTOP)
+  001F'   7E                            LD A,(HL)
+  0020'   B7                            OR A
+  0021'   28 1D                         JR Z,POPT3
+  0023'   0E 00                         LD C,0
+  0025'   2B                    POPT1:  DEC HL
+  0026'   0C                            INC C
+  0027'   7E                            LD A,(HL)
+  0028'   B7                            OR A
+  0029'   28 04                         JR Z,POPT2
+  002B'   FE 0A                         CP 0AH
+  002D'   20 F6                         JR NZ,POPT1
+  002F'   22 ptop               POPT2:  LD (PTOP),HL
+  0032'   0D                            DEC C
+  0033'   0D                            DEC C
+  0034'   79                            LD A,C
+  0035'   28 09                         JR Z,POPT3
+  0037'   06 00                         LD B,0
+  0039'   23                            INC HL
+  003A'   11 buffer                     LD DE,BUFFER
+  003D'   13                            INC DE
+  003E'   ED B0                         LDIR
+  0040'   32 buffer             POPT3:  LD (BUFFER),A
+  0043'   C9                            RET
+                                        ;
+                                        ; pushbottom
+                                        ;
+  0044'   3A buffer             PUSHB:  LD A,(BUFFER)
+  0047'   2A pbotm                      LD HL,(PBOTM)
+  004A'   2B                            DEC HL
+  004B'   36 0A                         LD (HL),0AH
+  004D'   2B                            DEC HL
+  004E'   36 0D                         LD (HL),0DH
+  0050'   B7                            OR A
+  0051'   28 0D                         JR Z,PUSHB1
+  0053'   2B                            DEC HL
+  0054'   EB                            EX DE,HL
+  0055'   06 00                         LD B,0
+  0057'   4F                            LD C,A
+  0058'   21 buffer                     LD HL,BUFFER
+  005B'   09                            ADD HL,BC
+  005C'   ED B8                         LDDR
+  005E'   EB                            EX DE,HL
+  005F'   23                            INC HL
+  0060'   22 pbotm              PUSHB1: LD (PBOTM),HL
+  0063'   C9                            RET
+                                        ;
+                                        ; popbottom
+                                        ;
+  0064'   2A pbotm              POPB:   LD HL,(PBOTM)
+  0067'   0E 00                         LD C,0
+  0069'   11 buffer                     LD DE,BUFFER
+  006C'   13                            INC DE
+  006D'   7E                    POPB1:  LD A,(HL)
+  006E'   FE 1A                         CP 1AH
+  0070'   28 0C                         JR Z,POPB3
+  0072'   FE 0D                         CP 0DH
+  0074'   28 06                         JR Z,POPB2
+  0076'   12                            LD (DE),A
+  0077'   13                            INC DE
+  0078'   23                            INC HL
+  0079'   0C                            INC C
+  007A'   18 F1                         JR POPB1
+  007C'   23                    POPB2:  INC HL
+  007D'   23                            INC HL
+  007E'   22 pbotm              POPB3:  LD (PBOTM),HL
+  0081'   79                            LD A,C
+  0082'   32 buffer                     LD (BUFFER),A
+  0085'   C9                            RET
+                                        ;
+                                        ; topbottom
+                                        ;
+  0086'   2A ptop               TOPBM:  LD HL,(PTOP)
+  0089'   23                            INC HL
+  008A'   ED 5B pbotm                   LD DE,(PBOTM)
+  008E'   1A                    TOPBM1: LD A,(DE)
+  008F'   FE 1A                         CP 1AH
+  0091'   28 0B                         JR Z,TOPBM3
+  0093'   FE 0D                         CP 0DH
+  0095'   28 05                         JR Z,TOPBM2
+  0097'   77                            LD (HL),A
+  0098'   13                            INC DE
+  0099'   23                            INC HL
+  009A'   18 F2                         JR TOPBM1
+  009C'   13                    TOPBM2: INC DE
+  009D'   13                            INC DE
+  009E'   ED 53 pbotm           TOPBM3: LD (PBOTM),DE
+  00A2'   36 0D                         LD (HL),0DH
+  00A4'   23                            INC HL
+  00A5'   36 0A                         LD (HL),0AH
+  00A7'   22 ptop                       LD (PTOP),HL
+  00AA'   C9                            RET
+                                        ;
+                                        ; bottomtop
+                                        ;
+  00AB'   2A pbotm              BMTOP:  LD HL,(PBOTM)
+  00AE'   2B                            DEC HL
+  00AF'   36 0A                         LD (HL),0AH
+  00B1'   2B                            DEC HL
+  00B2'   36 0D                         LD (HL),0DH
+  00B4'   2B                            DEC HL
+  00B5'   ED 5B ptop                    LD DE,(PTOP)
+  00B9'   1A                            LD A,(DE)
+  00BA'   B7                            OR A
+  00BB'   28 0F                         JR Z,BMTOP2
+  00BD'   1B                            DEC DE
+  00BE'   1B                            DEC DE
+  00BF'   1A                    BMTOP1: LD A,(DE)
+  00C0'   B7                            OR A
+  00C1'   28 09                         JR Z,BMTOP2
+  00C3'   FE 0A                         CP 0AH
+  00C5'   28 05                         JR Z,BMTOP2
+  00C7'   77                            LD (HL),A
+  00C8'   1B                            DEC DE
+  00C9'   2B                            DEC HL
+  00CA'   18 F3                         JR BMTOP1
+  00CC'   ED 53 ptop            BMTOP2: LD (PTOP),DE
+  00D0'   23                            INC HL
+  00D1'   22 pbotm                      LD (PBOTM),HL
+  00D4'   C9                            RET
+                                        ;
+                                        ; tline
+                                        ;
+  00D5'   2A vram1              TLINE:  LD HL,(VRAM1)
+  00D8'   ED 5B vram                    LD DE,(VRAM)
+  00DC'   3A swidth                     LD A,(SWIDTH)
+  00DF'   4F                            LD C,A
+  00E0'   06 00                         LD B,0
+  00E2'   ED B0                         LDIR
+  00E4'   C9                            RET
+                                        ;
+                                        ; sline
+                                        ;
+  00E5'   2A vram               SLINE:  LD HL,(VRAM)
+  00E8'   3A swidth                     LD A,(SWIDTH)
+  00EB'   47                            LD B,A
+  00EC'   3E 20                         LD A,' '
+  00EE'   77                    SLINE1: LD (HL),A
+  00EF'   23                            INC HL
+  00F0'   10 FC                         DJNZ SLINE1
+  00F2'   C9                            RET
+                                        ;
+                                        ; pline
+                                        ;
+  00F3'   21 buffer             PLINE:  LD HL,BUFFER
+  00F6'   7E                            LD A,(HL)
+  00F7'   23                            INC HL
+  00F8'   ED 5B vram                    LD DE,(VRAM)
+  00FC'   B7                            OR A
+  00FD'   28 05                         JR Z,PLINE1
+  00FF'   06 00                         LD B,0
+  0101'   4F                            LD C,A
+  0102'   ED B0                         LDIR
+  0104'   47                    PLINE1: LD B,A
+  0105'   3A swidth                     LD A,(SWIDTH)
+  0108'   90                            SUB B
+  0109'   28 0B                         JR Z,PLINE3
+  010B'   38 09                         JR C,PLINE3
+  010D'   47                            LD B,A
+  010E'   3E 20                         LD A,' '
+  0110'   12                    PLINE2: LD (DE),A
+  0111'   77                            LD (HL),A
+  0112'   13                            INC DE
+  0113'   23                            INC HL
+  0114'   10 FA                         DJNZ PLINE2
+  0116'   C9                    PLINE3: RET
+                                        ;
+                                        ; searchmem
+                                        ;
+  0117'   3A char               SEARC1: LD A,(CHAR)
+  011A'   ED 4B len                     LD BC,(LEN)
+  011E'   2A ptop                       LD HL,(PTOP)
+  0121'   ED B9                         CPDR
+  0123'   23                            INC HL
+  0124'   22 addres                     LD (ADDRES),HL
+  0127'   C9                            RET
+                                        ;
+  0128'   3A char               SEARC2: LD A,(CHAR)
+  012B'   ED 4B len                     LD BC,(LEN)
+  012F'   2A pbotm                      LD HL,(PBOTM)
+  0132'   ED B1                         CPIR
+  0134'   2B                            DEC HL
+  0135'   22 addres                     LD (ADDRES),HL
+  0138'   C9                            RET
+                                        ;
+                                        ; erasemem
+                                        ;
+  0139'   ED 4B len             ERASE1: LD BC,(LEN)
+  013D'   ED 5B mem1                    LD DE,(MEM1)
+  0141'   2A mem2                       LD HL,(MEM2)
+  0144'   23                            INC HL
+  0145'   ED B0                         LDIR
+  0147'   1B                            DEC DE
+  0148'   ED 53 ptop                    LD (PTOP),DE
+  014C'   C9                            RET
+                                        ;
+  014D'   ED 4B len             ERASE2: LD BC,(LEN)
+  0151'   ED 5B mem2                    LD DE,(MEM2)
+  0155'   2A mem1                       LD HL,(MEM1)
+  0158'   2B                            DEC HL
+  0159'   ED B8                         LDDR
+  015B'   13                            INC DE
+  015C'   ED 53 pbotm                   LD (PBOTM),DE
+  0160'   C9                            RET
+                                        ;
+

@@ -1,0 +1,139 @@
+THE DATE LIBRARY
+
+This package of routines :
+-- Allows a date to be entered in the relatively comfortable form of
+   number/separator/number/separator/number -- eg: 10-22-80 or 1/1/77.
+   The full year can also be entered [eg: 12-11-1980], although the
+   leading numbers are stripped, which means that 12-11-1680 equals
+   12-11-1980.
+-- Can insist that the entered year be within a specified range,
+   refusing to continue processing until the restrictions are
+   complied with.
+-- Converts the entered date into a two-byte integer value [in the range
+   1..maxint] which reflects the total number of days between the entered
+   date and Jan 1 of the program's base year. This means that calculations
+   made using this value do not have to take into consideration the
+   number of days in any given month -- or year for that matter.
+-- Breaks the date back into separate values for the month, date, year
+   and day of week [Sun..Sat].
+-- Prepares the broken date into strings with the various names spelled
+   out [eg: Thursday, January 1, 1981] or as a fixed eight place value
+   [11-11-80]. In the former the day-of-week name can be omitted and/or
+   names abbreviated and in the latter spaces can be substituted for
+   leading zeroes for the month and date [ie: 01-01-81 or  1- 1-80].
+
+I have set the beast up in two forms: [1] separate .LIB modules for
+each routine, allowing them to be included in any Pascal program with
+the editor and [2] a complete external subprogram for separate compilation
+with ver 3.2 or later.
+
+The separate routines are:
+
+PROMPT				PROMPT.LIB
+This is actually a general-purpose routine, but it is specifically called
+by GETDATE. PROMPT is passed a string, pads it to a specified length,
+and writes it to the console. It allows pretty data entry.
+
+MAKEDATE with GETDATE		MAKEDATE.LIB
+RMAKEDATE with RGETDATE		RMAKEDA.LIB
+Prompts the console to enter a date and returns the calculated integer
+value. RMAKEDATE is passed the minimum and maximum year values and
+checks to ensure that the entered value falls within the range.
+	GETDATE and RGETDATE perform the actual data entry. When compiled
+separately they are not accessible to the main program but if included
+within the program text these names obviously cannot be used for other
+routines.
+
+BRKDATE				BRKDATE.LIB
+Breaks the integer date value into the month, day, year and weekday.
+Note that the latter is in the range 0..6 rather than 1..7. Breakdate
+fully corrects for leap years.
+
+DASTRLONG			DASTRLON.LIB
+DASTRSHORT			DASTRSH.LIB
+DASTRFIXED			DASTRFIX.LIB
+The names are admittedly crunched a bit, but that's to fit within the
+six-character name limit for separate compilation.
+	Each function is passed a date value and returns a string in
+the appropriate format. They all use BRKDATE. DASTRLONG spells out all
+words while DASTRSHORT abbreviates the month and day name [but not with
+periods -- I think they're ugly]. In addition a boolean value WITHDAY
+is passed to indicate whether the day name is to be included [true] or
+omitted [false].
+	DASTRFIXED returns the date in an eight-place fixed length
+format. The separator character is specified as a constant and can
+be changed if desired. The function includes a boolean parameter WITHSPACE
+which determines whether leading zeroes are converted into spaces or
+left as numeric characters.
+
+STRBYTE
+This routine is contained within DASTRFIX.LIB. It is passed a byte value
+and WITHSPACE and returns a two-place string equivalent. It is broken out
+in case it proves useful elsewhere in the program.
+
+----------
+
+DATE.PAS has all of the date library routines plus PROMPT set up as an
+external module for separate compilation. Note, however, that it is
+necessary to change "progname" in the first line of the program to
+the name of the main program before it will properly compile. It also
+appears that the program names cannot exceed six characters [rather than
+just having only the first six be significant].
+
+DATE.LIB can then be inserted in the main program to provide the relevant
+external declarations. DATE.LIB includes declarations for LENGTH and
+SETLENGTH.
+
+Generally, the date routines require the following global type declarations:
+	TYPE	string255 = string 255;
+		byte = 0..255;
+There are two important constants used in MAKEDATE, RMAKEDATE and BRKDATE.
+YRBASE is the base year, which equals 10 in the package as written.
+YRSPAN is the total number of years which constitute the acceptable
+maximum range of entries. This number is dicated by maxint and thus cannot
+exceed 89.
+
+This means that as written the routines can handle dates in the range
+1910..1999. Since 1900 was not a leap year and there is no provision
+for dealing with that occurrence, 1901 [yrbase = 1] is the lowest possible
+base year. Since 2000 will be a leap year [wouldn't life be easier if
+the sun rose and set only 360 times a year and pi equalled three?] the
+routines could be extended beyond 1999, but the yr mod 100 statement
+within GETDATE and RGETDATE -- which permits dates to be entered
+1-11-1980, if you're so moved -- would have to be modified to permit
+00 to be higher than 99. I just didn't see any reason to clutter the
+program up with this business for a few more years.
+
+As long as two integer date values share a common base year they are
+directly comparable. This is an argument for sticking with just one
+base year for all purposes. Thus the difference between any two date
+values is the number of days between them. More importantly, your
+programs should have a much easier time of scanning through data to
+determine whether the records fall within a designate range -- and
+are thus eligible for further processing -- when that range is specified
+as a number of days -- 10, 30, 90, etc.
+
+It should also be noted that the string returned by DASTRFIXED with
+spaces passed as false can be used to create a CP/M file name if you have
+a series of data files which you want to keep broken down by date.
+Thus one set of files could be 01-11-80.ORD, 01-12-80.ORD, etc. if you
+wanted to keep, say, orders as a set of separate files.
+
+Please note that DATEFUNC.LIB includes declarations for LENGTH and
+SETLENGTH, since they are used within DATE.PAS, so these should not
+be declared elsewhere in the main module.
+
+The following global types are generally required:
+	TYPE	string255 = string 255;
+		byte = 0..255;
+
+The datestring routines are all functions returning strings, which means
+that Pascal/Z ver 3.2 or later is required for proper compilation.
+
+----------
+
+Scott Custin
+2410 20th St NW #10
+Washington DC 20009
+
+

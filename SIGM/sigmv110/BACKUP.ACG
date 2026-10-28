@@ -1,0 +1,31 @@
+* backup.cmd 02/08/83
+* make a backup copy of the disk
+
+* clear the screen, and make sure user wants to do this
+ERASE
+?
+?
+?
+?
+? 'This program requires a backup disk in drive B:' 
+? 'Type B to backup data, any other key to return to menu' 
+?
+? 'If you are using CP/M86 - you have one more step ' 
+? '- when the "A>" comes on type "Contro C" ' 
+? '(or "Control End" if you are using an IBM Displaywriter.)'
+?
+
+SET console OFF
+WAIT TO next
+SET console ON
+
+* if they do want to backup the files
+IF !(next) = 'B' 
+  * exit to cp/m, run pip.com, then restart dbase program
+  QUIT TO 'pip b:=a: *.DBF' , 'dbase main' 
+ENDIF !(next) = 'B'  
+
+* release the local variable
+RELEASE next
+
+

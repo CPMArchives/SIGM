@@ -1,0 +1,783 @@
+Directory Manipulation Routines -- DIRECT, DIR, DIRSEL, DIRALP
+Numeric String Evaluation Routines -- EVAL, EVAL16, EVAL10, EVAL8, EVAL2
+Byte-Oriented File Input/Output Routines
+FI$OPEN and FO$OPEN, et al -- Byte-Oriented Input and Output File Open
+FI$CLOSE and FO$CLOSE, et al -- Byte-Oriented Input and Output File Close
+F$GET and F$PUT, et al -- Byte-Oriented Input and Output
+CP/M File Input/Output Routines
+INITFCB -- Initialize FCB
+File Manipulation -- F$OPEN, F$CLOSE, F$MAKE, F$DELETE
+File Input/Output Routines -- F$READ and F$WRITE
+Input Line Editor -- INLINE
+String Output Routines -- PRINT, LPRINT, PSTR, LPSTR
+Numeriã  Outpuô Routineó -- PHL4HC,PHL5DC,PHLDC,PA2HC,PA3DC,PADC¬ L's, M's
+String and Value Comparison Routines -- COMPHD,COMPB,COMPBC,SCANNER,INSTR
+<CR> <LF> Output -- CRLF and LCRLF
+Conditional Input -- CONDIN
+General Input Routines -- CST, CIN, RIN
+General Output Routines -- COUT, LOUT, POUT, CCOUT, CLOUT, CPOUT
+Misã Routineó -- BDOS¬ CAPS¬ CIO¬ EN¬ FILLB¬ FILLBC¬ MOVEB¬ MOVEBC¬ CATH
+:Directory Manipulation Routines -- DIRECT, DIR, DIRSEL, DIRALP
+     Routine Name:  DIRECT
+     Functionº   DIRECÔ  loadó  á copù oæ thå directorù  oæ  thå  currentlù 
+logged-iî disë drivå intï thå 3² ø 6´ bytå buffeò pointeä tï bù HL¬ selectó 
+alì  filå entrieó whicè matcè thå contentó oæ thå 11-bytå filå namå  buffeò 
+pointeä  tï  bù  DÅ (buffeò maù contaiî ?'ó aó  wilä  specifications)¬  anä 
+alphabetizeó thå entrieó iî thå buffeò eitheò bù filå name/typå oò bù  filå 
+type/name®   Onlù  entrieó  wherå thå extenô ió zerï (1sô filå  entry©  arå 
+returned.
+     Inputs:  HL points to the 32 x 64 byte buffer for the directory
+              DÅ pointó tï thå 11-bytå filå name/typå buffeò containinç thå 
+file name/type to select
+              Á  ió alphabetizatioî indicator»  A=° =¾ alphabetizå bù  filå 
+name and type, A<>0 => alphabetize by file type and name
+     Outputs:  A = number of entries in directory buffer
+     Registers Affected:  PSW
+     SYSLIB Routines Called:  -None- (All calls within module)
+     Special Error Conditions:  -None-
+
+     Routine Name:  DIR
+     Functionº   DIÒ loadó á copù oæ thå directorù oæ thå currentlù logged-
+iî disë drivå intï thå 3² ø 6´ bytå buffeò pointeä tï bù L®   Oî return¬  Á 
+contains a count of the number of entries in the directory.
+     Inputs:  HL points to the 32 x 64 byte buffer for the directory
+     Outputs:  A = number of entries in directory buffer
+     Registers Affected:  PSW
+     SYSLIB Routines Called:  -None-
+     Special Error Conditions:  -None-
+
+     Routiîe Îame:  DIRSEL (DIRSELECT)
+     Functionº  DIRSEÌ scanó thå directorù buffeò pointeä tï bù HÌ foò  thå 
+filå   name/typå  pointeä  tï  bù  DÅ  (maù  contaiî  ?'ó  foò  wilä   carä 
+specifications)®   Iô restructureó thå directorù buffeò tï contaiî onlù thå 
+matchinç entries®   Oî return¬ A=numbeò oæ entrieó iî buffer®  Onlù entrieó 
+witè extentó equaì tï zerï arå selected»  alì entrieó witè non-zerï extentó 
+are rejected.
+     Inputs:  HL points to the 32 x 64 byte buffer for the directory
+              DE points to the 11-byte file name/type buffer
+              A = number of entries in directory buffer
+     Outputs:  A = number of entries in directory buffer
+     Registers Affected:  PSW
+     SYSLIB Routines Called:  -None-
+     Special Error Conditions:  -None-
+
+     Routine Name:  DIRALP (DIRALPHABETIZE)
+     Functionº   DIRALĞ alphabetizeó thå directorù buffeò pointeä tï bù  HÌ 
+accordinç  tï thå comparå optioî passeä iî Ã (iæ C=0¬  alphabetizå bù  filå 
+name & type; if C<>0, alphabetize by file type & name).
+     Inputs:  HL points to the 32 x 64 byte buffer for the directory
+              C = alphabetization flag (FN & FT if C=0, FT & FN if C<>0)
+              A = number of entries in directory buffer
+     Outputs:  -None- (buffer is alphabetized)
+     Registers Affected:  -None-
+     SYSLIB Routines Called:  -None-
+     Special Error Conditions:  -None-
+:Numeric String Evaluation Routines -- EVAL, EVAL16, EVAL10, EVAL8, EVAL2
+     Routine Name:  EVAL
+     Functionº  Thió routinå convertó thå characteò strinç pointeä tï bù HÌ 
+intï  thå  16-biô  binarù  numbeò representeä bù  it®   EVAÌ  performó  thå 
+conversioî untiì á non-hexadecimaì characteò ió encountered¬  aô whicè timå 
+iô  lookó aô thå lasô characteò anä thå previouó characteò tï determinå  iæ 
+thå strinç ió representinç á binary¬ octal¬ decimal¬ oò hexadecimaì number®  
+Inpuô strinç characteró maù bå upper- oò lower-case®  Valiä formató foò thå 
+input string are --
+          bbbbbbbbbbbbbbbbB -- b=0 or b=1; Binary string
+          ttttt or tttttD -- 0 <= t <= 9; Decimal string
+          hhhhH or hhhhX -- 0 <= h <= F; Hexadecimal string
+          oooooooO or oooooooQ -- 0 <= o <= 7; Octal string
+
+
+     Inputs:  HL points to the first byte of the string to convert
+              String is loaded in a buffer
+     Outputs:  HL points to next character after converted string
+               DE contains 16-bit value
+               A = E
+               CARRÙ  Flaç  Seô meanó aî erroò waó  encountereä  iî  strinç 
+format
+     Registers Affected:  PSW, DE, HL
+     SYSLIB Routines Called:  CAPS, EVAL16, EVAL10, EVAL8, EVAL2
+     Speciaì  Erroò Conditionsº  CARRÙ Flaç Seô indicateó thaô aî erroò waó 
+encountereä  iî  thå evaluatioî oæ thå string»  iæ so¬  HÌ  pointó  tï  thå 
+offending character
+
+     Routine Name:  EVAL16
+     Functionº   EVAL1¶ convertó thå strinç oæ ASCIÉ hexadecimaì characteró 
+pointeä tï bù HÌ intï á 16-biô binarù value®   Conversioî progresseó  untiì 
+an invalid hexadecimal digit (0-9, A-F) is encountered.
+     Inputs:  HL points to the first byte of the string to convert
+              String is loaded in a buffer
+     Outputs:  HL points to the offending character
+               DE contains the 16-bit value
+               A = E
+     Registers Affected:  PSW, DE, HL
+     SYSLIB Routines Called:  CAPS
+     Special Error Conditions:  -None-
+
+     Routine Name:  EVAL10
+     Functionº   EVAL1°  convertó  thå strinç oæ ASCIÉ  decimaì  characteró 
+pointeä tï bù HÌ intï á 16-biô binarù value®   Conversioî progresseó  untiì 
+an invalid decimal digit (0-9) is encountered.
+     Inputs:  HL points to the first byte of the string to convert
+              String is loaded in a buffer
+     Outputs:  HL points to the offending character
+               DE contains the 16-bit value
+               A = E
+     Registers Affected:  PSW, DE, HL
+     SYSLIB Routines Called:  -None-
+     Special Error Conditions:  -None-
+
+     Routine Name:  EVAL8
+     Functionº  EVAL¸ convertó thå strinç oæ ASCIÉ octaì characteró pointeä 
+tï  bù  HÌ  intï á 16-biô binarù value®   Conversioî  progresseó  untiì  aî 
+invalid octal digit (0-7) is encountered.
+     Inputs:  HL points to the first byte of the string to convert
+              String is loaded in a buffer
+     Outputs:  HL points to the offending character
+               DE contains the 16-bit value
+               A = E
+     Registers Affected:  PSW, DE, HL
+     SYSLIB Routines Called:  -None-
+     Special Error Conditions:  -None-
+
+     Routine Name:  EVAL2
+     Functionº   EVAL²  convertó  thå  strinç oæ  ASCIÉ  binarù  characteró 
+pointeä tï bù HÌ intï á 16-biô binarù value®   Conversioî progresseó  untiì 
+an invalid binary digit (0-1) is encountered.
+     Inputs:  HL points to the first byte of the string to convert
+              String is loaded in a buffer
+     Outputs:  HL points to the offending character
+               DE contains the 16-bit value
+               A = E
+     Registers Affected:  PSW, DE, HL
+     SYSLIB Routines Called:  -None-
+     Special Error Conditions:  -None-
+:Byte-Oriented File Input/Output Routines
+     Thå  followinç  documentatioî coveró thå serieó oæ byte-orienteä  filå 
+input/outpuô  routineó  iî  SYSLIB®   Theså  routineó  allo÷  thå  useò  tï 
+sequentiallù  reaä froí (GET© anä writå tï (PUT© á filå oî á  byte-for-bytå 
+basis®   Hence¬  theså routineó providå aî exceptionallù simplå methoä  foò 
+handling input from and output to a file.
+     Á  typicaì prograí whicè employó theså routineó musô opeî thå requireä 
+fileó beforå doinç anù processing¬  musô theî perforí thå processinç oî thå 
+openeä  files¬  anä  musô  theî  closå thå fileó  wheî  thå  processinç  ió 
+completå  (closinç thå fileó ió optionaì foò inpuô fileó anä mandatorù  foò 
+output files).
+     SYSLIÂ provideó fouò setó oæ routineó foò byte-orienteä filå inpuô anä 
+output.  These routines are --
+
+   Input Open     Output Open     GET    PUT   Input Close  Output Close
+   ----------     -----------     ---    --­   -----------  ------------
+    FI$OPEN        FO$OPEN       F$GET  F$PUT   FI$CLOSE     FO$CLOSE
+    F1I$OPEN       F1O$OPEN      F1$GET F1$PUT  F1I$CLOSE    F1O$CLOSE
+    F2I$OPEN       F2O$OPEN      F2$GET F2$PUT  F2I$CLOSE    F2O$CLOSE
+    F3I$OPEN       F3O$OPEN      F3$GET F3$PUT  F3I$CLOSE    F3O$CLOSE
+
+     Thió systeí allowó thå useò tï havå uğ tï ¸ fileó opeî  simultaneouslù 
+-- fouò  arå  opeî foò inpuô usinç GEÔ anä fouò arå opeî foò  outpuô  usinç 
+PUT®   Foò  example¬  thå  followinç ió á samplå codå sectioî  usinç  theså 
+routines for two files:
+
+
+          EXT  FI$OPEN   ; DECLARE LIBRARY REFERENCES
+          EXT  FO$OPEN
+          EXT  FI$CLOSE
+          EXT  FO$CLOSE
+          EXT  F$GET
+          EXT  F$PUT
+          ...
+          LXI  D,FCBI    ; PT TO FCB OF INPUT FILE
+          CALL FI$OPEN
+          LXI  D,FCBO    ; PT TO FCB OF OUTPUT FILE
+          CALL FO$OPEN
+          ...
+          [body containing CALL F$GET and CALL F$PUT where required]
+          ...
+          CALL FI$CLOSE  ; CLOSE FILE
+          CALL FO$CLOSE
+          ...
+          END
+
+     Notå  thaô  onlù  thå routineó tï bå useä arå referenceä  iî  thå  EXÔ 
+statements®   Iæ yoõ dï noô neeä á particulaò routine¬ dï noô referencå it®  
+Noô  referencinç  aî unneedeä routinå generallù saveó thå  overheaä  memorù 
+spacå oæ loadinç iô froí thå library.
+     Eacè seô oæ OPEN¬  CLOSE¬  GET¬  anä PUÔ routineó ió containeä iî  onå 
+librarù  module¬  sï  referencinç anù oæ theså routineó causeó  thå  entirå 
+modulå  tï  bå  loaded¬  anä alì thå routineó arå accessablå  tï  thå  useò 
+(provideä  theù  arå  mentioneä  iî thå extenaì  definitions©  withouô  anù 
+additionaì memorù  overhead®   Specifically¬  FI$OPEN¬  FI$CLOSE¬  FO$OPEN¬ 
+FO$CLOSE¬  F$GET¬  anä F$PUÔ arå containeä iî onå module¬  anä referencå tï 
+anù  oæ  theså routineó loadó thå entirå module»  thå samå ió truå foò  thå 
+other sets of routines.
+     Thå  CLOSÅ routinå foò outpuô (FO$CLOSE© ió ALWAYÓ required»  iô filló 
+thå  resô  oæ thå currenô blocë witè Ctrl-Ú followeä bù  <NULL¾  byteó  anä 
+properlù  closeó file®   Thå CLOSÅ routinå foò inpuô (FI$CLOSE© ió requireä 
+ONLÙ  IÆ  yoõ  arå goinç tï lateò opeî anotheò filå  foò  inpuô  usinç  thå 
+correspondinç  OPEÎ routinå (FI$OPEN)®   FI$CLOSÅ onlù serveó tï reseô  thå 
+OPEÎ  flaç  (useä  tï  GEÔ tï ascertaiî thaô thå  filå  haó  beeî  properlù 
+opened).
+:FI$OPEN and FO$OPEN, et al -- Byte-Oriented Input and Output File Open
+     Routine Names:  FI$OPEN, F1I$OPEN, F2I$OPEN, F3I$OPEN
+     Functionº  Opeî thå filå whoså FCÂ ió pointeä tï bù DÅ foò inpuô  (uså 
+witè F$GET).
+     Inputs:  DE = ptr to FCB of file to open
+     Outputs:  -None- (File is Opened)
+     Registers Affected:  PSW
+     SYSLIB Routines Called:  F$OPEN, PRINT
+     Special Error Conditions:  Failure to properly open aborts to CP/M.
+
+     Routine Names:  FO$OPEN, F1O$OPEN, F2O$OPEN, F3O$OPEN
+     Functionº  Opeî thå filå whoså FCÂ ió pointeä tï bù DÅ foò outpuô (uså 
+with F$PUT).
+     Inputs:  DE = ptr to FCB of file to open
+     Outputs:  -None- (File is Opened)
+     Registers Affected:  PSW
+     SYSLIB Routines Called:  F$OPEN, PRINT
+     Special Error Conditions:  Failure to properly open aborts to CP/M.
+:FI$CLOSE and FO$CLOSE, et al -- Byte-Oriented Input and Output File Close
+     Routine Names:  FI$CLOSE, F1I$CLOSE, F2I$CLOSE, F3I$CLOSE
+     Functionº   Closå  thå  filå previouslù openeä  bù  thå  correspondinç 
+FI$OPEÎ  routine®   Uså  oæ theså routineó ió optionaì iæ thå anotheò  filå 
+wilì  noô  bå  openeä lateò iî thå prograí  bù  thå  correspondinç  FI$OPEÎ 
+routine.
+     Inputs:  -None-
+     Outputs:  -None- (File is Closed)
+     Registers Affected:  -None-
+     SYSLIB Routines Called:  F$OPEN, PRINT
+     Speciaì  Erroò  Conditionsº   Iæ á filå ió noô alreadù openeä  bù  thå 
+corresponding FI$OPEN routine, no error results.
+
+     Routine Names:  FO$CLOSE, F1O$CLOSE, F2O$CLOSE, F3O$CLOSE
+     Functionº   Closå  thå  filå previouslù openeä  bù  thå  correspondinç 
+FO$OPEÎ  routine®   Uså oæ theså routineó ió MANDATORÙ afteò outpuô tï  thå 
+file (using the corresponding F$PUT routine) is complete.
+     Inputs:  -None-
+     Outputs:  -None- (File is Closed)
+     Registers Affected:  -None-
+     SYSLIB Routines Called:  F$OPEN, PRINT
+     Speciaì  Erroò  Conditionsº  Iæ á filå ió  noô  alreadù  opened¬  thió 
+routine aborts to CP/M.
+:F$GET and F$PUT, et al -- Byte-Oriented Input and Output
+     Routine Names:  F$GET, F1$GET, F2$GET, F3$GET
+     Functionº   Geô  thå  nexô bytå iî sequencå froí thå  filå  previouslù 
+openeä bù thå correspondinç FI$OPEÎ routine®   Bytå ió returneä iî Registeò 
+A.
+     Inputs:  -None-
+     Outputs:  A = Next byte from file
+               Carry Flag is Set (C) if EOF or past EOF read occurs
+               Carry Flag is Reset (NC) if read was OK
+     Registers Affected:  PSW
+     SYSLIB Routines Called:  F$OPEN, PRINT
+     Speciaì  Erroò Conditionsº  Erroò conditioî ió returneä iî Carrù Flag®  
+Iæ  á filå waó noô previouslù openeä bù thå correspondinç FI$OPEÎ  routine¬ 
+abortó tï CP/M.
+
+     Routine Names:  F$PUT, F1$PUT, F2$PUT, F3$PUT
+     Functionº   Puô  thå  bytå  iî Registeò Á ontï thå  enä  oæ  thå  filå 
+previously opened by the corresponding FO$OPEN routine.
+     Inputs:  A = Byte to PUT
+     Outputs:  -None-
+     Registers Affected:  -None-
+     SYSLIB Routines Called:  F$OPEN, PRINT
+     Speciaì  Erroò Conditionsº  Iæ á filå waó noô previouslù openeä bù thå 
+correspondinç  FO$OPEÎ  routine¬  abortó tï CP/M®   Iæ aî erroò  occuró  iî 
+writinç tï thå disk¬ abortó tï CP/M.
+:CP/M File Input/Output Routines
+     Thå  followinç  routineó arå general-purposå filå I/Ï  routineó  whicè 
+interfacå tï CP/Í througè thå Entrù Poinô aô locatioî 5®  Theù preservå BC¬ 
+DE¬  anä  HL¬  anä  theù returî witè thå standarä CP/Í erroò codeó foò  thå 
+corresponding routines.
+     Specifically, these routines are --
+
+          INITFCB   Initialize FCB from a string of the form "filename.typ"
+          F$OPEN    Open a file
+          F$CLOSE   Close a file
+          F$MAKE    Create a file
+          F$DELETE  Delete a file
+          F$READ    Read a block (128 bytes) from a file
+          F$WRITE   Write a block (128 bytes) to a file
+:INITFCB -- Initialize FCB
+     Routine Name:  INITFCB
+     Functionº   Giveî thå namå oæ á filå (filename.typ© pointeä tï  bù  HÌ 
+anä  á 33-bytå buffeò pointeä tï bù DE¬  INITFCÂ initializeó thió buffeò aó 
+aî  FCÂ  containinç  thå filå namå anä filå typå correctlù  placeä  iî  thå 
+buffeò  anä  alì  otheò entrieó zero®   Thå inpuô strinç  consistó  oæ  1-¸ 
+characteró foò thå filå name¬  á decimaì poinô (optional)¬  1-³  characteró 
+foò  thå filå typå (optional)¬  anä á trailinç characteò oæ spacå (<SP>© oò 
+less®  Wilä cardó (?,*© maù bå includeä iî thå string®  Á samplå usagå is: 
+
+          ...
+          LXI  H,NAME
+          LXI  D,FCB     ; HL PTS TO FILE NAME, DE PTS TO BUFFER
+          CALL INITFCB
+          ...
+NAME:     DB   'FILE.TYP',0
+FCB:      DS   33
+          ...
+
+
+     Inputs:  HL = pointer to file name string "filename.typ<SP>"
+              DE = pointer to FCB buffer
+     Outputs:  A = Error Code
+                   0 --> No Error
+                   1 --> File name > 8 characters
+                   2 --> File type > 3 characters
+     Registers Affected:  PSW
+     SYSLIB Routines Called:  -None-
+     Special Error Conditions:  -None-
+:File Manipulation -- F$OPEN, F$CLOSE, F$MAKE, F$DELETE
+     Routine Name:  F$OPEN
+     Functionº   Opeî thå filå specifieä bù thå FCÂ pointeä tï bù  DE®   Iæ 
+filå ió noô found¬ F$OPEÎ askó thå useò (oî CON:© iæ hå wisheó tï creatå iô 
+anä  doeó  sï iæ thå answeò ió 'Y§ oò 'y§ (F$OPEÎ simplù  returnó  witè  aî 
+appropriate error code if answer is negative).
+     Inputs:  DE = pointer to FCB
+     Outputs:  A = Error Code
+                   0    --> No Error
+                   0FFH --> File not opened or created
+     Registers Affected:  PSW
+     SYSLIB Routines Called:  BDOS, CAPS, CIN, COUT, CRLF, PRINT
+     Special Error Conditions:  -None-
+
+     Routine Name:  F$CLOSE
+     Function:  Close the file whose FCB is pointed to by DE.
+     Inputs:  DE = pointer to FCB
+     Outputs:  A = Error Code
+                   0    --> No Error
+                   0FFH --> Error in closing file
+     Registers Affected:  PSW
+     SYSLIB Routines Called:  BDOS
+     Special Error Conditions:  -None-
+
+     Routine Name:  F$MAKE
+     Function:  Create (Make) the file whose FCB is pointed to by DE.
+     Inputs:  DE = pointer to FCB
+     Outputs:  A = Error Code
+                   0FFH --> No directory space available
+                   Not 0FFH --> No Error; Value is byte address in
+                                TBUFF (80H-0FFH) of directory entry
+                                allocated to the FCB
+     Registers Affected:  PSW
+     SYSLIB Routines Called:  BDOS, F$DELETE
+     Special Error Conditions:  -None-
+
+     Routine Name:  F$DELETE
+     Functionº   Deletå  thå filå whoså FCÂ ió pointeä tï bù DE®   Iæ  filå 
+does not exist, nothing happens (no error message or code is given).
+     Inputs:  DE = pointer to FCB
+     Outputs:  -None-
+     Registers Affected:  PSW
+     SYSLIB Routines Called:  BDOS
+     Special Error Conditions:  -None-
+:File Input/Output Routines -- F$READ and F$WRITE
+     Routine Name:  F$READ
+     Functionº  Reaä nexô blocë (12¸ bytes© froí thå openeä filå whoså  FCÂ 
+is pointed to by DE into TBUFF (buffer at 80H - 0FFH).
+     Inputs:  DE = pointer to FCB
+     Outputs:  A = Error Code
+                   0 --> No Error
+                   1 --> Read past end of file
+                   2 --> Reading unwritten data in random access
+     Registers Affected:  PSW
+     SYSLIB Routines Called:  BDOS
+     Special Error Conditions:  -None-
+
+     Routine Name:  F$WRITE
+     Functionº   Writå  nexô blocë (12¸ bytes© froí TBUFÆ (buffeò aô 80È  - 
+0FFH) to the opened file whose FCB is pointed to by DE.
+     Inputs:  DE = pointer to FCB
+     Outputs:  A = Error Code
+                   0    --> No Error
+                   1    --> Error in extending file
+                   2    --> End of disk data
+                   0FFH --> No more directory space
+     Registers Affected:  PSW
+     SYSLIB Routines Called:  BDOS
+     Special Error Conditions:  -None-
+:Input Line Editor -- INLINE
+     Routine Name:  INLINE
+     Functionº   INLINÅ allowó thå useò tï inpuô á linå oæ texô  froí  CONº 
+intï thå buffeò pointeä tï bù HL®   Thå useò ió alloweä tï ediô thå texô aó 
+he types it, and INLINE responds to the following editor commands:
+
+   Key Command      Function
+   -----------      --------
+     <BS>           Delete previous character and back up cursor
+     <DEL>          Delete previous character and echo it (like CP/M)
+     <CR>           Input complete -- return to calling program
+     <LF>           Skip down to next physical line and insert a <CR> <LF>
+                      into buffer
+     <TAB>          Tabulate to next tab stop (every 8, as in CP/M)
+     Ctrl-U,        Erase current line (clear buffer) and restart input
+       Ctrl-X
+     Ctrl-R         Retype current line
+
+Oî exit¬  thå buffeò containó thå texô entereä followeä bù á <NULL¾ (binarù 
+0); the <CR> typed to end the input is NOT placed in the buffer.
+
+     Inputs:  HL = pointer to input line buffer
+     Outputs:  -None- (Input line buffer contains text typed by user)
+     Registers Affected:  -None-
+     SYSLIB Routines Called:  CCOUT, CIN, COUT, CRLF
+     Speciaì  Erroò Conditionsº  <BEL¾ (Beeğ aô CON:© ió outpuô iæ  attempô 
+ió madå tï deletå characteò (<BS¾ oò <DEL>© beforå beginninç oæ  line®   Nï 
+limiô  oò  erroò  checkinç  ió donå oî thå sizå oæ thå  inpuô  linå  buffeò 
+(buffeò  overflo÷  ió possible¬  sï iô ió recommendeä thaô buffeò  ió  madå 
+arbitrarilù large)®   Hasè marë (#© ió printeä iî responså tï Ctrl-R¬ Ctrl-
+U, and Ctrl-X.
+:String Output Routines -- PRINT, LPRINT, PSTR, LPSTR
+     Routine Names:  PRINT, LPRINT
+     Functionº   Prinô  strinç  pointeä tï âù thå returî  addresó  oî  CONº 
+(PRINT© oò LSTº (LPRINT)®   Strinç ió terminateä bù á binarù 0®  Controì ió 
+returned to byte following string.
+     Inputs:  Return Address = pointer to string to be printed
+     Outputs:  HL points to byte after string
+               (string is printed on CON: or LST:)
+     Registers Affected:  HL
+     SYSLIB Routines Called:  PSTR (for PRINT); LSTR (for LPRINT)
+     Speciaì  Erroò Conditionsº  Thå strinç MUSÔ bå terminateä bù á  binarù 
+0!!!
+
+     Routine Names:  PSTR, LPSTR
+     Functionº   Prinô  strinç  pointeä tï bù HÌ oî  CONº  (PSTR©  oò  LSTº 
+(LPSTR).  String is terminated by a binary 0.
+     Inputs:  HL = pointer to string to be printed
+     Outputs:  -None- (string is printed on CON: or LST:)
+     Registers Affected:  -None-
+     SYSLIÂ  Routineó Calledº  CCOUT¬  COUÔ (foò PSTR)»  LCOUT¬  LOUÔ  (foò 
+LPSTR)
+     Speciaì  Erroò Conditionsº  Thå strinç MUSÔ bå terminateä bù á  binarù 
+0!!!
+:Numeric Output Routines -- PHL4HC,PHL5DC,PHLDC,PA2HC,PA3DC,PADC, L's, M's
+     Routine Names:  PHL4HC, LHL4HC
+     Functionº   Prinô  HÌ  aó  fouò (4©  hexadecimaì  characteró  oî  CONº 
+(PHL4HC) or LST: (LHL4HC).
+     Inputs:  HL = value to be printed
+     Outputs:  -None- (Value is printed)
+     Registers Affected:  -None-
+     SYSLIB Routines Called:  PA2HC (for PHL4HC); LA2HC (for LHL4HC)
+     Special Error Conditions:  -None-
+
+     Routine Name:  MHL4HC
+     Functionº   Storå HÌ aó fouò (4© hexadecimaì characteró iî thå  4-bytå 
+memorù buffeò pointeä tï bù DE®  Oî return¬ DÅ pointó tï thå bytå followinç 
+this buffer.
+     Inputs:  HL = value to be converted and stored
+              DE points to 4-byte buffer
+     Outputs:  DE points to byte after buffer
+     Registers Affected:  DE
+     SYSLIB Routines Called:  MA2HC
+     Special Error Conditions:  -None-
+
+     Routine Names:  PHL5DC, LHL5DC
+     Functionº  Prinô HÌ aó fivå (5© decimaì characteró oî CONº (PHL5DC© oò 
+LSTº (LHL5DC).
+     Inputs:  HL = value to be printed
+     Outputs:  -None- (Value is printed)
+     Registers Affected:  -None-
+     SYSLIB Routines Called:  POUT (for PHL5DC); LOUT (for LHL5DC)
+     Special Error Conditions:  -None-
+
+     Routine Name:  MHL5DC
+     Functionº  Storå HÌ aô fivå (5© decimaì characteró iî memorù iî thå 5-
+bytå buffeò pointeä tï bù DE®   Oî return¬ DÅ pointó tï thå bytå afteò thió 
+buffer.
+     Inputs:  HL = value to be converted and stored
+              DE points to a 5-byte buffer
+     Outputs:  DE points to the byte following the buffer
+     Registers Affected:  DE
+     SYSLIB Routines Called:  -None-
+     Special Error Conditions:  -None-
+
+     Routine Names:  PHLDC, LHLDC
+     Functionº  Prinô HÌ aó uğ tï fivå (5© decimaì characteró witè  leadinç 
+spaces (<SP>) on CON: (PHLDC) or LST: (LHLDC).
+     Inputs:  HL = value to be printed
+     Outputs:  -None- (Value is printed)
+     Registers Affected:  -None-
+     SYSLIB Routines Called:  POUT (for PHLDC); LOUT (for LHLDC)
+     Special Error Conditions:  -None-
+
+     Routine Name:  MHLDC
+     Functionº   Storå HÌ aó uğ tï fivå (5© decimaì characteró witè leadinç 
+spaces in the 5-byte memory buffer pointed to by DE.
+     Inputs:  HL = value to be converted and printed
+              DE points to the 5-byte buffer
+     Outputs:  DE points to the byte after the buffer
+     Registers Affected:  DE
+     SYSLIB Routines Called:  -None-
+     Special Error Conditions:  -None-
+
+     Routine Names:  PA2HC, LA2HC
+     Functionº   Prinô Á aó twï (2© hexadecimaì characteró oî CONº  (PA2HC© 
+or LST: (LA2HC).
+     Inputs:  A = value to be printed
+     Outputs:  -None- (Value is printed)
+     Registers Affected:  -None-
+     SYSLIÂ  Routineó Calledº  EÎ (foò both)»  POUÔ (foò PA2HC)»  LOUÔ (foò 
+LA2HC)
+     Special Error Conditions:  -None-
+
+     Routine Name:  MA2HC
+     Functionº   Storå  Á aó twï (2© hexadecimaì characteró iî  thå  2-bytå 
+memory buffer pointed to by HL.  On return, HL points to byte after buffer.
+     Inputs:  A = value to be converted and stored
+              HL points to 2-byte buffer
+     Outputs:  HL points to byte after this buffer
+     Registers Affected:  HL
+     SYSLIB Routines Called:  EN
+     Special Error Conditions:  -None-
+
+     Routine Names:  PA3DC, LA3DC
+     Functionº  Prinô Á aó threå (3© decimaì characteró oî CONº (PA3DC©  oò 
+LST: (LA3DC).
+     Inputs:  A = value to be printed
+     Outputs:  -None- (Value is printed)
+     Registers Affected:  -None-
+     SYSLIB Routines Called:  POUT (for PA3DC); LOUT (for LA3DC)
+     Special Error Conditions:  -None-
+
+     Routine Name:  MA3DC
+     Functionº   Storå  Á  aó threå (3© decimaì characteró  iî  thå  3-bytå 
+memorù buffeò pointeä tï bù HL®  Oî return¬ HÌ pointó tï thå bytå afteò thå 
+buffer.
+     Inputs:  A = value to be converted and stored
+              HL points to the 3-byte buffer
+     Outputs:  HL points to the byte after the buffer
+     Registers Affected:  HL
+     SYSLIB Routines Called:  -None-
+     Special Error Conditions:  -None-
+
+     Routine Names:  PADC, LADC
+     Functionº   Prinô Á aó uğ tï threå (3© decimaì characteró witè leadinç 
+spaces (<SP>) on CON: (PADC) or LST: (LADC).
+     Inputs:  A = value to be printed
+     Outputs:  -None- (Value is printed)
+     Registers Affected:  -None-
+     SYSLIB Routines Called:  POUT (for PADC); LOUT (for LADC)
+     Special Error Conditions:  -None-
+
+     Routine Name:  MADC
+     Functionº  Storå Á aó uğ tï threå (3© decimaì characteró witè  leadinç 
+spaceó iî thå 3-bytå memorù buffeò pointeä tï bù HL®   Oî return¬ HÌ pointó 
+to the byte after the buffer.
+     Inputs:  A = value to be converted and stored
+              HL points to the 3-byte memory buffer
+     Outputs:  HL points to the byte after the buffer
+     Registers Affected:  HL
+     SYSLIB Routines Called:  -None-
+     Special Error Conditions:  -None-
+:String and Value Comparision Routines -- COMPHD,COMPB,COMPBC,SCANNER,INSTR
+     Routine Name:  COMPHD
+     Functionº  Comparå HÌ tï DE®  Oî return¬ Zerï Flaç Seô =¾ HL=DE¬ Carrù 
+Flag Set => HL<DE.
+     Inputs:  HL, DE -- Values to compare
+     Outputs:  Zero and Carry Flags
+     Registers Affected:  PSW
+     SYSLIB Routines Called:  -None-
+     Special Error Conditions:  -None-
+
+     Routine Names:  COMPB, COMPBC
+     Functionº  Vectoò Comparå Routines®   Comparå thå vectoò pointeä tï bù 
+HÌ witè thaô pointeä tï bù DÅ (Vectoró arå oæ equaì length)®  Vectoró arå Â 
+byteó lonç foò COMPÂ anä BÃ byteó lonç foò COMPBC®   Oî exit¬ Zerï Flaç Seô 
+indicateó  thaô  vectoró arå identical»  Carrù Flaç Seô indicateó thaô  thå 
+vector pointed to by HL is less than the vector pointed to by DE.
+     Inputs:  HL, DE -- Pointers to vectors to compare
+              B (for COMPB), BC (for COMPBC) -- number of bytes in vectors
+     Outputs:  Zero and Carry Flags
+     Registers Affected:  PSW
+     SYSLIB Routines Called:  -None-
+     Special Error Conditions:  -None-
+
+     Routine Name:  SCANNER
+     Functionº  SCANNEÒ scanó thå vectoò oæ byteó pointeä tï bù HÌ foò  thå 
+vectoò  oæ byteó pointeä tï bù DE®   Thå HL-bytå vectoò ió Â byteó lonç anä 
+thå DE-bytå vectoò ió Ã byteó long®   Oî return¬ iæ found¬ HÌ pointó tï thå 
+beginninç locatioî withiî thå originaì HÌ vectoò oæ thå locateä vectoò  anä 
+thå  Zerï  Flaç ió Set»  iæ noô found¬  Zerï Flaç ió noô seô anä HÌ ió  noô 
+affected (points to the beginning of the original HL-byte vector).
+     Inputs:  HL = Pointer to vector to be scanned
+              DE = Pointer to vector to scan for
+              B = Number of bytes in HL-vector
+              C = Number of bytes in DE-vector
+     Outputs:  If found, Zero Set and HL pts to located vector
+               If not found, Zero Reset and HL unaffected
+     Registers Affected:  PSW, HL
+     SYSLIB Routines Called:  -None-
+     Speciaì Erroò Conditionsº  Automatiã succesó iæ vectoò searcheä foò ió 
+null.
+
+     Routine Name:  INSTR
+     Functionº   INSTRINÇ Function®   Scaî thå strinç pointeä tï bù HÌ  foò 
+thå strinç pointeä tï bù DE®  Á strinç ió á vectoò oæ byteó terminateä bù á 
+binary 0.
+          Oî return¬  iæ found¬  Zerï Flaç ió Seô anä HÌ pointó tï 1sô bytå 
+oæ substrinç withiî scanneä string»  iæ noô found¬ Zerï Flaç ió noô seô anä 
+HL is not affected.
+     Inputs:  HL = Pointer to string to be scanned
+              DE = Pointer to string to scan for
+     Outputs:  If found, Zero Set and HL pts to located substring
+               If not found, Zero Reset and HL unaffected
+     Registers Affected:  PSW, HL
+     SYSLIB Routines Called:  -None-
+     Speciaì Erroò Conditionsº  Automatiã succesó iæ strinç searcheä foò ió 
+null.
+:<CR> <LF> Output -- CRLF and LCRLF
+     Routine Names:  CRLF, LCRLF
+     Function:  Print <CR> and <LF> on CON: (CRLF) or LST: (LCRLF).
+     Inputs:  -None-
+     Outputs:  -None- (<CR> <LF> is printed)
+     Registers Affected:  -None-
+     SYSLIB Routines Called:  POUT (for CRLF); LOUT (for LCRLF)
+     Special Error Conditions:  -None-
+:Conditional Input -- CONDIN
+     Routine Name:  CONDIN
+     Functionº  Inpuô á characteò froí CONº iæ onå ió available» otherwise¬ 
+return a flag stating that a character is not available on CON:.
+     Inputs:  -None-
+     Outputs:  A = character typed at CON: (if available)
+               Zero Flag is set (Z) if no character is available
+               Zero Flag is reset (NZ) if character is available
+     Registers Affected:  PSW
+     SYSLIB Routines Called:  CST, CIN
+     Special Error Conditions:  -None-
+:General Input Routines -- CST, CIN, RIN
+     Routine Name:  CST
+     Functionº   Inpuô  thå statuó oî CONº iî Registeò  A®   Iæ  Reaä  Datá 
+Available, A=0; otherwise, A=1.
+     Inputs:  -None-
+     Outputs:  A = Console Status
+                   0 --> Read Data Available (RDA)
+                   1 --> Read Data Not Available (Not RDA)
+     Registers Affected:  PSW
+     SYSLIB Routines Called:  -None-
+     Special Error Conditions:  -None-
+
+     Routine Names:  CIN, RIN
+     Functionº Inpuô characteò froí CONº (CIN© oò RDRº (RIN© iî Registeò A.
+     Inputs:  -None-
+     Outputs:  A = Character input from CON: or RDR:
+     Registers Affected:  PSW
+     SYSLIB Routines Called:  -None-
+     Special Error Conditions:  -None-
+:General Output Routines -- COUT, LOUT, POUT, CCOUT, CLOUT, CPOUT
+     Routine Names:  COUT, LOUT, POUT
+     Functionº  Outpuô characteò iî Registeò Á tï CONº (COUT)¬ LSTº (LOUT)¬ 
+or PUN: (POUT).
+     Inputs:  A = Character to output
+     Outputs:  -None- (Character is output)
+     Registers Affected:  -None-
+     SYSLIB Routine Called:  -None-
+     Special Error Conditions:  -None-
+
+     Routine Names:  CCOUT, CLOUT, CPOUT
+     Functionº  Outpuô characteò iî Registeò Á tï CONº (COUT)¬ LSTº (LOUT)¬ 
+oò  PUNº  (POUT© witè controì characteò processing®   Alì  characteró  witè 
+ASCIÉ  codeó  lesó thaî <SP¾ (spacå ½ 20H© iî valuå excepô  <NULL>¬  <BEL>¬ 
+<BS>¬  <LF>¬  anä  <CR¾  arå  outpuô  aó aî uparro÷  (^©  followeä  bù  thå 
+correspondinç letteò generateä bù addinç 40È tï thå characteò valuå  (i.e.¬ 
+± outputó aó "^A"¬  ² aó "^B"¬ etc.)®  Again¬ thå characteró lesó thaî <SP¾ 
+in value NOT output in this manner are --
+
+          <NULL>  <BEL>  <BS>  <LF>  <CR>
+
+Any character of value greater than <SP> is output normally.
+     Inputs:  A = Character to output
+     Outputs:  -None- (Character/Code is output)
+     Registers Affected:  PSW (only the Flags; Register A is NOT affected)
+     SYSLIÂ Routineó Calledº  COUÔ (foò CCOUT)» LOUÔ (foò CLOUT)» POUÔ (foò 
+CPOUT)
+     Special Error Conditions:  -None-
+:Miscellaneouó Routineó -- BDOS¬  CAPS¬  CIO¬  EN¬  FILLB¬  FILLBC¬  MOVEB¬ 
+MOVEBC, CATH
+     Routine Name:  BDOS
+     Functionº   Calì CP/Í Entrù Poinô aô locatioî µ anä preservå Registeró 
+HL and DE.
+     Inputs:  -As Required by User-
+     Outputs:  PSW, BC
+     Registers Affected:  PSW, BC
+     SYSLIB Routines Called:  -None-
+     Special Error Conditions:  -Determined by Routines Called-
+
+     Routine Name:  CAPS
+     Functionº   Capitalizå ASCIÉ characteò iî Registeò Á iæ iô  ió  lower-
+case alphabetic (a-z); otherwise, return A unaffected.
+     Inputs:  A = character to capitalize
+     Outputs:  A = capitalized character
+     Registers Affected:  PSW
+     SYSLIB Routins Called:  -None-
+     Special Error Conditions:  -None-
+
+     Routine Name:  CIO
+     Functionº   CP/Í  I/Ï througè BIOÓ Jumğ Table®   Thió routinå  indexeó 
+intï thå CP/Í BIOÓ Jumğ Tablå anä allowó thå useò tï addresó anù routinå iî 
+thå  BIOÓ  (accessablå  routineó  only)®   Iô ió  calleä  witè  Registeò  Á 
+containinç  thå indeø offseô (seå tablå below© anä Registeró BÃ  containinç 
+anù requireä inpuô arguments®  Thå followinç tablå summarizeó thå BIOÓ Jumğ 
+Table entries --
+
+Offset Function                    Offset Function
+   0   Warm Start                     7   Home Disk Head
+   1   Console Status; A=0FFH if      8   Select Disk; C=Disk Number (A=0,
+       char ready, A=0 if not             B=1, C=2, D=3) passed
+   2   Console Input; A=result        9   Set Track Number; C=Track Number
+   3   Console Output; C=char passed      passed
+   4   List Output; C=char passed    10   Set Sector Number; C=Sector
+   5   Punch Output; C=char passed        Number passed
+   6   Reader Input; A=result        11   Set DMA Address; BC=adr passed
+                                     12   Read Disk; A=0 if ok, 1 if err
+                                     13   Write Disk; A=0 if ok, 1 if err
+Any other offset results in a Cold Start being performed.
+
+     Inputs:  A = Offset
+              BC = Data Passed to Routine
+     Outputs:  A = Output or Error Indicator
+     Registers Affected:  PSW
+     SYSLIB Routines Called:  -None-
+     Special Error Conditions:  -None-
+
+     Routine Name:  EN
+     Functionº   Exchangå Nybbleó iî Register A»  High-ordeò fouò bitó  arå 
+exchanged with Low-order four bits of Register A.
+     Inputs:  A = Byte input
+     Outputs:  A = Byte output
+     Registers Affected:  PSW
+     SYSLIB Routines Called:  -None-
+     Special Error Conditions:  -None-
+
+     Routine Names:  FILLB, FILLBC
+     Functionº   Theså routineó filì aî areá oæ memorù witè á constanô bytå 
+value®  FILLÂ caî filì uğ tï á 256-bytå buffer¬ anä FILLBÃ caî filì uğ tï á 
+65,536-byte (within reason) buffer.
+     Inputs:  HL points to the first byte of the buffer to be filled
+              B (for FILLB) or BC (for FILLBC) = number of bytes in buffer
+              A = byte value to fill buffer with
+     Outputs:  -None- (Buffer is filled)
+     Registers Affected:  -None-
+     SYSLIB Routines Called:  -None-
+     Special Error Conditions:  -None-
+
+     Routine Names:  MOVEB, MOVEBC
+     Functionº   Movå  thå blocë oæ memorù pointeä tï bù HÌ tï  thå  memorù 
+locatioî  pointeä tï bù DE®   MOVEÂ caî movå uğ tï á 256-bytå  buffer¬  anä 
+MOVEBC can move up to a 65,536-byte buffer.
+     Inputs:  HL points to the first byte of the buffer to move
+              DE points to the first byte of the buffer to move to
+              B (for MOVEB) or BC (for MOVEBC) = number of bytes in buffer
+     Outputs:  -None- (Buffer is moved)
+     Registers Affected:  -None-
+     SYSLIB Routines Called:  -None-
+     Special Error Conditions:  -None-
+
+     Routine Name:  CATH
+     Functionº   Converô thå ASCIÉ Hexadecimaì characteò iî thå Á  Registeò 
+tï binarù iî thå Á Register®   Iæ invaliä characteò (noô 0-9¬  A-F)¬ returî 
+<SP> (20 Hex) in A Register as error code.
+     Input:  A = ASCII Hex Character (0-9, A-F)
+     Output:  A = Binary value represented by char
+     Registers Affected:  PSW
+     SYSLIB Routines Called:  -None-
+     Speciaì Erroò Conditionsº  Iæ invaliä heø char¬ <SP¾ (2° Hex© returneä 
+in A Register.
+

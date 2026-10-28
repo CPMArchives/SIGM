@@ -1,0 +1,23 @@
+;    THIS IS A ROUTINE WHICH WILL INPUT ONE CHARACTER
+;    FROM THE CONSOLE AND RETURN IT TO THE PASCAL
+;    PROCEDURE.  A CP/M CALL IS USED TO ACTUALLY INPUT
+;    THE CHARACTER.
+;
+;    THIS FUNCTION SHOULD BE DECLARED EXTERNAL IN THE
+;    PASCAL PROGRAM
+;
+;    FUNCTION GETCAR : CHAR; EXTERNAL;
+;
+     NAME GETCAR
+     ENTRY     GETCAR
+CREAD:    EQU  1
+GETCAR:   PUSH H
+          MVI  C,CREAD
+          CALL 5
+          MOV  E,A
+          XRA  A
+          MOV  D,A
+          POP  H
+          RET
+
+

@@ -1,0 +1,377 @@
+Sig/M	Volume 42	SD Sales Hard Disk Support
+			File Utilities - Pertec and CP/M
+			WordMaster Customization Notes
+
+	-CATALOG.042	Contents of Sig/M Volume 42
+	ACKLIST.042	Acknowledgement File
+	CRCKLIST.042	Checksum File
+	ABSTRACT.042	Random Notes on Sig/M Volume 42
+
+42.01	HD-BIOS.Z80	30K	VersaFloppy 2/XComp/Seagate
+42.02	HD-BIOS.HEX	 5K	/
+42.03	FDOS.ASM	29K	File Access - Pertec FDOS and CP/M
+42.04	FDOS.COM	 3K	/
+42.05	MTX.ASM		36K	File Access - Pertec MTX Basic
+42.06	MTX.COM		 5K			and CP/M
+42.07	MTX2000.ASM	36K	File Access - Double Density MTX
+42.08	MTX2000.COM	 5K			Basic and CP/M
+42.09	PCC2000B.ASM	 8K	Expanded Access for PCC 2000
+42.10	PCC2000B.COM	 1K	/
+42.11	WMNOTES		 2K	WordMaster Customization Notes
+42.12	WM.CTL	 	 1K	  /
+42.13	WM.DOC		 8K	 /
+42.14	WM.SYM		11K	/
+42.15	BYE.Z80		37K	Remote Control Program for CDOS
+
+WM.ASM contains a description of the Wordstar 
+  Customization process
+WM.CTL
+WM.SYM
+WM.DOC   are all 'RESOURCE' files.
+File name: 
+WM.ASM Description of customization process for WordMaster 1.06
+WM.CTL  |
+WM.SYM  | are files to be used with 'RESOURCE.COM' to ease  the 
+WM.DOC  |         customization process
+
+
+Author: 
+Trevor Marshall,
+26 Mirrelia Way,
+Ferndale, Western Australia 6155.
+phone International (619)457 6059     National (09)4576059
+
+
+Submitted by: 
+author
+
+This program is public domain because: 
+1. They contain no material proprietry to MicroPro
+2. They are of no use to people who are not licencees
+     of WordMaster
+3. They were produced by the author. All symbols in the files
+     are original.
+   All documentation was written by author
+
+
+To whom would this program be useful: 
+People using WordMaster
+People using CDOS who would like a good editor capable
+   of using the 'motors off' feature of CDOS
+
+
+Briefly describe the program function: 
+The .SYM, .CTL, .DOC files can be read using Ward Christensen's 
+RESOURCE.COM together with the licensee's copy of WordMaster.
+These  files enable a partial disassembly of WordMaster only by 
+licensees of that product.
+The WM.ASM file describes how the users copy of WordMaster  can 
+then be customized.
+In particular the following are facilitated:
+1. Customization of cursor control characters
+2. Customization of video mode control characters
+3. Control of CDOS motors off feature by WordMaster.
+
+
+
+Where is further documentation available: 
+WM.ASM
+
+
+Hardware dependencies: 
+Nil, but CROMEMCO users can use the 'motors off' feature.
+
+
+Software dependencies: 
+Needs WM.COM   (WordMaster)
+      RESOURCE.COM   (From previous users group disk)
+
+
+Source processor: 
+not applicable
+
+
+Does the software "drop in": 
+Yes
+
+
+How easy is the code to modify: 
+Relatively easy,  but note that the WM.CTL file is not reliable 
+in sections of WordMaster other than those discussed in WM.ASM
+
+
+
+; How to customize the keyboard codes on WM 1.06
+;
+;	     by Trevor Marshall
+;		26 Mirrelia Way,
+;		Ferndale, West Australia 6155
+;	 phone	(619)4576059
+;
+SUMMARYº   Modificationó   tï  customizå  WordMasteò  1.0¶   arå 
+described®  Thå  RESOURCE.COÍ fileó createä durinç thió  procesó 
+arå  presenô  oî  thå disk¬  anä maù bå useä bù  á  licenceå  oæ 
+WordMaster 1.06 to patch his WordMaster similarly.
+
+
+Aó á useò oæ WordStar(R© É waó noô completelù satisfieä witè thå 
+SCREEÎ editoò provideä witè mù owî CROMEMCÏ baseä system.
+
+Althougè  WordMasteò (R© seemeä tï offeò thå featureó É  felô  É 
+needeä  foò non- wordprocessinç applications¬  versioî 1.0¶  diä 
+noô  offeò á seô oæ keyboarä commandó 'compatible§ witè WordStaò 
+anä  wheneveò É trieä tï uså thå videï commandó É founä  thaô  É 
+waó deletinç wordó whilst tryinç tï shifô thå cursor!
+
+MicroPrï  dï  noô offeò 'customizinç notes§ foò  WordMasteò  anä 
+severaì  attemptó  tï dis-assemblå iô baseä oî mù  knowledgå  oæ 
+WordStar'ó  structurå  werå  unsuccessful®  Wheî  thå  codå  waó 
+finally broken the reason for the difficulty was obvious.
+WordMasteò  haó  á  decodinç  structurå whicè  ió  nothinç  likå 
+WordStar's.
+
+Wheî  á Controì Characteò ió typeä oî thå keyboarä itó valuå  (° 
+tï 1FH© ió useä aó thå offseô intï á tablå whicè containó  jumpó 
+tï  eacè oæ thå operatinç routines®  Thå addresseó iî thió tablå 
+caî bå easilù changeä noô onlù tï re-assigî changeó tï  keyboarä 
+functions but also to enhance the editor's features.
+
+É  likå  tï observå thå effecô oæ globaì substitutionó  usinç  á 
+command such as
+B 999 < ROLD STRING$NEWSTRING$ V >
+Wheî eacè replacemenô ió madå thå videï modå ió entereä tï checë 
+thaô  aî  erroò iî typinç thå stringó diä noô  occur®  Wheî  thå 
+ESCAPÅ  keù ió useä tï exiô thå videï modå thå nexô substitutioî 
+occurs, and so on.
+Unfortunatelù  thå CONTROL-Ã interrupô commanä doeó noô worë  iî 
+thå  videï mode¬  sï iæ yoõ havå madå á mistakå yoõ maù  noô  bå 
+able to interrupt the macro.
+WordStaò useó CONTROL-Õ tï interrupô anù routine® 
+WordMasteò  haó itó CONTROL-Ã interrupô routinå aô 23EB¬  anä aî 
+entrù  iî  thå keyboarä decodinç tablå tï jumğ tï  thió  addresó 
+effectivelù  allowó interruptioî tï thå videï baseä modå (iî  mù 
+case¬ wheî CTL-Õ ió pressed)®   
+
+Witè  WordMasteò no÷ doinç whaô É wanteä iô tï dï É nexô  tackleä 
+thå probleí oæ thå disë drivå motors.
+Cromemcï CDOÓ haó á featurå whicè switcheó ofæ youò drivå motoró 
+wheî  thå diskó arå noô beinç  accessed¬  considerablù  reducinç Šdisk and head wear.
+Thå  motoró arå turneä ofæ bù á 'Turî ofæ Drivå Motors§ calì  tï 
+BDOÓ  (96H©  oò bù anù prograí askinç BDOÓ foò  bufferreä  linå 
+input.
+WordMasteò  accesseó  thå BIOÓ  jumğ  tablå  directly¬  (withouô 
+callinç  viá  BDOS)¬  sï thaô thå drivå motoró continuå  tï  ruî 
+during an edit.
+
+Thå  tasë then¬  waó tï modifù WordStaò sï thaô thå drivå motoró 
+coulä bå turned off during edits.
+
+The BIOS jump table is entered via a routine at 0D4A.
+É  havå  intercepteä  calló tï thå  CONIÎ  routinå  bù  checkinç 
+whetheò  thå accumulatoò (whicè containó aî indeø intï thå  BIOÓ 
+jumğ  tables©  containó  ¶ (CONIN)®  Iæ iô ió á CONIÎ  calì  thå 
+motors are turned off via a call to BDOS.
+Therå  ió enougè rooí iî thå useò patcè areaó tï  implemenô  thå 
+code needed.
+Aó  WordStaò changeó thå addresó aô 0005È whicè pointó tï  BDOS¬ 
+thió addresó musô bå saveä prioò tï enterinç Wordstar®  Thå codå 
+to effect this is listed below.
+
+
+CUSTOMIZING YOUR WORDMASTER
+
+Invoke Ward Christensen's RESOURCE.COM by typing RESOURCE
+it will prompt with ..... 
+
+Memory open to XXXX
+*
+
+type O5000 <RETURN>
+     U7700 <RETURN>
+     RWM.SYM <RETURN>          to read in the symbol file
+     RWM.CTL <RETURN>           "   "         control  "
+     RWM.DOC <RETURN>           "   "         comments "
+     RWM.COM <RETURN>           "   "         program   "
+     ? <RETURN>
+
+resource will reply
+
+SYMTBL=1E00 3A70
+PC    =0100
+OFFSET=5000
+COMNTS=7700 7B46
+CTLTBL=1800 1935
+*
+
+Then try  
+     L11C5 1202
+
+And the jump table, fully commented, should be listed.
+From then on, happy patching! (and Merry Christmas)
+
+Trevor Marshall, 13 Dec '80.Š
+.paŠ
+; The following code was 'fudged' to look like
+;  the display when you use 'Resource'
+; All lowercase comments are added by hand,
+;  all other labels,etc, come from RESOURCE files
+;-----------------------------------------------------
+; The Jump Table at 11C5 is patched to effect
+;   keyboard function changes
+;
+; This was the original jump table in WM 1.06
+CTLTABLE:		;11C5 
+11C5	DW	DORET	;1345H
+11C7	DW	CURSOR-LEFT-WORD	;126DH
+11C9	DW	CURSOR-R-L-LINE	;1289H
+11CB	DW	UP-SCREEN	;142CH
+11CD	DW	CURSOR-RIGHT-WORD	;123FH
+11CF	DW	SCROLL-DOWN	;1409H
+11D1	DW	INSERT-ON-OFF	;150BH
+11D3	DW	DEL-CHAR-RIGHT	;14ECH
+11D5	DW	CURSOR-LEFT-CHAR	;122AH
+11D7	DW	INSERT-TAB	;153AH
+11D9	DW	CURSOR-DOWN-LINE	;12C1H
+11DB	DW	CURSOR-UP-LINE	;1303H
+11DD	DW	CURSOR-RIGHT-CHAR	;1216H
+11DF	DW	DO-CR	;15ABH
+11E1	DW	INSERT-CR	;1594H
+11E3	DW	DEL-WORD-RIGHT	;1476H
+11E5	DW	DEL-LINE-RIGHT	;14DDH
+11E7	DW	HELP	;1954H
+11E9	DW	SCREEN-UP	;1414H
+11EB	DW	DORET	;1345H
+11ED	DW	DOTOPORBOTTOM	;1346H
+11EF	DW	DEL-LINE-LEFT	;14BFH
+11F1	DW	DORET	;1345H
+11F3	DW	DORET	;1345H
+11F5	DW	SCROLL-UP	;137CH
+11F7	DW	DEL-LINE	;14CEH
+11F9	DW	CUR-RIGHT-TAB	;12B6H
+11FB	DW	DOESCAPE	;1205H
+11FD	DW	DEL-WORD-LEFT	;1460H
+11FF	DW	PUT-CHAR-IN-FILE	;151AH
+1201	DW	DOTOPORBOTTOM	;1346H
+	end of table
+;
+; My table was patched to the following functions
+CTLTABLE:		;11C5 
+11C5	DW	DORET	;1345H
+	DW	CURSOR-LEFT-WORD	;126DH
+	DW	CURSOR-R-L-LINE	;1289H
+	DW	UP-SCREEN	;142CH
+	DW	CURSOR-RIGHT-CHAR	;1216H
+	DW	CURSOR-UP-LINE	;1303H
+	DW	CURSOR-RIGHT-WORD	;123FH
+	DW	DEL-CHAR-RIGHT	;14ECH
+	DW	CURSOR-LEFT-CHAR	;122AHŠ	DW	INSERT-TAB	;153AH
+	DW	DORET	;1345H
+	DW	DORET	;1345H
+	DW	DORET	;1345H
+	DW	DO-CR	;15ABH
+	DW	INSERT-CR	;1594H
+	DW	DORET	;1345H
+	DW	PUT-CHAR-IN-FILE	;151AH
+	DW	HELP	;1954H
+	DW	SCREEN-UP	;1414H
+	DW	DORET	;1345H
+	DW	DEL-WORD-RIGHT	;1476H
+	DW	INTERRUPTED	;23EBH
+	DW	INSERT-ON-OFF	;150BH
+	DW	SCROLL-DOWN	;1409H
+	DW	CURSOR-DOWN-LINE	;12C1H
+	DW	DEL-LINE	;14CEH
+	DW	SCROLL-UP	;137CH
+	DW	DOESCAPE	;1205H
+	DW	DORET	;1345H
+	DW	PUT-CHAR-IN-FILE	;151AH
+1201	DW	DOTOPORBOTTOM	;1346H
+.paŠ;
+; To allow a CDOS 'motors off' call, or any other call
+;  to your BDOS you may effect the following changes:
+;---------------------------------------------------------
+; Original code at 0100
+0100	JMP	INIT	;0269H
+; This jump to WMs initialization should be 
+;  patched to cause a call to our routine at 01AD
+;
+; The jump at 0100 is changed to
+	JMP	01ADH
+;
+; where this routine has neen patched
+;NOW SAVE CDOS BASE ADDR BEFORE WM CLOBBERS IT
+01AD	LHLD	CDOS-BASE-ADDR	;at 6
+01B0	SHLD	SAVE-CDOS-BASE	;01B6H
+01B3	JMP	INIT	;0269H
+;
+;
+; Original code calling BIOS table jump routine
+23CE	LHLD	L0001	;1
+;NOW CHANGE CALL TO 0D4A TO CALL OUR PATCH
+23D1	CALL	TBLJUMP	;0D4AH
+23D4	MOV	A,C
+23D5	PCHL
+	etc
+;
+; The CALL 0D4A at 23D1 is changed to CALL 01C4 where
+;  we have put this code:
+; When a call to BIOS occurs this routine intercepts it
+;
+;NOW CALL BDOS VIA OUR PATCH
+01C4	CPI	6
+01C6	JNZ	TBLJUMP	;0D4AH
+;IF IT WAS A 'CONIN' CALL, INTERCEPT IT
+01C9	PUSH	H
+;PUT THE RETURN ADDR ONTO STACK, AND PREPARE INDIRECT CALL
+01CA	LXI	H,01D4H
+01CD	PUSH	H
+01CE	LHLD	SAVE-CDOS-BASE	;01B6H
+;96H CALL TO CDOS TURNS OFF MOTORS
+01D1	MVI	C,96H
+;NOW 'CALL' BDOS
+01D3	PCHL
+01D4	POP	H
+01D5	JMP	TBLJUMP	;0D4AH
+;
+
+
+
+   THIS DISK CONTAINS FILE CONVERSION PROGRAMS FOR USE UNDER CP/M. 
+
+
+    THE FIRST SUBMITTAL IS "FDOS.ASM" WHICH ALLOWS THE USER TO ACCESS
+PERTEC / ICOM FDOS III OPERATING SYSTEM DISKETTE FILES ON A SINGLE 
+DENSITY DISKETTE IN DRIVE B:. THIS PROGRAM WILL RUN ON ANY CP/M COMPUTER
+WITH A SINGLE DENSITY 8" DRIVE B:. THE FDOS DIRECTORY MAY BE READ, FILES
+MAY BE TRANSFERRED DIRECTLY TO A CP/M FILE, AND A CP/M FILE MAY BE WRITTEN
+ON TO THE FDOS III DISKETTE.
+
+    THE SECOND SUBMITTAL "MTX.ASM" IS A PROGRAM TO ACCESS PERTEC MTX BASIC 
+FILES ON A DOUBLE DENSITY DISK IN DRIVE B:. THE NATURE OF THE DISKETTE FORMAT
+REQUIRES THE PROGRAM TO RUN UNDER LIFEBOAT CP/M 1.4 ON A PERTEC FD3812
+DISK SYSTEM. THE MTX DIRECTORY MAY BE DISPLAYED AT THE CONSOLE, MTX FILES
+MAY BE COPIED DIRECTLY TO LIFEBOAT 3812 FORMAT CP/M FILES, AND A CP/M FILE
+MAY BE PLACED UPON THE MTX DISKETTE.
+
+    THE THIRD PROGRAM "MTX2000.ASM" IS A PROGRAM TO ACCESS PERTEC MTX BASIC 
+FILES ON A DOUBLE DENSITY DISK IN DRIVE B:. THE NATURE OF THE DISKETTE FORMAT
+REQUIRES THE PROGRAM TO RUN UNDER PERTEC CP/M 1.4 ON A PERTEC PCC 2000 COMPUTER
+WITH DOUBLE DENSITY FLOPPY CAPABILITY. THE MTX DIRECTORY MAY BE DISPLAYED AT 
+THE CONSOLE, MTX FILES MAY BE COPIED DIRECTLY TO PERTEC PCC 2000 FORMAT CP/M 
+FILES, AND A CP/M FILE MAY BE PLACED UPON THE MTX DISKETTE.
+
+    THE LAST PROGRAM IS A NEAT LITTLE ULILITY THAT ALLOWS A PERTEC PCC 2000
+FORMAT CP/M 1.4 DOUBLE DENSITY DISKETTE TO BE ACCESSED IN DRIVE B: OF AN
+ICOM 3812 RUNNING UNDER LIFEBOAT CP/M 1.4. THIS PROGRAM REQUIRES THAT THE
+CP/M SYSTEM SIZE BE 24K BYTES TO ALLOW ROOM FOR A TRANSIENT BIOS PATCH
+TO MOVED INTO MEMORY ABOVE THE NORMAL BIOS LOCATION. OPERATION OF THE PROGRAM
+IS TO SIMPLY RUN "PCC2000B.COM". FROM THEN TILL THE NEXT COLD BOOT TIME THE
+DRIVE B: DISK DRIVERS WILL ASSUME PCC 2000 FORMAT CP/M DISK CHARACTERISTICS.
+THE FUNCTION OF THE UTILITY IS VERY SIMILAR TO THE LIFEBOAT 3812 CP/M PROGRAM
+CALLED SINGLEB.
+
+					MICHAEL J. KARAS
+					MICRO RESOURCES
+					2468 HANSEN CT.
+					SIMI VALLEY, CA 93065
+

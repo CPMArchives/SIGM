@@ -1,0 +1,231 @@
+* DATE 08/26/84  16:11
+* main command program of database
+IF moveit
+ REST from move additive
+ FIND &linker
+ RELE linker
+ STOR t TO keepitup
+ STOR f TO moveit
+ENDI
+* set up screen
+STOR t TO first
+* set up the loop
+DO WHIL t
+* if first time this trip
+ IF first
+  ERAS
+  STOR '<A>dd, <B>ackward, <D>elete/Recall, <E>dit, <F>orward, <H>elp' TO prompt1
+  STOR '<P>rint, <S>earch, <T>enant records or <Q>uit to main menu' TO prompt2
+  STOR 'Main Building Database Menu' TO mode
+* show the current record
+  @ 0,26 SAY mode
+  @ 1, 0 SAY " -------------------------------------------------"
+  @ 1,50 SAY "-----------------------------"
+  @ 3, 1 SAY "Address:"
+  @ 3,55 SAY "Code:"
+  @ 4, 4 SAY "City:"
+  @ 4,37 SAY "State:"
+  @ 4,56 SAY "Zip:"
+  @ 6, 1 SAY "Manager:"
+  @ 6,54 SAY "Phone:"
+  @ 7, 4 SAY "Type:"
+  @ 7,44 SAY "Number of Units:"
+  @ 9, 0 SAY "Acquired:"
+  @ 9,45 SAY "Purchase Price:"
+  @ 11,28 SAY "Send Rental Payments To:"
+  @ 12,00 SAY "Company:"
+  @ 12,54 SAY "Phone:"
+  @ 13,01 SAY "Street:"
+  @ 14,03 SAY "City:"
+  @ 15,00 SAY "Chks To:"
+  @ 17, 2 SAY "Notes:"
+  @ 18,52 SAY "Updated:"
+  @ 19, 0 SAY " -------------------------------------------------"
+  @ 19,50 SAY "-----------------------------"
+  @ 20, 4 SAY prompt1
+  @ 21, 4 SAY prompt2
+ ENDI first
+ STOR f TO first
+ STOR '?' TO command
+* find out if the current record is marked for deletion
+ IF *
+  STOR 'Deleted' TO deleted
+ ELSE
+  STOR '       ' TO deleted
+ ENDI *
+* show the current record, and find out what to do next
+ @ 0, 0 SAY deleted
+ @ 3,10 SAY baddr
+ @ 3,61 SAY bcode
+ @ 4,10 SAY $(bcity,1,20)
+ @ 4,44 SAY $(bcity,21,2)
+ @ 4,61 SAY $(bcity,23,5)
+ @ 6,10 SAY $(bdata,1,25)
+ @ 6,61 SAY $(bdata,26,13)
+ @ 7,10 SAY $(bdata,39,2)
+ @ 7,61 SAY $(bdata,41,3)
+ @ 9,10 SAY $(bdata,44,8)
+ @ 9,61 SAY bprice USING '$99,999,999.99'
+ @ 12,10 SAY remit
+ @ 12,61 SAY phone
+ @ 13,10 SAY remitad
+ @ 14,10 SAY remitc
+ @ 15,10 SAY checks
+ @ 17,10 SAY bnotes
+ @ 18,61 SAY bupdate
+ @ 22,41 SAY "WHAT NEXT ?"
+ @ 22,60 GET command PICTURE '!'
+ READ
+* perform selected function
+ DO CASE
+ CASE command = 'A'
+  DO ADD.bld
+ CASE (command = 'B' .OR. command = ',' )
+* move backwards one record
+  SKIP -1
+ CASE command = 'D'
+* switch the current record from deleted to recalled
+  IF *
+   RECA
+  ELSE
+   DELE
+  ENDI *
+ CASE command = 'E'
+  SET console OFF
+  RECA
+  STOR # TO rec:number
+  SET INDEX TO
+  IF rec:number=0
+   GO 1
+  ELSE
+   GO rec:number
+  ENDI rec:number=0
+  SET console ON
+  RELE rec:number
+  DO EDIT.bld
+ CASE (command = 'F' .OR. command = '.' )
+* move forward one record
+  SKIP
+ CASE (command = 'H' .OR. command = '?' )
+* display a screen full of instructions
+  STOR t TO first
+  ERAS
+TEXT
+
+
+
+         M A I N   B U I L D I N G   M E N U   H E L P   F I L E
+
+       Welcome to the SIG/M PROPERTY MANAGER Building File  Data Base.
+    I am here to help you and you can call me anytime by just entering
+    a ? mark at any place where this program asks for a command.
+
+    When you go back to the screen you will see two lines -  on top of     
+    the first line it says 'Main Building Database Menu' - thus,   the
+    program always tells you where you are!
+
+    Between the two lines  we have the information you or someone else
+    entered into the computer.  This information tells you all about a  
+    particular building.
+
+
+
+               If you press any key I will tell you more.
+
+
+ENDT
+  SET CONSOLE OFF
+  WAIT
+  SET CONSOLE ON
+  ERAS
+TEXT
+
+   This is a multiple data base - by that I mean - you can have one screen of
+information about the building and another screen of information about any of 
+the tenants in that building.  To find the first tenant for the building  you
+are looking at hit 'T' for tenant information.    The transition is not quite
+immediate, because the program takes the time to find the first individual in
+the building that you have on the screen.
+
+The information on screen in clear, so let's look below the line.  This shows
+what you can do.  To look at the next record -  hit 'F' (or a period).  To go
+back one record - hit 'B' (or a comma). To delete a record hit 'D' and a sign
+will appear at the upper right corner.  To remove the delete - hit 'D' again.
+Don't worry  -   you cannot accidentally delete a record just by hitting 'D'.  
+You must run another program on the Maintenance Menu (purge) to delete.
+
+To find a file - hit 'S' for search.  To edit an entry hit 'E'  (although you
+usually would search for a file - and Edit from the search menu.) To add more
+records you hit 'A'. Once in add  you can enter new buildings and the tenants
+connected with that building.  If you already have the building data in  this
+program the menu gives you the option to add only tenants.                 
+
+                      Please hit any key for the next screen 
+ENDT
+  SET CONSOLE OFF
+  WAIT
+  SET CONSOLE ON
+  ERAS
+TEXT
+
+We suggest that you enter all units for the property first time around, even if
+they are vacant. (Put in the last rental for the property) If you leave a blank
+for the tenant name - the unit will appear on the vacancy list.                
+                                                                
+To do property connected reports, such as rent bills, tenant labels,  vacancy 
+lists or delinquency lists, hit 'R' for Reports. 'M' for Maintanance allows 
+you to do housekeeping chores, etc.  See the specific help menus as well as 
+the menus themselves for more information.                                     
+                                                                               
+Please don't forget that at any menu '?' brings on a help menu and 'Q' quits
+to the prior menu.
+
+   -------------------------------------------------------------------------
+   WHATEVER YOU DO  -  NEVER SHUT OFF THE MACHINE OR REMOVE A DISK UNTIL YOU 
+   FIRST RETURN TO THE MAIN MENU AND THEN QUIT TO THE OPERATING SYSTEM.       
+
+   IF you ever get a SYNTAX error and hitting ENTER does not solve the prob-
+   lem, then just hit ESCAPE and type QUIT. Then just start all over again.
+   -------------------------------------------------------------------------
+                                                                              
+             Please hit any key to get back to the data base
+ENDT
+  SET CONSOLE OFF
+  WAIT
+  SET CONSOLE ON
+  ERAS
+ CASE command = 'P'
+  DO PRINT.bld
+ CASE command = 'Q'
+* prevent sign-off message
+  STOR t TO keepitup
+  STOR 0 TO box
+  RETU
+ CASE command = 'T'
+  STOR '000' to tno
+  @ 20,00
+  @ 21,00
+  @ 22,00
+  @ 21,04 SAY 'Enter tenant number (or leave at 000 for first tenant) '
+  @ 21,63 GET tno PICTURE '999'
+  READ
+  IF tno = '000'
+   STOR bcode TO linker
+  ELSE
+   STOR bcode + tno TO linker
+  ENDI tno
+  SAVE to move
+  STOR 4 TO box
+  STOR t TO keepitup
+  RETU
+ CASE command = 'S'
+  RELE ALL
+  STOR bcode to linker
+  SAVE TO move
+  STOR 5 TO box
+  STOR t TO keepitup
+  RETU
+ ENDC
+* loop back again
+ENDD WHILE t
+

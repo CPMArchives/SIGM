@@ -1,0 +1,358 @@
+.z80
+; PRUN.MAC	ver 1.20		03-28-84
+;
+; (c) 1983 S. F. Kluger
+; Use and distribution of this program is
+; granted for non-commercial use.
+;
+; N_O_T_E:
+;
+; MODIFICATION OF THIS PROGRAM IN ANY WAY, SHAPE OR FORM
+; IS PROHIBITED WITHOUT PRIOR CONSULTATION. IF YOU FEEL THE
+; URGE TO MAKE ANY CHANGES, PLEASE CALL MY RCPM AND LET ME
+; KNOW WHAT YOU WISH TO DO: (915) 598-1668 300/1200
+; ----> OR VOICE:                 598-6274
+;
+; PRUN is a PRL run command processor. It will place
+; an ORG-100 PRL file at 0100H and execute it.
+; Two other modes are available:
+; MODE 1  -  relocate to below BDOS and run
+; MODE 2  -  relocate to specified address and run.
+;
+; Modes 1 and 2 need a so-called Relocation Control Block
+; (RCB) at the end of the code section of the PRL file.
+; For more information, see PRUN.DOC
+;
+; 03-28-84 ver 1.20
+;	fixed command line parser to deposit second argument
+;	fcb at 6ch.
+; 10-24-83 ver 1.10
+;	after clarification, respecified PRL file requirement
+;	to read "ORG-100H" because that is the standard used
+;	by MP/M. PRL file definition included in PRUN.DOC.
+;
+	cseg
+;
+; define SYSLIB routines
+;
+	extrn	fname,f$open,f$read,retud,logud,cout,print,crlf
+;
+cr	equ	0dh
+lf	equ	0ah
+;
+dbuf	equ	80h
+dfcb	equ	5ch
+;
+begin:	ld	sp,stack	;set up stack
+	ld	a,(dfcb+1)	;point to default fn
+	cp	' '		;no file name???
+	jp	z,cmderr	;exit with error
+	sbc	a,a		;check Z80
+	jp	pe,noz80	;barf
+	call	retud		;get current drive/user
+	ld	(defusr),bc	;save them
+	ld	hl,dbuf+2	;point to command string
+	ld	de,fcb		;de set for our FCB
+	call	fname		;parse file name
+	jp	z,cmderr	;barf
+	ld	a,b		;get selected drive
+	dec	a
+	cp	0feh		;default?
+	jr	nz,cku		;no, have new drive
+	ld	a,(defdrv)	;get default drive
+cku:	ld	b,a		;stuff back
+	ld	a,c		;get selected user
+	cp	0ffh		;default user?
+	jr	nz,dodu		;no, have new user
+	ld	a,(defusr)	;get default user
+dodu:	ld	c,a		;stuff it back
+	call	logud		;log in new drive/user
+	ld	de,hold
+	ld	bc,dbuf
+	ldir
+	ld	hl,fcb+9
+	ld	(hl),'P'	;make file type
+	inc	hl		; .PRL by default
+	ld	(hl),'R'
+	inc	hl
+	ld	(hl),'L'
+	ld	de,fcb		;point to file name
+	call	f$open		;open the file
+	inc	a
+	jp	z,nofile	;error if no file
+	ld	hl,buf		;point to buffer
+	ld	(bufad),hl	;save it
+loadlp:	ld	de,fcb		;point to fcb
+	call	f$read		;read 128 bytes
+	or	a		;past eof?
+	jr	nz,doit		;yes, relocate now
+	ld	bc,128		;number of bytes to move
+	ld	hl,dbuf		;source location
+	ld	de,(bufad)	;destination
+	ldir			;move it!
+	ld	(bufad),de	;save for next move
+	jr	loadlp
+;
+; The PRL file is now in RAM starting at BUF
+;
+doit:	ld	hl,hold		;get command line
+	ld	de,dbuf+1	;point to default buffer
+	ld	b,0		;count
+rep:	ld	a,(hl)		;get next char of cmd line
+	ld	(de),a		;save it
+	or	a		;if eol...
+	jr	z,repd		;...then finish
+	inc	hl		;else increment pointers
+	inc	de
+	inc	b
+	jr	rep		;and repeat
+;
+repd:	ld	hl,dbuf		;save byte count...
+	ld	(hl),b		;...in default buffer
+	inc	hl		;get first byte
+	ld	a,(hl)		;into A
+	or	a		;if blank...
+	jr	nz,norm
+	ld	hl,5dh
+	call	fil11
+blnk:	ld	hl,6dh
+	call	fil11
+	jr	repf
+;
+norm:	inc	hl		;else parse...
+	ld	de,dfcb		;...the line for a file name...
+	call	fname		;...and place it at 5CH
+	ld	a,b		;also set drive code...
+	cp	0ffh		;...if other than current...
+	jr	z,sku		;...but ignore user area
+	ld	(de),a
+sku:	ld	a,(hl)
+	or	a
+	jr	z,blnk
+	inc	hl
+	ld	a,(hl)
+	or	a
+	jr	z,blnk
+	ld	de,fcb
+	call	fname
+	ld	a,b
+	cp	0ffh
+	jr	z,sku1
+	ld	(de),a
+sku1:	ld	hl,6ch
+	ld	bc,12
+	ex	de,hl
+	ldir
+repf:	ld	a,(buf)		;get first byte of PRL
+	cp	0fdh		;check for correct type
+	jr	z,typok
+	or	a		;is it PRL????
+	jp	nz,cheat	;BOOOO!
+typok:	ld	de,(pgmsz)	;get program size
+	ld	hl,cod-5	;set up HL
+	add	hl,de		;point to RCB
+	ld	a,(hl)		;get first byte
+	cp	76h		;mode indicator byte?
+	jp	nz,mode0	;no, it's mode 0
+	inc	hl		;point to next byte
+	ld	a,(hl)		;let's see...
+	cp	76h		;mode indicator?
+	jp	nz,mode0	;go to certain doom
+	inc	hl		;point to mode byte
+	ld	a,(hl)		;get mode byte
+	inc	hl		;point to entry addr
+	ld	(rcb),hl	;save pointer to RCB
+	or	a		;mode 1?
+	jp	z,mode1		;yes, execute mode 1
+;
+; Mode 2 - relocate to specified page
+; make sure RAM will not overflow.
+; NOTE: The PRL file can be written to overlay all or
+;	part of CP/M! Be careful!
+;
+	ld	d,a		;move offset to DE
+	ld	e,0
+	ld	hl,(pgmsz)	;get code size
+	add	hl,de		;compute last memory address
+	jr	nc,m2sok	;continue if it fits
+	call	print
+	db	'ERROR - program would wrap around',cr,lf,0
+	jp	0
+;
+fil11:	ld	b,11		;11 bytes to fill...
+f11l:	ld	(hl),' '	;...with blanks
+	inc	hl
+	djnz	f11l
+	ret
+;
+m2sok:	ld	a,d		;get offset
+	sub	1		;adjust offset
+	push	de		;save pgm location
+	push	de		;save again
+	call	reloc		;perform in-place relocation
+	call	geten		;get entry point
+	pop	hl		;hl=destination, de=last code
+	or	a		;kill carry bit
+	sbc	hl,de		;see if dest < source end
+	pop	de		;get destination back
+	jr	c,movly		;yes, code would overlap
+	ld	bc,(pgmsz)	;get code size
+	ld	hl,cod		;point to code start
+	ldir
+	ld	sp,38h		;set stack in a safe area...
+	ld	hl,0		;...just in case!
+	push	hl
+	jp	(ix)		;execute program
+;
+; Mode 1 - relocate to below BDOS
+;
+mode1:	ld	hl,(6)		;get bdos addr
+	ld	l,0		;even page
+	inc	d		;round size up 1 page
+	ld	e,0
+	or	a		;kill carry
+	sbc	hl,de		;subtract code size
+	ld	a,h		;get offset
+	push	hl		;save destination addr
+	sub	1		;adjust offset
+	call	reloc		;relocate the stuff
+	call	geten		;get entry point
+	ld	bc,(pgmsz)	;get code length into BC
+	pop	hl		;get destination addr back
+	add	hl,bc		;make last byte destination
+	ex	de,hl		;put it to DE
+	ld	hl,cod		;get source address
+	add	hl,bc		;make address of last byte
+	inc	bc		;make sure we get all
+	lddr			;now move the stuff
+;
+; From previous code it's easy to see that there are at
+; least 12 bytes we can use for stack - 6 in program,
+; and another 6 where the BDOS serial number is.
+;
+	ld	sp,(6)		;set up stack
+	ld	hl,0		;return address = warm boot
+	push	hl
+	jp	(ix)		;execute file
+;
+; Mode 0 - load at 100h
+; By definition, PRL file need not be relocated
+;
+mode0:	ld	de,100h		;destination
+	push	de		;put entry point...
+	pop	ix		;...into IX
+movly:	push	de		;save destination
+	ld	de,(6)		;get BDOS page
+	dec	d		;org at previous page
+	ld	e,0		;even page number
+	ld	hl,mover	;point to mover
+	ld	bc,movend-mover	;size
+	push	de		;save mover address
+	ldir			;move the mover
+	ret			;execute mover
+;
+mover:	pop	de		;get code start
+	ld	sp,(6)		;set up dummy stack
+	ld	hl,0		;with warm boot return
+	push	hl
+	ld	bc,(pgmsz)	;get program size
+	ld	hl,cod		;start of PRL file
+	ldir			;move the file down
+	jp	(ix)		;execute the file
+movend	equ	$
+;
+noz80:	call	print
+	db	'ERROR - processor must be Z80'
+	db	cr,lf,0
+	jp	0
+;
+cheat:	call	print
+	db	'File format error',cr,lf,0
+	jp	0
+;
+nofile:	ld	hl,fcb+1	;point to fn
+	ld	b,8		;8 char file name
+prtfn:	ld	a,(hl)
+	cp	' '
+	jr	z,qmrk
+	call	cout
+	inc	hl
+	djnz	prtfn
+qmrk:	ld	a,'?'
+	call	cout
+	rst	0
+;
+cmderr:	call	print
+	db	'PRUN command error',cr,lf
+	db	'USAGE: PRUN [du:]ufn[.PRL]',cr,lf,0
+	jp	0
+;
+; Relocate the code portion of the PRL file by the
+; amount of pages in A. Calling program responsible
+; for boundary checks.
+; This code was lifted from PRLMOVE.ASM and will be
+; rewritten for Z80 later.
+;
+reloc:	ld	bc,(pgmsz)	;byte count to BC
+	ld	de,cod		;code location
+	ld	h,d		;copy it...
+	ld	l,e		;...to hl
+	add	hl,bc		;addr of bit map in HL now
+	push	hl		;save bit map pointer
+	ld	h,a		;put offset into h
+reloop:	ld	a,b		;check bit map counter...
+	or	c		;...to see if finished
+	jr	z,redone	;yes, finished
+	dec	bc		;decrease byte count
+	ld	a,e		;is DE mod 8 bytes?
+	and	7		;if so, get next bitmap byte
+	jr	nz,sameb	;still on same byte
+	ex	(sp),hl		;save HL, get map ptr
+	ld	a,(hl)		;get map byte
+	inc	hl		;point to next byte
+	ex	(sp),hl		;put pointer back
+	ld	l,a		;store map byte
+sameb:	ld	a,l		;get map byte
+	rla			;shift for next bit
+	ld	l,a		;save shifted map byte
+	jr	nc,nooff	;skip if bit was 0
+	ld	a,(de)		;get byte to be relocated
+	add	a,h		;add offset
+	ld	(de),a		;save relocated byte
+nooff:	inc	de		;increment code pointer
+	jr	reloop		;do next code byte
+;
+redone:	pop	de		;clean up stack
+	ret
+;
+; Get program entry point into IX
+;
+geten:	push	hl
+	push	de
+	ld	hl,(rcb)
+	ld	e,(hl)
+	inc	hl
+	ld	d,(hl)
+	push	de
+	pop	ix
+	pop	de
+	pop	hl
+	ret
+;
+	dseg
+;
+defusr:	db	0		;default user storage
+defdrv:	db	0		;default drive storage
+bufad:	dw	0		;ram buffer address
+rcb:	dw	0		;address of RCB
+fcb:	ds	36		;local fcb
+	ds	40		;enough room for stack
+stack	equ	$
+hold:	ds	128
+;
+buf	equ	700h
+prltp	equ	buf		;PRL file type (00 or FD)
+pgmsz	equ	buf+1		;code size location
+cod	equ	buf+100h
+	end
+sameb	;still on sam

@@ -1,0 +1,64 @@
+  /* * * * * * * * * * * * * * * * * * * * * * * * * * * *
+   *                                                     *
+   *                      AODUMP                         *
+   *                                                     *
+   *                  HEX DUMP ROUTINE                   *
+   *                                                     *
+   * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+
+	   displays address and offset
+
+	   dptr         =  ptr to data to be dumped
+	   nbytes       =  number of bytes to dump */
+
+aodump:proc(dptr,nbytes);
+  	%replace
+	    true   by  '1'b,
+	    false  by  '0'b;
+
+	declare
+	    dptr           ptr,
+	    nbytes         bin fixed (15),
+	    display_addr   bit(1);
+
+	declare
+	    data(0:127)    bit(8) based (dptr),
+	    (offset,lngth) fixed,
+	    (aptr,optr)    ptr,
+	    offseta        bit(16) based (optr),
+	    (i,j)          fixed,
+	    c              char(1),
+	    chrptr         ptr,
+	    chr            char(1) based (chrptr);
+
+	put skip;
+	offset = 0;
+	optr = addr (offset);
+	lngth = max (0, nbytes-1);
+
+	    do while (offset < lngth);
+	    j = min (offset+15, lngth); 
+	    put skip edit (offseta,'') (b4,a(2));
+	    aptr = addr (data(offset));
+	    put edit (unspec (aptr),'') (b4, a(2));
+	    put edit ((data(i) do i = offset to j)) (b4, x(1));
+	    put edit ('') (col(62), a);
+
+	        do i = offset to j;
+	        if data(i) > '1f'b4 & data(i) < '7f'b4 then do;
+	            chrptr = addr(data(i));
+	            c = chr;
+	            end;
+	        else
+	            c = '.';
+	        put edit (c) (a(1));
+                end;
+	    offset = offset + 16;
+	    end;
+
+	end aodump;
+
+
+
+
+

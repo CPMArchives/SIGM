@@ -1,0 +1,208 @@
+SIG/M volume 9		utilities
+
+
+9.01	AUTOX.ASM	 2K	Forces a CP/M command from a user level
+9.02	CPYFIL15.ASM	10K	Copy large files greater than 512K
+				through PIP utility
+9.03	CRCK10/6.ASM	11K	Upgrade of CRCK3 in SIG/M 4.7
+9.04	DIRS1015.ASM	 9K	Sorted directory from DIRS10/1
+				in SIG/M 4.9
+9.05	DISPLAY.COM	 3K	Similar to DIR/ED.COM using
+				display commands only
+9.06	DISPLAY.DOC	 3K
+9.07	DISPLAYP.ASM	 3K	
+9.08	DU-10/26.ASM	18K	Update of disk utility in SIG/M 4.9
+9.09	FIND3/18.ASM	10K	Multiple file search routine
+9.10	FINDBD38.ASM	29K	Update to FINDBD37 for locating bad
+				blocks of disk space in SIG/M 4.14
+9.11	LISTGRPS.ASC	 1K	List track and sector assignment for 
+				each group
+9.12	MDIR8/17.ASM	10K	Master directory by users in
+				alphabetic sequence
+9.13	MFT45.ASM	17K	Dr. Dobbs single drive multi-file
+				transfer program
+9.14	MIC-XFER.ASM	 7K	Micropolis and regular CP/M
+				file transfer
+9.15	MIC-XFER.DOC	 5K
+9.16	NFMAP.ASM	 9K	Sorted directory with option of writing
+				file of names
+9.17	NLIST.ASM	14K	Lists disk file on LST: device
+9.18	SD-12/15.ASM	17K	Sorted directory with sizes
+9.19	SECTOR.ASM	10K	Sector disk maintenance program
+9.20	SHOWGRP.ASC	 2K	Print track and sector addresses
+				of groups
+9.21	TERMTEST.ASM	 2K	Terminal diagnostic program
+9.22	USERLST.ASM	 3K	Patch for displaying current user
+				level within CP/M prompt
+9.23	VLIST11.ASM	 8K	Variable speed TYPE routine
+9.24	WHICH.ASM	 4K	Displays present CP/M release level
+9.25	MIKEBIOS.ASM	 8K	Flash Writer I/O driver
+                     Display, Ver.1.0
+
+                          as of
+
+                     October 30, 1980
+
+
+ DISPLAY.COM  allows  displaying  an ASCII file on  a  24  line 
+terminal,  with  commands similar to Digital Research's  ED.COM 
+(but without any of the editing facilities).
+
+
+                     Using DISPLAY.COM
+
+
+ For  example:  DISPLAY  FILENAME.TXT<cr>   ,will  envoke   the 
+display   program   and   load  the  entire   secondary   entry 
+(FILENAME.TXT) into memory, for subsequent display of the first 
+23 lines of that file. Various commands can then be issued from 
+the terminal keyboard which will manipulate the display of  the 
+file.
+
+ The  commands shown below with a preceding "n" indicates  that 
+an  optional unsigned integer value can be specified to  envoke 
+"n" iterations of the command.  When a command is preceded by a 
+"-"  sign,  the  command  will cause display of the file  in  a 
+direction  towards  the start of  the  file.  Unsigned  integer 
+values  are  assumed  to be positive  values  (i.e.,  "+")  and 
+therefore  "+" need not be specified. Also, the buffer  pointer 
+will stop display at the top or bottom of the file if too large 
+a value of "n" is specified.
+
+Command:  Operation performed:
+=======   ===================
+
+B         Move pointer to beginning of file and display page.
+
+-nP       Move pointer minus n pages and display page.
+
+nP        Move pointer plus n pages and display page.
+
+0P        Move pointer to beginning of buffer and display page.
+
+-nL       Move pointer minus n lines and display page.
+
+nL        Move pointer plus n lines and display page.
+
+nD        Discard n pages, refill buffer and display the
+          current page.
+
+0D        Discard all data up to the current pointer, refill
+          buffer and display the first page. 
+
+E         Exit DISPLAY and return to CP/M.
+
+^C        Control-C, exit DISPLAY and return to CP/M.
+
+<cr>      Carriage return, move pointer to next page and
+          display
+
+--------------------------------------------------------------
+
+
+                    Best regards,
+
+                    Kelly Smith, MP/M-Net (tm) Sysop
+                    805-527-9321 (Modem, 300 Baud)
+
+		INSTALLATION AND USE OF MIC-XFER PROGRAM
+		------------ --- --- -- -------- -------
+
+SYSTEM REQUIREMENTS:
+
+IN ORDER TO USER MIC-XFER, THE FOLLOWING MINIMUM CONFIGURATION IS REQUIRED:
+
+	1. IBM-FORMAT CP/M SYSTEM CONFIGURED FOR AT LEAST 28K.
+	2. MICROPOLIS CP/M SYSTEM CONFIGURED FOR 17K.
+	3. THE SOURCE FILE 'MIC-XFER.ASM' (PROVIDED ON THIS DISK).
+	4. THE ABILITY FOR #1 AND #2 TO RESIDE IN THE SAME BUS AT
+		THE SAME TIME WITHOUT ANY HARDWARE CONFLICTS.
+	5. THE MICROPOLIS CONTROLLER ADDRESS (BOOTSTRAP ADDRESS) MUST BE
+		KNOWN.  (THIS MAY BE DETERMINED BY INSPECTING THE ADDRESS
+		JUMPERS ON THE MICROPOLIS CONTROLLER BOARD, AND INTERPRETING
+		THEM ACCORDING TO THE MICROPOLIS MANUAL).
+	6. THE ADDRESS OF THE IBM-FORMAT CP/M WARM START VECTOR MUST BE
+		KNOWN.  (THIS MAY BE DETERMINED BY EXAMINING LOCATIONS
+		1 AND 2 IN MEMORY WHILE THE IBM-FORMAT SYSTEM IS RUNNING).
+
+THE FIRST STEP IN GENERATING MIC-XFER FOR YOUR SYSTEM IS TO GET A COPY OF
+YOUR 17K MICROPOLIS SYSTEM IMAGE ONTO AN IBM-FORMAT DISK.  THIS MAY BE DONE
+AS FOLLOWS:
+
+	1. BOOT THE IBM-FORMAT SYSTEM.
+	2. TRANSFER CONTROL TO THE MICROPOLIS SYSTEM BY TYPING:
+		A>DDT
+		DDT VERS 1.4
+		-G<MICROPOLIS BOOT ADDRESS>
+	   THE MICROPOLIS SYSTEM WILL BOOT UP AND SIGN ON.
+	3. CREATE A SYSTEM IMAGE FILE BY TYPING:
+		A>SYSGEN
+		SYSGEN VERS 1.4
+		SOURCE DRIVE NAME (OR RETURN TO SKIP) A
+		FUNCTION COMPLETE
+		DESTINATION DRIVE NAME (OR RETURN TO REBOOT) <RETURN>
+		A>SAVE 36 MIC17.COM
+	4. TRANSFER MIC17.COM TO THE IBM-FORMAT SYSTEM BY TYPING (FROM THE
+	    MICROPOLIS SYSTEM):
+		A>DDT MIC17.COM
+		DDT VERS 1.4
+		NEXT PC
+		2500 0100
+		-G<IBM-FORMAT WARM START ADDRESS>
+	   THE IBM-FORMAT SYSTEM SHOULD WARM-BOOT AND PROMPT.  TYPE:
+		A>SAVE 36 MIC17.COM
+
+NOW THAT YOU HAVE A COPY OF YOUR MICROPOLIS CP/M ON AN IBM-FORMAT DISK, YOU
+MUST CUSTOMIZE MIC-XFER.ASM FOR YOUR MICROPOLIS CONTROLLER, AND THEN ASSEMBLE
+IT AND COMBINE IT WITH MIC17.COM.  THIS IS DONE AS FOLLOWS:
+
+	1. DETERMINE THE CORRECT VALUE FOR THE SYMBOL 'MCTL' IN MIC-XFER.
+	   THIS MAY BE CALCULATED BY ADDING 200H TO THE MICROPOLIS BOOT
+	   ADDRESS.  FOR EXAMPLE, IF YOUR MICROPOLIS BOOT ADDRESS IS F800,
+	   THEN THE CORRECT VALUE OF 'MCTL' IS FA00.
+	2. EDIT THE CORRECT VALUE OF 'MCTL' FOR YOUR SYSTEM INTO MIC-XFER.ASM.
+	   THE 'EQU' FOR 'MCTL' MAY BE FOUND ON LINE 6.
+	3. WHILE YOU ARE IN THE EDITOR, YOU MAY WANT TO COMMENT OUT THE 'TITLE'
+	   STATEMENT IN LINE 1.  IF YOU ASSEMBLE MIC-XFER USING 'ASM', THIS
+	   LINE WILL PRODUCE AN ERROR, BUT THE CORRECT CODE WILL STILL BE
+	   GENERATED.  IF YOU ASSEMBLE MIC-XFER USING 'MAC', THE 'TITLE'
+	   STATEMENT WILL BE ACCEPTED PROPERLY, AND NEED NOT BE COMMENTED OUT.
+	4. USING EITHER 'ASM' OR 'MAC', ASSEMBLE MIC-XFER TO PRODUCE THE
+	   OBJECT FILE 'MIC-XFER.HEX'.
+	5. MERGE MIC-XFER.HEX WITH MIC17.COM BY TYPING:
+		A>DDT MIC17.COM
+		DDT VERS 1.4
+		NEXT PC
+		2500 0100
+		-IMIC-XFER.HEX
+		-R
+		-G0
+		A>SAVE 36 MIC-XFER.COM
+	   THIS COMPLETES INSTALLATION OF MIC-XFER IN YOUR SYSTEM.
+
+USING MIC-XFER:
+
+MIC-XFER WILL TRANSFER ONE OR MORE FILES BETWEEN AN IBM-FORMAT CP/M SYSTEM AND
+A MICROPOLIS CP/M SYSTEM.  THE SOURCE DRIVE, DESTINATION DRIVE, AND DIRECTION
+OF TRANSFER MAY BE SPECIFIED IN THE COMMAND LINE.  THE CP/M WILDCARDS '?' AND
+'*' ARE FULLY IMPLEMENTED, MAKING MULTIPLE FILES OR EVEN WHOLE-DISK TRANSFERS
+VERY EASY.  MIC-XFER IS EXECUTED BY TYPING:
+	A>MIC-XFER S:FFFFFFFF.TTT D:X
+		WHERE:
+			S	  IS THE SOURCE DRIVE
+			FFFFFFFF  IS THE AMBIGUOUS OR NON-AMBIGUOUS FILENAME
+			TTT	  IS THE AMBIGUOUS OR NON-AMBIGUOUS FILETYPE
+			D	  IS THE DESTINATION DRIVE
+			X	  IS THE DESTINATION SYSTEM - I=IBM-FORMAT
+							      M=MICROPOLIS
+FOR EXAMPLE, TO TRANSFER ALL '.COM' FILES ON IBM-FORMAT DRIVE B TO MICROPOLIS
+DRIVE A, YOU WOULD TYPE:
+	A>MIC-XFER B:*.COM A:M
+
+WHILE EXECUTING, MIC-XFER WILL REPORT EACH FILENAME AS IT IS TRANSFERRED,
+AS WELL AS ANY ERRORS WHICH MAY OCCUR.  AN ERROR ON ONE FILE OF A MULTI-
+FILE TRANSFER WILL NOT ABORT THE TRANSFER OF THE REMAINING FILES.  EXECUTION
+MAY BE INTERRUPTED BY STRIKING CONTROL-C, WHICH WILL BE RECOGNIZED AT THE
+COMPLETION OF THE CURRENT FILE TRANSFER.
+
+

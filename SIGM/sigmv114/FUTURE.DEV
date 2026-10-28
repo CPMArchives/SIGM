@@ -1,0 +1,137 @@
+Some thoughts about future development of PISTOL:
+(March 10, 1982)
+
+	It is expected that several major extensions to
+PISTOL can and will be possible for some installations.
+
+	Extended PISTOL versions will be denoted by certain
+letter conventions (which follow the version number).  For
+example, *** PISTOL 2.0A *** would be used for a version
+possessing assembly capabilities.  If several extensions
+coexist, necessitating several letter suffixes, they should
+appear in alphabetical order (e.g. PISTOL 2.0ADF).  Wherever
+possible associated files should be renamed (e.g. PBASE2 -->
+PBASE2A).
+
+	Here is a list of likely extesions:
+
+	'A')	Assembly language capability; obviously this
+is a machine dependent extension.  STOIC is a good example
+and model of an 8080 macro assembler.
+
+	'D')	Long or Double precision signed integer
+number and arithmetic capability.  To help provide typing
+protection and simplify programming, there should be a new,
+separate stack for these long or double precision numbers.
+Also, there should be a separate area of RAM set aside for
+storage of these types of numbers.  If memory protection is
+supported, then the operations with these types of numbers
+should check memory references to lie within that separate
+region; this is analogous to the W@ and C@ (as well as W!
+and C! protection).  No assumptions should be made as to the
+ordering of significance and/or the location of the sign
+bit.  Some relevent additional definitions would be:
+
+D+	adds two long integer numbers and leaves the long
+	result on the D-stack.
+
+D-	like D+, but for subtraction.
+
+D*	like D+, but for multiplication.
+
+D/	like D+, but for division.
+
+DMOD	like D+, but for MOD .
+
+D/MOD	like D+, but for /MOD [two answers].
+
+D.. ,
+DLT ,	etc: analogous to integer comparisons.
+
+DW	used like W, but provides size of long integer.
+
+DW@	analogous to W@ .
+
+DW!	analogous to W! .
+
+DS@	analogous to S@ .
+
+D=	analogous to = ; current RADIX used as for = .
+
+D->I	Convert long integer into ordinary integer (single
+	precision).  If out of range an error message and
+	ABORT should occur. Transfer occurs from D-stack to
+	regular stack.
+
+I->D	Convert ordinary integer to long integer.  Transfer
+	occurs from regular to D-stack.
+
+
+
+	'F')	Floating point arithmetic capability should
+be in complete analogy to the 'D' option above.  To help
+provide typing protection and simplify programming, there
+should be a new, separate stack for these floating point
+numbers. Also, there should be a separate area of RAM set
+aside for storage of these types of numbers.  If memory
+protection is supported, then the operations with these
+types of numbers should check memory references to lie
+within that separate region; this is analogous to the W@ and
+C@ (as well as W! and C! protection).
+
+F+	F-	F*	F/	F..	FLT ,etc.
+FW	FW@	FW!	FS@	F/W	F=
+E= [exponential form]	F->I	I->F
+
+The i/o conversions are always in base ten (decimal).
+
+
+
+	'DF')	(Both 'D' and 'F' options).  We should
+provide in addition:
+
+F->D	float to long (error message and ABORT on overflow).
+	Transfer occurs from F-stack to D-stack.
+
+D->F	long integer to float.  Transfer occurs from D-stack
+	to F-stack.
+
+
+
+	'P')	Port access capability by the use of:
+
+P@	fetches current value from port number on TOS.
+
+P!	sends NTT to TOS's port.
+
+	Details are implementation and hardware dependent;
+as with everything else, it should be detailed in HELP
+documentation.
+
+
+
+	'V')	Visual editor functional capability;
+(Cursor control and direct, full-duplex character i/o):
+
+VINIT	does whatever is necessary to enable direct i/o
+	functions to take place.
+
+VIN	returns immediately with a character typed from the
+	console or a 0 to indicate no character available
+	yet.  There should NOT be an automatic echo within
+	VIN.  There should be no interception of any control
+	codes by the operating system (such as contol-C will
+	not abort PISTOL).
+
+VOUT	outputs a character to the CRT WITHOUT any
+	modification (such as appending <LF> after <CR>).
+	It would be most unfortunate if cursor addressing
+	data were in any way modified.
+
+VEND	does whatever is necessary to terminate direct i/o
+	functions and revert console i/o to line-buffered
+	mode.
+
+ by the use of:
+
+P@	fetches current value from port n

@@ -1,0 +1,268 @@
+;DELETE.MAC v1.20 as of 08/08/84
+;by S. Kluger
+;styled after TurboDOS DELETE command
+;
+; Short documentation:
+; DELETE can be used to delete (erase) any number of files in
+; a given drive/user area. There are four options:
+; 1. NO OPTION - program will ask whether or not to verify individual
+;    files, R/O files are skipped
+; 2. ;N OPTION - program will erase all files specified except R/O
+; 3. ;Y OPTION - program will verify before erasure, skip R/O
+; 4. ;R OPTION - R/O files are deleted without asking
+; Options 2 and 3 are mutually exclusive. Examples:
+; A0>delete b3:*.*
+; B3>delete *.*;n
+; A0>delete *.com;ry
+; B0>delete foo.bar
+;
+; V1.20 now reports "not deleted" if BDOS returns FF in A
+;
+; If the filename is either UNAMBIGUOUS or expands into a single file,
+; no verification is done.
+;
+; To reassemble, be sure to link SYSLIB last!
+;
+cr	equ	0dh
+lf	equ	0ah
+;
+dfcb	equ	5ch
+dbuf	equ	80h
+;
+cmdsep	equ	';'		;command separator
+				;(change for ZCPR2)
+;
+	extrn	bbline,print,cout,crlf
+	extrn	f$delete,fname,putud,getud,logud,retud
+	extrn	f$open,bdos,initfcb
+	extrn	codend
+	extrn	hmovb
+	extrn	wildex
+;
+begin:	lxi	h,0
+	dad	sp
+	shld	stksav		;save return stack
+	lxi	sp,stack
+	lda	dbuf
+	ora	a		;any arg?
+	jz	help		;no, give some help
+	call	putud		;put away current DU:
+	lxi	h,dbuf+1	;point to command line
+	call	skipnb		;skip to next non-blank
+	lxi	d,curfcb
+	call	fname		;parse the filename
+	jz	invdu
+	call	skipnb		;skip to next nonblank
+	cpi	cmdsep		;delimiter?
+	jnz	nodel		;no, continue normally
+	inx	h
+	call	skipnb		;go to next nonblank
+	ora	a
+	jz	nodel		;nothing following the delimiter
+ynop:	sta	option		;save as option
+	sta	optn2		;twice in case only one option letter
+	inx	h
+	call	skipnb		;check next character
+	ora	a
+	jz	nodel		;if not eol...
+	sta	optn2		;...then save it
+	cpi	'Y'		;make optn2 the R/O option, so...
+	jz	swapo		;...swap the two if ;ry or ;rn
+	cpi	'N'
+	jnz	nodel
+swapo:	push	psw
+	lda	option
+	sta	optn2
+	pop	psw
+	sta	option
+nodel:	push	b		;save designated DU:
+	call	retud		;get current DU:
+	pop	h
+	mov	a,h
+	dcr	a		;if there, make 0..f
+	cpi	0feh
+	jz	skipdr		;skip drive if current
+	mov	b,a
+skipdr:	mov	a,l		;get user
+	cpi	'?'		;if all users...
+	jz	invdu		;...then complain
+	inr	a		;if current...
+	jz	skipus		;...then skip
+	mov	c,l
+skipus:	mov	h,b
+	mov	l,c
+	shld	filedu		;save file DU:
+	call	logud		;log into designated DU:
+	call	codend
+	lxi	d,curfcb
+	call	wildex		;expand wildcards
+	shld	count		;save file count
+	jz	nofile		;abort if none or error
+	mov	a,h
+	ora	a
+	jnz	mult
+	mov	a,l
+	cpi	1		;if only one file...
+	jnz	mult
+	mvi	a,'N'		;then do not verify (but barf if R/O)
+	sta	option
+mult:	lda	option
+	cpi	'Y'
+	jz	goodop
+	cpi	'N'
+	jz	goodop
+conf:	call	print		;ask for YN option if not yet specified
+	db	'Ambiguous filename. Confirm individual files (Y/N) ? ',0
+	mvi	a,1
+	call	bbline
+	call	crlf
+	mov	a,m
+	sta	option
+	cpi	'Y'
+	jz	goodop
+	cpi	'N'
+	jnz	conf
+goodop:	call	codend		;get filename table pointer
+	shld	fptr
+loop:	lhld	fptr
+	lxi	d,curfcb	;point to fcb area
+	push	d
+	mvi	b,16
+	call	hmovb		;move the junk
+	shld	fptr		;save pointer for next time
+	pop	d
+	call	initfcb
+	mov	h,d
+	mov	l,e
+	inx	h
+	call	pfn		;print the filename
+	lda	option		;get option letter
+	cpi	'N'
+	jz	noconf
+	call	print
+	db	' delete (Y/N) ? ',0
+	mvi	a,1
+	call	bbline
+	call	crlf
+	mov	a,m
+	cpi	'Y'
+	jnz	nodl
+	mov	h,d
+	mov	l,e
+	inx	h
+	call	pfn
+noconf:	call	f$open
+	lda	curfcb+9
+	ani	80h
+	jz	noro
+	lda	optn2
+	cpi	'R'
+	jz	delro
+	call	print
+	db	' R/O - not deleted.',cr,lf,0
+	jmp	nodl
+;
+; delete R/O file
+;
+delro:	lda	curfcb+9
+	ani	7fh		;reset R/O bit
+	sta	curfcb+9
+	push	d
+	mvi	c,30		;set attribute call
+	call	bdos
+	pop	d
+noro:	call	f$delete	;now delete file
+	ora	a
+	jz	didd
+	call	print
+	db	7,' not',0
+didd:	call	print
+	db	' deleted.',cr,lf,0
+nodl:	lhld	count		;decrement file count
+	dcx	h
+	shld	count
+	mov	a,h
+	ora	l
+	jnz	loop		;loop if more files left
+	jmp	quit
+;
+; skip to next non-blank
+;
+skipnb:	mov	a,m
+	cpi	' '
+	rnz
+	inx	h
+	jmp	skipnb
+;
+; print DU:FN.FT
+;
+pfn:	push	h		;save filename pointer
+	lhld	filedu		;get DU: of file
+	mov	a,h
+	adi	'A'
+	call	cout		;print drive letter
+	mov	a,l		;get user #
+	pop	h		;restore HL while we're at it
+	cpi	10		;if user < 10...
+	jc	punit		;...then print units
+	mvi	b,0		;else make and print tens
+tens:	sui	10
+	inr	b
+	cpi	10
+	jnc	tens
+	push	psw
+	mov	a,b
+	adi	'0'
+	call	cout
+	pop	psw
+punit:	adi	'0'
+	call	cout
+	mvi	a,':'		;print a colon
+	call	cout
+	mvi	b,8		;now print filename
+	call	phl
+	mvi	a,'.'
+	call	cout
+	mvi	b,3		;print file type
+phl:	mov	a,m
+	call	cout
+	inx	h
+	dcr	b
+	jnz	phl
+	ret
+;
+; no file abort message
+;
+nofile:	call	print
+	db	'No files deleted',cr,lf,0
+	jmp	quit
+;
+; invalid DU: message
+;
+invdu:	call	print
+	db	'Invalid drive or user specified',cr,lf,0
+	jmp	quit
+;
+help:	call	print
+	db	'Usage: ..>DELETE [du:]afn[;op]',cr,lf
+	db	'(du: = drive and/or user',cr,lf
+	db	' ;op one of:',cr,lf
+	db	' N = no individual verify',cr,lf
+	db	' Y = individual verify',cr,lf
+	db	' R = delete R/O files)',cr,lf,0
+quit:	call	getud
+	lhld	stksav
+	sphl
+	ret
+;
+stksav:	dw	0
+option:	db	0
+optn2:	db	0
+filedu:	dw	0
+fptr:	dw	0
+count:	dw	0
+curfcb:	ds	36
+	ds	80
+stack	equ	$
+	end
+cpi	10		;if user 

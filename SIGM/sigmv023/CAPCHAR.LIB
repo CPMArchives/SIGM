@@ -1,0 +1,26 @@
+
+{	CAPCHAR
+
+	If passed character is lower case letter it is returned as
+	a cap, otherwise it is unchanged.
+	
+	Requires gobally declared
+		TYPE	byte = 0..255;
+}
+
+PROCEDURE capchar (VAR ch : char);
+
+CONST	lca = 97;
+	lcz = 122;
+	offset = 32;
+
+VAR	value : byte;
+
+begin
+	value := ord(ch);
+	if (value >= lca) and (value <= lcz) then
+		ch := chr(value - offset);
+	end
+end;
+
+

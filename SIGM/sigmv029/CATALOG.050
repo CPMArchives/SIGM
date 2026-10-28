@@ -1,0 +1,979 @@
+
+VOLUME 50
+
+DESCRIPTION:	Bob Van Valzah's "Pascal Pascal Compiler"
+		and SPEED for CP/M 2.2 & a few miscellaneous
+		programs for printing via UNIX.
+
+NUMBER	SIZE	NAME		COMMENTS
+
+		-CATALOG.050	CONTENTS OF CP/M VOL. 50
+50.1	1K	A.OCO		Sample program, eight queens
+				problem, ready to be
+				linked to RTP.COM (OCO=obj code)
+50.2	1K	A.PCO		Sample program P-code, ready
+				for PFET.COM		
+50.3	5K	ABSTRACT.050	Abstracts for this volume.
+50.4	2K	COMPARE.COM	Vital program for
+				compiler writers.
+50.5	2K	CPMDIR.C	Prints CP/M DIR on UNIX.
+50.6	2K	CRCK.COM	CRC program for validating
+				files on this disk.
+50.7	2K	CRCKLIST.CRC	CRC list of files on this disk.
+50.8	3K	DISK.DOC	Bob's comments.
+50.9	1K	DMSPATCH.ASM	For use with SPEED.
+50.10	1K	DSCUSPAT.ASM	For use with SPEED.
+50.11	3K	EQ.COM		Prints all solutions to the
+50.12	2K	EQ.PAS		   eight queens problem.
+50.13	18K	FMAN.PRN	FAST users manual (for SPEED).
+50.14	5K	FROMCPM.C	Print CP/M file via UNIX stdout.
+50.15	1K	FWD.PAS		Forward Procedure Declarations.
+50.16	6K	HW5.COM		Builds optimal binary search
+50.17	15K	HW5.PAS		   tree & decodes a message.
+50.18	1K	HW5DATA.	Sample data for above program.
+50.19	1K	MICROPAT.ASM	For use with SPEED.
+50.20	6K	PASYNTAX.DOC	Syntax graphs for PPC compiler.
+50.21	1K	PC.SUB		Submit file to compile a PPC
+				   program.
+50.22	7K	PFET.COM	Object code of Pcode to 8080
+				   translator.
+50.23	11K	PFET.PAS	Source of above.
+50.24	1K	PHONE.C		C program to print words you
+				   can spell with your phone #.
+50.25	1K	PLAYDATA.	Sample data for above program.
+50.26	13K	PLAYKAL.PAS	PPC program to determine best
+				   moves in game of Kalah.
+50.27	2K	POPS.DOC	DOC for Pcodes used by PPC.
+50.28	1K	POWTWO.PAS	PPC Program to print negative
+				   powers of two.
+50.29	16K	PPC.COM		Pascal Pascal Compiler.
+50.30	10K	PPC.DOC		DOC for above file.
+50.31	26K	PPC.PAS		Pascal source for above file.
+50.32	2K	PSTACK.DOC	DOC on run-time P-machine stack.
+50.33	3K	REGEN.DOC	Notes on how to modify & compile
+				   PPC.PAS.
+50.34	3K	RSPEED.ASM	For use with SPEED.
+50.35	1K	RSPEED.COM	For use with SPEED.
+50.36	11K	RTP.ASM		Source for run-time package.
+50.37	2K	RTP.COM		Object of above.
+50.38	1K	SKEW2PAT.ASM	For use with SPEED.
+50.39	1K	SKEW3PAT.ASM	For use with SPEED.
+50.40	2K	SMAN.PRN	SPEED users manual.
+50.41	5K	SPEED.COM	SPEED for CP/M 1.4
+50.42	5K	SPEED2.COM	SPEED for CP/M 2.2
+50.43	1K	STIRLING.PAS	Prints a table of Stirling
+				   Numbers.
+50.44	4K	TESTER.PAS	Tests functionality of PPC.
+50.45	1K	VALIDATE.SUB	Submit file to make sure you
+				   have a "fertile" computer.
+
+---------------- VOLUME 50 ABSTRACTS ----------------
+
+This file contains abstracts on the following programs
+and files, most of which were submitted to the Users'
+Group by Bob Van Valzah:
+
+	A.OCO
+	A.PCO
+	COMPARE.COM
+	CPMDIR.C
+	DISK.DOC
+	DMSPATCH.ASM
+	DSCUSPAT.ASM
+	EQ.COM
+	EQ.PAS
+	FMAN.PRN
+	FROMCPM.C
+	FWD.PAS
+	HW5.COM
+	HW5.PAS
+	HW5DATA.
+	MICROPAT.ASM
+	PASYNTAX.DOC
+	PC.SUB
+	PFET.COM
+	PFET.PAS
+	PHONE.C
+	PLAYDATA.
+	PLAYKAL.PAS
+	POPS.DOC
+	POWTWO.PAS
+	PPC.COM
+	PPC.DOC
+	PPC.PAS
+	PSTACK.DOC
+	REGEN.DOC
+	RSPEED.ASM
+	RSPEED.COM
+	RTP.ASM
+	RTP.COM
+	SKEW2PAT.ASM
+	SKEW3PAT.ASM
+	SMAN.PRN
+	SPEED.COM
+	SPEED2.COM
+	STIRLING.PAS
+	TESTER.PAS
+	VALIDATE.SUB
+
+
+====> PPC.COM, PFET.COM and related files comprise
+Bob Van Valsah's Pascal compiler.  It is a compiler
+for a subset of the Pascal programming language, written
+in Pascal and can compile itself.
+     The sample programs that I compiled worked as they
+should.  The Eight Queens program (EQ.PAS) printed a bunch of
+permutations of the digits 1 to 8 tho I didn't get out
+my chess board and check them.
+     POWTWO.PAS prints the negative powers of two from .5 to
+.0009765625 (2**-1...2**-10).
+     Both programs took less than half a minute to compile using the
+supplied SUBMIT file and SPEED2.COM (bet you thought no one
+used SUBMIT files!).  EQ.COM took less than half a minute to run
+and POWTWO.COM ran as fast as it could print.  This was done on
+a 2 meg Z-80.  When they were compiled without SPEED2.COM they both
+took more than a minute.
+     The compiler was a class assignment for one of Bob's
+classes.  It is very well documented as to how to use the
+compiler and the specific subset it compiles (it even has
+some of Bob's usual creative misspellings).
+     Those interested in the innards of compilers or large
+programs in general should find this interesting.
+     Abstract by Paul Krystosek
+
+
+Contents of this disk -- largely from DISK.DOC notes by Bob Van Valzah
+=====================
+
+	A.OCO -- This sample program is the object code output of
+the PFET portion of the compiler package.  (OCO = Object COde).
+
+	A.PCO -- This sample program is the P-code output of
+the PPC.COM portion of the compiler.  Both A.PCO and A.OCO,
+in this case, are partially compiled outputs of EQ.PAS, the
+eight queens problem.  Normally, if you use the PC.SUB file
+for compilations, A.OCO and A.PCO will both be written to disk
+and subsequently erased by the submit file.
+
+	COMPARE.COM -- program to compare two files, from
+CP/M Users' Group disk #40, useful for checking differences
+between different versions of the same program.
+
+	CPMDIR.C -- A UNIX C program for printing a CP/M
+directory to STDOUT (UNIX printer).
+
+	DISK.DOC -- Bob Van Valzah's notes on some of the
+files on this disk.
+
+	DMSPATCH.ASM -- Patching for SPEED.COM or SPEED2.COM
+for use on DMS controller.
+
+	DSCUSPAT.ASM -- Patching for SPEED.COM or SPEED2.COM
+for use on the DISCUS controller.
+
+	EQ.COM -- Compiled output of EQ.PAS, the eight queens
+chess problem, written by Bob.
+
+	EQ.PAS -- Source code in Pascal to print out all solutions
+to the eight-queens chess problem.
+
+	FMAN.PRN -- "Fast Manual" -- documentation for SPEED.
+
+	FROMCPM.C -- UNIX C program to print a CP/M file to STDOUT
+via modem.
+
+	FWD.PAS -- Sample Pascal Program.
+
+	HW5.COM -- Sample program.
+
+	HW5.PAS -- Sample PASCAL program to build an optimal search
+tree and decode a message.
+
+	HW5DATA. -- Sample data for above program.
+
+	MICROPAT.ASM -- Patch for SPEED for use on MICROPOLIS disk
+controller systems.
+
+	PASYNTAX.DOC -- Bob's notes on PASCAL syntax.
+
+	PC.SUB -- Submit file for compiling from .PAS file to .COM file.
+
+	PFET.COM -- Part of PPC compiler package.
+
+	PFET.PAS -- Source code for the PFET portion of the compiler
+package (compiles P-code into object code).
+
+	PHONE.C -- UNIX C program to print out the words you can spell
+with your phone number.
+
+	PLAYDATA. -- data for following program.
+
+	PLAYKAL.PAS -- Sample program to determine best moves in a game
+of Kalah (Anybody know how to play Kalah?)
+
+	POPS.DOC -- Bob's documentation on the P-codes used by the
+compiler.
+
+	POWTWO.PAS -- Sample program to print out the negative powers of 2.
+
+	PPC.COM -- PASCAL PASCAL COMPILER.
+
+	PPC.DOC -- Documentation on the compiler.
+
+	PPC.PAS -- Pascal Source code for the compiler.
+
+	PSTACK.DOC -- Documentation on the stack operations of the
+run-time P-machine.
+
+	REGEN.DOC -- Notes on how to modify and recompile the compiler.
+
+	RSPEED.ASM -- Disk Hardware Read Speed Tester.
+
+	RSPEED.COM -- Object of above.
+
+	RTP.ASM -- Run Time Package Source code file.
+
+	RTP.COM -- Run Time Package Object code file.
+
+	SKEW2PAT.ASM -- Patch for SPEED or SPEED2.
+
+	SKEW3PAT.ASM -- Patch for SPEED or SPEED2.
+
+	SMAN.PRN -- Speed Users Manual.
+
+	SPEED.COM -- Disk Speed-up program for CP/M 1.4
+
+	SPEED2.COM -- Same as above for CP/M 2.2
+
+	STIRLING.PAS -- Sample program to generate Stirling numbers.
+
+	TESTER.PAS -- Sample program.
+
+	VALIDATE.SUB -- Submit file to verify that your computer is "fertile."
+
+
+
+
+
+Contents of this disk
+=====================
+
+
+compare.com	file compare utility from previous CP/M UG disk
+		an absolute must for self compiler writers
+
+cpmdir.c	V7 UNIX C program to print a CP/M directory on stdout
+
+disk.doc	this file
+
+eq.pas		prints all solutions to the "eight queens problem"
+
+fromcpm.c	V7 UNIX C program to read a CP/M file to standard output
+
+fwd.pas		Pascal program illustrating forward procedure declarations
+
+hw5.pas		builds an optimal binary search tree and decodes a message
+
+hw5data		sample data for above
+
+pasyntax.doc	syntax graphs for this Pascal compiler
+
+pc.sub		submit file to compile a Pascal program
+
+pfet.com	object code of the p-code to 8080 translator
+
+pfet.pas	source of above
+
+phone.c		C program to print words you can spell with your phone number
+
+playkal.pas	Pascal program to determine best moves in game of Kalah
+
+playdata	sample data for above
+
+pops.doc	documentation on the p-codes used by the compiler
+
+powtwo.pas	Pascal program to print negative powers of two
+
+ppc.com		object code of Pascal to p-code compiler
+
+ppc.doc		users manual for Pascal compiler
+
+ppc.pas		source of Pascal compiler
+
+pstack.doc	documentation on the run time p-machine stack
+
+regen.doc	notes on how to modify and compile the compiler
+
+rtp.asm		source for the run time package
+
+rtp.com		object of above
+
+speed.com	makes your system go faster by disk buffering
+
+speed2.com	above for 2.x systems
+
+stirling.pas	Pascal program to print a table of Stirling numbers
+
+tester.pas	tests functionality of Pascal compiler
+
+validate.sub	submit file to make sure you have a "fertile" compiler
+
+
+
+Both playkal.pas and hw5.pas are solutions to programming assignments
+for my computer science classes at the University of Illinos.  They are
+included here to show how to build trees when you don't have pointers.
+They also illustrate a kludgey way of simulating Pascal records when you
+don't have them either.
+
+stirling.pas is included to show a kludgey way to do output formatting.
+
+
+UPPER CASE means that this reserved word must appear literaly.
+
+
+
+identifier
+------------> letter ------------------------>
+			^	      |
+			|-- letter <--|
+			|-- digit  <--|
+
+
+number
+------------> digit -------->
+	^	        |
+	|---------------|
+
+
+constant
+-----------> number ---------------------------------------------->
+	|						     ^
+	|--> constant identifier ----------------------------|
+	|			   ^			  |  |
+	|			   |-- constant <--  +  --|  |
+	|						     |
+	|						     |
+	|-->  '  --> character -->  '  ----------------------|
+
+
+simple type
+----------------> type identifier ---------------->
+	|				       ^
+	|-->  (  ----> identifier ----->  )  --|
+	|	   ^		    |	       |
+	|	   |------  ,  <----|	       |
+	|				       |
+	|--> constant -->  ..  --> constant ---|
+
+
+type
+----------------> simple type -------------------------------->
+	|						^
+	|--> ARRAY -->  [  --> simple type -->  ] --|   |
+						    |   |
+	   |----------------------------------------|   |
+	   |						|
+	   |--> OF --> simple type ---------------------|
+
+
+variable
+------------> variable identifier ---------------------------->
+				    |	  |
+	|---------------------------|	  |
+	|				  |
+	|-->  [  --> expression -->  ]  --|
+
+
+factor
+------------>  '  -----> character ----->  '  ---------------->
+	|	    ^		     |			|
+	|	    |----------------|			|
+	|						|
+	|--> variable --------------------------------->|
+	|						|
+	|--> function identifier ---------------------->|
+	|			   |			|
+	|  |-----------------------|			|
+	|  |						|
+	|  |-->  (  -----> expression ----->  )  ------>|
+	|	      ^			|		|
+	|	      |-----  ,  <------|		|
+	|						|
+	|-->  (  --> expression -->  )  --------------->|
+	|						|
+	|--> constant ----------------------------------|
+
+
+term
+------------> factor -------------------------------->
+	^			 |
+	|-- factor <-----  *  <--|
+		      ^		 |
+		      |--  /  <--|
+		      |-- AND <--|
+
+simple expression
+----------->  +  -------> term -------------------------------->
+	|	   ^ ^			    |
+	|-->  -  --| |-- term <-----  +  <--|
+				 ^	    |
+				 |--  -  <--|
+				 |--  OR <--|
+
+
+expression
+-----------> simple expression -------------------------------------->
+				|				    ^
+				|-->  =  -----> simple expression --|
+				|	   ^
+				|-->  <  --|
+				|-->  >  --|
+				|-->  <> --|
+				|-->  <= --|
+				|-->  >= --|
+
+
+parameter list
+-------------------------------------------------------------------------->
+ |								  |
+ |--> ( -----> identifier -----> : --> type identifier -----> ) --|
+	 ^ ^		    |				 |
+	 | |-----  ,  <-----|				 |
+	 |						 |
+	 |-----------------------  ;  <------------------|
+
+
+
+statement
+--------------------------------------------------------------------->
+ |								  ^
+ |-----> variable ---------------->  :=  --> expression --------->|
+ |  |			       ^				  |
+ |  |--> function identifier --|				  |
+ |								  |
+ |--> procedure identifier -------------------------------------->|
+ |			     |					  |
+ |  |<-----------------------|					  |
+ |  |								  |
+ |  |-->  (  ------------------> expression ----->  )  ---------->|
+ |	       |	  ^ ^		      |			  |
+ |	       |--> VAR --| |------  ,  <-----|			  |
+ |								  |
+ |--> BEGIN -----> statement -----> END ------------------------->|
+ |	      ^		       |				  |
+ |	      |-----  ;  <-----|				  |
+ |								  |
+ |--> IF --> expression --> THEN --> statement ------------------>|
+ |					         |		  |
+ |				       |<--------|		  |
+ |				       |			  |
+ |				       |--> ELSE --> statement -->|
+ |								  |
+ |--> CASE --> expression --> OF ------------------------> END -->|
+ |				   |		      ^		  |
+ |  |<-----------------------------|		      |		  |
+ |  |					  	      |		  |
+ |  |-----> constant --> : --> statement ------------>|		  |
+ |     ^				   | |	      |		  |
+ |     |---------------  ;  ---------------| |        |		  |
+ |					     |        |		  |
+ |		|<---------------------------|        |		  |
+ |		|				      |		  |
+ |		|--> ELSE --> statement ------------->|		  |
+ |								  |
+ |--> WHILE --> expression --> DO --> statement ----------------->|
+ |								  |
+ |--> REPEAT -----> statement -----> UNTIL --> expression ------->|
+ |	       ^		|				  |
+ |	       |-----  ;  <-----|				  |
+ |								  |
+ |--> GET -->  #  --> constant -->  (  --> variable -->  )  ----->|
+ |								  |
+ |--> PUT -->  #  --> constant -->  (  --|			  |
+ |					 |			  |
+ |		   |<--------------------|			  |
+ |		   |						  |
+ |		   |-----> expression ------------------->  )  -->|
+ |		      ^			|	   ^  |		  |
+ |		      |			|-->  #  --|  |		  |
+ |		      |				      |		  |
+ |		      |----------  ,  <---------------|		  |
+ |								  |
+ |--> FOR --> variable identifier -->  :=  --> expression --|	  |
+							    |	  |
+	 |<-------------------------------------------------|	  |
+	 |							  |
+	 |-----> DOWNTO -----> expression --> DO --> statement -->|
+	    |		  ^
+	    |----> TO ----|
+
+
+block
+-----------> CONST -----> identifier -->  =  --> constant --|
+	|	     ^					    |
+	|	     |					    |
+	|<-------------------------------------  ;  <-------|
+	|
+	|--> TYPE ------> identifier -->  =  --> type ------|
+	|	     ^					    |
+	|	     |					    |
+	|<-------------------------------------  ;  <-------|
+	|
+	|--> VAR -------> identifier ----->  :  --> type identifier ---|
+	|	     ^		       |		               |
+	|	     |<-----  ,  ------|		    	       |
+	|	     ^					    	       |
+	|<-------------------------------------------------------------|
+	|
+	|<-----  ;  <----- block <-----  ;  <--------------------|
+	|							 |
+	|-----> procedure -----> identifier --> parameter list --|
+	|  |		    ^
+	|  |--> function ---|
+	|
+	|--> begin -----> statement -----> end -------------------->
+		     ^		      |
+		     |-----  ;  <-----|
+
+
+program
+------------> block -->  .  ---------------------------------------->
+
+
+This file descibes the function of each of the p-op codes, as best I
+can remember them while looking at my notes and code of over a year
+ago.  (Sorry, it's the best I can offer you.)
+
+Entered 02/20/81, from notes dated 09/01/79
+
+The compiler does not generate all of the p-codes given here.  Some
+were for planed enhancements that never were finished.  Similarlay,
+the translator (pfet) will translate many p-codes that the compiler
+presently does not generate.  There may be some p-codes it does
+generate that are not listed here, but this is the bulk of the
+usefull ones and will give you the general idea.
+
+
+
+lit	0,c	push word constant c into stack
+
+opr	n,m	perform operation m on top of stack
+		element(s) of type n, where n=0 is word, n=1 is alfa
+
+lod	l,a	push word at l+a into stack
+
+sto	l,a	po stack into l+a
+
+cal	l,a	call routine at p label a, level l away
+
+int	0,n	add n to stack pointer
+
+jump	0,a	jump to p label a
+
+jpc	c,a	jump to p label a after popping stack
+		c=0 jump if (top)=false, c=1 jump if (top)=true
+
+csp	0,n	call standard procedure n
+
+lodx	l,a	push word at l+a+(top) into stack
+
+stox	l,a	pop stack into l+a+(top-1)
+
+alit	0,0	push alfa which follows (next 2 p-ops or 8 bytes)
+		into stack, msbyte follows first (may have changed)
+
+alod	l,a	push alfa at l+a into stack
+
+asto	l,a	pop alfa from stack into l+a
+
+alodx	l,a	push alfa at l+a+(top) to stack
+
+astox	l,a	pop alfa from stack into l+a+(top-5)
+
+pshf	0,0	push true or false into stack based on result
+		of last conditional executed
+
+laa	l,a	load absolute machine address of l,a into stack
+		used for var parameters
+
+lodi	0,0	load word pointed to by top of stack into stack
+		pops address first
+
+stoi	0,0	store word on top of stack at address on (top-1)
+
+lab	0,n	defines the p label n
+
+			PPC Users Manual
+
+How to use the compiler
+=======================
+
+If you have a file named dog.pas and you want to compile it, you'd
+just type
+
+	submit pc dog
+
+The compiler will ask "LISTING?".  You reply with a single character;
+carriage return means no listing, any other character means yes listing.
+The listing will be sent to the console as the compilation proceeds.
+Any errors detected in the compilation are flagged in this listing.
+At some point (hopefully reasonably near to the point of infraction)
+the error number will be inserted into the listing, enclosed in ">>"
+and "<<".  The line following an error will start with "********"
+and otherwise be blank to call attention to the error.  The compiler
+will also wait for a single character from the console before
+compilation continues.  This is so people with crt's can see the
+error.  Error numbers should be looked up in Jensen and Wirth (see
+below).  Error number 99 is pound sign ("#") expected.
+
+The compiler should work with a 32k CP/M and might work in 24k, but
+there are no memory overflow checks.  If it hangs or something, you
+probably don't have enough memory.
+
+On good sized programs, the compiler manages to get about 300-400
+lines of Pascal translated to object per minute.  These figures were
+taken on my system with 2mHz Z-80, 8" disk, running under SPEED.
+Compilation speed will fall to less than half this rate without SPEED,
+thus SPEED is strongly recommended.  This is particularly true if
+you use the submit file to do the compilation.  The run time package
+does only single sector disk buffering and this too makes SPEED
+very important.
+
+How it all works
+================
+The program PPC.COM takes your Pascal source and makes a single pass
+over it translating it to a sort of p-code as it goes.  This p-code is
+written to disk.  PFET.COM reads the p-code file on its first pass,
+assigning 8080 addresses to all p-code labels and storing the p-code
+in memory for the second pass.  On its second pass, PFET reads the
+p-code from memory and generates the actual 8080 object code.  This
+code is written to a disk file.  The last step in compilation is to
+link the generated object code to the run time package.  This is done
+by simply using PIP to concatenate the run time package and the object
+file from PFET to produce an executable .COM file.  The compiler (PPC)
+is written in Pascal, as is the p-code translator (PFET).  The run time
+package is written in assembler.
+
+
+
+Differences from "standard" Pascal
+==================================
+
+This section will detail the ways in which ppc deviates from standard
+Pascal as defined in "Pascal User Manual and Report", second ed., K.
+Jensen and N. Wirth.
+
+
+Two additional reserved words have been defined:  get and put.
+The following words are not now considered reserved, but are
+in standard Pascal, so they should be avoided:  file, goto, in, label,
+nil, packed, set, and with.
+
+The ASCII tab character is an acceptable white space character.
+
+Comments are begun with the sequence "(*" and ended with "*)".
+
+Identifiers may be very long, but only the first 8 are significant.
+
+
+The data type Boolean is not supported.  Relational and logical
+operators may be used only in if statements.  The boolean constant
+identifiers true and false are not defined.  The not operator is
+not implemented.  These are the legal relational and logical
+operators:  =, <>, <, <=, >=, >, and, and or.
+
+The data type integer is available.  Values must be in the range -32768 to
+32767.  There are no standard functions such as abs, sqr, trunc, etc.
+The constant maxint is not defined by the compiler.  The type integer is
+identical to type word.  The following operations are defined on integers:
+
+	*	multiply
+	/	divide and truncate (why use div? int's are all you've got!)
+	+	add
+	-	subtract
+
+Multiplication and division are presently implemented with repeated
+addition and subtraction (gag!).  This makes the order of the operands
+critical.  If one operand is likely to be less than the other, put the
+lesser operand on the left of the multiplication symbol for best speed.
+Dividing a large number by one takes a long time -- dividing it by zero
+takes forever!  (It's not that I'm not aware of the shiftng methods
+of division and multiplication, it's just that I wanted something quick
+and didn't feel like looking up the good routines.  I've never felt
+the need to replace these routines with the good ones.)
+
+Also note that there is no integer negation.  If you want negative one,
+write it as 0-1.
+
+The type real is not supported.
+
+The type char is not supported, but see type alfa below.
+
+The type alfa can hold eight characterers.  Alfas can be assigned and
+compared just like integers (just don't try to do math on them!).
+All relational operators are defined using the ASCII collating sequence.
+Length can't enter into the compariosn because alfas are always eight
+characters long (it's up to you to supply padding).  Alfas may be passed
+as parameters.
+
+
+Since files are not supported, the program heading is not needed, and
+in fact, is not allowed.  The first thing the compiler expects to see
+are the global constant declarations.
+
+Goto statements are not supported, therefore label declarations are not
+needed and not permitted.
+
+Constant declarations are pretty much the same as in regular Pascal,
+except that leading signs are not allowed and character constants
+can be only one character in length.  A minor extension is that I put
+in limited compile time constant expressions to make coding the
+translator easier.  See the syntax graphs to see where these can be
+used.
+
+Variable declarations have the restriction that the type must be
+a type identifier and may not be a complex type.  Thus
+
+	var months : array [ 1 .. 12 ] of integer;
+
+is illegal, while
+
+	type mtharray = array [ 1 .. 12 ] of integer;
+	var  months : mtharray;
+
+is legal.
+
+In this implementation, functions can return only integer values.
+This makes it unnecessary (and illegal) to give a function return type
+in the function declaration.
+
+
+The case statement is limited in that it cannot accept multiple case
+labels on the same statement.  On the other hand, it has been extended
+to allow an else statement which is executed when none of the case
+labels match the expression value.  See the syntax graphs for the syntax.
+
+
+Single dimensional arrays of integers and alfas (the two "built-in" types)
+are allowed.  You can also declare arrays of subrange or enumerated types,
+but these are treated as arrays of integers and take the same amount of
+storage.  Of course, arrays of arrays are not allowed, as that would
+be more than one dimension.
+
+If a simple alfa variable appears with a subscript after it, it is
+treated as though it were an array of integers.  This fact can be used
+to get at the individual characters of an alfa variable.  For example,
+if "a" is a simple (not an array) alfa variable, then a[0] refers to
+the first two characters.  The least significant eight bits would
+contain the first character and the most significant eight bits would
+contain the second character.
+
+
+Record types are not allowed.  Therefore, there is no need for a with
+statement.
+
+
+There is no set type.  (However, it shouldn't be too hard to implement
+a 64-bit set type using the p-instructions already around for alfa
+variables . . . ).
+
+
+There are no pointer types, and consequently, no new function.
+
+
+There are no files and no read or write statements.  All input and
+output is done with the put and get statements.  These are only vaguely
+similar to the standard Pascal put and get.  GET#0 gets one character
+from the input file.  PUT#0 sends its output to the output file.  PUT#1
+sends its output unconditionally to the console.  The arguments to the
+put statements consist of a series of expressions separated by commas.
+If an expression evaluates to an alfa, all eight characters of the alfa
+are printed.  Integer expressions followed by a pound sign ('#') will
+print the decimal value of the expression.  If no pound sign follows
+the expression, the low eight bits of the expression are sent as one
+character.  The input and output files mentioned above can be either
+disk files or console input and output.  Which is used depends on what
+is typed on the command line following the compiled .com file when it
+is executed.  If the first filename following the .com file name is
+blank or '*', then input characters are taken from the console.  If
+it is the name of a disk file, then input comes from that disk file.
+A similar rule applies to the second filename following the command
+and the destiny of the output characters.
+
+
+Var parameters are different in that if one parameter to a procedure
+is to be var, then all parameters must be var parameters.  This is
+a silly restriction that should be easily removed by any talented
+compiler hacker.  There is a also a small kludge to make the compiler's
+job easier;  the word var must appear in the call to all procedures
+with var parameters, as well as in the declaration.  This is very
+easy to forget an a real nuisance at times.  Somebody please fix.
+
+
+It is possible to forward declare procedures an functions, but as
+with var parameters, there is a minor syntactic kludge to make the
+compiler's life easier.  The forward part is handled in the normal
+way except that you D-O-N-'-T give the parameter list (the compiler
+never checks procedure calls against their declarations anyway!).
+When you actually want to declare the procedure, use the form
+
+	procedure foo(<real parameter list>); backward;
+
+This gives the compiler a hint it can't miss that this procedure
+was forward declared earlier!
+
+
+
+The runtime stack is kept on the 8080 machine stack.
+
+In all diagrams below, the highest memory address is at the T-O-P
+of the diagram.
+
+		char		word		alfa (01234567)
+		====		====		===============
+						7
+						6
+						5
+						4
+						3
+						2
+				H		1
+pointer to ->	x		L		0
+
+
+	    ____________________
+	 -5 | return address   |
+	 -4 |__________________|
+	 -3 | dynamic link     |
+	 -2 |__________________|
+	 -1 | static link      |
+BR ->	  0 |__________________|
+	  1 | local variable 1 |
+	  2 |                  |
+	  . |                  |
+	  . |                  |
+	  . | local variable n |
+	  n |__________________|
+	    | function value   |    function return value
+	-10 |__________________|
+	 -9 | parameter 1      |
+	 -8 |__________________|
+	 -7 | parameter 2      |
+	 -6 |__________________|
+	 -5 | return address   |
+	 -4 |__________________|
+	 -3 | dynamic link     |
+	 -2 |__________________|
+	 -1 | static link      |
+BR ->	  0 |__________________|
+	  1 | local variable 1 |
+	  2 |__________________|
+		
+	^^^ offsets from BR (base register)
+
+
+
+The runtime stack is kept on the 8080 machine stack.
+
+In all diagrams below, the highest memory address is at the T-O-P
+of the diagram.
+
+		char		word		alfa (01234567)
+		====		====		===============
+						7
+						6
+						5
+						4
+						3
+						2
+				H		1
+pointer to ->	x		L		0
+
+
+	    ____________________
+	 -5 | return address   |
+	 -4 |__________________|
+	 -3 | dynamic link     |
+	 -2 |__________________|
+	 -1 | static link      |
+BR ->	  0 |__________________|
+	  1 | local variable 1 |
+	  2 |                  |
+	  . |                  |
+	  . |                  |
+	  . | local variable n |
+	  n |__________________|
+	    | function value   |    function return value
+	-10 |__________________|
+	 -9 | parameter 1      |
+	 -8 |__________________|
+	 -7 | parameter 2      |
+	 -6 |__________________|
+	 -5 | return address   |
+	 -4 |__________________|
+	 -3 | dynamic link     |
+	 -2 |__________________|
+	 -1 | static link      |
+BR ->	  0 |__________________|
+	  1 | local variable 1 |
+	  2 |__________________|
+		
+	^^^ offsets from BR (base register)
+
+
+
+Notes on regenerating the compiler
+==================================
+
+
+When reassembling the runtime package, do not use LOAD to create RTP.COM.
+Instead, you must use a debugger and do the following:
+
+1) Assemble RTP.ASM to produce RTP.HEX.  Make note of the final code
+   address printed by the assembler.  RTP.COM should go up to this
+   address minus 1.
+
+2) Fire up your favorite debugger (DDT will do).
+
+3) Fill memory with 0's.  100h - 1000h should do.
+
+4) Now you can read in RTP.HEX, starting at 100h.
+
+5) Boot back to the CCP.
+
+6) Save memory up to one byte below the final code address printed by
+   the assembler.  F'rinstance if 0600 was last address, type
+   "SAVE 5 RTP.COM".
+
+This procedure must be followed so that PIP can be used to concatenate
+the runtime package and the object code produced by the compiler.
+It will also make your life a lot easier when using COMPARE.COM to
+compare parents and childern (should you ever try and extend the compiler).
+
+
+If you make changes to ppc.pas or pfet.pas, you'll want to be sure
+that the new compiler is capable of compiling itself.  In genetics,
+this would be like making sure that your children are not sterile.
+The file validate.sub should help make sure you don't have sterile
+children.  It uses a "know fertile" compiler (ppc.com, pfet.com) to
+compile the new ppc.pas and pfet.pas.  The resulting compiler is then
+used to compile ppc.pas and pfet.pas again.  The results of this
+second compilaton are compared to the results of the first.  If they
+match, it is safe to erase the "known fertile" compiler because you
+now know that you have a compiler which can reproduce itself.  If
+they miscompare, you'd better find out why and fix it before erasing
+the parents.  You should also note that this test only guarantees
+that you'll be able to continue to use the compiler to compile itself.
+It does N-O-T guarantee that you've got a fully functional compiler,
+because the compiling the compiler does not exercise all functions
+of the compiler.
+
+After making any changes to the compiler, you'll probably want to
+make sure that you can still compile and execute tester.pas.  This
+test doesn't test all functions of the compiler either, but passing
+tester is good sign that you haven't broken anything major.  By the
+way, it is normal to get a few type missmatch errors while compiling
+tester.  A new version of the compiler which is smarter about type
+checking would prevent these messages.
+

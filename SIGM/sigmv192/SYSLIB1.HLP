@@ -1,0 +1,587 @@
+Directory Manipulation Routines
+Directory Buffer Structure
+How To Use These Routines
+DBUFFER          -- Buffer Allocation Routine
+DFREE            -- Free Space Computation Routine
+DIRALPHA         -- Directory Alphabetization Routine
+DIRF/DIRFS       -- Generalized Routines
+DIRLOAD/DIRSLOAD -- Directory Load Routines
+DIRPACK/DIRNPACK -- Directory Pack Routines
+DIRQ/DIRQS       -- Optimal Generalized Routines
+DIRSEL           -- Directory Entry Selection Routine
+DPARAMS          -- Disk Parameter Information Routine
+FSIZE            -- File Size Computation Routine
+:Directory Manipulation Routines
+
+     Thió  seô  oæ SYSLIÂ routineó concernó itselæ witè  thå 
+loadinç  oæ anä accesó oæ á disë directorù foò  thå  generaì 
+purposeó oæ thå user®   Includeä iî thió seô oæ routineó arå 
+thå functionó of:
+
+     1.  Preallocation of buffer space for the routines
+
+     2®   Loadinç  oæ alì undeleteä directorù entrieó intï á 
+buffer¬ constantlù checkinç foò memorù overflo÷ aó theù go
+
+     3®  Determininç thå amounô oæ freå spacå oî thå disk
+
+     4®  Computinç thå sizå oæ á filå iî K
+
+
+     5®  Sortinç á loadeä directorù bù filå namå anä typå oò 
+bù filå typå anä name
+
+     6®   Selectinç  (bù marking© á seô oæ directorù entrieó 
+whicè matcè á giveî ambiguouó filå spec
+
+     7®   Packinç thå loadeä directory¬  leavinç iî iô  onlù 
+thoså entrieó markeä bù thå selecô routine
+
+
+     Thå  majoritù oæ theså routineó ió intendeä tï bå  useä 
+tï  providå á flexiblå directorù accesó systeí whicè caî  bå 
+tailoreä  bù thå useò tï hió specifiã needs®   Foò instance¬ 
+witè  thå DIRLOAÄ routinå separateä froí thå  rest¬  severaì 
+differenô  loadó  oæ  thå  directorù  (from¬  foò  instance¬ 
+differenô ambiguouó filå specs© caî bå performed¬  anä  theî 
+onå  selectioî anä onå sorô oî alì filå specó loadeä caî  bå 
+done.
+
+     Thå DIRQ/DIRQÓ paiò arå intendeä foò thoså applicationó 
+whicè  dï noô neeä thió kinä oæ flexibility®   DIRÑ  (quick© 
+anä  DIRQÓ (quicë witè sizinç information© perforí  á  load¬ 
+select¬  anä  sorô  baseä  oî onlù onå  filå  specification®  
+Usinç DIRQ/DIRQÓ insteaä oæ DIRF/DIRFÓ resultó iî lesó  codå 
+beinç generateä anä (generally© fasteò execution.
+
+:Directory Buffer Structure
+
+     DIRLOAÄ  anä DIRSLOAÄ arå useä tï loaä á directorù froí 
+disë  intï memory®   Thå entrieó loadeä arå alì  non-deleteä 
+entrieó  iî eitheò á particulaò useò areá oò alì useò  areaó 
+on the disk which is currently logged in.
+
+     Eacè filå entrù iî thió buffeò ió 1¶ byteó long¬ anä iô 
+is structured as follows:
+
+          DB   user           ; user number of file
+          DB   'FILENAME'     ; name of file
+          DB   'TYP'          ; type of file
+          DB   ext            ; extent of file*
+          DB   0,0            ; uninteresting - leave alone
+          DB   rec            ; record count in this extent
+
+ª  exô  ió thå filå extent»  foò DIRLOAD¬  iô ió  thå  firsô 
+extenô  numbeò oæ thå file»  foò DIRSLOAD¬  iô ió  thå  lasô 
+extent number of the file
+
+:How To Use These Routines
+
+     Thå  DIRÆ  oò DIRFÓ routineó wilì probablù bå  useä  tï 
+perforí youò directorù accesó functionó thå vasô majoritù oæ 
+thå time®   Giveî á buffer¬  aî ambiguouó filå spec¬  anä  á 
+selectioî  flag¬  DIRÆ anä DIRFÓ loaä thå desireä fileó  foò 
+yoõ anä theî yoõ caî worë witè thå 16-bytå filå entrieó froí 
+there®  Á typicaì callinç sequencå foò DIRÆ oò DIRFÓ is:
+
+          CALL CODEND         ; point to buffer space
+          LXI  D,FCB          ; point to FCB of file spec
+          MVI  A,1100$0000B   ; select all files in user 0
+          CALL DIRF           ; load entries
+          JZ   TPAOVFL        ; error condition
+          <continue>          ; HL pts to first entry, BC=
+                              ;  number of entries
+Š
+     Iæ  yoõ wisè tï deviatå froí thå "normal¢ uså foò  DIRÆ 
+anä DIRFS¬  accesó tï thå routineó useä bù DIRÆ anä DIRFÓ ió 
+available®   Á caså iî whicè yoõ maù wanô tï dï thió ió wheî 
+yoõ  arå interesteä iî fileó whicè matcè morå thaî onå  filå 
+spec¬  sucè aó *.ASÍ anä *.TXT®   Á typicaì callinç sequencå 
+for this type of access is:
+
+;  Setup
+          CALL CODEND         ; point to buffer space
+          CALÌ DBUFFEÒ        » geô internaì infï anä ptrs
+          CALL DIRLOAD        ; or DIRSLOAD to load entries
+          JZ   TPAOVFL        ; error condition
+
+;  Select first set of files
+          LXI  D,FCB1         ; pt to first FCB to match
+          MVI  A,1100$0000B   ; select all files in user 0
+          CALL DIRSEL         ; select file entries from
+                              ;   buffer
+
+
+;  Repeat the following 2 lines as necessary
+          LXI  D,FCB2         ; pt to 2nd FCB to match
+          CALL DIRSEL         ; select again
+
+;  Finish up
+          CALL DIRPACK        ; pack the file entries,
+                              ;   leaving only the valid
+                              ;   entries in the buffer
+          MVI  A,0            ; alphabetize
+          CALL DIRALPHA
+
+»  Donå -- HÌ ptó tï firsô filå entry¬ BC=numbeò oæ entries
+
+:Buffer Allocation Routine -- DBUFFER
+     Routine Name: DBUFFER
+
+     Function:
+
+     Thió  routinå allocateó thå buffeò spacå necessarù  foò 
+thå seô oæ directorù functionó iî general®   Iî  particular¬ 
+iô  allocateó  thå necessarù spacå foò  thå  alphabetizatioî 
+functioî  aó  welì  aó thå loadeä  directorù  itself®   Thió 
+routinå musô bå useä iæ thå DIRALPHÁ routinå ió tï bå  lateò 
+useä  tï sorô thå directory»  thió routinå allocateó alì thå 
+spacå  necessarù  bù DIRALPHÁ tï sorô thå  routinå  (pointeò 
+space)®   Iæ thió routinå ió called¬  iô ió noô necessarù tï 
+calì thå DPARAMÓ routine.
+
+
+     Inputs:  HL points to the beginning address of a
+               buffer area which extends to under the CCP
+               (usually set by a call to CODEND)
+
+     Outputs:  HL points to the first byte at which the
+                directory entries are to be loaded
+               A=0 and Zero Flag is Set (Z) if the CCP is
+                already overrun; else, A<>0 and NZ
+
+     Registers Affected:  HL, PSW
+
+     SYSLIB Routines Called:  DPARAMS
+
+     Special Error Conditions:  As indicated
+
+:Free Space Computation Routine -- DFREE
+     Routine Name: DFREE
+
+     Function:
+
+     Thió  routinå computeó thå amounô oæ freå spacå  (iî  Ë 
+bytes© lefô oî disk.
+
+     Thå routinå DPARAMÓ (oò DBUFFER¬  DIRF¬ oò DIRFS¬ sincå 
+theù  alsï calì DPARAMS© musô bå calleä beforå thió  routinå 
+ió  useä  sï thaô thå correcô disë parameteò informatioî  ió 
+loadeä foò it.
+
+     Inputs:  None
+
+     Outputs:  DE = Amount of Free Disk Space in K Bytes
+
+     Registers Affected:  DE
+
+     SYSLIB Routines Called:  None
+
+     Special Error Conditions:  None
+:Directory Alphabetization Routine -- DIRALPHA
+     Routine Name: DIRALPHA
+
+     Function:
+
+     Tï alphabetizå thå fileó iî thå directorù pointeä tï bù 
+HÌ  bù  eitheò  filå namå anä typå  (STEST.ASÍ  goeó  beforå 
+TEST.AAA©  oò  bù filå typå anä namå (TEST.AAÁ  goeó  beforå 
+STEST.ASM).
+
+     Inputs:  HL points to first directory entry
+               (usually set by DBUFFER)
+              BC contains the number of files to sort
+               (usually set by DIRLOAD or DIRSLOAD)
+              Á ió thå sorô flag» A=° meanó sorô bù filå
+               name and then file type, A<>0 means by file
+               type and nameŠ
+     Outputs:  None (directory list is sorted)
+
+
+     Registers Affected:  PSW
+
+     SYSLIB Routines Called:  PRINT
+
+     Special Error Conditions:
+
+Iô ió possible¬  althï highlù unlikelù froí alì testó  giveî 
+sï far¬  thaô DIRALPHÁ maù experiencå aî internaì error®  Iæ 
+thió happens¬ thå message:
+
+               DIRALPHA -- Pointer Error
+
+wilì bå printeä anä thå routinå wilì aborô tï CP/M.
+
+:Generalized Routines -- DIRF and DIRFS
+     Routine Name: DIRF and DIRFS
+
+     Functionº
+
+     Thió routinå initializeó thå buffeò area¬  loadó á disë 
+directory¬  selectó á seô oæ fileó froí thå loadeä directorù 
+specifieä  bù  thå user'ó ambiguouó filå namå anä  á  passeä 
+flaç  (whicè  indicateó iæ Systeí fileó arå  selected¬  Non-
+systeí fileó arå selected¬ alì useò areaó arå tï bå covered¬ 
+anä  whaô particulaò useò areá ió tï bå covereä iæ alì  useò 
+areaó   arå  noô  selected)¬   packó  thå   directory¬   anä 
+alphabetizeó thå directorù bù filå namå anä filå type.
+
+     Iæ DIRÆ ió used¬  thå processinç proceedó fasteò  sincå 
+onlù  thå firsô entrù oæ eacè filå ió loadeä intï thå memorù 
+buffer®   Filå  sizinç informatioî ió noô includeä  iî  thió 
+load¬ however.
+
+
+     Iæ  DIRFÓ ió used¬  thå processinç ió somewhaô  slower¬ 
+buô  thå lasô entrù foò eacè filå ió loadeä ratheò thaî  thå 
+first®   Filå sizinç informatioî ió containeä iî thió entry¬ 
+anä thió informatioî caî bå useä bù thå FSIZÅ routine.
+
+
+     Inputs:
+
+     HÌ pointó tï á buffeò areá whicè extendó froí afteò thå 
+user'ó  codå anä buffeò areaó tï thå enä oæ thå TPÁ (usuallù 
+seô by a call to CODEND)
+
+     DÅ pointó tï thå firsô bytå oæ thå FCÂ useä tï  specifù 
+thå  ambiguouó  filå name»  onlù thå charó iî thå FÎ anä  FÔ 
+fieldó arå significant¬  sï thió neeä noô bå á truå FCÂ  anä 
+maù bå aó shorô aó 12 bytes
+
+     A is the selection flag, structured as follows:
+               Bit 7 - If Set, Select Non-System Files
+               Bit 6 - If Set, Select System Files
+               Bit 5 - If Set, Select All User Areas
+               Bits 4-0 - If Bit 5 is Cleared, contains
+                    number of User Area to Select
+
+
+     Outputs:
+
+     HÌ  pointó tï thå firsô filå entrù iî thå buffer»  eacè 
+filå entrù ió 1¶ byteó long
+
+     BC contains the number of files selected
+
+     Á  containó aî erroò flag»  A=° anä Zerï Flaç  Seô  (Z© 
+indicateó  TPÁ  overflo÷  erroò  durinç  loaä  oæ  directorù 
+entries» A<>° anä NÚ indicateó loaä OK
+
+     Registers Affected:  HL, BC, PSW
+
+     SYSLIB Routines Called:  DBUFFER, DIRLOAD, DIRSEL, DIRPACK,
+                              DIRALPHA
+
+     Special Error Conditions:  As outlined above.
+
+:Directory Load Routines -- DIRLOAD and DIRSLOAD
+     Routine Name: DIRLOAD and DIRSLOAD
+
+     Function:
+
+     DIRLOAÄ  anä  DIRSLOAÄ loaä entrieó foò  alì  undeleteä 
+fileó oî thå currentlù loggeä iî disë intï thå memorù buffeò 
+pointeä tï bù HL®  Alì entrieó arå 1¶ byteó long.
+
+     DIRLOAÄ  ió  fasteò thaî DIRSLOAD®   Iô loadó jusô  thå 
+firsô entrù oæ eacè filå oî disk®   DIRLOAD¬ however¬ shoulä 
+bå  useä onlù iæ filå sizinç informatioî ió noô requireä  bù 
+thå applicationó program.
+
+     DIRSLOAÄ  loadó  jusô thå LASÔ entrù oæ  eacè  filå  oî 
+disk®    Thió  entrù  containó  thå  necessarù  filå  sizinç 
+informatioî  whicè maù bå useä bù FSIZÅ tï computå thå  sizå 
+oæ thå loadeä file.
+
+
+     Iæ  thå  TPÁ ió filleä durinç DIRLOAÄ oò  DIRSLOAÄ  anä 
+therå arå stilì morå filå entrieó tï load¬  thå loaä wilì bå 
+halteä  anä aî erroò returî wilì bå madå tï thå caller®   Oî 
+return¬  iæ  A=° anä thå Zerï Flaç ió Seô (Z)¬  theî á  loaä 
+erroò occurred» otherwise¬ thå loaä waó OK.
+
+     Inputs:
+
+     HÌ  pointó  tï thå firsô bytå oæ thå  directorù  buffeò 
+area»  thió areá extendó froí afteò thå lasô buffeò useä  bù 
+thå  applicationó  prograí tï thå pagå beforå thå  CCP®   Iæ 
+alphabetizatioî ió tï bå done¬  thå valuå returneä iî HÌ  bù 
+DBUFFEÒ ió á correcô inpuô foò DIRLOAÄ oò DIRSLOAD.
+
+
+     Outputs:
+
+     BC is the number of files loaded into the buffer
+
+     A=° anä Zerï Flaç ió Seô (Z© iæ TPÁ Overflow»  A<>° anä 
+NÚ iæ loaä OK
+
+     Registers Affected:  BC
+
+     SYSLIB Routines Called:  None
+
+     Speciaì Erroò Conditionsº  Iæ TPÁ ió filleä anä loaä ió 
+incomplete¬ A=° anä Zerï Flaç ió Seô (Z© aó erroò indic
+
+:Directory Pack Routine -- DIRPACK and DIRNPACK
+
+     Routine Name:  DIRPACK
+
+     Function:
+
+     DIRPACË  restructureó  thå directorù buffeò tï  contaiî 
+onlù  thoså entrieó markeä bù DIRSEL®   Iî thió  way¬  thoså 
+entrieó  NOÔ markeä bù DIRSEÌ arå discardeä froí thå  buffeò 
+(actually¬ jusô takeî ouô oæ consideration¬ buô thå contentó 
+oæ  thå  buffeò  afteò  thå  lasô  selecteä  entrù  ió   noô 
+guaranteeä tï contaiî anythinç significant).
+
+     Thå  Mosô  Significanô  Biô oæ thå firsô  bytå  oæ  alì 
+entrieó remaininç iî thå directorù buffeò ió reseô tï ° aó á 
+sidå effecô oæ DIRPACK.
+
+
+     Inputs:
+
+     HÌ  pointó  tï  thå directorù buffeò  (usuallù  seô  bù 
+DBUFFER)
+     BÃ containó thå numbeò oæ fileó iî thå buffeò  (usuallù 
+seô bù DIRLOAÄ oò DIRSLOAD)
+
+
+     Outputs:
+
+     BÃ  containó  thå  numbeò oæ fileó (thoså  selecteä  bù 
+DIRSEL© remaininç iî thå directorù buffer
+
+     Registers Affected:  BC
+
+     SYSLIB Routines Called:  None
+
+     Special Error Conditions:  None
+     Routine Name:  DIRNPACK
+
+     Function:
+
+     DIRNPACË  restructureó thå directorù buffeò tï  contaiî 
+onlù thoså entrieó NOÔ markeä bù DIRSEL®  Iî thió way¬ thoså 
+entrieó  markeä  bù  DIRSEÌ arå discardeä  froí  thå  buffeò 
+(actually¬ jusô takeî ouô oæ consideration¬ buô thå contentó 
+oæ  thå  buffeò  afteò  thå  lasô  selecteä  entrù  ió   noô 
+guaranteeä tï contaiî anythinç significant).
+
+     Thå  Mosô  Significanô  Biô oæ thå firsô  bytå  oæ  alì 
+entrieó remaininç iî thå directorù buffeò ió reseô tï ° aó á 
+sidå effecô oæ DIRNPACK.
+
+     Thå  routinå  DIRSEÌ MUSÔ bå calleä beforå DIRNPACË  ió 
+useä sincå DIRNPACË useó aî internaì flaç seô bù DIRSEÌ (foò 
+SYSTEÍ anä R/Ï information).
+
+
+     Inputs:
+
+     HÌ  pointó  tï  thå directorù buffeò  (usuallù  seô  bù 
+DBUFFER)
+     BÃ containó thå numbeò oæ fileó iî thå buffeò  (usuallù 
+seô bù DIRLOAD or DIRSLOAD)
+
+
+     Outputs:
+
+     BÃ containó thå numbeò oæ fileó (thoså NOÔ selecteä  bù 
+DIRSEL© remaininç iî thå directorù buffer
+
+     Registers Affected:  BC
+
+     SYSLIB Routines Called:  DIRPACK
+
+     Special Error Conditions:  None
+
+:Generalized Quick Access Routines -- DIRQ and DIRQS
+     Routine Name: DIRQ and DIRQS
+
+     Functionº
+
+     Theså routineó loaä á disë directory¬  selectinç á  seô 
+oæ  fileó froí thå loadeä directorù specifieä bù thå  user'ó 
+ambiguouó  filå  namå anä á passeä flaç (whicè indicateó  iæ 
+Systeí  oò Non-systeí fileó arå selected© aó  iô  goes¬  anä 
+alphabetizå thå directorù bù filå namå anä typå oò filå typå 
+anä namå (dependinç oî anotheò passeä flag).
+
+     Iæ DIRQ ió used¬  thå processinç proceedó fasteò  sincå 
+onlù  thå firsô entrù oæ eacè filå ió loadeä intï thå memorù 
+buffer®   Filå  sizinç informatioî ió noô includeä  iî  thió 
+load¬ however.
+
+
+     Iæ  DIRQÓ ió used¬  thå processinç ió somewhaô  slower¬ 
+buô  thå lasô entrù foò eacè filå ió loadeä ratheò thaî  thå 
+first®   Filå sizinç informatioî ió containeä iî thió entry¬ 
+anä thió informatioî caî bå useä bù thå FSIZÅ routine.
+
+
+**** IMPORTANT NOTE ****
+
+     DIRÑ  anä DIRQÓ uså nï otheò SYSLIÂ routines¬  however¬ 
+sï iæ FSIZÅ oò DFREÅ arå tï bå lateò used¬  aî expliciô calì 
+tï  DPARAMÓ  ió  requireä beforå eitheò FSIZÅ  oò  DFREÅ  ió 
+called.
+
+
+
+     Inputs:
+
+     HÌ pointó tï á buffeò areá whicè extendó froí afteò thå 
+user'ó  codå anä buffeò areaó tï thå enä oæ thå TPÁ (usuallù 
+seô by a call to CODEND)
+
+     DÅ pointó tï thå firsô bytå oæ thå FCÂ useä tï  specifù 
+thå  ambiguouó  filå name»  onlù thå charó iî thå FÎ anä  FÔ 
+fieldó arå significant¬  sï thió neeä noô bå á truå FCÂ  anä 
+maù bå aó shorô aó 12 bytes
+
+     A is the selection flag, structured as follows:
+               Bit 7 - If Set, Select Non-System Files
+               Bit 6 - If Set, Select System Files
+               Bit 5 - If Set(1), Sort by File Type and Name
+                         If Reset(0), Sort by Name and Type
+               Bits 4-0 - Unused
+
+
+     Outputs:
+
+     HÌ  pointó tï thå firsô filå entrù iî thå buffer»  eacè 
+filå entrù ió 1¶ byteó long
+
+     BC contains the number of files selected
+
+     Á  containó aî erroò flag»  A=° anä Zerï Flaç  Seô  (Z© 
+indicateó  TPÁ  overflo÷  erroò  durinç  loaä  oæ  directorù 
+entries» A<>° anä NÚ indicateó loaä OK
+
+     Registers Affected:  HL, BC, PSW
+
+     SYSLIB Routines Called:  None
+
+     Speciaì  Erroò  Conditionsº   Iæ therå ió  aî  internaì 
+pointeò error¬  DIRQ/DIRQÓ onlù ringó thå belì anä abortó tï 
+the operating system.
+
+:Directory Entry Selection Routine -- DIRSEL
+     Routine Name: DIRSEL
+
+     Function:
+
+     DIRSEÌ  selectó  alì  entrieó iî thå  directorù  buffeò 
+whicè matcè thå ambiguouó filå namå specifieä iî thå FÎ  anä 
+FÔ  fieldó oæ thå FCÂ pointeä tï bù DÅ upoî entrù tï DIRSEL®  
+Á selectioî flaç ió alsï passeä tï DIRSEÌ iî thå Á register¬ 
+anä  thió flaç telló DIRSEÌ whetheò oò noô tï  includå  Non-
+Systeí  fileó anä Systeí fileó iî thå selectioî anä  whetheò 
+tï  selecô  fileó iî alì useò areaó oò iî á particulaò  useò 
+area.
+
+     DIRSEÌ identifieó thå selecteä filå entrieó bù  settinç 
+thå  Mosô Significanô Biô oæ thå firsô bytå oæ eacè oæ theså 
+entrieó  tï  ± iæ thå entrù ió selected®   DIRSEÌ  makeó  nï 
+otheò changeó tï thå filå entrieó iî thå directorù buffer.
+
+     Inputs:
+
+     HÌ  pointó  tï  thå directorù buffeò  (usuallù  seô  bù 
+DBUFFER)
+
+     DÅ pointó tï thå FCÂ containinç thå ambiguouó FÎ anä FÔ 
+fields» onlù thå firsô 1² byteó arå needed
+
+     BÃ  containó  thå  numbeò oæ  fileó  iî  thå  directorù 
+(usuallù seô bù DIRLOAÄ oò DIRSLOAD)
+
+     A contains a selection flag, organized as follows:
+               Bit 7 - Select Non-System Files
+               Bit 6 - Select System Files
+               Bit 5 - Select Files in All User Areas
+               Bits 4-0 - If Bit 5 is 0, indicates number of
+                    User Area to select files from
+
+
+     Outputs:  None (MSBs of selected entries are set)
+
+     Registers Affected:  None
+
+     SYSLIB Routines Called:  None
+
+     Special Error Conditions:  None
+
+:Disk Parameter Information Extraction Routine -- DPARAMS
+     Routine Name:  DPARAMS
+
+     Function:
+
+     Thió  routinå  extractó necessarù informatioî froí  thå 
+Disë Parameteò Blocë (DPB© anä storeó iô awaù iî somå globaì 
+bufferó  useä  bù  otheò  Disë  Directorù   Routines®    Thå 
+informatioî  extracteä  ió  noô oæ generaì  concerî  bù  thå 
+programmer®   ALÌ  THÅ PROGRAMMEÒ NEEDÓ TÏ KNO× IÓ THAÔ THIÓ 
+ROUTINÅ  MUSÔ BÅ CALLEÄ AÔ LEASÔ ONCÅ BEFORÅ THÅ DIRLOAÄ  OÒ 
+DIRSLOAÄ  ROUTINÅ  IÓ CALLED®   Iæ thå  DBUFFEÒ  routinå  ió 
+called¬ theî iô ió noô necessarù tï calì DPARAMÓ again.
+
+
+     Foò  thå  informatioî  oæ  thå  reader¬  thå  followinç 
+informatioî ió extracted:
+
+           BLKSHF <-- Block Shift Factor (1 Byte)
+           BLKMSK <-- Block Mask (1 Byte)
+           EXTENT <-- Extent Mask (1 Byte)
+           BLKMAX <-- Max Number of Blocks on Disk (2 Bytes)
+           DIRMAØ <-- Maø Numbeò oæ Diò Entrieó (² Bytes)
+
+
+     Thió routinå automaticallù adjustó foò versionó 1.´ anä 
+2.² oæ CP/Í anä ió compatablå witè botè versionó oæ CP/M.
+
+
+     Inputs:  None
+
+     Outputs:  None (Information Extracted into Buffers)
+
+     Registers Affected:  None
+
+     SYSLIB Routines Called:  None
+
+     Special Error Conditions:  None
+
+:File Size Computation Routine -- FSIZE
+     Routine Name: FSIZE
+
+     Function:
+
+     Thió  routinå  computeó thå sizå oæ á filå whoså  entrù 
+(whicè  MUSÔ  bå loadeä bù DIRSLOAD© ió pointeä  tï  bù  HL®  
+Thió  routinå  wilì  work¬  buô generallù  returî  incorrecô 
+results¬  iæ  thå  entrù pointeä tï waó  loadeä  bù  DIRLOAÄ 
+instead.
+
+     Thå routinå DPARAMÓ (oò DBUFFER¬  DIRF¬ oò DIRFS¬ sincå 
+theù  alsï calì DPARAMS© musô bå calleä beforå thió  routinå 
+ió  useä  sï thaô thå correcô disë parameteò informatioî  ió 
+loadeä foò it.
+
+
+     Inputsº   HÌ  pointó  tï  firsô bytå oæ filå  entrù  iî 
+vectoò  loadeä bù DIRSLOAÄ oò DIRFÓ (eacè filå entrù  ió  1¶ 
+byteó long)
+
+     Outputs:  DE contains the file size in K Bytes
+
+     Registers Affected:  DE
+
+     SYSLIB Routines Called:  None
+
+     Special Error Conditions:  None
+
+

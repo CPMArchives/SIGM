@@ -1,0 +1,34 @@
+(DEFEXP CAAR (X) (CAR (CAR X)) )
+
+(DEFEXP CADR (X) (CAR (CDR X)) )
+
+(DEFEXP MATCH (K M) (COND
+        ( (NULL K) (QUOTE NO) )
+        ( (NULL M) (QUOTE NO) )
+        ( (EQ (CAR K)(CAR M)) (CAR K) )
+        ( T (MATCH (CDR K) (CDR M) ) )   ))
+
+(DEFEXP MEMBER (ITEM S) (COND
+        ( (NULL S) ( ) )
+        ( (EQUAL ITEM (CAR S)) S)
+        ( T (MEMBER ITEM (CDR S)) ) ))
+
+(DEFEXP SQUASH (S) (COND
+        ( (NULL S) ( ) )
+        ( (ATOM S) (CONS S NIL) )
+        ( T (APPEND (SQUASH(CAR S))(SQUASH(CDR S))))  ))
+
+(DEFEXP REPLACE (ITEM1 ITEM2 S) (COND
+        ( (ATOM S) (COND ( (EQ ITEM2 S) ITEM1 ) 
+                         ( T (QUOTE(MATCH NOT POSSIBLE))) ))
+        ( (EQUAL ITEM2 (CAR S)) (CONS ITEM1 (CDR S)) )
+        ( T (CONS (CAR S) (REPLACE ITEM1 ITEM2 (CDR S))))  ))
+
+(DEFEXP MAPCAR (FN L) (COND
+        ( (NULL L) ( ) )
+        ( T (CONS (FN (CAR L)) (MAPCAR FN (CDR L))))  ))
+
+
+FIN
+
+

@@ -1,0 +1,174 @@
+/* eraq - conditional file erase program (with query)
+	The default fcb (from the command line) is used to search for
+	matching files and each match is printed on the console for 
+	delete confirmation.  A table is built of files to be deleted
+	so as to not lose the search position in the directory.
+	The maximum number of fcbs in the table is given by LIST_LNGTH
+	below, if this number is exceeded or free space exhausted the
+	table entries are deleted and the search restarted. */
+
+	eraq: procedure options(main);
+	%replace
+	   TRUE           by '1'b,
+	   FALSE          by '0'b,
+	   VERSION        by 'ERAQ 1.0',
+	   VERDATE        by '02/05/81',
+	   HELP_CMD       by 'HELP    ',
+	   EOF            by '^Z',
+	   INTRRPT        by '^C',
+	   LIST_LNGTH     by 512;
+
+	%include 'diomod.dcl';
+
+	declare
+	   version_date   char(8) external static init(VERDATE);
+	
+
+	declare
+	   1 default1      based(dfcb0()),
+	     3 space       fixed(7),
+	     3 command     char(8);
+
+	declare
+	   fcbp            pointer,
+	   1 dir_fcb       based(fcbp),
+	     3 drive       fixed(7),
+	     3 fname       char(8),
+	     3 ftype       char(3),
+	     3 fext        fixed(7);
+
+	declare
+	   1 del_fcb       based,
+	     3 dr          fixed(7),
+	     3 fn          char(8),
+	     3 ft          char(3),
+	     3 fe          fixed(7);
+
+	declare
+	   1 default_fcb   based(dfcb0()),
+	     3 spacer      bit(8),
+	     3 name        char(11);
+
+	declare
+	   delp(LIST_LNGTH) pointer,
+	   drv              bin fixed(7) based(dfcb0()),
+	   dir_mask(0:127)  bit(8) based(dbuff()),
+	   (i,n)            bin fixed static init(0);
+
+	on error(7) begin;
+	   n = n - 1;
+	   put skip list('List space exhausted');
+	   call delete_list;
+	      do i = 1 to n;
+	      free delp(i)->del_fcb;
+	      end;
+	   n = 0;
+	   go to redo;
+	   end;
+
+	put list(VERSION);
+	if command = HELP_CMD then do;
+	    put skip list('ERAQ - Erase with Query');
+	    put skip(2) list('Command line:');
+	    put list('		ERAQ <ambiguous filename>');
+	    put skip(2);
+	    call reboot();
+	    end;
+
+redo:
+	PUT SKIP;
+	if index(default_fcb.name,'?') = 0 then do;
+	   call delete(dfcb0());
+	   end;
+	else do;
+	   call setdma(dbuff());
+	   i = sear(dfcb0());
+	   if i > -1 then do;
+	         do while(i > -1);
+	         unspec(i) = unspec(i) & '00000011'b;  /* for CP/M 1.4 */
+	         fcbp = addr(dir_mask(i * 32));
+	         if drive = user() then do;
+	            drive = drv;
+	            if query() then
+	               call add_to_list;
+	            i = searn();
+	            end;
+	         end;
+	      call delete_list;
+	      end;
+	   else
+	      put skip list('File not found');
+	   end;
+	call reboot();
+
+/* user - procedure to get user number if version > = cp/m 2.0 */
+	user: procedure returns(fixed(7));
+
+	if vers() = '0000'b4 then
+	   return(0);
+	else
+	   return(getusr());
+	end user;
+
+/* add_to_list - add fcb to delete list */
+	add_to_list: procedure;
+
+	n = n + 1;
+	if n > LIST_LNGTH then
+	   signal error(7);
+	allocate del_fcb set(delp(n));
+	delp(n)->del_fcb = dir_fcb;
+	end add_to_list;
+
+
+/* delete_list - delete fcbs in delete list */
+	delete_list: procedure;
+
+	put skip list('Deleting: ');
+	   do i = 1 to n;
+	   put list('.');
+	   call delete(delp(i));
+	   call abort_test;
+	   end;
+	put skip list(n,'file(s) deleted');
+	end delete_list;
+
+/* query - query and delete if response is 'y'es */
+	query: procedure returns(bit(1));
+	declare
+	   c              char(1);
+
+	put skip;
+	if drive > 0 then
+	   put list(ascii(64+drive)||':');
+	put list(fname||'.'||ftype,'?');
+	c = rdcon();
+	if c = EOF then do;
+	   call delete_list;
+	   call reboot();
+	   end;
+	else if c = INTRRPT then
+	   call reboot();
+	else if translate(c,'Y','y') = 'Y' then
+	   return(TRUE);
+	else
+	   return(FALSE);
+	end query;
+
+/* abort_test - abort if console character */
+	abort_test: procedure;
+	dcl c char(1);
+
+                if break() then do;
+		   c = rdcon();
+		   put skip list('Abort (Y/N)? ');
+		   c = rdcon();
+		   if c = 'Y' | c ='y' then do;
+                       put skip list('Aborted');
+                       call reboot();
+		       end;	
+                   end;
+	end abort_test;
+        
+	end eraq;
+

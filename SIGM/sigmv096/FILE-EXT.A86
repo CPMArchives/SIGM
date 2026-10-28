@@ -1,0 +1,412 @@
+; 
+;                   FILE-EXT.A86 Version 1.0
+;
+;                           as of
+;
+;                     March 29, 1982  
+; 
+;
+;
+;  Originally  named  FILES.ASM,  and  from a  disassembly  by 
+; "J.A.P"  of January 23,1980...FILE-EXT.A86 will display  the 
+; selected disk's directory entries in the form:
+; 
+; User Pro Filename.Typ R/OSysRes exs1s2rc <---------Group--------->
+; ==================================================================
+;
+; Where:
+;
+; "User" is the User assignment for the file.
+; "Pro" is the "proprietary software" control bit.
+; "Filename" is the ASCII file name.
+; "Typ" is the ASCII file type.
+; "R/O" is the "read only" control bit
+; "Sys" is the "system directory" control bit
+; "Res" is the "reserved" (MP/M Ver.1.0) control bit
+; "ex" is the "file extension" byte
+; "s1" is a CP/M "internal function" byte.
+; "s2" is a CP/M "internal function" byte
+; "rc" is the "record count" byte.
+; "Group" is the "allocation vector table" for the file.
+; 
+;  The "hack-job" I did on this one was less than  ideal,  but 
+; none the less, it get's the job done...the display format is 
+; now  alot  cleaner,  and  it  does'nt  "warm  boot"  as  the 
+; FILES.ASM version did...
+; 
+;  The  program will display the disk directory of the  logged 
+; on  disk,  including all the Hexadecimal information on  the 
+; groups. 
+; 
+;  On  the  subject  of  "hack-job's"  of  software,  read  an 
+; interesting  article  in  Psychology  Today  magazine,  "The 
+; Hacker  Papers;  Computer  Addiction:  Reflection on  a  New 
+; Obsession"...August 1980 issue, pages 62-69.
+; 
+;                               Best regards,
+; 
+;                               Kelly Smith, CP/M-NET (tm)
+;                               805-527-9321 (Modem, 300 Baud)
+;                               805-527-0518 (Verbal)
+; 
+	ORG	0100H
+
+M	EQU	BYTE PTR 0[BX]
+
+BDOS	EQU	05H
+TBUFF	EQU	80H
+;
+CR	EQU	0DH			;ASCII CARRIAGE RETURN
+LF	EQU	0AH			;ASCII LINE FEED
+;
+;
+	JMP	BEGIN			;IF VERSION O.K., PRESS ON
+;
+;	SYSTEM SUBROUTINES
+;
+;	PRINT STRING FROM D&E REGS.
+;
+PRINT:	MOV	CL,9
+	INT	224
+	RET
+;
+;	DISPLAY A CHAR FROM (A)
+;
+DISPLAY:
+	PUSH	CX
+	PUSH	DX
+	PUSH	BX
+	MOV	CL,2
+	MOV	DL,AL
+	INT	224			;
+	POP	BX
+	POP	DX
+	POP	CX
+	RET
+;
+;	SEARCH FOR A FILE
+;
+SEARCH:				; 
+	PUSH	CX
+	PUSH	DX
+	PUSH	BX
+	MOV	CL,11H
+	MOV	DX,(Offset AFN)		;
+	INT	224			;
+	MOV	Byte Ptr RESULT,AL	;
+	POP	BX
+	POP	DX
+	POP	CX
+	RET
+L_2	EQU	$
+	DSEG
+	ORG	Offset L_2
+;
+;	AMBIGUOUS FILENAME.TYP
+;
+AFN	RS	0			; 
+	DB	'?????????????'
+RESULT	RS	0			; 
+	DB	0			;STORAGE FOR RESULT OF BDOS CALL
+L_3	EQU	$
+	CSEG
+	ORG	Offset L_3
+;
+;	FIND NEXT OCCURRENCE OF FILE
+;
+NEXTFILE:				; 
+	PUSH	CX
+	PUSH	DX
+	PUSH	BX
+	MOV	CL,12H
+	MOV	DX,(Offset AFN)		;
+	INT	224			;
+	MOV	Byte Ptr RESULT,AL	;
+	POP	BX
+	POP	DX
+	POP	CX
+	RET
+;
+;	GET INPUT FROM CONSOLE
+;
+CONIN:					; 
+	PUSH	CX
+	PUSH	DX
+	PUSH	BX
+	MOV	CL,1
+	INT	224			;
+	POP	BX
+	POP	DX
+	POP	CX
+	RET
+;
+;	CONVERT A BYTE IN (A) TO TWO PRINTED CHARACTERS
+;
+HEXASC:				; 
+	CMP	AL,0AH
+	JB	HEXA2			;
+	ADD	AL,'7'			;
+	CALL	DISPLAY			;
+	RET
+HEXA2:					; 
+	ADD	AL,'0'			;
+	CALL	DISPLAY			;
+	RET
+HEXCON:				; 
+	LAHF
+	XCHG	AL,AH
+	PUSH	AX
+	XCHG	AL,AH
+	RCR	AL,1
+	RCR	AL,1
+	RCR	AL,1
+	RCR	AL,1
+	AND	AL,0FH
+	CALL	HEXASC			;
+	POP	AX
+	XCHG	AL,AH
+	AND	AL,0FH
+	CALL	HEXASC			;
+	RET
+;
+;	NEWLINE
+;
+CRLF:					; 
+	MOV	AL,CR
+	CALL	DISPLAY			;
+	MOV	AL,LF
+	CALL	DISPLAY			;
+	RET
+;
+;	PRINT A SPACE
+;
+SPACE:					; 
+	MOV	AL,' '			;
+	CALL	DISPLAY			;
+	RET
+;
+;	MAIN WORK LOOP
+;
+;	THIS ROUTINE FINDS THE POSITION OF THE FILE
+;	INFORMATION IN THE DIRECTORY DMA, PRINTS THE
+;	DATA IF IT IS A CURRENT FILE, AND PROMPTS THE
+;	OPERATOR FOR INSTRUCTIONS IF THE FILENAME HAS
+;	ILLEGAL (NON-ASCII) DATA IN IT.
+;
+WORKLOOP:				; 
+	MOV	AL,Byte Ptr RESULT	;RESULT HOLDS POSITION OF-
+	MOV	CH,AL			; -THE DIRECTORY ENTRY IN THE DIR. DMA
+	AND	AL,3
+	RCL	AL,1
+	RCL	AL,1
+	RCL	AL,1
+	RCL	AL,1
+	RCL	AL,1
+	AND	AL,0E0H
+	MOV	DL,AL
+	MOV	DH,0
+	MOV	BX,TBUFF		;
+	ADD	BX,DX			;HL NOW POINTS AT THE FILE INFO
+	MOV	AL,M
+	CMP	AL,0E5H			;KILLED FILE?
+	JNZ	L_4	
+	RET				;YES
+L_4:
+	CALL	SPACE			;SPACE OVER FOR NEATNESS
+	MOV	AL,M
+	CALL	HEXCON			;PRINT USER NUMBER
+	CALL	SPACE
+	CALL	SPACE
+	CALL	SPACE
+	PUSH	BX
+	PUSH	BX
+	LAHF				;POINT TO FIRST CHARACTER IN FILE NAME
+	INC	BX
+	SAHF
+	MOV	AL,M			;ALLOW HIGH BIT SET FOR "PROPRIETARY SOFTWARE"
+	ROL	AL,1			;TEST "PROPRIETARY SOFTWARE" BIT
+	MOV	AL,'1'
+	JB	WORK01
+	MOV	AL,'0'
+WORK01:	CALL	DISPLAY
+	CALL	SPACE
+	CALL	SPACE
+	CALL	SPACE
+	MOV	CH,8
+WORK02:	MOV	AL,M			;PRINT FILE NAME
+	AND	AL,07FH			; STRIP-OFF PARITY BIT
+	CALL	DISPLAY			;
+	DEC	CH
+	LAHF
+	INC	BX
+	SAHF
+	JNZ	WORK02			;
+	MOV	CH,3
+	MOV	AL,'.'
+	CALL	DISPLAY			;PRINT NEXT THREE CHARACTERS AS ASCII
+WORK03:	MOV	AL,M
+	AND	AL,07FH			; STRIP-OFF PARITY BIT
+	CALL	DISPLAY			;
+	DEC	CH
+	LAHF
+	INC	BX
+	SAHF
+	JNZ	WORK03			;
+	CALL	DISPLAY
+	CALL	SPACE
+	MOV	CH,3
+	POP	BX			;NOW DISPLAY ATTRIBUTES
+	MOV	DX,9
+	LAHF
+	ADD	BX,DX
+	RCR	SI,1
+	SAHF
+	RCL	SI,1
+WORK03A:CALL	SPACE
+	MOV	AL,M
+	ROL	AL,1			;TEST $SYS AND $R/O, AND RESERVED
+	MOV	AL,'1'
+	JB	WORK03B
+	MOV	AL,'0'
+WORK03B:CALL	DISPLAY
+	CALL	SPACE
+	DEC	CH
+	LAHF
+	INC	BX
+	SAHF
+	JNZ	WORK03A
+	MOV	CH,20
+WORK04:	MOV	AL,CH
+	AND	AL,3
+	JNZ	L_5	
+	CALL	SPACE			;
+L_5:
+	MOV	AL,M
+	CALL	HEXCON			;
+	LAHF
+	INC	BX
+	SAHF
+	DEC	CH
+	JNZ	WORK04			;
+	CALL	CRLF			;
+	POP	BX
+	RET
+L_6	EQU	$
+	DSEG
+	ORG	Offset L_6
+;
+BADVER	DB	'Sorry, CP/M Version 2.X required$'
+MSG	DB	'User Pro  Filename.Typ R/OSysRes exs1s2rc'
+	DB	' <--------------Group-------------->'
+	DB	CR,LF
+	DB	'========================================='
+	DB	'===================================='
+	DB	CR,LF,'$'
+L_7	EQU	$
+	CSEG
+	ORG	Offset L_7
+;
+;
+;
+; ERROR MESSAGES
+;
+ERROR1:	MOV	DX,(Offset ERMSG1)	;SAY NO GO, AND BAIL OUT
+	CALL	PRINT
+	JMP	QUIT
+L_8	EQU	$
+	DSEG
+	ORG	Offset L_8
+;
+ERMSG1	DB	CR,LF,'Disk select should be " N:"$'
+L_9	EQU	$
+	CSEG
+	ORG	Offset L_9
+;
+ERROR2:	MOV	DX,(Offset ERMSG2)	;SAY NO GO, AND BAIL OUT
+	CALL	PRINT
+	JMP	QUIT
+L_10	EQU	$
+	DSEG
+	ORG	Offset L_10
+ERMSG2	DB	CR,LF,'Bad delimeter, should be ":"$'
+L_11	EQU	$
+	CSEG
+	ORG	Offset L_11
+;
+ERROR3:	MOV	DX,(Offset ERMSG3)	;SAY NO GO, AND BAIL OUT
+	CALL	PRINT
+	JMP	QUIT
+L_12	EQU	$
+	DSEG
+	ORG	Offset L_12
+ERMSG3	DB	CR,LF,'No drive specified$'
+L_13	EQU	$
+	CSEG
+	ORG	Offset L_13
+;
+ERROR4:	MOV	DX,(Offset ERMSG4)	;SAY NO GO, AND BAIL OUT
+	CALL	PRINT
+	JMPS	QUIT
+L_14	EQU	$
+	DSEG
+	ORG	Offset L_14
+ERMSG4	DB	CR,LF,'Only drives A to D allowed$'
+L_15	EQU	$
+	CSEG
+	ORG	Offset L_15
+;
+;	PROGRAM BEGINS HERE
+;
+BEGIN:
+;
+; CHECK FOR DRIVE SPECIFICATION
+;
+	MOV	AL,Byte Ptr .TBUFF	;GET LENGTH OF COMMAND PARAMETERS
+	CMP	AL,2			; IF <2, NO PARAMETERS
+	JB	MAIN01			; MUST BE PRESENT LOGGED-IN DRIVE
+	JNZ	L_16	
+	JMP	ERROR1			;EXACTLY 2, IS ERROR
+L_16:
+	MOV	BX,Word Ptr .TBUFF+2	;AT LEAST 3 THEN...
+	MOV	AL,BH			;NEXT CHARACTER SHOULD BE ":"
+	CMP	AL,':'
+	JZ	L_17	
+	JMP	ERROR2			;ONLY ALLOW DRIVE SET
+L_17:
+	MOV	AL,BL			;NEXT CHARACTER SHOULD BE DRIVE
+	CMP	AL,'A'			;AT A MINIMUM, "A"
+	JB	ERROR3
+	CMP	AL,'E'			;AT A MAXIMUM "D"
+	JNB	ERROR4
+	AND	AL,7			;STRIP BITS, FOR 0 TO 3
+	DEC	AL			;BACK OFF FOR 0 TO 3
+	MOV	DL,AL			;MAKE DISK NUMBER
+	MOV	DH,0
+	MOV	CL,14			;BDOS SELECT DISK FUNCTION
+	INT	224
+MAIN01:	MOV	DX,(Offset MSG)
+	CALL	PRINT
+	CALL	SEARCH			;
+MAIN02:				; 
+	MOV	AL,Byte Ptr RESULT	;
+	CMP	AL,0FFH
+	JZ	QUIT
+	CALL	WORKLOOP		;
+	CALL	NEXTFILE		;
+	JMPS	MAIN02			;
+QUIT:	MOV	CL,0	; WARM BOOT CP/M-86
+	INT	224
+;
+L_18	EQU	$
+	DSEG
+	ORG	Offset L_18
+;
+;	SOME STORAGE LOCATIONS
+;
+OLDSTK	RS	2			;STORAGE FOR "OLD" STACK POINTER
+	RS	32
+NEWSTK	EQU	(Offset $)		;STORAGE FOR "NEW" STACK
+;
+;
+	END
+

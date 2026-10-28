@@ -1,0 +1,45 @@
+* dupcheck.cmd 02/12/83 sml
+* check for duplicate records based on last name
+
+* since this program will use so many new variables
+* save the ones we have now, and restore them when done
+SAVE TO temp1
+RELEASE ALL
+
+* start at the beginning of the files
+GOTO TOP
+
+* set up loop to repeat until the whole files has been processed
+* or the user decides to quit
+STORE t TO more
+DO WHILE more .AND. (.not. eof)
+  
+  
+  * display something to read while searching for duplicates
+  ERASE
+  ?
+  ?
+  ?
+  ?
+  ?
+  ? '             Searching for duplicate records' 
+  
+  * save the current name, in upper case, for comparison
+  STORE !(lastname) TO oldlname
+  
+  * move to the next record to compare
+  SKIP
+  
+  * if match is found and eof has not been reached
+  * let user look at both and decide what to do
+  IF oldlname = !(lastname) .AND. (.not. eof)
+    DO duprec.acg
+  ENDIF oldlname = !(lastname) .AND. (.not. eof)
+  
+  * loop back and test again 
+ENDDO WHILE more .AND. (.not. eof) 
+
+*restore the original memory
+RESTORE FROM temp1
+
+

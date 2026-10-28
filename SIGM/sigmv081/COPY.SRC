@@ -1,0 +1,154 @@
+* Text copy procedure used by PRINT.
+* This procedure is required because Pascal does not process
+* a carriage return that is not followed by a line feed.
+* It appears to Pascal as follows:
+
+*	procedure copy (var infile : text;
+*			firstpage, lastpage : integer);
+*	   external;
+
+* CP/M entry address
+
+cpent	equ	5
+
+* CP/M function codes
+
+boot	equ	0		Exit to OS
+conout	equ	2		Console output
+print	equ	5		Printer output
+read	equ	20		Read a sector from a file
+setdma	equ	26		Set DMA for file transfer
+
+* Character codes
+
+lf	equ	10		Line feed
+ff	equ	12		Form feed
+cr	equ	13		Carriage return
+eof	equ	26		End of file
+
+* Useful constants
+
+currec	equ	32		Relative address of current record
+*				counter in FCB
+bufsize	equ	128		Input buffer size
+
+* Macro definitions
+
+cpm	macro	func		Invoke a CP/M function
+	mvi	c,func
+	call	cpent
+	endmac
+
+* Code for procedure COPY starts here
+
+	entry	copy
+
+copy	pop	h
+	shld	retadd		Store return address
+	pop	h
+	shld	last		Store number of last page
+	pop	h
+	shld	first		Store number of first page
+	pop	h
+	lxi	d,3
+	dad	d		Correct Pascal's address
+	shld	fcbaddr		Store address of FCB of input file
+	sixd	savex		Store IX (required by Pascal)
+
+	lxi	d,currec
+	dad	d		HL -> current record #
+	mvi	a,0
+	mov	m,a		Current record # := 0
+
+	lxi	d,buffer	Tell CP/M where the buffer is
+	cpm	setdma
+	lxi	ix,buffer+bufsize	Set i/p buffer pointer
+
+* Main copying loop
+
+nextch	call	getchar
+	cpi	eof
+	jz	endfile
+	cpi	ff
+	jz	endpage
+	sta	char
+	lda	prflag
+	ora	a
+	jrz	nextch		jif not printing yet
+	lda	char
+	mov	e,a
+princh	cpm	print		Print the character
+	jr	nextch		   and go for next
+
+* Process a form feed character
+
+endpage	lhld	page		Increment page #
+	inx	h
+	shld	page
+	lda	prflag
+	ora	a
+	jrnz	chekfin		jif already printing
+	lded	first		See if it is time to start printing
+	dsbc	d		HL := page # - first page
+	jm	nextch		Don't start yet
+	mvi	a,255
+	sta	prflag		Set printing flag
+prinff	mvi	e,ff
+	jr	princh		   and print the first form feed
+
+chekfin	lded	last		See if it is time to stop printing
+	dsbc	d		HL := page # - last page
+	jm	prinff		jif not finished yet
+	jrz	prinff		Print last page
+
+* Process end of file or end of printout
+
+endfile	mvi	e,cr
+	cpm	print
+	mvi	e,lf
+	cpm	print
+
+* Return to Pascal
+
+	lixd	savex		Restore IX
+	xra	a		A := 0
+	lhld	retadd
+	pchl
+
+* Read one character from the input file and return it in A
+
+getchar	push	ix
+	pop	h		HL := IX
+	lxi	d,buffer+bufsize
+	ora	a
+	dsbc	d		HL := IX - buffer - 128
+	jrnz	get1		jif inside buffer
+	lxi	h,fcbaddr	HL -> FCB of file
+	mov	e,m
+	inx	h
+	mov	d,m		DE := address of FCB
+	cpm	read		Read another record
+	ora	a
+	jrnz	get2		jif end of file
+	lxi	ix,buffer	Reset buffer pointer
+get1	mov	a,(ix)		Get a character
+	inx	ix		Increment character pointer
+	ret
+get2	mvi	a,eof		Return end-of-file character
+	ret
+
+* Data
+
+fcbaddr	dw	0		FCB address
+first	dw	0		First page to be printed
+last	dw	0		Last page to be printed
+page	dw	0		Current page number
+retadd	dw	0		Return link to Pascal
+savex	dw	0		Copy of IX for Pascal
+prflag	db	0		Printing flag
+char	db	0		Current character
+buffer	ds	bufsize		Input file buffer
+	
+
+
+

@@ -1,0 +1,900 @@
+
+;	=======================================================
+;
+;	Module composed of workspace operators for REC/MARKOV.
+;	These are specialized subroutines for manipulating a
+;	"workspace,"  which is an array together with five
+;	pointers.  The workspace will probably (but not always)
+;	hold text, subdivisions of which are marked off by the
+;	pointers.  They in turn are:
+;
+;	    p0  the beginning of both space and text
+;	    p1  the beginning of a specific segment
+;	    p2  the end of a specific segment
+;	    p3  the end of the entire text
+;	    p4  the physical end of the available space
+;
+;	The uniform method to designate intervals is that the
+;	beginning is inclusive, while the end is exclusive.  In
+;	that way a null interval can be represented through two
+;	equal pointers.  The workspace operators and predicates
+;	move data around and compare it with the help of these
+;	pointers.  Other operators move data between the work-
+;	space and the pushdown list.
+;
+;	The complete list of operators and predicates is:
+;
+;	    A	advance pointer 1 if possible
+;	    B	retract pointer 1 if possible
+;	    D	delete interval between p1 and p2
+;	    E	test equality between workspace and PDL
+;	    F	find a specified segment in the workspace
+;	    I	insert in the workspacve following p2
+;	    J	move p1 to beginning
+;	    M	test workspace for an interval
+;	    Q	move interval between p1 and p2 to PDL
+;	    U	find segment between delimiters
+;	    V	find segment including delimiters
+;	    Y   restore pointer 1 to previous value
+;	    Z	move p2 to end
+;	    a	extend interval from p1 if possible
+;	    b	extend interval to p2 if possiblle
+;	    e	extend limit of text if possible
+;	    f	fill if space is available
+;	    j	null interval at front of segment
+;	    q	place p1, p2-p1 on PDL
+;	    w	store (or possibly exchange) workspace header
+;	    z	null interval at end of segment
+;	    <	restrict workspace to segment p1-p2
+;	    >	open workspace to previous span
+;
+;	Version released during the Summer School, 1980.
+;
+;		  MKV80 - Copyright (C) 1980
+;		Universidad Autonoma de Puebla
+;		     All Rights Reserved
+;
+;	     [Harold V. McIntosh, 28 August 1980]
+;
+;	May 20, 1983 - M modified to test interval membership
+;	May 20, 1983 - h suppressed, ''w replaces it
+;	=======================================================
+
+
+;	Entry points to locations in RAM storage, which will be
+;	found in the module FXT.
+
+	ext	p0,p1,p2,p3,p4
+	ext	px,py,pz,pt
+
+;	Entry points to programs in the REC nucleus, which will
+;	be found in the module REC.
+
+	ext	ucl,cucl
+	ext	psiz,siz,narg,oarg
+	ext	sng,sing,skp,seq
+	ext	req,rer,rr2
+	ext	miuc,mduc
+
+;	Entry points in the module PDL.
+
+	ext	onel,twol,thrl,bcld
+	ext	putw
+
+;	=======================================================
+;	Further auxiliary subroutines pertinent to REC/MARKOV.
+;	=======================================================
+
+;	Move by increment until source limit.
+
+miul::	mov	a,c	;compare low bytes
+	cmp	e	;
+	jnz	mil	;disagreement so continue
+	mov	a,b	;compare high bytes
+	cmp	d	;
+	rz		;agreement so limit was reached
+mil:	ldax	d	;fetch source
+	mov	m,a	;store in destination
+	inx	d	;advance source pointer
+	inx	h	;advance destination pointer
+	jmp	miul	;repeat
+
+;	Move by decrement until source limit.
+
+mdul::	mov	a,c	;compare low bytes
+	cmp	e	;
+	jnz	mdl	;disagreement so continue
+	mov	a,b	;compare high bytes
+	cmp	d	;
+	rz		;limit was reached so we're through
+mdl:	dcx	d	;retract source pointer
+	dcx	h	;retract destination pointer
+	ldax	d	;fetch source byte
+	mov	m,a	;place in destination
+	jmp	mdul	;repeat
+
+;	Compare by increment until limit.  On entry, (BC) holds
+;	the limit, (DE) points to the principal chain, and (HL)
+;	points to the secondary chain.  On exit, (BC) remains
+;	unchanged, while (DE) and (HL) either point to where
+;	the discrepancy occurred if the chains were not equal,
+;	or the byte beyond the chains when they are equal.
+;	This latter is the REC convention to indicate segments.
+;	Return is to the calling sequence for a mismatch, or
+;	through a three byte skip when the chains match, which
+;	is also the REC convention.
+
+ciul:	mov	a,c	;get the low byte of the limit
+	cmp	e	;compare to low byte of principal
+	jnz	cil	;doesn't match so keep comparing
+	mov	a,b	;now get high byte of limit
+	cmp	d	;to compare to high byte of principal
+	jz	skp	;limit reached so leave pointers, skip
+cil:	ldax	d	;fetch byte in principal string
+	cmp	m	;compare to byte in secondary string
+	rnz		;no match: keep pointers, go right back
+	inx	d	;advance principal
+	inx	h	;advance secondary
+	jmp	ciul	;ready for the next go around
+
+;	Search by increment until limit.  On entry, (BC) holds
+;	a limit, (DE) the reference pointer which indicates the
+;	byte to be found and which does not change, while (HL)
+;	holds the variable pointer which steps along a chain.
+;	On exit, (BC) and (DE) are unchanged, leaving (HL) to
+;	point either to the matching byte [TRUE] or just beyond
+;	the searched chain [FALSE]. According to the REC norms,
+;	a TRUE result generates a skip, while a FALSE result
+;	produces an immediate return to the calling point.
+;	It would be more efficient to load the reference byte
+;	rather than point to it, but this form serves as an
+;	inner loop to a program which prefers to modify (DE).
+
+siul:	mov	a,c	;fetch low byte of limit
+	cmp	l	;compare to low byte of pointer
+	jnz	sil	;mismatch so limit can't have arrived
+	mov	a,b	;high byte of limit
+	cmp	h	;versus high byte of pointer
+	rz		;equal: byte wasn't found, false
+sil:	ldax	d	;load the reference byte
+	cmp	m	;compare to the string
+	jz	skp	;they match, leave the pointer, skip
+	inx	h	;go on to next byte
+	jmp	siul	;and repeat the cycle
+
+;	And by increment until count.  On entry, (BC) holds the
+;	count, (DE) points to the beginning of an array which
+;	will not be modified [source], and (HL)	points to the
+;	beginning of an array which will be modified by ANDing
+;	it bytewise with the first [destination].  On exit, the
+;	count will be zero while the pointers will lie at the
+;	ends of their ranges.
+
+aiuc::	mov	a,c	;fetch low byte of count
+	ora	b	;superimpose high byte
+	rz		;return when count reaches zero
+	ldax	d	;fetch unchanging participant
+	ana	m	;AND with the alterable participant
+	mov	m,a	;store the result of the encounter
+	inx	h	;increment ANDed pointer
+	inx	d	;increment ANDing pointer
+	dcx	b	;decrement count
+	jmp	aiuc	;repeat cycle
+
+;	Or by increment until count.
+
+oiuc::	mov	a,c	;fetch low byte of count
+	ora	b	;superimpose high byte
+	rz		;quit whenever count is zero
+	ldax	d	;fetch unchanging participant
+	ora	m	;OR with the alterable participant
+	mov	m,a	;store the result
+	inx	h	;increment pointer to ORed byte
+	inx	d	;increment pointer to ORing byte
+	dcx	b	;decrement counter
+	jmp	oiuc	;repeat cycle
+
+;	Exclusive Or by increment until count.
+
+xiuc::	mov	a,c	;fetch low byte of count
+	ora	b	;superimpose high byte
+	rz		;return when count reaches zero
+	ldax	d	;fetch unchanging participant
+	xra	m	;XOR with the alterable participant
+	mov	m,a	;store the result
+	inx	h	;increment pointer to XORed byte
+	inx	d	;increment pointer to XORing byte
+	dcx	b	;decrement counter
+	jmp	xiuc	;repeat cycle
+
+;	Complement by increment until count.
+
+kiuc::	mov	a,c	;fetch low byte of count
+	ora	b	;superimpose high byte
+	rz		;return when count reaches zero
+	mov	a,m	;fetch operand
+	cma		;complement it
+	mov	m,a	;return it to memory
+	inx	h	;advance pointer to operand
+	dcx	b	;diminish count
+	jmp	kiuc	;repeat cycle
+
+;	=======================================================
+;	Workspace subroutines for REC/MARKOV.
+;	=======================================================
+
+;	(a)  Generate a segment of length n forward from p1 if
+;	possible.  A predicate which, when FALSE, leaves the
+;	deficit by which the segment could not be formed on the
+;	pushdown list.
+
+lca::	call	bcld	;load n into (BC)
+	lhld	p3	;p3 is the limit for the segment
+	xchg		;place it in register (DE)
+	lhld	p1	;we want to advance pointer 1
+	call	sing	;skip if increment not greater
+	jmp	lcaf	;insufficient space, calculate deficit
+	shld	p2	;give p2 the incremented value
+	jmp	skp	;return with the value TRUE
+lcaf:	mov	a,l	;low byte of p1+n
+	sub	e	;low byte of limit
+	mov	c,a	;low byte of deficit
+	mov	a,h	;high byte of p1+n
+	sbb	d	;high byte of limit
+	mov	b,a	;high byte of deficit
+	push	b	;argument to putw must be on 8080 stack
+	call	putw	;record deficit
+	ret		;FALSE return: <jmp putw> won't do
+
+;	(A)  Pointer 1 advances by one byte, if possible.
+
+uca::	lhld	p1	;fetch pointer 1
+	inx	h	;advance by 1
+	xchg		;and set it aside
+	lhld	p3	;fetch limit
+	mov	a,l	;compare low bytes
+	sub	e	;
+	mov	a,h	;and then high bytes
+	sbb	d	;
+	rc		;forget it, return FALSE if past limit
+	lhld	p2	;fetch pointer 2
+	xchg		;and swap with pointer 1
+	shld	p1	;we can safely store pointer 1
+	call	sng	;but it still must not pass pointer 2
+	shld	p2	;if it did, pointer 2 = pointer 1
+	jmp	skp	;but in either event, return TRUE
+
+;	(b)  Generate a segment of length n backward from p2,
+;	if possible.
+
+lcb::	call	bcld	;load top argument into (BC), erase it
+	lhld	p2	;fetch pointer 2 into (HL)
+	mov	a,l	;calculate low order byte of difference
+	sub	c	;by subtracting the displacement
+	mov	e,a	;and storing it in register E
+	mov	a,h	;then high order byte of difference
+	sbb	b	;which must consider a possible borrow
+	mov	d,a	;and then goes into regisger D
+	lhld	p0	;now get the beginning of the workspace
+	mov	a,e	;get ready to compare to new p1
+	sub	l	;first the low byte
+	mov	a,d	;then the high byte
+	sbb	h	;likewise requiring the carry bit
+	rc		;low limit passed, abandon the attempt
+	xchg		;otherwise move new p1 into (HL)
+	shld	p1	;record it
+	jmp	skp	;generate TRUE return for the predicate
+
+;	(B)  Pointer 1 retreats by one byte, if possible.
+
+ucb::	lhld	p0	;fetch left limit
+	xchg		;place in registers (DE)
+	lhld	p1	;fetch pointer
+	dcx	h	;move backwards one byte
+	mov	a,l	;compare low bytes for limit
+	sub	e	;
+	mov	a,h	;compare high bytes for limit
+	sbb	d	;
+	rc		;return false as NOP if passed
+	shld	p1	;otherwise store new position
+	jmp	skp	;and return with value TRUE
+
+;	Delete text between pointers 1 and 2.
+
+ucd::	lhld	p2	;fetch end of deleted text
+	xchg		;put it in (DE)
+	lhld	p1	;fetch beginning of deleted text
+	call	req	;return if interval is null
+	shld	p2	;after deletion, interval is null
+	lhld	p3	;end of text
+	mov	c,l	;place in (BC) as source limit
+	mov	b,h	;
+	lhld	p1	;beginning of interval is destination
+	call	miul	;close interval by a block move
+	shld	p3	;destination limit is new end of text
+	ret
+
+;	(e)  Attempt to move pointer 3 forward. If insufficient
+;	space remains, this predicate is false and places the
+;	amount of remaining space [p4-p3] on the pushdown list.
+
+lce::	call	bcld	;load argument into BC, pop it
+	lhld	p4	;fetch p4, which is physical limit
+	xchg		;move it to register (DE)
+	lhld	p3	;end of text, which we want to extend
+	call	sing	;skip if increment not greater
+	jmp	lcef	;insufficient space: calculate balance
+	xchg		;put extended value of p3 aside
+	lhld	p3	;fetch the previous end of text
+	shld	p1	;make it the beginning of new interval
+	xchg		;now we are ready to use the new p3
+	shld	p2	;p1-p2 comprises the whole extension
+	shld	p3	;record the extended value of p3
+	jmp	skp	;TRUE return
+lcef:	lhld	p3	;to calculate p4-p3 we need p3
+	mov	a,e	;low byte of p4
+	sub	l	;low byte of p3
+	mov	c,a	;low byte of balance
+	mov	a,d	;high byte of p4
+	sbb	h	;high byte of p3
+	mov	b,a	;high byte of balance
+	push	b	;putw requires argument on 8080 stack
+	call	putw	;insert balance on pushdown list
+	ret		;TRUE return: <jmp putw> won't work
+
+;	(E) Check equality between the pushdown list and the
+;	workspace.  The top argument will be erased whatever
+;	the outcome of the test, a characteristic common to
+;	E, F, M, U, and V.  If there is a segment originating
+;	at p1 which is equal to the argument, p2 will move to
+;	delimit it, otherwise p2 remains unchanged.
+
+uce::	lhld	py	;end of top argument
+	mov	b,h	;move it to (BC)
+	mov	c,l	;
+	lhld	px	;beginning of top argument
+	xchg		;move it to (DE)
+	lhld	p1	;beginning of workspace segment in (HL)
+	call	ciul	;subroutine making actual comparison
+	jmp	ucl	;comparison failed, lift argument, quit
+	xchg		;end of matching segment to (DE)
+	lhld	p3	;end of valid text
+	mov	a,l	;see whether we've run over
+	sub	e	;compare low bytes
+	mov	a,h	;
+	sbb	d	;compare high bytes
+	jc	ucl	;failed by running over
+	xchg		;put end of segment in (HL)
+	shld	p2	;it becomes the new p2
+	jmp	cucl	;erase argument anyway, skip for TRUE
+
+;	(f)  Fill. <'XXX' f> will replace the text following
+;	pointer 1 by XXX if pointer 2 does not conflict,
+;	whereupon pointers 1 and 2 delimit what remains of
+;	the interval they originally encompassed, making this
+;	predicate TRUE.  Otherwise it will be FALSE, with the
+;	pointers unaltered.  When f fails, its argument is
+;	erased, otherwise the insert is conserved for repeated
+;	use in a block fill.  f is true even if its argument
+;	completely fills the available space, since it reports
+;	whether or not an insertion took place rather than
+;	whether any space remains.
+
+lcf::	call	psiz	;determine length of insert
+	lhld	p2	;load p2
+	xchg		;place it in register (DE)
+	lhld	p1	;now load p1
+	dad	b	;add the length of the insert to it
+	mov	a,e	;compare this to p2
+	sub	l	;begin with the low byte
+	mov	a,d	;then compare high bytes
+	sbb	h	;
+	jc	ucl	;insert too big, FALSE and erase insert
+	lhld	px	;get insert origin
+	xchg		;place it in register (DE)
+	lhld	p1	;load destination origin
+	call	miuc	;call block move until count
+	shld	p1	;final destination location is new p1
+	jmp	skp	;keep insert, generate TRUE return
+
+;	(F)  Search for text.  The text in the workspace is
+;	examined from left to right beginning at pointer 1 to
+;	see if the object of comparison on the pushdown list
+;	can be found.  If so, its replica in the workspace is
+;	bracketed by pointers 1 and 2, while the model itself
+;	is discarded.  Even if no replica is found, the model
+;	is still discarded, but then the value is FALSE and the
+;	pointers 1 and 2 retain their original sites.  Should
+;	several replicas exist, only the first is taken; if
+;	consecutive searches for the same object are made, the
+;	same replica will be found repeatedly.  This permits
+;	nested fragments of the same object to be found on
+;	successive searches, but requires an intermediate
+;	collapse of the interval p1-p2 in favor of p2 [say by
+;	using ''I] to scan multiple occurrences of the same
+;	object.
+
+ucf::	lhld	px	;beginning of object of search
+	xchg		;place pointer in (DE)
+	lhld	py	;end of object of search into (HL)
+	call	seq	;skip if equal
+	jmp	uf1	;continuation if object is non-null
+	lhld	p1	;beginning of null workspace interval
+	shld	p2	;record it as end of a null interval
+	jmp	cucl	;pop argument, TRUE return
+uf1:	lhld	p3	;fetch address of end of text
+	mov	b,h	;move it to (BC)
+	mov	c,l	;
+	lhld	p1	;load origin of search
+uf2:	call	siul	;search by increment until limit
+	jmp	ucl	;pop argument, FALSE return
+	shld	pt	;location where first characters match
+	push	b	;save limit
+	lhld	py	;limit of search object
+	mov	b,h	;place it in (BC)
+	mov	c,l	;
+	lhld	pt	;comparison origin
+	call	ciul	;compare by increment until limit
+	jmp	uf3	;comparison failed
+	pop	b	;end of text = search limit
+	mov	a,c	;compare to end of matching text
+	sub	l	;
+	mov	a,b	;
+	sbb	h	;
+	jc	ucl	;matching text ran over, so FALSE
+	shld	p2	;mark end of matching text
+	lhld	pt	;fetch beginning of matching text
+	shld	p1	;mark beginning of interval
+	jmp	cucl	;pop argument, TRUE return
+uf3:	pop	b	;recover search limit
+	lhld	px	;front of search object again
+	xchg		;(DE) points to comparison character
+	lhld	pt	;point of last first-character match
+	inx	h	;move past it
+	jmp	uf2	;continue the search
+
+;	(I)  Insert text following pointer 2; upon completion
+;	pointers bracket inserted material.  If the proposed
+;	insertion will not fit, an error indicator is generated
+;	and the attempt is abandoned.  An F followed by an I
+;	will insert material after the found text, but if an
+;	intermediate ''F is given, insertion will be made at
+;	the front of the text.  A ''I may be used to form null
+;	intervals, if they are desired at the end of a segment.
+
+uci::	lhld	p2	;point where insertion will be made
+	shld	p1	;pointer 1 to precede inserted material
+	push	h	;keep destination end for future use
+	lhld	px	;source origin
+	xchg		;place it in (DE)
+	lhld	py	;source end
+	call	siz	;calculate size of insert
+	xthl		;save source end
+	push	h	;but keep it under destination end
+	lhld	p4	;end pf physical space
+	xchg		;place it in register (DE)
+	lhld	p3	;end of present text
+	call	sing	;skip if increment not greater
+	call	rr2	;no space, pop PDL twice
+	xchg		;destination origin into (DE)
+	lhld	p3	;source origin into (HL)
+	xchg		;exchange these two registers
+	shld	p3	;destination origin is new end of text
+	pop	b	;destination limit into (BC)
+	call	mdul	;move by decrement until source limit
+	shld	p2	;source limit is end of insert
+	pop	b	;source limit into (BC)
+	lhld	px	;source origin into (HL)
+	xchg		;really ought to be in (DE)
+	lhld	p1	;new p1 is destination origin, in (HL)
+	call	miul	;move by increment until source limit
+	jmp	ucl	;I removes its argument upon completion
+
+;	(j)  Null interval at p1.  Equivalent to ''F or ''E.
+
+lcj::	lhld	p1	;pointer to beginning of interval
+	shld	p2	;make end of interval the same
+	ret
+
+;	(J) Back to beginning of workspace.  Extends whatsoever
+;	 interval back to the beginning of the entire text.
+
+ucj::	lhld	p0	;fetch pointer to beginning of text
+	shld	p1	;make it the beginning of the interval
+	ret
+
+;	(M)  Test whether a segment of the workspace lies in the
+;	interval defined by the pushdown list, inclusive of its
+;	endpoints. <a,b,M> is TRUE if there is a segment x starting
+;	at p1, such that a .LE. x .LE. b, FALSE otherwise. According
+;	to the common style of E, F, I, M, U, and V, the arguments
+;	are erased whatever might be the outcome of the comparison.  
+;	Likewise, FALSE results in no workspace pointer changes.
+;	<'',b,M> will trivially succeed with '' in the workspace,
+;	but <a,'',M> will be interpreted by ignoring b, then
+;	looking for a workspace segment equal to or greater than a.
+
+ucm::	lhld	px	;calculate <org, siz> for the
+	xchg		; top argument, b. They have
+	lhld	py	; to be saved so that a can be
+	mov	a,l	; tested first.
+	sub	e	;
+	mov	l,a	;
+	mov	a,h	;
+	sbb	d	;
+	mov	h,a	;
+	push	h	;HL = siz(b)
+	push	d	;DE = org(b)
+	call	UCL	;discard b
+	lhld	px	;pointer to argument a
+	xchg		;place it in DE
+	lhld	p1	;pointer to workspace under comparison
+	mov	b,h	;place it in BC as tentative p2
+	mov	c,l	;
+um1:	lhld	py	;pointer to end of argument a
+	call	seq	;skip if null argument - eg px=py
+	jmp	um7	;non-trivial comparison to be made
+
+;	We get to um2 if the comparison of argument a was
+;	completed successfully, so we have to go back and
+;	puck up argument b, then compare it too.
+
+um2:	mov	h,b	;move BC over to HL
+	mov	l,c	;
+	pop	d	;org(b)
+	pop	b	;siz(b)
+	mov	a,c	;siz = 0 means TRUE
+	ora	b	;
+	jz	um4	;record endpoint, quit
+	push	h	;save p2
+	lhld	p1	;run through interval again
+um3:	ldax	d	;
+	cmp	m	;
+	jc	um6	;wrong inequality, so FALSE
+	inx	h	;
+	inx	d	;
+	dcx	b	;
+	mov	a,c	;
+	ora	b	;
+	jnz	um3	;
+	pop	h	;recover the saved p2
+um4:	shld	p2	;it can be stored as end pointer
+	jmp	cucl	;TRUE return
+um5:	pop	h	;
+um6:	pop	h	;
+	jmp	UCL	;FALSE return
+um7:	lhld	p3	;fetch end of text
+	mov	a,h	;compare it with end of interval
+	cmp	b	;compare high bytes
+	jnz	um8	;whole addresses can't be equal
+	mov	a,l	;compare low bytes
+	cmp	c	;
+	jz	um5	;end of text without success - FALSE
+um8:	xchg		;pointer to argument back in (HL)
+	ldax	b	;fetch byte from workspace
+	inx	b	;advance pointer automatically
+	cmp	m	;compare to argument
+	jc	um5	;fail if argument is bigger
+	jnz	um2	;byte comparison decided, check limits
+	xchg		;bytes were equal, keep trying
+	inx	d	;advance argument pointer
+	jmp	um1	;repeat cycle
+
+;	(q)  Put p1, p2-p1 on PDL.
+
+lcq::	lhld	p1	;fetch p1
+	xchg		;put it aside
+	lhld	p2	;fetch p2
+	call	siz	;leaves (HL)-(DE) in (BC)
+	push	b	;stash p2-p1 on 8080's PDL
+	push	d	;and then p1 on top of that
+	call	putw	;one argument from top of 8080 stack
+	call	putw	;then another so we've got both
+	ret		;cannot use jmp putw for call putw, ret
+
+;	(Q)  Copy workspace to pushdown.  The interval between
+;	p1 and p2 is placed on the pushdown list.
+
+ucq::	lhld	p1	;fetch beginning of interval
+	xchg		;place in (DE)
+	lhld	p2	;fetch end of interval
+	call	siz	;length of interval into (BC)
+	call	narg	;close old arg, check space, def new
+	lhld	p1	;fetch source origin
+	xchg		;place it in register (DE)
+	lhld	px	;fetch destination origin for (HL)
+	call	miuc	;move by increment until count
+	shld	py	;destination end is argument end
+	ret
+
+;	(w)  Exchange workspace header. There are three forms of
+;	this operator which are available: the argument may be
+;	null, indicating that the header block goes onto the PDL,
+;	either a single block of ten bytes, or else the pair
+;	<org, siz>.  The distinction is implicit, according to
+;	whether the top argument has two bytes or ten bytes.
+;	The first case arises from a previous usage of h (or
+;	perhaps deliberate construction), while the second is
+;	more likely in the initial allocation of a workspace. A
+;	single block is erased after use, while it is supposed
+;	that a previous definition existed when the pair form
+;	is used.  In such a case, the old block of bytes would
+;	be substituted for the two arguments in case it needed
+;	to be restored later.  When a workspace is generated
+;	from its specifications, pointers 1 and 2 as well as 3
+;	are set to encompass the entire space. Many other forms
+;	can be arranged by a subsequent use of j, D, and so on.
+
+lcw::	call	psiz	;determine size of argument
+	mov	a,c	;check whether it is null
+	ora	b	;
+	jnz	lw2	;
+lw1:	lxi	b,10	;10 bytes required from PDL
+	call	narg	;verify space, new px into (HL)
+	lxi	d,p0	;source is pointer block
+	call	miuc	;block movement
+	shld	py	;final destination is arg end
+	ret
+lw2:	lxi	h,-10	;ten for comparison
+	dad	b	;subtract it from size
+	mov	a,l	;check low byte for zero
+	ora	h	;but the high byte can be mixed in
+	jnz	lww	;if length not 10, suppose it was 2
+	lhld	px	;fetch pointer to argument
+	xchg		;place in (DE) as source origin
+	lxi	h,p0	;p0 is destination origin
+	call	miuc	;move by increment until count (10)
+	jmp	ucl	;erase the argument
+lww:	lhld	px	;create p0...p4 from org,siz
+	call	twol	;trnsfr two args from PDL to 8080 stack
+	call	lw1	;place existing header on PDL
+	pop	h	;recover under arg, namely org
+	pop	b	;recover upper arg, namely siz
+	shld	p0	;origin of workspace
+	shld	p1	;segment at front of workspace
+	dad	b	;add size
+	shld	p2	;segment traverses whole workspace
+	shld	p3	;which defines end of occupied text
+	shld	p4	;as well as physical end
+	ret
+
+;	(U)  Search for interval, excluding limits.  The object
+;	of the search is defined by its delimiters: thus if the
+;	text YYY is to be found, it must be specified as the
+;	one sandwiched between XXX and ZZZ.  Then by executing
+;	'XXX'F followed by 'ZZZ'U pointers 1 and 2 will bracket
+;	YYY.  U erases its argument, whether TRUE or FALSE, by
+;	a custom common to all search or comparison predicates.
+;	By the same custom, pointers 1 and 2 remain unmoved if
+;	the search fails. ''U generates a null interval at the
+;	end of the last interval that was created.
+
+ucu::	lhld	p1	;fetch beginning of last interval
+	push	h	;save for possible restoration
+	lhld	p2	;fetch end of last interval
+	push	h	;save for future use
+	shld	p1	;search begins at end of p1-p2 interval
+	call	ucf	;use the search subroutine
+	jmp	uuu	;search failed
+	lhld	p1	;beginning of found interval
+	shld	p2	;is end of result interval
+	pop	h	;recover end of last interval
+	shld	p1	;it is beginning of U-interval
+	pop	h	;discard beginning of last interval
+	jmp	skp	;TRUE return from predicate
+uuu:	pop	h	;discard end of last interval-it's same
+	pop	h	;recover beginning of last interval
+	shld	p1	;restore it
+	ret		;FALSE return from predicate
+
+;	(V)  Search for interval, including limits.  This
+;	predicate is similar to U, the difference being that
+;	after a successful search, p1 and p2 bracket both the
+;	delimiters as well as the text which they define,
+;	whereas U merely brackets the intervening text.
+
+ucv::	lhld	p1	;pointer to beginning of last interval
+	push	h	;save it until later
+	lhld	p2	;pointer to end of last interval
+	shld	p1	;which is starting point for new search
+	call	ucf	;predicate F always makes the search
+	jmp	uvv	;search failed, F was FALSE
+	pop	h	;recover the old p1
+	shld	p1	;which still applies to V
+	jmp	skp	;TRUE return with old p1, new p2
+uvv:	pop	h	;recover original p1
+	shld	p1	;and restore it
+	ret		;FALSE return with p1 and p2 unchanged
+
+;	(Y)  Recover pointer 1.  There are those times when it
+;	is desirable to note a spot in the workspace, through
+;	qL for example, and then be able to return to it later
+;	on.  However intervening deletions, insertions or even
+;	workspace openings and closings may have rendered it
+;	invalid so a check is made to ensure the preservation
+;	of the relative order of p0, p1, and p3. We may only
+;	want to restore p1, or alternatively both p1 and p2.
+;	A distinction between the cases is made by the size of
+;	the argument: <qL ... Y> will give a two-byte argument
+;	and restore p1; while <q| ... Y> will yield a four-byte
+;	argument and restore both p1 and p2. Y is a predicate,
+;	in the first case always TRUE with p1 and p2 accomodated
+;	as best can be. In the second case, failure to accomodate
+;	makes Y FALSE.
+
+ucy::	call	psiz	;BC = py-px
+	lxi	h,-4	;
+	dad	b	;
+	mov	a,l	;
+	ora	h	;
+	jz	uyi	;siz=4 means p1,p2-p1 concatinated
+	lhld	px	;pointer to top argument
+	mov	e,m	;fetch low byte of pointer
+	inx	h	;pass to high byte
+	mov	d,m	;DE contains the old pointer
+	lhld	p0	;fetch beginning of text
+	mov	a,e	;check that p1 will be greater or equal
+	sub	l	;
+	mov	a,d	;
+	sbb	h	;
+	jc	uyy	;if less, store p0 instead
+	lhld	p3	;fetch end of text
+	mov	a,l	;check that p1 will be less or equal
+	sub	e	;
+	mov	a,h	;
+	sbb	d	;
+	jc	uyn	;if not, make p2 = p1 = p3
+	lhld	p2	;fetch p2
+	xchg		;p1 and p2 in more favorable registers
+	mov	a,e	;check that p1 less or equal to p2
+	sub	l	;
+	mov	a,d	;
+	sbb	h	;
+	jnc	uyy	;if so, just record p1
+uyn:	shld	p2	;record null interval between p1 and p2
+uyy:	shld	p1	;give p1 whatever value it'll have
+	jmp	cucl	;pop the argument
+
+;	A four-byte argument means we have concatinated <org, siz>
+;	and that both p1 and p2 are to be restored.
+
+uyi:	mov	c,m	;BC = old p1
+	inx	h	;
+	mov	b,m	;
+	inx	h	;
+	mov	a,c	;DE = old p2 [p1+(p2-p1)]
+	add	m	;
+	mov	e,a	;
+	inx	h	;
+	mov	a,b	;
+	adc	m	;
+	mov	d,a	;
+	lhld	p0	;check that p1 is not less than p0
+	mov	a,e	;
+	sub	l	;
+	mov	a,d	;
+	sbb	h	;
+	jc	ucl	;no - so take FALSE return
+	lhld	p3	;check that p1 is not beyond p3
+	mov	a,l	;
+	sub	e	;
+	mov	a,h	;
+	sbb	d	;
+	jc	ucl	;no - so take false return
+	mov	l,c	;all clear, so restore them
+	mov	h,b	;
+	shld	p1	;
+	xchg		;
+	shld	p2	;
+	jmp	cucl	;TRUE return
+
+;	(z)  Null interval at end of segment.  Equivalent to
+;	''I, ''U, or 0b.
+
+lcz::	lhld	p2	;pointer to end of interval
+	shld	p1	;make beginning of interval the same
+	ret
+
+;	(Z)  Move p2 to the end of the workspace, thereby
+;	extending whatever interval on to the end of the text.
+
+ucz::	lhld	p3	;pointer to the end of text
+	shld	p2	;make end of interval the same
+	ret
+
+;	(<)  Close down workspace. The workspace is confined to
+;	the interval between pointers 1 and 2.  The reason for
+;	this could be to restrict the editing operations to a
+;	smaller range, or it could be to have absolute freedom
+;	to work over some material before incorporating it into
+;	the main text.  As a practical matter, the text between
+;	pointers 2 and 3 is displaced to the far end of the
+;	workspace and the original values of pointers 0 and 4
+;	are recorded before setting up the new values of the
+;	pointers. Subsequent insertions and deletions then have
+;	much less material to move.
+
+bra::	lxi	b,4	;need 4 bytes from wkspace for pointers
+	lhld	p4	;fetch physical end of workspace
+	xchg		;place it in (DE)
+	lhld	p3	;fetch end of text
+	call	sing	;skip if increment not greater
+	call	rer	;error if no space left in workspace
+	lhld	p2	;pointer to source limit
+	mov	b,h	;move it to (BC)
+	mov	c,l	;
+	lhld	p3	;pointer to source origin
+	xchg		;move it to (DE)
+	lhld	p4	;pointer to destination origin
+	call	mdul	;move by decrement until limit
+	xchg		;place destination limit in (DE)
+	lhld	p4	;fetch old value of physical end
+	mov	a,h	;store at ws end in front of seg p2-p3
+	dcx	d	;
+	stax	d	;store high byte
+	mov	a,l	;
+	dcx	d	;
+	stax	d	;store low byte
+	lhld	p0	;fetch old value of physical beginning
+	mov	a,h	;store at ws end in front of old p4
+	dcx	d	;
+	stax	d	;store high byte
+	mov	a,l	;
+	dcx	d	;
+	stax	d	;store low byte
+	xchg		;put new physical end in (HL)
+	shld	p4	;record it in p4
+	mov	l,c	;move p2 into (HL)
+	mov	h,b	;
+	shld	p3	;store it as new end of text
+	lhld	p1	;move p1 into (HL)
+	shld	p0	;store it as new beginning of text
+	ret		;p2 remains at end of newlymade text
+
+;	(>)  Open up the workspace.  This is the complementary
+;	operator to <, which is used to return the scope of the
+;	pointers p0 and p4 to their original range.  The text
+;	forming the restricted workspace is incorporated in its
+;	entirity in place of the material originally lying in
+;	the interval p1-p2.  An error condition can arise from
+;	opening a workspace that was never closed, but it will
+;	be anulled if a zero address was placed at the pointer
+;	4 during initialization of the workspace.
+
+ket::	lhld	p4	;load the end of the universe
+	mov	e,m	;load the old p0 into (DE)
+	inx	h	;
+	mov	d,m	;
+	mov	a,e	;zero means opening too many times
+	ora	d	;
+	cz	rer	;so note error and abandon attempt
+	inx	h	;go on to fetch old p4 into (BC)
+	mov	c,m	;
+	inx	h	;
+	mov	b,m	;
+	inx	h	;pointer always one ahead
+	xchg		;place old p0 in (HL)
+	shld	p0	;to facilitate returning it to p0
+	lhld	p3	;end of txt is dest to replace old tail
+	call	miul	;move by increment until limit
+	shld	p3	;destination end is new end of text
+	xchg		;origin end is new end of universe
+	shld	p4	;which must be duly recorded
+	ret
+
+;	-------------------------------------------------------
+;
+;	Some of the block action subroutines which might be
+;	found as external references in the other modules:
+;
+;		miul	move by increment until source limit
+;		mdul	move by decrement until source limit
+;		aiuc	and by increment until count
+;		oiuc	or by increment until count
+;		xiuc	xor by increment until count
+;		kiuc	complement by increment until count
+;
+;	-------------------------------------------------------
+
+	end
+

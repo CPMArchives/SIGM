@@ -1,0 +1,839 @@
+; An article relating to the following code appeared in the Vol 1 No 5
+; issue of Micro/Systems Journal and is presented here with the per-
+; mission of the publisher. The code alone should be sufficient to
+; use the program.  However, back copies of the article are available from
+; Micro/Systems Journal, Box 1192, Mountainside, NJ 07092.
+\p\#13
+program Comm;
+{$V-,K-}
+
+{Program emulates a Hazeltine 1500 terminal and supports 2 way file}
+{transfers between the PC and a Serially-interfaced Computer}
+{ Host Computer   IBM-PC 256K ram}
+{ Target Computer IMSAI 8080 56K ram}
+
+{Program written By Hank Volpe (c) 1985}
+{Program is released to Public Domain use}
+
+
+label 1,2,3,4,selection,loop,menu;
+
+const
+ {The following addresses are Serial-Interface Dependent}
+ {They are based on the Port address of the IBM-PC of COM1}
+
+             base  : integer = $03f8; {base  port address}
+          control  : integer = $03fc; {modem control register port}
+          linestat : integer = $03fd; {line status register}
+         modemstat : integer =  $03fe; { modem status register}
+           rts_dtr :   byte = 3;   {dtr,rts on IBM-PC set on by this command}
+              dsr  :   byte = $20; {dsr mask for Modem status register}
+               dr  :   byte = 1;   {DR indicates character received by PC}
+          imsai_rdy:   byte = $30; {Mask to see if IMSAI has DSR & CTS lines on}
+             hold  :   byte = 1;   {turns off rts command & keeps up dtr}
+
+type
+{this type is used by MS-DOS function calls}
+    regpack = record
+          ax,bx,cx,dx,si,di,es,cs,ds,flags : integer;
+   end;
+   scr_buf  = string[80];
+
+var
+  x,y,z   : integer;
+  buffer  : byte;
+  ibmdata : char absolute buffer;
+  previous: char;
+  txrdy   : boolean;
+  rxrdy   : boolean;
+  change  : boolean;
+  transfer: boolean;
+  offline : boolean;
+  xpos,ypos : byte;
+     line : byte;
+    modem : byte;
+  recpack : regpack;
+  screen  : scr_buf;
+  answer  : char;
+  filename: string[14];
+  disk    : file of byte;
+  loadstring : string[25];
+{These window procedures can be deleted if your MS-DOS system does not}
+{support IBM window function calls. If you delete them, make sure all}
+{calls for these procedures are also deleted in the source code}
+
+procedure clrwindow;
+begin
+     window(1,1,80,25);
+end;
+
+procedure mainwindow;
+begin
+     clrwindow;
+     window(1,1,80,24);
+end;
+
+procedure ibmbanner;
+begin
+     window(1,6,80,14);
+end;
+
+procedure imsaibanner;
+begin
+     window(1,14,80,23);
+end;
+
+procedure ibmwindow;
+begin
+     window(1,7,80,13);
+end;
+
+procedure imsaiwindow;
+begin
+     window(1,15,80,23);
+end;
+
+
+procedure center (holder : scr_buf; ypos : integer);
+{This procedure centers a string on the screen}
+var
+   xpos  : integer;
+
+begin
+     xpos:=(80-length(holder)) div 2;
+     gotoxy(xpos,ypos);
+     write(holder);
+end;{center}
+
+procedure setup;
+{procedure programs pc modem for 9600 baud,1 start, 1 stop no parity}
+begin
+   with recpack do
+    begin
+       ax:=$00e7;{sets Async Port to 9600 baud, 1 start 8 bits 1 stop bit}
+       dx:=$0000;      end;
+      intr($14,recpack);
+end;{setup}
+
+procedure oncom; {used to print an on-line communications row}
+begin
+    clrwindow; {clear all windows}
+    window(1,25,80,25);
+    gotoxy(1,25);
+    textbackground(green);textcolor(white);
+    clreol;
+     if transfer = false then
+    write('ON LINE....CNTL-C IS CP/M BOOT  CNTRL-U/CNTR-F IS IBM BREAK ')
+    else
+    write('ON LINE...       Xfer.com Resident in IMSAI memory');
+
+end; {oncom}
+
+procedure online;
+{procedure determines if DSR & CTS are set indicating IMSAI is ready}
+{To receive data..Program loops till IMSAI is ready}
+
+begin
+  if offline in [true] then
+   begin
+     window(1,25,80,25); gotoxy(1,25);textbackground(red);
+     write('Slave System is not on line.... Check Slave status');
+   end;
+
+ while offline in [true] do
+  begin
+       port[control]:=rts_dtr;
+       modem:=port[modemstat];
+       modem:=modem and dsr;
+       textbackground(red);
+       clreol;
+       if modem <> dsr then offline := true else offline :=false;
+
+        setup;
+   end;
+     begin
+          oncom;
+          mainwindow;textbackground(black);lowvideo;clrscr;
+          gotoxy(1,1);
+     end;
+end;{online}
+
+procedure ibmkey;
+{procedure detects if key was struck on PC Console using direct i/o}
+{This is necessary in order to use control-c for the cp/m system}
+{txrdy returns false if no key was struck. Buffer returns with character}
+{code typed if key was struck and txrdy returns true}
+
+begin
+     txrdy:=false;     with recpack do
+      begin
+           ax:=$0600;
+           dx:=$00ff;
+      end;
+      msdos(recpack);
+      recpack.ax:=recpack.ax and $00ff;
+
+    if recpack.ax <>0 then
+     begin
+         recpack.ax:=recpack.ax and $00ff;
+         buffer:=recpack.ax;
+         txrdy:=true;
+    end;
+
+end;{ibmkey}
+
+
+procedure imsai;
+{this is a look only once routine}
+{get character from imsai 8251 usart and flag caller loop if ready}
+{If not ready, rxrdy returns false}
+
+begin
+     rxrdy:=false;
+
+     port[control]:=rts_dtr;{Tell IMSAI to send a character}
+     modem:=port[modemstat];
+     modem:=modem and dsr;
+
+    if modem = dsr then
+     begin
+          port[control]:=hold; {inhibits IMSAI from tranmitting any more}
+          line:=port[linestat]; {till this character is processed}
+          line:=line and dr;
+             if line = dr then
+             begin
+                  buffer:=port[base];
+                  rxrdy:=true;
+             end;
+     end;
+end;{imsai}
+
+
+procedure getchar;
+{routine loops waiting until IMSAI is ready to transmit a character}
+
+begin
+     rxrdy:=false;
+     while rxrdy=false do
+       begin
+            imsai;
+       end;
+end;{getchar}
+
+procedure receive;
+{procedure contains only terminal dependent data in system}
+{Control codes for Hazeltine 1500 terminal are implemented in }
+{routine Controlcode which is called only if character was transmitted}
+{by IMSAI that was >=125 (126 is leadin code for control routines}
+
+procedure controlcode;{local procedure for receive only}
+{process hazeltine 1500 screen codes}
+ begin
+      getchar;
+      {first see if it is a cursor position routine}
+      if buffer = 17 then
+       begin
+           getchar;
+           xpos:=buffer;
+           if xpos < 1 then xpos:=1;
+              getchar;
+              ypos:=buffer; ypos:=ypos+1;
+              gotoxy(xpos,ypos);
+        end
+        else { if not,check for other control conditions}
+         begin
+              case buffer of
+              28: clrscr;
+              31: textcolor(yellow);
+              25: lowvideo;
+              15: clreol;
+
+              12: begin
+                      xpos:=wherex ; ypos:=(wherey)-1;
+                      gotoxy(xpos,ypos);
+                   end;
+
+              11:  begin
+                       xpos:=wherex;ypos:=(wherey+1);
+                       gotoxy(xpos,ypos);
+                   end;
+              16:  begin
+                       xpos:=(wherex+1);ypos:=wherey;
+                       gotoxy(xpos,ypos);
+                   end;
+              end;
+          end;
+     end;{controlcode local procedure}
+
+
+begin {receive}
+ repeat
+     imsai;
+       if rxrdy=true then
+         begin
+             if (buffer >125) then  controlcode
+             else
+              write(char(buffer));          end;
+
+   until rxrdy in [false];
+end;{receive}
+
+
+procedure send;
+{procedure takes character and sends it to IMSAI}
+
+begin
+
+     port[control]:=hold;
+     modem:=port[modemstat];
+     modem:=modem and imsai_rdy;
+
+     if modem = imsai_rdy then
+      begin
+          port[control]:=hold;
+          line:=port[linestat];
+          line:=line and dsr;
+          if line = dsr then port[base]:= buffer;
+      end;
+
+end;{send}
+
+
+procedure loadisp;
+{procedure loads and communicates with isp module on imsai}
+begin
+
+  loadstring:=loadstring+char(13);
+
+  imsai;
+    if rxrdy in [true] then receive;
+  for x:=1 to length(loadstring) do
+   begin
+        ibmdata:=loadstring[x];
+        send; delay(10);{ delay so UART can turn around line}
+        receive;
+   end;
+end;{loadisp}
+
+
+{Main program loop starts here}
+begin
+     clrscr;
+     transfer:=false;
+     offline:=true;
+     setup;
+     online;
+     buffer:=$07;
+
+menu:
+     mainwindow;
+     textbackground(black);     clrscr;
+     online;
+     textcolor(lightblue);
+     screen:='I N T E R S Y S T E M    P R O C E S S O R    P R O G R A M';
+     center(screen,1);
+     screen:='Version 1.1 ..from Hank Volpe Computers (c) 1985';
+     lowvideo;
+     center(screen,2);
+     screen:='Select from the following menu';
+     center(screen,7);
+     gotoxy(20,9);
+     write(' 1) Emulate Hazeltine 1500 Terminal');
+     gotoxy(20,11);
+     write(' 2) Transfer ASCII files from IMSAI to IBM-PC');
+     gotoxy(20,13);
+     write(' 3) Transfer ASCII files from IBM-PC to IMSAI');
+     gotoxy(20,15);
+     write(' 4) Transfer CP/M files to the IBM-PC via TYPE Command');
+     gotoxy(20,17);
+     write(' 5) End Program Loop');
+
+selection:
+     gotoxy(1,19);clreol;
+     write('Enter Selection : ');
+     read(answer);
+      case answer of
+       '1': begin
+                clrscr;
+                goto 1;
+            end;
+       '2': goto 2;
+       '3': goto 3;
+       '4': goto 4;
+       '5': halt;
+       end;
+   goto selection;
+
+
+{Main program loop for Hazeltine 1500 emulation}
+1:
+   buffer:=$03;send;
+   delay(10);
+   receive;
+   transfer:=false;
+   online;
+
+loop:
+  receive;
+  ibmkey;
+   if txrdy = true then
+    begin
+      if ibmdata=char(21) then
+{procedure breaks link between computers but does not stop}
+{any processing being done by slave unit}
+{break codes can be modified to any desired by user} begin
+     repeat
+         ibmkey;
+        until txrdy=true;
+
+       if ibmdata = char(6) then
+        begin
+           clreol;
+            xpos:=wherex; ypos:=wherey;
+            window(1,25,80,25);
+            gotoxy(1,25);
+            textbackground(red);textcolor(yellow);
+            clreol;
+            write('Break code received...Do you wish to break link ? : ');
+
+            read(ibmdata);
+            ibmdata:=upcase(ibmdata);
+              if ibmdata = 'Y' then goto menu else
+                 begin
+                    oncom;
+                    mainwindow;textbackground(black);
+                    lowvideo;
+                    gotoxy(xpos,ypos);
+                 end;
+         end;
+       end
+
+      else
+      send;
+   end;
+  goto loop;
+
+
+{routine transfers files from IMSAI to PC.  IMSAI must have}
+{disk containing INTERSYSTEM software in default drive. If disk}
+{change is necessary, program will prompt user when necessary}
+
+{When Xfer.com program is loaded on IMSAI, it will signal}
+{PC with an "#".  PC will send filename to IMSAI
+{If file is found, IMSAI will transmit "@" }
+{indicating it is ready to send file data. When finished, IMSAI will}
+{transmit  1AH (Cntl-Z) saying file has been transferred}
+
+2:
+  clrscr;
+  gotoxy(1,1);textcolor(yellow);
+  writeln('INTERSYSTEM XFER PROGRAM');
+  writeln('IMSAI to IBM-PC');
+  writeln('Version 1.0');
+  writeln('Hank Volpe Computers (c) 1985');
+  lowvideo;
+
+
+{set up the display windows}
+ ibmbanner;textbackground(red);
+  clrscr;textcolor(yellow);
+  textbackground(red);
+  writeln('อออออออออออ I B M - P C    F I L E    S T A T U S  อออออออออ');
+  ibmwindow;
+  gotoxy(1,1);
+  write('Enter the name of the file : ');
+  readln(filename);
+  writeln;
+  write('Is this file on another disk ? : '); readln (answer);
+  answer:=upcase(answer);
+   if answer = 'Y' then change:=true else change:=false;
+
+  imsaibanner;
+  gotoxy(1,1);
+  writeln('อออออออออออ I M S A I   F I L E   S T A T U S  อออออออออออออ');
+
+ibmwindow; clrscr;
+{load imsai isp}
+loadstring:='xfer';
+loadisp;
+
+
+{PC now waits for '#' to indicate program is running or ? to indicate}
+ { program was not found by CP/M}
+
+imsaiwindow;
+gotoxy(1,1);
+if transfer in [false] then
+begin
+     writeln('Waiting for program to load');
+       repeat
+             imsai;
+       until ibmdata in ['#','?'];
+
+      if ibmdata = '?' then
+        begin
+            writeln('Program not found');
+           goto  menu;
+       end;
+end;
+
+{Next, branch into File transfer program on IMSAI}
+{If #, then program in loop, if > then back in CP/M}
+  delay(10);
+  transfer :=true;
+  oncom;
+  imsaiwindow;
+  clrscr;
+
+  loadstring:='W'; loadisp; {Send command to send file}
+  repeat
+        imsai;
+        write(char(buffer));
+  until ibmdata in ['#','>'];
+   if ibmdata = '>' then
+    begin
+         writeln('Program loop terminated');
+         goto menu;
+    end;
+
+  writeln;
+   if change in [true] then
+    begin
+         x:=wherex ; y:=wherey;
+         imsaiwindow;
+         gotoxy(1,2);
+         write('Change disk on IMSAI and press return to continue');
+         readln(answer);
+         imsaiwindow;
+         gotoxy(x,y);
+    end;
+
+
+{Next send filename and wait for acknowledge (@) or no file (!)}
+delay(10);
+loadstring:=filename;loadisp;
+
+delay(10);
+repeat
+      imsai;
+until ibmdata in ['@','!'];
+
+
+if ibmdata = '!' then
+ begin
+      writeln('File not found');
+      goto menu;
+ end;
+writeln;
+
+{Now Create file on PC and signal IMSAI when ready to transfer}
+assign(disk,filename);
+rewrite(disk);
+writeln('Transferring file');
+ibmwindow;clrscr;
+gotoxy(1,1);
+
+delay(10);
+loadstring:='@'; loadisp; {send ibm ready}
+delay(10);
+ repeat
+       getchar;
+       write(ibmdata);
+       write(disk,buffer);
+
+ until buffer = $1a;
+ close(disk);
+ writeln('File Has been transferred');
+repeat
+      imsai;
+      until rxrdy in [false];
+      goto menu;
+
+3:
+{procedure transfers a file from IBM-PC to IMSAI in similar}
+{manner as documented above.}
+
+  clrscr;
+  gotoxy(1,1);textcolor(yellow);
+  writeln('INTERSYSTEM XFER PROGRAM');
+  writeln('IBM-PC to IMSAI');
+  writeln('Version 1.0');
+  writeln('Hank Volpe Computers (c) 1985');
+  lowvideo;
+
+
+{set up the display windows}
+
+ ibmbanner;textbackground(black);
+  clrscr;textcolor(yellow);
+  writeln('ออออออออออ I B M - P C    F I L E    S T A T U S  ออออออออออออ');
+
+  imsaibanner;
+  gotoxy(1,1);
+  writeln('ออออออออออ I M S A I      F I L E    S T A T U S  ออออออออออออ');
+  imsaiwindow;textbackground(red);clrscr;
+  gotoxy(1,1);
+  write('Enter the name of the file : ');
+  readln(filename);
+  writeln;
+
+{load imsai isp}
+ibmwindow;
+clrscr;
+loadstring:='xfer';
+loadisp;
+imsaiwindow;
+clrscr;
+
+
+{ PC now waits for '#' to indicate program is running or ? to indicate}
+ { program was not found by CP/M}
+
+if transfer in [false] then
+begin
+     writeln('Waiting for program to load');
+       repeat
+             imsai;
+       until ibmdata in ['#','?'];
+
+      if ibmdata = '?' then
+        begin            writeln('Program not found');
+           goto  menu;
+       end;
+end;
+
+{Next, branch into File transfer program on IMSAI}
+{If #, then program in loop, if > then back in CP/M}
+  delay(10);
+  transfer :=true;
+  oncom;
+  imsaiwindow;
+  clrscr;
+
+  loadstring:='R'; loadisp; {Send command to send file}
+  repeat
+        imsai;
+        write(char(buffer));
+  until ibmdata in ['#','>'];
+
+   if ibmdata = '>' then
+    begin
+         writeln('Program loop terminated');
+         goto menu;
+    end;
+
+  writeln;
+
+
+{Next send filename and wait for acknowledge (@) or no file (!)}
+delay(10);
+loadstring:=filename;loadisp;
+
+delay(10);
+repeat
+      imsai;
+until ibmdata in ['@','!'];
+
+
+if ibmdata = '!' then
+ begin
+      writeln('ERROR');
+      goto menu;
+ end;
+writeln;
+
+{Now Create the file on the IMSAI }
+assign(disk,filename);
+{$I-}
+reset(disk);{$I+}
+ if ioresult <> 0 then
+   begin
+        writeln('File does not exist on PC Default drive');
+        delay(50);
+        goto menu;
+   end;
+ibmwindow;clrscr;
+writeln('Transferring file');
+imsaiwindow;clrscr;
+gotoxy(1,1);
+
+delay(10);
+   while eof(disk) in [false] do
+    begin
+         read(disk,buffer);
+         send;
+         getchar;
+         write(ibmdata);
+    end;
+
+    buffer:=$1a;
+    send;
+    delay(10);
+    imsai;
+
+ close(disk);
+ writeln('File Has been transferred');
+
+repeat
+      imsai;
+      until rxrdy in [false];
+      goto menu;
+
+
+{ routine transfers files from IMSAI to PC using type cp/m}
+{command. This frees user from having to have Xfer.com present on}
+{S-100 system computer. This is for one-way transfers only !!!}
+
+4:
+  clrscr;
+  gotoxy(1,1);textcolor(yellow);
+  writeln('INTERSYSTEM XFER PROGRAM');
+  writeln('IMSAI to IBM-PC');
+  writeln('Version 1.0');
+  writeln('Hank Volpe Computers (c) 1985');
+  lowvideo;
+
+
+{set up the display windows}
+
+ ibmbanner;textbackground(red);
+  clrscr;textcolor(yellow);
+  textbackground(red);
+  writeln('อออออออออออ I B M - P C    F I L E    S T A T U S  ออออออออออ');
+  ibmwindow;
+  gotoxy(1,1);
+  write('Enter the name of the file : ');
+  readln(filename);
+  writeln;
+  imsaibanner;  gotoxy(1,1);
+  writeln('อออออออออออ I M S A I      F I L E    S T A T U S  ออออออออออ');
+
+ibmwindow; clrscr;
+{load imsai isp}
+loadstring:='type '+filename;
+loadisp;
+
+
+{PC now waits for '#' to indicate program is running or  ? to indicate}
+ {program was not found by CP/M}
+
+imsaiwindow;
+gotoxy(1,1);
+
+{Now Create file on PC and signal IMSAI when ready to transfer}
+assign(disk,filename);
+rewrite(disk);textbackground(green);clrscr;
+writeln('Transferring file');
+ibmwindow;textbackground(green);clrscr;
+gotoxy(1,1);
+
+delay(10);
+ repeat
+       getchar;
+       loadstring:=previous+ibmdata;
+       write(ibmdata);
+       write(disk,buffer);
+       previous:=ibmdata;
+
+ until loadstring = 'A>';
+ close(disk);
+ writeln('File Has been transferred');
+
+repeat
+      imsai;
+      until rxrdy in [false];
+      goto menu;
+
+ end.
+
+
+*************************  LISTING 2 ******************************
+
+program intersystem_processor;
+{program must be on default drive of S-100 system when}
+{Master MS-DOS computer enters file transfer mode}
+
+{allows 2 way transfer of ASCII files between systems}
+{Program written by Hank Volpe Computers (c) 1085 and released to}
+{Public domain use}
+
+label 1;
+
+var   x,y,z   : integer;
+   disk    : text;
+   buffer  : char;
+   ibmbyte : byte absolute buffer;
+   command : char;
+   more    : boolean;
+   answer  : char;
+   filename: string[12];
+
+procedure sendfile;
+begin
+     write('#'); {signal PC that sendfile is active}
+     read(filename);
+     bdos(13);
+     {$I-} assign(disk,filename);
+           reset(disk);{$I+}
+       if ioresult <> 0 then
+         begin
+              write('!');
+              halt;
+         end;
+      write('@');
+      repeat
+            read(command);
+      until command = '@';
+      delay(10);
+      while eof(disk) in [false] do
+       begin
+           read(disk,buffer);
+           write(buffer);
+       end;
+       close(disk);
+       write(char($1a));
+  end;
+
+procedure getfile;
+begin
+     write('#'); {signal PC that sendfile is active}
+     read(filename);
+     bdos(13);
+     {$I-} assign(disk,filename);
+           rewrite(disk);{$I+}
+       if ioresult <> 0 then
+         begin
+              write('!');
+              halt;
+         end;
+      write('@');
+      repeat
+            read(kbd,buffer);
+            write(buffer);
+            write(disk,buffer);
+      until ibmbyte = $1a;
+       close(disk);
+end;{getfile}
+
+{Main menu starts here...note screen printing is not necessary except}
+{when debugging in Emulator mode, however # prompt must be}
+{printed if all other messages are not}
+
+begin
+     clrscr;
+     writeln('INTERSYSTEM PROCESSOR');
+     writeln('Version 1.0 Imsai/IBM-PC');
+     writeln('Hank Volpe Computers (C) 1985');
+     writeln; writeln;
+
+1:
+    write('Enter Command #');{all above except write ('#') can be deleted}
+     read(command); command :=upcase(command);
+      case command of
+       'W':sendfile;
+       'R':getfile;
+      end;
+     goto 1;
+
+end.
+

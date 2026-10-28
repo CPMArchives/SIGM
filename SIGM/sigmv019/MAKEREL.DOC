@@ -1,0 +1,344 @@
+---------------------------------------------------------
+-							-
+-   Steps to make your Pascal procedure/function into a	-
+-   .REL file so it may be included into a library of	-
+-   commonly used routines.				-
+---------------------------------------------------------
+
+
+1.	Write your function/procedure and test it in a complete
+	program.  When you are happy with your function then
+	write up a dummy Pascal program. It will look something
+	like this:
+
+	Program dummy;
+	type	new : (xxx,yyy);
+	var	str8 : STRING 8;
+
+	(*$I+	[include Pascal prgm stmts]	*)
+	FUNCTION DOESITALL;
+	begin
+	...main body of function
+	end(*---of does it all---*);
+
+	(*---dummy program---*)
+	begin end.
+
+
+2.	-Notice the compiler option -   $I+
+	 This is a must so you can see where the assembly source
+	 program starts and ends.
+	-You may include types and variables in the program heading
+	 to get your function/procedure to compile but notice that
+	 there is NO main program.
+
+3	Compile the program with the Pascal compiler producing
+	DOESITALL.SRC.
+
+4.	Edit DOESITALL.SRC to include the following:
+
+	a. The name of the routine:
+		NAME DOESITALL
+
+	b. The entry name for the linker:
+		ENTRY DOESITALL
+
+	c. The entry name as a label for the assembler:
+		DOESITALL:
+
+
+5.	All together it will look somwthing like this:
+
+
+	;FUNCTION DOESITALL;		<---all Pascal source statements
+	;				    will be included as comments
+	;				    in your source program.
+		NAME DOESITALL		<---These are the 3 statements
+		ENTRY DOESITALL		    that you added
+	DOESITALL:
+		ENTR	D,2,0		<---this is the first line of the
+					    source program
+		---the rest of the source program
+		   continues here---
+
+	;end(*---of does it all---*);	<---this is the last line of
+		EXIT	D,0		    your function and this is
+					    the last line of the assembly
+					    source.
+	--------------------------------
+	Anything after the EXIT statement is to be deleted.
+
+
+6.	You are now ready to assemble the source program and make
+	a .REL file.
+	<first rename EMAIN.SRC to MACRO.SRC and in addition
+	 edit EMAIN.SRC and remove the NAME statement from it.
+	 We only want the names that we give to our routines
+	 in the source code>
+
+	ASMBL MACRO,DOESITALL/REL
+
+	-This will produce DOESITALL.REL
+
+7.	DOESITALL.REL is now ready to be included in your library:
+
+	LINK /L:B:ALLOFIT B:DOESITALL /E
+
+	-This will create a library named ALLOFIT.REL
+
+8.	We now write a program that calls DOESITALL.
+	It is not until link time that there is any need for the
+	routine at all.
+
+	LINK /N:B:SUPERWRITER B:SUPERWRITER A:ALLOFIT/S /E
+
+	-Did you get all of that?
+	a. We opened a .COM file on drive B: named SUPERWRITER.COM
+	b. We opened a .REL file on drive B: named SUPERWRITER.REL
+	c. We will search a library file named ALLOFIT.REL on drive A:
+	d. And then exit to the CP/M operating system, searching
+	   a file named LIB.REL to resolve any unresolved symbols.
+	<<CP/M limits file names to 8 characters so please forgive
+	  me when I get carried away>>
+
+9.	Following is a Pascal program called RANDOM.PAS. that has
+	been compiled and converted into a .REL file.  Look it over
+	and see if you can do it also.
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+
+(*$I+	[include Pascal prgm stmts]	*)
+PROGRAM RANDOM;
+VAR
+  SEED1, SEED2 : INTEGER;
+(*
+==============================================
+ PROGRAM TITLE:	RANDOM_NUMB_GENERATOR
+
+ WRITTEN BY:	Raymond E. Penley
+ DATE WRITTEN:	SEP 1979
+
+ WRITTEN FOR:	Use with PASCAL/Z
+
+ SUMMARY:
+	Implement a Fibonacci series Random number generator.
+	RANDOM will return numbers from 0 to 32767
+	Call RANDOM with the following convention:
+	 Range		 Use
+	  0 - 32	RANDOM DIV 1000
+	  0 - 327	RANDOM DIV 100
+          0 - 32767	RANDOM
+**
+  Add these lines to your PASCAL source program:
+
+    VAR  SEED1, SEED2 : INTEGER;
+
+    PROCEDURE SEEDRAND; EXTERNAL;
+    FUNCTION RANDOM: INTEGER; EXTERNAL;
+
+
+  Also within the body of the main program
+  but BEFORE calling RANDOM:
+
+	  SEEDRAND;
+
+==============================================
+*)
+
+PROCEDURE SEEDRAND;
+(* INITIAL VALUES FOR SEED1 AND SEED2 ARE HERE  *)
+(*
+	NAME RANDOM			<<< these statements were included
+	ENTRY SEEDRAND,RANDOM		<<< by me to make it easy to edit
+					<<< the source code.
+SEEDRAND:				<<< the LABEL goes directly in front
+*)					<<< of the first BEGIN stmt
+Begin
+   SEED1 := 10946;
+   SEED2 := 17711
+END;
+
+
+FUNCTION RANDOM : INTEGER;
+(*
+GLOBAL
+  SEED1, SEED2 : INTEGER		*)
+CONST
+  HALFINT = 16383; (* 1/2 OF MAXINT *)
+VAR
+  temp1, temp2, HALF_ADDER : INTEGER;
+(*
+RANDOM:					<<< the LABEL goes directly in
+*)					<<< front of the first BEGIN stmt
+Begin
+(* Take 1/2 of the seeds for the comparison test *)
+  temp1 := SEED1 DIV 2;
+  temp2 := SEED2 DIV 2;
+  IF (temp1+temp2) >= HALFINT THEN
+    (* the number is too big - scale it down *)
+    HALF_ADDER := temp1 + temp2 - HALFINT
+  ELSE
+    HALF_ADDER := temp1 + temp2;
+  SEED1 := SEED2;
+  (* Restore from previous DIVision *)
+  SEED2 := HALF_ADDER * 2;
+  RANDOM := SEED2
+END(*---RANDOM---*);
+
+(*-----------DUMMY PROGRAM--------------*)
+(* THIS MUST BE REMOVED VIA YOUR EDITOR *)
+BEGIN END.
+
+
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+	The assembler source code follows
+	There has been some editing of the code
+	to remove unwanted labels and program
+	statements.
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+
+
+
+
+; ==============================================
+;  PROGRAM TITLE:	RANDOM_NUMB_GENERATOR
+; 
+;  WRITTEN BY:          Raymond E. Penley
+;  DATE WRITTEN:	SEP 1979
+; 
+;  WRITTEN FOR:	Use with PASCAL/Z
+; 
+;  SUMMARY:
+; 	Implement a Fibonacci series Random number generator.
+; 	RANDOM will return numbers from 0 to 32767
+; 	Call RANDOM with the following convention:
+; 	 Range		 Use
+; 	  0 - 32	RANDOM DIV 1000
+; 	  0 - 327	RANDOM DIV 100
+;         0 - 32767	RANDOM
+;
+; Add these lines to your PASCAL source program:
+; 
+;     VAR  SEED1, SEED2 : INTEGER;
+;
+;     PROCEDURE SEEDRAND; EXTERNAL;
+;     FUNCTION RANDOM: INTEGER; EXTERNAL;
+; 
+;
+;     Also within the body of the main program
+;     but BEFORE calling RANDOM:
+;
+;	  SEEDRAND;
+;
+;==============================================
+;
+	NAME	RANDOM
+;
+ 	ENTRY SEEDRAND,RANDOM
+;
+;PROCEDURE SEEDRAND;
+; INITIAL VALUES OF SEED1 AND SEED2 ARE HERE
+; 
+SEEDRAND:
+	ENTR	D,2,0
+;    SEED1 := 10946;
+	MVI	0(IY),42
+	MVI	-1(IY),194
+;    SEED2 := 17711
+	MVI	-2(IY),69
+	MVI	-3(IY),47
+; END;
+	EXIT	D,0
+;
+;
+; 
+; FUNCTION RANDOM : INTEGER;
+; GLOBAL
+;   SEED1, SEED2 : INTEGER
+; CONST
+;   HALFINT = 16383; (* 1/2 OF MAXINT *)
+; VAR
+;   temp1, temp2, HALF_ADDER : INTEGER;
+;
+RANDOM:
+	ENTR	D,2,6
+; (* Take 1/2 of the seeds for the comparison test *)
+;   temp1 := SEED1 DIV 2;
+	MOV	L,-1(IY)
+	MOV	H,0(IY)
+	LXI	D,2
+	DIVD	D,0
+	MOV	-2(IX),H
+	MOV	-3(IX),L
+;   temp2 := SEED2 DIV 2;
+	MOV	L,-3(IY)
+	MOV	H,-2(IY)
+	LXI	D,2
+	DIVD	D,0
+	MOV	-4(IX),H
+	MOV	-5(IX),L
+;   IF (temp1+temp2) >= HALFINT THEN
+	MOV	L,-3(IX)
+	MOV	H,-2(IX)
+	MOV	E,-5(IX)
+	MOV	D,-4(IX)
+	DADD	D,0
+	LXI	D,16383
+	GE	D,0
+;     (* the number is too big - scale it down *)
+;     HALF_ADDER := temp1 + temp2 - HALFINT
+	JNC	L171
+	MOV	L,-3(IX)
+	MOV	H,-2(IX)
+	MOV	E,-5(IX)
+	MOV	D,-4(IX)
+	DADD	D,0
+;   ELSE
+	LXI	D,-16383
+	DADD	D,0
+	MOV	0(IX),H
+	MOV	-1(IX),L
+;     HALF_ADDER := temp1 + temp2;
+	JMP	L191
+L171
+	MOV	L,-3(IX)
+	MOV	H,-2(IX)
+	MOV	E,-5(IX)
+	MOV	D,-4(IX)
+	DADD	D,0
+	MOV	0(IX),H
+	MOV	-1(IX),L
+L191
+;   SEED1 := SEED2;
+	MOV	L,-3(IY)
+	MOV	H,-2(IY)
+	MOV	0(IY),H
+	MOV	-1(IY),L
+;   (* Restore from previous DIVision *)
+;   SEED2 := HALF_ADDER * 2;
+	MOV	L,-1(IX)
+	MOV	H,0(IX)
+	DADD	C
+	MOV	-2(IY),H
+	MOV	-3(IY),L
+;   RANDOM := SEED2
+	MOV	L,-3(IY)
+	MOV	H,-2(IY)
+	MOV	3(IX),H
+	MOV	2(IX),L
+; END(*---RANDOM---*);
+	EXIT	D,0
+
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++
+

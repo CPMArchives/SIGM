@@ -1,0 +1,156 @@
+; 
+;        MUCHTEXT.A86 Version 1.0 as of March 29, 1981
+; 
+;                By: Kelly Smith, CP/M-Net
+; 
+;      I  spend a fair amount of time using Wordstar for doing 
+; software  documentation,   letter  writing,  and  especially 
+; magazine  articles that pay by the page...it's nice to  know 
+; at times just how much stuff I have "cranked-out" during the 
+; course of one of my long-winded Wordstar sessions...
+; 
+;      So,  just  How-MUCHTEXT did I type?  Well,  I put  this 
+; together  to tell me.  Works accurately on text  files,  but 
+; don't  use  it  on  non-ASCII  files  to  get  a   character 
+; count, 'cause it will be wrong.
+; 
+;      MUCHTEXT  doesn't  care how the text was  prepared,  as 
+; long  as  a  line  has a ASCII line  feed  delimeter  in  it 
+; (indicating the end of a line). This seems to work very well 
+; in  all cases that I have tried...Here is an example of  how 
+; to use it:
+; 
+; A>muchtext muchtext.asm<cr>
+; 
+; Contains      150 lines of text
+; A total,     3955 characters
+; 
+; A0>
+; 
+;      If you have any bright ideas for improvements,  I would 
+; appreciate  it if you would MODEM it to the CP/M-Net  System 
+; as "MUCHTEXT.NEW", to share with others.
+; 
+;                                        Best regards, 
+; 
+;                                        Kelly Smith, CP/M-Net
+;
+;
+;
+bdos	EQU	05h			; CP/M BDOS entry address
+fcb	EQU	5ch			; CP/M FCB address
+;
+wbfc	EQU	0			; warm boot function
+psfc	EQU	9			; print string
+offc	EQU	15			; open file
+sdma	EQU	26			; set dma address
+rrfc	EQU	20			; read record
+;
+lf	EQU	0ah			; ASCII line feed
+cr	EQU	0dh			; ASCII carriage return
+;
+M	EQU	Byte Ptr 0[BX]
+;
+	ORG	0100h
+;
+	MOV	DX,fcb
+	MOV	CL,offc			; open file name specified in the fcb
+	INT	224
+	INC	AL
+	JNZ	openok
+	CALL	prnexit
+	DB	cr,lf,lf,'+++ Can''t open file! +++$'
+openok:	PUSH	BX
+	MOV	BX,Word Ptr dmabuf	; point to dma buffer
+	MOV	AL,Byte Ptr extcnt	; get extent count
+	OR	AL,AL
+	JNS	nextrec
+	MOV	BX,Word Ptr dmabuf
+	XCHG	BX,DX
+	MOV	CL,sdma			; set dma address for file
+	INT	224
+	MOV	DX,fcb
+readin:	MOV	CL,rrfc			; read record
+	INT	224
+	OR	AL,AL
+	JNZ	ateof			; at the end-of-file yet?
+	MOV	BX,Word Ptr dmabuf	; get next record for next extent
+	XOR	AL,AL			; set up next extent
+	JMPS	nextrec
+;
+nextrec:INC	AL			; update extent count
+	MOV	Byte Ptr extcnt,AL
+	DEC	AL
+	ADD	AL,BL			; you put your right foot in...
+	MOV	BL,AL
+	MOV	AL,BH
+	ADC	AL,0
+	MOV	BH,AL			; you put your right foot out...
+	MOV	AL,M			; get character...and shake it all about
+	POP	BX
+	CMP	AL,'Z'-40h		; end of file?
+	JZ	ateof			; if so, finish up...
+	LAHF				; save character
+	XCHG	AL,AH
+	PUSH	AX
+	MOV	BX,(Offset chars)	; do range check on digits count
+nxtpos:	MOV	AL,M
+	CMP	AL,' '			; this position occupied yet?
+	JNZ	nocary
+cary:	MOV	AL,'0'			; make an ascii zero character
+nocary:	INC	AL			; +1 to digit position
+	MOV	M,AL
+	CMP	AL,':'			; digit >9?
+	JNZ	less9			; if so, check if line feed
+	MOV	M,'0'			; zero this digit
+	DEC	BX
+	JMPS	nxtpos			; try the next position
+less9:	POP	AX			; get character
+	XCHG	AL,AH
+	CMP	AL,lf			; I walk the line...you know your mine
+	JZ	L_1	
+	JMP	openok
+L_1:
+	MOV	BX,(Offset lines)	; point to number of lines
+nxtpos1:MOV	AL,M
+	CMP	AL,' '			; this position occupied yet?
+	JNZ	nocary1
+	MOV	AL,'0'			; make an ascii zero character
+nocary1:INC	AL
+	MOV	M,AL
+	CMP	AL,':'			; digit >9?
+	JZ	L_2	
+	JMP	openok
+L_2:
+	MOV	M,'0'			; zero this digit
+	DEC	BX
+	JMPS	nxtpos1			; try the next position
+;
+ateof:	CALL	prnexit			; finally at the "end-of-file"...give info, and exit
+	DB	cr,lf
+	DB	'Contains '
+	DB	'       '
+lines	DB	'0 lines of text'
+	DB	cr,lf
+	DB	'A total, '
+	DB	'       '
+chars	DB	'0 characters'
+	DB	cr,lf,'$'
+;
+exit:	MOV	CL,0			; get back Loretta...
+	INT	224
+;
+prnexit:POP	DX			; get message string off the stack from "call"
+	MOV	CL,psfc			; print string
+	INT	224
+	JMPS	exit			; exit...gracefully
+L_3	EQU	$
+	DSEG
+	ORG	Offset L_3
+;
+dmabuf	DW	0080h			; default dma disk buffer pointer
+;
+extcnt	DB	080h			; extent count
+;
+	END
+

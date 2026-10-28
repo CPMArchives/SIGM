@@ -1,0 +1,292 @@
+;
+;	+----------------------------+
+;	|			     |
+;	|     S  Y  S  C  M  D       |
+;	;			     |
+;	+----------------------------+
+;
+;
+;	Version number:	2.1
+;	Version date:	April 30, 1981
+;
+
+;	The following code is supplied to customers who
+;	purchase a hard/floppy disk system from DTC.
+;	The command
+;	STSCMD z xxx y
+;	computes the memory size and offset arguments for
+;	the STSCOPY.SUB SUBMIT file and executes
+;	SUBMIT STSCOPY1 z xxx mm hhhh y
+;
+;
+VERS:	EQU	21
+;
+CR:	EQU	0Dh	;ASCII carriage return
+LF:	EQU	0Ah	;ASCII line feed
+TAB:	EQU	9	;ASCII horizontal tab
+EOS:	EQU	'$'	;BDOS end of string
+;
+;
+;	BDOS function equates
+;
+PRTSTR:	EQU	09	;Print string,	DE=buffer address
+INIT:	EQU	13	;Initialize BDOS
+;
+;	Page zero locations
+;
+BOOT:	EQU	0
+CDISK:	EQU	4
+BDOSV:	EQU	5
+DBUF:	EQU	080h	;Default buffer
+;
+MM:	EQU	MSIZE-(BIOSIZ-600h)/K
+;
+;
+
+;	Assembly switch
+DAW:	EQU	FALSE
+;
+
+	ORG	100h
+
+STSCMD:
+	PUSH	PSW
+	PUSH	B
+	PUSH	D
+	PUSH	H
+	LXI	H,0
+	DAD	SP
+	SHLD	SYSTK
+	LXI	SP,STACK
+
+	CALL	SYS
+
+SYSRET:
+	LHLD	SYSTK
+	SPHL
+	POP	H
+	POP	D
+	POP	B
+	POP	PSW
+	RET
+
+
+SYS:
+	LXI	H,DBUF		;Get buffer count
+	MOV	A,M
+	ORA	A
+	JZ	HELP
+	MOV	B,A
+	LXI	D,ARG
+SYS1:
+	INX	H		;Point to string
+	MOV	A,M		;Skip leading spaces
+	CPI	' '
+	JNZ	SYS2
+	DCR	B
+	JZ	HELP
+	JMP	SYS1
+SYS2:
+	CPI	'A'		;Validate drive
+	JC	HELP
+	CPI	'P'+1
+	JNC	HELP
+	STAX	D
+	INX	D
+	MVI	A,' '
+	STAX	D
+	INX	D
+SYS3:
+	DCR	B		;Skip to unit record file name
+	JZ	HELP
+	INX	H
+	MOV	A,M
+	CPI	' '
+	JZ	SYS3
+SYS4:
+	STAX	D		;Move unit record file name
+	INX	D
+	INX	H
+	DCR	B
+	JZ	HELP
+	MOV	A,M
+	CPI	' '
+	JNZ	SYS4
+	STAX	D
+	INX	D
+	MVI	A,MM/10+'0'	;mm
+	STAX	D
+	INX	D
+	MVI	A,MM MOD 10 +'0'
+	STAX	D
+	INX	D
+	MVI	A,' '
+	STAX	D
+	INX	D
+	PUSH	B
+	LXI	B,1F80h-CBIOS	;hhhh
+	MOV	A,B
+	CALL	BYTHEX
+	MOV	A,C
+	CALL	BYTHEX
+	MVI	A,' '
+	STAX	D
+	INX	D
+	POP	B		;y
+SYS5:
+	MOV	A,M
+	INX	H
+	CPI	' '
+	JNZ	SYS6
+	DCR	B
+	JZ	HELP
+	JMP	SYS5
+SYS6:
+	STAX	D
+	INX	D
+	XRA	A		;Terminate command string
+	STAX	D
+	LXI	H,CCPCMD	;Compute command string length
+	MOV	A,E
+	SBB	L
+	MOV	C,A
+	INR	C
+	DCR	A
+	MOV	M,A
+
+	IF	DAW
+	PUSH	B
+
+	MVI	C,INIT		;Initialize BDOS
+	CALL	BDOSV
+	CALL	HOME		;Get fresh copy of CCP
+	LXI	B,CCP
+	MVI	E,2		;Starting sector
+	MVI	D,(BDOS-CCP)/128	;Number of sectors
+SYS7:
+	PUSH	B
+	PUSH	D
+	CALL	SETDMA
+	POP	B
+	PUSH	B
+	MVI	B,0
+	CALL	SETSEC
+	CALL	READ
+	POP	D
+	POP	B
+	LXI	H,128
+	DAD	B
+	MOV	B,H
+	MOV	C,L
+	INR	E
+	DCR	D
+	JNZ	SYS7
+	MVI	C,INIT
+	CALL	BDOSV
+	
+	POP	B
+	LXI	H,CCPCMD
+	LXI	D,CCP+7		;Move command to CCP buffer
+SYS8:
+	MOV	A,M
+	STAX	D
+	INX	H
+	INX	D
+	DCR	C
+	JNZ	SYS8
+	LDA	CDISK
+	MOV	C,A
+	JMP	CCP+3		;Execute CCP command
+	ENDIF
+	IF	NOT DAW
+	MVI	A,EOS
+	STAX	D
+	LXI	D,USRMSG
+	MVI	C,PRTSTR
+	CALL	BDOSV
+	LXI	D,CCPCMD+1
+	MVI	C,PRTSTR
+	CALL	BDOSV
+	JMP	BOOT
+
+USRMSG:	DB	CR,LF,LF,'Command string is:',CR,LF,LF,TAB,EOS
+	ENDIF
+
+
+BYTHEX:
+	PUSH	PSW		;Save byte to be converted
+	RAR			;Convert most significant nibble
+	RAR
+	RAR
+	RAR
+	CALL	HEXASC		;Make it an ASCII character
+	POP	PSW		;Convert least significant nibble
+HEXASC:
+	ANI	0Fh
+	ADI	090h
+	DAA
+	ACI	040h
+	DAA
+	STAX	D
+	INX	D
+	RET
+
+
+;	BIOS Subroutines
+;
+HOME:	LHLD	BOOT+1
+	MVI	L,18h
+	PCHL
+
+SETSEC:	LHLD	BOOT+1
+	MVI	L,21h
+	PCHL
+
+SETDMA:	LHLD	BOOT+1
+	MVI	L,24h
+	PCHL
+
+READ:	LHLD	BOOT+1
+	MVI	L,27h
+	PCHL
+
+
+HELP:	MVI	C,PRTSTR	;Print help message
+	LXI	D,HELPM
+	CALL	BDOSV
+	JMP	BOOT
+
+HELPM:	DB	CR,LF,LF
+	IF	DAW
+	DB	'STSCOPY'
+	ENDIF
+	IF	NOT DAW
+	DB	'STSCMD'
+	ENDIF
+	DB	' z xxx y',CR,LF,LF
+	DB	'Determines the STSCOPY'
+	IF	DAW
+	DB	'1'
+	ENDIF
+	DB	'.SUB parameters mm and hhhh',CR,LF
+	IF	DAW
+	DB	'and does',CR,LF,LF
+	DB	'SUBMIT STSCOPY1 z xxx mm hhhh y',CR,LF
+	ENDIF
+	DB	EOS
+
+;	CCP command string
+;
+CCPCMD:	DB	0		;length
+	DB	'SUBMIT STSCOPY'
+	IF	DAW
+	DB	'1'
+	ENDIF
+	DB	' '
+ARG:	DS	30
+
+SYSTK:	DS	2
+	DS	50
+STACK:	EQU	$
+	END
+

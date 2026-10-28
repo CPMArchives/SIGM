@@ -1,0 +1,238 @@
+*SAMMENU-Sampel Menu Program.*****(NON-EXECUTABLE ANNOTATED COPY)********************************
+*DATE OF LAST UPDATE  05/17/83                                                                  *
+*REVISION NUMBER 001.00                                                                         *
+*												*
+*                           THIS PROGRAM PLACED INTO PUBLIC DOMAIN BY                           *
+*                           DOUGLAS G. COUSE, ATLANTA, GA. 5/20/83                              *
+*                           COPYING FOR NON-COMMMERCIAL OR EDUCATIONAL                          *
+*                           PURPOSES ALLOWED, PROVIDED THIS NOTICE IS                           *
+*                           NOT REMOVED.  COMMERCIAL RESALE IS PROHIBITED.                      *
+*                                                                                               *
+*    This command file provides for access and execution of SAM001.CMD & SAM002.CMD.            *
+*    This command file is the only entry point or exit point from the application.              *
+*												*
+*    NOTES:-------------------------------------------------------------                        *
+*                                        						        *
+*          1. All explanatory comments are enclosed in boxes, indented                          *
+*             and immediately precede the section of programming code                           *
+*             to which they refer.                                                              *
+*-----------------------------------------------------------------------------------------------*
+* 	DATABASE & OTHER FILE UTILIZATION STATISTICS					        *
+*												*
+*	Database file: NONE                                                                     *
+*	Index file:    NONE        			   				        *
+*	Memory file:   NONE									*
+*       Other files:   SAMSCRM.CMD This is a command file which contains the screen image used  *
+*                                  by this program and is called from the program initialization*
+*                                  section P-020.                                               *
+*                                                                                               *
+*                      SAM001.CMD  This is the DATA ENTRY  PROGRAM command file and is called   *
+*                                  into execution from section P-040 at the user's request.     *
+*                                                                                               *
+*                      SAM002.CMD  This is the MAINTENANCE PROGRAM command file and is called   *
+*                                  into execution from section P-040 at the user's request.     *
+*												*
+*       --------------------------------------------------------------------------------------- *
+*                                                                                               *
+*	NON-COMPLEMENTARY MEMORY VARIABLE UTILIZATION STATISTICS                                *
+*                                                                                               *
+*	Variables Used:_____________________________________________________________________    *
+*	|    | Memory     |    |    |                                                      |	*
+*	|    | Variable   |    |    |                                                      |    *
+* 	| No.| Name       |Type|Size|                     Description                      |    *
+*	|----|------------|----|----|------------------------------------------------------|    *
+*	|    |            |    |    |                                                      |    *
+*	|  1 | PREFIX     | C  | 3  | This variable is initialized with the literal value  |    *
+*	|    |            |    |    | "SAM"to provide the front end of a concatinated      |    *
+*	|    |            |    |    | variable PROGRAM which is used to define the program |    *
+*	|    |            |    |    | to be executed.                                      |    *
+*	|    |            |    |    |                                                      |    *
+*	|  2 | SUFFIX     | N  | 2  | This variable is used to accept the number of the    |    *
+*	|    |            |    |    | program selected by the user, this variable is       |    *
+*	|    |            |    |    | combined with PREFIX and moved to PROGRAM in building|    *
+*	|    |            |    |    | the name of the program to be executed.              |    *
+*	|    |            |    |    |                                                      |    *
+*	|  3 | PROGRAM    | C  | 6  | This is the variable which is built by the process   |    *
+*	|    |            |    |    | of concatinating PREFIX and SUFFIX.                  |    *
+*	|    |            |    |    |                                                      |    *
+*	|  4 | MORE       | C  | 1  | This variable is used to enter and exit a doloop. It |    *
+*	|    |            |    |    | is the primary doloop variable of this command file  |    *
+*	|    |            |    |    | and uses the literal "T" to enter the doloop and the |    *
+*	|    |            |    |    | literal "F" to exit the doloop. This variable is     |    *
+*	|    |            |    |    | associated with a doloop which will remain in effect |    *
+*	|    |            |    |    | while all sub-ordinate programs are executed.        |    *
+*	|    |            |    |    |                                                      |    *
+*       ------------------------------------------------------------------------------------    *
+*                                                                                               *
+*       MESSAGE UTILIZATION STATISTICS                                                          *
+*       ____________________________________________________________________________________    *
+*       |        |                                                                         |    *
+*       | TYPE   |  MESSAGE CONTENTS                                                       |    *
+*       |--------|-------------------------------------------------------------------------|    *
+*       |        |                                                                         |    *
+*       | PROMPT | Enter selection ## or strike <RETURN> to END                            |    *
+*       |        |                                                                         |    *
+*       | ERROR  | Invalid option, strike any key to repeat                                |    *
+*       |        |                                                                         |    *
+*       ------------------------------------------------------------------------------------    *
+*************************************************************************************************
+
+			**************************************************************************************************
+                        *NOTE----any comment labelled (*P-) is a procedural section numbering reference                  *
+			*that should be used in flowcharting and other program documentation.                            *
+			**************************************************************************************************
+
+
+*P-001-{START}. Program and screen initialization.
+
+			**************************************************************************************************
+			* This section is a standardized program initialization section which: 1. disables screen dialog;*
+			* 2. refreshes the screen; 3. refreshes memory; 4. closes any open database files; 5. provides a * 
+			* fresh work area for dbase.                                                                     *
+			**************************************************************************************************
+
+ERASE
+SET ECHO OFF
+SET TALK OFF
+CLEAR
+RELEASE
+USE
+*P-001-{END}.
+
+=================================================================================
+
+*P-005-{START}.  Doloop (initialization and execution) section.
+STORE "T" TO MORE
+DO WHILE MORE = "T"
+*P-005-{END}.
+
+=================================================================================
+
+*P-010-{START}. Link variable initialization SECTION.
+
+			**************************************************************************************************
+			*Initialization of the first program name building variable.                                     *
+			**************************************************************************************************
+    
+STORE "SAM" TO PREFIX
+*P-010-{END}.
+
+=================================================================================
+
+*P-020-{START}. Screen literal display program call & execution section.
+DO SAMSCRM
+*P-020-{END}.
+
+=================================================================================
+
+*P-030-{START}. Option message display and option entry/validation section.
+
+			**************************************************************************************************
+			*Initialization of the second program name building variable.                                    *
+			**************************************************************************************************
+    
+STORE 00 TO SUFFIX
+
+			**************************************************************************************************
+			*screen intensity is toggled off and on to provide for the display of all screen images except   *
+			*option selection list at HIGH INTENSITY.                                                        *
+			**************************************************************************************************
+   
+SET INTENSITY OFF
+
+			**************************************************************************************************
+			*Display of selection PROMPT MESSAGE.                                                            *
+			*Conditional check to determine if the user has entered a program option #                       *
+			*or hit the <RETURN> key.  A <RETURN> only entry will force the doloop                           *
+			*variable to be set to a value of "F" which will terminate the doloop                            *
+			*thus forcing and end of program execution.                                                      *
+			**************************************************************************************************
+    
+@ 21,05 SAY 'Enter selection ## or strike <RETURN> to END ' GET SUFFIX PICTURE '99'
+READ
+SET INTENSITY ON
+IF SUFFIX = 00
+	STORE "F" TO MORE
+	LOOP 
+ELSE
+
+			**************************************************************************************************
+			*if a program option is selected, it will be examined to determine if the value entered is       *
+			*greater than 2.  This will cause an error message to be displayed and the doloop will be        *
+			*re-executed.                                                                                    *
+			*the console toggling is done to inhibit the display of the auto message                         *
+			*WAITING whenever the wait command is executed. The wait command is                              *
+			*used so that the REMARK message can be observed by the user before re-execution                 *
+			*of the doloop.                                                                                  *
+			**************************************************************************************************
+    
+	IF SUFFIX >2  
+		SET INTENSITY OFF
+		@ 22,1 SAY "-"
+		REMARK Invalid option, strike any key to repeat
+		SET INTENSITY ON
+		SET CONSOLE OFF
+		WAIT
+		SET CONSOLE ON
+		ERASE
+		LOOP 		
+	ENDIF 2
+ENDIF 1
+*P-030-{END}.
+
+=================================================================================
+
+*P-040-{START}. Program link variable generation & execution section.
+
+			**************************************************************************************************
+			*The 2 program name building variables are concatinated                                          *
+			*                                                                                                *
+			*These 2 variables are then removed from memory to insure                                        *
+			*that sufficient memory variable space is available for the variables generated                  *
+			*and used by the entry and maintenance programs.                                                 *
+			*                                                                                                *
+			*The concatinated program name is then used to call the desired program and execute same.        *
+			**************************************************************************************************
+    
+STORE PREFIX+"00"+STR(SUFFIX,1) TO PROGRAM
+RELEASE PREFIX
+RELEASE SUFFIX
+DO &PROGRAM 
+*P-040-{END}.
+
+=================================================================================
+
+*P-050-{START}. Re-entry point after called program has been exited.
+
+			**************************************************************************************************
+			*After the called program has completed execution, processing will return to this point in the   *                                                                                             *
+			*menu program.  The primary doloop variable will be re-initialized and program flow will return  *
+			*to the top of the doloop.                                                                       *
+			**************************************************************************************************
+    
+STORE "T" TO MORE
+LOOP
+*P-050-{END}.
+
+=================================================================================
+
+*P-060-{START}. End of program execution and exit to operating system.
+
+			**************************************************************************************************
+			*primary doloop terminiation point.                                                              * 
+			**************************************************************************************************
+
+ENDDO
+
+			**************************************************************************************************
+			*program exit and housekeeping,ie. re-toggling of screen processing                              *
+			*switches, clearing of memory, clearing of screen                                                *
+			**************************************************************************************************
+
+ERASE
+RELEASE
+CLEAR
+USE
+QUIT
+*P-060-{END}.
+

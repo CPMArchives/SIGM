@@ -1,0 +1,1033 @@
+
+	TITLE	'WHATSNEW version 2.1A'
+; DATE 10/06/83  18:10
+; by: H.M. Van Tassell  120 Hill Hollow Rd, Watchung NJ 07060 (201)755-5372
+;
+; This is a slightly modified version of D.A86 
+;	1. Name changed
+;	2. Help file called if WHATSNEW //
+;	3. Clock read routine supported
+
+
+;                         D.A86 Version 2.1
+;                 Restricted Directory List Program
+; 
+;        Originally written for CP/M-80, by Ward Christensen
+; 
+;                   (Revised from D.ASM 05/17/82)
+; 
+; This  program produces a directory listing.   It also maintains a 
+; list of names not to display.   Thus it can be used to keep track 
+; of  the "non standard" files on a disk.   CP/M attribute bits are 
+; not considered part of the file name for comparison purposes.
+; 
+;                           - Examples -
+;		NOTE: read D as WHATSNEW in examples
+; 
+; D *.*<cr>      Prints all names, 5 across
+; 
+; D *.A86<cr>    Prints selected files just like DIR
+; 
+; D  SET<cr>     Builds a table (in D.CMD) of all names  currently 
+;                on the disk
+; 
+; D  SET  <date><cr>     Adds the date for printing whenever  D  is 
+; called by 'A>D<cr>' with no options.   If the date field is  left 
+; blank,  it  will  be  ignored.    Note that the date  must  be  8 
+; characters or less.
+; 
+; D  ADD  fn.ft<cr>  Adds a name to the table in  D.CMD,  so  fn.ft 
+; won't be listed by the 'D' command
+; 
+; D  DEL fn.ft<cr>  Deletes a name from the table in D.CMD,  so  if 
+; fn.ft is in the directory, it will be listed by 'D'
+; 
+; D<cr>     Lists the directory 5 across,  listing only those files 
+; not in D.CMD, as put there by 'D SET' or 'D ADD fn.ft' command
+; 
+;              - Special Notes For Remote System Use -
+; 
+; If  you  keep a dedicated copy of this program on each  drive  of 
+; your remote system,  you can 'dedicate' each copy of this program 
+; to  a drive by filling in the byte at 104h with the drive number.  
+; 
+; This prevents such things as:
+; 
+; A>D B:<cr>
+; 
+; or
+; 
+; B>A:D<cr>
+; 
+; Do this by using the command:
+; 
+; A>D LOK A:<cr>	To lock to a drive
+; 
+; or
+; 
+; A>D LOK<cr> 	To unlock
+; 
+; If the conditional 'NOSYS' is set true,  $SYS files in CP/M  will 
+; be  ignored in both directory listings and when the "ADD"  option 
+; is invoked,  unless the override char is specified.   This allows 
+; D.CMD  to  be used as a "what's new" program for  remote  CP/M-86 
+; systems, where the $SYS files must not be listed.
+; 
+;                           - Examples -
+; 
+; A>D *.* S<cr>	 Displays everything
+; 
+; A>D SET S<cr>	 Puts all files in table
+; 
+; A>D  SET 05/17/82<cr>     Sets date for reference (if you use  'D 
+; SET S<cr>', you lose the date option....sorry about that).
+; 
+; If you use this program on a remote system,  you will likely want 
+; to  change the commands (ADD,  DEL,  and SET) for security.   You 
+; will  also want to change the $SYS suppress  override  character.  
+; 
+; You  may also want to change the name of the program to make  the 
+; name itself more informative (e.g. "WHATSNEW.CMD").
+; 
+; If  you  want the program to be 'tag'ed after every D SET (so  it 
+; cannot  be taken by xmodem),  see the note at label "WRBACK"  for 
+; setting the F1 bit in the filename itself.
+; 
+; Note  that  this  program defines its  own  name  for  write-back 
+; purposes under the label "WRBACK".
+; 
+;                     - Modification History -
+; 
+; 05/17/82:  Revised and translated for CP/M-86 operation, by Kelly 
+; Smith.
+; 
+; 12/23/80:  Changed  sign-on message,  revised  documentation,  by 
+; Keith Petersen, W8SDZ.
+; 
+; 12/22/80:  Fixed stack and file extent problems.   Fully expanded 
+; macros  so  ASM may be used.   Fixed problem in LOK  routine,  by 
+; Keith Petersen, W8SDZ.
+; 
+; 12/07/80:  Added  drive  select byte and expanded move  macro  in 
+; WRBACK routine.  Also added "LOK" command, by Ron Fowler.
+; 
+; 12/02/80:  Added "NOSYS" equate to ignore system files,  code  to 
+; strip attributes from files for CP/M 2.x,  added date display and 
+; print options.  fixed up display format, by Ron Fowler.
+; 
+; 12/01/80:  Added  "files  not found" feature of updated D.ASM  of 
+; Ward Christensen.  By Ron Fowler.
+; 
+; 11/23/78: Originally written by Ward Christensen.
+; 
+;
+; 
+false	EQU	0
+true	EQU	not false
+; 
+CLOCK	EQU	TRUE		;set true if you supply system clock read
+				;... read routine RDTIME
+; bdos equates
+; 
+rdcon	EQU	1
+print	EQU	9
+const	EQU	11
+close	EQU	16
+srchf	EQU	17
+srchn	EQU	18
+erase	EQU	19
+read	EQU	20
+write	EQU	21
+make	EQU	22
+curdsk	EQU	25
+setdma	EQU	26
+; 
+; 
+bdos	EQU	5
+fcb	EQU	5ch
+fcbrno	EQU	fcb+32
+;
+g_form		EQU	80h	; base of group descriptor for D.CMD file
+g_length	EQU	81h	; group length
+g_min		EQU	85h	; group minimum size
+;
+M	EQU	Byte Ptr 0[BX]
+;
+cr	EQU	13			; carriage return
+lf	EQU	10			; line feed
+tab	equ	09
+cls	equ	1ah
+; 
+nosys	EQU	false			; set true to ignore system files
+fence	EQU	'|'			; filename separator
+npl	EQU	4			; names per line
+sysok	EQU	'S'			; override char for sys suppression
+; 
+	ORG	100h
+; 
+dentry:	JMPS	around
+; 
+drive	DB	0			; <---drv # is put here if dedicated
+; 
+; init local stack
+; 
+around:	CALL	start
+;
+	DB	'WHATSNEW version 2.1A',cr,lf,'$'
+; 
+; print id message
+; 
+start:	POP	DX			; get id address
+	MOV	CL,print		; get print fnc
+	INT	224			; print id msg
+; 
+; set file control block
+; 
+	MOV	AL,Byte Ptr drive
+	OR	AL,AL			; non-dedicated?
+	JZ	nond			; jump if so
+	MOV	Byte Ptr .fcb,AL
+; 
+nond:	MOV	AL,Byte Ptr .fcb+17	; get sys override char
+	MOV	Byte Ptr systoo,AL	; save for later
+; 
+; see if request for help
+; 
+	MOV	BX,fcb+1
+	CALL	hlpcm1
+hlpcm	DB	'//         '
+; 
+hlpcm1:	POP	DX			; get to
+	MOV	CX,(Offset hlpcm1)-(Offset hlpcm)
+	CALL	compr
+	JNZ	nohlp
+
+	MOV	DX,OFFSET HELPMSG
+	MOV	CL,print
+	INT	224
+	MOV	CL,0	
+	MOV	DL,0
+	INT	224
+; 
+; see if request to add name to list
+; 
+nohlp:	MOV	BX,fcb+1
+	CALL	addcm2
+addcm	DB	'ADD        '
+; 
+addcm2:	POP	DX			; get to
+	MOV	CX,(Offset addcm2)-(Offset addcm)
+	CALL	compr
+	JNZ	noadd
+; 
+; got request to add name to table
+; 
+	CALL	delnam			; first, delete the name
+	CALL	findff			; find end of table
+	XCHG	BX,DX			; addr to de
+; 
+; move name to table
+; 
+	MOV	BX,fcb+17
+	MOV	CX,11
+	CALL	mover
+	MOV	AL,0ffh
+	MOV	SI,DX			; set new end
+	MOV	[SI],AL
+	JMP	wrback			; write program back
+; 
+; see if request to lock D.CMD to a drive
+; 
+noadd:	MOV	BX,fcb+1
+	CALL	noadd3
+noadd2	DB	'LOK        '
+; 
+noadd3:	POP	DX			; get to
+	MOV	CX,(Offset noadd3)-(Offset noadd2)
+	CALL	compr
+	JNZ	nolok
+; 
+; got request to lock
+; 
+	MOV	AL,Byte Ptr .fcb+16
+	MOV	Byte Ptr drive,AL
+	MOV	Byte Ptr .fcb,AL
+	JMP	wrback
+; 
+; see if request to del name from list
+; 
+nolok:	MOV	BX,fcb+1
+	CALL	nolok3
+nolok2	DB	'DEL        '
+; 
+nolok3:	POP	DX			; get to
+	MOV	CX,(Offset nolok3)-(Offset nolok2)
+	CALL	compr
+	JNZ	nodel
+; 
+; got request to delete a name from the file
+; 
+	CALL	delnam			; delete the name
+	JNAE	L_3	
+	JMP	wrback			; write back if ok
+L_3:
+	CALL	msgxit
+	DB	'++Name Not In Table++$'
+; 
+; see if request to setup table from directory
+; 
+nodel:	MOV	BX,fcb+1
+	CALL	nodel3
+nodel2	DB	'SET        '
+; 
+nodel3:	POP	DX			; get to
+	MOV	CX,(Offset nodel3)-(Offset nodel2)
+	CALL	compr
+	JNZ	noset
+; 
+; got request to setup table.  move the date (may be blank).
+; 
+	IF  NOT CLOCK
+	MOV	BX,fcb+17
+	MOV	DX,(Offset date)
+	MOV	CX,8
+	CALL	mover
+	ENDIF	;NOT CLOCK
+
+
+RDTIME:	;PUT YOUR CLOCK ROUTINE HERE AND SET CLOCK EQUATE TRUE
+	IF	CLOCK			;COMPUPRO CLOCK ROUTINE
+CLKCP	EQU	50H+10			;CLOCK COMMAND PORT
+
+	MOV	BX,OFFSET DATE	 	;POINT TO DATE STRING
+	MOV	SI,OFFSET DIGTAB 	;POINT TO DIGIT TABLE
+	MOV	CL,3			;READ TWO COUNTER
+RTWO:	MOV	CH,2			;READ ONE COUNTER
+;
+; READ A DIGIT FROM CLOCK CHIP
+; ENTRY: SI => DIGIT TABLE DATA ENTRY
+;        BX => STRING POSITION
+; EXIT:  ASCII DIGIT LOADED IN STRING
+;        SI & BX INCREMENTED
+;
+RONE:	MOV	AL,[SI]		;GET DIGIT TABLE DATA
+	INC	SI		;BUMP TO NEXT ENTRY
+	ADD	AL,10H		;SET READ BIT
+	OUT	CLKCP,AL	;OUTPUT DIGIT DATA
+	CMP	AL,15H		;CHECK FOR HOURS 10 DIGIT
+	IN	AL,CLKCP+1	;READ BCD DIGIT FROM CLOCK
+	JNE	NOHOUR
+	SUB	AL,8
+NOHOUR:	ADD	AL,'0'		;MAKE ASCII
+	MOV	[BX],AL
+	INC	BX		;POINT TO NEXT STR POSITION
+	DEC	CH
+	JNZ	RONE		;GET SECOND DIGIT
+	INC	BX		;BUMP OVER SEPERATOR
+	DEC	CL
+	JNZ	RTWO		;READ TWO MORE DIGITS
+	JMPS	GOTOIT		;GO TO IT
+
+DIGTAB	DB	10,9,8,7,12,11	;CLOCK DIGIT TABLE
+	ENDIF	;CLOCK
+
+GOTOIT:	MOV	AL,1			; turn on..
+	MOV	Byte Ptr setflg,AL	; ..set flag
+	MOV	AL,0ffh			; clear..
+	MOV	Byte Ptr names,AL	; ..names table
+	CALL	fillq			; make fcb '????????.???'
+; 
+noset:	MOV	AL,Byte Ptr .fcb+1
+	SUB	AL,' '
+	MOV	Byte Ptr prtflg,AL
+	LAHF
+	XCHG	AL,AH
+	PUSH	AX
+	JNZ	L_4	
+	CALL	head1
+L_4:
+	POP	AX
+	XCHG	AL,AH
+	SAHF
+	JNZ	gotnam
+	CALL	fillq			; make name ????????.???
+; 
+gotnam:	MOV	AL,Byte Ptr .fcb
+	OR	AL,AL
+	JZ	nodisk
+	DEC	AL
+	MOV	DL,AL
+	MOV	CL,0eh
+	INT	224
+; 
+nodisk:	MOV	CH,npl			; names per line
+	CALL	linmrk
+	MOV	CL,srchf
+	JMPS	callit
+; 
+line:	MOV	CH,npl			; names per line
+	CALL	linmrk
+; 
+next:	MOV	CL,srchn
+; 
+callit:	PUSH	CX
+	PUSH	CX
+	MOV	CL,const
+	INT	224
+	OR	AL,AL
+	POP	CX
+	JZ	L_5	
+	JMP	cexit
+L_5:
+	MOV	DX,fcb
+	INT	224
+	INC	AL
+	JNZ	L_6	
+	JMP	cknone
+L_6:
+	DEC	AL
+	AND	AL,03h
+	MOV	BL,AL
+	MOV	BH,00h
+	SHL	BX,1
+	SHL	BX,1
+	SHL	BX,1
+	SHL	BX,1
+	SHL	BX,1
+	MOV	DX,81h
+	ADD	BX,DX
+; 
+; check for $sys attribute, then clear all attributes
+; 
+	PUSH	BX
+	MOV	DX,9			; sys att offset
+	ADD	BX,DX
+	MOV	AL,M
+	AND	AL,80h
+	MOV	Byte Ptr sysflg,AL
+	POP	BX			; retrieve filename ptr
+	PUSH	BX
+	MOV	DL,11			; 11 chars in filename
+; 
+attlp:	MOV	AL,M			; pick up char
+	AND	AL,7fh			; kill attribute
+	MOV	M,AL			; put back down
+	INC	BX
+	DEC	DL
+	JNZ	attlp
+	POP	BX
+; 
+; see if name is to be printed
+; 
+	XCHG	BX,DX			; name pointer to de
+	MOV	AL,Byte Ptr setflg	; request to setup table?
+	OR	AL,AL
+	JZ	L_7	
+	JMP	setup			; go set entry into table
+L_7:
+	MOV	AL,Byte Ptr prtflg
+	OR	AL,AL
+	JNZ	goprnt			; explicit request for all
+	PUSH	DX
+	MOV	BX,(Offset names)
+; 
+cknext:	POP	DX			; get name pointer
+	POP	CX
+	PUSH	CX
+	MOV	AL,M			; end of table?
+	INC	AL			; was it 0ffh?
+	JZ	goprnt
+	MOV	CH,0
+	MOV	CL,11			; name length
+	PUSH	DX
+; 
+cklp:	MOV	SI,DX
+	MOV	AL,[SI]
+	CMP	AL,M
+	JNZ	nomach
+	INC	DX
+	INC	BX
+	DEC	CL
+	JNZ	cklp			; loop for 11 chars
+; 
+; got match, mark it found and don't print it
+; 
+	MOV	DX,-11			; point back to name
+	ADD	BX,DX
+	MOV	M,0			; mark it found
+	POP	DX			; pop pointer
+	POP	CX
+	JMP	next			; skip the name
+; 
+; name didn't match, try next
+; 
+nomach:	ADD	BX,CX			; point to next name
+	JMPS	cknext
+; 
+; print the name
+; 
+goprnt:
+	if	nosys
+	MOV	AL,Byte Ptr systoo
+	CMP	AL,sysok
+	JZ	doname
+	MOV	AL,Byte Ptr sysflg
+	RCL	AL,1
+	POP	CX
+	JNB	L_8	
+	JMP	next
+L_8:
+	PUSH	CX
+	endif
+; 
+doname:	MOV	AL,1			; say we got one
+	MOV	Byte Ptr gotflg,AL
+	MOV	CL,8
+	XCHG	BX,DX			; name back to hl
+; 
+namelp:	MOV	AL,M
+	CALL	display
+	LAHF
+	INC	BX
+	SAHF
+	DEC	CL
+	JNZ	namelp
+	MOV	AL,'.'
+	CALL	display
+	MOV	CL,3
+; 
+nlp2:	MOV	AL,M
+	CALL	display
+	LAHF
+	INC	BX
+	SAHF
+	DEC	CL
+	JNZ	nlp2
+	POP	CX
+	MOV	AL,' '
+	CALL	display
+	MOV	AL,fence
+	DEC	CH
+	LAHF
+	XCHG	AL,AH
+	PUSH	AX
+	XCHG	AL,AH
+	JZ	L_9	
+	CALL	display
+L_9:
+	MOV	AL,' '
+	CALL	display
+	POP	AX
+	XCHG	AL,AH
+	SAHF
+	JZ	L_10	
+	JMP	next
+L_10:
+	CALL	crlf
+	JMP	line
+; 
+cknone:	MOV	AL,Byte Ptr gotflg
+	OR	AL,AL
+	JNZ	notfnd
+	MOV	AL,Byte Ptr prtflg
+	OR	AL,AL
+	JNZ	notfnd
+	MOV	DX,(Offset nonmsg)	; print "none"
+	MOV	CL,print
+	INT	224
+; 
+; print the files not found
+; 
+notfnd:	MOV	AL,Byte Ptr setflg	; is this 'd set'?
+	OR	AL,AL
+	JZ	L_11	
+	JMP	fini			; done if so
+L_11:
+	MOV	AL,Byte Ptr prtflg	; are we printing?
+	OR	AL,AL
+	JZ	L_12	
+	JMP	cknon2			; done if not
+L_12:
+; 
+; if this D.CMD is dedicated ("drive" is non-zero),
+; then be sure to print the "files not found"
+; 
+	MOV	AL,Byte Ptr drive
+	OR	AL,AL
+	JNZ	nochk
+	MOV	AL,Byte Ptr .fcb	; drive specified?
+	OR	AL,AL
+	JZ	L_13	
+	JMP	fini			; skip not found if so
+L_13:
+; 
+nochk:	CALL	head2			; print not fnd header
+	MOV	BX,(Offset names)	; start of table
+	MOV	DX,11
+; 
+line2:	CALL	linmrk
+	MOV	CL,npl
+; 
+next2:	MOV	AL,M			; first char of name
+	OR	AL,AL			; marked found?
+	JZ	noprnt			; jump if so
+	INC	AL			; check for table end
+	JNZ	L_14	
+	JMP	cknon2			; jump if end
+L_14:
+	MOV	AL,1
+	MOV	Byte Ptr gotnf,AL
+	MOV	CH,8
+; 
+namlp2:	MOV	AL,M
+	CALL	display
+	LAHF
+	INC	BX
+	SAHF
+	DEC	CH
+	JNZ	namlp2
+	MOV	AL,'.'
+	CALL	display
+	MOV	CH,3
+; 
+nlp3:	MOV	AL,M
+	CALL	display
+	LAHF
+	INC	BX
+	SAHF
+	DEC	CH
+	JNZ	nlp3
+	MOV	AL,' '
+	CALL	display
+	MOV	AL,fence
+	DEC	CL
+	LAHF
+	XCHG	AL,AH
+	PUSH	AX
+	XCHG	AL,AH
+	JZ	L_15	
+	CALL	display
+L_15:
+	MOV	AL,' '
+	CALL	display
+	POP	AX
+	XCHG	AL,AH
+	SAHF
+	JNZ	next2
+	CALL	crlf
+	JMPS	line2
+; 
+noprnt:	ADD	BX,DX
+	JMPS	next2
+; 
+; print header
+; 
+head1:	MOV	DX,(Offset newmsg)
+	JMPS	hedprt
+; 
+head2:	MOV	DX,(Offset delmsg)
+; 
+hedprt:	MOV	CL,print
+	INT	224
+	MOV	AL,Byte Ptr date
+	CMP	AL,' '
+	JZ	nodate
+	CMP	AL,sysok
+	JZ	nodate
+	MOV	DX,(Offset asof)
+	MOV	CL,print
+	INT	224
+; 
+nodate:	MOV	AL,':'
+	CALL	display
+	JMPS	crlf
+; 
+cknon2:	MOV	AL,Byte Ptr gotnf
+	OR	AL,AL
+	JZ	L_16	
+	JMP	fini			; jmp if got no 'not found's
+L_16:
+	MOV	AL,Byte Ptr prtflg
+	OR	AL,AL
+	JZ	L_17	
+	JMP	fini
+L_17:
+	MOV	DX,(Offset nonmsg)
+	MOV	CL,print		; else print 'none'
+	INT	224
+	JMP	fini
+; 
+; set up the name in the table
+; 
+setup:
+	if	nosys
+	MOV	AL,Byte Ptr systoo
+	CMP	AL,sysok
+	JZ	setu2
+	MOV	AL,Byte Ptr sysflg
+	RCL	AL,1
+	JB	setskp
+	endif
+; 
+setu2:	CALL	findff			; find end of table
+	XCHG	BX,DX			; setup for move
+; 
+; (hl = name, de = end of table)
+; 
+	MOV	CX,11
+	CALL	mover
+	MOV	AL,0ffh			; get table end flag
+	MOV	SI,DX			; store it
+	MOV	[SI],AL
+; 
+setskp:	POP	CX			; delete stack garbage
+	JMP	next			; get next entry
+; 
+crlf:	MOV	AL,cr
+	CALL	display
+	MOV	AL,lf
+; 
+display:
+;
+	PUSH	CX
+	PUSH	DX
+	PUSH	BX
+	MOV	DL,AL
+	MOV	CL,02h
+	INT	224
+	POP	BX
+	POP	DX
+	POP	CX
+	RET
+; 
+; move routine
+; 
+mover:	MOV	AL,M
+	MOV	SI,DX
+	MOV	[SI],AL
+	INC	DX
+	INC	BX
+	DEC	CX
+	MOV	AL,CH
+	OR	AL,CL
+	JNZ	mover
+	RET
+; 
+; compare routine
+; 
+compr:	MOV	SI,DX
+	MOV	AL,[SI]
+	CMP	AL,M
+	JZ	L_18
+	RET
+L_18:
+	INC	DX
+	INC	BX
+	DEC	CX
+	MOV	AL,CH
+	OR	AL,CL
+	JNZ	compr
+	RET				; equal
+; 
+; routine to find 0ffh at end of table
+; 
+findff:	MOV	BX,(Offset names)
+; 
+findlp:	MOV	AL,M
+	LAHF
+	INC	BX
+	SAHF
+	INC	AL			; 0ffh?
+	JNZ	findlp
+	LAHF				; back up to table end
+	DEC	BX
+	SAHF
+	RET
+; 
+; delete the name from the table
+; 
+delnam:	MOV	BX,(Offset names)
+; 
+dellp:	MOV	AL,M
+	CMP	AL,0ffh
+	STC
+	JNZ	L_19	
+	RET				; not found
+L_19:
+	MOV	DX,fcb+17
+	MOV	CX,11
+	CALL	compr
+	JZ	delete
+	ADD	BX,CX			; calc next
+	JMPS	dellp
+; 
+; delete the name
+; 
+delete:	XCHG	BX,DX			; next name to de
+	MOV	BX,-11			; to back up..
+	ADD	BX,DX			; ..to name to del
+; 
+delch:	MOV	SI,DX
+	MOV	AL,[SI]
+	MOV	M,AL
+	INC	BX
+	INC	DX
+	INC	AL			; moved the 0ffh?
+	JNZ	delch
+	OR	AL,AL			; show found
+	RET
+; 
+; fill fcb with all '?'
+; 
+fillq:	MOV	BX,fcb+1
+	MOV	CH,8+3
+	MOV	AL,'?'
+; 
+qmloop:	MOV	M,AL
+	LAHF
+	INC	BX
+	SAHF
+	DEC	CH
+	JNZ	qmloop
+	RET
+; 
+; 
+; write back the program - note that you may set any of the
+; cp/m 2.x attribute bits in the file name (be sure to define
+; all 11 characters of the name).
+; 
+wrback:	MOV	DX,fcb+1
+	CALL	wrbk2
+wrbk1	DB	'WHATSNEW'		; <--put 'd'+80h here to set tag
+	DB	'CMD'			; see comment above
+	DB	0			; extent number
+; 
+wrbk2:	POP	BX
+	MOV	CX,(Offset wrbk2)-(Offset wrbk1)
+	CALL	mover
+	MOV	CL,erase
+	MOV	DX,fcb
+	INT	224
+	XOR	AL,AL			; get 0
+	MOV	Byte Ptr setflg,AL	; clear the flags..
+	MOV	Byte Ptr gotflg,AL
+	MOV	Byte Ptr gotnf,AL
+	MOV	Byte Ptr systoo,AL
+	MOV	Byte Ptr .fcbrno,AL	; zero record number
+	MOV	CL,make
+	MOV	DX,fcb
+	INT	224
+;
+; clear group descriptor
+;
+	CALL	clr_grp
+; 
+; before writing back, find end of table
+; 
+	CALL	findff
+	MOV	CH,BH			; b=end page
+	INC	CH			; for compare
+;
+; convert page value to paragraph value
+;
+	MOV	BH,CH			; back to whence we came
+	MOV	BL,0			; clear low byte
+	SHR	BX,1			; /2
+	SHR	BX,1			; /4
+	SHR	BX,1			; /8
+	SHR	BX,1			; /16
+;
+; initialze G-FORM, G-LENGTH, G-MIN
+;
+	MOV	Word Ptr .g_length,BX
+	MOV	Word Ptr .g_min,BX
+	MOV	Byte Ptr .g_form,1	; make G-FORM = Code Group
+;
+; set starting address at base of group descriptor
+;
+	MOV	DX,g_form		; set starting address
+	CALL	wrt_grp			; write first group
+	CALL	clr_grp			; clear group descriptor
+	CALL	wrt_grp			; write second group (all zeros)
+	CALL	wrt_grp			; write third group (all zeros)
+;
+; group descriptor header written, now do the code segment
+;
+	MOV	DX,100h			; set starting address
+; 
+wrlp:	PUSH	CX
+	PUSH	DX
+	PUSH	BX
+	MOV	CL,setdma
+	INT	224
+	MOV	CL,write
+	MOV	DX,fcb
+	INT	224
+	POP	BX
+	POP	DX
+	POP	CX
+	OR	AL,AL			; successful write?
+	JNZ	wrerr			; ..no
+	MOV	BX,80h			; point to..
+	ADD	BX,DX			; ..next block
+	XCHG	BX,DX			; addr to de
+	MOV	AL,DH			; get page
+	CMP	AL,CH			; past table end?
+	JB	wrlp			; loop until done
+	MOV	CL,close
+	MOV	DX,fcb
+	INT	224
+	INC	AL			; successful close?
+	JZ	badcls			; ..no, print err msg
+	CALL	msgxit			; ok, exit w/msg
+;
+	DB	'++Done++$'
+; 
+wrerr:	CALL	msgxit
+;
+	DB	'++Write Error++$'
+; 
+badcls:	CALL	msgxit
+;
+	DB	'++Bad Close, D.CMD Clobbered!!++$'
+; 
+cexit:	MOV	CL,rdcon		; clear keyboard char
+	INT	224
+	JMPS	exit			; then exit
+; 
+; finished.  if building table, write back
+; 
+fini:	MOV	AL,Byte Ptr setflg
+	OR	AL,AL
+	JZ	exit			; not writing
+	JMP	wrback
+; 
+; exit with message (error or informational)
+; 
+msgxit:	POP	DX			; get msg
+	MOV	CL,print
+	INT	224
+; 
+; exit, via warm boot...
+; 
+exit:	MOV	CL,0			; warm boot CP/M-86 to return
+	MOV	DL,0
+	INT	224
+;
+; initialize group descriptor for D.CMD with proper file information
+;
+clr_grp:
+;
+	PUSH	CX			; save registers
+	PUSH	DX
+	PUSH	BX
+	MOV	BX,g_form		; point to base of group descriptor
+	MOV	CH,128			; need to clear 128 bytes
+	MOV	AL,0			; clear with 0's
+;
+clr_grp_loop:
+;
+	MOV	M,AL			; zero a byte
+	LAHF
+	INC	BX			; bump pointer to next byte
+	SAHF
+	DEC	CH			; de-bump count of bytes
+	JNZ	clr_grp_loop		; loop until done
+	POP	BX			; restore registers
+	POP	DX
+	POP	CX
+	RET				; return from 'clr_grp'
+;
+; write 128 bytes of group descriptor with header information
+; 
+wrt_grp:
+;
+	PUSH	CX
+	PUSH	DX
+	PUSH	BX
+	MOV	CL,setdma
+	INT	224
+	MOV	CL,write
+	MOV	DX,fcb
+	INT	224
+	POP	BX
+	POP	DX
+	POP	CX
+	OR	AL,AL			; successful write?
+	JNZ	wrerr			; ..no
+	RET				; return from 'wrt_grp'
+; 
+linmrk:	PUSH	CX
+	PUSH	DX
+	PUSH	BX
+	MOV	AL,Byte Ptr .fcb	; get drive name from fcb
+	OR	AL,AL			; any there?
+	JNZ	gotdrv			; yes, go print it
+	MOV	CL,curdsk		; else get current disk
+	INT	224
+	INC	AL			; make 'a'=1
+; 
+gotdrv:	ADD	AL,40h			; make ascii
+	CALL	display			; print drive name
+	CALL	gotdr2			; then ': '
+	DB	': $'
+; 
+gotdr2:	POP	DX			; get msg adr
+	MOV	CL,print		; print it
+	INT	224
+	POP	BX
+	POP	DX
+	POP	CX
+	RET
+L_20	EQU	$
+	DSEG
+	ORG	Offset L_20
+; 
+newmsg	DB	cr,lf,'-->New Files$'
+; 
+delmsg	DB	cr,lf,cr,lf,'-->Deleted Files$'
+;
+HELPMSG	DB	CLS,'USAGE:'
+	DB	'A>WHATSNEW  {option}',CR,LF,LF
+	DB	'Without option, shows listing of new and deleted files',CR,LF,LF
+	DB	TAB,'OPTIONS:',CR,LF
+	DB	TAB,TAB,'//   display this help message',CR,LF,LF
+	DB	TAB,TAB,'*.*  display all files on disk',CR,LF,LF
+	DB	TAB,TAB,'*.A86  display all files of type A86',CR,LF,LF
+	DB	TAB,TAB,'ADD  filename.typ  adds file to table',CR,LF,LF
+	DB	TAB,TAB,'DEL  filename.typ  deletes file from table',CR,LF,LF
+	DB	TAB,TAB,'LOK A: to lock program to drive A:',CR,LF,LF
+	DB	TAB,TAB,'LOK  to unlock from specific drive',CR,LF,LF
+	DB	TAB,TAB,'SET  will build table of current files on the',CR,LF
+	DB	TAB,TAB,'     disk and generate a new WHATSNEW.CMD',CR,LF,LF
+	IF  NOT CLOCK
+	DB	TAB,TAB.'SET MM/DD/YY  will build a table with the date',CR,LF
+	ENDIF
+	DB	'$'
+; 
+;
+gotflg	DB	0
+gotnf	DB	0
+systoo	DB	0
+nonmsg	DB	'++None++',cr,lf,'$'
+asof	DB	' since '
+	IF	CLOCK
+date	DB	'MM/DD/YY'
+	ENDIF
+	IF  NOT  CLOCK
+date	DB	'        '
+	ENDIF
+	DB	'$'
+setflg	DB	0			; 1 => setup table
+prtflg	DB	0			; print only some
+sysflg	DB	0			; $sys attrib indicator
+; 
+; note the names are initially built by: D SET<cr>
+; 
+names	DB	0ffh			; end of table, for filenames
+; 
+	rs	04000h			; reserve a bunch
+	db	0			; mark the end for GENCMD
+;
+	END
+

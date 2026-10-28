@@ -1,0 +1,387 @@
+Introduction
+F$CLOSE        -- Close a File
+F$DELETE       -- Delete a File
+F$EXIST        -- Test of the Existence of a File
+F$MAKE         -- Create a File
+F$OPEN/F$MOPEN -- Open a File
+F$READ         -- Read a Block from a File
+F$RENAME       -- Rename a File 
+F$SIZE         -- Compute File Size
+F$WRITE        -- Write a Block to a File
+GFA            -- Get File Attributes
+R$READ         -- Random Read of a Block from a File
+R$WRITE        -- Randome Write of a Block to a File
+SCFA           -- Set and Clear File Attributes
+SFA            -- Set All File Attributes
+:CP/M File Input/Output Routines
+
+     Thå  followinç  routineó arå general-purposå  filå  I/Ï 
+routineó whicè interfacå tï CP/Í througè thå Entrù Poinô  aô 
+locatioî 5®   Theù preservå BC¬  DE¬ anä HL¬ anä theù returî 
+witè  thå  standarä CP/Í erroò codeó foò  thå  correspondinç 
+routines®  Theså routineó are:
+
+     F$CLOSE   F$DELETE  F$EXIST   F$MAKE    F$OPEN
+     F$MOPEN   F$READ    F$RENAME  F$SIZE    F$WRITE
+     R$READ    R$WRITE
+
+     Thå routineó GFA¬  SCFA¬  anä SFÁ alì deaì witè gettinç 
+(GFA©  anä  settinç (SCFÁ anä SFA© thå attributeó  oæ  fileó 
+whoså FCBó arå pointeä tï bù DE.
+
+:Close a File
+     Routine Name:  F$CLOSE
+
+     Function:
+
+     Close the file whose FCB is pointed to by DE.
+
+     Inputs:  DE = pointer to FCB
+
+     Outputs:  A = Error Code
+                   0    --> No Error
+                   0FFH --> Error in closing file
+
+     Registers Affected:  PSW
+
+     SYSLIB Routines Called:  BDOS
+
+     Special Error Conditions:  -None-
+
+:Delete a File
+     Routine Name:  F$DELETE
+
+     Functionº
+Š     Deletå thå filå whoså FCÂ ió pointeä tï bù DE®  Iæ filå 
+doeó noô exist¬ nothinç happenó (nï erroò messagå oò codå ió 
+given).
+
+     Inputs:  DE = pointer to FCB
+
+     Outputs:  -None-
+
+     Registers Affected:  PSW
+
+     SYSLIB Routines Called:  BDOS
+
+     Special Error Conditions:  -None-
+
+:Test of Existence of a File
+     Routine Name:  F$EXIST
+
+     Functionº
+
+     F$EXISÔ testó foò thå presencå oæ thå filå whoså FCÂ ió 
+pteä  tï bù DÅ iî thå currenô disk/useò area®   Iæ thió filå 
+doeó noô exisô iî thió area¬  F$EXISÔ returnó witè thå  Zerï 
+Flaç Seô (Z)»  iæ thió filå doeó exist¬ F$EXISÔ returnó witè 
+NZ.
+
+     Inputs:  DE pts to FCB of file to test for
+
+     Outputs:  Zero Flag Set (Z) means file not found; NZ
+               means file found
+
+     Registers Affected:  PSW
+
+     SYSLIB Routines Called:  BDOS
+
+     Speciaì  Erroò Conditionsº  None
+
+:Create a File
+     Routine Name:  F$MAKE
+
+     Function:
+
+     Create (Make) the file whose FCB is pointed to by DE.
+
+     Inputs:  DE = pointer to FCB
+
+     Outputs:  A = Error Code
+           0FFH --> No directory space available
+           Not 0FFH --> No Error; Value is byte address in
+                        TBUFF (80H-0FFH) of directory entry
+                        allocated to the FCB
+
+     Registers Affected:  PSW
+
+     SYSLIB Routines Called:  BDOS, F$DELETE
+Š     Special Error Conditions:  -None-
+
+:Open a File
+     Routine Name:  F$OPEN
+
+     Functionº
+
+     Opeî  thå  filå specifieä bù thå FCÂ pointeä tï bù  DE®  
+Iæ  filå noô found¬  F$OPEÎ returnó witè aî erroò codå iî  Á 
+(0FFH© anä Zerï Flaç Cleaò (NZ).
+
+     Inputs:  DE = pointer to FCB
+
+     Outputs:  A = Error Code and PSW Flags Set (Zero Flag)
+                   0    --> No Error
+                   0FFH --> File not opened
+
+     Registers Affected:  PSW
+
+     SYSLIB Routines Called:  BDOS, CAPS, CIN, COUT, CRLF, PRINT
+
+     Special Error Conditions:  -None-
+
+
+     Routine Name:  F$MOPEN
+
+     Functionº
+
+     Opeî  thå filå specifieä bù thå FCÂ pointeä tï  bù  DE®  
+Iæ  filå  ió noô found¬  F$MOPEÎ trieó tï  creatå  one®   Iô 
+returnó  thå erroò codå oæ 0FFÈ iî Á iæ therå waó noô enougè 
+rooí iî thå disë directorù tï creatå thå directorù entry.
+
+     Inputs:  DE = pointer to FCB
+
+     Outputs:  A = Error Code and PSW Flags (Zero Flag) Set
+                   0    --> No Error
+                   0FFH --> File not opened
+
+     Registers Affected:  PSW
+
+     SYSLIB Routines Called:  BDOS, CAPS, CIN, COUT, CRLF, PRINT
+
+     Special Error Conditions:  -None-
+
+:Read a Block from a File
+     Routine Name:  F$READ
+
+     Functionº
+
+     Reaä nexô blocë (12¸ bytes© froí thå openeä filå  whoså 
+FCÂ ió pointeä tï bù DÅ intï TBUFÆ (buffeò aô 80È - 0FFH).
+
+     Inputs:  DE = pointer to FCB
+
+     Outputs:  A = Error Code
+                   0 --> No Error
+                   1 --> Read past end of file
+                   2 --> Reading unwritten data in random access
+
+     Registers Affected:  PSW
+
+     SYSLIB Routines Called:  BDOS
+
+     Special Error Conditions:  -None-
+
+:Rename a File
+     Routine Name:  F$RENAME
+
+     Functionº
+
+     F$RENAMÅ  maù bå useä tï renamå á file®   Oî entry¬  DÅ 
+ptó  tï thå firsô twelvå byteó oæ thå file'ó FCÂ anä HÌ  ptó 
+tï thå firsô twelvå byteó oæ thå FCÂ foò thå ne÷ filå  (thaô 
+is¬  onlù thå FÎ anä FÔ fieldó arå significant¬  sï thå resô 
+oæ  aî  FCÂ neeä noô bå presenô foò thió functioî tï  work)®  
+F$RENAMÅ  containó aî internaì FCÂ whicè ió structureä  froí 
+thå twï entrieó tï properlù renamå thå file.Š
+     Inputs:  HL pts to 1st 12 bytes of new FCB
+              DE pts to 1st 12 bytes of old FCB
+
+     Outputs:  Zero Flag Set (Z) means error (file not found)
+
+     Registers Affected:  PSW
+
+
+     SYSLIB Routines Called: BDOS, FILLB, MOVEB
+
+     Speciaì  Erroò  Conditionsº    Filå  Noô  Founä  error¬ 
+indicateä bù Ú flag
+
+:Compute File Size
+     Routine Name:  F$SIZE
+
+     Function:
+
+     Computå  thå sizå oæ á filå (iî K© baseä oî itó  recorä 
+count®  Thió routinå giveó thå filå sizå correcô tï thå nexô 
+1K, but does not take into account the grouping factor.
+
+     Inputs:  DE points to the 1st 12 bytes of an FCB
+
+     Outputs:  HL contains file size
+
+     Registers Affected:  HL
+
+     SYSLIB Routines Called:  MOVEB, INITFCB, BDOS, SHFTRH
+
+     Special Error Conditions:  None
+
+:Write a Block to a File
+     Routine Name:  F$WRITE
+
+     Functionº
+
+     Writå nexô blocë (12¸ bytes© froí TBUFÆ (buffeò aô  80È 
+tï 0FFH© tï thå openeä filå whoså FCÂ ió pointeä tï bù DE.
+
+     Inputs:  DE = pointer to FCB
+
+     Outputs:  A = Error Code
+                   0    --> No Error
+                   1    --> Error in extending file
+                   2    --> End of disk data
+                   0FFH --> No more directory space
+
+     Registers Affected:  PSW
+
+     SYSLIB Routines Called:  BDOS
+
+     Special Error Conditions:  -None-
+:Get File Attributes
+     Routine Name:  GFA
+
+     Functionº
+
+     Returî thå attributeó oæ thå filå whoså FCÂ ió  pointeä 
+tï bù DE®   Oî return¬  Á containó á codå indicatinç thå R/Ï 
+anä SYÓ attributes¬  wherå thå 8tè biô oæ Á (A7© ió ± iæ thå 
+filå ió á SYSteí filå anä ° iæ thå filå ió á DIRectorù (Non-ŠSYStem©  filå anä thå 1sô biô oæ Á (A0© ió ± iæ thå filå  ió 
+Read/Onlù anä ° iæ thå filå ió Read/Write.
+
+     Aó  á  sidå effect¬  thå MSBó oæ alì byteó iî thå  Filå 
+Namå  anä Filå Typå fieldó oæ thå originaì FCÂ (byteó  1-11¬ 
+wherå  bytå  ° ió first© arå seô equaì tï thå  MSBó  oæ  thå 
+correspondinç directorù entry.
+
+
+     Inputs:  DE = pointer to FCB
+
+     Outputs:  A = Attribute Code
+               A0 = 1 --> File is R/O
+               A0 = 0 --> File is R/W
+               A7 = 1 --> File is System
+               A7 = 0 --> File is Non-System
+
+     Registers Affected:  PSW
+
+     SYSLIB Routines Called:  INITFCB
+
+     Special Error Conditions:  -None-
+
+:Random Read a Block from a File
+     Routine Name:  R$READ
+
+     Functionº
+
+     Reaä  á blocë froí thå filå whoså FCÂ ió pointeä tï  bù 
+DE®   Thå recorä numbeò oæ thå blocë ió containeä iî HL¬ anä 
+thå  blocë  ió reaä intï thå CP/Í defaulô buffeò areá  (80H-
+0FFH)®   Oî  exit¬  aî Erroò Codå ió returneä iî A®   Iô  ió 
+assumeä thaô thå filå haó beeî openeä bù F$OPEÎ oò equiv.
+
+     Inputs:  DE = pointer to FCB
+              HL = record number
+
+     Outputs:  A = Error Code
+                   0 --> No Error (Z Flag Set)
+                   1 --> Attempt to Read Unwritten Record
+                   3 --> CP/M could not Close Current Extent
+                   4 --> Attempt to Read Unwritten Extent
+                   6 --> Attempt to Read Beyond End of Disk
+
+
+     Registers Affected:  PSW
+
+     SYSLIB Routines Called:  None
+
+     Special Error Conditions:  -None-
+
+:Random Write of a Block to a File
+     Routine Name:  R$WRITE
+
+     Functionº
+
+     Writå  thå  blocë containeä iî thå defaulô buffeò  areá 
+(80H-0FFH©  tï thå disë filå whoså FCÂ ió pteä tï bù DÅ  anä 
+whoså  recorä numbeò ió containeä iî HL®   Thió  FCÂ  shoulä 
+have previously been opened by a call to F$OPEN or the like.
+
+     Inputs:  DE = pointer to FCB
+              HL = record number
+
+     Outputs:  A = Error Code
+                   0 --> No Error (Z Flag Set)
+                   1 --> Attempt to Read Unwritten Record
+                   3 --> CP/M could not Close Current Extent
+                   4 --> Attempt to Read Unwritten Extent
+                   5 --> Directory Full
+                   6 --> Attempt to Read Beyond End of Disk
+
+
+     Registers Affected:  PSW
+
+     SYSLIB Routines Called:  None
+
+     Special Error Conditions:  -None-
+
+:Set and Clear File Attributes
+     Routine Name:  SCFA
+
+     Functionº
+
+     Seô  anä cleaò thå attributeó oæ thå filå whoså FCÂ  ió 
+pointeä tï bù DE®   Oî entry¬  Á containó á codå  indicatinç 
+thå R/Ï anä SYÓ attributes¬ wherå thå 8tè biô oæ Á (A7© ió ± 
+iæ  thå filå ió tï bå á SYSteí filå anä ° iæ thå filå ió  tï 
+bå  á DIRectorù (Non-SYStem© filå anä thå 1sô biô oæ Á  (A0© 
+ió  ± iæ thå filå ió tï bå Read/Onlù anä ° iæ thå filå ió tï 
+bå Read/Write®   Alì otheò filå attributeó arå cleareä tï  ° 
+(thå MSBó oæ byteó 1-¸ anä 1± arå seô tï 0).
+
+
+     Inputs:  DE = pointer to FCB
+              A = Attribute Code
+               A0 = 1 --> File is to be R/O
+               A0 = 0 --> File is to be R/W
+               A7 = 1 --> File is to be System
+               A7 = 0 --> File is to be Non-System
+
+     Registers Affected:  None
+
+     SYSLIB Routines Called:  INITFCB
+
+     Special Error Conditions:  -None-
+
+:Set File Attributes
+     Routine Name:  SFA
+
+     Functionº
+
+     Seô  thå attributeó oæ thå filå whoså FCÂ ió pointeä tï 
+bù DE®   Oî entry¬  Á containó á codå indicatinç thå R/Ï anä 
+SYÓ attributes¬ wherå thå 8tè biô oæ Á (A7© ió ± iæ thå filå 
+ió  tï  bå  á  SYSteí filå anä ° iæ thå  filå  ió  tï  bå  á 
+DIRectorù  (Non-SYStem© filå anä thå 1sô biô oæ Á (A0© ió  ± 
+iæ  thå  filå ió tï bå Read/Onlù anä ° iæ thå filå ió tï  bå 
+Read/Write.
+
+     Aó  á sidå effect¬  thå MSBó oæ alì byteó iî  thå  Filå 
+Namå  anä Filå Typå fieldó oæ thå originaì FCÂ (byteó  1-11¬ 
+wherå  bytå  °  ió  first© arå copieä tï  thå  MSBó  oæ  thå 
+correspondinç directorù entry.
+
+
+     Inputs:  DE = pointer to FCB
+              A = Attribute Code
+               A0 = 1 --> File is to be R/O
+               A0 = 0 --> File is to be R/W
+               A7 = 1 --> File is to be System
+               A7 = 0 --> File is to be Non-System
+
+     Registers Affected:  None
+
+     SYSLIB Routines Called:  INITFCB
+
+     Special Error Conditions:  -None-
+
+

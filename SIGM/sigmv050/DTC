@@ -1,0 +1,208 @@
+;	CONFIGURATION EQUATES
+;
+;LUNiTYPE bit definitions
+;
+TYPESEC:  EQU	00000110b	;sector size
+TYPEDRV:  EQU	00000001b	;0=>floppy, 1=>hard or mini floppy
+;
+TYPEN48:  EQU	00001000b	;48 TPI Mini
+TYPEN96:  EQU	00010000b	;96 TPI Mini
+TYPEFPY:  EQU	00100000b	;8" floppy
+
+;
+NLUN:	EQU	(LUN0 AND 1)+(LUN1 AND 1)+(LUN2 AND 1)+(LUN3 AND 1)
+HM0:	SET	0
+H0:	SET	0
+NH0:	SET	0
+M0:	SET	0
+N48M0:	SET	0
+N96M0:	SET	0
+F0:	SET	0
+NF0:	SET	0
+b0:	SET	0
+	IF	NOT LUN0
+S0:	EQU	0
+	ENDIF
+	IF	LUN0
+HM0:	SET	LUN0TYPE AND TYPEDRV
+N48M0:	SET	(((LUN0SEC-1200) SHR 15) AND 1)*HM0
+N96M0:	SET	(((LUN0SEC-3000) SHR 15) AND 1)*HM0 - N48M0
+NH0:	SET	HM0-N48M0-N96M0
+M0:	SET	(N48M0+N96M0)*LUN0NLD
+H0:	SET	NH0*LUN0NLD
+NF0:	SET	1-HM0
+F0:	SET	NF0*LUN0NLD
+B0:	SET	(NF0+N96M0)*6 + N48M0*4 + NH0*0FFh
+S0:	EQU	1 SHL ((LUN0TYPE AND TYPESEC) SHR 1)
+	ENDIF
+HM1:	SET	0
+H1:	SET	0
+NH1:	SET	0
+M1:	SET	0
+N48M1:	SET	0
+N96M1:	SET	0
+F1:	SET	0
+NF1:	SET	0
+B1:	SET	0
+	IF	NOT LUN1
+S1:	EQU	0
+	ENDIF
+	IF	LUN1
+HM1:	SET	LUN1TYPE AND TYPEDRV
+N48M1:	SET	(((LUN1SEC-1200) SHR 15) AND 1)*HM1
+N96M1:	SET	(((LUN1SEC-3000) SHR 15) AND 1)*HM1 - N48M1
+NH1:	SET	HM1-N48M1-N96M1
+M1:	SET	(N48M1+N96M1)*LUN1NLD
+H1:	SET	NH1*LUN1NLD
+NF1:	SET	1-HM1
+F1:	SET	NF1*LUN1NLD
+B1:	SET	(NF1+N96M1)*6 + N48M1*4 + NH1*0FFh
+S1:	EQU	1 SHL ((LUN1TYPE AND TYPESEC) SHR 1)
+	ENDIF
+HM2:	SET	0
+H2:	SET	0
+NH2:	SET	0
+M2:	SET	0
+N48M2:	SET	0
+N96M2:	SET	0
+F2:	SET	0
+NF2:	SET	0
+B2:	SET	0
+	IF	NOT LUN2
+S2:	EQU	0
+	ENDIF
+	IF	LUN2
+HM2:	SET	LUN2TYPE AND TYPEDRV
+N48M2:	SET	(((LUN2SEC-1200) SHR 15) AND 1)*HM2
+N96M2:	SET	(((LUN2SEC-3000) SHR 15) AND 1)*HM2 - N48M2
+NH2:	SET	HM2-N48M2-N96M2
+M2:	SET	(N48M2+N96M2)*LUN2NLD
+H2:	SET	NH2*LUN2NLD
+NF2:	SET	1-HM2
+F2:	SET	NF2*LUN2NLD
+B2:	SET	(NF2+N96M2)*6 + N48M2*4 + NH2*0FFh
+S2:	EQU	1 SHL ((LUN2TYPE AND TYPESEC) SHR 1)
+	ENDIF
+HM3:	SET	0
+H3:	SET	0
+NH3:	SET	0
+M3:	SET	0
+N48M3:	SET	0
+N96M3:	SET	0
+F3:	SET	0
+NF3:	SET	0
+B3:	SET	0
+	IF	NOT LUN3
+S3:	EQU	0
+	ENDIF
+	IF	LUN3
+HM3:	SET	LUN3TYPE AND TYPEDRV
+N48M3:	SET	(((LUN3SEC-1200) SHR 15) AND 1)*HM3
+N96M3:	SET	(((LUN3SEC-3000) SHR 15) AND 1)*HM3 - N48M3
+NH3:	SET	HM3-N48M3-N96M3
+M3:	SET	(N48M3+N96M3)*LUN3NLD
+H3:	SET	NH3*LUN3NLD
+NF3:	SET	1-HM3
+F3:	SET	NF3*LUN3NLD
+B3:	SET	(NF3+N96M3)*6 + N48M3*4 + NH3*0FFh
+S3:	EQU	1 SHL ((LUN3TYPE AND TYPESEC) SHR 1)
+	ENDIF
+NOHRD:	EQU	H0+H1+H2+H3	;# logical hard disks
+NOFDD:	EQU	F0+F1+F2+F3	;#8"  floppy disks
+NOMINI:	EQU	M0+M1+M2+M3	;# 5.25" floppy disks
+NDSK:	EQU	NOHRD+NOFDD+NOMINI	;# disks
+DPBLN:	EQU	NH0+NH1+NH2+NH3+NOFDD+NOMINI	;# of DPBs
+SX:	EQU	S0 OR S1 OR S2 OR S3
+SX3:	EQU	(SX AND 8) SHR 3
+SX2:	EQU	(SX AND 4) SHR 2
+SX1:	EQU	(SX AND 2) SHR 1
+SX0:	EQU	SX AND 1
+
+	IF	SX3
+MAXSEC:	EQU	3
+	ENDIF
+	IF	SX2 AND (NOT SX3)
+MAXSEC:	EQU	2
+	ENDIF
+	IF	SX1 AND (NOT (SX2 OR SX3))
+MAXSEC:	EQU	1
+	ENDIF
+	IF	SX0 AND (NOT (SX1 OR SX2 OR SX3))
+MAXSEC:	EQU	0
+	ENDIF
+;
+
+
+;	CP/M equates
+
+K:	EQU	1024
+
+BUF$SZ:	EQU	(MAXSEC+1)*128+128	;host buffer and directory
+TAB$SZ:	EQU	6*NDSK+16*(NDSK+DPBLN)	;DTYPE, DSKMSK, DSKOFF, DPH, DPB
+CSV$SZ:	EQU	32*(NOFDD+NOMINI)	;check vectors
+ALV$SZ:	EQU	192*NOFDD+255*NOHRD+128*NOMINI	;allocation vectors
+BIOSIZ:	EQU	((BUF$SZ+TAB$SZ+CSV$SZ+ALV$SZ+K-1)/K)*K+600h
+					;BIOS size
+BIOCOD:	EQU	((TAB$SZ+K-1)/K)*K+600h	;BIOS code size
+CBIOS:	EQU	MSIZE*K-BIOSIZ	;Start of DTC BIOS
+BDOS:	EQU	CBIOS-0DFAh	;Start of BDOS
+CCP:	EQU	CBIOS-1600h	;Start of CCP
+BXADR:	EQU	00h		;BIOS bank address
+
+
+;	DTC hard disk subsystem equates.
+
+	IF	I696
+;	BUS status		 7   6   5   4   3   2   1   0
+;				 |   |   |   |   |   |   |
+REQ:	EQU	080h	;<-------+   |   |   |   |   |   |
+DIROUT:	EQU	040h	;<-----------+   |   |   |   |   |
+MSSG:	EQU	020h    ;<---------------+   |   |   |   |
+CMND:	EQU	010h	;<-------------------+   |   |   |
+BUSY:	EQU	008h	;<-----------------------+   |   |
+PTERR:	EQU	004h	;<---------------------------+   |
+AVINT:	EQU	002h	;<-------------------------------+
+
+
+;	Control Register	 7   6   5   4   3   2   1   0
+;				     |       |   |   |   |   |
+SLCT:	EQU	040h	;<-----------+       |   |   |   |   |
+;interrupt enable	 <-------------------+   |   |   |   |
+;REQ interrupt enable	 <-----------------------+   |   |   |
+;DMA interrupt enable	 <---------------------------+   |   |
+DODTA:	EQU	002h	;<-------------------------------+   |
+EDMA:	EQU	001h	;<-----------------------------------+
+	ENDIF
+
+
+	IF	I796
+;	BUS status		 7   6   5   4   3   2   1   0
+;				 |   |               |       |
+CMDDON:	EQU	080h	;<-------+   |               |       |
+PTERR:	EQU	040h	;<-----------+               |       |
+DAT16:	EQU	004h	;<---------------------------+       |
+AVINT:	EQU	001h	;<------------------------------------+
+	ENDIF
+
+;	Controller status byte masks.
+
+TERR:	EQU	4		;Timeout (Softwae)
+CERR:	EQU	2		;Controller error
+PERR:	EQU	1		;Parity error on bus
+FERR:	EQU	PERR OR CERR OR TERR 	;Either error
+
+
+;	Controller commands.
+
+STCMD:	EQU	000h		;Status command
+ESCMD:	EQU	003h		;Error sense command
+FDCMD:	EQU	004h		;Format disk command
+FTCMD:	EQU	006h		;Format track command
+RDCMD:	EQU	008h		;Read disk command
+WTCMD:	EQU	00Ah		;Write disk command
+FSCMD:	EQU	0C0h		;FDD format selection
+ADCMD:	EQU	0C1h		;Assign Drive Type
+
+RDDMA:	EQU	005h		;Read DMA chip request
+WRDMA:	EQU	001h		;Write DMA chip request
+

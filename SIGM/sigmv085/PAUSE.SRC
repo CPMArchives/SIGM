@@ -1,0 +1,23 @@
+; short routine to print a message to the console, wait
+; for any keypressed then return immediately to cp/m.
+; 05/14/82 - Raymond E. Penley
+
+	org	0100h
+	;
+	lxi	d,msg
+	mvi	c,09h	;print string function code
+	call	5
+	;
+	mvi	c,1	;conin function code
+	call	5
+	;
+	lxi	d,crlf	;print a cr/lf
+	mvi	c,09h
+	call	5
+	ret		;back to ccp
+	;
+msg:	db	'Press any key to return to menu:$'
+crlf:	db	13h,0ah,'$'
+
+	end
+

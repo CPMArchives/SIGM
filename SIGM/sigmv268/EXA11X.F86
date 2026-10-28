@@ -1,0 +1,67 @@
+C	[EXA11.F86]
+C
+C	PROGRAM	EXA11 for FORTRAN-86
+C////////////////////////////////////////////////////////////////
+C/								/
+C/	Program-id.	Example 11x, Information Service System	/
+C/	Date-written.	Feb. 11th 1984				/
+C/	Date-updadted.	Feb. 17th 1984 for FORTRAN-86		/
+C/	Remarks.	A main program of Information Service	/
+C/			System from page 269.			/
+C/			This program uses GASP IIex version.	/
+C/								/
+C////////////////////////////////////////////////////////////////
+C
+	CHARACTER*12	FILE
+C
+	DIMENSION	NSET(120), QSET(30)
+C
+        COMMON /C1/ ID,IM,INIT,JEVNT,JMNIT,MFA,MSTOP,MX,MXC,NCLCT,
+     1		    NHIST,NOQ,NORPT,NOT,NPRMS,NRUN,NRUNS,NSTAT,OUT,
+     2		    ISEED,TNOW,TBEG,TFIN,MXX,NPRNT,NCRDR,NEP,VNQ(4),
+     3		    IMM,MAXQS,MAXNS
+	COMMON /C2/ ATRIB(10),ENQ(4),INN(4),JCELS(5,22),KRANK(4),
+     1		    MAXNQ(4),MFE(4),MLC(4),MLE(4),NCELS(5),NQ(4),
+     2		    PARAM(20,4),QTIME(4),SSUMA(10,5),SUMA(10,5),
+     3		    NAME(6),NPROJ,MON,NDAY,NYR,JCLR,JTRIB(12)
+	COMMON /U1/ NARC,NSCAN,JBUFF,NSTA(10),JRPLY(10)
+	COMMON /U2/ XL,NTER,IBUFF,CDIAL(2),CREAD(2),SRTIM,SCTIM,
+     1		    TRTIM,DLTIM,COMTIM(2)
+C
+C	--- Start of Main program of Information System.
+C
+	NCRDR = 6
+	MODE = 2
+	IDRIVE = 0
+	WRITE(1,90)
+   90	FORMAT(1H0,'Output GASP data file to Display(1) or Printer(4)'
+     1         /1H ,'Enter Output Device number (1 or 4): ') 
+	READ(1,95) NPRNT
+   95	FORMAT(I1)
+	WRITE(1,100)
+  100	FORMAT(1H ,'Input GASPex data file name (max 12 characters):')
+	READ(1,200) FILE
+  200	FORMAT(A0)
+	WRITE(1,210) FILE
+  210	FORMAT(1H ,'INPUT GASPEX DATA FILE NAME : ',A0)
+C
+	IF (IOREAD(NCRDR,MODE,IDRIVE,FILE)) GO TO 300
+C
+C
+C	--- Initial conditions for he simulation are no customers in
+C	    the system. the scanner is at position (1), the buffer sto-
+C	    rage is not blocked, all stations have no customers in them
+C	    and all lines are free.
+C
+	NARC = 0
+	NSCAN = 1
+	JBUFF = 0
+      DO 10 I=1,10
+	NSTA(I) = 0
+        JRPLY(I) = 1
+   10 CONTINUE
+C
+	CALL	GASP(NSET,QSET)
+	CALL	EXIT
+	END
+

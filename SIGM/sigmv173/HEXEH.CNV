@@ -1,0 +1,64 @@
+
+[HEXEH.CNV]
+[Harold V. McIntosh, 7 April 1984]
+
+[Make Intel HEX from UFH]
+[Exclude CTR DIR RST BIO]
+
+[[Intel HEX from UFH]]
+
+
+
+[lines for .HEX file]
+(()()(0 1 2)(
+  [suppress spaces]	(<0>  <1>,<0><1>):
+  [ever filled buffer]	(<0>:(and,<1>,(NOT,<[32]>),(NOT,<-->(^Z))),<0>:<1>(R)):
+  [update new origin]	(<0>:^(and,<[4]>,<1>)<2>,(&Hd,<1>):<2>):
+  [the final line]	(<0>:%(and,<[4]>,<1>),(c,<1>));
+  [^ terminates line]	(<0>:<1>^<2>,(b,<1>)^<2>):
+  [% terminates line]	(<0>:<1>%<2>,(b,<1>)%<2>):
+  [quit at EOF]		(<0>:(^Z),(c,0000));
+  [partial line at ^Z]	(<0>:<1>(^Z),(b,<1>)(^Z)):
+  [full line]		(<0>:(and,<[32]>,<1>)<2>,(b,<1>)<2>):
+  )) a
+
+[punch a row]
+(()()(1 2 3)(
+	((and,<[32]>,<1>)<2>,<<
+		>>(#+,<0>+16):<<
+		>>(if,10(&Dh,<0>)00<1>,<3>,(W))<<
+		>><2>);
+	(<1>,(if,(&Dh,(#/,(&!,<1>)/2)),00<2>,<<
+		>>(#+,<0>+(&Hd,<2>)):<<
+		>>(if,<2>(&Dh,<0>)00<1>,<3>,(W))<<
+		>>));
+  )) b
+
+[punch closing line] (()()(0 3)((<0>,(if,00<0>00,<3>,(W)));)) c
+
+[checksum]
+(()()(0 1 2)(
+	(<0>:(and,<[2]>,<1>)<2>,(#+,<0>+(&Hd,<1>)):<2>):
+	(<0>:,(if,(&Dh,-<0>),<[2]><1>,<1>));
+  )) d
+
+[main program]
+(()(
+	((%R,<9>.UFH,<[32]>)) R
+	((%W,(X),(%T,:<3>(d,0:<3>))(^MJ))) W
+	(<9>.HEX) X
+  )(9)(
+	((PWS)(or),);
+	((or, ,?,<>),<<
+		>>(, (%T,HEXEH.REC will generate FILE.HEX from FILE.UFH) )<<
+		>>(, (%T,Type FILE to be used) )<<
+		>>(&u,(%R,TTY:))):
+	(<9>(or, ,.,<>),<<
+		>>(%Or,<9>.UFH)<<
+		>>(%Ow,<9>.HEX)<<
+		>>(a,0:(R))<<
+		>>(%E));
+  ))
+
+[end]
+

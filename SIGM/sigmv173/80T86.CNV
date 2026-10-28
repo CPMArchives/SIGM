@@ -1,0 +1,194 @@
+
+[80T86.CNV]
+[Harold V. McIntosh, 16 April 1984]
+
+[Translate 8080 instructions to 8086]
+
+[Instructions must be lower case; symbols may be upper
+ or lower case or mixed, but usage must be consistent.
+ Assembler directives recognized include:
+    org, end, equ, db, dc, dw and ds.
+ They should only be written in lower case.]
+
+[Exclude CHR MEM FOR DIR RST BIO]
+
+[[Intel 8080 to 8086 Translator]]
+
+
+
+[read and process line]
+(()()(5)(((^Z),);(<5>,(b,<5>)(R)):)) a
+
+[pick off labels]
+(()()(0 1)(
+	((or,;,<>),(v,<5>));
+	((and,<:F:>:<:G:>(ITR,<:G:>)<:T:><:G:><--><>,<0>:<1>),<0><1>):
+	(<:0:><1>,(c,<1>));
+  )) b
+
+(()()(1 2 3 4)(
+  [END]		  (end,(v,<5>)(^Z));
+  [quit at EOF]	  ((^Z),(, (%T,No END line) )(^Z));
+[][ds to rw]	  (ds<:G:>(ITR,<:G:>)(and,<:C:>,2)<4>,(w,rw(^I)1));
+[][ds to rb]	  (ds<4>,(w,rb));
+[][BDOS call]	  (call<:H:>BDOS<:4:>,(w,int(^I)BDOS));
+  [ignore equ &c] ((and,<:T:><:H:><--><>,<4>),(w));
+  [lxi]		  (lxi<:H:><1><,><2><:4:>,(w,mov(^I)(i,<1>)<,>(r,<2>)));
+  [3-byte inst]	  ((and,<:M:>,<1>)<:H:><2><:4:>,(w,(l,<1>)));
+  [mvi]		  (mvi<:H:><1><,><2><:4:>,(w,mov(^I)(e,<1>)<,><2>));
+  [2-byte inst]	  ((and,<:N:>,<1>)<:H:><2><:4:>,(w,(m,<1>)));
+  [moves]	  (mov<:H:><1><,><2><:4:>,(w,mov(^I)(e,<1>)<,>(e,<2>)));
+  [arit-logic]	  ((and,<:P:>,<1>)<:H:><2><:4:>,(w,(f,<1>)(e,<2>)));
+  [1-byte w/reg]  ((and,<:O:>,<1>)<:H:><2><:4:>,(w,(n,<1>)));
+  [cndl ret]	  (r(and,<:L:>,<1>)<:H:><:4:>,(w,(o,<1>)));
+  [accumulator]	  ((and,<:U:>,<1>)<:H:><:4:>,(w,(j,<1>)));
+  [1-byte inst]	  ((and,<:Q:>,<1>)<:H:><:4:>,(w,(k,<1>)));
+  [other]	  (<1>,(, (%T,unknown <1>) ));
+  )) c
+
+[register equivalents]
+(()()()((b,ch);(c,cl);(d,dh);(e,dl);(h,bh);(l,bl);(m,<(>byte ptr[bx]<)>);(a,al);)) e
+
+[arith-logic equivalents]
+(()()()(
+	(add,add(^I)al<,>);
+	(adc,adc(^I)al<,>);
+	(sub,sub(^I)al<,>);
+	(sbb,sbb(^I)al<,>);
+	(ana,and(^I)al<,>);
+	(xra,xor(^I)al<,>);
+	(ora,or(^I)al<,>);
+	(cmp,cmp(^I)al<,>);
+  )) f
+
+[immediate equivalents]
+(()()()(
+	(adi,add(^I)al<,><2>);
+	(aci,adc(^I)al<,><2>);
+	(sui,sub(^I)al<,><2>);
+	(sbi,sbb(^I)al<,><2>);
+	(ani,and(^I)al<,><2>);
+	(xri,xor(^I)al<,><2>);
+	(ori,or(^I)al<,><2>);
+	(cpi,cmp(^I)al<,><2>);
+)) g
+
+[condition equivalents]
+(()()()((nz,z);(z,nz);(nc,c);(c,nc);(po,pe);(pe,po);(p,s);(m,ns);)) h
+
+[register pair equivalents]
+(()()()((b,cx);(d,dx);(h,bx);(sp,sp);(psw,ax);)) i
+
+[accumulator instructions]
+(()()()(
+	(rlc,rol(^I)al,1);
+	(rrc,ror(^I)al,1);
+	(ral,rcl(^I)al,1);
+	(rar,rcr(^I)al,1);
+	(daa,daa);
+	(cma,not(^I)al);
+	(stc,stc);
+	(cmc,cmc);
+)) j
+
+[sporadic instructions]
+(()()()(
+	(ret,ret);
+	(xchg,xchg(^I)bx<,>dx);
+	(xthl,xchg sp<,>bp ! xchg bx<,>[bp] ! xchg sp<,>bp);
+	(pchl,jmp(^I)bx);
+	(sphl,mov(^I)sp<,>bx);
+	(di,di);
+	(ei,ei);
+	(nop,nop);
+	(hlt,hlt);
+  )) k
+
+[three-byte instructions except lxi]
+(()()(1)(
+	(jmp,jmp(^I)<2>);
+	(call,call(^I)<2>);
+	(shld,mov(^I)<2><,>bx);
+	(lhld,mov(^I)bx<,><2>);
+	(sta,mov(^I)<2><,>al);
+	(lda,mov(^I)al<,><2>);
+	(j(and,<:L:>,<1>),(p,<1>));
+	(c(and,<:L:>,<1>),(q,<1>));
+  )) l
+
+[two-byte instructions exceqt mvi]
+(()()(1)((in,in byte <2>);(out,out byte <2>);(<1>,(g,<1>));)) m
+
+[one-byte instructions with register]
+(()()()(
+	(dad,add(^I)bx,(i,<2>));
+	(ldax,(IF,(1),xchg bx<,>(i,<2>),<1>,<1> ! mov al<,>[bx] ! <1>));
+	(stax,(IF,(1),xchg bx<,>(i,<2>),<1>,<1> ! mov [bx]=,>al ! <1>));
+	(inx,inc(^I)(i,<2>));
+	(dcx,dec(^I)(i,<2>));
+	(inr,inc(^I)(e,<2>));
+	(dcr,dec(^I)(e,<2>));
+	(pop,(if,<2>,psw,pop ax ! sahf,pop(^I)(i,<2>)));
+	(push,(if,<2>,psw,lahf ! push ax,push(^I)(i,<2>)));
+	(rst,int(^I)<2>);
+  )) n
+
+[conditional returns]
+(()()(1 2)((<1>,(if,(X),<2>,j(h,<1>) <2> ! ret ! <2>:));)) o
+
+[conditional jump]
+(()()(1 5)((<1>,(if,(X),<5>,j(h,<1>) <5> ! jmp <2> ! <5>:));)) p
+
+[conditional call]
+(()()(1 5)((<1>,(if,(X),<5>,j(h,<1>) <5> ! call <2> ! <5>:));)) q
+
+[immediate constant]
+(()()(1)(((and,<:F:>,<1>),<(>offset <1><)>);)) r
+
+[write to output file: simple, complex]
+(()()(1)((<1>,(%W,<9>.A86,(%T,<1>(^MJ))));)) v
+(()()(1)((<1>,(%W,<9>.A86,(%T,<0><1><4>(^MJ))));)) w
+
+[main program]
+((
+  [alfa]	((and,<[1]>,(or,(IVL,A,Z,),(IVL,a,z,),$,.))) A
+  [num]		((and,<[1]>,(IVL,0,9,))) B
+  [numeral]	(<:B:>(ITR,<:B:>)) C
+  [hex]		((and,<[1]>,(or,(IVL,0,9,),(IVL,A,F,),(IVL,a,f,)))) D
+  [hexmal]	(<:B:>(ITR,<:D:>)H) E
+  [alfanum]	(<:A:>(ITR,(or,<:A:>,<:B:>))) F
+  [white]	((or, ,(^I))) G
+  [whitespace]	((or,<:G:>(ITR,<:G:>),;<-->,<>)) H
+  [registers]	((or,b,c,d,e,h,l,m,a)) I
+  [pairs]	((or,b,d,h,sp)) J
+  [pairs]	((or,b,d,h,psw)) K
+  [condition]	((or,nz,z,nc,c,po,pe,p,m)) L
+  [3-byte]	((or,lhld,shld,lxi,lda,sta,jmp,call,j<:L:>,c<:L:>)) M
+  [2-byte]	((or,mvi,adi,aci,sui,sbi,ani,xri,ori,cpi,in,out)) N
+  [1-byte]	((or,dad,ldax,stax,inx,dcx,inr,dcr,pop,push,rst)) O
+  [ar-logic]	((or,add,adc,sub,sbb,ana,xra,ora,cmp)) P
+  [sporadic]	((or,ret,xchg,xthl,pchl,sphl,di,ei,nop,hlt)) Q
+  [directives]	((or,db,dc,dw,ds,equ,org)) T
+  [accumulator]	((or,rlc,rrc,ral,rar,daa,cma,stc,cmc)) U
+  [1-byte]	((or,mov,r<:L:>)) V
+  [separator]	((or,<,>,(ITR,<:G:>)(or,;<-->,<>))) Y
+  [label]	((and,(or,<:F:>(or,:,<:G:>),<:G:>)(ITR,<:G:>),<0>)) 0
+  [constant]	(<:H:>(and,(or,<:E:>,<:C:>),<2>)) 2
+  [final]	((and,(ITR,<:G:>)(or,;,<>)<--><>,<4>)) 4
+  )(
+	(G(%R,CTR:XX)) X
+	((%R,<9>.ASM)) R
+  )(9)(
+	((PWS)(or),);
+	(<9>(or, ,.,<>),<<
+		>>(%Or,CTR:XX)<<
+		>>(%Or,<9>.ASM)<<
+		>>(%Ow,<9>.A86)<<
+		>>(a,(R))<<
+		>>(, (%T,Transformation concluded) )<<
+		>>(, (%T,(%R,CTR:XX) symbols generated) )<<
+		>>(%E));
+  ))
+
+[end]
+

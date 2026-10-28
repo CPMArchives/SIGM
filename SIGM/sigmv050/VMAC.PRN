@@ -1,0 +1,129 @@
+
+
+                ;
+                ;VMAC --
+                ;  MACRO ASSEMBLER "MAC" CHANGES TO DISABLE 8080 OPCODES FOR CROSS-ASSEMBLY
+                ;    WORK
+                ;  THIS PATCH WAS ORIGINALLY SUPPLIED WITH MY MAC MANUAL -- RLC
+                ;  THIS IS TO BE PATCHED INTO MAC USING DDT.  AFTER THE PATCH IS COMPLETE,
+                ;    PERFORM A "SAVE 46 XMAC.COM" TO CREATE XMAC.COM.
+                ;
+                ; RESERVED WORD PATCHES ADDED BY SHAWN EVERSON  10/3/81
+                ;
+                ;
+ 0019 =         RT	EQU	25	; 8080 REGISTER NAME
+ 001A =         PT	EQU	26	; PSEUDO OPCODE TYPE
+ 2561 =         TAREA	EQU	2561H	; FREE AREA IN TOKEN MODULE
+ 0040 =         TRAIL	EQU	'@'	; CHAR. TO REPLACE LAST LETTER OF RESERVED WORDS WITH
+                 
+                ;
+ 2444           	ORG	2444H	; OVERLAY INXH - MOV B,M - RET
+ 2444 C36125    	JMP	TAREA
+                 
+                ;
+ 2561           	ORG	TAREA
+                 
+                ;  TYPE IS IN THE ACCUMULATOR
+ 2561 FE19      	CPI	RT	; BELOW RT IF ARITHMETIC OPERATOR
+ 2563 DA6925    	JC	TYPEOK
+ 2566 FE1A      	CPI	PT	; PSEUDO OP?
+ 2568 C0        	RNZ		; RETURN WITH NON-ZERO FLAG
+                 
+                ;  OTHERWISE, PSEUDO-OP OR ARITHMETIC OP
+                TYPEOK:
+ 2569 23        	INX	H
+ 256A 46        	MOV	B,M
+ 256B BF        	CMP	A	; SET ZERO FLAG
+ 256C C9        	RET
+                ;
+                ;LOCATION OF RESERVED WORD <IF>
+                ;
+ 214A           	ORG	214AH
+ 214A 4940      	DB	'I',TRAIL
+                ;
+                ;LOCATION OF RESERVED WORD <OR>
+                ;
+ 2154           	ORG	2154H
+ 2154 4F40      	DB	'O',TRAIL
+                ;
+                ;LOCATION OF RESERVED WORD <AND>
+                ;
+ 2167           	ORG	2167H
+ 2167 414E40    	DB	'AN',TRAIL
+                ;
+                ;LOCATION OF RESERVED WORD <END>
+                ;
+ 2185           	ORG	2185H
+ 2185 454E40    	DB	'EN',TRAIL
+                ;
+                ; LOCATION OF RESERVED WORD <LOW>
+                ;
+ 219D           	ORG	219DH
+ 219D 4C4F40    	DB	'LO',TRAIL
+                ;
+                ;LOCATION OF RESERVED WORD <MOD>
+                ;
+ 21A3           	ORG	21A3H
+ 21A3 4D4F40    	DB	'MO',TRAIL
+                ;
+                ;LOCATION OF RESERVED WORD <NOR>
+                ;
+ 21AF           	ORG	21AFH
+ 21AF 4E4F40    	DB	'NO',TRAIL
+                ;
+                ;LOCATION OF RESERVED WORD <SET>
+                ;
+ 21DF           	ORG	21DFH
+ 21DF 534540    	DB	'SE',TRAIL
+                ;
+                ;LOCATION OF RESERVED WORD <ELSE>
+                ;
+ 220D           	ORG	220DH
+ 220D 454C5340  	DB	'ELS',TRAIL
+                ;
+                ;LOCATION OF RESERVED WORD <HIGH>
+                ;
+ 2215           	ORG	2215H
+ 2215 48494740  	DB	'HIG',TRAIL
+                ;
+                ;LOCATION OF RESERVED WORD <NAME>
+                ;
+ 2225           	ORG	2225H
+ 2225 4E414D40  	DB	'NAM',TRAIL
+                ;
+                ;LOCATION OF RESERVED WORD <PAGE>
+                ;
+ 2229           	ORG	2229H
+ 2229 50414740  	DB	'PAG',TRAIL
+                ;
+                ;LOCATION OF RESERVED WORD <LOCAL>
+                ;
+ 225C           	ORG	225CH
+ 225C 4C4F434140	DB	'LOCA',TRAIL
+                ;
+                ;LOCATION OF RESERVED WORD <MACRO>
+                ;
+ 2261           	ORG	2261H
+ 2261 4D41435240	DB	'MACR',TRAIL
+                ;
+                ;LOCATION OF RESERVED WORD <TITLE>
+                ;
+ 226B           	ORG	226BH
+ 226B 5449544C40	DB	'TITL',TRAIL
+                ;
+                ;LOCATION OF RESERVED WORD <PUBLIC>
+                ;
+ 227C           	ORG	227CH
+ 227C 5055424C49	DB	'PUBLI',TRAIL
+                ;
+                ;LOCATION OF SIGNON MESSAGE <CP/M MACRO ASSEM 2.0>
+                ;
+ 2CD3           	ORG	2CD3H
+ 2CD3 43502F4D20	DB	'CP/M MACRO ASSEM 2.',TRAIL
+                ;
+                ; TYPE OF SOURCE FILE TO EXPECT
+                ;
+ 25DC           	ORG	25DCH
+ 25DC 564F43    	DB	'VOC'
+                ;
+ 25DF           	END

@@ -1,0 +1,847 @@
+CROMEMCO Z80 Macro Assembler version 03.04                                                                            Page 0001
+Source File:  FDCBIOS 
+
+                  0001  	LIST	NOCOND,NOGEN
+                  0002  ;
+                  0003  ; * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+                  0004  ;
+                  0005  ;	modifications by Mike Goetz and Hank Kee - 9/2/81
+                  0006  ;
+                  0007  ;	corrected PIP A:=B:filename.ext on Persci 277/299
+                  0008  ;		Persci's must be configured as A: and B:
+                  0009  ;		and/or C: and D: since they have but one
+                  0010  ;		arm to access two drives
+                  0011  ;	modified sign-on message to properly generate size
+                  0012  ;		from MEMSIZE definition during assembly
+                  0013  ;	corrected current drive assignment on warm boot
+                  0014  ;	inclusion of LIST serial driver for CCS 8250 (30 CPS)
+                  0015  ;		option to support LA34/LA36
+                  0016  ;
+                  0017  ; * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+                  0018  ;
+      (0001)      0019  PERSCISW:	EQU	1		;ONE IF PERSCI DRIVE
+      (0001)      0020  LARGESW:	EQU	1 OR PERSCISW	;ONE IF MAXI DRIVE
+      (0002)      0021  NUMDRIVES:	EQU	2		;ONE TO FOUR (MUST BE SAME TYPE)
+      (0001)      0022  BIGIOSW:	EQU	1		;ZERO IF NO LIST, NO PUNCH
+                  0023  ;
+      (0040)      0024  MEMSIZE:	EQU	64
+      (0001)      0025  SERIAL:		EQU	1		;SERIAL PRINTER OPTION W/8250
+      (0037)      0026  MEMSTAT:	EQU	MEMSIZE-9	;2400 HEX OFFSET
+      (DC00)      0027  BEGINADR:	EQU	MEMSTAT*1024	;THIS IS THE START OF CPM
+      (0004)      0028  MEMUNITS:	EQU	MEMSIZE-(MEMSIZE/10*10)
+      (0006)      0029  MEMTENTH:	EQU	MEMSIZE/10
+                  0030  ;
+      (F200)      0031  	ORG	1600H+BEGINADR 
+                  0032  ;
+                  0033  ;	CROMEMCO 4FDC I/O ASSIGNMENTS
+                  0034  ;
+      (0000)      0035  CSTATPORT:	EQU	00H		;3P + S, 4FDC, TU-UART, OR SCC
+      (0001)      0036  CDATAPORT:	EQU	01H
+      (0002)      0037  IMODEPORT:	EQU	02H		;(3P + S DOESNT HAVE THESE)
+      (0003)      0038  IMASKPORT:	EQU	03H
+      (0004)      0039  PARLPORT:	EQU	04H		;NOT USED
+                  0040  ;
+      (0030)      0041  STATPORT:	EQU	30H		;4FDC OR CCS 2422 BOARD
+      (0031)      0042  TRAKPORT:	EQU	31H
+      (0032)      0043  SECTPORT:	EQU	32H
+      (0033)      0044  DATAPORT:	EQU	33H
+      (0034)      0045  FLAGPORT:	EQU	34H
+                  0046  ;
+      (0040)      0047  BANKPORT:	EQU	40H		;MEMORY BANKING PORT
+                  0048  ;
+                  0049  ;	1771/179X EQUATES
+                  0050  ;
+      (0008)      0051  HEADLOAD:	EQU	08H
+      (0004)      0052  VERIFY:		EQU	04H
+                  0053  ;
+                  0055  ;
+                  0056  ;	OTHER DEFINITIONS (OPTIONAL)
+CROMEMCO Z80 Macro Assembler version 03.04                                                                            Page 0002
+Source File:  FDCBIOS 
+
+                  0057  ;
+      (0001)      0058  BAUDRATE:	EQU	01H		;110 BAUD FOR READER ?
+      (0010)      0059  RSTATPORT:	EQU	10H
+      (0010)      0060  RBAUDPORT:	EQU	RSTATPORT	;TU-UART BOARD FOR PAPER TAPE
+      (0011)      0061  RDATAPORT:	EQU	RSTATPORT+1
+      (0010)      0062  PSTATPORT:	EQU	10H
+      (0010)      0063  PBAUDPORT:	EQU	PSTATPORT	;PAPER TAPE PUNCH ALSO
+      (0011)      0064  PDATAPORT:	EQU	PSTATPORT+1
+      (0054)      0065  LSTATPORT:	EQU	54H		;PARALLEL PRINTER POARD
+      (0054)      0066  LDATAPORT:	EQU	LSTATPORT
+                  0068  
+      (FFFF)      0069  TRUE:	EQU	-1
+      (0000)      0070  FALSE:	EQU	0
+      (0006)      0071  NULLS:	EQU	6		; NUMBER OF NULLS AFTER LF
+      (000A)      0072  LF:	EQU	0AH		; LINE FEED
+                  0073  
+      (0020)      0074  SDATA:	EQU	20H		; DATA PORT
+      (0021)      0075  SINTEN:	EQU	21H		; INTERRUPT REGISTER
+      (0022)      0076  SIDENT:	EQU	22H		; INTERRUPT IDENTIFICATION
+      (0023)      0077  SLCTRL:	EQU	23H		; LINE CONTROL REGISTER
+      (0024)      0078  SMDMCT:	EQU	24H		; MODEM CONTROL REGISTER
+      (0025)      0079  SLSTAT:	EQU	25H		; LINE STATUS REGISTER
+      (0026)      0080  SMDMST:	EQU	26H		; MODEM STATUS REGISTER
+      (0025)      0081  SSTATP:	EQU	25H		; SERIAL PRINTER STATUS PORT (INPUT)
+      (0020)      0082  STBE:	EQU	20H		; SERIAL PRINTER TBE BIT
+                  0083  
+                  0084  
+                  0085  ;
+                  0086  ;	CPM ENTRY POINTS
+      (DC00)      0087  CPMB:		EQU	00H+BEGINADR
+      (E406)      0088  BDOS:		EQU	806H+BEGINADR
+                  0089  ;
+                  0090  ;	JUMP VECTOR
+F200  C32EF4      0091  	JP	CBOOT
+                  0092  EBOOT:
+F203  C3E4F3      0093  	JP	WBOOT
+F206  C37EF4      0094  	JP	CONSTAT
+F209  C386F4      0095  	JP	CONIN
+F20C  C390F4      0096  	JP	CONOUT
+F20F  C3A3F4      0097  	JP	LIST
+F212  C3A7F4      0098  	JP	PUNCH
+F215  C3B1F4      0099  	JP	READER
+F218  C309F3      0100  	JP	HOME	
+F21B  C397F2    R 0101  	JP	SELDSK		
+F21E  C359F3      0102  	JP	SETTRK
+F221  C3B3F2      0103  	JP	SETSEC
+F224  C3B8F2      0104  	JP	SETDMA
+F227  C3BDF2      0105  	JP	READ
+F22A  C3D4F2      0106  	JP	WRITE
+F22D  C39AF4      0107  	JP	LISTAT
+F230  C3ABF2    R 0108  	JP	SECTRAN
+                  0109  ;
+                  0110  ;	CP/M 2.2 DISK CONTROL BLOCKS
+                  0111  ;
+                  0112  DPBASE:
+CROMEMCO Z80 Macro Assembler version 03.04                                                                            Page 0003
+Source File:  FDCBIOS 
+
+F233  62F2        0113  	DW	XLT0,0000
+      0000 
+F237  0000        0114  	DW	0000,0000
+      0000 
+F23B  00F5        0115  	DW	DIRBUF,DPB0
+      53F2 
+F23F  C0F5        0116  	DW	CSV0,ALV0
+      80F5 
+                  0117  ;
+F243  62F2        0119  	DW	XLT0,0000
+      0000 
+F247  0000        0120  	DW	0000,0000
+      0000 
+F24B  00F5        0121  	DW	DIRBUF,DPB0
+      53F2 
+F24F  D0F5        0122  	DW	CSV1,ALV1
+      A0F5 
+                  0124  ;
+                  0131  ;
+                  0138  ;
+                  0139  DPB0:
+                  0140  ;
+                  0141  ;	disk parameter block, common to all disks
+                  0142  ;	this implements a "standard" CP/M directory
+                  0143  ;	with 64 entries, and 1K blocks.
+                  0144  ;
+F253  1A00        0145  	DW	18+LARGESW*8	;sectors per track
+F255  03          0146  	DB	3		;block shift factor
+F256  07          0147  	DB	7		;block mask
+F257  00          0148  	DB	0		;null mask
+F258  F200        0149  	DW	81+LARGESW*161	;disk size-1
+F25A  3F00        0150  	DW	63		;directory max
+F25C  C0          0151  	DB	192		;alloc 0
+F25D  00          0152  	DB	0		;alloc 1
+F25E  1000        0153  	DW	16		;check size
+F260  0200        0154  	DW	3-LARGESW	;track offset
+                  0155  ;
+                  0156  XLT0:
+                  0157  ;
+                  0158  ;	sector translate vector
+                  0159  ;
+                  0167  ;
+                  0168  ;
+F262  01070D13    0170  	DB	1,7,13,19	;sectors 1,2,3,4
+F266  19050B11    0171  	DB	25,5,11,17	;sectors 5,6,7,8
+F26A  1703090F    0172  	DB	23,3,9,15	;sectors 9,10,11,12
+F26E  1502080E    0173  	DB	21,2,8,14	;sectors 13,14,15,16
+F272  141A060C    0174  	DB	20,26,6,12	;sectors 17,18,19,20
+F276  1218040A    0175  	DB	18,24,4,10	;sectors 21,22,23,24
+F27A  1016        0176  	DB	16,22		;sectors 25,26
+                  0178  ;
+                  0179  ;
+                  0180  SIGNON:
+F27C  1A0D0A0A    0181  	DEFB	26,13,10,10
+F280  36          0182  	DEFB	MEMTENTH+30H
+CROMEMCO Z80 Macro Assembler version 03.04                                                                            Page 0004
+Source File:  FDCBIOS 
+
+F281  34          0183  	DEFB	MEMUNITS+30H
+F282  6B204350    0184  	DEFB	'k CP/M version 2.2'
+F294  0D0A00      0185  	DEFB	13,10,0
+                  0186  ;
+                  0187  SELDSK:	;
+F297  210000      0188  	LD	HL,0
+F29A  79          0189  	LD	A,C		;C CONTAINS REQUESTED DRIVE NO.
+F29B  FE02        0190  	CP	NUMDRIVES
+F29D  D0          0191  	RET	NC		;IGNORE IF TOO HIGH
+F29E  320400      0192  	LD	(DKNUMB),A
+F2A1  69          0193  	LD	L,C	;L=disk number 0,1,2,3
+F2A2  29          0194  	ADD	HL,HL	;*2
+F2A3  29          0195  	ADD	HL,HL	;*4
+F2A4  29          0196  	ADD	HL,HL	;*8
+F2A5  29          0197  	ADD	HL,HL	;*16 (size of each header)
+F2A6  1133F2      0198  	LD	DE,DPBASE
+F2A9  19          0199  	ADD	HL,DE	;HL=.dpbase(diskno*16)
+F2AA  C9          0200  	RET	
+                  0201  ;
+                  0202  SECTRAN:	;TRANSLATE SECTOR IN C USING TABLE AT DE
+F2AB  0600        0203  	LD	B,0
+F2AD  EB          0204  	EX	DE,HL		;TABLE ADDR TO HL
+F2AE  09          0205  	ADD	HL,BC		;GET ADDRESS
+F2AF  6E          0206  	LD	L,(HL)		;GET BYTE
+F2B0  2600        0207  	LD	H,0		;ANSWER IN HL
+F2B2  C9          0208  	RET
+                  0209  ;
+                  0210  SETSEC:
+F2B3  79          0211  	LD	A,C		;JUST SAVE SECTOR NUMBER
+F2B4  32FAF4      0212  	LD	(DKSECT),A
+F2B7  C9          0213  	RET
+                  0214  ;
+                  0215  SETDMA:
+F2B8  ED43FCF4    0216  	LD	(DKDMA),BC	;JUST SAVE I/O ADDRESS
+F2BC  C9          0217  	RET
+                  0218  ;
+                  0219  ;
+                  0220  ;	ERROR CHECKING READ AND WRITE RTNS FOR
+                  0221  ;	CROMEMCO CBIOS
+                  0222  ;
+                  0223  READ:
+F2BD  CDCCF2      0224  	CALL	CLEAR
+                  0225  RETRYREAD:
+F2C0  CD1EF3      0226  	CALL	READ4FDC	;READ SECTOR
+F2C3  C8          0227  	RET	Z		;SUCCESSFUL READ. RETURN
+F2C4  CDE3F2      0228  	CALL	ERROR		;INCREMENT RETRYCOUNT
+F2C7  20F7        0229  	JR	NZ,RETRYREAD	;RETRY 20 TIMES
+F2C9  F601        0230  	OR	01H		;CP/M CONVENTION FOR PERMANENT ERROR
+F2CB  C9          0231  	RET	
+                  0232  ;
+                  0233  CLEAR:
+F2CC  AF          0234  	XOR	A
+F2CD  32FEF4      0235  	LD	(TRKERCNT),A	;ZERO OUT TRACK ERROR COUNTER
+F2D0  32FFF4      0236  	LD	(RETRYCOUNT),A	;ZERO OUT CRC ERROR COUNTER
+F2D3  C9          0237  	RET	
+CROMEMCO Z80 Macro Assembler version 03.04                                                                            Page 0005
+Source File:  FDCBIOS 
+
+                  0238  ;
+                  0239  WRITE:
+F2D4  CDCCF2      0240  	CALL	CLEAR
+                  0241  RETRYWRITE:
+F2D7  CD3DF3      0242  	CALL	WRIT4FDC	;WRITE SECTOR
+F2DA  C8          0243  	RET	Z		;SUCCESSFUL WRITE. RETURN
+F2DB  CDE3F2      0244  	CALL	ERROR		;INCREMENT RETRYCOUNT
+F2DE  20F7        0245  	JR	NZ,RETRYWRITE	;RETRY 20 TIMES
+F2E0  F601        0246  	OR	01H		;CP/M CONVENTION FOR PERMANENT ERROR
+F2E2  C9          0247  	RET	
+                  0248  ;
+                  0249  ERROR:
+F2E3  E5          0250  	PUSH	HL
+F2E4  E610        0251  	AND	10H		;CHECK FOR NRF
+F2E6  2009        0252  	JR	NZ,TRACKERROR	
+F2E8  21FFF4      0253  	LD	HL,RETRYCOUNT
+F2EB  34          0254  	INC	(HL)		;INCREMENT RETRYCOUNT
+F2EC  7E          0255  	LD	A,(HL)
+F2ED  E1          0256  	POP	HL
+F2EE  D614        0257  	SUB	20		;20 TRIES?
+F2F0  C9          0258  	RET	
+                  0259  ;
+                  0260  TRACKERROR:
+F2F1  21FEF4      0261  	LD	HL,TRKERCNT
+F2F4  34          0262  	INC	(HL)		;INCREMENT NO OF TRACK ERRORS
+F2F5  7E          0263  	LD	A,(HL)
+F2F6  D60A        0264  	SUB	10D		;ALLOW ONLY 10 TRACK ERRORS
+F2F8  E1          0265  	POP	HL
+F2F9  C8          0266  	RET	Z		;IF >10, RETURN A FAILURE
+F2FA  C5          0267  	PUSH	BC
+F2FB  CD09F3      0268  	CALL	HOME		;HOME THE HEAD
+F2FE  3AFBF4      0269  	LD	A,(DKTRACK)
+F301  4F          0270  	LD	C,A		;GET TRACK IN C
+F302  CD59F3      0271  	CALL	SETTRK		;RESEEK TO CORRECT TRACK
+F305  C1          0272  	POP	BC
+F306  F6FF        0273  	OR	0FFH		;RETRY
+F308  C9          0274  	RET	
+                  0275  ;
+                  0276  ;	RESTORE THE DISK TO TRACK ZERO
+                  0277  ;
+                  0278  HOME:
+F309  97          0279  	SUB	A,A		;ZERO OUT TRACK COUNTER
+F30A  32FBF4      0280  	LD	(DKTRACK),A
+F30D  CDD0F3      0281  	CALL	DISKSELECT	;NOW SELECT THE DISK
+F310  D334        0282  	OUT	FLAGPORT,A
+F312  3E0E        0283  	LD	A,02H+HEADLOAD+VERIFY	;USE SLOW STEPPING SPEED FOR ALL DISKS
+F314  D330        0284  	OUT	STATPORT,A
+                  0285  RSTI:
+F316  DB34        0286  	IN	A,FLAGPORT	;NOW CHECK STATUS
+F318  1F          0287  	RRA
+F319  30FB        0288  	JR	NC,RSTI		;LOOP BACK UNTIL DONE
+F31B  C388F3    R 0289  	JP	SEEKTEST
+                  0290  ;
+                  0291  ;	HERE, ACTUALLY DO THE READ OPERATION
+                  0292  ;
+CROMEMCO Z80 Macro Assembler version 03.04                                                                            Page 0006
+Source File:  FDCBIOS 
+
+                  0293  READ4FDC:
+F31E  C5          0294  	PUSH	BC
+F31F  E5          0295  	PUSH	HL		;FIRST, SAVE REGS
+F320  D5          0296  	PUSH	DE
+F321  1E88        0297  	LD	E,88H		;READ COMMAND (VALID FOR 1771, 179X)
+F323  CDACF3      0298  	CALL	INIT4FDC
+                  0299  RDI1:
+F326  DB34        0300  	IN	A,FLAGPORT	;NOW CHECK FLAGS
+F328  1F          0301  	RRA
+F329  3809        0302  	JR	C,RDI3		;IF PREMATURELY DONE, STOP
+F32B  EDA2        0303  	INI
+F32D  20F7        0304  	JR	NZ,RDI1		;READ ANOTHER BYTE INTO CORE UNTIL DONE
+                  0305  RDI2:
+F32F  DB34        0306  	IN	A,FLAGPORT	;CHECK FLAGS
+F331  1F          0307  	RRA
+F332  30FB        0308  	JR	NC,RDI2		;LOOP UNTIL READY
+                  0309  RDI3:
+F334  DB30        0310  	IN	A,STATPORT	;NOW CHECK STATUS
+F336  E69C        0311  	AND	A,9CH
+                  0312  RDWREND:
+F338  FB          0313  	EI
+F339  D1          0314  	POP	DE		;RESTORE REGS
+F33A  E1          0315  	POP	HL
+F33B  C1          0316  	POP	BC
+F33C  C9          0317  	RET
+                  0318  ;
+                  0319  ;	ACTUALLY DO WRITE OPERATION
+                  0320  ;
+                  0321  WRIT4FDC:
+F33D  C5          0322  	PUSH	BC
+F33E  E5          0323  	PUSH	HL		;SAVE REGS
+F33F  D5          0324  	PUSH	DE
+F340  1EA8        0325  	LD	E,0A8H		;WRITE COMMAND (VALID FOR 1771, 179X)
+F342  CDACF3      0326  	CALL	INIT4FDC
+                  0327  WRI1:
+F345  DB34        0328  	IN	A,FLAGPORT	;CHECK FLAGS
+F347  1F          0329  	RRA
+F348  3809        0330  	JR	C,WRI3		;IF PREMATURELY DONE, STOP
+F34A  EDA3        0331  	OUTI
+F34C  20F7        0332  	JR	NZ,WRI1		;WRITE DATA FROM MEMORY TIL DONE
+                  0333  WRI2:
+F34E  DB34        0334  	IN	A,FLAGPORT	;CHECK FLAGS
+F350  1F          0335  	RRA
+F351  30FB        0336  	JR	NC,WRI2		;LOOP TIL DONE WITH WHOLE OPERATION
+                  0337  WRI3:
+F353  DB30        0338  	IN	A,STATPORT	;NOW CHECK ERROR STATUS
+F355  E6FC        0339  	AND	A,0FCH
+F357  18DF        0340  	JR	RDWREND
+                  0341  ;
+                  0342  ;	SET THE TRACK, AND MOVE DISK ARM THERE
+                  0343  ;
+                  0344  SETTRK:
+F359  79          0345  	LD	A,C
+F35A  32FBF4      0346  	LD	(DKTRACK),A	;STORE THE TRACK NUMBER
+F35D  97          0347  	SUB	A,A
+CROMEMCO Z80 Macro Assembler version 03.04                                                                            Page 0007
+Source File:  FDCBIOS 
+
+F35E  CDD0F3      0348  	CALL	DISKSELECT	;NOW SELECT THE DISK
+F361  D334        0349  	OUT	FLAGPORT,A
+F363  79          0350  	LD	A,C
+F364  D333        0351  	OUT	DATAPORT,A	;TELL 1771 ABOUT TRACK WANTED
+F366  3AFAF4      0352  	LD	A,(DKSECT)
+F369  D332        0353  	OUT	SECTPORT,A	;TELL IT ABOUT SECTOR WANTED
+F36B  E5          0354  	PUSH	HL
+F36C  D5          0355  	PUSH	DE
+F36D  21F6F4      0356  	LD	HL,LOGINTAB	;NOW, SEE WHERE DISK ARM IS NOW
+F370  3A0400      0357  	LD	A,(DKNUMB)
+F373  5F          0358  	LD	E,A		;LOOK UP IN TABLE
+F374  1600        0359  	LD	D,0
+F376  19          0360  	ADD	HL,DE		;GET BYTE
+F377  7E          0361  	LD	A,(HL)
+F378  D331        0362  	OUT	TRAKPORT,A	;TELL 1771 WHERE ARM IS NOW
+F37A  7E          0363  	LD	A,(HL)
+F37B  91          0364  	SUB	A,C
+F37C  D1          0365  	POP	DE		;NOW CAN RESTORE THE REGS
+F37D  E1          0366  	POP	HL
+F37E  C8          0367  	RET	Z		;IF ALREADY AT THAT TRACK, QUIT
+F37F  3E1C        0368  	LD	A,12H-LARGESW*2+HEADLOAD+VERIFY
+F381  D330        0369  	OUT	STATPORT,A	;PERFORM THE SEEK THAT IS NEEDED
+                  0370  SKI:
+F383  DB34        0371  	IN	A,FLAGPORT	;CHECK FLAGS
+F385  1F          0372  	RRA
+F386  30FB        0373  	JR	NC,SKI		;LOOP UNITL OPERATION DONE
+                  0374  SEEKTEST:
+F388  DB30        0375  	IN	A,STATPORT	;NOW CHECK ERROR STATUS
+F38A  E698        0376  	AND	A,98H
+F38C  C0          0377  	RET	NZ		;ZERO IS ALL OK
+F38D  D5          0378  	PUSH	DE
+F38E  1600        0379  	LD	D,0		;UPDATE TRACK TABLE
+F390  3A0400      0380  	LD	A,(DKNUMB)
+F393  5F          0381  	LD	E,A		;WITH NEW POSITION
+                  0382  ;
+F394  CDA0F3      0384  	CALL	ADDSHIFT	;PERSCI DRIVES HAVE ONLY ONE ARM
+F397  7B          0385  	LD	A,E
+F398  EE01        0386  	XOR	1
+F39A  5F          0387  	LD	E,A
+F39B  CDA0F3      0388  	CALL	ADDSHIFT
+F39E  D1          0389  	POP	DE
+F39F  C9          0390  	RET
+                  0392  ;
+                  0393  ADDSHIFT:			;IF NOT PERSCI, FALL THRU HERE
+F3A0  E5          0394  	PUSH	HL
+F3A1  21F6F4      0395  	LD	HL,LOGINTAB	;GET CORRECT ADDRESS OF DISK
+F3A4  19          0396  	ADD	HL,DE
+F3A5  3AFBF4      0397  	LD	A,(DKTRACK)	;AND GET CURRENT TRACK NUMBER
+F3A8  77          0398  	LD	(HL),A
+F3A9  97          0399  	SUB	A,A		;PUT IT IN
+F3AA  E1          0400  	POP	HL
+F3AB  C9          0404  	RET
+                  0405  ;
+                  0406  ;	INITIALIZE THE 4FDC, BY SELECTING THE DISK AND
+                  0407  ;	TURNING ON THE DISK MOTORS, AND INITIALIZE THE
+CROMEMCO Z80 Macro Assembler version 03.04                                                                            Page 0008
+Source File:  FDCBIOS 
+
+                  0408  ;	REGISTERS FOR THE I/O OPERATION
+                  0409  ;
+                  0410  INIT4FDC:
+F3AC  3E80        0411  	LD	A,80H		;FIRST, SELECT THE DISK
+F3AE  CDD0F3      0412  	CALL	DISKSELECT
+F3B1  2AFCF4      0413  	LD	HL,(DKDMA)	;INITIALIZE HL AND BC REGS FOR I/O
+F3B4  013380      0414  	LD	BC,8000H+DATAPORT	;80H IS 128 BYTE SECTORS
+F3B7  57          0415  	LD	D,A		;SAVE THE A REG
+F3B8  F3          0416  	DI			;DISABLE INTERRUPTS
+F3B9  3AFAF4      0417  	LD	A,(DKSECT)
+F3BC  D332        0418  	OUT	SECTPORT,A	;SET THE SECTOR WANTED
+F3BE  DB34        0419  	IN	A,FLAGPORT
+F3C0  2F          0420  	CPL			;SEE IF HEAD IS LOADED
+F3C1  E620        0421  	AND	A,20H
+F3C3  2802        0422  	JR	Z,IN0
+F3C5  3E04        0423  	LD	A,04		;THIS IS THE HEAD LOAD BIT
+                  0424  IN0:
+F3C7  83          0425  	ADD	A,E		;ADD HEAD LOAD BIT TO COMMAND
+F3C8  5F          0426  	LD	E,A
+F3C9  7A          0427  	LD	A,D		;RESTORE THE A REG
+F3CA  D334        0428  	OUT	FLAGPORT,A
+F3CC  7B          0429  	LD	A,E
+F3CD  D330        0430  	OUT	STATPORT,A	;OUTPUT THE COMMAND
+F3CF  C9          0431  	RET
+                  0432  ;
+                  0433  ;	FIGURE OUT WHICH DISK TO SELECT AND PUT BIT THERE
+                  0434  ;
+                  0435  DISKSELECT:
+F3D0  C5          0436  	PUSH	BC		;FIRST, SAVE THIS, ITS NEEDED
+F3D1  4F          0437  	LD	C,A
+F3D2  3A0400      0438  	LD	A,(DKNUMB)	;GET DISK NUMBER 0-3
+F3D5  47          0439  	LD	B,A
+F3D6  04          0440  	INC	B		;ADD ONE
+F3D7  97          0441  	SUB	A,A
+F3D8  37          0442  	SCF			;SET A BIT IN TO BE SHIFTED
+                  0443  SHIFTBIT:
+F3D9  17          0444  	RLA			;NOW, ROTATE BITS OVER
+F3DA  10FD        0445  	DJNZ	SHIFTBIT
+F3DC  47          0446  	LD	B,A		;SAVE THE NEW VALUE
+F3DD  AF          0447  	XOR	A
+F3DE  F630        0448  	OR	A,20H+LARGESW*10H ;CONDITION 4FDC FOR MOTOR ON AND MAXI
+F3E0  B0          0449  	OR	A,B
+F3E1  B1          0450  	OR	A,C		;OR IN DRIVE SELECT AND COMMAND WANTED
+F3E2  C1          0451  	POP	BC
+F3E3  C9          0452  	RET
+                  0453  ;
+                  0454  ;	GETS CONTROL ON A WARM START
+                  0455  ;
+                  0456  WBOOT:
+F3E4  3E01        0457  	LD	A,01H		;FIRST, RESTORE DEFAULT BANKING
+F3E6  D340        0458  	OUT	BANKPORT,A
+                  0459  ;
+F3E8  318000      0460  	LD	SP,80H
+F3EB  3A0400      0461  	LD	A,(DKNUMB)
+F3EE  32F5F4      0462  	LD	(CURRDRIVE),A	;STORE SELECTED DRIVE
+CROMEMCO Z80 Macro Assembler version 03.04                                                                            Page 0009
+Source File:  FDCBIOS 
+
+                  0463  ;
+                  0464  STARTBOOT:
+F3F1  0E00        0465  	LD	C,0
+F3F3  CD97F2      0466  	CALL	SELDSK		;SELECT DRIVE A TO REBOOT
+F3F6  CD09F3      0467  	CALL	HOME
+F3F9  2180DB      0468  	LD	HL,CPMB-128	;WILL INCREMENT BY 128 LATER
+F3FC  22FCF4      0469  	LD	(DKDMA),HL
+F3FF  01012C      0470  	LD	BC,44*256+1	;SECTOR COUNT, FIRST SECTOR-1
+                  0471  RDSEC:
+F402  79          0472  	LD	A,C		;C IS SECTOR NUMBER
+F403  FE1A        0473  	CP	18+LARGESW*8
+F405  2817        0474  	JR	Z,NXTTRK
+F407  118000      0475  	LD	DE,128		;INCREMENT DMA ADDRESS
+F40A  2AFCF4      0476  	LD	HL,(DKDMA)
+F40D  19          0477  	ADD	HL,DE
+F40E  22FCF4      0478  	LD	(DKDMA),HL	;STORE DMA ADDRESS
+F411  0C          0479  	INC	C		;INCREMENT SECTOR NUMBER
+F412  CDB3F2      0480  	CALL	SETSEC
+F415  CDBDF2      0481  	CALL	READ		;READ THE DATA
+F418  20CA        0482  	JR	NZ,WBOOT	;ON READ FAILURE TRY AGAIN
+F41A  10E6        0483  	DJNZ	RDSEC
+F41C  1819        0484  	JR	BOOT		;READ CCP AND BDOS;
+                  0485  NXTTRK:
+F41E  3AFBF4      0486  	LD	A,(DKTRACK)
+F421  FE01        0487  	CP	2-LARGESW
+F423  2812        0488  	JR	Z,BOOT		;STOP AT TRACK 2
+F425  4F          0489  	LD	C,A
+F426  0C          0490  	INC	C		;SEEK NEXT TRACK IF NOT
+F427  CD59F3      0491  	CALL	SETTRK
+F42A  0E00        0492  	LD	C,0
+F42C  18D4        0493  	JR	RDSEC
+                  0494  ;
+                  0495  ;
+                  0496  CBOOT:	;AFTER COLD BOOT
+F42E  318000      0497  	LD	SP,80H		;INITIALIZE STACK FOR ROUTINE
+F431  217CF2      0498  	LD	HL,SIGNON
+F434  CD74F4      0499  	CALL	PRMSG		;PRINT MESSAGE
+                  0500  BOOT:	;GETS CONTROL AFTER COLD OR WARM BOOT
+F437  F3          0501  	DI	
+F438  3EC3        0502  	LD	A,0C3H		;SET UP PARAMETERS ON PAGE 0
+F43A  320000      0503  	LD	(0),A
+F43D  2103F2      0504  	LD	HL,EBOOT
+F440  220100      0505  	LD	(1),HL
+F443  223900      0506  	LD	(7*8+1),HL
+F446  320500      0507  	LD	(5),A
+F449  2106E4      0508  	LD	HL,BDOS
+F44C  220600      0509  	LD	(6),HL
+                  0510  ;
+                  0511  ;		CROMEMCO INITIALIZATION HERE (READER, LIST NOT NEEDED)
+                  0512  ;		NOTE .. THE CONSOLE TUART IS INITIALIZED BY RDOS
+                  0513  ;
+F44F  3E01        0515  	LD	A,BAUDRATE
+F451  D310        0516  	OUT	PBAUDPORT,A
+                  0518  ;
+F453  CDBAF4      0520  	CALL	L2INIT
+CROMEMCO Z80 Macro Assembler version 03.04                                                                            Page 0010
+Source File:  FDCBIOS 
+
+                  0522  ;
+F456  018000      0523  	LD	BC,80H		;SET DEFAULT DMA ADDR
+F459  CDB8F2      0524  	CALL	SETDMA
+                  0525  ;
+F45C  3AF5F4      0526  	LD	A,(CURRDRIVE)	;RESELECT THE DRIVE THAT WAS ACTIVE
+F45F  4F          0527  	LD	C,A		;  BEFORE THE WARM START
+F460  FB          0528  	EI	
+F461  C300DC      0529  	JP	CPMB
+                  0530  ;
+                  0531  ;
+                  0532  ERRMSG:
+F464  0D0A3F3F    0533  	DEFB	13,10,'?? ERROR ??',13,10,0
+                  0534  ;
+                  0535  PRMSG:	;PRINT MESSAGE AT H,L UNTIL 0
+F474  7E          0536  	LD	A,(HL)
+F475  B7          0537  	OR	A		;ZERO?
+F476  C8          0538  	RET	Z
+F477  4F          0539  	LD	C,A		;GO PRINT CHAR
+F478  CD90F4      0540  	CALL	CONOUT
+F47B  23          0541  	INC	HL		;GET NEXT CHAR
+F47C  18F6        0542  	JR	PRMSG
+                  0543  ;
+                  0544  ;
+                  0545  ;HARDWARE UART CONSOLE ROUTINES
+                  0546  ;
+                  0547  CONSTAT:
+F47E  DB00        0548  	IN	A,CSTATPORT	;CHECK CONSOLE STATUS
+F480  E640        0549  	AND	40H
+F482  C8          0550  	RET	Z		;ZERO MEANS NO INPUT BYTE READY
+F483  3EFF        0551  	LD	A,0FFH
+F485  C9          0552  	RET			;FF MEANS INPUT
+                  0553  ;
+                  0554  CONIN:
+F486  CD7EF4      0555  	CALL	CONSTAT		;CHECK STATUS TIL GOT A BYTE
+F489  28FB        0556  	JR	Z,CONIN
+F48B  DB01        0557  	IN	A,CDATAPORT	;READ THE BYTE AND KILL OFF 80H
+F48D  E67F        0558  	AND	7FH
+                  0559  ;
+                  0560  ;	THE FOLLOWING CODE REPLACES THE DEL KEY WITH A CTRL-U,
+                  0561  ;	SO THAT DEL MEANS LINE DELETE. USE BACKSPACE TO DELETE
+                  0562  ;	A SINGLE CHARACTER.
+                  0563  ;
+                  0564  ;	CP	127	; DEL
+                  0565  ;	RET	NZ
+                  0566  ;	SUB	127-21	; CTRL-U
+F48F  C9          0567  	RET	
+                  0568  ;
+                  0569  ;	CONSOLE OUTPUT ROUTINE
+                  0570  ;
+                  0571  CONOUT:
+F490  DB00        0572  	IN	A,CSTATPORT	;FIRST, LOOP UNITL TRANSMITTER BUFFER
+F492  E680        0573  	AND	80H		;IS EMPTY
+F494  28FA        0574  	JR	Z,CONOUT
+F496  79          0575  	LD	A,C		;NOW, OUTPUT CHARACTER TO CONSOLE
+F497  D301        0576  	OUT	CDATAPORT,A
+CROMEMCO Z80 Macro Assembler version 03.04                                                                            Page 0011
+Source File:  FDCBIOS 
+
+F499  C9          0577  	RET	
+                  0578  ;
+                  0579  ;	LIST STATUS CHECK FOR CP/M 2.2
+                  0580  ;
+                  0581  LISTAT:
+F49A  DB54        0583  	IN	A,LSTATPORT	;IF LIST TRANSMITTER IS BUSY,
+F49C  2F          0584  	CPL			;THEN RETURN WITH ZERO
+F49D  E620        0585  	AND	20H
+F49F  C8          0586  	RET	Z
+F4A0  F6FF        0587  	OR	A,0FFH		;LIST TRANSMITTER BUFFER IS EMPTY
+F4A2  C9          0588  	RET
+                  0590  ;
+                  0591  LIST:
+                  0604  ;
+F4A3  79          0606  	LD	A,C
+F4A4  C3DDF4    R 0607  	JP	L2OUT
+                  0609  ;
+                  0610  PUNCH:
+F4A7  DB10        0612  	IN	A,PSTATPORT	;CHECK IF PUNCH BUFFER EMPTY
+F4A9  E680        0613  	AND	80H
+F4AB  28FA        0614  	JR	Z,PUNCH		;LOOP UNTIL READY
+F4AD  79          0615  	LD	A,C
+F4AE  D311        0616  	OUT	PDATAPORT,A	;OUTPUT CHARACTER
+F4B0  C9          0617  	RET
+                  0619  ;
+                  0620  READER:
+F4B1  DB10        0622  	IN	A,RSTATPORT	;SEE IF READER BUFFER FULL
+F4B3  E640        0623  	AND	40H
+F4B5  28FA        0624  	JR	Z,READER	;LOOP UNTIL FULL
+F4B7  DB11        0625  	IN	A,RDATAPORT	;AND READ IT
+F4B9  C9          0626  	RET	
+                  0628  ;
+                  0633  
+                  0634  
+                  0635  ;  Serial Printer Initialization Routine
+                  0636  
+F4BA  3E0F        0637  L2INIT:	LD	A,0FH		; SETUP THE 8250
+F4BC  D324        0638  	OUT	SMDMCT,A	
+F4BE  3E83        0639  	LD	A,83H		; SET DIVISOR REGISTER ACCESS
+F4C0  D323        0640  	OUT	SLCTRL,A	
+F4C2  3E80        0641  	LD	A,80H		; SET THE DIVISOR TO 384=300 BAUD
+F4C4  D320        0642  	OUT	SDATA,A
+F4C6  3E01        0643  	LD	A,01H		;
+F4C8  D321        0644  	OUT	SINTEN,A	
+F4CA  3E03        0645  	LD	A,03H		; SET DATA REGISTER ACCESS
+F4CC  D323        0646  	OUT	SLCTRL,A	
+F4CE  3E00        0647  	LD	A,0H		; DISABLE INTERRUPT
+F4D0  D321        0648  	OUT	SINTEN,A	
+F4D2  D325        0649  	OUT	SLSTAT,A	; RESET ERROR FLAGS
+F4D4  C9          0650  	RET
+                  0651  
+                  0652  
+                  0653  ;  Get Serial Printer Output Status
+                  0654  ;  Upon Exit:	A = -1 (FFH) and Z-flag is reset if ready for char.
+                  0655  ;		A = 0 and Z-flag is set if not ready for character
+CROMEMCO Z80 Macro Assembler version 03.04                                                                            Page 0012
+Source File:  FDCBIOS 
+
+                  0656  
+F4D5  DB25        0657  L2RDY:	IN	A,SSTATP	; GET LIST-OUT STATUS
+F4D7  E620        0658  	AND	STBE		; CHECK PRINTER TBE FLAG
+F4D9  C8          0659  	RET	Z		; PRINTER NOT READY FOR CHARACTER
+F4DA  3EFF        0660  	LD	A,-1		; PRINTER READY FOR CHARACTER
+F4DC  C9          0661  	RET
+                  0662  
+                  0663  
+                  0664  ;  Serial Printer Output Routine
+                  0665  ;  Upon Entry:	A contains the character to be output
+                  0666  
+F4DD  F5          0667  L2OUT:	PUSH	AF		; SAVE CHARACTER FOR A MOMENT
+F4DE  CDD5F4      0668  L2OT30:	CALL	L2RDY		; GET LIST-OUT STATUS
+F4E1  28FB        0669  	JR	Z,L2OT30	; ZERO MEANS PRINTER BUSY
+F4E3  F1          0670  	POP	AF		; RESTORE CHARACTER
+F4E4  D320        0671  	OUT	SDATA,A		; OUTPUT THE CHARACTER
+F4E6  FE0A        0672  	CP	LF		; CHECK FOR END OF LINE
+F4E8  C0          0673  	RET	NZ		; RETURN IF NOT LINE FEED CHARACTER
+F4E9  3E07        0674  	LD	A,NULLS+1	; IF LF, GET NUMBER OF NULLS
+F4EB  3D          0675  L2RTN:	DEC	A		; CHECK FOR 0 NULLS AT TOP OF LOOP
+F4EC  C8          0676  	RET	Z		; RETURN IF ALL NULLS OUTPUT
+F4ED  F5          0677  	PUSH	AF		; SAVE NULLS COUNTER
+F4EE  97          0678  	SUB	A		; PRINT A SINGLE NULL
+F4EF  CDDDF4      0679  	CALL	L2OUT		;	CHARACTER (RECURSIVE)
+F4F2  F1          0680  	POP	AF		; RESTORE NULLS COUNTER
+F4F3  18F6        0681  	JR	L2RTN		; LOOP TO PRINT NEXT NULL
+                  0682  ;
+      (0004)      0683  DKNUMB:	EQU	4		;THIS IS WHERE THE DISK NUMBER IS
+                  0684  ;				;KEPT IN NORMAL CP/M
+                  0685  CURRDRIVE:
+F4F5  00          0686  	DB	0		;THE SAVE AREA FOR THE DEFAULT DRIVE
+                  0687  LOGINTAB:
+F4F6  01000000    0688  	DB	2-LARGESW,0,0,0		;FOUR DRIVES MAX
+                  0689  DKSECT:
+F4FA  00          0690  	DB	0		;SECTOR NUMBER
+                  0691  DKTRACK:
+F4FB  00          0692  	DB	0		;TRACK NUMBER
+                  0693  DKDMA:
+F4FC  0000        0694  	DW	0		;DMA ADDRESS
+                  0695  TRKERCNT:
+F4FE  00          0696  	DB	0		;NUMBER OF TRACK ERRORS
+                  0697  RETRYCOUNT:
+F4FF  00          0698  	DB	0		;NUMBER OF READ ERRORS
+                  0699  ;
+                  0700  ;	FROM HERE ON, THE AREAS ARE INITIALIZED BY CP/M AS NEEDED
+                  0701  ;
+                  0702  DIRBUF:
+F500  (0080)      0703  	DS	128		;SAVE AREA FOR DISK DIRECTORY OPERATIONS
+                  0704  ;
+                  0705  ;
+                  0706  ALV0:
+F580  (0020)      0707  	DS	32
+                  0708  ;
+                  0710  ALV1:
+F5A0  (0020)      0711  	DS	32
+CROMEMCO Z80 Macro Assembler version 03.04                                                                            Page 0013
+Source File:  FDCBIOS 
+
+                  0713  ;
+                  0718  ;
+                  0723  ;
+                  0724  CSV0:
+F5C0  (0010)      0725  	DS	16
+                  0726  ;
+                  0728  CSV1:
+F5D0  (0010)      0729  	DS	16
+                  0731  ;
+                  0736  ;
+                  0741  ;
+                  0742  
+                  0743  ;  Note:  The last assembled byte of this module MUST NOT be a Define
+                  0744  ;  Storage (DS or DEFS) pseudo-op to assure proper operation with CDOSGEN
+                  0745  
+F5E0  (0000)      0746  	END
+
+Errors		   0
+Range Count	   4
+
+CROMEMCO Z80 Macro Assembler version 03.04                                                                            Page 0014
+Source File:  FDCBIOS 
+Symbol	   Value  Defn  References
+
+ADDSHIFT   F3A0   0393  0384 0388
+ALV0       F580   0706  0116
+ALV1       F5A0   0710  0122
+BANKPORT   0040   0047  0458
+BAUDRATE   0001   0058  0515
+BDOS       E406   0088  0508
+BEGINADR   DC00   0027  0031 0087 0088
+BIGIOSW    0001   0022  0054 0514 0582 0592 0611 0621 0629
+BOOT       F437   0500  0484 0488
+CBOOT      F42E   0496  0091
+CDATAPOR   0001   0036  0557 0576
+CLEAR      F2CC   0233  0224 0240
+CONIN      F486   0554  0095 0556
+CONOUT     F490   0571  0096 0540 0574
+CONSTAT    F47E   0547  0094 0555
+CPMB       DC00   0087  0468 0529
+CSTATPOR   0000   0035  0548 0572
+CSV0       F5C0   0724  0116
+CSV1       F5D0   0728  0122
+CURRDRIV   F4F5   0685  0462 0526
+DATAPORT   0033   0044  0351 0414
+DIRBUF     F500   0702  0115 0121
+DISKSELE   F3D0   0435  0281 0348 0412
+DKDMA      F4FC   0693  0216 0413 0469 0476 0478
+DKNUMB     0004   0683  0192 0357 0380 0438 0461
+DKSECT     F4FA   0689  0212 0352 0417
+DKTRACK    F4FB   0691  0269 0280 0346 0397 0486
+DPB0       F253   0139  0115 0121
+DPBASE     F233   0112  0198
+EBOOT      F203   0092  0504
+ERRMSG     F464   0532 
+ERROR      F2E3   0249  0228 0244
+FALSE      0000   0070 
+FLAGPORT   0034   0045  0282 0286 0300 0306 0328 0334 0349 0371 0419 0428
+HEADLOAD   0008   0051  0283 0368
+HOME       F309   0278  0100 0268 0467
+IMASKPOR   0003   0038 
+IMODEPOR   0002   0037 
+IN0        F3C7   0424  0422
+INIT4FDC   F3AC   0410  0298 0326
+L2INIT     F4BA   0637  0520
+L2OT30     F4DE   0668  0669
+L2OUT      F4DD   0667  0607 0679
+L2RDY      F4D5   0657  0668
+L2RTN      F4EB   0675  0681
+LARGESW    0001   0020  0145 0149 0154 0160 0169 0368 0448 0473 0487 0688
+LDATAPOR   0054   0066 
+LF         000A   0072  0672
+LIST       F4A3   0591  0097
+LISTAT     F49A   0581  0107
+LOGINTAB   F4F6   0687  0356 0395
+LSTATPOR   0054   0065  0066 0583
+MEMSIZE    0040   0024  0026 0028 0028 0029
+MEMSTAT    0037   0026  0027
+CROMEMCO Z80 Macro Assembler version 03.04                                                                            Page 0015
+Source File:  FDCBIOS 
+Symbol	   Value  Defn  References
+
+MEMTENTH   0006   0029  0182
+MEMUNITS   0004   0028  0183
+NULLS      0006   0071  0674
+NUMDRIVE   0002   0021  0118 0125 0132 0190 0709 0714 0719 0727 0732 0737
+NXTTRK     F41E   0485  0474
+PARLPORT   0004   0039 
+PBAUDPOR   0010   0063  0516
+PDATAPOR   0011   0064  0616
+PERSCISW   0001   0019  0020 0383 0401
+PRMSG      F474   0535  0499 0542
+PSTATPOR   0010   0062  0063 0064 0612
+PUNCH      F4A7   0610  0098 0614
+RBAUDPOR   0010   0060 
+RDATAPOR   0011   0061  0625
+RDI1       F326   0299  0304
+RDI2       F32F   0305  0308
+RDI3       F334   0309  0302
+RDSEC      F402   0471  0483 0493
+RDWREND    F338   0312  0340
+READ       F2BD   0223  0105 0481
+READ4FDC   F31E   0293  0226
+READER     F4B1   0620  0099 0624
+RETRYCOU   F4FF   0697  0236 0253
+RETRYREA   F2C0   0225  0229
+RETRYWRI   F2D7   0241  0245
+RSTATPOR   0010   0059  0060 0061 0622
+RSTI       F316   0285  0288
+SDATA      0020   0074  0642 0671
+SECTPORT   0032   0043  0353 0418
+SECTRAN    F2AB   0202  0108
+SEEKTEST   F388   0374  0289
+SELDSK     F297   0187  0101 0466
+SERIAL     0001   0025  0519 0592 0605
+SETDMA     F2B8   0215  0104 0524
+SETSEC     F2B3   0210  0103 0480
+SETTRK     F359   0344  0102 0271 0491
+SHIFTBIT   F3D9   0443  0445
+SIDENT     0022   0076 
+SIGNON     F27C   0180  0498
+SINTEN     0021   0075  0644 0648
+SKI        F383   0370  0373
+SLCTRL     0023   0077  0640 0646
+SLSTAT     0025   0079  0649
+SMDMCT     0024   0078  0638
+SMDMST     0026   0080 
+SSTATP     0025   0081  0657
+STARTBOO   F3F1   0464 
+STATPORT   0030   0041  0284 0310 0338 0369 0375 0430
+STBE       0020   0082  0658
+TRACKERR   F2F1   0260  0252
+TRAKPORT   0031   0042  0362
+TRKERCNT   F4FE   0695  0235 0261
+TRUE       FFFF   0069 
+VERIFY     0004   0052  0283 0368
+CROMEMCO Z80 Macro Assembler version 03.04                                                                            Page 0016
+Source File:  FDCBIOS 
+Symbol	   Value  Defn  References
+
+WBOOT      F3E4   0456  0093 0482
+WRI1       F345   0327  0332
+WRI2       F34E   0333  0336
+WRI3       F353   0337  0330
+WRIT4FDC   F33D   0321  0242
+WRITE      F2D4   0239  0106
+XLT0       F262   0156  0113 0119
+

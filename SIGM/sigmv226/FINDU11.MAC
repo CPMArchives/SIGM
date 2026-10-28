@@ -1,0 +1,242 @@
+;FINDU v1.10
+;by ESKAY, 08/02/84
+;
+; FINDU is a FIND program, styled after FIND40, which
+; can find sstrings in squeezed files.
+; usage: A>FIND [d:]afn string
+; For more info, read FINDU.DOC
+;
+; History:
+; 05-23-84	initially written
+; 08-02-84	added # of files display, sort. Now needs SYSLIB3.
+;
+cr	equ	0dh
+lf	equ	0ah
+;
+dfcb	equ	5ch
+dbuf	equ	80h
+;
+	extrn	usq,getusq	;Dave Rand's USQBASE!
+	extrn	wildex
+	extrn	sort		;that's MYSORT.REL, not SYSLIB's!
+	extrn	fi0$open,f0$get,fi0$close,bdos,pfn2
+	extrn	hmovb,initfcb,condin,cin,putud,getud
+	extrn	print,pstr,cout,codend,phlfdc,instr
+	public	get1
+;
+begin:	lxi	h,0
+	dad	sp
+	shld	stksav
+	lxi	sp,stack
+	call	putud
+	call	print
+	db	cr,lf
+	db	'FINDU v1.10 as of 08/02/84',cr,lf,lf,0
+	lda	dfcb+1
+	cpi	' '
+	jz	none
+	lda	dfcb
+	ora	a
+	jz	defdr
+	mov	e,a
+	dcr	e
+	mvi	c,14
+	call	bdos
+defdr:	lxi	h,dbuf+2
+fl:	mov	a,m
+	ora	a
+	jz	help
+	cpi	' '
+	inx	h
+	jnz	fl
+	lxi	d,string
+cl:	mov	a,m
+	stax	d
+	inx	h
+	inx	d
+	ora	a
+	jnz	cl
+	lxi	d,dfcb
+	lxi	b,500h
+	call	codend
+	dad	b
+	shld	fptr
+	call	wildex
+	jz	help
+	mov	a,h
+	ora	l
+	jz	none
+	call	phlfdc
+	call	print
+	db	' files matched, ',0
+	shld	files
+	mov	b,h
+	mov	c,l		;bc=# of records
+	lxi	d,16		;bytes per record
+	lhld	fptr		;buffer location
+	call	sort		;sort the buffer
+	call	print
+	db	'sorted.',cr,lf,lf,0
+nextfl:	lhld	fptr
+	lxi	d,fcb
+	push	d
+	mvi	b,16
+	call	hmovb
+	pop	d
+	shld	fptr
+	call	initfcb
+	call	typnxt
+	call	fi0$open
+	jnz	none
+	lda	fcb+10
+	cpi	'Q'
+	jnz	norm
+	call	codend
+	call	usq
+	ora	a
+	jnz	error
+	call	print
+	db	'   (',0
+	call	pstr
+	call	print
+	db	')',0
+	xra	a
+	jmp	rentr
+;
+norm:	mvi	a,1
+rentr:	sta	usqno
+	call	print
+	db	cr,lf,0
+	lxi	h,0
+	shld	lcnt
+olp:	lxi	h,line
+	shld	lptr
+loop:	call	condin
+	cnz	ckcon
+	call	getbyt
+	jnz	done
+	cpi	1ah
+	jz	done
+	ani	7fh
+	cpi	60h
+	jc	nolc
+	cpi	'z'+1
+	jnc	nolc
+	sui	20h
+nolc:	lhld	lptr
+	mov	m,a
+	inx	h
+	shld	lptr
+	cpi	lf
+	jnz	loop
+	mvi	m,0
+	lhld	lcnt
+	inx	h
+	shld	lcnt
+	lxi	h,line
+	lxi	d,string
+	call	instr
+	cz	putln
+	jmp	olp
+;
+putln:	call	print
+	db	'[',0
+	lhld	lcnt
+	call	phlfdc
+	call	print
+	db	'] ',0
+	lxi	h,line
+	jmp	pstr
+;
+typnxt:	call	print
+	db	cr,lf
+	db	'Now processing ',0
+	inx	d
+	call	pfn2
+	dcx	d
+	ret
+;
+ckcon:	cpi	'C'-40h
+	jz	abort
+	cpi	'X'-40h
+	jz	skip
+	cpi	'S'-40h
+	rnz
+	call	cin
+	cpi	'X'-40h
+	jz	skip
+	cpi	'C'-40h
+	rnz
+abort:	call	print
+	db	cr,lf,7
+	db	'*** ABORTED ***',cr,lf,0
+	jmp	quit
+;
+skip:	call	print
+	db	cr,lf,lf
+	db	'*** SKIPPING TO NEXT FILE',0
+	jmp	skip1
+;
+done:	call	print
+	db	cr,lf
+	db	'*** END OF FILE',0
+skip1:	call	print
+	db	' AFTER ',0
+	lhld	lcnt
+	call	phlfdc
+	call	print
+	db	' LINES ***',cr,lf,0
+	call	fi0$close
+	lhld	files
+	dcx	h
+	shld	files
+	mov	a,h
+	ora	l
+	jnz	nextfl
+;
+done1:	call	print
+	db	cr,lf,'<<<END OF EXECUTION>>>',cr,lf,0
+	jmp	quit
+;
+getbyt:	mvi	a,0
+usqno	equ	$-1
+	ora	a
+	jz	getusq
+get1:	jmp	f0$get
+;
+error:	call	print
+	db	cr,lf
+	db	'ERROR in squeezed file (not SQed?)',cr,lf,0
+	jmp	quit
+;
+none:	call	print
+	db	cr,lf
+	db	'ERROR - no file specified',cr,lf,0
+help:	call	print
+	db	cr,lf,7
+	db	'FINDU is used to find a string of characters in a',cr,lf
+	db	'text file. The text file may be squeezed or straight',cr,lf
+	db	'ASCII. All occurrences of the string will cause the',cr,lf
+	db	'line number and the line the string is in to be displayed.'
+	db	cr,lf,lf
+	db	'Usage:   A>FINDU [D:]UFN STRING',cr,lf,lf,0
+quit:	call	getud
+	lhld	stksav
+	sphl
+	ret
+;
+stksav:	dw	0
+files:	dw	0
+fptr:	dw	0
+lptr:	dw	0
+lcnt:	dw	0
+fcb:	ds	36
+string:	ds	80
+line:	ds	255
+	ds	60
+stack	equ	$
+	end
+	print
+	db	' AFTER ',0
+	lhld	lcnt
+	call	phlfdc

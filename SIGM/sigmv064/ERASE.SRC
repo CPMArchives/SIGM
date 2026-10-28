@@ -1,0 +1,155 @@
+V	SET	          0
+M	SET	          0
+F	SET	          0
+;TYPE
+;BYTE = 0..255;
+;
+;{procedure to erase lines on the terminal screen starting at 
+;a given line and for a given number of lines}
+;
+;
+;PROCEDURE ERASE_LINES(STARTING_LINE,NUMBER_OF_LINES:BYTE);
+;
+;VAR
+;I:INTEGER;
+;BLANKS:STRING 80;
+;
+;BEGIN
+L150
+	NAME ERASE_LINES
+	ENTRY ERASE_LINES
+ERASE_LINES:
+	ENTR	D,2,83
+;
+;BLANKS:='                                                ';{40SPACES}
+	STMT	D,1
+	JR	L164
+L163
+	DB	'                                                ',48
+L164
+	LXI	H,L163+48
+	XCHG
+	PUSH	IX
+	POP	H
+	DCX	H
+	DCX	H
+	XCHG
+	LXI	B,81
+	LDDR
+;FOR  I:= 1 TO NUMBER_OF_LINES DO
+	STMT	D,2
+	MOV	0(IX),A
+	MVI	-1(IX),1
+	PUSH	IX
+	MOV	H,A
+	MOV	L,8(IX)
+	XTHL
+L173
+	MOV	D,M
+	DCX	H
+	MOV	E,M
+	XTHL
+	PUSH	H
+	GE	D,0
+	JNC	L174
+;	BEGIN
+	STMT	D,3
+;	WRITE(CHR(27),'=',CHR(STARTING_LINE+31),CHR(32),BLANKS,BLANKS);
+	STMT	D,4
+	LXI	H,27
+	STMT	M,4
+	PUSH	H
+	LXI	H,769
+	XTHL
+	LXI	B,1
+	PUSH	B
+	MOV	H,L
+	PUSH	H
+	INX	S
+	LXI	H,769
+	PUSH	H
+	LXI	B,1
+	PUSH	B
+	LXI	H,61
+	MOV	H,L
+	PUSH	H
+	INX	S
+	MOV	H,A
+	MOV	L,9(IX)
+	LXI	D,31
+	DADD	D,0
+	STMT	M,4
+	PUSH	H
+	LXI	H,769
+	XTHL
+	LXI	B,1
+	PUSH	B
+	MOV	H,L
+	PUSH	H
+	INX	S
+	LXI	H,32
+	STMT	M,4
+	PUSH	H
+	LXI	H,769
+	XTHL
+	LXI	B,1
+	PUSH	B
+	MOV	H,L
+	PUSH	H
+	INX	S
+	LXI	H,1793
+	PUSH	H
+	LXI	B,81
+	PUSH	B
+	LXI	H,-81
+	DADD	S
+	SPHL
+	XCHG
+	PUSH	IX
+	POP	H
+	LXI	B,-82
+	DADD	B
+	LXI	B,81
+	LDIR
+	LXI	H,1793
+	PUSH	H
+	LXI	B,81
+	PUSH	B
+	LXI	H,-81
+	DADD	S
+	SPHL
+	XCHG
+	PUSH	IX
+	POP	H
+	LXI	B,-82
+	DADD	B
+	LXI	B,81
+	LDIR
+	LXI	B,190
+	CALL	L111
+;	STARTING_LINE:=STARTING_LINE + 1;
+	STMT	D,5
+	MOV	H,A
+	MOV	L,9(IX)
+	INX	H
+	RCHK	H,0,255
+	MOV	9(IX),L
+;	END
+	STMT	D,6
+;END;
+	CTRL	M,6
+	POP	H
+	XTHL
+	INR	M
+	INX	H
+	JRNZ	L247
+	INR	M
+	JV	L248
+L247
+	JMP	L173
+L174
+	POP	D
+L248
+	POP	D
+	EXIT	D,2
+

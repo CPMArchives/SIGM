@@ -1,0 +1,42 @@
+;GO (HEX ADDR) FROM DR DOBS JOURNAL
+	ORG	100H
+TBUFF	EQU	80H
+FCB	EQU	5CH
+	LXI	D,0
+	LXI	H,FCB+1
+	MVI	B,4
+GO	MOV	A,M		;GET DIGIT
+	CPI	20H		;CHECK FOR SPACE
+	JNZ	GO1
+	MVI	A,30H
+GO1	CALL	HEXIN
+	RC
+	INX	H
+	DCR	B
+	JNZ	GO
+	XCHG
+	PCHL
+HEXIN	XCHG
+	CALL	CHECK
+	RC
+	DAD	H
+	DAD	H
+	DAD	H
+	DAD	H
+	ORA	L
+	MOV	L,A
+	XCHG
+	RET
+CHECK	SUI	30H
+	RC
+	CPI	0AH
+	CMC
+	RNC
+	SUI	7H
+	CPI	0AH
+	RC
+	CPI	10H
+	CMC
+	RET
+	END
+

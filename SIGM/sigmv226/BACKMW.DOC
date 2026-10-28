@@ -1,0 +1,231 @@
+DOCUMENTATION FOR BACKMW.COM v2.50
+
+BACKMW is (c) S. Kluger, 1984. The object code has been released into
+the Public Domain and may be distributed freely, except for profit.
+
+1. WHAT IS BACKMW
+
+BACKMW is an incremental backup/recovery utility written for Morrow's
+M16 hard disk system (hence the MW in BACKMW). It can be used on any
+hard disk system provided that:
+	- the DPB of the highest logical drive includes all lower
+	  logical drives as RESERVED TRACKS
+	- the hard disk does not have more than 1000 cylinders
+
+BACKMW is used once to toally back up the complete hard disk onto
+floppies, then it can be used periodically to update the information
+backed up. It automatically keeps track of CRC values for all cylinders
+and will back up only those cylinders that have been written to since the
+last backup. While BACKMW can be used for partial recovery, writing back
+to the hard disk only those cylinders that have changed since the last backup,
+it is really intended for catastrophic failures, such as trashed logical
+drives or a complete reformat.
+
+
+2. OPERATION
+
+BACKMW has four options, which are displayed in the main menu when
+the program is started. Those options are:
+
+T - total hard disk backup
+I - incremental hard disk backup or restore
+C - configuration parameter editor
+Q - quit to CP/M
+
+
+Simply select one of the above choices. Note that you must do a total
+backup of your hard disk before you can do any incremental backups or
+restores.
+
+3. THE CONFIGURATION EDITOR
+
+The editor is presented first, because your system may be different from
+the default and you should first configure BACKMW for your environment.
+
+Selecting the C command first displays the current configuration parameters
+which default to my system environment:
+
+	High hard drive       : E:
+	Floppy backup drive   : F:
+	CRC file drive        : F:
+	Number of CYLINDERS   : 306       (306/432 is the data for the
+	Number of SECTORS/CYL : 432        Morrow M16 system)
+
+	CHANGE? (H,F,C,T,S,Q,?)
+
+Simply type the appropriate letter to change an option (a "?" explains
+the option letters) or use "Q" to exit the editor. After exiting, you may
+optionally save BACKMW to a new file (you get to specify drive and file name).
+
+
+4. TOTAL BACKUP
+
+After selecting "T", you will be asked to input the size of your floppy
+disks in k bytes. Be sure to enter an accurate value and that all floppy
+disks you will be using during the backup process have AT LEAST that
+much room left! You will receive a caution message if you select a floppy
+size of less than 256k, but may go ahead with the operation anyway. Next,
+BACKMW will tell you how many diskettes you need to back up the complete
+hard disk. You should make sure you have enough floppies. While you can
+abort BACKMW at any prompt (and, therefore, also while backing up), it is
+not advisable to abort BACKMW in the middle of a backup operation, since
+you cannot continue where you left off at a later date - you would HAVE TO
+restart backup from scratch.
+
+Next, you will be asked for an 8-character DISK ID, which can be almost
+anything, but you might want to make it the current date. This 8-character
+string will be used by BACKMW to construct the filename for the cylinder
+files and the CRC file. The name MUST be 8 characters exactly.
+
+You will now be prompted to insert the first floppy diskette and backup
+will commence. During backup, the following information will be displayed
+for each cylinder:
+	- cylinder number
+	- sector being read (updated continuously while reading)
+	- CRC value for the current cylinder
+
+After BACKMW has determined that no more cylinders will fit on the current
+floppy, you will be prompted to insert the next floppy and the cycle will
+continue until all cylinders have been backed up. At 432 sectors per
+cylinder, each cylinder takes approximately 30 seconds, so an M16 hard
+disk can be backed up in about 2 1/2 hours.
+
+When BACKMW has finished the backup operation, it will prompt you to insert
+the floppy on which the CRC file should be written. IF THERE IS SUFFICIENT
+ROOM, you should write this file to the very first disk backed up. Otherwise,
+send it to a disk not used in the backup process. The CRC file contains
+8 bytes for each cylinder, so in the case of an M16, you must have at least
+4k to store the file! Do not write the CRC file to the hard disk, for
+obvious reasons!
+
+
+5. INCREMENTAL BACKUP / RECOVERY
+
+If you select "I" at the main menu, you will be asked whether you want a
+BACKUP or RECOVERY operation. Backup means FROM HARD DISK TO FLOPPY,
+and recovery means FROM FLOPPY TO HARD DISK. Any response other than "B"
+or "R" will return you to the main menu.
+
+BACKMW will immediately ask you to insert the floppy which contains the
+CRC file, and it will read the CRC file into memory. Next, you will be asked
+for the starting cylinder number. This allows you to do partial backup/restore
+or continue a previously aborted incremental B/R. The operation you selected
+(B/R) will begin immediately. BACKMW CRC-checks each cylinder on the hard
+disk, displaying status information as it goes. If the CRC calculated in not
+the same as the value in the CRC file, BACKMW will attempt to open the
+appropriate cylinder file on the floppy and transfer the information in that
+file back onto the hard disk if RESTORE was selected, or it will update the
+cylinder file on the floppy disk if BACKUP was selected. If BACKMW cannot
+find the cylinder file, it will prompt you to insert the appropriate disk
+(by number) until it finds the file.
+
+After finishing an incremental BACKUP, BACKMW writes the CRC file back
+onto the disk it read it from. No CRC file is written after a RESTORE
+operation.
+
+CONTROL-C can be used to abort the incremental B/R operation at any time.
+When aborting a BACKUP, be sure to allow BACKMW to write the CRC file!!!
+BACKMW will want to write the CRC file after an aborted RESTORE too, but
+you may abort this before writing.
+
+
+6. EXIT
+
+BACKMW performs a warmboot when executing the Q command.
+
+
+7. ERRORS
+
+BACKMW will abort to the main menu any time a READ, WRITE, or OPEN error
+is encounteded. The filename which caused the error will be displayed.
+
+Should an error be encountered during hard disk write, a BIOS ERR R/W message
+will be displayed and BACKMW will execute a warm boot.
+
+
+8. MISCELLANEOUS
+
+I have tested BACKMW on an M16 system. While testing, I inadvertently
+clobbered my directory on A: and I was able to use BACKMW to restore it,
+which proved to me that it worked. Even though I have used the program
+many times and it appears to work fine, please use it with caution.
+Be sure to do a conventional backup before using it for the
+first time. Ideally, the following should be done to test the program, but
+since I run a RCPM I don't have the time to do it:
+
+	1. do total backup
+	2. run a whole disk checksum (like the TEST command in POWER)
+	3. clobber about 50% of the data on the drive
+	4. do an incremental restore
+	5. verify that whole disk checksum produces the same
+	   result as in (2) above.
+
+If you setect any bugs, failures, strangenesses, please let me know with an
+exact description of the problem. Verify that the problem is not random.
+
+
+9. CREDITS
+
+Thanks to frank Wancho for suggesting the incremental backup method
+Thanks to Rick Conn for SYSLIB
+Thanks to whoever uses it and reports success/failure
+
+
+
+						Dallas, TX, 06-24-84
+
+ADDITIONAL NOTES: (this used to be BACKMW.NOT)
+
+For more info read BACKMW.DOC
+
+(updated 6/24/84)
+
+
+TOTAL hard disk backup should ideally be done only once, unless more
+than 40% of the hard disk has been changed. Since total foolproofing
+of BACKMW would have added to the complexity and size of the program,
+I have decided not to incorporate any BDOS error trapping. This means
+that you MUST be absolutely sure that when you do a total backup,
+
+1. All floppy disks you are about to use are EMPTY, freshly formatted
+2. All floppies have the same capacity and you specify that capacity
+   when BACKMW2 asks for it
+3. You never make any silly mistakes such as leaving the drive door
+   open, reversing the disk etc,
+
+for if you do you will be forced to restart from scratch! On an M16
+system that means you have to spend another 2 1/2 hours, PLUS the time
+it takes to ERA *.* all diskettes again!
+
+
+Now, now... don't let those little problems keep you away from a
+free program...
+
+VER 2.2:
+
+A number of bug fixes in the incremental routine, which caused the system
+to hang, access the floppy at the wrong time and mess up the CRC file.
+A ^C abort feature was added to the incremental routines, where the CRC
+check of the current cylinder can be aborted at any time. When aborted,
+you will be asked to insert the CRC file diskette and the CRC file will
+be updated in accordance with your actions.
+
+
+VER 2.3:
+
+V2.3 now runs on banked CP/M plus systems. BIOS calls are made through
+BDOS call 50 IAW the CP/M plus calling conventions.
+
+
+VER 2.5:
+
+BACKMW version 2.5 no longer supports the buggy "manual" restore mode
+introduced in v2.4. When doing an incremental backup or restore, you
+are now asked for a starting cylinder number. This way you can interrupt
+your work at any point and continue later without CRC checking hundreds
+of already-processed cylinders.
+This version will not insist on writing the CRC file if you run a
+RESTORE to completion. Aborting an incremental function with ^C will
+still result in the CRC file prompt. BE SURE to write the CRC file
+after aborting an incremental BACKUP!
+

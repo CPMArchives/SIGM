@@ -1,0 +1,132 @@
+     **    *******  ****     ******     *     *       *
+   *    *     *     *   *    *         * *    **     **
+   *          *     *    *   *        *   *   * *   * *
+     * *      *     ****     ****    *******  *  * *  *
+        *     *     *   *    *       *     *  *   *   *
+   *    *     *     *    *   *       *     *  *       *
+     **       *     *     *  ******  *     *  *       *
+
+****************************************************************
+*                                                              *
+* PROCEDURE STREAM(VAR XVALUE,YVALUE : INTEGER;                *
+*                  VAR PEN : CHAR);EXTERNAL                    *
+*                                                              *
+* A PASCAL/Z EXTERNAL PROCEDURE IN (ITHACA) Z/80 ASSEMBLY CODE *
+*                                                              *
+* READS THE HOUSTON HIPAD VIA MIO PARALLEL PORT A TO OBTAIN    *
+* A PAIR OF X,Y COORDINATES,WITH HIPAD IN STREAM MODE.         *
+*                         THE COORDINATES ARE TRANSMITTED TO   *
+* PASCAL/Z VIA THE DUMMY VARIABLES 'XVALUE' AND 'YVALUE'.      *
+* THESE CORRESPOND TO ACTUAL INTEGER VARIABLES DECLARED IN     *
+* THE PASCAL/Z CALLING PROGRAM.                                *
+*                                                              *          
+*                                  IF THE CONTROL BYTE ,READ   *
+* FROM HIPAD,IS 0F3H THEN PEN WILL RETURN = 'U'  [ for 'UP'  ] *
+* BUT IF THE CONTROL BYTE = 0F4H PEN WILL = 'D'  [ for 'DOWN'] *
+* N.B. : PEN IS A CHARACTER VARIABLE DECLARED IN PASCAL/Z.     *
+*                                                              *
+****************************************************************
+
+VBYTES   EQU 08      # OF BYTES ON STACK
+
+XVALUE   EQU 15    OFFSETS TO (IX) FOR ADDRESS OF POINTERS
+YVALUE   EQU 12    TO TRANSMITTED VARIABLES.
+PEN      EQU 09  
+
+STAT_RDY EQU 0F7H  STATUS PORT DATA AVAILABLE CODE
+STAT_PRT EQU 00AH  ADDRESS OF STATUS PORT
+DATA_PRT EQU 008H     "    "   DATA    "
+
+UP       EQU 'U'
+DOWN     EQU 'D'
+                     NAME STREAM
+                     ENTRY STREAM
+
+STREAM:  ENTR D,2,0
+         CALL CBCNTRL
+         CALL X_IN
+         CALL PASS_X
+         CALL Y_IN
+         CALL PASS_Y
+         EXIT D,VBYTES
+
+
+
+* CBCNTRL: READS DATA PORT,LOOKING FOR CONTROL BYTE = F3 OR F4
+
+CBCNTRL:  CALL STAT_CHK       ;WAIT FOR DATA
+          IN DATA_PRT         ;GET A BYTE
+          CPI 0F3H            ;CONTROL BYTE = F3?(PEN UP)
+          JNZ NOT_UP
+          MOV H,PEN(IX)
+          MOV L,PEN-1(IX)
+          MVI M,UP
+          RET
+NOT_UP    CPI 0F4H            ;CONTROL BYTE = F4?(PEN DOWN)
+          JNZ CBCNTRL
+          MOV H,PEN(IX)
+          MOV L,PEN-1(IX)
+          MVI M,DOWN
+          RET
+
+* STAT_CHK : CHECKS STATUS PORT 
+
+STAT_CHK:  IN STAT_PRT      ;DATA IN? 
+           CPI STAT_RDY 
+           RZ             ;IF SO:GO GET IT.
+           JMP STAT_CHK     ;ELSE TRY AGAIN.
+
+
+* X_IN : GETS CURRENT X VALUE FROM HIPAD INTO DE
+
+X_IN:    CALL STAT_CHK       ;WAIT FOR DATA
+         IN DATA_PRT         ;GET 1ST BYTE (X7..X13)
+         MOV D,A             ;INTO D
+         PUSH D
+         CALL STAT_CHK
+         POP D
+         IN DATA_PRT         ;2ND BYTE (X0..X6)
+         MOV E,A             ;INTO E
+         SLAR E              ;---|
+         SLAR D              ;   |JUSTIFY
+         SRAR D              ;   | RIGHT 
+         SRAR D              ;   | IN DE
+         RRAR E              ;---|
+         RET
+
+* Y_IN : GETS CURRENT Y VALUE FROM HIPAD INTO HL
+
+Y_IN:    XCHG
+         CALL X_IN
+         XCHG
+         RET
+
+* PASS_X STORES THE 16 BIT # IN DE @ THE LOCATIONS WHOSE START
+* ADDRESS'S MSB = XVALUE + (IX)
+
+PASS_X:    MOV B,XVALUE(IX)
+           MOV C,XVALUE-1(IX)
+           MOV A,D
+           STAX B
+           DCX B
+           MOV A,E
+           STAX B
+           RET
+
+* PASS_Y STORES THE 16 BIT # IN HL @ THE LOCATIONS WHOSE START
+* ADDRESS'S MSB = YVALUE + (IX)
+
+PASS_Y:    MOV D,YVALUE(IX)
+           MOV E,YVALUE-1(IX)
+           MOV A,H
+           STAX D
+           DCX D
+           MOV A,L
+           STAX D
+           RET
+
+
+                   END STREAM
+
+
+

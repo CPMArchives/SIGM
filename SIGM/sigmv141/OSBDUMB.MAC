@@ -1,0 +1,344 @@
+	PAGE	60
+;************************************************************************
+;*									*
+;*	This program is designed to allow the Osborne to act as a	*
+;*	Dumb Terminal (e.g. to "talk" to other micro computers - 	*
+;*	Superbrain, Sorcerer, Osborne, etc. or to connect to a time	*
+;*	sharing bureau - The "SOURCE", The Australian Beginning, etc.)	*
+;*									*
+;*	It has the ability to provide a hardcopy of the dialog,		*
+;*	but the printer cannot be assigned to the serial interface	*
+;*	of the Osborne-1 (actually this should be obvious cos u r 	*
+;*	using the serial interface to talk to the modem, other m/c etc)	*
+;*									*
+;*	This is a heavily modified version of a DUMB TERMINAL program	*
+;*	written for a Superbrain Computer by Tony Lonsdale		*
+;*	Current date = 28th March 1983					*
+;*                                                                      *
+;************************************************************************
+	.Z80
+;
+;	EQUATES
+;
+BDOS	EQU	5
+JUMP	EQU	0C3H		;The op. code for JP(can't us opcodes as operands in Z80 mode)
+NOOP	EQU	00H		;The op. code for NOP 
+RETURN	EQU	0C9H		;The op. code for RET
+CTRLE	EQU	05H		;Control/E used to indicate end of DUMB
+CTRLD	EQU	04H		;Control/D used to switch duplex mode
+CTRLP	EQU	10H		;Control/P used to toggle printing
+STRING	EQU	9		;CP/M code to print a string on screen
+LIST	EQU	5		;CP/M code for list output
+IOBYTE	EQU	7		;CP/M code to get the iobyte
+CONWRT	EQU	2		;CP/M code for console write
+CIN	EQU	1		;CP/M code for console char input
+WBOOT	EQU	0		;WARM BOOT ADDRESS
+;
+INIT:	LD	(STACKS),SP
+	LD	SP,STACK	;set our stack
+	LD	HL,ACIART	;move the acia
+	LD	DE,ACIACN	;routines to where
+	LD	BC,ACIAL	;they should be
+	LDIR
+	LD	C,STRING
+	LD	DE,STMSG
+	CALL	BDOS		;Ask operator if Half or Full Duplex
+	LD	C,CIN
+	CALL	BDOS
+	LD	DE,FULMSG
+	CP	'H'
+	JP	NZ,FULL
+	LD	A,1
+	LD	(DUPLEX),A	;Put non-zero value into indicator
+	LD	DE,HAFMSG
+FULL:
+	LD	C,STRING
+	CALL	BDOS		;Print msg acknowledging Duplex mode
+	LD	C,STRING
+	LD	DE,BAUDMSG
+	CALL	BDOS		;Ask what speed 
+	LD	C,CIN
+	CALL	BDOS
+	CP	'2'
+	JR	Z,S1200
+	LD	A,56H		;Data to set speed to 300 baud
+	JR	SETBAUD		;and skip
+S1200:	LD	A,55H		;Data to set speed to 1200 baud
+SETBAUD: LD	(BAUD),A	;Save it
+	LD	A,57H		;Reset ACIA
+	CALL	ACIACN		;go do it
+	NOP			;wait a while
+	NOP
+	NOP
+	NOP
+	LD	A,(BAUD)	;pick up the baud rate
+	CALL	ACIACN		;go do it
+	NOP			;wait a while
+	NOP
+	NOP
+	NOP
+	LD	C,STRING
+	LD	DE,SPEED
+	CALL	BDOS		; Let him know that speed set
+	LD	C,STRING
+	LD	A,(BAUD)
+	LD	DE,S1
+	CP	55H
+	JR	NZ,SKIP
+	LD	DE,S2
+SKIP:	CALL	BDOS
+	LD	C,IOBYTE	;pick up the iobyte
+	CALL	BDOS		;to check LST: assignment
+	BIT	6,A		;if this bit on, need to check bit 7
+	JP	Z,IOOK		;else it's alright
+	BIT	7,A		;If bit 7 is also on, that's ok
+	JP	NZ,IOOK
+	LD	DE,BADLST
+	LD	C,STRING	;tell the user
+	CALL	BDOS
+	LD	A,RETURN	;get rid of the routine to add  
+	LD	(BUFFADD),A	;to the printer buffer 
+IOOK:
+	LD	DE,FINMSG
+	LD	C,STRING
+	CALL	BDOS
+	LD	HL,(1)		;Find BIOS Warm Boot entry point
+	LD	DE,3		;BIOS JP instr's are 3 bytes long
+	ADD	HL,DE
+	LD	(CONST+1),HL	;Address of BIOS Console Status routine
+	ADD	HL,DE
+	LD	(CONIN+1),HL	;Address of BIOS Console Input routine
+	ADD	HL,DE
+	LD	(CONOUT+1),HL	;Address of BIOS Console Output routine
+	ADD	HL,DE
+	ADD	HL,DE
+	LD	(PUNCH+1),HL	;Address of BIOS PUNCH Output routine
+	ADD	HL,DE
+	LD	(RDR+1),HL	;Address of BIOS READER Input routine
+	LD	DE,18H
+	ADD	HL,DE		;Address of bios list status routine
+	LD	(LSTSTAT+1),HL
+	LD	DE,36H
+	ADD	HL,DE		;Address of serial status routine
+	LD	(SERSTAT+1),HL
+	PAGE
+;
+DUMB:
+	CALL	BUFPRT		;print a char from circular buffer
+	CALL	SERSTAT		;check if any char from modem
+	AND	01H		;Mask of bits we don't want
+	CP	01H		;Is the Receive Data Register full?
+	JP	NZ,KEYBD	;No, check keyboard
+	CALL	RDR		;Get that char
+	AND	7FH		;Take the top bit off
+	CALL	VIDEO		;We have a character from Main Port
+;				;so display it on the screen.
+KEYBD:	CALL	CONST		;Check the kayboard status
+	JP	Z,DUMB		;No key pressed, so go round again.
+	CALL	CONIN		;Get the key that was typed
+	CP	CTRLE		;Ctrl/E?
+	JP	Z,WBOOT 	;Yes, back to CP/M
+	CP	CTRLP		;CTRL/P ?
+	JP	Z,FLIPP		;Yes, flip-flop the list device	
+	CP	CTRLD		;CTRL/D ?
+	JP	Z,FLIPD		;Yes, flip-flop the duplex bit	
+	LD	E,A
+	LD	A,(DUPLEX)	;Should we echo
+	OR	A	
+	JP	Z,NOECHO
+	CALL	VIDEOE		;Yes, echo to screen
+NOECHO:	
+	LD	C,E
+	CALL	PUNCH		;Send it out to the Main Port
+	JP	DUMB		;Now go see if there are any more.
+;
+;  Routine to send a character to the screen.
+;
+VIDEO:	
+	LD	E,A
+VIDEOE:
+	PUSH	DE
+	LD	C,CONWRT
+	CALL	BDOS		;Display on screen
+	POP	DE
+	LD	A,(SWITCH)	;Should we echo to the printer?
+	OR	A
+	RET	Z		;Nope
+	PUSH	DE		;Better hang on to it again
+	CALL	BUFFADD		;add char to circular print buffer
+	POP	DE
+	RET
+;
+;  Routine to flip/flop the list device switch (controlled by ^P)
+;
+FLIPP:	LD	A,(SWITCH)
+	XOR	1		;Flip/flop the switch
+	LD	(SWITCH),A
+	JP	DUMB
+
+FLIPD:	LD	A,(DUPLEX)
+	XOR	1		;Flip/flop the switch
+	LD	(DUPLEX),A
+	JP	DUMB
+;	Routine to add a characetr to the circular print buffer
+;	This routine is necessary to allow time for the printer to 
+;	print a line, and do a carriage return
+;
+BUFFADD:
+	DB	NOOP		;overwritten by a RET if iobyte is wrong
+	LD	A,E		;char is given to us in E
+	LD	DE,(NXTAVAIL)	;next available byte in buffer
+	LD	(DE),A		;insert the character
+	INC	DE		;increment 'nxtavail' pointer
+	LD	HL,BUFEND	; find the end of buffer
+	OR	A		;clear carry flag
+	SBC	HL,DE		;is nxtavail past end of buffer
+	JR	NC,NOTYET
+	LD	DE,PBUFF	;paast the end so go back to start
+NOTYET: LD	(NXTAVAIL),DE	;save the pointer for next time
+	RET
+;
+;	This routine checks to see if the printer is ready to
+;	receive another char, and if it is, it checks to see 
+;	if there is a char to print from the circular print 
+;	buffer, gets it from the buffer and sends it to the printer,
+;	otherwise it just returns from whence it came
+; 
+BUFPRT:
+	LD	DE,(NXTPRINT)	;where is printer up to?
+	LD	HL,(NXTAVAIL)	;where is buffer up to?
+	SBC	HL,DE		;is there anything to print
+	RET	Z		;not yet!
+;
+	CALL	PRTSTAT		;is the printer ready for this?
+	RET	Z		;not yet
+;
+	EX	DE,HL		;HL haa address of next character to print
+	LD	E,(HL)		;get that character
+	LD	C,LIST
+	CALL	BDOS		;go print it
+	LD	DE,(NXTPRINT)
+	INC	DE		;incerment 'NXTPRINT' pointer
+	LD	HL,BUFEND	;end of PBUFF
+	SBC	HL,DE		;is NXTPRINT past end of buffer
+	JR	NC,NOTPAST
+	LD	DE,PBUFF	;reset to start
+NOTPAST:LD	(NXTPRINT),DE
+	RET
+PRTSTAT: PUSH	BC
+	PUSH	DE
+	PUSH	HL
+	CALL	LSTSTAT
+	POP	HL
+	POP	DE
+	POP	BC
+	RET
+;
+CONST:	DB	JUMP
+	DW	0
+CONIN:	DB	JUMP
+	DW	0
+CONOUT:	DB	JUMP
+	DW	0
+PUNCH:	DB	JUMP
+	DW	0
+RDR:	DB	JUMP
+	DW	0
+LSTSTAT: DB	JUMP
+	DW	0
+SERSTAT: DB	JUMP
+	DW	0
+;
+STACKS:	DW	0	;Stack save area
+SWITCH:	DB	0	;Printer flip/flop (0 = no print, 1 = print)
+BAUD:	DB	0	;Storage for selected baud rate 
+DUPLEX:	DB	0	;0 = FULL DUPLEX
+NXTAVAIL: DW	PBUFF	;address of next empty space in PBUFF
+NXTPRINT: DW	PBUFF	;address of next chat to print in PBUFF
+STMSG:	DB	26,10,9,9,'DUMB for the OSBORNE-1 as at March 28,1983'
+	DB	13,10,10,'Would you like H-alf or F-ull duplex <F> $'
+FULMSG:	DB	13,10,10,9,9,'*** FULL DUPLEX ***',13,10,10
+	DB	'Expecting the other system to echo our keystrokes$'
+HAFMSG:	DB	13,10,10,9,9,'*** HALF DUPLEX ***',13,10,10
+	DB	'Not expecting an echo from the other system.',13,10
+	DB	'All keystrokes will be echoed on the screen before',10,13
+	DB	'transmission.$'
+BAUDMSG: DB	13,10,'Set the Communications speed'
+	DB	13,10,'Enter 1 for 300, or 2 for 1200 <1>$'
+SPEED:	DB	13,10,10,'Speed has been set to $'
+S1:	DB	'300 Baud$'
+S2:	DB	'1200 Baud$'
+FINMSG:	DB	13,10,10,'Enter Ctrl/E to exit.',13,10 
+	DB	'Enter Ctrl/P to echo to printer.',13,10
+	DB	'Enter Ctrl/D to switch between FULL and HALF Duplex.',10,13,'$'
+BADLST:	DB	13,10,'The IOBYTE is not set correctly,'
+	DB	13,10,'and  there will be NO hardcopy'
+	DB	13,10,'Either use STAT to set the LST: device to the Parallel'
+	DB	13,10,'port or the IEEE port, or accept NO HARDCOPY$'
+
+	PAGE
+ACIART:
+;
+;********************************************************
+;*							*
+;*	ACIA ROUTINES . TO BE RELOCATED AT 4000H TO 	*
+;*		ALLOW BANK SWITCHING			*
+;*							*
+;********************************************************
+	.PHASE	4000H	;locate these routines above 4000h 
+;			;to allow them to bank switch
+;
+;********************************************************
+;*							*
+;*	ACIACN	SENDS THE CHAR IN A TO THE ACIA CONTROL *
+;*							*
+;********************************************************
+ACIACN:	DI		;cos its necessary
+	OUT	(0),A	;Switch to bank 2
+	LD	(2A00H),A ;Thats where the control port is
+	OUT	(1),A	; and back to bank 1
+	EI		; seems a good idea
+	RET		; and back from whence we came
+;
+;********************************************************
+;*							*
+;*	ACIAST	GETS THE ACIA STATUS IN A		*
+;*							*
+;********************************************************
+ACIAST:	DI		;cos its necessary
+	OUT	(0),A	;Switch to bank 2
+	LD	A,(2A00H) ;Thats where the control port is
+	OUT	(1),A	; and back to bank 1
+	EI		; seems a good idea
+	RET		; and back from whence we came
+;
+;********************************************************
+;*							*
+;*	ACIAOT	SENDS THE CHAR IN A TO THE ACIA DATA	*
+;*							*
+;********************************************************
+ACIAOT:	DI		;cos its necessary
+	OUT	(0),A	;Switch to bank 2
+	LD	(2A01H),A ;Thats where the control port is
+	OUT	(1),A	; and back to bank 1
+	EI		; seems a good idea
+	RET		; and back from whence we came
+;
+;********************************************************
+;*							*
+;*	ACIAIN	GETS THE CHAR FROM THE DATA PORT IN A	*
+;*							*
+;********************************************************
+ACIAIN:	DI		;cos its necessary
+	OUT	(0),A	;Switch to bank 2
+	LD	A,(2A01H) ;Thats where the data port is
+	OUT	(1),A	; and back to bank 1
+	EI		; seems a good idea
+	RET		; and back from whence we came
+STACK	EQU	$+250	;Last 250 bytes for the stack
+	.DEPHASE
+ACIAL	EQU	$-ACIART
+PBUFF	EQU	$
+BUFEND	EQU	03FFFH	; may as well use all the vacant space
+	END
+

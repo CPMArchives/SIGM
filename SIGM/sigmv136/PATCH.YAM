@@ -1,0 +1,55 @@
+PATCHES TO DISABLE ACCESS TO SYSTEM FILES USING 'Y' FLAG
+
+
+    Why 'y'?......Well 'y' not......and it was free.
+
+    ey	-   enables access to system files
+    dy	-   disables access to system files
+
+    particularly useful if, as I have on my bios,
+user level 0 system files are PUBLIC to ALL user levels.
+    Dramatically reduces cluttering on a large disk by not
+(unless you wish to) allowing you to see system files.
+    By default system files do NOT exist for YAM.
+
+
+
+
+*** INTO YAM.H
+
+FLAG Sysfil;		/* does YAM see system files? ('y' flag)  */
+
+
+
+*** INTO YAM1.C
+*** PROC SETVAL()
+
+		case 'y':
+			Sysfil=value;
+			break;
+
+
+
+*** INTO YAM1.C
+*** PROC INIT()
+
+	    ......=Sysfil=FALSE;	add to existing ones.
+
+
+
+*** INTO YAM7.C
+*** PROC E1XPAND()
+
+#ifdef RESTRICTED
+		/* check for $SYS or tag bit on 2nd byte of filename (TAG2) */
+		if((pfcb->fname[1]&0200) ||(pfcb->ftype[1]&0200))
+			goto tryanother;
+#else
+		/* check for $SYS with Sysfil flag */
+		if((pfcb->ftype[1]&0200) && !Sysfil)
+			goto tryanother;
+#endif
+
+
+*
+

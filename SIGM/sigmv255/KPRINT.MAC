@@ -1,0 +1,669 @@
+;*********************************************
+;*                                           *
+;*   KPRINT        ver1.0                    *
+;*                                           *
+;*     for EPSON,STAR or etc dot printer     *
+;*                                           *
+;*      (source is a M80.COM base)           *
+;*                                           *
+;*       By Hiroshi Kitaguchi   20-Jan-1984  *
+;*                                           *
+;*********************************************
+;
+;
+	ASEG
+	ORG	100H
+;
+	.Z80
+;
+;
+NLINE	EQU	57
+;
+WBOOT	EQU	0
+BDOS	EQU	5
+FCB	EQU	5CH
+DMABUF	EQU	80H
+;
+NUL	EQU	0
+BEL	EQU	7
+TAB	EQU	9
+LF	EQU	0AH
+FF	EQU	0CH
+CR	EQU	0DH
+SI	EQU	0FH
+DC2	EQU	12H
+EOF	EQU	1AH
+;
+;
+;***** PRINT MAIN *****
+;
+PRINT:	LD	SP,STK+32	;Set stack pointer
+	XOR	A
+	LD	(PRFLG),A	;PRFLG=0
+	LD	HL,FCB+1	;Check FCB
+	LD	B,11
+	LD	C,0
+PRNT01:	LD	A,(HL)
+	OR	C
+	LD	C,A
+	DEC	B
+	JP	NZ,PRNT01
+	CP	' '
+	JP	NZ,PRNT02
+	LD	HL,MOPN00	;'No file name'
+	CALL	PRLINE
+	JP	WBOOT
+;
+PRNT02:	LD	HL,MOPN01	;'Start','Name'
+	CALL	PRLINE
+	CALL	PRNAME		;Print file name
+	LD	HL,MOPN02	;'Divice ?'
+	CALL	PRLINE
+PRNT03:	CALL	INCHN		;Input character,not echo
+	CP	'L'
+	JP	Z,PRNT04
+	CP	CR
+	JP	Z,PRNT04
+	CP	'C'
+	JP	Z,PRNT05
+	LD	A,BEL		;Input error
+	CALL	PROUT
+	JP	PRNT03
+;
+PRNT04:	LD	A,1		;1=LST
+	PUSH	AF
+	LD	HL,MLST		;'LST'
+	JP	PRNT06
+;
+PRNT05:	XOR	A		;0=CON
+	PUSH	AF
+	LD	HL,MCON		;'CON'
+PRNT06:	CALL	PRLINE
+	LD	HL,MOPN03	;'Page ?'
+	CALL	PRLINE
+	CALL	SETPGQ		;Set PAGEQ
+	POP	AF		;A=PRFLG
+	PUSH	AF
+	CP	1
+	JP	NZ,PRNT14
+	LD	HL,MOPN04	;'Size ?'
+	CALL	PRLINE
+PRNT07:	CALL	INCHN		;Input character,not echo
+	CP	'P'
+	JP	Z,PRNT08
+	CP	CR
+	JP	Z,PRNT08
+	CP	'E'
+	JP	Z,PRNT09
+	LD	A,BEL		;Input error
+	CALL	PROUT
+	JP	PRNT07
+;
+PRNT08:	XOR	A		;0=PICA
+	PUSH	AF
+	LD	HL,MPICA	;'PICA'
+	JP	PRNT10
+;
+PRNT09:	LD	A,1		;1=ELITE
+	PUSH	AF
+	LD	HL,MELITE	;'ELITE'
+PRNT10:	CALL	PRLINE
+	POP	AF
+	LD	(SIZE),A	;SIZE flag set
+	LD	HL,MOPN05	;'Ready ?'
+	CALL	PRLINE
+PRNT11:	CALL	INCHN		;Input error,not echo
+	CP	'N'
+	JP	Z,PRNT12
+	CP	'Y'
+	JP	Z,PRNT13
+	CP	CR
+	JP	Z,PRNT13
+	LD	A,BEL		;Input error
+	CALL	PROUT
+	JP	PRNT11
+;
+PRNT12:	CALL	PROUT
+ 	JP	END
+;
+PRNT13:	LD	A,'Y'
+	CALL	PROUT
+PRNT14:	POP	AF		;A=PRFLG
+	LD	(PRFLG),A
+	LD	DE,FCB		;File open
+	CALL	OPEN
+	JP	C,ERROR
+	LD	A,(PRFLG)
+	OR	A
+	JP	Z,PRNT16
+	LD	A,(SIZE)
+	OR	A
+	LD	A,SI		;Send SI to LST
+	JP	NZ,PRNT15
+	LD	A,DC2		;Send DC2 to LST
+PRNT15:	CALL	PROUT		;Set PICA or ELITE
+PRNT16:	LD	A,(PAGEQ)	;Print title ?
+	RLA
+	CALL	C,TITLE
+	CALL	PRPAGE
+PRNT17:	CALL	SEQRD
+	JP	C,ERROR
+	CP	FF
+	JP	Z,PRNT21
+	CP	EOF
+	JP	Z,END
+	CP	CR
+	JP	Z,PRNT20
+	CP	TAB
+	JP	NZ,PRNT19
+	LD	HL,CCOUNT
+PRNT18:	LD	A,' '
+	CALL	PROUT
+	LD	A,(HL)
+	AND	7		;HTAB=8
+	JP	NZ,PRNT18
+	JP	PRNT17
+;
+PRNT19:	CALL	PROUT
+	JP	PRNT17
+;
+PRNT20:	LD	A,(LCOUNT)	;NLINE lines/page
+	CP	NLINE-1
+	JP	Z,PRNT21
+	INC	A
+	LD	(LCOUNT),A
+	XOR	A
+	LD	(CCOUNT),A
+	LD	A,CR
+	CALL	PROUT
+	LD	C,11		;CON STS
+	CALL	BDOS
+	OR	A
+	JP	Z,PRNT17
+	LD	C,6		;Direct CONIN
+	LD	E,0FFH
+	CALL	BDOS
+	CP	3		;^C ?
+	JP	Z,WBOOT
+	JP	PRNT17
+;
+PRNT21:	LD	A,CR
+	CALL	PROUT
+	CALL	PRPAGE
+	JP	PRNT17
+;
+;
+;***** SET PAGEQ *****
+;
+SETPGQ:	CALL	SETCB		;Set CONBUF
+	LD	A,(CONBUF+1)
+	OR	A
+	LD	A,0		;PAGEQ=all 0 or 0FFH
+	JP	NZ,SPGQ01
+	CPL
+SPGQ01:	LD	HL,PAGEQ
+	LD	B,32
+SPGQ02:	LD	(HL),A
+	INC	HL
+	DEC	B
+	JP	NZ,SPGQ02
+	OR	A
+	RET	NZ
+	LD	HL,CONBUF+2
+	LD	(CBADR),HL
+SPGQ03:	CALL	SETNUM
+	CP	'-'
+	JP	NZ,SPGQ07
+	LD	A,(NUM)
+	LD	(BEGP),A
+	LD	A,(HL)
+	OR	A
+	JP	NZ,SPGQ04
+	DEC	A
+	LD	(NUM),A
+	INC	A
+	JP	SPGQ05
+;
+SPGQ04:	CALL	SETNUM
+SPGQ05:	CALL	SEP
+	PUSH	AF
+	LD	A,(NUM)
+SPGQ06:	LD	(ENDP),A
+	CALL	SETPQB
+	POP	AF
+	OR	A
+	JP	NZ,SPGQ03
+	RET
+;
+SPGQ07:	CALL	SEP
+	PUSH	AF
+	LD	A,(NUM)
+	LD	(BEGP),A
+	JP	SPGQ06
+;
+;
+;***** Set bit in PAGEQ *****
+;
+SETPQB:	LD	A,(BEGP)
+	LD	C,A
+	LD	A,(ENDP)
+	CP	C
+	JP	C,ERROR
+SPQB01:	LD	A,(BEGP)
+	RRA
+	RRA
+	RRA
+	AND	1FH
+	LD	E,A
+	LD	D,0		;DE=(BEGP)/8
+	LD	HL,PAGEQ
+	ADD	HL,DE
+	LD	A,(BEGP)
+	AND	7
+	LD	B,A
+	INC	B
+	XOR	A		;A=0
+	SCF			;Carry=1
+SPQB02:	RRA
+	DEC	B
+	JP	NZ,SPQB02
+	OR	(HL)		;A=bit set pattern
+	LD	(HL),A
+	LD	A,(BEGP)
+	LD	C,A
+	INC	A
+	LD	(BEGP),A
+	LD	A,(ENDP)
+	CP	C
+	JP	NZ,SPQB01
+	RET
+;
+;
+;***** Separater *****
+;
+SEP:	OR	A
+	RET	Z
+	CP	' '
+	RET	Z
+	CP	','
+	RET	Z
+	JP	ERROR
+;
+;
+;***** Set CONBUF *****
+;
+SETCB:	LD	DE,CONBUF
+	LD	C,10		;Input line
+	CALL	BDOS
+	LD	HL,CONBUF+2
+	LD	A,(CONBUF+1)
+	LD	E,A		;Set next=0
+	LD	D,0
+	ADD	HL,DE
+	XOR	A
+	LD	(HL),A
+	RET
+;
+;
+;***** Number set *****
+;
+SETNUM:	XOR	A
+	LD	(NUM),A
+SETN01:	CALL	INCBUF
+	RET	C
+	PUSH	AF
+	LD	A,(NUM)
+	ADD	A,A		;(NUM)*10-->A
+	LD	C,A
+	ADD	A,A
+	ADD	A,A
+	ADD	A,C
+	LD	C,A
+	POP	AF
+	ADD	A,C
+	LD	(NUM),A
+	JP	SETN01
+;
+;
+;***** Input CONBUF *****
+;
+INCBUF:	LD	HL,(CBADR)
+	LD	A,(HL)
+	INC	HL
+	LD	(CBADR),HL
+	CP	'0'
+	RET	C
+	CP	'9'+1
+	CCF
+	RET	C
+	SUB	'0'
+	RET
+;
+;
+;***** Print title *****
+;
+TITLE:	LD	A,(PRFLG)
+	OR	A
+	RET	Z		;PRFLG=0,no title
+;
+;+++++++++++++++++++++++++++;
+;                           ;
+;   future support          ;
+;     print title program   ;
+;                           ;
+;         (page0 = title)   ;
+;                           ;
+;+++++++++++++++++++++++++++;
+;
+	RET
+;
+;
+;***** Print file name & page *****
+;
+PRPAGE:	LD	A,(PCOUNT)
+PRPG01:	RRA
+	RRA
+	RRA
+	AND	1FH
+	LD	E,A
+	LD	D,0		;DE=(PCOUNT)/8
+	LD	HL,PAGEQ
+	ADD	HL,DE
+	LD	A,(PCOUNT)
+	AND	7
+	LD	B,A
+	INC	B
+	XOR	A		;A=0
+	SCF			;Carry=1
+PRPG02:	RRA
+	DEC	B
+	JP	NZ,PRPG02
+	AND	(HL)		;A=test bit pattern
+	JP	NZ,PRPG05
+PRPG03:	CALL	SEQRD
+	JP	C,ERROR
+	CP	FF
+	JP	Z,PRPG04
+	CP	EOF
+	JP	Z,END
+	CP	CR
+	JP	NZ,PRPG03
+	LD	A,(LCOUNT)
+	CP	NLINE-1
+	JP	Z,PRPG04
+	INC	A
+	LD	(LCOUNT),A
+	JP	PRPG03
+;
+PRPG04:	XOR	A
+	LD	(LCOUNT),A
+	LD	A,(PCOUNT)
+	INC	A
+	LD	(PCOUNT),A
+	JP	PRPG01
+;
+PRPG05:	LD	A,(PRFLG)
+	OR	A
+	JP	Z,PRPG06
+	LD	A,FF
+	CALL	PROUT		;Top of form
+	JP	PRPG08
+;
+PRPG06:	LD	B,6
+PRPG07:	LD	A,LF
+	CALL	PROUT
+	DEC	B
+	JP	NZ,PRPG07
+PRPG08:	LD	HL,MFILE
+	CALL	PRLINE
+	CALL	PRNAME
+	LD	HL,MPAGE
+	CALL	PRLINE
+	LD	A,(PCOUNT)
+	INC	A
+	LD	(PCOUNT),A
+	DEC	A
+	CALL	ADEC
+	LD	HL,DPAGE
+	LD	B,3
+	CALL	PRN
+	LD	A,CR
+	CALL	PROUT
+	LD	A,LF
+	CALL	PROUT
+	LD	A,LF
+	CALL	PROUT
+	XOR	A
+	LD	(LCOUNT),A
+	LD	(CCOUNT),A
+	RET
+;
+;
+;***** Print file name *****
+;
+PRNAME:	LD	HL,FCB+1
+	LD	B,8
+	CALL	PRN
+	LD	A,'.'
+	CALL	PROUT
+	LD	HL,FCB+9
+	LD	B,3
+	JP	PRN
+;
+;
+;***** Print out *****
+;
+PROUT:	PUSH	HL
+	PUSH	BC
+	PUSH	AF
+	LD	E,A
+	LD	C,2		;CON OUT
+	LD	A,(PRFLG)
+	OR	A
+	JP	Z,POUT01
+	INC	C
+	INC	C
+	INC	C		;LST OUT
+POUT01:	CALL	BDOS
+	POP	AF
+	CP	' '
+	JP	C,POUT02
+	LD	HL,CCOUNT
+	INC	(HL)
+POUT02:	POP	BC
+	POP	HL
+	RET
+;
+;
+;***** Print line *****
+;
+PRLINE:	LD	A,(HL)
+	CP	'$'
+	RET	Z
+	CALL	PROUT
+	INC	HL
+	JP	PRLINE
+;
+;
+;***** Print N character (N=B reg) *****
+;
+PRN:	LD	A,(HL)
+	AND	7FH		;Mask
+	CALL	PROUT
+	INC	HL
+	DEC	B
+	JP	NZ,PRN
+	RET
+;
+;
+;***** Input character,not echo *****
+;
+INCHN:	LD	E,0FFH
+	LD	C,6		;Direct CON IN
+	CALL	BDOS
+	OR	A
+	JP	Z,INCHN
+	CP	3
+	JP	Z,WBOOT
+	CP	60H
+	RET	C
+	SUB	20H
+	RET
+;
+;
+;***** A reg --> DEC ASCII (page) *****
+;
+ADEC:	LD	HL,DPAGE
+	LD	C,100
+	CALL	CDEC
+	LD	C,10
+	CALL	CDEC
+	LD	C,1
+	CALL	CDEC
+	RET
+;
+;
+;***** Change DEC (A-->HL) *****
+;
+CDEC:	LD	(HL),'0'
+CDEC01:	SUB	C
+	JP	M,CDEC02
+	INC	(HL)
+	JP	CDEC01
+;
+CDEC02:	ADD	A,C
+	INC	HL
+	RET
+;
+;
+;***** End *****
+;
+END:	LD	A,(PRFLG)
+	OR	A
+	LD	HL,MCRLF
+	JP	Z,END01
+	XOR	A
+	LD	(PRFLG),A	;PRFLG=0
+	LD	HL,MEND
+END01:	CALL	PRLINE
+	JP	WBOOT
+;
+;
+;***** Print 'Error' *****
+;
+ERROR:	XOR	A
+	LD	(PRFLG),A	;PRFLG=0
+	LD	HL,MERR
+	CALL	PRLINE
+	JP	WBOOT
+;
+;
+;***** File open *****
+;
+OPEN:	LD	C,15		;File open
+	CALL	BDOS
+	CP	0FFH
+	JP	Z,OPEN01	;File not found
+	XOR	A
+	RET
+;
+OPEN01:	SCF
+	RET
+;
+;
+;***** Sequential read *****
+;
+SEQRD:	LD	HL,DMABUF+128
+	EX	DE,HL
+	LD	HL,(ADDR)
+	CALL	COMPHD
+	JP	Z,SQRD02
+SQRD01:	LD	A,(HL)
+	AND	7FH		;Mask
+	INC	HL
+	LD	(ADDR),HL
+	OR	A
+	RET
+;
+SQRD02:	LD	C,20		;Seq read
+	LD	DE,FCB
+	CALL	BDOS
+	CP	0
+	JP	NZ,SQRD03	;Error
+	LD	HL,DMABUF
+	LD	(ADDR),HL
+	JP	SQRD01
+;
+SQRD03:	SCF
+	RET
+;
+;
+;***** Compare HL,DE *****
+;
+COMPHD:	LD	A,H
+	CP	D
+	RET	NZ
+	LD	A,L
+	CP	E
+	RET
+;
+;
+;***** Message *****
+;
+MOPN00:	DEFB	CR,LF,CR,LF,'No file name   Type >KPRINT filename.ext'
+MCRLF:	DEFB	CR,LF,CR,LF,'$'
+;
+MOPN01:	DEFB	CR,LF,CR,LF,'+++++++ KPRINT start +++++++'
+	DEFB	CR,LF,'  ver1.0  by Hiroshi.K'
+	DEFB	CR,LF,CR,LF,'File name = $'
+;
+MOPN02:	DEFB	CR,LF,'List device ? (LST or CON) = $'
+;
+MOPN03:	DEFB	CR,LF,'Page ? (CR only:ALL) = $'
+;
+MOPN04:	DEFB	CR,LF,'Caracter Size ? (PICA or ELITE) = $'
+;
+MOPN05:	DEFB	CR,LF,'LST ready ? (Y or N) = $'
+;
+MEND:	DEFB	CR,LF,CR,LF,'++++++++ KPRINT end ++++++++',CR,LF,'$'
+;
+MFILE:	DEFB	CR,LF,'File: $'
+;
+MPAGE:	DEFB	'     Page $'
+;
+MLST:	DEFB	'LST$'
+;
+MCON:	DEFB	'CON$'
+;
+MPICA:	DEFB	'PICA$'
+;
+MELITE:	DEFB	'ELITE$'
+;
+MERR:	DEFB	CR,LF,CR,LF,'++++++++ Error end ++++++++',CR,LF,'$'
+;
+;
+;***** Counter *****
+;
+CCOUNT:	DEFB	0		;Character count
+LCOUNT:	DEFB	0		;Line count
+PCOUNT:	DEFB	1		;Page count
+;
+;
+;***** Work *****
+;
+ADDR:	DEFW	100H		;Pointer of disk buffer
+DPAGE:	DEFB	'000'		;for PRPAGE
+PRFLG:	DEFB	0		;0=CON,1=LST
+SIZE:	DEFB	0		;0=PICA,1=ELITE
+CBADR:	DEFW	0		;for Input CONBUF
+NUM:	DEFB	0		;for Number set
+BEGP:	DEFB	0		;Begin page
+ENDP:	DEFB	0		;End page
+CONBUF:	DEFB	255		;Console buffer
+	DEFS	257
+;
+PAGEQ:	DEFS	32		;Page map
+STK:	DEFS	32		;Stack area
+;
+	END
+

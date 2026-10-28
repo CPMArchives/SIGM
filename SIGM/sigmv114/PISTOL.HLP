@@ -1,0 +1,322 @@
+HELP MENU FOR PISTOL 2.0 (Feb 26, 1983):
+Copyright (C) 1983 by E. E. Bergmann
+INTRODUCTION
+GETTING STARTED
+TUTORIAL	['TUTORIAL HELP]
+GLOSSARY
+EXTRAS(ENHANCEMENTS TO "STANDARD PISTOL")
+:
+::
+*********************************************************
+*							*
+* PISTOL-Portably Implemented Stack Oriented Language   *
+*			Version 2.0			*
+* (C) 1983 by	Ernest E. Bergmann			*
+*		Physics, Building #16			*
+*		Lehigh Univerisity			*
+*		Bethlehem, Pa. 18015			*
+*							*
+* Permission is hereby granted for all reproduction and *
+* distribution of this material provided this notice is *
+* included.						*
+*							*
+*********************************************************
+:
+::
+	PISTOL is a Portably Implemented Stack Oriented
+Language that has been developed for general use and
+experimentation. It is at an early developmental stage and so
+may have lots of "bugs". I would appreciate any comments and
+suggestions.  For the DEC-20, it has been implemented in
+PASCAL;  for CP/M, it has been implemented with the BD Software
+C compiler v1.45a.
+
+	PISTOL resembles an HP calculator in many ways.  It
+uses a (parameter) stack to pass numbers between routines.  The
+language is "RPN", that is Reverse Polish Notation.  At
+present, all arithmetic is performed in integer form.  This
+language was inspired by and has evolved from two mini- and
+micro- based languages, FORTH (Charles Moore, 1970) and STOIC
+(MIT and Harvard Biomedical Engineering Center, 1977).
+:
+::
+GETTING STARTED:
+	This is how to bring PISTOL "up":
+
+type
+	DIR CORE2 to see if this file exists, otherwise, type
+	DIR PBASE2 to make sure this file exists.
+
+
+type either:
+	PISTOL	(for CP/M)
+or
+(for the DEC-20):
+	EXE PISTOL.PAS
+link TTY: to the input.
+
+	PISTOL should come up with:
+
+***PISTOL 2.0***
+X>
+
+	To make it smarter, it can be "educated" with a set of
+useful definitions already prepared in a file named, CORE2 or
+PBASE2 ; to do this type:
+
+X> 'CORE2 RESTORE	(only if CORE2 exists!)
+or
+==
+
+X> 'PBASE2 LOAD		(if PBASE2 exists; this is much slower)
+X> 'CORE2 COREDUMP	(creates CORE2 for future use)
+:
+::
+
+	There is a tutorial file, TUTORIAL,
+which may be on this system. To read
+portions of it from within PISTOL, type:
+
+X> 'TUTORIAL HELP
+
+Alternatively, you may exit PISTOL by typing:
+
+X> BYE
+
+and the type out the file directly.
+
+:
+GLOSSARY SUBMENU(ASSUMES PBASE2 HAS BEEN USED!):
+explanations of TOS,NTT,TFT,FFT
+ARITHMETIC OPERATORS		['ARITH HELP]
+LOGICAL OPERATORS		['LOGIC HELP]
+STACK RELATED			['STACK HELP]
+DEFINITIONAL			['DEFS HELP]
+MEMORY RELATED			['MEMOPS HELP]
+SYSTEM VARIABLES		['SYSVARS HELP]
+SYSTEM CONSTANTS		['SYSCONS HELP]
+I/O OPERATIONS			['IO HELP]
+EDITOR				['EDITOR HELP]
+ITERATION AND CONDITIONAL	['ITCOND HELP]
+VOCABULARY RELATED		['VOCAB HELP]
+MISCELLANEOUS AIDS		['MISC HELP]
+::
+:::
+
+	TOS - "Top Of Stack"
+
+	NNT - "Next To Top" of stack
+
+	TFT - "Third From Top" of stack
+
+	FFT - "Fourth From Top" of stack
+
+::
+:::
+PISTOL'S ARITHMETIC OPERATORS:
+
+/	NTT TOS --> NTT/TOS
+
+/MOD	NTT TOS --> (NTT/TOS) (NTT MOD TOS), see MOD
+
+*	NTT TOS --> NTT*TOS
+
++	NTT TOS --> NTT+TOS
+
+-	NTT TOS --> NTT-TOS
+
+1+	TOS --> TOS+1
+
+1+W!	TOS -->
+	Increments word location pointed to by TOS by 1.
+
+1-	TOS --> TOS-1
+
+3W-	TOS --> TOS-3*W
+
+ABS	TOS -->ABS(TOS)
+
+MAX	NTT TOS --> MAX(NTT,TOS), signed comparisons
+
+MIN	NTT TOS --> MIN(NTT,TOS), signed comparisons
+
+MINUS	TOS --> -TOS
+
+MOD	NTT TOS --> (NTT MOD TOS), sign from NTT
+	examples: 1234 10 --> 4
+		-1234 10 --> -4
+		1234 -10 --> 4
+		-1234 -10 --> -4
+
+TRANS	TOS --> USER+W*TOS
+
+TRANS@	'TRANS@ : TRANS @ ;
+
+USER+	TOS --> TOS+USER
+
+W*	TOS --> TOS*W
+
+W+	TOS --> TOS+W
+
+W+W!	TOS -->
+	Increments word location pointed to by TOS by W.
+
+W-	TOS --> TOS-W
+
+::
+:::
+To obtain definitions for the logical operators:
+
+.. EQ EQZ FALSE GE GT GTZ LAND LE LNOT
+LOR LT LTZ OFF ON TRUE	
+
+type:
+
+X> 'LOGIC HELP
+::
+:::
+STACK OPERATORS:
+.V 2OVER 3OVER <R > CASE@ CHKLMT DDUP
+DUP L@ LSIZE PISTOL< R@ R> RP RSIZE
+RSTACK S@ SP SSIZE STACK SYNTAXBASE
+UNDER UNLINKED< VSIZE	
+
+to get definitions, type: 
+
+X> 'STACK HELP
+
+::
+:::
+THE DEFINITIONAL OPERATORS:
+ARRAY
+BRANCH
+CONSTANT
+VARIABLE
+ :  ... ;
+$: ... ;$
+
+are described in more detail in the file, DEFS:
+
+X> 'DEFS HELP
+
+::
+:::
+definitions for the
+MEMORY RELATED OPERATORS:
+
+1+W! ? C! C@ COMPBUF EDITBUF LINEBUF OFF
+ON RAMMAX RAMMIN READ-PROTECT STRINGSMAX
+STRINGSMIN TRANS TRANS@ USER USER+ W W!
+W* W+ W+W! W<- W@ WRITE-PROTECT
+
+are obtained by typing:
+
+X> 'MEMOPS HELP
+
+::
+:::
+definitions of the SYSTEM VARIABLES:
+
+#GET-ADDR #LINES (PISTOL<) (UNLINKED<)	
+.C .D .V ABORT-PATCH BRANCH-LIST COLUMN
+COMPILE-END-PATCH CONSOLE CONVERT-PATCH
+CURRENT CURRENT-EOSTRINGS ECHO
+INPUTFILE-STATUS INFILE LIST NEXTCH^
+OLD-EOSTRINGS OLDLINE# OUTPUT-STATUS
+PREVIOUS PROMPT-PATCH RADIX
+RADIX-INDICATOR RAISE SYNTAXBASE
+TAB-SIZE TERMINAL-PAGE TERMINAL-WIDTH
+TRACE-ADDR TRACE-LEVEL	
+
+are obtained by:
+
+X> 'SYSVARS HELP
+
+::
+:::
+definitions of SYSTEM CONSTANTS:
+
+A' CHKLMT COMPBUF CSIZE EDITBUF FALSE
+LINEBUF LSIZE MAXINT MAXLINNO MAXORD
+MININT NEWLINE Q' RAMMAX RAMMIN
+READ-PROTECT RSIZE SAFE-END SSIZE
+STRINGSMAX STRINGSMIN TRUE USER VBASE
+VERSION VMAX VSIZE W WRITE-PROTECT
+
+are obtained by:
+
+X> 'SYSCONS HELP
+
+::
+:::
+I/O OPERATIONS:
+	There is a seperate "help" file that describes words
+related to I/O operations.  To use it type:
+
+X> 'IO HELP
+
+::
+:::
+EDITOR:
+	(Line numbers change with the editing
+	process, the first line in the file is
+	numbered 1, the next, 2, etc.)
+
+	Type:
+
+X> 'EDITOR HELP
+
+to get the definitions for:
+
+DELETE DELETES FINISH INPUT LI LISTALL NEWF
+OPENR OPENW READ REPLACE WRITE	
+
+::
+:::
+ITERATION AND CONDITIONAL:
+
+	For more details on iteration (BEGIN ... END,
+BEGIN..IF..REPEAT, DO..LOOP, DO..n +LOOP) and on
+conditionals (IF..[ELSE]..THEN, "case" construction,
+and recursion), type:
+
+	X> 'ITCOND HELP
+
+::
+:::
+The command,
+
+X> 'VOCAB HELP
+
+will provide information on the use of:
+
+(PISTOL<) (UNLINKED<) .V > ADDRESS BLIST
+BRANCH CURRENT DEFINITIONS FENCE FIND
+FORGET NAME NEXT10 PISTOL< PREVIOUS
+PRIMITIVE? RELINK TOP10 UNLINK UNLINKED<
+VADDRESS VFIND VLIST
+
+::
+:::
+The command,
+
+X> 'MISC HELP
+
+will provide information on the use of:
+
+COREDUMP RESTORE LISTFILE LIST LOAD
+SHOWCODE NOSHOWCODE % TOP10 NEXT10 DIS
+TRACE HELP	
+
+:
+::
+(This section must be present here so that all
+  enhancements have online documentation)
+
+There are no enhancements in this implementation
+          ==
+
+:
+;F
+
+1, t

@@ -1,0 +1,579 @@
+{j:a
+{m:1=10,75
+{m:2=18,75
+{m:3=24,75
+{m:4=50,75
+{m:1
+IV.B.4. Reference
+
+The following section describes the characteristics of EDIT
+by simple enumeration.
+
+
+IV.B.4.a. Quit
+
+EDIT is terminated and the song is stored back to the floppy
+disk when you press the quit-key (normally set as control-Q) while
+in Edit_mode. As the song is written to floppy disk, all
+M_option lines are renumbered sequentially. The song file created
+by EDIT has a type of .SNG and the type of the song file that was
+used as
+input is changed from .SNG to .SBK for use as a backup if needed.
+Any prior backup is deleted.
+
+EDIT is terminated and control is returned to the operating system
+without updating the song on the diskette when you press the 
+cancel_key (normally set as control_C) while in Edit_mode.
+
+The quit_key is used to quit Insert_mode and Excise_mode to
+return control to Edit_mode.
+
+Both the quit_key and the cancel_key can be reprogrammed through the 
+use of SETUP. See Appendix A.
+
+
+IV.B.4.b. Modes of Edit
+
+EDIT operates in four modes. Each mode is distinguished by
+a menu line at the top of the CRT screen whenever EDIT is in that
+mode.
+
+{m:2
+{i:-8
+1.
+Edit_mode permits changing existing musical information
+and is the mode in which the program begins when invoked.
+You can get to the other three modes of operation only
+when in Edit_mode.
+{i:-8
+2.
+Insert_mode allows entry of new musical information.
+{i:-8
+3.
+Excise_mode allows deletion of song and option lines.
+{i:-8
+4.
+Option_mode presents a menu of musical functions and
+edit services.
+
+{m:1
+Navigation from one mode to another is according to the graph shown 
+on the next page. Note that Edit_mode is the pivotal point in the
+structure. To 
+get from one mode to another, you must return to 
+Edit_mode. In the cases of Insert_mode and Excise_mode, you must use 
+the quit_key. In the case of Options_mode, it is automatic at the 
+completion of the specific function used.
+{a:p=1
+
+{c:Edit_mode
+
+
+{c:^^^^^^^^^^I^^^^^^^^^^^^^^^^^^^^^^^^^^^^^O^^^^^^^^^^
+
+{c:^^^^^^^^^^(quit)^^^^^^^^X^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+{c:Insert_mode^^^^^^^^^^^^^^^^^^^^^^^^^^^^Options_mode
+{c:^^^^^^^^^^^^^^^^^^^^^^^^^^(quit)^^^^^^^^^^^^^^^^^^^
+
+{c:Excise_mode
+
+
+
+
+IV.B.4.b.i. Edit_mode
+
+
+IV.B.4.b.i.1. Menu(appears at the top of screen)
+
+dEDIT: text, cursors, I(nsert, X(cise, O(ptions, M(easure, quit
+
+
+IV.B.4.b.i.2. d(irection
+
+The first character on the menu line is the direction indicator.
+It may have two values. The down direction is indicated by the
+character ">" while the up direction is indicated by the character
+"<". The direction indicator affects two navigational aids, the
+home function and the page function. You can change the direction
+indicator at any time while in Edit_mode by pressing the <_key
+or >_key.
+
+
+IV.B.4.b.i.3. text
+
+Edit_mode permits you to enter duration and note information
+into existing song lines when the cursor is in the appropriate
+columns. In other words, EDIT will accept duration data when the cursor
+is in the duration column and it will accept note data when
+the cursor is in the voice columns. EDIT will interpret the
+characters according to the column under the cursor. For example,
+your entering the letter "E" means different things depending on
+which column is under the cursor. In the duration column, "E" means
+"eighth note", while in a voice column it means the note "E". If the
+cursor is not in the first position of a column, "E" is an error since
+EDIT does not expect an "E" in that case. In that event, EDIT
+will ring the CRT bell (if present) and display an error message.
+A complete list of possible entries are described above in the 
+section MUSIC NOTATION SYSTEM.
+
+
+IV.B.4.b.i.4. cursors
+
+The principal method of navigation available to you while editing is
+through the use of the cursor control functions. The cursor can be
+moved up, down, left
+and right by using the cursor control functions. Further, you can page
+through the
+song as well as go directly to either the top or bottom of the song
+with a single key stroke. Additional navigational aids are available
+under the Option_mode.
+
+{m:3
+{i:-14
+Cursor^up:
+control_K, often labeled on keyboards as an up_arrow.
+{i:-14
+Cursor^down:
+control_J, often labeled as a down_arrow.
+{i:-14
+Cursor^left:
+control_H, often labeled as a left_arrow.
+{i:-14
+Cursor^right:
+control_L, often labeled as a right_arrow.
+{i:-14
+Home^cursor:
+control_Y, often labeled as HOME.
+{i:-14
+Page^cursor:
+the letter "P".
+{i:-14
+Space:
+the space bar.
+
+{m:1
+CRT terminals are not standard in their treatment of these characters.
+Yours may not even have the symbols engraved on any of your keytops.
+Since you may have to depress the control key every time a cursor movement
+is desired (which is very frequently) you may wish to reassign the
+keys which perform these functions.
+Any of the functions except the Page function and the Space function can 
+be reassigned using SETUP. See Appendix A.
+
+Two auxiliary cursor controls are the direction control characters.
+
+{m:3
+{i:-14
+up^direction: the character "<" (hexidecimal 3C).
+{i:-14
+down^direction: the character ">" (hexidecimal 3E).
+
+{m:1
+Using one of these two characters will determine the direction taken 
+by the home and
+page functions when they, in turn, are used.
+
+
+IV.B.4.b.i.5. I(nsert
+
+Pressing the letter "I" places EDIT in Insert_mode. See the section
+Insert_Mode below for a complete description.
+
+
+IV.B.4.b.i.6. X(cise
+
+Pressing the letter "X" places EDIT in Excise_mode. See the section
+Excise_mode below for a complete description.
+
+
+IV.B.4.b.i.7. O(ptions
+
+Pressing the letter "O" places EDIT in Option mode. See the section
+Options_mode below for a complete description.
+
+
+IV.B.4.b.i.8. M(easure
+
+Pressing the letter "M" inserts a numbered measure option line into
+the song
+immediately preceding the line marked by the cursor; unless the
+cursor is on the "da capo" line in which case the measure option
+line is inserted immediately following. Measures may be numbered in any
+order since EDIT always renumbers measures when the song is written
+to the floppy disk. See the discussion of the measure option line in 
+the section OPTION LINE DESCRIPTIONS.
+
+
+IV.B.4.b.i.9. quit
+
+See paragraph IV.B.4.a. above.
+
+
+IV.B.4.b.ii. Insert_mode
+
+
+IV.B.4.b.ii.1. Menu (appears at the top of the screen)
+
+dINSERT: text, cursors, M(easure, quit
+
+
+IV.B.4.b.ii.2. d(irection
+
+See paragraph IV.B.4.b.i.2. above.
+
+
+IV.B.4.b.ii.3. text
+
+Insert_mode permits you to enter duration and note information into 
+new song lines or existing song lines when the column at the cursor 
+is empty. EDIT applies the same rules as are described in paragraph 
+IV.B.4.b.i.3. above.
+
+
+IV.B.4.b.ii.4. cursors
+
+Insert_mode permits a subset of the cursor functions supported by 
+Edit_mode:
+
+{m:2
+{i:-8
+1.
+Cursor down
+{i:-8
+2.
+Cursor left
+{i:-8
+3.
+Cursor right
+{i:-8
+4.
+Space bar
+
+
+{m:1
+IV.B.4.b.ii.5. M(easure
+
+See paragraph IV.B.4.b.i.8. above.
+
+
+IV.B.4.b.ii.6. quit
+
+See paragraph IV.B.4.a. above.
+
+
+IV.B.4.b.ii.7. Discussion
+
+Insert_mode operates in one of two ways depending upon the
+location of the cursor at the time of entry into the mode.
+
+If the cursor is on an option line or a voice (or duration)
+column which contains data, then Insert_mode
+will insert song lines in front of the line.
+
+If the
+cursor is on an empty voice or duration column, then
+Insert_mode will not insert song lines but will allow you
+to fill in the empty column until a non_empty entry is
+encountered or the "da end" terminal line is encountered,
+whichever occurs first.
+
+The most efficient way to use EDIT to enter a new
+song is described in the following steps:
+
+{m:2
+{i:-8
+1.
+Type EDIT songname followed by a return.
+{i:-8
+2.
+Enter the number of voices.
+{i:-8
+3.
+Press the letter "O" to enter Option mode.
+{i:-8
+4.
+Press "!" or "#" to set the key signature
+and enter the notes to be sharped or flatted.
+See paragraphs IV.B.4.b.iv.10 and IV.B.4.b.iv.11.
+{i:-8
+5.
+Place the cursor at the point in the song above
+which you would like to insert new song lines. If
+it is a new song, this point would be the "da end"
+line.
+{i:-8
+6.
+Press the letter "I" to enter Insert mode.
+{i:-8
+7.
+Enter the note information for one field in one
+voice or duration
+column. (Start with the first voice column which is
+the second column on the screen.)
+{i:-8
+8.
+press the down_key.
+{i:-8
+9.
+Repeat steps 7 and 8 until the entire column
+has been entered. Use the "M" key as needed to 
+insert measures into the song.
+{i:-8
+10.
+Press the control_Q key to return control to the
+Edit mode.
+{i:-8
+11.
+Press the letter "O" to enter Option mode.
+{i:-8
+12.
+Press the letter "V" to locate the first empty portion
+of the song. See paragraph IV.B.4.b.iv.7.
+{i:-8
+13.
+Repeat steps 6 through 12 until all voice and the
+duration columns have been completed.
+{i:-8
+14.
+Press the control_Q key to quit EDIT and store the
+song on the diskette.
+
+{m:1
+This procedure uses both facilities of Insert_mode, the first
+when you insert the first voice, the second when you insert the
+other voices and the duration.
+
+
+IV.B.4.b.iii. Excise_mode
+
+
+IV.B.4.b.iii.1. Menu (appears at the top of the screen)
+
+dEXCISE: up, down or quit
+
+
+IV.B.4.b.iii.2. d(irection
+
+See paragraph IV.B.4.b.i.2. above.
+
+
+IV.B.4.b.iii.3. up, down
+
+Excise_mode permits you to remove unwanted lines using the up_key
+and/or the down_key. Lines removed with the use of one of the
+two keys can be returned to the song with the use of the other key.
+
+
+IV.B.4.b.iii.4. quit
+
+You accept the excision by pressing the quit key to return to
+Edit_mode.
+
+
+IV.B.4.b.iv. Option_mode
+
+
+IV.B.4.b.iv.1. Menu
+
+Options_mode is operated completely by menu selection. Upon entering 
+Options_mode, EDIT clears the screen and displays the menu. You may 
+select any function by pressing the key corresponding to the function 
+in the menu. The menu appears as follows:
+
+{m:2
+{i:-2
+type a...
+{l:C   to call a chorus (or refrain)
+{l:F   to find a label, line or measure
+{l:L   to label the current song line
+{l:M   to set the number of intervals per octave
+{l:R   to mark a repeat
+{l:T   to change the tempo
+{l:V   to verify completeness
+{l:W   to change waveforms
+{l:X   to end a chorus
+{l:!   to change the flatted notes
+{l:#   to change the sharped notes
+{l:...>
+
+{m:1
+Pressing any key not in the list will return control to
+Edit_mode.  After the processing associated with the selected 
+function is complete, control is returned automatically to Edit_mode.
+
+
+IV.B.4.b.iv.2. To Call a Chorus
+
+Type the letter "C". EDIT then requests the name of the
+chorus label. Enter the label name identifying the beginning of the
+desired chorus. Follow with a carriage return. The label name
+must be exactly as it appears in the label. See paragraphs 
+IV.B.4.b.iv.4., V.A. and V.C. for additional information.
+This function places a Chorus Call option line in the song.
+
+
+IV.B.4.b.iv.3. Find a Label, Line or Measure
+
+Type the letter "F" to invoke the function. A new menu appears.
+
+{m:2
+{i:-2
+Type a...
+{l:L  to find a label
+{l:M  to find a measure
+{l:S  to find a song line
+{l:...>
+          
+{m:1
+To find a label, type the letter "L". Then enter the label name matching
+the label to be found. Follow with carriage return. EDIT will
+attempt to locate the label, and, if found, will place the
+cursor on the label line. If the label is not found, EDIT will
+leave the cursor where it was before the function was requested.
+
+To find a measure, type the letter "M". Then enter the measure number
+matching the measure to be found. Follow with carriage
+return. EDIT will attempt to locate the measure, and, if
+found, will place the cursor on the measure line. If the
+measure is not found, EDIT will leave the cursor where it
+was before the function was requested.
+
+To find a song line, type the letter "S". Then enter the line number
+matching the song line to be found. Follow with carriage
+return. EDIT will attempt to locate the measure, and, if
+found, will place the cursor on the song line. If the
+song line is not found, EDIT will leave the cursor where it
+was before the function was requested.
+
+
+IV.B.4.b.iv.4. To Label the Current Song Line
+
+Type the letter "L" . Then enter from one to
+eight characters as the label name. You may use any characters
+from the set of possibilities below. Follow the label name
+with a carriage return. This function places a Label option line in 
+the song.
+
+{m:2
+{i:-8
+1.
+The numbers
+{i:-8
+2.
+The upper case alphabet
+{i:-8
+3.
+The special characters
+
+{m:1
+EDIT will ask for a label key. This is to allow you to identify
+the label for use in the interactive performance mode of PLAY.
+Read the section describing PLAY for more information about
+this function. If you wish to use this feature, type any unique
+key from the following set of possibilities.
+
+{m:2
+{i:-8
+1.
+The numbers
+{i:-8
+2.
+The upper case alphabet
+{i:-8
+3.
+The lower case alphabet
+{i:-8
+4.
+The special characters
+{a:p=1
+{m:1
+IV.B.4.b.iv.5. To Set or Change the Number of Intervals per Octave
+
+Type the letter "M".
+Then enter the number of intervals
+in the octave. Follow with carriage return. Musicraft
+supports from one to 99 intervals per octave while at the same
+time supporting the chromatic octave. You may use either of
+the two notations to represent note information at any time. Note
+that EDIT does not check to see that the numbers you give for note
+information are less than or equal to the number of intervals you
+established to be in the octave; COMP does, however, and will
+report errors. This function places a Microtone option line in the 
+song.
+
+
+IV.B.4.b.iv.6. To mark a Repeat
+
+Type the letter "R".
+Then enter the label name of the
+label marking the beginning of the repeat segment. This label
+name is not checked for correctness by EDIT, but it is checked
+by COMP. This function places a Repeat option line in the song.
+
+
+IV.B.4.b.iv.7. To set or change the Tempo
+
+Type the letter "T".  Then enter the number of quarter
+notes per minute at which to perform the song segment to follow.
+Type a return. The tempo may range from 1 to 999 quarter notes per
+minute. This function places a Tempo option line in the song.
+
+
+IV.B.4.b.iv.8. To Verify Completeness
+
+Type the letter "V". EDIT will scan the song in memory
+and verify that all entries are filled. If an empty spot is found
+(except for duration adjust), that portion of the song will be
+displayed and the cursor placed at the incomplete point. If the
+song is complete, the top of the song will be displayed and the
+cursor placed at the first line. A song should be checked using
+this function before compiling it the song.
+
+
+IV.B.4.b.iv.9. To Change Waveforms
+
+Type the letter "W". Then enter the waveform table
+number to be related to the voice identified by the prompt. 
+Follow the number with a return. The
+number must be in the range 1 to 14 inclusive. EDIT will repeat its
+request for each voice in the song. You must enter an acceptable
+table number for each request. This function places a Waveform option 
+line in the song.
+ 
+
+IV.B.4.b.iv.10. To End a chorus
+
+Type the letter "X". EDIT will insert a Chorus Exit option
+line immediately above the line under the cursor when the
+option mode was entered.
+
+
+IV.B.4.b.iv.11. To Change the Flatted Notes
+
+Type a "!" or a 1. EDIT clears any flat
+signature and requests entry of the notes to be flatted. Enter
+the note names in any order and terminate the sequence with
+carriage return. If you enter an unintended note name, press
+return immediately and re-do the function. All note names
+from A to G are accepted. The flat signature is remembered by EDIT 
+only for the duration of the edit session. When you want to edit a 
+song which has a key signature, you must reset the signature.
+
+
+IV.B.4.b.iv.12. To Change the Sharped Notes
+
+Type a "#" or a 2. EDIT clears any sharp signature and requests entry 
+of the notes to be sharped. Enter the note names in any order and 
+terminate the sequence with a carriage reture. If you enter an 
+unintended note name, press return immediately and re-do the 
+function. All note names from A to G are accepted. The sharp 
+signature is remembered by EDIT only for the duration of the edit 
+session. When you want to edit a song which has a key signature, you 
+must reset the signature.
+
+EDIT will carry both a flat key signature and a sharp key signature 
+simultaneously. This can be helpful, especially for the minor keys.
+{a:p=1
+
+

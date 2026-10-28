@@ -1,0 +1,390 @@
+Introduction - VLIB
+Clear Screen - CLS
+Erase to EOL - EREOL
+Goto XY ------ AT/GOTOXY
+Initialization VIDINIT/Z3VINIT
+Print -------- GXYMSG/VPRINT
+Standout Mode  STNDOUT/STNDEND
+Term Init ---- TINIT/DINIT
+:Introduction to VLIB
+
+     VLIÂ ió á librarù oæ utilitù routineó whicè ió designeä 
+tï  supporô screeî manipulatioî undeò thå ZCPR³ environment®  
+Usinç  VLIÂ anä thå ZCPR³ Terminaì Capabilitieó  Datá  Fileó 
+(Z3TCAP)¬  thå  ZCPR³  programmeò caî creatå codå  whicè  ió 
+transportablå  betweeî  ZCPR³ systemó thaô caî adapô  itselæ 
+readilù tï á varietù oæ moderî terminals®   Foò example¬ thå 
+VFILEÒ filå manipulatioî utilitù caî bå moveä froí onå ZCPR³ 
+systeí tï anotheò witè á totallù differenô terminal¬  anä aó 
+lonç  aó thaô seconä systeí ió installeä witè á  Z3TCAĞ  foò 
+itó  particulaò terminal¬  VFILEÒ wilì continuå tï  functioî 
+exactlù aó iô diä oî thå originaì systeí witè itó particulaò 
+terminal.
+
+     Alì  VLIÂ routineó makå uså oæ thå Z3TCAĞ entrù  storeä 
+iî thå 2nä halæ oæ thå ZCPR³ Environmenô Descriptor.
+
+     Iî general¬ á utilitù whicè useó VLIÂ ió alwayó oæ thió 
+general structure:
+
+
+                     General VLIB Usage
+
+          ...
+          ext  tinit,dinit,z3vinit ;VLIB init routines
+          exô  ..®                 ;otheò VLIB routines
+          ...
+          lxi  h,z3env   ;get Z3 environment ptr
+          call z3vinit   ;init Z3 environment and VLIB
+          call tinit     ;init terminal for VLIB work
+          ...
+          <code containing VLIB routine calls>
+          ...
+          call dinit     ;deinit terminal when done
+          jmp  0         ;warm boot (or return)
+          ...
+
+
+     Aó  illustrateä  above¬  thå  generaì stepó  whicè  arå 
+always taken when using VLIB are as follows:
+
+          1.  Initialize Environment Pointers
+               - ENVPTR is ZCPR3 Environment Descriptor Addr
+               - VIDPTR sets Z3TCAP Entry Address
+          2.  Call Terminal Initialization Routine
+               - TINIT
+          3.  Call VLIB Routines as Desired
+          4.  Call Terminal Deinitialization Routine
+               - DINIT
+
+:Clear Screen Routine
+
+Routine: CLS
+
+Function:
+     Clear the terminal screen
+
+Inputs: None
+Outputs:
+     A=0 and Zero Flag Set (Z) if function not available
+     A=0FFH and NZ if clear screen sequence issued
+Registers Affected: PSW
+Side Effects: Screen is Cleared
+Special Error Conditions: None
+Examples of Use:
+     ext  cls  ;reference routine
+     ...
+     CALL CLS  ;clear screen
+     ...
+
+:Erase to End of Line Routine
+
+Routine: EREOL
+
+Function:
+     Eraså  thå currenô linå froí thå cursoò positioî tï thå 
+end of the line
+
+Inputs: None
+Outputs:
+     A=0 and Zero Flag Set (Z) if function not available
+     A=0FFH and NZ if ereol sequence issued
+Registers Affected: PSW
+Side Effects: Erase to End-of-Line occurs
+Special Error Conditions: None
+Examples of Use:
+     ext  ereol     ;reference routine
+     ...
+     CALL EREOL     ;erase to end-of-line
+     ...
+
+:Cursor PositioningŠ
+Routine: AT
+
+Function:
+     Positioî  aô  ro÷ anä columî identifieä aô  thå  returî 
+address on the CRT screen.  The general syntax of usage is:
+
+          ext  at        ;reference
+          ...
+          call at
+          db   row,column     ;coordinates
+          < code follows>
+
+
+Inputs: None
+Outputs: None
+Registers Affected: None
+Side Effects: None
+Special Error Conditions: None
+Examples of Use:
+
+          ext  at        ;reference
+          ...
+          CALL AT
+          DB   12,25     ;ROW 12, COLUMN 25
+          ...
+
+
+Routine: GOTOXY
+
+Function:
+     Positioî  thå  cursoò aô thå ro÷ (containeä iî  H©  anä 
+columî (containeä iî L© indicated¬  wherå thå homå  positioî 
+is H=1 and L=1 (upper left corner of screen)
+
+Inputs: H=Row, L=Column
+Outputs:
+     A=0 and Zero Flag Set (Z) if function not available
+     A=0FFH and NZ if cursor motion sequence issued
+Registers Affected: PSW
+Side Effects: Cursor is positioned
+Special Error Conditions:
+     Iô ió recommendeä thaô thå lasô columî oî thå screeî ió 
+noô   referenceä   witè  GOTOXÙ  sincå  manù  screenó   wilì 
+automaticallù  wrağ  arounä tï columî ± oæ  thå  nexô  line¬ 
+possibly advancing the screen image undesirably.
+
+
+Examples of Use:
+
+     ext  gotoxy    ;reference routine
+     ...
+     LXI  H,101H    ;position to row 1/col 1
+     CALL GOTOXY
+     ...
+     MVI  H,24      ;position to row 24
+     MVI  L,79      ;position to column 79
+     CALL GOTOXY
+     ...
+
+:Initialization of VLIB
+
+Routine: VIDINIT
+
+Function:
+     Seô  thå  pointeò tï thå Z3TCAĞ entrù foò  thå  desireä 
+terminal
+
+Inputs: HL contains the address of the Z3TCAP entry
+Outputs: None
+Registers Affected: None
+Side Effects: Pointer VIDPTR is set
+Special Error Conditions:
+     Iî initializinç VLIÂ routines¬ thå programmeò MUSÔ alsï 
+seô  thå  globaì  pointeò  ENVPTÒ  tï  poinô  tï  thå  ZCPR³ 
+Environmenô  Descriptoò  becauså thå delaù routineó iî  VLIÂ 
+uså  somå  Environmenô  Descriptoò  values¬  likå  processoò 
+speed®   VIDINIÔ  ió  provideä iî additioî  tï  forcinç  thå 
+programmeò tï seô ENVPTÒ iî ordeò tï givå thå programmeò thå 
+flexibilitù oæ usinç á Z3TCAĞ entrù whicè ió noô thå samå aó 
+that provided in the ZCPR3 Environment Descriptor.
+
+Examples of Use:
+
+     ext  envptr,vidinit ;reference pointer and routine
+     ...
+     lxi  h,z3env   ;address of ZCPR3 Environment Descriptor
+     shld envptr
+     lxi  h,z3env+80H    ;address of Z3TCAP in descriptor
+     call vidint
+     ...
+
+
+Routine: Z3VINIT
+
+Function:
+     Seô thå pointeò tï thå ZCPR³ Environmenô Descriptoò anä 
+thå followinç Z3TCAĞ entry
+
+Inputs: HL contains the address of the ZCPR3 Env Descriptor
+Outputs: None
+Registers Affected: None
+Side Effects: Pointers ENVPTR and VIDPTR are set
+Special Error Conditions:  None
+
+Examples of Use:
+     ext  z3vinit ;reference pointer and routine
+     ...
+     lxi  h,z3env   ;address of ZCPR3 Environment Descriptor
+     call z3vinit
+     ...
+
+:Print Routines
+
+Routine: GXYMSG
+
+Function:
+     Positioî  aô  thå  indicateä  row/columî  anä  prinô  á 
+message¬  whicè  maù  optionallù contaiî thå  standouô  modå 
+begiî  characteò (1© anä standouô modå enä characteò (2©  tï 
+invokå  standouô modå anä enä standouô modå iî thå middlå oæ 
+thå  message®   Alì  parameteró arå passeä aó iî  thå  PRINÔ 
+routinå oæ SYSLIÂ aô thå returî address®  Thå generaì syntaø 
+of use is:
+
+          ext  gxymsg         ;reference
+          ...
+          call gxymsg         ;call routine
+          db   row,column     ;row and column numbers
+          db   'message'      ;normal message text
+          dâ   1,'standouô message',²   ;standouô message
+          db   0              ;end of message indicator
+          < code follows >
+
+Inputs: None
+Outputs: None
+Registers Affected: None
+Side Effects: Message is Printed at Coordinates
+Special Error Conditions: None
+Examples of Use:
+          ext  gxymsg
+          ...
+          call gxymsg
+          db   5,10      ;row 5, column 10
+          db   'Hello '       ;"Hello " is printed normally
+          db   1,'World',2    ;"World" is printed standout
+          db   0
+          ...
+
+
+
+Routine: VPRINT
+
+Function:
+     Prinô  á  message¬  whicè  maù optionallù  contaiî  thå 
+standouô  modå  begiî characteò (1© anä  standouô  modå  enä 
+characteò  (2© tï invokå standouô modå anä enä standouô modå 
+iî thå middlå oæ thå message®   Alì parameteró arå passeä aó 
+iî thå PRINÔ routinå oæ SYSLIÂ aô thå returî  address®   Thå 
+generaì syntaø oæ uså is:
+
+          ext  vprint         ;reference
+          ...
+          call vprint         ;call routine
+          db   'message'      ;normal message text
+          dâ   1,'standouô message',²   ;standouô message
+          db   0              ;end of message indicator
+          < code follows >
+
+
+Inputs: None
+Outputs: None
+Registers Affected: None
+Side Effects: Message is Printed
+Special Error Conditions: None
+Examples of Use:
+
+          ext  vprint
+          ...
+          call vprint
+          db   'Hello '       ;"Hello " is printed normally
+          db   1,'World',2    ;"World" is printed standout
+          db   0
+          ...
+
+:Standout Mode
+
+Routine: STNDOUT
+
+Function:
+     Begiî Standouô Modå - foò somå terminals¬  thió wilì bå 
+reverse video, and for others this will be dim
+
+Inputs: None
+Outputs:
+     A=0 and Zero Flag Set (Z) if function not available
+     A=0FFH and NZ if standout sequence issued
+Registers Affected: PSW
+Side Effects: Standout Mode is begun on terminal
+
+
+Special Error Conditions:
+     Iî  alì  cases¬  aó  parô  oæ  thå  Z3TCAĞ  definition¬ 
+enterinç  Standouô  Modå  anä leavinç Standouô Modå  dï  noô 
+causå anù positionó oî thå screeî tï bå occupied®  Cursoò ió 
+NOT moved.
+     Iô  ió recommendeä thaô extensivå cursoò motioî ió  noô 
+donå  betweeî STNDOUT/STNDENÄ calló (ie¬  don'ô uså  GOTOXY© 
+sincå thå effectó oæ doinç thió arå noô generalizeä foò  alì 
+terminals and may not be desirable in some cases.
+     Note: See STNDEND for the complement of this function.
+
+
+Examples of Use:
+
+     ext  stndout,stndend
+     ...
+     call stndout
+     ...
+     < all screen output is now in Standout Mode >
+     ...
+     call stndend
+     ...
+     < all screen output is back to normal >
+
+
+Routine: STNDEND
+
+Function:
+     Terminatå Standouô Modå - resumå normaì screeî display
+
+Inputs: None
+Outputs:
+     A=0 and Zero Flag Set (Z) if function not available
+     A=0FFH and NZ if standend sequence issued
+Registers Affected: PSW
+Side Effects: None (see notes for STNDOUT)
+Special Error Conditions: None (see notes for STNDOUT)
+Examples of Use: (see notes for STNDOUT)
+
+:Terminal Initialization and Deinitialization
+
+Routine: TINIT
+
+Function:
+     Initializå thå user'ó terminaì foò lateò processinç  bù 
+VLIB routines
+
+Inputs: None
+Outputs: None
+Registers Affected: None
+Side Effects: Terminal may be reprogrammed
+Special Error Conditions:
+     TINIT¬  aó á rule¬ shoulä bå issueä righô afteò settinç 
+uğ thå environmenô pointeró anä beforå anù oæ thå otheò VLIÂ 
+routines are called.
+     DINIT is the complement routine.
+
+
+Examples of Use:
+
+     ext  envptr,vidinit ;reference ptr and init routine
+     ext  tinit,dinit    ;reference routines
+     ...
+     lxi  h,z3env        ;set up environment pointers
+     shld envptr
+     lxi  h,z3env+80H
+     call vidinit
+     call tinit          ;initialize terminal
+     ...
+     < body of code >
+     ...
+     call dinit          ;deinitialize terminal
+     jmp  0              ;exit
+
+
+Routine: DINIT
+
+Function:
+     Deinitialize the terminal
+
+Inputs: None
+Outputs: None
+Registers Affected: None
+Side Effects: None
+Special Error Conditions: (see notes on TINIT)
+Examples of Use: (see notes on TINIT)
+
+
+

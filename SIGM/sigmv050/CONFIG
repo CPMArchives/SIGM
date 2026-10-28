@@ -1,0 +1,74 @@
+
+
+;
+;
+;	Data Technology Corporation
+;	2344A Walsh Avenue
+;	Santa Clara, Ca.   95051
+;	Telephone: (408) 496-0434.
+;
+;	Copyright 1981, Data Technology Corporation.
+;
+;	This product is a copyright program product of
+;	DTC and is supplied for use with the DTC 510
+;	series controllers.
+;
+
+MSIZE:	EQU	32		;# 1024 byte memory blocks
+
+FALSE:	EQU	0
+TRUE:	EQU	NOT FALSE
+
+I796:	EQU	FALSE		;Set to true if IEEE 796 host adapter
+I696:	EQU	NOT I796	;Set to true if IEEE 696 host adapter
+
+
+DIO:	EQU	0B0h		;Disk I/O port
+
+;For each logical unit i (i=0,1,2,3), define the following symbols:
+;	LUNiTYPE        7   6   5   4   3   2   1   0
+;                       |   |   |   |   |   |   |   |
+; Always 0	      <-----------------+   |   |   |
+; 00 if 128 bytes/sec <-------------------------+   |
+; 01 if 256 bytes/sec                               |
+; 10 if 512 bytes/sec                               |
+; 11 if 1024 bytes/sec                              |
+; 0 if 8" floppy drive<-----------------------------+
+; 1 if Winchester drive or 5.25" floppy                              
+
+;	LUNiNLD		Number of logical disks 
+;
+;	LUNiSEC		Number of sectors/logical disk.
+;	LUNiDAT		Drive Assignment Type for controller
+;			Class 6, Op code 1 command.  (See controller
+;			specification Section 4.1.4.2.)
+;			If the controller does not support Class 6,
+;			op code 1, then define LUNiDAT as 0FFh.
+;	LUNiTFC		Set bit j, j=0,...,7, to select the floppy
+;			track format codes to be used by the system.
+;			If not a floppy, set to zero.
+;
+;
+;
+;
+LUN0:	EQU	TRUE		;True if disk attached to physical drive
+LUN0TYPE: EQU	011b		;Hard disk, 256 bytes/sector
+LUN0NLD: EQU	1		;Number of logical disks
+LUN0SEC: EQU	20196		;Number of 256 byte sectors/logical disk
+LUN0DAT:  EQU	0FFH		;Drive Assignment Type
+LUN0TFC:  EQU	0		;Not a floppy.
+
+LUN1:	EQU	FALSE
+
+LUN2:	EQU	TRUE
+LUN2TYPE: EQU	011b		;5.25" floppy drive
+				;Maximum sector size is 256 bytes.
+LUN2NLD: EQU	2		;
+LUN2SEC: EQU	16*35		;number of 256 byte sectors
+LUN2DAT: EQU	0FFh		;No Class 6, op code 1
+LUN2TFC: EQU	00010001b	;Single density, single-sided,
+				;Double density, single-sided.
+
+LUN3:	EQU	FALSE
+
+

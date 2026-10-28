@@ -1,0 +1,704 @@
+* DATE 08/31/84  21:54
+* report.bld
+STOR t TO more
+DO WHIL more
+ STOR CHR(PEEK (063)) TO dr
+ REST from coname additive
+ ERAS
+ STOR 'Y' TO printer
+ STOR 'N' TO disk
+ STOR '        ' TO filename
+ STOR '?' TO command
+TEXT
+ >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+ *   Please select one of the above options. You may also leave this menu    *
+ *   by typing 'Q' and get on-line HELP by typing '?'.                       *
+ >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+ENDT
+ @ 3,04 SAY coname + " -  BUILDING REPORT MENU"
+ @ 3,65 SAY DATE()
+ @ 7,29 SAY "A. Rent bills"
+ @ 8,29 SAY "B. Tenant roster"
+ @ 9,29 SAY "C. Delinquency report"
+ @ 10,29 SAY "D. Tenant mailing labels"
+ @ 11,29 SAY "E. Vacancy list"
+ @ 12,29 SAY "F. Lease expiration and flag report"
+ @ 13,29 SAY "G. Return to Main Menu"
+ @ 15,23 SAY "PLEASE SELECT ONE OF THE OPTIONS"
+ @ 15,58 GET command PICTURE '!'
+ READ
+ DO WHIL @(COMMAND, 'ABCDEFG?Q') = 0
+  STOR '?' TO command
+  @ 15,58 GET command PICTURE '!'
+  READ
+ ENDD
+ CLEA GETS
+ IF command >='B' .AND. command <  'G'
+  @ 17,00
+  @ 17,00 SAY " *         Send Report to the Printer (Y/N)                                  *"
+  @ 17,55 GET printer PICTURE '!'
+  READ
+  @ 18,00 SAY " *         Send Report  to a Disk File (Y/N)                                 *"
+  @ 18,55 GET disk PICTURE '!'
+  READ
+  IF disk ='Y'
+   @ 17,00
+   @ 18,00
+   @ 17,00 SAY " *          Enter Disk File Name                                             *"
+   @ 17,34 GET filename PICTURE '!!!!!!!!'
+   @ 17,44 SAY "(.TXT will be added )"
+   @ 18,00 SAY ' *                                                                           *'
+   READ
+   @ 18,00 SAY ' *          Select drive to put Files on                                     *'
+   @ 18,55 GET dr PICTURE '!'
+   READ
+   DO WHIL @(dr,'AB') = 0
+    @ 18,00
+    @ 18,00 SAY ' *          Select drive to put Files on                                     *'
+    @ 18,55 GET dr PICTURE '!'
+    READ
+   ENDD while @
+  ENDI disk = Y
+  STOR LEN(coname)/2  TO L
+  STOR 40-L TO L
+  STOR '                                        ' TO bl
+  STOR $(bl,1,L) + coname TO coname
+  IF printer = 'Y'
+   @ 17,00
+   @ 18,00
+   @ 17,00 SAY ' *          MAKE PRINTER READY AND HIT ANY KEY                               *'
+   @ 18,00 SAY ' *                                                                           *'
+   SET CONSOLE OFF
+   WAIT
+   SET CONSOLE ON
+   SET print ON
+  ENDI printer = Y
+  IF disk = 'Y' .AND. filename <> ' '
+* make a proper REPORT file name that is of type TXT
+   STOR @('.',filename) TO length
+   IF length = 0 .OR. length > 8
+    STOR 9 TO length
+   ENDI length
+   STOR $(filename,1,length-1) TO filename
+   STOR '&dr.:'+filename+'.TXT' TO filename
+   SET ALTERNATE TO &filename
+   SET ALTERNATE ON
+  ENDI disk = Y and filename <> ''
+ ENDI command
+ ERAS
+ DO CASE
+ CASE command = 'A'
+  SET PRINT OFF
+* rent bills
+  STOR CHR(PEEK(063)) TO dr
+  SELE PRIMARY
+  USE &dr.:build
+  SET INDEX TO &dr.:code
+  ERAS
+TEXT
+
+                 This module prepares the rent bills. If the
+                 rents for the month have not been posted and
+                 the new rents not accrued please take care of
+                 that before you run this program.  
+
+                 The form set up is for UARCO C599 and envelope
+                 EN81. Form length is 7 inches.      
+
+
+
+
+
+
+
+
+
+
+
+
+
+ENDT
+  STOR 'Y' TO command
+  @ 10,20 SAY 'ARE YOU READY TO PROCEED ? '
+  @ 10,50 GET command PICTURE '!'
+  READ
+  IF COMMAND = 'Y'
+   SET confirm on
+   STOR '  ' TO build
+   @ 12,10 SAY "What building shall we prepare bills for ('99' for all) "
+   @ 12,70 GET build PICTURE '99'
+   READ
+   IF build <> '99'
+    FIND &build
+    DO WHIL # = 0
+     @ 12,70 GET build PICTURE '99'
+     READ
+     FIND &build
+    ENDD WHILE #
+   ELSE
+    GO TOP
+   ENDI build <> '99'
+   STOR '         ' TO month
+   @ 13,10 SAY "For what month "
+   @ 13,40 GET month PICTURE '!XXXXXXXX'
+   READ
+   @ 16,10 SAY 'Hit any key when the printer is on and the proper paper loaded'
+   @ 17,10 SAY 'with the top of the form at the level of the print head.'
+   SET CONSOLE OFF
+   WAIT
+   SET CONSOLE ON
+   SET PRINT ON
+   ERAS
+   STOR t TO bigloop
+   DO WHIL BIGLOOP .AND(.NOT. EOF)
+    IF build <> '99'
+     STOR f TO bigloop
+    ELSE
+     STOR # TO rec:no
+    ENDI build <> '99'
+    STOR bcode TO mbcode
+    STOR baddr TO mbaddr
+    STOR $(bcity,1,22) + '  ' + $(bcity,23,5) TO mbcity
+    STOR remit TO mremit
+    STOR remitad TO mremitad
+    STOR remitc TO mremitc
+    STOR phone TO mphone
+    STOR checks TO mchecks
+    SELE SECONDARY
+    USE &dr.:tenant
+    SET index TO &dr.:codea
+    FIND &mbcode
+    DO WHIL $(bcode,1,2) = mbcode .AND.(.NOT. EOF)
+     IF tenant <> ' '
+      STOR 0 TO line
+      STOR 0 TO mtotal
+      STOR trent TO trentx
+      IF ttype = 'P'
+       IF (trentpc*(trentpcr/100)/12)>trent
+        STOR (trentpc*(trentpcr/100)/12) TO trentx
+       ENDI (trentpc)
+      ENDI ttype = 'P'
+      IF ttype = 'O'
+       STOR ((trentpc*(trentpcr/100)/12)+trent) TO trentx
+      ENDI ttype = 'O'
+      ? '   '
+      ? '   ' + mremit
+      ? '   ' + mremitad
+      ? '   ' + mremitc
+      ? ' '
+      ? ' '
+      ? '    PLEASE SEND CHECKS TO ABOVE ADDRESS PAYABLE TO:'
+      ? '    ' + mchecks
+      ? ' '
+      ? ' '
+      ? ' '
+      ? ' '
+      ? '      ' + tenant + '          Unit ' +tunit
+      IF alt = 'Y'
+       ? '      ' + altad
+       ? '      ' + altcty
+      ELSE
+       ? '      ' + mbaddr
+       ? '      ' + mbcity
+      ENDI alt
+      ? ' '
+      ? ' '
+      ? '                           R E N T    S T A T E M E N T'
+      ? ' '
+      ? ' '
+      ? '                        Refer inquiries to ' + mphone
+      ? ' '
+      ? ' '
+      IF trentp > 0
+       ? '       Paid ' + trentpd + '. THANK YOU                        '+STR(trentp,12,2)
+       STOR line + 1 TO line
+      ENDI trentp > 0
+      ? '       Unpaid balance ' + date() + '                         '+STR(trentd,12,2)
+      STOR mtotal + trentd TO mtotal
+      ? ' '
+      IF ttype = 'P' .OR. ttype = 'O'
+       ? '       Base Rent ' + STR(trent,12,2)
+      ENDI ttype
+      ? '       Base Rent for the month of ' + month + '            '+STR(trentx,12,2)
+      STOR mtotal + trentx TO mtotal
+      IF trente > 0
+       ? '       Electricity                                     '+ STR(trente,12,2)
+       STOR mtotal + trente TO mtotal
+       STOR line + 1 TO line
+      ENDI trente
+      IF trentm > 0
+       ? '       Miscellaneous charges                           '+STR(trentm,12,2)
+       STOR mtotal + trentm TO mtotal
+       STOR line + 1 TO line
+      ENDI trentm > 0
+      IF taddl > 0
+       ? '       Additional charges                              '+STR(taddl,12,2)
+       STOR mtotal + taddl TO mtotal
+       STOR line + 1 TO line
+      ENDI taddl >0
+      ? ' '
+      ? '       TOTAL DUE                                      $'+STR(mtotal,12,2)
+      STOR mtotal + tlatec TO mtotal
+      ? ' '
+      ? ' '
+      ? '       AFTER ' + TRIM(!(month)) + ' ' +tlate + ' PAY -   $ '+STR(mtotal,12,2)
+      STOR 11- line TO line1
+      DO WHIL line1 > 0
+       ? ' '
+       STOR line1 - 1 TO line1
+      ENDD
+     ENDI tenant <> ' '
+     SKIP
+    ENDD WHILE $(bcode)
+    SELE PRIMARY
+    USE &dr.:BUILD
+    SET INDEX TO &dr.:code
+    IF bigloop
+     GO rec:no
+     SKIP
+    ENDI bigloop
+   ENDD WHILE .NOT. EOF
+  ENDI command = 'Y'
+  EJEC
+  SET PRINT OFF
+  SET CONFIRM off
+  RELE ALL
+  ERAS
+  STOR t TO more
+  STOR 'Y' TO printer
+  STOR 'N' TO disk
+  STOR '        ' TO filename
+  STOR '?' TO select
+  STOR CHR(PEEK(063)) TO dr
+  SELE PRIMARY
+  USE &dr.:build
+  SET INDEX TO &dr.:code
+ CASE command = 'B'
+* tenant roster
+  STOR CHR(PEEK(063)) TO dr
+  SELE SECONDARY
+  USE &dr.:tenant
+  SET INDEX TO &dr.:codea
+  ERAS
+* initialize variables
+  STOR 0 TO pageno
+  STOR 0 TO counter
+  STOR 0 TO counter1
+  STOR 0 TO additup
+  STOR ' ' TO mtenant
+  SET MARGIN TO 3
+  GO TOP
+  STOR t TO more1
+  DO WHIL more1
+* do page counter etc
+   STOR pageno + 1 TO pageno
+   STOR 4 TO lineno
+   ERAS
+   ? '  '
+   IF pageno = 1
+    ? coname
+    ? '                                 TENANT REPORT'
+    ? ' '
+    ? 'Report of ' +date() + '.'
+    STOR lineno + 4 TO lineno
+   ENDI pageno = 1
+   ? '                                                                    ' + 'PAGE ' + STR(pageno,2)
+   ? '  Tenant                            ' + 'Code   '+ '   Unit     ' + ' Expires' + '        Rent'
+   ? "----------------------------------------------------------------------------"
+   ? ' '
+* now fill up rest of page to 50 lines with entries
+   DO WHIL lineno < 50
+* now do a page if not end of file
+    DO WHIL .NOT. EOF
+     STOR tenant TO mtenant
+     IF tenant = ' '
+      STOR 'VACANT                             ' TO mtenant
+     ENDI
+     ? mtenant + ' ' + bcode + '      ' + tunit + '    ' + texpir +'  ' + STR(trent,9,2)
+     STOR lineno +1 TO lineno
+     STOR additup + trent TO additup
+     STOR counter1 + 1 TO counter1
+     SKIP
+    ENDD WHILE .NOT. EOF
+    STOR f TO more1
+    STOR 60 TO lineno
+   ENDD while lineno < 50
+   ? ' '
+   ? "----------------------------------------------------------------------------"
+   ? ' '
+   ? '                       TOTAL NUMBER OF RENTAL UNITS:  ' + STR(counter1,3)
+   ? '                                          RENT ROLL: $' + STR(additup,10,2)
+   ? '  '
+  ENDD more1
+* if it was on turn it off
+  EJEC
+  SET PRINT OFF
+  SET ALTERNATE OFF
+  ? '                       Hit any key to continue..........'
+  SET CONSOLE OFF
+  WAIT
+  SET CONSOLE ON
+  RELE ALL
+  ERAS
+  STOR t TO more
+  STOR 'Y' TO printer
+  STOR 'N' TO disk
+  STOR '        ' TO filename
+  STOR '?' TO select
+  STOR CHR(PEEK(063)) TO dr
+  SELE PRIMARY
+  USE &dr.:BUILD
+  SET INDEX TO &dr.:code
+ CASE command = 'C'
+* tenant delinquency report
+  STOR CHR(PEEK(063)) TO dr
+  SELE SECONDARY
+  USE &dr.:tenant
+  SET INDEX TO &dr.:codea
+  GO TOP
+* initialize variables
+  STOR 0 TO pageno
+  STOR 0 TO counter
+  STOR 0 TO counter1
+  STOR t TO more1
+  STOR 0 TO additup
+  SET MARGIN TO 3
+  LOCA FOR trentd > 0
+  IF EOF
+   STOR f TO more1
+  ENDI EOF
+  DO WHIL more1
+* do page counter etc
+   STOR pageno + 1 TO pageno
+   STOR 4 TO lineno
+   ERAS
+   ? '  '
+* and write TITLE
+   IF pageno = 1
+    ? coname
+    ? '                            TENANT DELINQUENCY LIST'
+    ? ' '
+    ? 'Report of ' +date() + '.'
+    STOR lineno + 4 TO lineno
+   ENDI pageno = 1
+   ? '                                                                    ' + 'PAGE ' + STR(pageno,2)
+   ? '  Tenant                             ' + 'Code   '+ 'Late Date' + '        Due'
+   ? "----------------------------------------------------------------------------"
+   ? ' '
+* now fill up rest of page to 50 lines with entries
+   DO WHIL lineno < 50
+* now do a page if not end of file
+    IF .NOT. EOF
+     IF tlate < $(date(),4,2)
+      ? tenant + '   ' + bcode + '      ' + tlate + '      ' + STR(trentd,9,2)
+      STOR lineno +1 TO lineno
+      STOR additup + trentd TO additup
+      STOR counter1 + 1 TO counter1
+      CONT
+     ELSE
+      CONT
+   ENDI tlate
+    ELSE
+     STOR f TO more1
+     STOR 60 TO lineno
+    ENDI not EOF
+   ENDD while lineno < 50
+   ? ' '
+   ? "----------------------------------------------------------------------------"
+   ? ' '
+   ? '                      TOTAL NUMBER OF DELINQUENCIES:  ' + STR(counter1,3)
+   ? '                     TOTAL DOLLAR AMOUNT DELINQUENT: $' + STR(additup,10,2)
+   ? '  '
+  ENDD more1
+* if it was on turn it off
+  EJEC
+  SET PRINT OFF
+  SET ALTERNATE OFF
+  ? '                          Hit any key to continue.........'
+  SET CONSOLE OFF
+  WAIT
+  SET CONSOLE ON
+  RELE ALL
+  ERAS
+  STOR t TO more
+  STOR 'Y' TO printer
+  STOR 'N' TO disk
+  STOR '        ' TO filename
+  STOR '?' TO select
+  STOR CHR(PEEK(063)) TO dr
+  SELE PRIMARY
+  USE &dr.:BUILD
+  SET INDEX TO &dr.:code
+ CASE command = 'D'
+* tenant labels
+* adjust for printer
+  STOR CHR(PEEK(063)) TO dr
+  SELE PRIMARY
+  USE &dr.:build
+  SET INDEX TO &dr.:code
+  GO TOP
+  STOR t TO more2
+  DO WHIL more2 .AND. (.NOT. EOF)
+   STOR # TO rec:no
+   STOR bcode TO mbcode
+   STOR baddr TO mbaddr
+   STOR $(bcity,1,22) + '  ' + $(bcity,23,5) TO mbcity
+   SELE SECONDARY
+   USE &dr.:tenant
+   SET INDEX TO &dr.:codea
+   FIND &mbcode
+   STOR $(bcode,1,2) TO mtcode
+   DO WHIL mtcode = mbcode .AND. (.NOT. EOF)
+    IF tenant <> ' '
+     ? ' '
+     ? TRIM(tenant)  + '  ' + tunit
+     ? mbaddr
+     ? mbcity
+     ? '  '
+    ENDI tenant
+    SKIP
+    STOR $(bcode,1,2) TO mtcode
+   ENDD WHILE mtcode
+   SELE PRIMARY
+   USE &dr.:build
+   SET INDEX TO &dr.:code
+   GO rec:no
+   SKIP
+   IF EOF
+    STOR f TO more2
+   ENDI
+  ENDD WHILE more2 .AND. (.NOT. EOF)
+  EJEC
+  SET PRINT OFF
+  SET ALTERNATE OFF
+  RELE ALL
+  ERAS
+  STOR t TO more
+  STOR 'Y' TO printer
+  STOR 'N' TO disk
+  STOR '        ' TO filename
+  STOR '?' TO select
+  STOR CHR(PEEK(063)) TO dr
+  SELE PRIMARY
+  USE &dr.:BUILD
+  SET INDEX TO &dr.:code
+ CASE command = 'E'
+* vacancy report
+  STOR CHR(PEEK(063)) TO dr
+  SELE SECONDARY
+  USE &dr.:tenant
+  SET INDEX TO &dr.:codea
+  GO TOP
+* initialize variables
+  STOR 0 TO pageno
+  STOR 0 TO counter
+  STOR 0 TO counter1
+  STOR 0 TO additup
+  SET MARGIN TO 3
+  LOCA FOR tenant = ' '
+  IF .NOT. EOF
+   STOR t TO more1
+  ELSE
+   STOR f TO more1
+  ENDI .NOT. EOF
+  DO WHIL more1
+* do page counter etc
+   STOR pageno + 1 TO pageno
+   STOR 4 TO lineno
+   ERAS
+   ? '  '
+* and write TITLE
+   IF pageno = 1
+    ? coname
+    ? '                                VACANCY REPORT'
+    ? ' '
+    ? 'Report of ' +date() + '.'
+    STOR lineno + 4 TO lineno
+   ENDI pageno = 1
+   ? '                                                                    ' + 'PAGE ' + STR(pageno,2)
+   ? '  Building                              ' + 'Code   '+ 'Unit     ' + '   Last Rent'
+   ? "----------------------------------------------------------------------------"
+   ? ' '
+* now fill up rest of page to 50 lines with entries
+   DO WHIL lineno < 50
+* now do a page if not end of file
+    ? baddr + '   ' + bcode + '      ' + tunit + '      ' + STR(trent,9,2)
+    STOR lineno +1 TO lineno
+    STOR additup + trent TO additup
+    STOR counter1 + 1 TO counter1
+    CONT
+    IF EOF
+     STOR f TO more1
+     STOR 60 TO lineno
+    ENDI not EOF
+   ENDD while lineno < 50
+   ? ' '
+   ? "----------------------------------------------------------------------------"
+   ? ' '
+   ? '                         TOTAL NUMBER OF VACANCIES:  ' + STR(counter1,3)
+   ? '                     TOTAL DOLLAR AMOUNT VACANCIES: $' + STR(additup,10,2)
+   ? '  '
+  ENDD more1
+* if it was on turn it off
+  EJEC
+  SET PRINT OFF
+  SET ALTERNATE OFF
+  ? '                          Hit any key to continue................'
+  SET CONSOLE OFF
+  WAIT
+  SET CONSOLE ON
+  RELE ALL
+  ERAS
+  STOR t TO more
+  STOR 'Y' TO printer
+  STOR 'N' TO disk
+  STOR '        ' TO filename
+  STOR '?' TO select
+  STOR CHR(PEEK(063)) TO dr
+  SELE PRIMARY
+  USE &dr.:BUILD
+  SET INDEX TO &dr.:code
+ CASE command = 'F'
+* lease expiration report
+  STOR CHR(PEEK(063)) TO dr
+  SELE SECONDARY
+  USE &dr.:tenant
+  SET INDEX TO &dr.:codea
+  ERAS
+  STOR date() to exdate
+  @ 10,10 SAY 'What is the cutoff date for the report ? '
+  @ 10,55 GET exdate PICTURE '99/99/99'
+  READ
+  STOR $(exdate,7,2) + $(exdate,1,2) + $(exdate,4,2) TO expdate
+* initialize variables
+  STOR 0 TO pageno
+  STOR 0 TO counter
+  STOR 0 TO counter1
+  STOR 0 TO additup
+  SET MARGIN TO 1
+  GO TOP
+  STOR t TO more1
+  DO WHIL more1
+* do page counter etc
+   STOR pageno + 1 TO pageno
+   STOR 4 TO lineno
+   ERAS
+   ? '  '
+   IF pageno = 1
+    ? coname
+    ? '                        LEASE EXPIRATION AND FLAG REPORT'
+    ? ' '
+    ? 'Report of ' +date() + '.'
+    STOR lineno + 4 TO lineno
+   ENDI pageno = 1
+   ? '                                                                    ' + 'PAGE ' + STR(pageno,2)
+   ? '  Tenant                            ' + 'Code   '+ ' Unit  ' + '  Flag'+'    Expires'+ '    Rent'
+   ? "----------------------------------------------------------------------------"
+   ? ' '
+* now fill up rest of page to 50 lines with entries
+   DO WHIL lineno < 50
+* now do a page if not end of file
+    DO WHIL .NOT. EOF
+     STOR $(texpir,7,2) + $(texpir,1,2) + $(texpir,4,2) TO mwxpir
+     STOR $(tflag,7,2) + $(tflag,1,2) + $(tflag,4,2) TO flagex
+     IF flagex = ' '
+     STORE '999999' TO flagex
+     ENDIF flagex
+     IF VAL(mwxpir) <  VAL(expdate) .OR. VAL(flagex) < VAL(expdate)
+      ? tenant + ' ' + bcode + '   ' + tunit +' '+ tflag +' '+ texpir +' ' + STR(trent,9,2)
+      STOR lineno +1 TO lineno
+      STOR additup + trent TO additup
+      STOR counter1 + 1 TO counter1
+     ENDI VAL(mwexpir)
+     SKIP
+    ENDD WHILE .NOT. EOF
+    STOR f TO more1
+    STOR 60 TO lineno
+   ENDD while lineno < 50
+   ? ' '
+   ? "----------------------------------------------------------------------------"
+   ? ' '
+   ? '               TOTAL FLAGGED AND/OR EXPIRING LEASES:  ' + STR(counter1,3)
+   ? '                      TOTAL DOLLAR AMOUNT OF LEASES: $' + STR(additup,10,2)
+   ? '  '
+  ENDD more1
+* if it was on turn it off
+  EJEC
+  SET PRINT OFF
+  SET ALTERNATE OFF
+  ? '                          Hit any key to continue..........'
+  SET CONSOLE OFF
+  WAIT
+  SET CONSOLE ON
+  RELE ALL
+  ERAS
+  STOR t TO more
+  STOR 'Y' TO printer
+  STOR 'N' TO disk
+  STOR '        ' TO filename
+  STOR '?' TO select
+  STOR CHR(PEEK(063)) TO dr
+  SELE PRIMARY
+  USE &dr.:BUILD
+  SET INDEX TO &dr.:code
+ CASE command = '?'
+  ERAS
+TEXT
+
+               R E P O R T   M E N U   H E L P   F I L E
+
+The various reports are self explanatory. You should note, however, that
+the rent bills must be sent to the printer. All of the other reports can
+be sent to the printer, viewed on screen or written to a disk file (or
+any combination thereof).
+
+A certain amount of customization may be required for your bills and for
+your labels. All of this is pretty well set forth in the program text.
+(Type REPORT.BLD to find the correct name of the report program you must
+edit.)
+
+We assume that the rent bills will use the UARCO form we are using. If that
+is not the case, you will have to adjust it, but adjustments are rather  
+easy. You can also print the form on plain paper. The ledger and journal
+printing programs have a module to input and center text.
+
+
+                    Please hit any key to return to the menu
+
+
+ENDT
+  SET CONSOLE OFF
+  WAIT
+  SET CONSOLE ON
+ CASE (command = 'G' .OR. COMMAND = 'Q')
+  STOR f TO more
+ ENDC
+ SET PRINT OFF
+ SET ALTERNATE OFF
+ENDD while more
+RELE ALL
+STOR t TO keepitup
+STOR t TO more
+STOR t TO first
+STOR 0 TO box
+RETU
+

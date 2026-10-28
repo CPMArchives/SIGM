@@ -1,0 +1,500 @@
+
+	    A few words about ZCPR3...........................
+
+	SIG/M is pleased to release Version 3 of Richard Conn's enhanced
+Z80-based replacement for the CP/M CCP.  ZCPR and ZCPR2 represented sub-   
+stantial improvements to operating under CP/M. With ZCPR2 one had all of 
+the features (except bank select) that came out later as CP/M Plus. Now,
+with ZCPR3, Rich has brought the elements of UNIX to the Z-80. (As well
+as to the 8080 and the 8085).
+
+	Inaddition to this nine volume release, we will soon have many
+additional utilities, such an VFILER and VMENU from Rich Conn, which will
+take up another three or four disks.
+
+	There are two sets of documentation included in this release
+(SIG/M Vols 184-192). There is an installation manual (Z3INS) and a user
+manual (Z3USER). Both are WordStar files and should be printed out from
+WordStar. If another method of printing is used which cannot take the 
+WordStar control codes, you may have to stip the high bits first if your 
+printer goes wild.                                
+
+	We have squeezed these files to fit them on 'ONLY' nine disks.
+(They came as 14 + 2 overflows.) UNSQUEEZE is located on all disks with
+squeezed files. To use it just type USQ *.* after you have moved the
+squeezed files to a disk with more room. We have also included in the
+set TYPE1 to allow you to type out and screen page the squeezed files.
+
+	Volumes 191 and 192 are SYSLIB4, Rich's file library of routines.
+Because of directory space limitations, we have set them up as .LBR files
+and included LU.COM in the set to allow you to separate them. Once again,
+put the file on a disk with some room, type LU. Then type '-O' to open a
+file. Type the name of the file. Then type '-E *.*' and all the files
+will be extracted. (-L will list them). Close the file with -C and hit
+enter to exit.  We have also included on the disks 'LTYPE' to allow you
+to type out a file without extracting it from the library. The command is
+'LTYPE libraryname filename.filetype'.
+
+
+                                           SIG/M
+
+ ************************************************************************
+
+
+                EXTRACTS FROM INSTALLATION MANUAL
+
+1.1. Introduction
+
+     Installation  of  ZCPR3  is an  involved  process,  and  the 
+installer must have a working knowledge of the following:
+
+          1) 8080 and Z80 assembly language programming
+          2) CP/M 2.2
+          3) the CP/M SYSGEN procedure
+
+
+     There are three parts of the system which must be created or 
+initialized during the installation process:
+
+          1)  the  Operating  System or SYSGEN  image,  which  is 
+present  on the system tracks for most computers and  includes  a 
+disk boot,  the ZCPR3 Command Processor, the CP/M 2.2 BDOS, and a 
+modified BIOS
+
+          2)  the  ZCPR3 System Segments,  which are  independent 
+files that may be loaded from disk into the appropriate places in 
+memory by the ZCPR3 utility named LDR.COM
+
+          3) the various ZCPR3 utilities, each of which has to be 
+provided with the address of the ZCPR3 Environment Descriptor
+
+     The  ZCPR3 System is tied together by the ZCPR3  Environment 
+Descriptor,  which  is  a set of buffers that passes  information 
+between  all elements of a ZCPR3 System.   The ZCPR3  Environment 
+Descriptor  contains  information such as the  addresses  of  the 
+System  Segments,  the  addresses  of several buffers  which  are 
+significant to ZCPR3, data on what ZCPR3 resources are available, 
+and  information  about the physical attributes of  some  of  the 
+input/output  devices connected to the system (such as the number 
+of columns and lines on the CRT screen).
+
+
+1.1.1. Operating System Memory Images
+
+     The installer must build a proper SYSGEN Memory Image of the 
+target  ZCPR3 System (the target operating system is  the  system 
+being built, as opposed to the host operating system which is the 
+system used to build the target system).   In building the target 
+system,  the ZCPR3 Command Processor must be assembled and a BIOS 
+containing a modified Cold Boot routine must be prepared.
+
+1.1.2. System Segments
+
+     The  installer  must select and assemble the  various  ZCPR3 
+System  Segments to be used in conjunction with the target  ZCPR3 
+System.   A System Segment is a file which is loaded into a fixed 
+location  in memory by the LDR.COM ZCPR3  utility.   Each  System 
+Segment  stays  memory-resident  until a new  System  Segment  is 
+loaded  over  it.   Depending on the commands issued,  the  ZCPR3 
+Command  Processor  or  a ZCPR3 utility may call  upon  a  loaded 
+System Segment to perform a function or provide information.
+
+     All  System  Segments must be initialized by the  Cold  Boot 
+routine   in  the  BIOS  of  the  target  ZCPR3   System.    This 
+initialization consists of zeroing out the first N bytes of  each 
+segment's  memory buffer,  where N depends upon the segment being 
+initialized.
+
+
+1.1.3. Utilities
+
+     To  be  used effectively as a part of a  ZCPR3  System,  all 
+ZCPR3  utilities  must  be initialized to contain  either  (1)  a 
+pointer to the ZCPR3 Environment Descriptor if such a  descriptor 
+is  available  as a System Segment or (2) the  ZCPR3  Environment 
+Descriptor itself.
+
+     The   ZCPR3  utility  Z3INS.COM  is  used  to  perform  this 
+initialization.  Z3INS.COM will install a group of utilities with 
+the  required  information  very quickly and  make  this  process 
+relatively  painless.   Z3INS.COM  itself  does not  need  to  be 
+installed but can be for consistency sake.
+
+     Of  all  the ZCPR3 utilities (over 70) which  are  contained 
+within the ZCPR3 System,  only one,  ZEX,  cannot be installed by 
+Z3INS.  ZEX has to be assembled in order to be installed.
+
+
+1.3. System Segments
+
+     Installation of the ZCPR3 System Segments involves selecting 
+the  features of the segments and then assembling each segment in 
+turn.   It  is  recommended  that the MAC  assembler  of  Digital 
+Research be used to perform these assemblies.
+
+     The ZCPR3 Environment Descriptor (*.ENV file) is created  by 
+assembling the file SYSENV.ASM.   During this process,  the files 
+Z3BASE.LIB  and SYSENV.LIB are read in and used by the assembler.  
+Z3BASE.LIB  defines  the memory configuration of the  system  and 
+makes   up  most  of  the  environment  descriptor   information.  
+SYSENV.LIB contains additional details on the system.
+
+     The  ZCPR3  TCAP files (*.Z3T) are created  by  running  the 
+TCSELECT or TCMAKE programs.   TCSELECT allows the user to select 
+his  terminal from a list of pre-defined terminals,  while TCMAKE 
+allows  the  user  to  define  the  attributes  of  his  terminal 
+directly.   TCMAKE is for users whose terminal does not appear in 
+the standard Z3TCAP.TCP file.
+
+     Flow  Command  Packages (*.FCP) are  created  by  assembling 
+SYSFCP.ASM.   During  this  process,  the  files  Z3BASE.LIB  and 
+SYSFCP.LIB  are  read in and used by the  assembler.   SYSFCP.LIB 
+defines the features supported by the Flow Command Package  being 
+created.
+
+     Input/Output  Packages  (*.IOP)  are created  by  assembling 
+SYSIOP.ASM.   During this process, the file Z3BASE.LIB is read in 
+and used by the assembler.   All features of the I/O Package  are 
+hard-coded into the source of the package.
+
+     Resident  Command Packages (*.RCP) are created by assembling 
+SYSRCP.ASM.   During  this  process,  the  files  Z3BASE.LIB  and 
+SYSRCP.LIB  are read in and used by  the  assembler.   SYSRCP.LIB 
+defines  the  features supported by the Resident Command  Package 
+being created.
+
+     Named  Directory  Files (*.NDR) are created in  one  of  two 
+ways:   (1)  by assembling the file SYSNDR.ASM or (2) by  running 
+the  MKDIR.COM  ZCPR3  utility.   MKDIR.COM allows  the  user  to 
+dynamically  edit and create new named directory structures while 
+online.
+
+
+1.4. Utilities 
+
+     The  installation  of most of the ZCPR3  utilities  involves 
+setting  up  a file containing the names of the utilities  to  be 
+installed   and  running  the  Z3INS.COM  ZCPR3  utility  on   an 
+Environment  Descriptor and this file.   Z3INS will install  each 
+utility named in the file with the information it needs from  the 
+Environment Descriptor.
+
+     Only  one ZCPR3 utility cannot be installed in this  way  -- 
+ZEX.   Due to the nature of ZEX and the way it interacts with the 
+system,  installation  of  ZEX requires an involved  sequence  of 
+assemblies  and other operations.   This sequence is described in 
+detail  in  the ZEX.ZEX command file,  and,  once  ZEX  has  been 
+installed the first time, the installation of new versions of ZEX 
+can  be done automatically by running the ZEX.ZEX command file by 
+the previous version of ZEX (issuing the command "ZEX ZEX").
+
+
+
+1.5. Installation Steps
+
+     The installation process for ZCPR3 involves these steps:
+
+          1) Selecting the features desired for the target ZCPR3
+               System
+
+          2) Planning the memory structure of the target ZCPR3
+               System (the file Z3BASE.LIB is created)
+
+          3) Modifying the Cold Boot routine in the BIOS of the
+               target ZCPR3 System to initialize the selected
+               features which require initialization
+
+          4) Enabling the desired features in the ZCPR3 Command
+               Processor (the file Z3HDR.LIB is created)
+
+          5) Overlaying the CCP with ZCPR3 and the old BIOS with
+               the new BIOS in the SYSGEN Image
+
+          6) Placing the new SYSGEN Image onto the Operating
+               System tracks of the disk
+
+          7) Selecting the options for the desired System
+               Segments and creating the System Segments
+
+          8) Installing the desired ZCPR3 utilities
+
+1.6. Operational ZCPR3 System
+     This  section shows an operational ZCPR3 System,  describing 
+its memory image, System Segments, and utilities.
+
+1.6.1. Memory Image
+
+     This  memory  image shows the memory structure  of  a  ZCPR3 
+System which includes all of the major features.
+
+Address
+ FFFF     ----------------------------------------------
+          |    ROM Area (System Dependent)             | 2K
+ F800     ---------------------------------------------- 
+          |    ZCPR3 External Stack                    |\
+ F7D0     ---------------------------------------------- \
+          |    ZCPR3 Command Line Buffer               |  \
+ F700     ----------------------------------------------   \
+          |    ZCPR3 Memory-Based Named Directory (S)  |    |
+ F600     ----------------------------------------------    |
+          |    ZCPR3 External File Control Block       |
+ F5D0     ----------------------------------------------  1K
+          |    ZCPR3 Message Buffers                   |
+ F580     ----------------------------------------------    |
+          |    ZCPR3 Shell Stack                       |    |
+ F500     ----------------------------------------------   /
+          |    ZCPR3               |      Z3TCAP (S)   |  /
+ F480     |         Environment    --------------------- /
+          |              Descriptor (S)                |/
+ F400     ----------------------------------------------
+          |    ZCPR3 Flow Command Package (S)          |  0.5K
+ F200     ----------------------------------------------
+          |    ZCPR3 Input/Output Package (S)          |  1.5K
+ EC00     ----------------------------------------------
+          |    ZCPR3 Resident Command Package (S)      |  2K
+ E400     ----------------------------------------------
+          |    ZCPR3 BIOS with Modified Cold Boot      |
+          |         Routine to Initialize All Elements |  3.5K
+          |         of the ZCPR3 System Above          |
+ D600     ----------------------------------------------
+          |    CP/M BDOS                               |  3.5K
+ C800     ----------------------------------------------
+          |    ZCPR3 Command Processor                 |  2K
+ C000     ----------------------------------------------
+          |    Transient                               |
+          |         Program                            | ~48K
+          |              Area                          |
+  100     ----------------------------------------------
+          |    CP/M and ZCPR3 Buffers                  |256 bytes
+    0     ----------------------------------------------
+             FIG 1-3: ZCPR3 System Memory Image (Z3BASE1.LIB)
+
+Notes: (1) All Areas Above E400H are initialized by the Cold Boot
+               Routine in the BIOS
+       (2) Those Areas marked with (S) are ZCPR3 System Segments
+
+1.6.2. System Segments
+
+Z3BASE1.LIB        The  System Segments used in this  system 
+Z3BASE2.LIB   are  provided  in the  distribution  files  of 
+Z3HDR1.LIB    ZCPR3.  The ZCPR3 System shown here is defined 
+Z3HDR2.LIB    by  the file Z3BASE1.LIB,  and a much  smaller 
+              system  which  does not include  the  Resident 
+              Command  Package,  Input/Output  Package,  and 
+              Flow  Command  Package  features (only  1K  of 
+              additional    overhead)    is    defined    in 
+              Z3BASE2.LIB.   Associated with each of the two 
+              Z3BASEn.LIB  files is a Z3HDRn.LIB file  which 
+              defines  the  features of  the  ZCPR3  Command 
+              Processor.
+
+SYSENV.ASM          The Environment Descriptor is created by 
+SYSENV.LIB    assembling SYSENV.ASM, which uses  Z3BASE1.LIB 
+              (renamed  to Z3BASE.LIB) and SYSENV.LIB during 
+              the assembly process.
+
+SYSFCP.ASM          There are two Flow Command Packages used 
+SYSFCP1.LIB   in conjunction with this system,  and they are 
+SYSFCP2.LIB   defined   by   the   files   SYSFCP1.LIB   and 
+              SYSFCP2.LIB.  SYSFCP1.LIB defines an FCP which 
+              is  self-contained and executes without  using 
+              any external files.   SYSFCP2.LIB executes the 
+              ELSE/FI/XIF  commands within  itself,  but  it 
+              executes  IF  by loading the file IF.COM  from 
+              the ROOT directory and transferring control to 
+              it.    This  eliminates  the  restriction   of 
+              capabilities   of  the  IF  command  which  is 
+              imposed by the small size of the FCP.
+
+SYSIOP.ASM          The   Input/Output   Package   used   in 
+              conjunction  with this system is contained  in 
+              the file SYSIOP.ASM.
+
+SYSRCP.ASM          There are four RCPs used in  conjunction 
+SYSRCP1.LIB   with this system,  and they are defined by the 
+SYSRCP2.LIB   four SYSRCPn.LIB files (n is between 1 and 4).  
+SYSRCP3.LIB   Each  RCP contains a different set of commands 
+SYSRCP4.LIB   with  a different set of options  enabled  for 
+              the included commands.
+
+
+1.6.3. Utilities
+
+     Over  70  utilities are associated with  the  ZCPR3  System.  
+Each  utility  uses  features  of  the  system  as  it  requires, 
+including  named  directory  references,  access to  the  various 
+system segments,  access to the TCAP facility,  and access to all 
+of the data elements in the ZCPR3 Environment Descriptor that  it 
+needs.  The ZCPR3 Environment Descriptor is the single source for 
+all information that a ZCPR3 utility needs about the system it is 
+running in.
+
+     Consequently,   all   ZCPR3   utilities  access  the   ZCPR3 
+Environment  Descriptor in one of two ways:   (1) they contain  a 
+pointer  to  the descriptor or (2) they  contain  the  descriptor 
+itself.   The  Z3INS.COM  utility  is used to install  the  ZCPR3 
+utilities  with the address of the Environment Descriptor or  the 
+descriptor  itself.   Class 1 utilities are those who  contain  a 
+pointer  to  an  environment descriptor,  and Class  2  utilities 
+contain the descriptor itself.
+
+     Supporting  the  Environment Descriptor in a  global  memory 
+buffer is the recommended way to implement a ZCPR3 System.   This 
+buys the system two distinct advantages:
+
+          1.   Each  utility  needs only 2  additional  bytes  of 
+overhead  (the pointer to the Environment Descriptor) rather than 
+the descriptor itself (which occupies 256 bytes).
+
+          2.   Changes  can  be made to  the  system  dynamically 
+without  having  to  modify anything other than  the  Environment 
+Descriptor.
+
+     The  ZCPR3 utilities are much smaller and faster than  their 
+ZCPR2 ancestors.   For a complete listing of all ZCPR3  utilities 
+supplied with the distribution, see the appropriate section.
+
+
+1.7. Software Required for Installation
+
+1.7.1. Commercial Software
+
+     ZCPR3 is to be installed on a working CP/M 2.2 system.   The 
+commercial software required to do this installation is:
+
+          1) A working CP/M 2.2 System
+          2) Source to the BIOS of the target CP/M 2.2 System or
+               an overlay patch for the Cold Boot Routine
+          3) the MAC assembler of Digital Research
+          4) a debugger, like DDT, for the overlay process
+          5) a disk utility, like SYSGEN, to be used to place the
+               operating system image onto the OS tracks on disk
+
+     If  the  user desires to edit and reassemble the  utilities, 
+the Microsoft M80 and L80 assembler and linker are also required.
+
+1.7.2. System Segment Software
+
+     The  software  supplied  with ZCPR3 which  is  required  for 
+installation is:
+
+Name of File   Function
+
+ZCPR3.ASM      Source to the ZCPR3 Command Processor
+Z3HDR.LIB      Configuration File read in by ZCPR3.ASM to
+                    tailor the ZCPR3 Command Processor
+Z3BASE.LIB     Definition of the Memory Map of the ZCPR3
+                    System to be created
+
+SYSENV.ASM     ZCPR3 System Environment Descriptor
+SYSENV.LIB     Header for ZCPR3 System Environment Descriptor
+
+SYSFCP.ASM     ZCPR3 Flow Command Package source
+SYSFCP.LIB     Configuration File read in by SYSFCP.ASM to
+                    tailor the ZCPR3 Flow Command Package
+                    (this file may be derived from one of the
+                     SYSFCPn.LIB files below)
+
+SYSIOP.ASM     ZCPR3 Input/Output Package source
+
+SYSNDR.ASM     ZCPR3 Named Directory Definition File source
+SYSNDR.LIB     Header for ZCPR3 Named Directory Definition
+
+SYSRCP.ASM     ZCPR3 Resident Command Package source
+SYSRCP.LIB     Header for ZCPR3 Resident Command Package
+                    (this file may be derived from one of the
+                     SYSRCPn.LIB files below)
+
+1.7.3. Other Useful Files
+
+Name of File   Function
+
+Z3LOC.COM      Utility to locate a CP/M CCP
+
+Z3BASE1.LIB    Sample ZCPR3 BASE files (Z3BASE.LIB)
+Z3BASE2.LIB
+
+Z3HDR1.LIB     Sample ZCPR3 HDR files (Z3HDR.LIB)
+Z3HDR2.LIB
+
+SYSFCP1.LIB    Sample ZCPR3 Flow Command Package headers
+SYSFCP2.LIB
+
+SYSRCP1.LIB    Sample ZCPR3 Resident Command Package headers
+SYSRCP2.LIB
+SYSRCP3.LIB
+SYSRCP4.LIB
+
+1.7.4. Files Required for Installing ZEX
+
+     If  the ZEX Command File Processor is to be installed to  be 
+used  under  the target ZCPR3 system,  the  following  files  are 
+required.
+
+Name of File   Function
+
+ZEX.ASM        Source to ZEX
+
+ZEX.ZEX        ZEX Command File used to assemble new versions
+                    of ZEX once the first version is running
+
+RELS.UTL       SID/ZSID Utility File (not supplied with ZCPR3)
+
+
+1.7.5. Required Distribution Files
+
+     The  following files are required for the installation of  a 
+complete ZCPR3 System.
+
+Name of File        Name of File        Name of File
+
+SYSENV.ASM          SYSFCP1.LIB         Z3BASE.LIB
+SYSFCP.ASM          SYSFCP2.LIB         Z3BASE1.LIB
+SYSIOP.ASM          SYSNDR.LIB          Z3BASE2.LIB
+SYSNDR.ASM          SYSRCP1.LIB         Z3HDR.LIB
+
+SYSRCP.ASM          SYSRCP2.LIB         Z3HDR1.LIB
+ZCPR3.ASM           SYSRCP3.LIB         Z3HDR2.LIB
+SYSENV.LIB          SYSRCP4.LIB         ZEX.ASM
+
+
+1.7.6. Useful Distribution Files
+
+     The  following files are useful,  but not required,  for the 
+installation of a ZCPR3 System.
+
+Name of File        Name of File        Name of File
+
+Z3LOC.COM           Z3INS.COM           ZEX.ZEX
+
+
+
+1.8. Required Hardware
+
+1.8.1. Hardware Required for Installation
+
+     The  hardware requirements for the installation of ZCPR3 are 
+as follows:
+
+          CP/M 2.2 - based system (or ZCPR3 - based system)
+          8080 or Z80 microprocessor
+          32K bytes of memory
+          110K bytes of disk space for source, BAK, and HEX files
+          computer terminal
+
+1.8.2. Hardware Required for Running ZCPR3
+
+     The hardware requirements for running ZCPR3 are:
+
+          ZCPR3 - based system
+          Z80 microprocessor
+          48K bytes of memory
+          110K bytes per disk (recommended minimum)
+          computer terminal
+
+
+               Copyright (c) 1984 by Richard Conn
+                       All Rights Reserved
+
+
+

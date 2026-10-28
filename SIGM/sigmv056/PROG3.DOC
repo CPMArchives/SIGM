@@ -1,0 +1,608 @@
+{j:a
+{m:1=10,75
+{m:2=18,75
+{m:3=24,75
+{m:4=50,75
+{m:1
+IV.C. COMP
+
+
+IV.C.1. Command Sequence
+
+A>^^COMP^songname^(press^return)
+
+
+IV.C.2. Discussion
+
+COMP is a two pass compiler intended to permit the forward label
+reference facility required to support the chorus and repeat 
+functions. In the first pass,
+COMP loads the song into main memory while recording each label as
+it is encountered. On the second pass, COMP translates song lines into
+the numerical values required by PLAY. The translation process uses
+the information provided by SETUP to make allowances for CPU type
+and clock speed. Also, the information in the option lines is translated
+into numerical form to provide the controls needed during PLAY. The
+compiled information is written as it is generated to a new song
+file with the same name as the source song but with a type of .SCD.
+
+As each line is compiled, COMP prints an indication on the CRT. Each
+option line is displayed along with the line number and each song
+line is represented with a period. When an error occurs, the bell is
+sounded (if your terminal has a bell), and an error message is
+displayed along with the line number of the line containing the error.
+A list of compiler errors is provided in Appendix B.
+
+
+IV.D. WAVE
+
+
+IV.D.1. Command Sequence
+
+A>^^WAVE^(press^return)
+
+
+IV.D.2. Introduction
+
+WAVE allows you to build a wide variety of waveforms.
+Sound is created by Musicraft by sending a sequence of numbers to
+a digital to analog convertor. The rate at which this is done is what
+determines the pitch of the resulting sound. The sequence of numbers
+chosen is called the waveform and determines the color or timbre of
+the sound. In Musicraft, a
+short sequence of numbers is stored on a floppy disk file and later
+retrieved by PLAY when you name that sequence as a waveform table.
+The sequence is used repeatedly to create the sound.
+
+The primary method used by WAVE for building waveforms is the
+method called the Fourier synthesis technique. Fourier decided
+that periodic waveforms such as those encountered in sound could
+be constructed with combinations of sine waves. A sine wave is a very
+"pure" sound to our ear and soon becomes boring to listen to. But
+when several related sine waves are mixed, the resulting sounds
+become more interesting. There is extensive literature available
+on Fourier synthesis and you can certainly learn a great deal by
+studying the subject. But at least initially you can gain a good
+deal of intuitive knowledge just by playing with WAVE, creating
+many waveforms and playing songs with different waveforms to
+compare their sound colors.
+
+Let's take a look at some common waveforms using WAVE to construct
+them. Under the several headings below are dialogs you can
+use to build waveforms.
+
+
+IV.D.3. The Fundamental
+
+The Fourier method uses waveforms called the fundamental and its
+related harmonic waveforms. WAVE treats the fundamental (called the
+first harmonic in the dialog) as the root waveform. All the harmonics
+are sine waves but, as we will see, when they are combined, waveforms
+of very different shapes can be constructed. (Strictly speaking,
+waveforms are combined by adding corresponding instantaneous amplitudes
+of all the harmonics participating in the waveform.)
+
+A>^^WAVE^(press^return)
+
+(waveform table filename request)
+
+{m:4
+{i:-40
+^^^^SINE^(press^return)
+This becomes
+the name of a small file
+on diskette which will contain
+the numerical information
+describing the waveform.
+
+{i:-40
+(Fourier^prompt)
+
+{i:-40
+^^^^1,0^(press^return)
+This entry
+describes the relative
+amplitude of the first
+harmonic to be present in
+the waveform.
+
+{i:-40
+^^^^(press^return)
+This terminates
+the specification  process
+to include on the first
+harmonic.
+
+{m:1
+WAVE constructs the waveform...a sine wave...and draws
+it on the CRT for your observation. When the waveform is complete,
+WAVE writes the data to the waveform file you specified earlier...
+in this case SINE.WAV.
+
+The waveform table contains one full wavelength of the first
+harmonic, or fundamental. Try playing one of the songs on the diskette
+using the SINE file when PLAY asks you to specify a waveform.
+After you have tried this, come back and we will find out about
+another harmonic.
+
+
+IV.D.4. The Second Harmonic
+
+The second harmonic has a pitch which is one octave above that of
+the fundamental. This dialog constructs the second harmonic in
+isolation from the other harmonics (also the fundamental) so that
+you can hear the effect when you play a song using it.
+
+A>^^WAVE^(press^return)
+
+(waveform table filename request)
+
+^^^^HARM2^(press^return)
+
+(Fourier prompt)
+
+{m:4
+{i:-40
+^^^^0,0^(press^return)
+This sets
+the amplitude of the first
+harmonic to zero so that it
+does not contribute to the
+final waveform.
+
+{i:-40
+^^^^1,0^(press^return)
+This sets the
+relative amplitude of the
+second harmonic.
+
+{i:-40
+^^^^(press^return)
+This terminates
+the specification of the
+waveform.
+
+{m:1
+WAVE constructs the waveform. When the waveform is complete,
+WAVE writes the data to HARM2.WAV. Note that the waveform
+drawn on your CRT contained two complete wavelengths instead
+of one as in the case of SINE above. This is the graphic relation
+between a note and another note one octave above it. Play a
+song using HARM2 for your waveform table and observe the difference
+in the sound.
+
+{a:p=1
+IV.D.5. The Square Wave
+
+You can easily experiment with other harmonics, the third, the fourth
+and so on, isolating one at a time. But we now move to constructing a
+square wave. This will involve combining several harmonics with varying
+amplitudes as we will see.
+
+A>^^WAVE^(press^return)
+
+(waveform table filename request)
+
+^^^^SQUARE^(press^return)
+
+(Fourier prompt)
+
+{m:4
+{i:-40
+^^^^100,0^(press^return)
+We are combining
+several harmonics, and the first
+harmonic will have the largest
+relative amplitude.
+
+{i:-40
+^^^^0,0^(press^return)
+Only the odd
+numbered harmonics are involved
+in the construction of a square
+wave.
+
+{i:-40
+^^^^33,0^(press^return)
+The relative
+amplitude of each harmonic is
+equal to 100 divided by the
+order of the harmonic. This
+is number three.
+
+{i:-40
+^^^^0,0^(press^return)
+
+{i:-40
+^^^^20,0^(press^return)
+100 divided
+by 5.
+
+{i:-40
+^^^^0,0^(press^return)
+
+{i:-40
+^^^^14,0^(press^return)
+100 divided
+by 7.
+
+{i:-40
+^^^^(press^return)
+This terminates
+the specification.
+
+{m:1
+WAVE constructs the waveform. When the waveform is complete,
+WAVE writes the data to the file called SQUARE.
+
+Note that the waveform drawn is not quite as square as you might have
+expected. If additional harmonics are included in the constructed 
+waveform
+(we only used the first seven harmonics), the shape would become more
+exact. But the sound quality of the waveform would deterioriate
+(in the higher pitches particularly) due to the limited speed of the
+CPU which would begin to cause extraneous non-harmonic artifacts due
+to its sampling rate.
+
+Try building square wave tables using fewer or more harmonics. Observe
+the effect each additional harmonic has on the shape and the sound
+color of the waveform when used to play music.
+
+
+IV.D.6. Additional Waveforms
+
+Two additional waveforms which are useful for music are the ramp
+(or sawtooth) and the triangle waveforms. These are somewhat more
+complex than the square wave and involve "phase shifting" some
+of the harmonics. Phase shifting refers to the point where, within
+the one wavelength of the fundamental, the harmonic waveform crosses
+zero (the vertical dividing line on the screen).
+If one full wavelength of the fundamental is counted as 360
+degrees from end to end, the phase shift of a harmonic may be 
+represented as any value from zero degrees to 359 degrees.
+
+The first waveform described here is the sawtooth. It is comprised
+of all harmonics in increasingly smaller relative amplitudes.
+Additionally, all the even harmonics are shifted 180 degrees. To 
+construct a sowtooth waveform, the harmonic
+entries should be entered as in the table below:
+
+{l:        harmonic        entry (followed by a return)
+
+{l:           1            100,0
+{l:           2            50,180
+{l:           3            33,0
+{l:           4            25,180
+{l:           5            20,0
+{l:           6            16,180
+{l:           7            14,0
+{l:           etc...
+
+The triangle waveform is somewhat more complicated; it seems to
+combine properties of both the square wave and the sawtooth. It
+is related to the square wave in that it contains only odd harmonics.
+But the triangle waveform also requires phase shifting of some
+harmonics as does the sawtooth. The triangle waveform entries should
+be entered as in the table below:
+
+{l:        harmonic        entry (followed by a return)
+
+{l:           1            100,0
+{l:           2            0,0
+{l:           3            11,180
+{l:           4            0,0
+{l:           5            4,0
+{l:           6            0,0
+{l:           7            2,180
+{l:           etc...
+
+Experiment with the construction of these waveforms by first using
+only the first two harmonics, then adding an additional harmonic,
+then adding another and so on. You can watch the
+characteristic shapes take form and can hear this process as well.
+
+With WAVE and PLAY, you have a complete laboratory to experiment with
+sound. Don't limit yourself to the waveforms discussed above. Experiment
+with the use of the relative amplitudes and phase shifting capabilities
+of WAVE and listen to the results with PLAY. You will soon build a 
+catalog of useful waveforms.
+
+
+IV.E. PLAY
+
+
+IV.E.1. Command Sequence
+
+A>^^PLAY^songname^(press^return)
+
+or
+
+A>^^PLAY^(press^return)
+
+
+IV.E.2. Song Load
+
+Using the first command sequence allows you to obtain one song and
+place it in the play area for performance. After loading the song, 
+PLAY proceeds to the waveform loading sequence.
+
+Using the second sequence 
+allows you to obtain several songs and place them one after the other 
+in the play area. When you have obtained all the songs you wish to 
+load, press the carriage return key without a song name and PLAY will 
+terminate the song loading sequence.
+
+
+IV.E.3. Waveform Table Load
+
+After the song (or songs) have been loaded, PLAY 
+requests the names of the waveform files you wish to use to fill the
+tables identified by the waveform 
+option lines found in the song(s). You enter each waveform file name 
+as it is requested and PLAY obtains it and places it in the waveform 
+table area in main memory. PLAY has room for 14 waveform tables.
+Notice that a distinction is being drawn here between a "waveform 
+file" and a "waveform table". Namely, a waveform file is a file on a 
+diskette containing a waveform which you built using WAVE. A waveform 
+table is an area in PLAY in which you can store the contents of a 
+waveform file for use in playing a song. You specify waveform tables 
+using the Waveform option line in EDIT. You specify which file fills 
+which table in PLAY.
+
+There are three additional responses that you can make
+which are recognized 
+by PLAY when loading waveform tables:
+
+{m:2
+{i:-8
+1.
+"0" (a zero)
+{i:-8
+2.
+an integer between 1 and 14
+{i:-8
+3.
+an asterisk ("*")
+
+{m:1
+A zero specifies that the table is to be set to zero and is to 
+contribute no sound to the playing of a song.
+
+An integer (between 1 and 14) specifies that the table identified
+by the request is to be 
+copied from the table specified by your integer input. 
+Usually, the table you specify in this way has been previously filled 
+in some of the acceptable methods described here. If you specify a 
+table that has not been previously filled, the table will probably be 
+a sequence of random numbers (ie., noise)
+
+An asterisk specifies that the table is to be left as it was 
+previously filled. Again, if you do not previously fill a waveform 
+table, this option will probably contribute a lot of noise to your 
+song and not much music.
+
+
+Example:
+
+For this example, if you have not already compiled the two song files 
+provided on your system diskette under the names of INVENT4 and 
+INVENT8, use the following dialog to do so.
+
+A>^^COMP^INVENT4^(press^return)
+
+After INVENT4 has been compiled then...
+
+A>^^COMP^INVENT8^(press^return)
+
+Now continue with the following dialog:
+
+{m:4
+{i:-40
+A>^^PLAY^(press^return)
+This requests
+the second song load option
+described above.
+
+{m:1
+Please enter name of song 1  >
+
+{m:4
+{i:-40
+^^^^INVENT1^(press^return)
+This loads the
+first invention.
+
+{m:1
+Please enter name of song 2  >
+
+{m:4
+{i:-40
+^^^^INVENT4^(press^return)
+This loads the
+fourth invention.
+
+{m:1
+Please enter name of song 3  >
+
+{m:4
+{i:-40
+^^^^INVENT8^(press^return)
+This loads the
+eighth invention.
+
+{m:1
+Please enter name of song 4  >
+
+{m:4
+{i:-40
+^^^^(press^return)
+This terminates
+the song loading sequence.
+
+{m:1
+Please enter name of waveform table 1  >
+
+{m:4
+{i:-40
+^^^^WAVE^(press^return)
+This loads the
+waveform file provided on the 
+diskette.)
+
+{m:1
+(Note: because none of the songs you loaded explicitly request a waveform 
+table, PLAY assigns waveform table 1 as a default.)
+
+PLAY now performs all three of the inventions, one following the 
+other without further intervention on your part.
+
+This form of the song load sequence has some restrictions which you
+should be careful to follow. Don't attempt to play songs of different
+numbers of
+voices within the same song load sequence. PLAY must scale the 
+waveform tables according to the number of voices in the song in 
+order not to overload the bit width of the DAC. Also, PLAY does not permit 
+voice change as the song in memory is performed since PLAY cannot 
+maintain control when various functions are used in the song.
+
+
+IV.E.4. Continuation
+
+Upon completion of the performance, PLAY displays a menu to 
+allow several possible continuations.
+
+{l:        Type a...
+{l:          1   to load a new song
+{l:          2   to repeat the current song
+{l:          3   to load new waveform tables
+{l:          4   to return to the system
+{l:          ...>
+
+A single digit response will continue PLAY in the mode of your 
+choice. Any value not equal to 1, 2 or 3 is taken as 4 (1, 2, 3, 
+many).
+
+
+IV.E.5. Interaction
+
+It is quite all right to sit back and listen to the products of your 
+labors when PLAY is in operation. But you can still exert control 
+over the performance of your music. PLAY permits two kinds of 
+interaction during actual performance of the music.
+
+{m:2
+{i:-8
+1.
+Rehearsal or practice mode
+{i:-8
+2.
+Modified performance mode.
+
+
+{m:1
+IV.E.5.a. Rehearsal Mode
+
+PLAY can be used to fill in the other voices when you want to 
+practice an instrument. To make this easier, PLAY will allow you to 
+request a new pickup point at any time while it is performing the 
+music if you include measure markers (M_option lines) when you enter 
+the song with EDIT. Whenever you need to stop the performance, press 
+the carriage return key. When PLAY reaches a M_option line in the 
+song, it will then request that you enter the measure number matching 
+the desired pickup point. Enter that number followed by a carriage 
+return. PLAY will find the new measure and then wait several seconds 
+and then begin performaing at the measure you requested.
+
+In order to play a song with a single voice missing, make sure that 
+the voice you wish to practice is assigned a separate waveform using 
+the Waveform option function in EDIT. When you are requested to 
+identify
+the waveform file to load that waveform table, answer with "0" (a 
+zero). This will cause the table to be set to empty and no sound will 
+be generated for that voice.
+
+
+IV.E.5.b. Modified Performance Mode
+
+While performing music, whenever PLAY encounters a Repeat option 
+line, PLAY checks to see if any key has been pressed on the keyboard. 
+If one has, PLAY examines a table of the Label option lines that it 
+found as it loaded the song. Each label has a character associated 
+with it called the Label Key. If you pressed a key matching a label 
+key, the song segment following the label will be performed. When the 
+next repeat option line is encountered, the above procedure is 
+repeated. This feature allows you to perform music with you in an 
+active capacity. To use this feature, you must assign unique 
+keys (on your CRT keyboard) to labels when you edit the song.
+Read the section describing 
+the Label option in both OPTION LINE DESCRIPTIONS and 
+the Options_mode description of EDIT above.
+
+
+Example:
+
+Suppose you had entered a song having the following form:
+
+{l:        *L REST     R
+{l:        (a rest in all voices)
+{l:        *R REST     255
+
+{l:        *L PARTA    A
+{l:        (song segment A)
+{l:        *R PARTA    255
+
+{l:        *L PARTB    B
+{l:        (song segment B)
+{l:        *R PARTB    255
+
+{l:        *L PARTC    C
+{l:        (song segment C)
+{l:        *R PARTC    255
+
+{l:        *L PARTD    D
+{l:        (song segment D)
+{l:        *R PARTD    255
+
+{l:        *L PARTX    X
+{l:        *X
+
+This piece has a rest part, four sound making parts, and an exit 
+part. Suppose the piece is called SONG.
+
+A>^^PLAY^SONG^(press^return)
+
+Please enter name of waveform table 1 >
+
+{m:4
+{i:-40
+^^^^WAVE^(press^return)
+Or whatever 
+waveform file(s) you want.
+
+{m:1
+The piece begins to play. The first thing encountered is a repeated 
+rest. If you do not strike a key for a period of time, you will hear 
+nothing. If you wait too long, the Repeat will be played out and PLAY 
+will continue down to the next segment. Instead, press the letter C. PLAY
+will automatically begin performing 
+segment C. If, again, you do not press any key for awhile, PLAY will 
+repeat segment C for up to 255 times or until you finally do press a 
+key. If you press any key other than the defined ones, PLAY 
+automatically begins at the beginning of the piece which means, in 
+this example, you will hear nothing. Press the letter A. PLAY now 
+performs segment A. You get the idea?
+
+Only the keys actually assigned 
+as Label Keys will operate to select song segments. Any other key 
+(except carriage return since that is used for the rehearsal mode) 
+will cause PLAY to begin playing the song from the top.
+
+You can use this technique to implement a simple melody organ, a 
+chord organ; you can even use it as a programmable 
+instrument in a rock band. You can put any musical idea into a song 
+segment and perform it at any time you would like. There are a lot
+of possibilities.
+{a:p=1
+
+
+

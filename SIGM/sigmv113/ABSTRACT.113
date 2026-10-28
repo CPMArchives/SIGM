@@ -1,0 +1,113 @@
+00READMEFIRST.TXT                                            (4 February 1983)
+
+
+                 COLUMBIA UNIVERSITY KERMIT DISTRIBUTION TAPE
+
+
+This tape includes all the versions of Kermit which were in our possession as
+of the time this distribution tape was made, plus some miscellanous files.
+All files have been named to be unique in the first 6 characters, and contain
+only letters and digits in their names, so they should mesh with most file
+systems.  If you have received an IBM or TOPS-10 tape, some of the trailing
+characters of some of the filenames will have been truncated, but the
+filenames should still all be unique.  Most filetypes (extensions) are all 3
+characters or less, so no known operating system will truncate them.
+
+
+* Prefixed Files:
+
+The file names for files associated with each implementation of KERMIT are
+prefixed by a few characters denoting the implementation.  The following are
+presently used:
+
+	20	DEC-20, running TOPS-20, written in Macro
+	10	DEC-10, TOPS-10, Macro
+	CPM	8080 or Z80, CPM, Asm
+	PC	IBM PC, PC DOS, Assembler
+	UNIX	Berkeley Unix, C (Columbia Version)
+	CORN	Berkeley Unix, C (Cornell Version)
+	CMS	IBM 370 series, VM/CMS, Assembler
+	RT	PDP-11, RT-11, OMSI Pascal with Software Tools.
+
+In some cases, binaries (.REL, .EXE, .COM, .HEX, etc) are not supplied.  For
+instance, no binaries come with the UNIX sources, since these can be compiled
+to run on many different machines, under different versions of UNIX.  The Z80
+version can be assembled for many different micros, so too much confusion
+would result from trying to maintain up-to-date hex files for each.  Binaries
+are provided when it makes sense, however: DEC-10 and DEC-20 .EXE files are
+provided on DEC-10 and -20 distribution tapes, MODULE files on the IBM VM/CMS
+tape.  All necessary files are included for building each version of Kermit
+from program source.
+
+When working with one of these implementations, you would normally copy them
+to a separate area and strip the prefix from the file names, and install the
+programs on the appropriate systems without the prefix.  For instance, you
+would copy 20KERMIT.MAC to KERMIT.MAC, then assemble it, and store the result
+as KERMIT.EXE in SYS:.
+
+The Kermit Users Guide contains instructions for installing or bootstrapping
+the various versions of Kermit.
+
+
+* Manuals:
+
+There are two Kermit manuals: USER and PROTO, a user's guide and a protocol
+manual, respectively.  Three versions of these files are provided:
+
+	.MSS	Scribe (UNILOGIC Ltd text formatter) source.
+	.LPT	Line Printer format (overstriking, underscore, etc).
+	.DOC	No special effects, suitable for reading on line.
+
+If you have Scribe and the appropriate Scribe device drivers, you can run the
+.MSS files through it to produce output suitable for printing on any device
+supported at your site, including the Xerox-9700 or other multifont laser
+printers or photocomposers.  As of this writing, Scribe is not entirely
+bug-free; you will notice some problems with the footnotes in the .DOC and
+.LPT files.  Note that some parts of the user manual rely on underlining to
+clarify examples; the underlines are missing from the .DOC files, but will be
+found in the .LPT files.
+
+The user's guide is intended for users of Kermit (including those who want to
+install it on a new system), the protocol manual is for those who would like
+to write a new implementation (i.e. a Kermit program for a new machine or
+operating system).
+
+ASCII.MSS is the ASCII/EBCDIC character table, which is included as an
+appendix in both manuals.
+
+MANUAL.HYP is a hyphenation dictionary for building the manual with Scribe.
+
+OLD*.MSS is the (obsolete) 2nd edition of the Kermit manual.
+
+
+* Other Files:
+
+00READMEFIRST.TXT is this file, which should appear at the top of any
+directory listing.
+
+The files SYMBOL.* comprise a cross assembler for the 8080 written in SAIL for
+the DEC-20 (and possibly with minor modifications) on the DEC-10.
+
+TTLINK.* is a terminal linking program for the DEC-20, allowing you to log in
+to another system over a TTY line (e.g. over an autodialer).  KERMIT-20 runs
+TTLINK to execute the CONNECT command.
+
+EZFIX.* is a utility for converting EasyWriter files sent to the DEC-20 from
+the IBM PC into ordinary text form.
+
+
+* Finally...
+
+If you make any modifications to Kermit, fix any bugs, or write any new
+implementations or documentation, please send them back to us on magnetic tape
+so we can distribute them to other Kermit users:
+
+	KERMIT Distribution
+	Columbia University
+	Center for Computing Activities
+	612 West 115th Street
+	7th Floor
+	New York NY 10025
+
+We'll return your tape to you with the latest Kermit distribution.
+

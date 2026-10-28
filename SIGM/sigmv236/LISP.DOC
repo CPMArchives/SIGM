@@ -1,0 +1,373 @@
+                 LISP INTERPRETER APPLICATION NOTES
+
+
+1. INTRODUCTION
+
+     Thå  followinç  applicatioî noteó givå somå oæ  thå  detailó 
+necessarù  tï  properlù  operatå thå LISĞ  interpreteò  whicè  ió 
+implemented in the files named LISP.PAS/COM.
+     Aó  iô  haó  noô  beeî possiblå tï addresó  iî  thå  presenô 
+contexô alì oæ thå featureó whicè woulä bå requireä tï masteò thå 
+subject¬ interesteä readeró arå inviteä tï refeò tï thå availablå 
+litterature for further details.
+     This author has found most useful the following textbooks :
+
+          Laurent SIKLOSSY - "Let's talk LISP" -
+                    Prentice Hall, Inc., 1976
+
+          Patrick H.WINSTON - Berthold K.P.HORN - "LISP" -
+                    Addison-Wensley Pub.Co., 1981
+
+          John ALLEN - "Anatomy of LISP" -
+                    McGraw Hill Book Co., 1978.
+
+     Thå  presenô  interpreteò  haó beeî deriveä  froí  thå  LISĞ 
+interpreter available in ZUG vol.# 14.
+     Aó  iî thå originaì version¬  functionó dealinç witè numberó 
+are not supported. 
+
+  
+2. HOW TO RUN LISP
+
+     Capitaì  letteró  musô bå useä foò alì LISĞ  reserveä  wordó 
+(essentiallù  nameó  oæ  functions)º   becauså  oæ  thió  iô   ió 
+recommended that capital letters be used throughout.
+
+     To run the interpreter proceed as follows :
+
+          1. Type LISP followed by a <cr>.
+          2. Wait for the message R E A D Y to appear : this
+             indicates that the interpreter is ready to eva-
+             luate a LISP expression.
+          3. Type the LISP expression to be evaluated on one
+             or more successive lines (additional blanks  do
+             not produce any effect).
+             The expression must be preceeded by a left  pa-
+             renthesis '(' and followed by a right parenthe-
+             sis ')'.
+             After having entered the LISP expression,  type
+             twice <cr> to initiate the evaluation.
+             (Ensure that the correct number of parentheses
+             is entered otherwise the interpreter will refu-
+             se to start the evaluation as it  expects  more
+             input data).
+          4. Once the evaluation is completed, the interpre-
+             ter will print out the resulting expression.Š          5. After that, other evaluation cycles can be  in-
+             troduced by repeating sequentially steps 3 and
+             4.
+
+     Tï  terminatå  thå  procesó  anä returî  tï  CP/Í  typå  FIÎ 
+followed by two <cr>'s.
+
+
+3. INITLISP
+
+     INITLISĞ  ió  thå namå oæ á filå whicè musô bå availablå  oî 
+thå  samå  diskettå  aó thå interpreteò foò thå  latteò  tï  worë 
+properly.
+     Upoî initiatioî oæ thå interpreter¬ thå contentó oæ INITLISĞ 
+ió  reaä anä useä tï alteò thå LISĞ environmenô bù addinç  user'ó 
+defined variables (with their values) and/or functions.
+     INITLISĞ actuallù containó elementó oæ á prograí writteî  iî 
+LISĞ  anä anù oæ thå characteró employeä tï writå á LISĞ  prograí 
+maù   bå  used®    Howeveò  tabó  (anä  perhapó  otheò  keyó  noô 
+representinç alphanumeriã characters¬  dots¬ commas¬ spaces¬ etc© 
+shoulä  bå  avoideä  aó  theù  maù  producå  unexpecteä  results® 
+Further¬  INITLISĞ musô bå terminateä bù thå atoí FIÎ followeä bù 
+two <cr>'s to avoid reading beyond the eof.
+     INITLISĞ aó presenteä onlù containó thå atoí FIÎ followeä bù 
+twï  <cr>'s®  Iî otheò wordó INITLISĞ wilì noô affecô aô alì  thå 
+LISP environment upon activation of the interpreter.
+     Thå  filå  INITLISP.STB¬  alsï includeä foò thå  purposå  oæ 
+demonstration¬ containó á numbeò oæ functionó directlù writteî iî 
+LISP®  Afteò  renaminç thió filå INITLISĞ (afteò havinç saveä thå 
+originaì INITLISĞ foò possiblå re-use)¬  alì theså functionó wilì 
+becomå  integraì parô oæ thå LISĞ environmenô upoî initiatioî  oæ 
+thå interpreter®   Hencå theù caî bå utilizeä aó theù werå actuaì 
+intrinsiã functioî (witè somå losó oæ efficiency).
+
+
+4. TERMINOLOGY
+
+     The following terms apply :
+
+     a. SEX
+        Á  LISP-EXPRESSIOÎ oò SYMBOLIC-EXPRESSIOÎ (iî shorô  SEX© 
+consistó oæ aî atoí oò á dotted-paiò oò á list (see further on).
+
+     b. ATOM
+        Aî   ATOÍ  consistó  oæ  á  strinç  oæ  uğ  tï   IDLENGTÈ 
+consecutivå characteró witè thå exclusioî oæ '('¬  '.'¬ ')'¬ § '¬ 
+and <cr>.  (IDLENGTH is equal to 10).
+
+     c. DOTTED-PAIR
+        Á DOTTED-PAIÒ consistó oæ á lefô parenthesió followeä  bù 
+aî  atoí oò anotheò dotted-paiò oò á list¬  followeä bù á period¬ 
+followeä  bù aî atoí oò á dotted-paiò oò á list¬  followeä  bù  á 
+righô parenthesis.
+
+Š     d. LIST
+        Á  LISÔ  consistó oæ á lefô parenthesis¬  followeä  bù  á 
+sequencå oæ elementó (atomó oò dotted-pairó oò listó separateä bù 
+one or more blanks), followed by a right parenthesis.
+        Á   lisô  maù  contaiî  anù  numbeò  oæ  elementó   (zerï 
+included).
+
+     e. SPECIAL ATOMS
+        Atom T : denotes the truth value TRUE;
+        Atom NIL : denotes the truth value FALSE.
+     
+     Atomó arå alwayó takeî aó representinç variableó unlesó theù 
+arå  preceedeä  bù  thå  atoí  QUOTE®   Iî  thå  firsô  caså  thå 
+interpreteò  attemptó tï evaluatå theí (iî otheò wordó lookó  foò 
+thå  valuå associateä witè them© whilå iî thå seconä caså iô doeó 
+not do that.
+
+
+5. INTRINSIC FUNCTION SUPPORTED
+
+     Thå  lisô  oæ  thå  functioîs  whicè  arå  supporteä  bù  thå 
+interpreteò anä á brieæ descriptioî oæ whaô eacè functioî doeó ió 
+giveî iî thå following® Iî alì thå exampleó whicè arå giveî iô ió 
+assumed that :
+                    the value of X is the list (A B C)
+                    the value of Y is the list (D E F)
+                    the value of Z is the atom K.
+     Iî  otheò  wordó  iô  ió assumeä thaô  thå  followinç  threå 
+statements have been executed :
+                    (SETQ X (QUOTE(A B C)))
+                    (SETQ Y (QUOTE(D E F)))
+                    (SETQ Z (QUOTE K))
+
+     Mosô  oæ thå materiaì whicè followó haó beeî takeî froí  thå 
+text of Siklossy mentioned in the introduction.
+
+     AND
+          Number of arguments : any
+          Arguments : any SEXes
+          Value : NIL if the value of some argument is NIL,
+                  otherwise T
+          Example : (AND X Y) >>> T
+
+     APPEND
+          Number of arguments : 2
+          Arguments : lists, when evaluated
+          Value : the list of the SEXes representing the values
+                  of the two arguments
+          Example : (APPEND X Y) >>> (A B C D E F)
+
+     ATOM
+          Number of arguments : 1
+          Arguments : any SEX
+          Value : T if the arg is an atom; NIL otherwise
+          Examples : (ATOM X) >>> NIL; (ATOM Z) >>> TŠ
+     CAR
+          Number of arguments : 1
+          Argument : nonempty list, when evaluated
+          Value : first element of the list
+          Example : (CAR X) >>> A
+
+     CDR
+          Number of arguments : 1
+          Argument : nonempty list, when evaluated
+          Valuå º  remaining part of list with first element 
+                   deleted
+          Example : (CDR X) >>> (B C)
+
+     CONS
+          Number of arguments : 2
+          Arguments : first, any SEX; second, any list (when
+                      evaluated)
+          Value : a list, such that its CAR is the first argu-
+                  ment and its CDR the second argument
+          Example : (CONS X Y) >>> ((A B C) D E F)
+
+     COPY
+          Number of arguments : 1
+          Argument : any SEX
+          Value : the argument
+          Effecô : a copy of the argument is added to the en-
+                   vironment
+
+     DEFEXP (DEFine EXPression)
+          Number of arguments : 1
+          Use : to define a function and modify the environment
+                accordingly; any such function always evaluates
+                its arguments 
+          Examples : refer to file INITLISP.STB
+
+     DEFFEXP (DEFine F-EXPression)
+          Number of arguments : 1
+          Use : same as DEFEXP, however the function does not
+                evaluate its arguments
+
+     DEFMAC (DEFine MACro)
+          (NOT YET IMPLEMENTED)
+
+     EQ
+          Number of arguments : 2
+          Arguments : two SEXes
+          Value : T if the values of the 2 arguments are atoms 
+                  with the same name or if they are lists con-
+                  tained in the same memory cells, 
+                  otherwise NIL
+          Example : (EQ X Y) >>> NIL
+
+     EQUAL
+          Number of arguments : 2Š          Arguments : two SEXes
+          Value : T if the values of the 2 arguments are equal, 
+                  otherwise NIL
+          Example : (EQUAL X Y) >>> NIL               
+
+     EVAL
+          Number of arguments : 1
+          Argument : any SEX
+          Value : the value of the value of the argument
+
+     LAST
+          Number of arguments : 1
+          Argument : a list, when evaluated
+          Value : the last SEX of the value of the argument
+          Example : (LAST X) >>> C
+
+     LENGTH
+          Number of arguments : 1
+          Argument : a list, when evaluated
+          Value : the number of SEXes at the top level of the
+                  value of the argument list
+          Example : (LENGTH X) >>> 003
+
+     LIST
+          Number of arguments : any
+          Arguments : any SEX
+          Value : a list of the values of the arguments
+          Example : (LIST X Y) >>> ((A B C)(D E F))
+
+     NOT
+          Number of arguments : 1
+          Argument : any SEX
+          Value : T if SEX has value NIL, otherwise NIL
+          Example : (NOT X) >>> NIL
+
+     NULL
+          Same as NOT
+
+     OR
+          Number of arguments : any
+          Arguments : any SEXes
+          Value : NIL if no argument value is non-NIL, 
+                  otherwise T
+          Example : (OR X Y) >>> NIL
+     
+     PROG2
+          Number of arguments : 2
+          Arguments : any SEXes
+          Value : value of the second argument
+          Side effect : the arguments are evaluated left to right
+
+     PROGN
+          Number of arguments : any
+          Arguments : any SEXes
+          Value : value of the last (rightmost argument)Š          Side effect : the arguments are evaluated left to right
+
+
+     QUOTE
+          Number of arguments : 1
+          Argument : any SEX
+          Value : the argument
+          Example : (QUOTE X) >>> X
+
+     REMOB (REMove OBject)
+          Number of arguments : 1
+          Argument : an atom
+          Value : NIL (but basically irrelevant)
+          Effect : the atom is permanently removed from the en-
+          vironment
+
+     REPLACEH (REPLACE Head)
+          Number of arguments : 2
+          Arguments : first : any SEX other than an atom; 
+                      second : any SEX
+          Value : the value of the first argument with its CAR
+                  replaced by the value of the second argument
+          Side effect : the value of the first argument is modi-
+                        fied permanently
+          Example : (REPLACEH X Y) >>> ((D E F) B C)
+
+     REPLACET (REPLACE Tail)
+          Number of arguments : 2
+          Arguments : as in REPLACEH
+          Value : the value of the first argument with its CDR
+                  replaced by the value of the second argument
+          Side effect : as in REPLACEH
+          Example : (REPLACET X Y) >>> (A D E F)
+
+     REVERSE
+          Number of arguments : 1
+          Argument : a list, when evaluated
+          Value : the value of the argument with its elements 
+                  reversed
+          Example : (REVERSE X) >>> (C B A)
+
+     SET
+          Number of arguments : 2
+          Arguments : first : must evaluate to an atom; 
+                      second : any SEX
+          Value : the value of the second argument; the value
+                  of the first argument has its value replaced 
+                  by this value of SET
+          Side effect : the environment is permanently modified
+
+     SETQ (SET Quote)
+          Number of arguments : 2
+          Arguments : first : an atom; second : any SEX
+          Value : the value of the second argument; this value
+                  becomes the value of the first argumentŠ          Side effect : the environment is permanently modified
+
+     TRACE
+          Number of arguments : 0
+          Value : NIL (but basically irrelevant)
+          Effect : all the functions will be traced
+
+     UNTRACE
+          Number of arguments : 0
+          Value : NIL (but basically irrelevant)
+          Effect : the functions will no longer be traced
+
+
+6. ADDITIONAL FEATURES
+
+     The following additional features are included :
+          
+          PROG control structure, allowing iterative programming
+          style (limitations : GO and RETURN cannot be used to
+          jump outside PROG);
+
+          CONDitional expressions;
+
+          LABEL for temporary function definitions;
+
+          LAMBDA, FLAMBDA to introduce un-named functions evalua-
+          ting (respectively non-evaluating) their arguments;
+
+          FUNCTIOÎ  construcô  tï  deaì  witè  witè  thå   FUNARÇ 
+          problem.
+
+
+     Foò  alì oæ thå abovå featureó iô ió recommendeä tï refeò tï 
+the available litterature on LISP.
+
+ 
+7. ...TO TERMINATE
+
+     Althougè quitå somå testinç haó beeî performeä iô cannoô  bå 
+excludeä thaô thå interpreteò stilì containó á substantiaì numbeò 
+of bugs. So I wish you good luck with it !
+     É  wilì  welcomå  anù  querieó and/oò  suggestionó  iî  thió 
+or any other respect.
+
+
+Lanfranco EMILIANI
+Maurits de Brauwweg 11
+2597 KD Den Haag
+The Netherlands                         

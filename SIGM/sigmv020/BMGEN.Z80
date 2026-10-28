@@ -1,0 +1,52 @@
+;
+;
+;	BIT MAP GENERATOR
+;
+;  ****Donated to the Pascal/Z Users Group,July 1980******
+;  part of the Monitor System by PCE
+;
+ZERO	EQU	2000H
+ONE	EQU	4000H
+SIZE	EQU	3F00H
+MAP	EQU	1000H
+FINIS	EQU	0
+;
+;	START
+;
+START	LD	HL,MAP
+	LD	SP,HL
+	LD	DE,MAP+1
+	LD	BC,0FFFH
+	XOR	A
+	LD	(HL),A
+	LDIR
+;
+	LD	HL,MAP
+	LD	IX,ZERO
+	LD	IY,ONE
+	LD	BC,(SIZE)
+LOOP1	LD	DE,0800H
+LOOP2	DEC	BC
+	LD	A,B
+	OR	C
+	JP	Z,FINIS
+	LD	A,(IY)
+	CP	(IX)
+	JR	Z,LOW
+HIGH	SCF
+	JR	NEXT
+LOW	XOR	A
+NEXT	LD	A,E
+	RRA
+	LD	E,A
+	INC	IX
+	INC	IY
+	DEC	D
+	JR	NZ,LOOP2
+	LD	(HL),E
+	INC	HL
+	JR	LOOP1
+;
+;
+	END	START
+

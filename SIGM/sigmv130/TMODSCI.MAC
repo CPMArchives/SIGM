@@ -1,0 +1,236 @@
+	name	('tmod')
+;	version 2.1	
+;	ss1	dick lieber	rcl
+
+;	modified for scitronics clock board 7/9/82
+;	by Jim Mills
+;	---->set "scip0" (below) to scitronics base address
+
+;
+;	to assemble, type:	M80 TMOD,TMOD=TMOD
+;	to link, type:		L80 TMODTEST,TMOD,TMODTEST/N/E
+;	to run, type:		TMODTEST
+;	it is self-prompting
+;
+
+bdos	equ	5
+wrcon	equ	2
+wrbuf	equ	9
+
+entry	timemd,datemd,daymd
+
+timemd:	jmp	gettime
+datemd:	jmp	getdate
+daymd:	jmp	getdow
+
+gettime:
+	call	readclk		;do actual read and store it
+	call	findstring	;point to where calling prog wants data
+	lxi	d,tbuffer	;point to our data
+	call	move		;and move the data
+	call	endstring	;and send a '$'
+	ret
+getdate:
+	call	readclk		;do actual read and store it
+	call	findstring	;point to where calling prog wants data
+	lxi	d,dbuffer	;point to our data
+	call	move		;and move the data
+	call	endstring
+	ret
+;
+; get day of week: 1. read dow from clock
+;		   2. point to appropriate section of table & send it
+;
+getdow:
+	call	cinit		;stop clock
+	mvi	a,6		;day of week function
+	out	scip0		;ask for it
+
+	nop			;delay for clock to settle
+	nop
+	nop
+	nop
+
+	in	scip0		;get dow
+	rar			;rotate..
+	rar			;..to swap..
+	rar			;..the nibbles..
+	rar			;..to get our DOW
+passb:	ani	0fh		;strip off high bits
+	sta	dow		;store it
+	call	ccont		;start clock
+;
+; now point to table and send text to caller
+;
+	call	findstring	;target string area
+	push	h		;save addr
+	 xra	a		;zero
+	 mov	b,a		;'B' must be zero
+	 lxi	h,dowtable	;point to address lookup table
+	 lda	dow		;offset
+	 mov	c,a		;put dow in BC..
+	 dad	b		;..and add to HL to get offset..
+	 dad	b		;..into table of DW's
+	 mov	e,m		;get lo byte of addr into DE
+	 inx	h		;bump pointer
+	 mov	d,m		;get hi byte of addr into DE
+	pop	h		;target data addr into HL
+	jmp	move		;move (DE) --> (HL)
+;
+;	process passed parameter	(passed to us from caller)
+;	makes hl point to passed string (in caller's area)
+;
+findstring:
+	inx	h	;past length - assumed to be 9
+	mov	e,m
+	inx	h	;get address of passed string into de
+	mov	d,m
+	xchg		;now in HL
+	ret
+;
+;	move data from (de) to (hl)
+;
+move:	ldax	d	;get a byte from our table
+	ora	a	;set flags, is it end-of-table mark?
+	rz		;done, return
+	mov	m,a	;else store byte to caller prog data area, then..
+	inx	d	;..bump..
+	inx	h	;..pointers..
+	jmp	move	;..and loop
+;
+; send a '$' to the address specified by HL
+;
+endstring:
+	mvi	a,'$'	;string terminator..
+	mov	m,a	;..to caller's string space
+	ret
+;
+;TIME READ FOR SCITRONICS CLOCK
+;02/18/81 BY WARD CHRISTENSEN
+;
+scip0	equ	018h
+SCIP1	EQU	SCIP0+1
+SCIP2	EQU	SCIP1+2
+SCIP3	EQU	SCIP0+3
+;
+READCLK:
+	PUSH	B
+	PUSH	D
+	PUSH	H
+	LXI	H,BUFFER	;POINT TO BUFFER
+	SHLD	BUFPTR		;POINT TO FIRST CHAR
+	CALL	CINIT		;INIT THE CLOCK
+	CALL	CREAD		;READ THE CLOCK
+	CALL	CCONT		;TELL THE CLOCK TO CONTINUE
+	POP	H
+	POP	D
+	POP	B
+	ret			;with data in buffers
+
+;
+;====>	CINIT	INITIALIZES THE CLOCK:
+;		1.	INIT THE P.I.A.
+;		2.	HOLD THE CLOCK
+;
+CINIT:
+	MVI	A,0F0H
+	OUT	SCIP1
+	MVI	A,0FH
+	OUT	SCIP0
+	MVI	A,0FCH
+	OUT	SCIP3
+	MVI	A,0F4H
+	OUT	SCIP1
+	RET
+;
+;====>	CREAD	CLOCK READ ROUTINE, INTO M(HL)
+;		SETS (D) TO THE DIGIT SELECT,
+;		AND (E) WITH THE DELIMITER (/ OR :)
+;
+CREAD:
+	LXI	D,256*10+'/'
+	CALL	CLOCK		;'MM/'
+	CALL	CLOCK		;'DD/'
+	LXI	D,256*12+' '
+	mvi	e,0		;maintain 'db 0'
+	CALL	CLOCK		;'YY '
+	LXI	D,256*5+':'
+	CALL	CLOCK		;'HH:'
+	CALL	CLOCK		;'MM:'
+	MVI	E,0
+	JMP	CLOCK		;'SS',0
+;
+;====>	CLOCK:	READS 2 DIGITS, STORES IN MEMORY
+;		INITIAL DIGIT IS IN D, DELIM IN E.
+;
+CLOCK:
+	CALL	DIGIT		;READ, STORE 1 DIGIT
+	CALL	DIGIT		;READ, STORE 2ND DIGIT
+	MOV	M,E		;STORE DELIM (/ OR :)
+	INX	H		;SKIP DELIM
+	RET
+;
+;====>	DIGIT:	GETS A SINGLE DIGIT FROM THE CLOCK TO MEMORY
+;		BASED ON THE SELECT VALUE IN (D)
+;
+DIGIT:
+	MOV	A,D	;GET DIGIT SELECT
+	DCR	D	;SETUP FOR NEXT DIGIT
+	OUT	SCIP0	;ASK FOR IT
+	CPI	5	;HOURS (HAVE TO MASK)?
+	IN	SCIP0	;READ IT (PRESERVES CPI 5 TEST)
+	JNZ	DIGNH	;	NOT DIGIT 5, SKIP MASKING
+	ANI	70H	;	KILL HI DIGIT
+DIGNH:
+	RAR
+	RAR
+	RAR
+	RAR	;SHIFT THE DIGIT RIGHT 4
+	ANI	0FH	;ISOLATE NUMERIC VALUE
+	ADI	'0'	;MAKE PRINTABLE
+	MOV	M,A	;STORE I
+	INX	H	;BUMP TO NEXT
+	RET		;	AND RETURN
+;
+;====>	CCONT	CONTINUE CLOCK, DISABLE P.I.A.
+;
+CCONT:
+	MVI	A,0F8H
+	OUT	SCIP1
+	MVI	A,0FH
+	OUT	SCIP0
+	MVI	A,0F8H
+	OUT	SCIP3
+	MVI	A,0FCH
+	OUT	SCIP1
+	MVI	A,0FH
+	OUT	SCIP0
+	RET		;END OF CLOCK ROUTINES
+BUFPTR:
+	DW	0
+BUFFER:
+DBUFFER:	;date buffer
+	DB	'MM/DD/YY',0
+TBUFFER:	;time buffer
+	DB	'HH:MM:SS',0
+DOW:	DB	0		;used for day of week index
+;
+;	day of week table
+;
+dowtable:
+	dw	sun
+	dw	mon
+	dw	tues
+	dw	wed
+	dw	thurs
+	dw	fri
+	dw	sat
+sun:	db	'Sunday$',0
+mon:	db	'Monday$',0
+tues:	db	'Tuesday$',0
+wed:	db	'Wednesday$',0
+thurs:	db	'Thursday$',0
+fri:	db	'Friday$',0
+sat:	db	'Saturday$',0
+	end
+

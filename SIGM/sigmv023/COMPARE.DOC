@@ -1,0 +1,277 @@
+ COMPARE - Compare Two Textfiles			      03 Jan 79
+
+      Compare - Compare Two Textfiles and Report Their Differences
+
+			    James F.  Miner
+	       Social Science Research Facilities Center
+			      Andy Mickel
+		       University Computer Center
+			University of Minnesota
+		       Minneapolis, MN 55455 USA
+
+		       Copyright (c) 1977, 1978.
+
+ What COMPARE Does
+ -----------------
+
+      COMPARE is used to display the differences  between  two	similar
+ texts	(referred  to as "FILEA" and "FILEB").	Such textfiles could be
+ Pascal source programs, character data, documentation, etc.
+
+      COMPARE is line-oriented, meaning the smallest unit of comparison
+ is  the  text	line  (ignoring  trailing blanks).  COMPARE generates a
+ report of differences (mismatches  or	extra  text)  between  the  two
+ textfiles.   The criterion for determining the locality of differences
+ is the number of consecutive lines on each file which must match after
+ a prior mismatch, and can be selected as a parameter.
+
+      By selecting other parameters, you can direct COMPARE to restrict
+ the comparison to various linewidths, mark column-wise the differences
+ in  pairs  of	mismatched lines, generate text-editor directives to be
+ used to convert FILEA into FILEB, or generate	a  listing  which  will
+ flag  lines on FILEB indicating their addition or deletion as a result
+ of the application of the editor directives.
+
+ How to Use COMPARE
+ ------------------
+
+      COMPARE is available as an operating system control statement  on
+ CDC  6000/Cyber  70,170  computer  systems.   The  general form of the
+ control statement is:
+
+      COMPARE(a,b,list,modfile/options)
+
+      COMPARE.	means  COMPARE(FILEA,FILEB,MODS/C6,D,W120)
+
+      "FILEA" and "FILEB" are the names  of  the  two  textfiles  being
+ compared, "OUTPUT" is the report file, and "MODS" is the file name for
+ the  generation  of  text-editor  directives  if  the	"M"  option  is
+ selected--see below.  The various options are:  C, D, F, M, P, and W.
+
+
+
+				 - 1 -
+
+
+ COMPARE - Compare Two Textfiles			      03 Jan 79
+
+  Cn   Match Criterion (1 <= n <= 100).
+	  C  determines  the  number  of consecutive lines on each file
+	  which  must  match  in  order  that  they  be  considered  as
+	  terminating  a prior mismatch.  C therefore affects COMPARE's
+	  "sensitivity" to the "locality" of differences.  Setting C to
+	  a  large value tends to produce fewer (but longer) mismatches
+	  than does a small value.  C6 appears to give good results  on
+	  Pascal  source  files,  but  may  be	inappropriate for other
+	  applications.
+	  Default:  C6.
+
+  D    Report Differences.
+	  D directs  COMPARE  to  display  mismatches  and  extra  text
+	  between  FILEA and FILEB in a clearly annotated report.  Only
+	  one of D, F, or M can be explicitly selected at one time.
+	  Default:  selected.
+
+  F    Select Flag-form output.
+	  F directs COMPARE to list FILEB annotated with lines prefixed
+	  by  an  "A"  or  "D"	indicating  "additions"  or "deletions"
+	  respectively.  Such modifications could have	been  generated
+	  with	the M option.  Only one of D, F, or M can be explicitly
+	  selected at one time.
+	  Default:  not selected.
+
+  M    Produce MODS file.
+	  M directs COMPARE to produce a file of "INSERT"  or  "DELETE"
+	  directives  ready  for  the CDC MODIFY or UPDATE text editors
+	  (an "IDENT" directive must be  added).   The	insertions  and
+	  deletions  will  convert  FILEA  into FILEB.	FILEA and FILEB
+	  should be files with sequencing appearing in	columns  beyond
+	  the  linewidth  specified  by  the W option.	This is true of
+	  MODIFY and  UPDATE  "COMPILE"  files	(W72  is  recommended).
+	  Sequence numbers are of the form:
+
+	       {Blanks} IdentName {Blanks} UnsignedInteger.
+
+	  Only	one  of  D,  F,  or M can be explicitly selected at one
+	  time.
+	  Default:  not selected.
+
+  P    Mark Pairs of mismatched lines.
+	  P alters the action of the D directive by  marking  differing
+	  columns in pairs of lines which mismatch in sections of equal
+	  length.  This is especially useful for comparing packed  data
+	  files.
+	  Default:  not selected.
+
+  Wn   Specify significant line Width (length) (10 <= n <= 150).
+	  W  determines  the fixed number of columns of each line which
+	  will be compared.  W is ideal to use when  sequence  informa-
+	  tion is present at the right edge of the text file.
+	  Default:  W120.
+
+
+
+				 - 2 -
+
+
+ COMPARE - Compare Two Textfiles			      03 Jan 79
+
+ Example
+ -------
+
+ Suppose FILEA is:
+
+	 PROGRAM L2U(INPUT, OUTPUT);
+	  (* CONVERT CDC 6/12-ASCII LOWER-CASE
+	     LETTERS TO UPPER CASE.  *)
+	 BEGIN
+	  WHILE NOT EOF(INPUT) DO
+	   BEGIN
+	    WHILE NOT EOLN(INPUT) DO
+	     BEGIN
+	      IF INPUT^ <> CHR(76) THEN WRITE(INPUT^);
+	      GET(INPUT)
+	     END;
+	    READLN;
+	    WRITELN
+	   END;
+	  (*ALL DONE.*)
+	 END.
+
+
+
+ and FILEB is:
+
+	 PROGRAM U2L(INPUT, OUTPUT);
+	  (* CONVERT CDC ASCII UPPER-CASE LETTERS
+	     TO 6/12 LOWER CASE.  *)
+	 BEGIN
+	  WHILE NOT EOF(INPUT) DO
+	   BEGIN
+	    WHILE NOT EOLN(INPUT) DO
+	     BEGIN
+	      IF INPUT^ IN ['A'..'Z'] THEN WRITE(CHR(76));
+	      WRITE(INPUT^);
+	      GET(INPUT)
+	     END;
+	    READLN;
+	    WRITELN
+	   END;
+	 END.
+
+
+
+
+
+
+
+				 - 3 -
+
+
+ COMPARE - Compare Two Textfiles			      03 Jan 79
+
+ then a report from COMPARE looks like this:
+
+   COMPARE,L2U,U2L,LIST/C1,D,P. 		    78/12/31. 20.23.25.
+   COMPARE VERSION 3.0 CDC			   (78/12/19)
+
+   OUTPUT OPTION    = DIFFERENCES.
+   INPUT LINE WIDTH = 120 CHARACTERS.
+   MATCH CRITERION  = 1 LINES.
+
+   FILEA: L2U
+   FILEB: U2L
+
+	 ***********************************
+   MISMATCH: L2U LINES 1 THRU 3 <NOT EQUAL TO> U2L LINES 1 THRU 3:
+
+ A    1. PROGRAM L2U(INPUT, OUTPUT);
+ B    1. PROGRAM U2L(INPUT, OUTPUT);
+		 ^ ^
+
+ A    2.  (* CONVERT CDC 6/12-ASCII LOWER-CASE
+ B    2.  (* CONVERT CDC ASCII UPPER-CASE LETTERS
+			 ^^^^^^^^^^^^^^^^^^^^^^^^
+
+ A    3.     LETTERS TO UPPER CASE.  *)
+ B    3.     TO 6/12 LOWER CASE.  *)
+	     ^^^^^^^ ^ ^^^^^^^^^^^^ ^^
+
+	 ***********************************
+   MISMATCH: L2U LINE 9 <NOT EQUAL TO> U2L LINES 9 THRU 10:
+
+ A    9.      IF INPUT^ <> CHR(76) THEN WRITE(INPUT^);
+
+ B    9.      IF INPUT^ IN ['A'..'Z'] THEN WRITE(CHR(76));
+ B   10.      WRITE(INPUT^);
+
+	 ***********************************
+   EXTRA TEXT ON L2U, BETWEEN LINES 15 AND 16 OF U2L
+
+ A   15.  (*ALL DONE.*)
+
+ How COMPARE Works
+ -----------------
+
+      COMPARE employs a simple backtracking-search algorithm to isolate
+ mismatches  from  their  surrounding  matches.  Each mismatch requires
+ dynamic storage roughly  proportional	to  the  size  of  the	largest
+ mismatch,  and  time roughly proportional to the square of the size of
+ the mismatch.	Thus it may not be feasible to	use  COMPARE  on  files
+ with very long mismatches.
+
+
+
+
+				 - 4 -
+
+
+ COMPARE - Compare Two Textfiles			      03 Jan 79
+
+ History
+ -------
+
+      COMPARE was developed as a portable-Pascal software tool by James
+ Miner	of  the  Social  Science  Research  Facilities	Center	at  the
+ University  of  Minnesota,  in early 1977.  It was written in standard
+ Pascal and developed initially under CDC 6000	Pascal.   Although  the
+ original  version  simply  reported differences in a textfile, COMPARE
+ was designed to fit  naturally  into  a  larger  text-editing	system.
+ Plans	for  COMPARE's  accommodating  later  enhancements  to generate
+ text-editor directives were made from the  beginning.	 In  summer  of
+ 1977,	John  Strait  at  the  University  of Minnesota Computer Center
+ adapted COMPARE not only to generate such a  modifications  file,  but
+ also flag-form output and user-selectable options.
+
+      COMPARE has been distributed to several Pascal enthusiasts in the
+ United States who have made it operational on other Pascal implementa-
+ tions.   See  Pascal  News #12, May, 1978, pages 20-23.  In late 1978,
+ Willett Kempton of the Anthropology Department at  the  University  of
+ California  Berkeley,	installed  COMPARE  (with  no  changes required
+ whatsoever) under Berkeley UNIX Pascal on a PDP 11/70 computer system.
+ He  later adapted the program to note column-wise differences in pairs
+ of different lines and made minor changes to the format of the report.
+
+      Rick  Marcus  and  Andy  Mickel  at  the	University of Minnesota
+ Computer Center made minor enhancements to COMPARE and fully  documen-
+ ted it it for Release 3 of Pascal 6000 in December, 1978.
+
+      COMPARE  is  a  model  program  in  many	respects.  It serves to
+ illustrate just how powerful and flexible such  a  comparison	program
+ can be.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+				 - 5 -
+ 

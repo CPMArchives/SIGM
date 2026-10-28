@@ -1,0 +1,53 @@
+;test hx dec converter
+;
+.z80
+;
+cr	equ	0dh
+lf	equ	0ah
+;
+	extrn	hxdc24
+	extrn	pstr,print,cin,condin
+;
+begin:	ld	sp,(6)
+	ld	hl,0
+	ld	(hexlm),hl
+	xor	a
+	ld	(hexhi),a
+	call	print
+	db	cr,lf,lf
+	db	'Hex - to - decimal conversion tester. Use ^C to abort.',cr,lf
+	db	'Enter: 0,1,2, or 3 to test respective HXDC24 '
+	db	'modes :_',8,0
+	call	cin
+	call	print
+	db	cr,lf,lf,lf,0
+	ld	(mode),a
+loop:	ld	hl,(hexlm)
+	inc	hl
+	ld	(hexlm),hl
+	ld	a,h
+	or	l
+	ld	a,(hexhi)
+	jr	nz,nb16
+	inc	a
+	ld	(hexhi),a
+nb16:	ld	e,a
+	ld	a,(mode)
+	ld	ix,line
+	call	hxdc24
+	call	condin
+	jr	z,nochr
+	cp	3
+	jp	z,0
+nochr:	ld	(ix+0),0
+	ld	hl,msg
+	call	pstr
+	jr	loop
+;
+hexhi:	dw	0
+hexlm:	dw	0
+mode:	db	0
+msg:	db	cr,'    '
+line:	db	'              '
+	end
+l,bc		

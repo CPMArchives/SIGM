@@ -1,0 +1,215 @@
+
+
+                ;	T U R N K E Y . A S M
+                
+                ; THIS PROGRAM USED EITHER IN CONJUNCTION WITH
+                ; ANY CPM SYSGEN PROGRAM OR PATCHED INTO SYSGEN VERS 2.0
+                
+                ; IT ALLOWS THE OPERATOR INPUT OF EITHER OR BOTH A COLD
+                ; BOOT COMMAND PROGRAM AND/OR A WARM BOOT COMMAND PROGRAM
+                ; WHICH CAN BE THE SAME OR DIFFERENT.  IT FUNCTIONS BY
+                ; RESERVING A BUFFER SPACE JUST BEFORE BIOS FOR THE COLD BOOT
+                ; COMMAND, WITH A SMALL ROUTINE RUN AT COLD BOOT TIME
+                ; TO COPY THE BUFFER TO THE CCP BUFFER FOR EXECUTION AT
+                ; COLD BOOT.  BY ALLOWING THIS SPACE THIS PROGRAM TRANSFERRS
+                ; OPERATOR INPUT TO THIS BUFFER AND DIRECTLY TO THE
+                ; CCP BUFFER DURING A SYSGEN OPERATION.  THUS WHEN THE
+                ; SYSTEM IS PUT WITH SYSGEN IT CONTAINS THE NEW COLD
+                ; AND OR WARM BOOT COMMANDS.  THE OPERATOR NEED ONLY
+                ; RUN SYSGEN 2.0 OR A COMBINATION IF NOT 2.0 TO CHANGE
+                ; THE COLD AND/OR WARM BOOT COMMANDS.
+                
+                
+                ; WRITTEN BY:
+                
+                ;	JAMES K. OFFENBECHER
+                ;		813 B. LAUREL HILL
+                ;			FORT DIX, NEW JERSEY
+                ;				08640
+                ;	TELEPHONE  (609)-723-7529
+                
+                ;CONDITIONAL ASSEMBLY EQUATES - SET THE
+                ;APPROPRIATE ONE TO BE A -1
+                
+ 0000 =         ALONE	EQU	0	;SET TO -1 IF STANDALONE
+ FFFF =         SYSGEN	EQU	-1	;SET TO -1 IF PATCH TO SYSGEN
+                
+                
+                ;	BDOS EQUATES
+                
+ 0005 =         BDOS	EQU	5	;BDOS CALL LOCATION
+ 0001 =         CONIN	EQU	1	;CONSOLE INPUT FUNCTION
+ 0002 =         CONOUT	EQU	2	;CONSOLE OUTPUT FUNCTION
+ 000A =         INLINE	EQU	10	;READ CONSOLE BUFFER FUNCTION
+ 0000 =         WBOOT	EQU	0	;WARM BOOT ADDRESS
+                
+                ; MISCELLANEOUS EQUATES
+                
+ 000D =         CR	EQU	0DH	;ASCII CARRIAGE RETURN
+ 000A =         LF	EQU	0AH	;ASCII LINE FEED
+ 0020 =         BUFLEN	EQU	32	;LENGTH OF INPUT BUFFER
+                ; NOTE:  THE BUFLEN EQUATE SHOULD BE THE SAME AS IN
+                ;        THE BIOS PATCH.
+                
+                ; MEMORY IMAGE PATCH POINTS
+ 0980 =         CCP	EQU	0980H	;START OF CCP IN MEMORY
+ 0987 =         CCPBUF	EQU	CCP+7	;COMMAND LINE IN BDOS
+ 1F80 =         BIOS	EQU	CCP+1600H	;START OF BIOS
+ 1F5D =         BIOBUF	EQU	BIOS-BUFLEN-3	;SET UP BUFFER BEFORE BIOS
+                
+                ;CONDITIONAL EQUATES (IF PATCHING SYSGEN 2.0)
+                
+                	IF	SYSGEN
+                
+ 019A =         MSGOUT	EQU	019AH	;SUBR LOC IN SYSGEN
+                
+                	ENDIF
+                
+                ; THIS IS THE STARTING POINT OF THE STANDALONE VERSION
+                ; IT SETS THE STACK POINTER UP WHICH IS NOT NEEDED
+                ; WITH THE PATCHED VERSION SINCE SYSGEN 2.0'S STACK
+                ; IS BIG ENOUGH.
+                
+                	IF	ALONE
+                
+                	ORG	100H		;IF STANDALONE ONLY
+                
+                	LXI	SP,STACK	;SET UP STACK POINTER
+                
+                	ENDIF
+                
+                ; THIS IS THE STARTING POINT IF A PATCH TO SYSGEN IS USED.
+                ; SYSGEN'S STACK IS USED AND IT IS ORGED PAST SYSGEN WITH
+                ; A FEW BYTES TO SPARE.  TO PATCH SYSGEN  LOCATIONS MUST
+                ; BE CHANGED AS FOLLOWS:
+                ;	LOC	WAS	CHANGE TO
+                ;	0320H	95H	00H
+                ;	0321H	01H	05H
+                ; USE DDT TO OVERLAY BOOTER.HEX OVER SYSGEN AFTER CHANGES
+                ; AND SAVE WITH 'SAVE 5 SYSBOOT.COM'.
+                
+                	IF	SYSGEN
+                
+ 0500           	ORG	500H
+                
+ 0500 E5        	PUSH	H		;SAVE H/L FROM SYSGEN
+                
+                	ENDIF
+                
+                ; COMMON SEGMENT OF PROGRAM STARTS HERE
+                
+ 0501 CD5405    CBOT:	CALL	ZLOOP		;CLEAR THE BUFFER
+ 0504 218505    	LXI	H,CBOOTM	;POINT TO COLD BOOT REQUEST
+ 0507 CD9A01    	CALL	MSGOUT		;PUT IT ON CONSOLE
+ 050A 11E405    	LXI	D,IBUF		;POINT TO INPUT BUFFER
+ 050D 0E0A      	MVI	C,INLINE	;GET FUNCTION IN C
+ 050F CD0500    	CALL	BDOS		;PUT INPUT IN BUFFER
+ 0512 3AE505    CO	LDA	IBUF+1		;GET # OF CHARS ENTERED
+ 0515 FE1F      	CPI	BUFLEN-1	;GET # OF CHARS ALLOWED
+ 0517 DA2305    	JC	COK		;BYPASS ERROR IF OK
+ 051A 21BD05    	LXI	H,TOLONG	;POINT TO ERROR MESSAGE
+ 051D CD9A01    	CALL	MSGOUT		;PRINT IT
+ 0520 C30105    	JMP	CBOT		;TRY AGAIN
+ 0523 215D1F    COK:	LXI	H,BIOBUF	;POINT TO BIOS BUFFER
+ 0526 CD6105    	CALL	COPY		;GO PUT IT INTO THE BIOS
+ 0529 CD5405    WBOT:	CALL	ZLOOP		;RE-CLEAR THE BUFFER
+ 052C 21A105    	LXI	H,WBOOTM	;POINT TO WARM BOOT REQUEST
+ 052F CD9A01    	CALL	MSGOUT		;PUT IT ON CONSOLE
+ 0532 11E405    	LXI	D,IBUF		;POINT TO INPUT BUFFER
+ 0535 0E0A      	MVI	C,INLINE	;GET FUNCTION IN C
+ 0537 CD0500    	CALL	BDOS		;GO PUT MESSAGE IN BUFFER
+ 053A 3AE505    	LDA	IBUF+1		;GET # OF CHARS ENTERED
+ 053D FE1F      	CPI	BUFLEN-1	;GET # OF CHARS ALLOWED
+ 053F DA4B05    	JC	WOK		;BYPASS ERROR IF OK
+ 0542 21BD05    	LXI	H,TOLONG	;POINT TO ERROR MESSAGE
+ 0545 CD9A01    	CALL	MSGOUT		;PRINT IT
+ 0548 C32905    	JMP	WBOT		;TRY AGAIN
+ 054B 218709    WOK:	LXI	H,CCPBUF	;POINT TO BUFFER IN CCP
+ 054E CD6105    	CALL	COPY		;GO PUT MESSAGE IN CCP
+ 0551 C37B05    	JMP	EXIT		;EXIT TO CPM OR SYSGEN
+                
+                ; THIS ROUTINE CLEARS THE INPUT BUFFER TO ALL ZEROS
+                
+ 0554 AF        ZLOOP:	XRA	A		;CLEAR A
+ 0555 0E20      	MVI	C,BUFLEN	;SET THE COUNT
+ 0557 21E505    	LXI	H,IBUF+1	;POINT PAST THE MAX LENGTH
+ 055A 77        ZLOOP1:	MOV	M,A		;CLEAR THE BYTE
+ 055B 23        	INX	H		;POINT TO NEXT
+ 055C 0D        	DCR	C		;ONE LESS TO DO
+ 055D C25A05    	JNZ	ZLOOP1		;LOOP TILL DONE
+ 0560 C9        	RET
+                
+                ; THIS ROUTINE COPIES THE INPUT BUFFER TO THE SPECIFIED
+                ; SYSTEM BUFFER CLEARING ANY OLD COMMANDS PRESENT.
+                
+ 0561 11E505    COPY:	LXI	D,IBUF+1	;POINT TO # OF CHARS INPUT
+ 0564 0E20      	MVI	C,BUFLEN	;PUT COUNT IN C
+ 0566 1A        COPY1:	LDAX	D		;GET BYTE FROM INPUT BUFFER
+ 0567 FE61      	CPI	'A'+20H		;LESS THAN LOWER CASE A
+ 0569 DA7305    	JC	CHROK		;DON'T NEED CONVERT
+ 056C FE7B      	CPI	'Z'+20H+1	;HIGHER THAN LOWER CASE Z
+ 056E D27305    	JNC	CHROK		;DON'T NEED CONVERT
+ 0571 E65F      	ANI	05FH		;CONVERT TO LOWER CASE
+ 0573 77        CHROK:	MOV	M,A		;PUT IN OUTPUT
+ 0574 23        	INX	H		;BUMP OUTPUT
+ 0575 13        	INX	D		;BUMP INPUT TOO
+ 0576 0D        	DCR	C		;ONE LESS TO DO
+ 0577 C26605    	JNZ	COPY1		;LOOP TILL DONE
+ 057A C9        	RET
+                
+                	IF	ALONE
+                
+                ; THIS ROUTINE OUTPUTS A MESSAGE TO THE CONSOLE DEVICE
+                ; BY CHARACTER UNTIL A ZERO IS ENCOUNTERED.
+                ; ALSO INCLUDES STANDALONE EXIT ROUTINE.
+                
+                MSGOUT:	MOV	A,M		;GET BYTE IN A
+                	ORA	A		;SET Z FLAG IF END
+                	RZ			;RETURN IF DONE
+                	PUSH	H		;SAVE THE POINTER
+                	MOV	E,A		;PUT CHAR IN E FOR BDOS
+                	MVI	C,CONOUT	;GET FUNCTION IN C
+                	CALL	BDOS		;GO PUT THE CHAR ON CONSOLE
+                	POP	H		;RESTORE POINTER
+                	INX	H		;POINT TO NEXT BYTE
+                	JMP	MSGOUT		;LOOP TILL DONE
+                
+                EXIT:	JMP	WBOOT
+                
+                	ENDIF
+                
+                	IF	SYSGEN
+                
+ 057B 21E105    EXIT:	LXI	H,NEWLIN	;POINT TO NEW LINE MESSAGE
+ 057E CD9A01    	CALL	MSGOUT		;PRINT IT
+ 0581 E1        	POP	H		;RESTORE H/L FROM SYSGEN
+ 0582 C39A01    	JMP	MSGOUT		;JUMP BACK INTO SYSGEN
+                
+                	ENDIF
+                
+                ; SYSTEM MESSAGES
+                
+ 0585 0D0A454E54CBOOTM:	DB	CR,LF,'ENTER COLD BOOT COMMAND',CR,LF,0
+                
+ 05A1 0D0A454E54WBOOTM:	DB	CR,LF,'ENTER WARM BOOT COMMAND',CR,LF,0
+                
+ 05BD 0D0A544F4FTOLONG:	DB	CR,LF,'TOO MANY CHARACTERS - TRY AGAIN',CR,LF,0
+                
+ 05E1 0D0A00    NEWLIN:	DB	CR,LF,0
+                
+                ; INPUT BUFFER STORAGE
+                
+ 05E4 20        IBUF:	DB	BUFLEN	;BUFFER LENGTH FOR BDOS CALL
+ 05E5           	DS	BUFLEN	;THE ACTUAL STORAGE LOCS
+                
+                ; STACK SPACE IF STANDALONE ONLY (USE SYSGEN STACK IF OK)
+                
+                	IF	ALONE
+                
+                	DS	31
+                STACK:	DS	1
+                
+                	ENDIF
+                
+ 0605           	END
+

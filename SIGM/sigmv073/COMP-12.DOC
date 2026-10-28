@@ -1,0 +1,94 @@
+
+                    DOCUMENTATION FOR COMPARE.COM
+
+Introduction
+------------
+
+     COMPARE is a binary file comparison utility program. It does 
+a  byte  by byte comparison of two files and reports any  differ
+ences.
+
+Useage
+------
+
+     COMPARE [d:]filename1 [d:][filename2]
+
+Where:
+     d:             is an optional disk drive identifier
+     filename1      is the first file name
+     filename2      is an optional second file name
+
+Examples
+--------
+
+     COMPARE ZAP.COM ZOT.COM
+
+          This will compare ZAP.COM with ZOT.COM on the currently
+          logged drive.
+
+     COMPARE ZAP.COM B:
+
+          This will compare ZAP.COM on the currently logged drive
+          with ZAP.COM on drive B:.
+
+     COMPARE B:ZAP.COM ZOT.COM
+
+          This will compare ZAP.COM for drive B:  with ZOT.COM on 
+          the currently logged drive.
+
+     COMPARE B:ZAP.COM B:ZOT.COM
+
+          This  will compare ZAP.COM with ZOT.COM both on the  B: 
+          drive.
+
+Error Messages
+--------------
+
+     The  program  will  give  an  error  message  if  it  cannot 
+successfully open either of the specified files.  It will give an 
+error message if the length of the files does not match.  It will 
+report any bytes which do not match in the files.
+
+++ FILES UNEQUAL IN SECTOR       1   AT BYTE  00
+
+     Note  that  the sector number is equal to the  "DUMP  COUNT" 
+displayed by DDH while dumping a file. This makes it easy to find 
+the sector and byte for examination with DDH.    
+
+Internal Prompts
+----------------
+
+     The prompt:
+
+Do you want file 1 printed as it is compared?....Y/N (CR = N)
+
+     This  is  only appropriate if you are comparing text  files. 
+Replying  Y  for  a COM file will  generally  give  unpredictable 
+display results and may lock out the terminal.
+
+File Comparison Tutorial
+------------------------
+
+     This  program  does a BINARY file comparison and  is  really 
+fairly dumb in the way it goes about it.  It is mostly useful for 
+locating  small  differences  in  programs such  as  comparing  a 
+reassembly of a disassembled program to the original COM file  or 
+locating serial numbers, messages etc.
+
+     If there are large differences between programs it is highly 
+likely  that once one difference has been located,  all following 
+bytes  will be different.  If you get more than one screenful  of 
+consecutive mismatches it is probably worthwhile hitting  control 
+C to abort the program.
+
+     The program reads one sector from each disk alternatively so 
+tends to be rather "noisy".
+
+     COM files do not contain displayable data as such and so  if 
+a  mismatch  is reported and you need to see what is actually  in 
+that  location  in both files,  the best way is to use  the  disk 
+dumper  program DDH to dump out the files....the  sector  numbers 
+match the dump count as outlined above.
+
+END OF COMPARE.DOC
+

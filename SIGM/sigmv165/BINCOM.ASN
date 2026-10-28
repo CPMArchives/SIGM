@@ -1,0 +1,395 @@
+
+
+;	--------------------------------------------------------
+;	BINCOM.CMD is a program which can be used to compare
+;	two files, which will probably be binary, to find the
+;	differences between them. The files are compared byte
+;	for byte. No attempt is made to vary the match points
+;	to establish a different synchronization if a prolonged
+;	mismatch is found, as would be done for ASCII files.
+;	The command line is:
+;
+;	      BINCOM [X:]FILE1.CMD,[Y:]FILE2.CMD
+;
+;	Discrepancies will be noted at the console in a line
+;	of the form
+;			XXXX YY ZZ
+;	where XXXX is the number of the discrepant byte, YY in
+;	FILE1 but ZZ in FILE2. Pressing any key at the console
+;	will stop the comparison, but in any event there will
+;	be a final total shown of the bytes compared and the
+;	number of mismatches encountered.
+;
+;		    BINCOM.ASN  Copyright (C) 1983
+;		    Universidad Autonoma de Puebla
+;			  September 16, 1983
+;
+;	[Harold	V. McIntosh, 16 September 1983]
+;	--------------------------------------------------------
+
+
+LF	EQU	0AH		;line feed
+CR	EQU	0DH		;carriage return
+
+BDOS	EQU	224		;CP/M interrupt to BDOS
+
+TFCB	EQU	005CH		;DDT's file control block
+TSIZ	EQU	0080H		;size of record buffer
+
+
+;	-------------
+	org	0100H
+;	-------------
+
+
+BEGN:	ld	bx,#LOGO	;"BINCOM/UAP"
+	call	MSSG
+	ld	al,TFCB+1	;file name
+	cmp	al,#' '
+	jnz	NNUL
+	ld	bx,#TUTO
+CMSS:	call	MSSG
+	jmp	GBYE
+
+NNUL:	call	SETUP
+
+	ld	cl,#15		;(0F) open file
+	ld	dx,#FCB1
+	int	BDOS
+	inc	al
+	jnz	OKF1
+	ld	bx,#ER1
+	jmp	CMSS
+
+OKF1:	ld	cl,#15		;(0F) open file
+	ld	dx,#FCB2
+	int	BDOS
+	inc	al
+	jnz	OKF2
+	ld	bx,#ER2
+	jmp	CMSS
+
+OKF2:	xor	al,al
+	sto	al,FCB1+32
+	sto	al,FCB2+32
+	sto	al,BYCT
+	sto	al,NEQL
+	stob	#1,RECT
+	stob	#4,CLMN
+
+	sto	#0000,ERCT
+
+	ld	cx,#0000	;count of bytes compared
+
+LOOP:	ld	ah,BYCT
+	and	ah,#07FH
+	jnz	RNB		;bytes in the buffer
+	ld	ah,RECT
+	dec	ah
+	jnz	RNA
+	push	cx
+
+	ld	cx,#0008H	;eight-sector buffer
+	ld	dx,#BUF1
+	ld	bx,#FCB1
+	call	FILB
+
+	push	cx
+	ld	cx,#0008H	;eight-sector buffer
+	ld	dx,#BUF2
+	ld	bx,#FCB2
+	call	FILB
+
+	pop	ax
+	cmp	ah,ch
+	jz	EQL
+	ld	bx,#NEQL
+	jc	NEQ
+	mov	ah,ch
+	stob	#'2',[bx]
+	jmp	EQL
+NEQ:	stob	#'1',[bx]
+EQL:	pop	cx
+	cmp	ah,#00
+	jz	ENFI		;end of record
+	ld	dx,#BUF1
+	ld	bx,#BUF2
+RNA:	sto	ah,RECT
+	ld	ah,#80H
+RNB:	dec	ah		;read next pair of bytes
+	sto	ah,BYCT
+	xchg	bx,dx
+	ld	al,[bx]
+	xchg	bx,dx
+	cmp	al,[bx]
+	jz	NRPT
+	call	RPRT		;report discrepancy
+NRPT:	call	BREAK
+	ror	al
+	jc	QUIT
+	inc	cx
+	inc	dx
+	inc	bx
+	jmp	LOOP
+
+;	Type summary message at the end of the run. The summary
+;	includes the number of bytes compared, the number of bytes
+;	that were different, and an indication of which file was
+;	shorter in the case that their lengths were not equal.
+
+QUIT:	call	CRLF
+	ld	bx,#ME3
+	call	MSSG
+ENFI:	push	cx
+	call	CRLF
+	ld	bx,#ME1
+	call	MSSG
+	pop	bx
+	call	WORD
+	ld	al,#'H'
+	call	AOUT
+	call	CRLF
+	ld	bx,#ME2
+	call	MSSG
+	ld	bx,ERCT
+	call	WORD
+	ld	al,#'H'
+	call	AOUT
+	call	CRLF
+	ld	al,NEQL
+	or	al,al
+	jz	GBYE
+	ld	bx,#FCB1+1
+	cmp	al,#'1'
+	jz	ENF
+	ld	bx,#FCB2+1
+ENF:	call	MSSG
+	ld	bx,#ME4
+	call	MSSG
+GBYE:	ld	dl,#00
+	ld	cl,#00
+	int	bdos
+
+;	Copy the file names into the corresponding file
+;	control blocks, check whether or not the files
+;	are present and issue an error message if they
+;	are not, and insert the default extension .CMD
+;	if it is required.
+
+SETUP:	ld	ch,#16
+	ld	dx,#TFCB
+	ld	bx,#FCB1
+	call	MOOV
+
+	ld	bx,#ME5
+	call	MSSG
+	ld	bx,#FCB1+1
+	call	MSSG
+	call	CRLF
+
+	ld	ch,#16
+	ld	dx,#TFCB+16
+	ld	bx,#FCB2
+	call	MOOV
+
+	ld	bx,#ME6
+	call	MSSG
+	ld	bx,#FCB2+1
+	call	MSSG
+	call	CRLF
+	jmp	CRLF
+
+MOOV:	xchg	bx,dx
+	ld	al,[bx]
+	xchg	bx,dx
+	sto	al,[bx]
+	inc	dx
+	inc	bx
+	dec	ch
+	jnz	MOOV
+	ld	dx,#-7
+	add	bx,dx
+	ld	al,[bx]
+	cmp	al,#' '
+	jnz	MOOZ
+	stob	#'C',[bx]
+	inc	bx
+	stob	#'M',[bx]
+	inc	bx
+	stob	#'D',[bx]
+MOOZ:	ret
+
+;	Fill buffer DE using FCB HL. On return, B = # sectors read.
+;	It will be used to determine whether the files were of the
+;	same length or not.
+
+FILB:	push	cx
+	push	dx
+	push	bx
+	ld	cl,#26		;(1A) set DMA address
+	int	BDOS
+	pop	dx
+	push	dx
+	ld	cl,#20		;(14) read one record
+	int	BDOS
+	pop	dx
+	pop	bx
+	ld	cx,#TSIZ
+	add	bx,cx
+	xchg	bx,dx
+	pop	cx
+	cmp	al,#00
+	jnz	FIC
+	inc	ch
+	dec	cl
+	jnz	FILB
+	ret
+FIC:	cmp	al,#01
+	jnz	FID
+	ret
+FID:	ret
+
+;	Type CR,LF.
+
+CRLF:	ld	al,#CR
+	call	AOUT		;A to console
+	ld	al,#LF
+	jmp	AOUT		;A to console
+
+;	Type one, two, or four spaces.
+
+QUAD:	call	DUBL
+DUBL:	call	SNGL
+SNGL:	ld	al,#' '
+
+;	A to console
+
+AOUT:	push	bx
+	push	dx
+	push	cx
+	mov	dl,al
+	ld	cl,#02		;(02) A to console
+	int	BDOS
+	pop	cx
+	pop	dx
+	pop	bx
+	ret
+
+;	Read console status: 1/0 = char waiting/not.
+
+BREAK:	push	cx
+	push	dx
+	push	bx
+	ld	cl,#11		;(0B) read console status
+	int	BDOS
+	push	ax
+	ror	al
+	jnc	BRK
+	ld	cl,#1		;(01) read console
+	int	BDOS
+BRK:	pop	ax
+	pop	bx
+	pop	dx
+	pop	cx
+	ret
+
+;	Type A as two nibbles
+
+WORD:	mov	al,bh
+	call	BYTE
+	mov	al,bl
+BYTE:	push	ax
+	rcr	al
+	rcr	al
+	rcr	al
+	rcr	al
+	call	NYBL
+	pop	ax
+NYBL:	and	al,#0FH
+	add	al,#90H
+	daa
+	adc	al,#40H
+	daa
+	jmp	AOUT		;A to console
+
+;	Type discrepancy report.
+
+RPRT:	push	bx
+	push	cx
+	ld	bx,ERCT
+	inc	bx
+	sto	bx,ERCT
+	pop	bx
+	call	WORD
+	call	DUBL
+	pop	bx
+	ld	al,[bx]
+	call	BYTE
+	call	SNGL
+	xchg	bx,dx
+	ld	al,[bx]
+	xchg	bx,dx
+	call	BYTE
+	call	SNGL
+	call	QUAD
+	ld	al,CLMN
+	dec	al
+	jnz	RPR
+	call	CRLF
+	ld	al,#4
+RPR:	sto	al,CLMN
+	ret
+
+;	Message terminated by zero to console
+
+MSSG:	ld	al,[bx]
+	or	al,al
+	jz	MSS
+	call	AOUT		;A to console
+	inc	bx
+	jmp	MSSG
+MSS:	ret
+
+;	---------------------------------------------------------
+
+LOGO:	db	'         BINCOM/ICUAP',CR,LF
+	db	'Universidad Autonoma de Puebla',CR,LF
+	db	'      September 16, 1983',CR,LF,CR,LF,00
+
+ER1:	db	'Cannot open first file.',00
+ER2:	db	'Cannot open second file.',00
+ME1:	db	'Number of bytes compared:   ',00
+ME2:	db	'Number of mismatches found: ',00
+ME3:	db	'Comparison interrupted...',00
+ME4:	db	' was shorter.',CR,LF,00
+ME5:	db	'File 1:  ',00
+ME6:	db	'File 2:  ',00
+TUTO:	db	'BINCOM.CMD is a program which can be used to compare',CR,LF
+	db	'two files, which will probably be binary, to find the',CR,LF
+	db	'differences between them. The files are compared byte',CR,LF
+	db	'for byte. No attempt is made to vary the match points',CR,LF
+	db	'to establish a different synchronization if a prolonged',CR,LF
+	db	'mismatch is found, as would be done for ASCII files.',CR,LF
+	db	'The command line is:',CR,LF,CR,LF
+	db	'      BINCOM [X:]FILE1.CMD,[Y:]FILE2.CMD',CR,LF,CR,LF
+	db	'Discrepancies will be noted in the form',CR,LF,CR,LF
+	db	'		XXXX YY ZZ',CR,LF,CR,LF
+	db	'where XXXX is the discrepant byte, YY in FILE1 but ZZ',CR,LF
+	db	'in FILE2. Use any key to halt the comparison. Final',CR,LF
+	db	'totals - of bytes compared and mismatches found - will',CR,LF
+	db	'always be shown.',CR,LF
+	db	00
+
+FCB1:	ds	33
+FCB2:	ds	33
+BYCT:	ds	1		;byte count
+RECT:	ds	1		;record count
+ERCT:	ds	2
+NEQL:	ds	1		;FF=different file lengths
+CLMN:	ds	1		;coumn counter
+BORG:	ds	2
+BUF1:	ds	400H		;eight-sector buffer
+BUF2:	ds	400H		;eight-sector buffer
+
+	end
+

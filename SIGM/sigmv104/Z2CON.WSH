@@ -1,0 +1,189 @@
+
+
+
+
+
+
+
+
+   ***********************************************************
+   *                                                         *
+   *                     CONCEPTS MANUAL                     *
+   *                                                         *
+   *                           for                           *
+   *                                                         *
+   *  ZCPR2 -- Z80 Command Processor Replacement, Version 2  *
+   *                                                         *
+   ***********************************************************
+
+
+                               by
+
+                          Richard Conn
+
+
+                        Manual Revision 0
+                         3 February 1983
+
+
+
+
+
+
+                          ZCPR2 Version
+                               2.0
+
+            Copyright (c) 1982, 1983 by Richard Conn
+                       All Rights Reserved
+
+
+     ZCPR2¬  itó utilitieó aó distributed¬  anä itó documentatioî 
+fileó  aó distributeä arå copyrighted¬  1982¬  bù  Richarä  Conn®  
+
+
+
+
+
+     CP/Í ió á registereä trademarë oæ Digitaì Research.
+
+
+
+                    Concepts Manual for ZCPR2
+
+                        Table of Contents
+
+
+          Section                                      Page
+
+               Foreword                                F-1
+
+          1.0  Introduction                              1
+               1.1  Another Look at CP/M 2.2             2
+               1.2  Where ZCPR2 Fits In                  5
+
+          2.0  ZCPR2 Overview                            6
+               2.1  Directories under ZCPR2              6
+               2.2  ZCPR2 Resident Commands              8
+               2.3  ZCPR2 Standard Transient Commands   10
+               2.4  Multiple Command Lines              11
+               2.5  Paths                               11
+               2.6  Overview and Putting the Basic
+                         Concepts Together              12
+
+          3.0  ZCPR2 Directories and Files              17
+
+          4.0  ZCPR2 Commands                           33
+               4.1  ZCPR2 Resident Commands             33
+                    4.1.1 The DIR Command               33
+                    4.1.2 The ERA Command               33
+                    4.1.3 The REN Command               33
+                    4.1.4 The TYPE and LIST Commands    34
+                    4.1.5 The SAVE Command              34
+                    4.1.6 The GET Command               34
+                    4.1.7 The GO Command                34
+                    4.1.8 The JUMP Command              35
+                    4.1.9 The DU Form for Changing
+                              Disk and User             35
+               4.2  ZCPR2 Standard Transient Commands   35
+
+          5.0  Multiple Command Lines                   42
+
+          6.0  Paths, Command Processing, and Extended
+                    Command Processors                  47
+               6.1  Paths                               47
+               6.2  Command Processing                  51
+               6.3  Extended Command Processors         51
+
+          7.0  Redirectable I/O                         55
+               7.1  The Concept                         55
+               7.2  A More Flexible Redirectable I/O
+                         System                         56
+               7.3  What the Redirectable I/O System
+                         Buys You                       57
+               7.4  Loading Redirectable I/O Drivers    64
+Š.he                 ZCPR2 Concepts Manual -- Foreword
+.fo                                                    Page F-#
+.pn 1
+
+
+
+                            Foreword
+
+     Welcomå  tï thå worlä oæ ZCPR2®   Thió ió onå oæ fouò  ZCPR² 
+manuals¬ namelù thå Conceptó Manual®  Itó purposå ió tï introducå 
+yoõ tï thå basic¬  underlyinç principleó behinä ZCPR² anä tï givå 
+yoõ á workinç knowledgå oæ thå followinç things:
+
+          o What ZCPR2 Is
+          o What ZCPR2 is Capable of Doing
+          o How to Use ZCPR2
+          o How to Adapt ZCPR2 to Your Particular Desires
+
+     Thå  manuaì  ió  writteî foò everyone¬  anä writinç  sucè  á 
+manuaì ió quitå á task®  Bù addressinç everyone¬ thå scopå oæ thå 
+audiencå  rangeó  froí thå basiã CP/Í useò (É  assumå  á  workinç 
+knowledgå  oæ  CP/M© whï neveò hearä oæ ZCPR² beforå tï thå  com
+puteò  professionaì witè seveî yearó oæ CP/Í  programminç  exper
+iencå  anä somå knowledgå oæ ZCPR² undeò hió belt®   Witè sucè aî 
+audience¬ iô wilì bå impossiblå tï pleaså everyone.
+
+     Hence¬  whaô É havå trieä tï dï ió tï writå thió manuaì iî á 
+redundanô anä personaì style®  Iî redundancy¬ thå basiã CP/Í useò 
+wilì seå thå samå pointó covereä morå thaî oncå anä morå informa
+tioî wilì hopefullù sinë in®   Iî thå personaì style¬  I'vå trieä 
+tï noô makå thå manuaì drù anä totallù technical®  Therå arå lotó 
+oæ  examples¬  usuallù afteò á particulaò poinô ió  covered¬  anä 
+actuaì ZCPR² terminaì sessionó (aó yoõ woulä seå theí iæ yoõ  saô 
+dowî aô thå terminaì anä raî thå programó undeò ZCPR² itself© arå 
+included.
+
+     Iæ  yoõ  arå á basiã CP/Í user¬  dï noô expecô tï comå  awaù 
+knowinç alì therå ió tï kno÷ abouô ZCPR2®   É caî geô quitå tech
+nicaì  aô times¬  anä somå exampleó resorô tï  assemblù  languagå 
+programó  anä heavù uså oæ ZCPR² utilitù programó yoõ maù noô yeô 
+bå familiaò with®   Iæ yoõ comå tï á sectioî likå this¬  reaä on¬ 
+trù tï geô whaô yoõ caî ouô oæ it¬ anä takå heart¬ becauså É wilì 
+probablù falì bacë tï lesó oæ á technicaì leveì later®   Thå samå 
+more-or-lesó applieó tï thå intermediatå CP/Í user¬  dependinç oî 
+youò background®  Tï thå advanceä CP/Í user¬ whï haó knowledgå oæ 
+thå  systemó programminç leveì oæ CP/M¬  yoõ wilì  probablù  finä 
+mosô  oæ  thå manuaì boring®   É dï delvå intï á  verù  technicaì 
+leveì froí timå tï time¬  however¬  anä yoõ maù enjoù this®   Foò 
+thå  advanceä CP/Í user¬  yoõ shoulä expecô tï obtaiî á  thorougè 
+workinç knowledgå oæ thå systeí anä somå oæ itó utilities.
+
+
+     Thió  Conceptó Manuaì ió á gooä manuaì tï reaä first®   Oncå 
+completed¬  thå intermediatå oò advanceä useò shoulä bå readù  tï 
+instalì ZCPR² oî hió microcomputer®   Tï dï this¬ aî Installatioî 
+Manuaì ió provided®   Thió ió verù technicaì anä assumeó intimatå 
+knowledgå  oæ  808° anä Z8° assemblù languagå  programming®   Foò 
+readeró  withouô sucè knowledge¬  É recommenä thaô yoõ finä  youò 
+nearesô computeò cluâ (anä therå arå TONÓ oæ them© anä seeë help®  
+Computeò Clubó arå verù nicå foò thaô sorô oæ thing®  É myselæ aí 
+á  membeò oæ thå Amateuò Computeò Grouğ oæ Ne÷  Jerseù  (ACG-NJ)¬ 
+whicè  ió oveò 110° memberó strong®   Gettinç involveä iî á  com
+puteò cluâ caî reallù bå lotó oæ fuî anä educational¬  anä infor
+matioî anä programs¬ likå ZCPR2¬ caî bå shared.
+
+     Thå  thirä  ZCPR² manuaì ió thå User'ó Guide®   Alì  oæ  thå 
+ZCPR²  utilitieó  (referenceä  bù namå anä  versioî  number©  arå 
+describeä iî thå User'ó Guide¬  anä manù samplå terminaì sessionó 
+whicè illustratå theiò uså arå included.
+
+     Finally¬  thå  fourtè ZCPR² manuaì ió thå  Rationale®   Thió 
+manuaì  ió aî expose§ oæ whù É diä thingó likå É diä witè  ZCPR2¬ 
+whaô  thå  tradå  offó were¬  whaô directionó werå takeî  iî  thå 
+desigî anä why¬ anä otheò sucè technicaì ditties®  Thió manuaì ió 
+quitå  technicaì  anä ió provideä tï givå  thå  intermediatå  anä 
+advanceä  CP/Í  useò á betteò feelinç anä understandinç oæ  ZCPR² 
+internaló anä concepts.
+
+     É  sincerelù  hopå yoõ enjoù usinç ZCPR2®   Iô  haó  beeî  á 
+pleasurå creatinç it¬  anä iô ió alsï á loô oæ fuî tï uså it®  Mù 
+opinion¬ oæ course®  Takå care¬ anä gooä luck.
+
+                                        Richard Conn
+
+
+

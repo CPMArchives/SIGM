@@ -1,0 +1,33 @@
+
+{	DEPAD
+
+	Takes a string which has been padded with spaces and returns
+	a copy shortened by dropping the trailing spaces.
+
+	The following global declarations are required:
+		TYPE	string255 = string 255;
+		PROCEDURE setlength;
+		PROCEDURE length;
+}
+	
+FUNCTION depad (str : string255) : string255;
+
+VAR	done : boolean;
+	loc : byte;
+	temp : string255;
+
+begin
+	done := false;
+	setlength (temp,0);
+	append (temp,str);
+	loc := length(temp);
+	repeat
+		if (temp[loc] = ' ')
+			then loc := pred(loc)
+			else done := true
+	until done;
+	setlength (temp,loc);
+	depad := temp
+end;
+
+

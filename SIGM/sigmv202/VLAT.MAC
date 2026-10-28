@@ -1,0 +1,34 @@
+;
+; VLIB Module Name:  VLAT
+; Author:  Richard Conn
+; VLIB  Version Number:  1.0
+; Module Version Number:  1.0
+; Module Entry Points:
+;	AT
+; Module External References:
+;	GOTOXY
+;
+	ext	gotoxy
+
+;
+; Position Cursor at Location Specified by Return Address
+; Usage:
+;	call	at
+;	db	row,col	;location
+;
+at::
+	xthl		;pt to address
+	push	d	;save DE
+	mov	d,m	;get row
+	inx	h
+	mov	e,m
+	inx	h	;HL pts to return byte
+	xchg		;DE pts to return byte, HL contains screen loc
+	call	gotoxy	;position cursor
+	xchg		;HL pts to return byte
+	pop	d	;restore registers
+	xthl		;restore stack ptr
+	ret
+
+	end
+

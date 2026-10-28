@@ -1,0 +1,1388 @@
+	.z80
+	title	MML:BACKUP For large files extending over one floppy
+
+;-----------------------------------------------------------------------
+; BACKUP
+; Program to backup large files extending over one floppy
+;
+; Author:	D. Powys-Lybbe
+; Written:	July 1984
+;
+; Procedure
+; Load this program
+; Respond as follows:
+; > Source filename -------- ? <filename>
+; > Destination disk ------- ? <diskname>
+; Files copied
+; > Change floppy disk
+; > Press return when ready  ? <return>
+;
+; Requires:	Z80, Assemble with M80.COM link with LINK.COM
+;
+;---------------------------------------------------------------------
+; REVISIONS
+;
+;---------------------------------------------------------------------
+
+bdos	equ	5
+dfcb	equ	05ch
+dbuff	equ	080h
+
+	public	d.reset, rdextent, rdblk, tstspace
+
+
+init:	ld	sp,stack
+	ld	c,12		; BDOS Version Number
+	call	bdos
+	ld	(vers),a
+	cp	22h		; test for 2.2
+	jr	z,cpm
+	cp	31h		; or 3.1
+	jr	nz,not22
+cpm:	ld	a,b
+	cp	00h		; CP/M
+	jr	nz,not22
+
+	ld	c,25		; BDOS Return current disk
+	call	bdos
+	ld	(ddsk),a	; and save
+
+	ld	de,msg1
+	call	string
+	jp	start
+
+not22:	ld	de,msg0
+	call	string
+	ld	c,0
+	jp	bdos
+
+	ds	64
+stack	equ	$
+
+string:	ld	c,9		;BDOS String output
+	jp	bdos
+
+finish:	ld	c,0
+	jp	bdos
+
+ucse:	cp	'a'
+	ret	c
+	cp	'z'+1
+	ret	nc
+	add	a,'A'-'a'
+	ret
+
+
+;--------------------------------------------------------------------------
+
+msg0:	db	'MUST USE CP/M 2.2 or 3.1','$'
+
+msg1:	db	0ah,0dh,'MML:BACKUP V1.0 - Multi Floppy Disc backup of large files'
+	db	0ah,0dh,'$'
+
+msg2:	db	0ah,0dh,'> Source file description ---- ? '
+	db	'$'
+
+msg3:	db	0ah,0dh,'> Destination (or drive) ----- ? '
+	db	'$'
+
+msg4:	db	0ah,0dh,'> Destination diskname ------- ? '
+	db	'$'
+
+msg5:	db	0dh,0ah,'*** NO FILE ***','$'
+
+msg6:	db	0dh,0ah,'*** PROGRAM ERROR ***','$'
+
+msg7:	db	0dh,0ah,'*** Cannot create new file - perhaps disc is full','$'
+
+msg8:	db	0dh,0ah,'*** READ ERROR','$'
+
+msg9:	db	0dh,0ah,'*** WRITE ERROR - DISK or DIRECTORY is full','$'
+
+msg10:	db	0dh,0ah,'*** Incorrect filename syntax','$'
+
+msg11:	db	0dh,0ah
+wctxt:	db	'        .   ','$'
+;		 12345678 123 
+
+msg12:	db	0dh,0ah,'COPYING:','$'
+
+msg13:	db	0dh,0ah,'*** Incorrect disk name syntax','$'
+
+msg14:	db	0dh,0ah,'When ready, press <RETURN> ?','$'
+
+msg15:	db	0dh,0ah,'*** The diskette is now full, please replaces with another disk','$'
+
+msg16:	db	0dh,0ah,'*** The diskette can not be used as it is too full.'
+	db	0dh,0ah,'    Please replaces with another disk','$'
+
+msg17:	db	0dh,0ah,'*** As the diskette cannot be erased'
+	db	0dh,0ah,'    Please replaces with another disk','$'
+
+msg18:	db	0dh,0ah,'*** Destination file write protected'
+	db	0dh,0ah,'    OK to destroy files (Y/N) ?','$'
+
+wild:	db	0	; set to number of wildcards outstanding
+
+size:	dw	0	; size of file (last record number + 1)
+	db	0	; remaining to copy
+
+free:	dw	0	; free records on destination
+	db	0	; remaining for copy
+
+extent:	dw	0	; records per destination physical extent
+	db	0	; (should be zero)
+
+blocks:	dw	0	; remaining sectors in destination physical extent
+
+vers:	db	0	; 22h or 31h version numer
+
+srcfcb:	ds	36	; source FCB
+
+dstfcb:	ds	36	; destination FCB
+
+erafcb:	ds	36	; erase destination FCB
+
+ddsk:	db	0	; Default disk returned by BDOS
+
+dstdpb:
+	ds	2	; SPT
+dstbsh:	ds	2	; BSH, BLM
+dstexm:	ds	1	; EXM
+dstdsm:	ds	2	; DSM
+dstdrm:	ds	2	; DRM
+dstal:	ds	2	; AL0,AL1
+lendpb	equ	$-dstdpb
+
+cbuff:	db	16
+cbuff1:	db	0
+cbuff2:	ds	16 
+
+;--------------------------------------------------------------------------
+
+;----------------------;
+; MAIN PROCESSING LOOP ;
+;----------------------;
+start:
+	ld	sp,stack
+	ld	a,(wild)	; test for wild card
+	or	a
+	jp	nz,dowild
+
+;-----------------------
+; input SOURCE file name
+;-----------------------
+
+	ld	hl,srcfcb
+	ld	de,srcfcb+1
+	ld	bc,36-1
+	ld	(hl),0
+	ldir				; fill with zeroes
+
+	ld	hl,srcfcb+1
+	ld	de,srcfcb+2
+	ld	bc,11-1
+	ld	(hl),' '
+	ldir			; initialise filename to blanks
+
+	ld	de,msg2
+	call	string
+
+	ld	de,cbuff
+	ld	c,10		; BDOS Read console buffer
+	call	bdos
+
+	ld	hl,cbuff1
+	ld	a,(hl)
+	or	a
+	jp	z,finish	; <RETURN> terminates program
+	inc	hl
+
+	ld	b,8+1		; max number of bytes in filename
+	ld	de,srcfcb+1
+	ld	c,a
+	cp	2+1
+	jr	c,s.name	; only allow drive if 3 or more chars entered
+	inc	hl
+	ld	a,(hl)
+	cp	':'		; do we have drive
+	dec	hl
+	jr	nz,s.name
+
+	ld	a,(hl)
+	call	ucse
+	sub	'A'
+	jp	c,badname
+	cp	16
+	jp	nc,badname
+	inc	a		; A = 1
+	dec	de
+	ld	(de),a
+	inc	de
+	inc	hl
+	inc	hl
+	dec	c
+	dec	c
+s.name:
+	ld	a,c
+	or	a
+	jr	z,s.eofn
+	ld	a,(hl)
+	cp	'.'
+	jp	z,s.Fstop
+	dec	b
+	jp	z,badname	; too many characters entered
+	call	ucse
+	ld	(de),a
+	inc	hl
+	inc	de
+	dec	c
+	jr	s.name
+s.Fstop:
+	ld	de,srcfcb+9
+	inc	hl
+	dec	c
+	ld	b,3+1		; maximum number of type characters
+s.type:
+	ld	a,c
+	or	a
+	jr	z,s.eofn
+	ld	a,(hl)
+	call	ucse
+	dec	b
+	jp	z,badname	; too many characters entered
+	ld	(de),a
+	inc	hl
+	inc	de
+	dec	c
+	jr	s.type
+
+s.eofn:				; we have a filename
+;--------------------;
+; test for wild card ;
+;--------------------;
+
+	ld	hl,srcfcb+1
+	ld	b,11
+next1:	ld	a,(hl)
+	cp	'?'
+	jp	z,setwild
+	cp	'*'
+	jp	z,setwild
+	inc	hl
+	djnz	next1
+
+	jp	s.open
+
+;-----------------
+; open SOURCE file
+;-----------------
+s.open:
+	ld	de,srcfcb
+	ld	c,15		; BDOS open file
+	call	bdos
+	cp	-1
+	jp	z,nofile		; no source file
+
+	ld	de,srcfcb
+	ld	c,35		; BDOS compute file size
+	call	bdos
+
+	ld	hl,srcfcb+33	; random record bytes
+	ld	de,size
+	ld	bc,3
+	ldir		; and save
+
+	ld	hl,0
+	ld	(srcfcb+33),hl	; zero 3 bytes
+	ld	(srcfcb+34),hl	; random record pointer
+
+;----------------------------
+; input DESTINATION drive name
+;----------------------------
+
+	ld	hl,dstfcb
+	ld	de,dstfcb+1
+	ld	bc,36-1
+	ld	(hl),0
+	ldir				; fill with zeroes
+
+	ld	hl,dstfcb+1
+	ld	de,dstfcb+2
+	ld	bc,11-1
+	ld	(hl),' '
+	ldir			; initialise filename to blanks
+
+	ld	de,msg4
+	call	string
+
+	ld	de,cbuff
+	ld	c,10		; BDOS Read console buffer
+	call	bdos
+
+	ld	hl,cbuff1
+	ld	a,(hl)
+	or	a
+	jp	z,finish
+	inc	hl
+
+	ld	b,8+1		; max number of bytes in filename
+	ld	de,dstfcb+1
+	ld	c,a
+	cp	1
+	jr	z,d.drive	; drive only entered
+	inc	hl
+	ld	a,(hl)
+	dec	hl
+	cp	':'		; do we have drive
+	jr	nz,d.name
+d.drive:
+	ld	a,(hl)
+	call	ucse
+	sub	'A'
+	jp	c,baddisk
+	cp	16
+	jp	nc,baddisk
+	inc	a		; A = 1
+	dec	de
+	ld	(de),a
+	inc	de
+	inc	hl
+	inc	hl
+	ld	a,c
+	cp	2+1
+	jr	c,d.dronly	; only drive entered
+
+	dec	c
+	dec	c
+d.name:
+	jp	badname		; too many characters entered
+
+d.dronly:			; only drive name entered
+	ld	hl,srcfcb+1
+	ld	de,dstfcb+1
+	ld	bc,11
+	ldir			; copy source filename
+
+	call	maskt		; clear any flag bits set
+
+;--------------------;
+; test for wild card ;
+;--------------------;
+
+	ld	hl,dstfcb+1
+	ld	b,11
+next2:	ld	a,(hl)
+	cp	'?'
+	jp	z,badname
+	cp	'*'
+	jp	z,badname
+	inc	hl
+	djnz	next2
+
+;--------------------;
+; test for srce=dest ;
+;--------------------;
+
+	ld	hl,dstfcb
+	ld	de,srcfcb
+	ld	b,12
+next3:	ld	a,(de)
+	and	7fh
+	cp	(hl)
+	jr	nz,d.init
+	inc	de
+	inc	hl
+	djnz	next3
+	jp	badname		; same filenames
+
+d.init:
+	call	setera		; construct erase FCB
+	call	d.reset		; reset disc system
+	jp	d.open		; open file and copy
+
+;-------------------------;
+; clear any flag bits set ;
+;-------------------------;
+maskt:
+	ld	hl,dstfcb+1
+	ld	b,11
+nobits:	ld	a,(hl)
+	and	7fh
+	ld	(hl),a
+	inc	hl
+	djnz	nobits
+	ret
+
+;---------------------;
+; construct erase FCB ;
+;---------------------;
+setera:
+	ld	hl,dstfcb
+	ld	de,erafcb
+	ld	bc,36
+	ldir			; copy to erafcb
+	ret
+
+	page
+;			--------------
+;			WILD CARD COPY
+;			--------------
+
+
+;-------------------
+; initiate wild card
+;-------------------
+setwild:
+	xor	a
+	ld	(wild),a	; set wildcard count to zero
+
+;---------------------;
+; WILD CARD filenames ;
+;---------------------;
+	ld	hl,srcfcb+1
+	ld	b,8
+sname:	ld	a,(hl)
+	cp	'*'
+	jr	z,astxn
+	inc	hl
+	djnz	sname
+	ld	b,3
+	jr	stype
+
+astxn:	ld	(hl),'?'
+	inc	hl
+	djnz	astxn
+	ld	b,3
+stype:	ld	a,(hl)
+	cp	'*'
+	jr	z,astxt
+	inc	hl
+	djnz	stype
+	jr	sfirst
+
+astxt:	ld	(hl),'?'
+	inc	hl
+	djnz	astxt
+
+;---------------------------------
+; do a search FIRST of default fcb
+;---------------------------------
+sfirst:
+	ld	(hl),0		; set extend = 0
+				; (this assumes extent 0 is exists)
+	xor	a
+	ld	(wild),a
+
+	ld	c,17		; BDOS search for first
+	ld	de,srcfcb
+	call	bdos
+
+	cp	-1
+	jp	z,nofile	; no file found
+
+	call	addfcb		; copy fcb into our FCB area
+;----------------------
+; search for more FCB'S
+;----------------------
+snext:
+	ld	c,18		; BDOS search for next
+	ld	de,srcfcb
+	call	bdos
+
+	cp	-1
+	jr	z,builtwc		; no more files found
+
+	call	addfcb		; copy fcb into our FCB area
+
+	jr	snext
+
+;------------------------------------
+; scanned all possible FCB's
+;------------------------------------
+
+;----------------------------
+; input DESTINATION drive
+;----------------------------
+builtwc:
+	ld	hl,dstfcb
+	ld	de,dstfcb+1
+	ld	bc,36-1
+	ld	(hl),0
+	ldir				; fill with zeroes
+
+	ld	de,msg4
+	call	string
+
+	ld	de,cbuff
+	ld	c,10		; BDOS Read console buffer
+	call	bdos
+
+	ld	hl,cbuff1
+	ld	a,(hl)
+	or	a
+	jp	z,finish	; unexpected termination
+	inc	hl
+
+	ld	de,dstfcb
+	ld	c,a
+	cp	1
+	jr	z,d.dr
+	cp	2
+	jp	nz,baddisk	; only 1 0r 2 characters allowed
+	inc	hl
+	ld	a,(hl)
+	cp	':'		; do we have drive
+	dec	hl
+	jp	nz,baddisk	; 2nd character can only be a colon
+d.dr:
+	ld	a,(hl)
+	call	ucse
+	sub	'A'
+	jp	c,baddisk
+	cp	16
+	jp	nc,baddisk
+	inc	a		; A = 1
+	ld	(de),a
+
+;---------------------------
+; scanned all possible FCB's
+;---------------------------
+
+	ld	hl,srcfcb	; construct erase FCB
+	ld	de,erafcb
+	ld	bc,36
+	ldir			; copy to erafcb
+
+	ld	a,(dstfcb)
+	ld	(erafcb),a	; set destination drive
+
+	call	d.reset		; reset disk system
+
+	ld	de,msg12
+	call	string
+
+	jp	start
+
+;-----------------------------------------------------------
+; copy fcb from directory entry number <A> into our FCB area
+;-----------------------------------------------------------
+addfcb:
+	ld	l,a
+	ld	h,0
+	add	hl,hl
+	add	hl,hl
+	add	hl,hl
+	add	hl,hl
+	add	hl,hl
+
+	ld	de,dbuff
+	add	hl,de
+	inc	hl		; point to start of filename
+
+	ex	de,hl		; <DE> -> directory entry
+
+	ld	hl,wild
+	inc	(hl)
+	ld	a,(hl)		; FCB number
+	dec	a		; now offset
+
+	call	getblk		; return in <HL> address of next FCB block
+
+	ld	a,(srcfcb)
+	ld	(hl),a		; set drive
+	inc	hl
+
+	ex	de,hl
+	ld	bc,11
+	ldir			; copy directory entry to our entry
+
+	ret
+
+;-----------------------------------------
+; return in <HL> address of next FCB block
+;-----------------------------------------
+getblk:
+	ld	hl,fcbblk
+	ld	bc,12		; size of fcb blk
+	or	a
+	ret	z
+nxtbk1:	add	hl,bc
+	dec	a
+	jr	nz,nxtbk1
+	ret
+
+
+;----------------------
+; display next filename
+;----------------------
+dspwild:
+	ld	hl,srcfcb+1
+	ld	de,wctxt
+	ld	bc,8
+	ldir
+	inc	de
+	ld	bc,3
+	ldir
+
+	ld	de,msg11
+	jp	string
+
+;---------------------
+; end of wildcard copy
+;---------------------
+nomore:
+	xor	a
+	ld	(wild),a
+	jp	start
+
+	page
+
+;-----------------------
+; copy next wildcard FCB
+;-----------------------
+dowild:
+	ld	a,(wild)
+	or	a
+	jp	z,wceof		; no more to send
+
+;--------------------------------
+; fcbbk now contains (WILD) fcb's
+;--------------------------------
+	ld	hl,fcbblk
+	ld	de,srcfcb
+	ld	bc,12
+	ldir			; set up our default fcb
+
+	ld	h,d
+	ld	l,e
+	inc	de
+	ld	(hl),0
+	ld	bc,36-12-1
+	ldir			; and fill rest with zeroes
+
+;-------------------
+; set up destination
+;-------------------
+
+	ld	hl,srcfcb+1
+	ld	de,dstfcb+1
+	ld	bc,36-1
+	ldir
+
+	call	maskt		; clear any flag bits set
+
+;-------------------------------------------
+; now ripple all wild cards through to start
+;-------------------------------------------
+	ld	hl,wild
+	dec	(hl)
+	ld	a,(hl)		; Number of FCB's remaining in table
+	or	a
+	jr	z,openwc
+
+	ld	de,12		; size of fcb blk
+	ld	hl,0
+	ld	b,a
+upblks:	add	hl,de
+	djnz	upblks
+
+	ld	b,h
+	ld	c,l		; size of transfer
+
+	ld	hl,fcbblk+12
+	ld	de,fcbblk
+	ldir			; and copy over
+
+openwc:
+	call	dspwild		; and display
+
+;----------------------
+; open WILD SOURCE file
+;----------------------
+	ld	de,srcfcb
+	ld	c,15		; BDOS open file
+	call	bdos
+	cp	-1
+	jp	z,nofile	; no source file (or no extent 0)
+
+	ld	de,srcfcb
+	ld	c,35		; BDOS compute file size
+	call	bdos
+
+	ld	hl,srcfcb+33	; random record bytes
+	ld	de,size
+	ld	bc,3
+	ldir			; and save
+
+	ld	hl,0
+	ld	(srcfcb+33),hl	; zero 3 bytes
+	ld	(srcfcb+34),hl	; random record pointer
+
+;----------------------
+; open destination file
+;----------------------
+d.open:
+	call	setfree		; calculate free space
+
+	call	tstspace	; check enough room in destination
+	jp	c,fulldisc
+
+	ld	de,dstfcb
+	ld	c,22		; BDOS Make file
+	call	bdos
+	cp	-1
+	jp	z,noopen
+
+	ld	hl,0
+	ld	(dstfcb+33),hl
+	ld	(dstfcb+34),hl	; set random record count to 0
+
+	jp	rdextent	; and do transfer
+
+fulldisc:
+	ld	de,msg16
+	call	string
+
+	call	waitcr
+
+	call	d.reset
+
+	jp	d.open		; and try again
+
+
+	page
+;------------------------
+; Prepare destination disk
+;------------------------
+d.reset:
+	ld	c,13		; BDOS reset disk system
+	call	bdos
+
+	ld	a,(ddsk)	; default disk
+	ld	e,a
+	ld	a,(dstfcb)	; destination disk
+	or	a
+	jr	z,seldsk
+	dec	a
+	ld	e,a
+seldsk:	ld	c,14		; BDOS select disk
+	call	bdos
+	
+	ld	c,31		; BDOS return DPB
+	call	bdos
+	ld	de,dstdpb
+	ld	bc,lendpb
+	ldir			; copy DPB
+
+; calculate records per extent
+
+	ld	hl,0
+	ld	de,128		; records per logical extent
+	ld	a,(dstexm)	; extent mask
+	ld	b,a
+	inc	b
+setext:	add	hl,de
+	djnz	setext
+	ld	(extent),hl	; set records per physical extent
+	xor	a
+	ld	(extent+2),a	; 3rd byte always zero
+
+	ld	a,(ddsk)	; default disk
+	ld	e,a
+	ld	c,14		; BDOS select disk
+	call	bdos
+
+	call	erase		; erase target disk first
+	ret	z		; -ok-
+
+;cant so start again
+	ld	de,msg17
+	call	string
+
+	call	waitcr
+
+	jp	d.reset
+
+;-----------
+; erase disc
+;-----------
+
+;-------------------------------
+; do a search FIRST of erase fcb
+;-------------------------------
+erase:
+	ld	a,-1
+	ld	(eraflag),a	; set era query flag true
+
+	ld	hl,erafcb+12	; -> EX
+	ld	(hl),'?'
+	inc	hl
+	inc	hl
+	ld	(hl),'?'	; -> S2 (just in case)
+
+	ld	c,17		; BDOS search for first
+	ld	de,erafcb
+	call	bdos
+
+	cp	-1
+	ret	z		; no file found
+
+;-----------------------
+; test each erafcb entry
+;-----------------------
+tstera:
+	call	tstwp		; test for write protect
+	jr	z,seran		; -no-
+
+	call	okera
+	ret	nz		; cant erase file
+
+	call	setrw		; make file read/write
+
+;----------------------
+; search for more FCB'S
+;----------------------
+seran:
+	ld	c,18		; BDOS search for next
+	call	bdos
+
+	cp	-1
+	jr	nz,tstera	; more files found
+
+	ld	c,19		; BDOS Delete file
+	ld	de,erafcb
+	call	bdos
+	xor	a
+	ret
+
+;-------------------------------------------
+; test target file for Read/Only file
+; (for CP/M Plus should also check password)
+;-------------------------------------------
+tstwp:
+	ld	l,a
+	ld	h,0
+	add	hl,hl
+	add	hl,hl
+	add	hl,hl
+	add	hl,hl
+	add	hl,hl
+
+	ld	de,dbuff
+	add	hl,de		; <HL> -> fcb found
+
+	ld	a,(erafcb)
+	ld	(hl),a		; set drive
+	ex	de,hl
+
+	ld	hl,9
+	add	hl,de
+	ld	a,(hl)		; t1
+	and	80h		; test Read/Only
+	ret	z		; -no-
+
+	ex	de,hl
+	ld	de,dfcb
+	ld	bc,32
+	ldir			; copy to default FCB
+
+	or	-1		; [ro] to [rw] required
+	ret
+
+;-----------------------------------
+; see if ok to erase read-only files
+; returns Z - Yes, NZ - NO
+;-----------------------------------
+eraflag:	db	-1
+okera:
+	ld	hl,eraflag
+	ld	a,(hl)
+	or	a
+	ret	z		; already said yes
+
+	xor	a
+	ld	(hl),a
+waitok:
+	ld	de,msg18
+	call	string
+
+	ld	de,cbuff
+	ld	c,10		; BDOS Read console buffer
+	call	bdos
+
+	ld	hl,cbuff1
+	ld	a,(hl)
+	or	a
+	ret	z		; <RETURN> continues program
+
+	cp	1
+	jr	nz,waitok
+
+	inc	hl
+	ld	a,(hl)
+	cp	3
+	jp	z,finish	; <CRTL-C> terminates
+
+	cp	'Y'
+	ret	z
+	cp	'y'
+	ret	z
+
+	cp	'N'
+	jr	z,noera
+	cp	'n'
+	jp	nz,waitok
+noera:	or	-1
+	ret			; NON-ZERO flag
+
+;-----------------------------------
+; set target file to Read/Write file
+;-----------------------------------
+setrw:
+	ld	a,(dfcb+9)	; t1
+	and	7fh		; mask Read/Only
+	ld	(dfcb+9),a
+
+	ld	a,(dfcb+6)	; f6
+	and	7fh		; Do not set byte count
+	ld	(dfcb+6),a
+
+	ld	c,30		; BDOS Set file attributes
+	ld	de,dfcb
+	call	bdos
+
+	ld	c,17		; BDOS search for first
+	ld	de,dfcb
+	call	bdos
+
+	ld	hl,erafcb
+	ld	de,dfcb
+	ld	bc,32
+	ldir			; copy to default FCB
+
+	ret
+
+
+	
+;----------------------------
+; Calculate space on new disc
+;----------------------------
+newdisk:
+	call	setfree		; calculate free space
+
+	ld	de,dstfcb
+	ld	c,22		; BDOS Make file
+	call	bdos
+	ret
+
+;---------------------------------------------
+setfree:		; calculate free space
+;---------------------------------------------
+
+	ld	a,(vers)
+	cp	31h
+	jp	z,tst31sp
+
+	ld	a,(dstfcb)	; destination disk
+	ld	e,a
+	dec	e
+	ld	c,14		; BDOS select disk
+	or	a
+	call	nz,bdos		; if not default
+
+	ld	c,27		; BDOS22 Get alloc vector
+	call	bdos
+	ex	de,hl		; <DE> -> address of destination alloc
+
+	xor	a
+	ld	(free),a
+
+	ld	hl,(dstal)
+	ld	a,h
+	ld	h,l
+	ld	l,a
+
+	ld	a,(dstdsm)	; assume high dstdsm = 0
+	ld	c,a
+	inc	c
+
+loop01:	ld	b,8
+	ld	a,(de)
+	or	h
+loop02:	add	hl,hl
+	add	a,a
+	jr	c,next02
+	push	hl
+	ld	hl,free
+	inc	(hl)
+	pop	hl
+next02:	dec	c
+	jr	z,done01	; completed scan of alloc
+	djnz	loop02
+	inc	de
+	jp	loop01
+done01:
+	ld	a,(free)	; free data blocks
+	ld	l,a
+	ld	h,0
+	ld	a,(dstbsh)
+	ld	b,a
+loop03:	add	hl,hl
+	djnz	loop03
+
+	ld	(free),hl	; <HL> = number of 128 byte records
+
+	xor	a
+	ld	(free+2),a
+
+	ld	a,(dstfcb)	; destination disk
+	or	a
+	ret	z		; if default
+
+	ld	a,(ddsk)	; default disc
+	ld	e,a
+	ld	c,14		; BDOS select default disk
+	call	bdos
+	
+	ret
+
+tst31sp:
+	ld	de,dbuff
+	ld	c,26		; BDOS Set DMA transfer address
+	call	bdos
+
+	ld	a,(ddsk)	; default disk
+	ld	e,a
+	ld	a,(dstfcb)	; destination disk
+	or	a
+	jr	z,getsp
+	dec	a
+	ld	e,a
+getsp:	ld	c,46		; BDOS Get Disk Free space
+	call	bdos
+
+	ld	hl,dbuff
+	ld	de,free
+	ld	bc,3
+	ldir			; save number of free records
+
+	ret
+
+waitcr:
+	ld	de,msg14
+	call	string
+
+	ld	de,cbuff
+	ld	c,10		; BDOS Read console buffer
+	call	bdos
+
+	ld	hl,cbuff1
+	ld	a,(hl)
+	or	a
+	ret	z		; <RETURN> continues program
+
+	cp	1
+	jr	nz,waitcr
+
+	inc	hl
+	ld	a,(hl)
+	cp	3
+	jp	nz,waitcr
+	jp	finish		; <CRTL-C> terminates
+
+
+	page
+
+;-----------------------------------------;
+; COPY RECORDS FROM SOURCE TO DESTINATION ;
+; both files are OPEN and ready to go     ;
+;-----------------------------------------;
+newblk:
+	call	nospace		; open new disc
+rdextent:
+	call	tstspace	; check enough room in destination
+	jr	c,newblk	; -no-
+
+	ld	hl,(extent)	; records per extent
+	ld	(blocks),hl	; maximum records to copy
+;-------------------------------------------------
+; read records for one destination physical extent
+;-------------------------------------------------
+rdblk:
+	ld	de,srcfcb
+	ld	c,33		; BDOS read randomly
+	call	bdos
+	or	a
+	jp	nz,rdnodata	; empty record
+
+	ld	de,dstfcb
+	ld	c,34		;BDOS write random
+	call	bdos
+	or	a
+	jp	nz,wrerr
+
+	ld	hl,free		; free records
+	call	hl1dwn
+
+	jp	nxtrec
+
+
+;------------------------------------------
+rdnodata:	; empty record test for EOF
+;------------------------------------------
+
+	ld	b,a		; save result of random read
+
+	ld	hl,size		; last record number + 1
+	ld	a,(hl)
+	inc	hl
+	or	(hl)
+	inc	hl
+	or	(hl)
+	jp	z,ateof		; at eof
+
+	ld	a,b		; recover read result
+	cp	04		; test for no FCB
+	jr	nz,onehole
+
+;--------------------------------------------------------
+; missing logical extent so skip 128 records (16k extent)
+;--------------------------------------------------------
+
+	ld	c,128-1
+nxtext:
+	ld	hl,srcfcb+33
+	call	hl1up		; increment random record counter
+
+	ld	hl,dstfcb+33	; (should be the same as source)
+	call	hl1up		; increment random record pointer
+
+	ld	hl,size		; records remaining to copy
+	call	hl1dwn		; reduce by one
+
+	ld	hl,(blocks)	; remaining records in extent
+	dec	hl
+	ld	(blocks),hl	; maximum records to copy
+
+	dec	c
+	jr	nz,nxtext	; continue to end of extent less one
+
+onehole:
+nxtrec:
+	ld	hl,srcfcb+33
+	call	hl1up		; increment random record counter
+
+	ld	hl,dstfcb+33
+	call	hl1up		; increment random record pointer
+
+	ld	hl,size		; records remaining to copy
+	call	hl1dwn		; reduce by one
+
+	ld	hl,(blocks)	; remaining records in extent
+	dec	hl
+	ld	(blocks),hl	; maximum records to copy
+
+	ld	a,h
+	or	l
+	jp	nz,rdblk	; and await next block
+	jp	rdextent	; read next extent
+
+;-------------------------------------------------
+tstspace:	; check enough room in destination
+;-------------------------------------------------
+;1. check space remaining on dest disk
+;2. compare with size of physical extent
+;   Return if greater or equal
+;3. compare with remaining size of source disk
+;   Return if greater or equal
+;4. if no room
+;   1. close destination file
+;   2. prompt user to change disk
+;   3. create new file with current extent
+;   4. repeat this module
+; RETURNS: Carry set if not enough space
+;-------------------------------------------------
+
+; compare space remaining on disc with physical extent size
+
+	ld	de,free		; free records
+	ld	hl,extent	; records per extent
+	ld	a,(de)
+	sub	(hl)
+	inc	hl
+	inc	de
+	ld	a,(de)
+	sbc	a,(hl)
+	inc	hl
+	inc	de
+	ld	a,(de)
+	sbc	a,(hl)
+	ret	nc		; space on disk for one physical extent
+				; carry true when no space
+
+; compare space remaining on disc with remaining sectors to transfer
+
+	ld	de,free		; free records
+	ld	hl,size		; last record number + 1
+	ld	a,(de)
+	sub	(hl)
+	inc	hl
+	inc	de
+	ld	a,(de)
+	sbc	a,(hl)
+	inc	hl
+	inc	de
+	ld	a,(de)
+	sbc	a,(hl)
+
+	ret		; NC - space on disk for remainder of file
+			;  C - carry true when no space
+
+;---------------------------
+; insufficient space on disk
+;---------------------------
+nospace:
+	ld	a,(dstfcb+15)	; destination record count byte
+	or	a
+	jr	z,done05	; empty extent
+
+	ld	de,dstfcb
+	ld	c,16		; close file
+	call	bdos
+	cp	-1
+	jp	z,wrerr
+
+	ld	a,(dstexm)	; extent mask
+	inc	a
+	ld	b,a
+	ld	hl,dstfcb+12	; offset to 1st EX byte
+loop05:	inc	(hl)
+	djnz	loop05
+	ld	a,(hl)
+	and	00100000b	; check for overflow
+	jp	z,done05	; -no-
+	ld	a,(hl)
+	and	11011111b
+	ld	(hl),a
+	inc	hl
+	inc	hl		; to S1
+	inc	(hl)		; and increment overflow EX
+;----------------------------------
+; open destination file on new disk
+;----------------------------------
+done05:
+	ld	de,msg15
+	call	string
+
+	call	waitcr
+
+	call	d.reset
+	call	newdisk
+	cp	-1
+	jp	z,noopen
+
+	ld	hl,(srcfcb+33)
+	ld	de,(dstfcb+33)	; reset random record count
+	ld	bc,3
+	ldir
+
+	ret
+
+;-------------------------------
+; 3 byte increment and decrement
+;-------------------------------
+hl1up:	ld	b,3		; increment 3 bytes at <HL> by one
+hl1up1:	inc	(hl)
+	ld	a,(hl)
+	or	a
+	ret	nz
+	inc	hl
+	djnz	hl1up1
+	ret
+
+hl1dwn:	ld	b,3		; decrement 3 bytes at <HL> by one
+hl1nxt:	ld	a,(hl)
+	dec	(hl)
+	or	a
+	ret	nz
+	inc	hl
+	djnz	hl1nxt
+	ret
+
+;------------
+; reached EOF
+;------------
+ateof:	ld	de,dstfcb
+	ld	c,16		; close file
+	call	bdos
+	cp	-1
+	jp	z,wrerr
+
+	ld	de,srcfcb
+	ld	c,16		; close file
+	call	bdos
+
+; done file transfer
+	jp	start		; (or finish)
+
+wceof:	jp	start		; (or finish)
+
+
+;--------;
+; ERRORS ;
+;--------;
+
+nofile:	ld	de,msg5
+	call	string
+	ld	a,0
+	ld	(wild),a
+	jp	start
+
+errfile:
+	ld	de,msg6
+	call	string
+	ld	a,0
+	ld	(wild),a
+	jp	start
+
+noopen:
+	ld	de,msg7
+	call	string
+	ld	a,0
+	ld	(wild),a
+	jp	start
+
+rderr:
+	ld	de,msg8
+	call	string
+	ld	a,0
+	ld	(wild),a
+	jp	start
+
+wrerr:
+	ld	de,msg9
+	call	string
+	ld	a,0
+	ld	(wild),a
+	jp	start
+
+badname:			; too many characters entered
+	ld	de,msg10
+	call	string
+	jp	start
+
+baddisk:			; too many characters entered
+	ld	de,msg13
+	call	string
+	jp	start
+
+;----------------------------------------------------------------------
+
+
+;---------------------------------------------------------------------
+fcbblk:	ds	12*128		; space for up to 128 FCB entries
+;---------------------------------------------------------------------
+
+	end
+

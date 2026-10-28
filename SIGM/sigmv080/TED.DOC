@@ -1,0 +1,1189 @@
+
+
+
+
+
+
+
+
+                                    TED USER'S MANUAL
+
+                                     CP/M VERSION 1.1
+
+
+
+
+
+                   INTRODUCTION . . . . . . . . . . . . . . . . . . . 2
+
+                   INFORMATION REQUEST. . . . . . . . . . . . . . . . 4
+
+                   APPEND . . . . . . . . . . . . . . . . . . . . . . 5
+
+                   DELETE LINES . . . . . . . . . . . . . . . . . . . 6
+
+                   INSERT . . . . . . . . . . . . . . . . . . . . . . 7
+
+                   COPY LINE. . . . . . . . . . . . . . . . . . . . . 8
+
+                   LOCATE LINE. . . . . . . . . . . . . . . . . . . . 9
+
+                   MOVE LINE. . . . . . . . . . . . . . . . . . . . .10
+
+                   PRINT LINE . . . . . . . . . . . . . . . . . . . .11
+
+                   QUIT . . . . . . . . . . . . . . . . . . . . . . .12
+
+                   SUBSTITUTE . . . . . . . . . . . . . . . . . . . .13
+
+                   WRITE FILE . . . . . . . . . . . . . . . . . . . .15
+
+                   ERROR MESSAGE'S. . . . . . . . . . . . . . . . . .16
+
+                   ACKNOWLEDGEMENTS . . . . . . . . . . . . . . . . .18
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                              1                            
+
+
+
+
+
+
+
+
+                                                          TED USER'S MANUAL
+
+
+                                       INTRODUCTION
+
+                    TED  is  a  simple,  easy-to-use, and yet powerful text
+
+               editor designed for use with any standard CP/M  system  with
+
+               24K bytes or more of memory. To use TED type:
+
+                                      TED <filename>
+
+                                            or
+
+                                TED <filename>.<filetype>
+
+               where <filename> specifies a standard CP/M file to be edited
+
+               or  created.  An  omitted  file  name  is considered to be a
+
+               filename of all blanks.
+
+                    TED is "self-helping"  and  may  be  used  productively
+
+               without further reference to this documentation!
+
+                    TED is line-oriented, meaning that lines of text within
+
+               the  file  may  be  referenced  by absolute or relative line
+
+               numbers. Additionally, pattern search may be used to  locate
+
+               a line and for global substition within a specified range of
+
+               lines.  The  size of the file to be edited is not limited to
+
+               internal buffer size. TED creates temporary  disk  files  to
+
+               extend  the available buffer space. Version 1.1 limits files
+
+               to 2048 lines of up to 128  characters  per  line  (slightly
+
+               larger than the capacity of a standard 8-inch diskette).
+
+                   Although  TED  is  a  general  purpose  editor, it has a
+
+               companion  program  called  PRO.  PRO  is  a  powerful  test
+
+               processor  for formatting textual information. This document
+
+               was developed using both TED and PRO. PRO  commands  may  be
+
+               referenced via the self-helping feature of TED.
+
+
+
+                                              2                            
+
+
+
+
+
+
+
+
+                                                          TED USER'S MANUAL
+
+
+
+
+                    All   the  edit  commands,  including  the  information
+
+               request,  will  be  briefly  explained  in   the   following
+
+               paragraphs.  Arguments  depicted  by  n1  and  n2 are signed
+
+               integer numbers.
+
+                 n1 or n2        meaning
+
+                   25            line number 25
+
+                   -10           line number ten prior to the current line.
+
+                   +5            line  number  five relative to the current 
+
+                                 line.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                              3                            
+
+
+
+
+
+
+
+
+                                                          TED USER'S MANUAL
+
+
+                                   INFORMATION REQUEST
+
+               Format:
+
+                 ?[char]
+
+
+
+               Operand:
+
+               char...........Char is one of TED's command characters.
+
+
+
+               Description:
+
+                 The information request command provides  instructions  on
+
+               the  use  of  TED  commands.  The  information  command  '?'
+
+               followed by a carriage return,  prints  an  introduction  to
+
+               TED,   and   instructions   for   obtaining   more  detailed
+
+               information. The following is a list of information  command
+
+               options.
+
+
+                 ?               general information
+                 ?a              append info
+                 ?d              delete lines info
+                 ?i              insert info
+                 ?k              copy line info
+                 ?l              locate line info
+                 ?m              move line info
+                 ?p              print lines info
+                 ?q              quit info
+                 ?s              substitute substring info
+                 ?t              text processor commands list info
+                 ?w              write file info
+
+               A question mark '?' should appear in the first column of the
+
+               line.  Blank  characters  or  tab  characters separating the
+
+               question mark and the command character  are  ignored.  Only
+
+               the first displayable character of a command is checked.
+
+
+
+
+
+                                              4                            
+
+
+
+
+
+
+
+
+                                                          TED USER'S MANUAL
+
+
+                                          APPEND
+
+               Format:
+                 a
+                 <text>
+                 .
+
+
+
+               Description:
+
+                 The  APPEND command is used to change the edit mode to the
+
+               input mode. This command consists of an ASCII character  'a'
+
+               followed  immediately  by a carriage return. TED will give a
+
+               response: 'APPEND:' and a carriage return. Then TED is ready
+
+               to accept input text.  New  lines  are  appended  after  the
+
+               current  line. When a line containing only a period is typed
+
+               the user is returned to the  EDIT  mode.  TED  will  give  a
+
+               prompt  with 'EDIT:' followed by a carriage return, and edit
+
+               level indicator '====>'.
+
+
+
+               Example:
+
+                 ====>a
+                 APPEND:
+                      This text is appended to the
+                      current line. The input mode will be
+                      ended by a line that contains a period only,
+                      like the line below
+                      .
+                 EDIT:
+                 ====>
+
+
+
+
+
+
+
+
+
+
+
+
+                                              5                            
+
+
+
+
+
+
+
+
+                                                          TED USER'S MANUAL
+
+
+                                       DELETE LINES
+
+               Format:
+
+                 [n1][,n2]d
+
+
+
+               Operands:
+
+                 n1............Beginning line number to be deleted. If  not
+
+                               specified,  the  current line is assumed. If
+
+                               preceded by a plus  or  minus  sign,  n1  is
+
+                               added  to,  or  subtracted from, the current
+
+                               line.
+
+                 n2............Ending line number to  be  deleted.  If  not
+
+                               specified, only one line is deleted.
+
+
+
+               Description:
+
+                 The  delete  command  is used to delete a line or group of
+
+               lines in the  buffer.  The  line  following  the  last  line
+
+               deleted becomes the current line.
+
+
+
+               Example:
+
+                 3d              deletes line number three.
+
+                 3,6d            deletes lines number three through six.
+
+                 ,+5d            deletes the current line through next 
+
+                                 five lines.
+
+                 d               deletes the current line.
+
+
+
+
+
+
+
+                                              6                            
+
+
+
+
+
+
+
+
+                                                          TED USER'S MANUAL
+
+
+                                          INSERT
+
+               Format:
+                 i
+                 <text>
+                 .
+
+
+
+               Description:
+
+                 The INSERT command is used to insert an additional line or
+
+               lines  before  the  current line. The input text is ended by
+
+               typing a period alone at the beginning of a  line,  followed
+
+               by  a  carriage return. This command differs from the APPEND
+
+               command only in the placement of the input text.
+
+
+
+               Example:
+
+                 ====>i
+                 INSERT:
+                      This text is inserted prior to
+                      the current line.
+                      .
+                 EDIT:
+                 ====>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                              7                            
+
+
+
+
+
+
+
+
+                                                          TED USER'S MANUAL
+
+
+                                        COPY LINE
+
+               Format:
+
+                 n1,n2 k
+
+
+
+               Operands:
+
+                 n1............The line number to be copied. If preceded by
+
+                               a plus or minus sign, n1  is  added  to,  or
+
+                               subtracted from, the current line.
+
+                 n2............The  destination  to  where the line must be
+
+                               copied. If preceded by a plus or minus sign,
+
+                               n2 is added  to,  or  subtracted  from,  the
+
+                               current line.
+
+
+
+               Description:
+
+                 The  COPY  command  is used to copy the line specified, to
+
+               the line destination. This  new  line  becomes  the  current
+
+               line.  If the destination line is greater than the last line
+
+               number, this line will be appended to the last line  in  the
+
+               file.
+
+
+
+               Example:
+
+                 ====>3,8k
+                   8 (the copied line is displayed here).
+                 ====>
+
+
+
+
+
+
+
+
+
+                                              8                            
+
+
+
+
+
+
+
+
+                                                          TED USER'S MANUAL
+
+
+                                       LOCATE LINE
+
+               Format:
+
+                 l/pattern/
+
+
+
+               Operands:
+
+                 /.............A  delimiter  of  the pattern specified. Any
+
+                               displayable character may be used instead of
+
+                               a slash.
+
+
+
+                 pattern.......The string pattern to be searched for.
+
+
+
+               Description:
+
+                 The LOCATE command is  used  to  locate  the  first  line,
+
+               starting with the line following the current line, which has
+
+               the  occurance of the pattern specified. If the last line is
+
+               reached and no pattern is matched, TED will  prompt  with  a
+
+               message  - 'CANNOT FIND:' followed by the pattern specified.
+
+               If locate is successful, the line  will  be  displayed,  and
+
+               becomes the current line.
+
+
+
+               Example:
+
+                 ====>l;ofrmat;
+                   23 Each command has its own ofrmat.
+                 ====>
+
+
+
+
+
+
+
+
+
+                                              9                            
+
+
+
+
+
+
+
+
+                                                          TED USER'S MANUAL
+
+
+                                        MOVE LINE
+
+               Format:
+
+                 n1,n2 m
+
+
+
+               Operands:
+
+                 n1............The  line to be moved. If preceded by a plus
+
+                               or minus sign, n1 is added to, or subtracted
+
+                               from, the current line.
+
+
+
+                 n2............The new  location  of  the  moved  line.  If
+
+                               preceded  by  a  plus  or  minus sign, n2 is
+
+                               added to, or subtracted  from,  the  current
+
+                               line.
+
+
+
+               Description:
+
+                 The  MOVE command is used to move a line from one location
+
+               to another. The new location of the line becomes the current
+
+               line. This line is removed from the old location.
+
+
+
+               Example:
+
+                 ====>11,20m
+                   20 (the moved line is displayed here).
+                 ====>
+
+
+
+
+
+
+
+
+
+
+
+                                             10                            
+
+
+
+
+
+
+
+
+                                                          TED USER'S MANUAL
+
+
+                                       PRINT LINES
+
+
+
+               Format:
+
+                 [n1] [,n2]|+|-|:
+
+
+
+               Operands:
+
+                 n1............The beginning line to be displayed.
+
+                 n2............The last line to be displayed.
+
+                 +.............The line after the current line.
+
+                 -.............The line prior to the current line.
+
+                 :.............Displays 16 lines starting from the  current
+
+                               line.
+
+
+
+               Description:
+
+                 The  print  lines command requests TED to type out a group
+
+               of  one  or  more  lines.  A  carriage  return  without  any
+
+               character preceding it, prints the current line.
+
+
+
+               Example:
+
+                 ====>1,5           prints line one through line five.
+
+                 ====>,+9           prints 10 lines starting from the current
+
+                                    line.
+
+                 ====>25            prints line number 25.
+
+
+
+
+
+
+
+
+
+                                             11                            
+
+
+
+
+
+
+
+
+                                                          TED USER'S MANUAL
+
+
+                                           QUIT
+
+
+
+               Format:
+
+                 q
+
+
+
+               Description:
+
+                 The  quit command is used to exit the edit session without
+
+               altering the source file. All current editting is lost. As a
+
+               precaution, TED will prompt with  the  message  "WRITE?????"
+
+               whenever the first entry of the quit command is requested. A
+
+               subsequent quit command ends the edit session.
+
+
+
+               Example:
+
+                 ====>q
+                 WRITE????
+                 ====>q
+                 A>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                             12                            
+
+
+
+
+
+
+
+
+                                                          TED USER'S MANUAL
+
+
+                                        SUBSTITUTE
+
+
+
+               Format:
+
+                 [n1] [,n2] s/pattern/repl/[g]
+
+
+
+               Operands:
+
+                 /.............delimiter,  any displayable character may be
+
+                               used instead of a slash character.
+
+                 n1............the beginning line of substitution.  If  not
+
+                               specified the current line is assumed.
+
+                 n2............the  ending  line of substitution. n2 should
+
+                               be greater than n1
+
+                 pattern.......the pattern to be replaced.
+
+                 repl..........the replacement string. The null  string  is
+
+                               included.
+
+                 g.............global replacement indicator.
+
+
+
+               Description:
+
+                 The  substitute command is used to search for an occurance
+
+               of  the  specified  pattern,  and  replace   it   with   the
+
+               replacement  string. If the replacement is made, the line is
+
+               displayed. If no occurance is found, TED  gives  a  message:
+
+               "CANNOT   FIND:   'pattern'."   If  the  global  replacement
+
+               indicator is used, all occurances of  the  pattern  in  each
+
+               line  are  replaced.  Line length is truncated to 128 if the
+
+               resulting replacement makes the line length overflow.
+
+
+
+                                             13                            
+
+
+
+
+
+
+
+
+                                                          TED USER'S MANUAL
+
+
+
+
+               Example:
+
+                 ====>16,40s;change;replace;g
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                             14                            
+
+
+
+
+
+
+
+
+                                                          TED USER'S MANUAL
+
+
+                                        WRITE FILE
+
+
+
+               Format:
+
+                 w
+
+
+
+               Description:
+
+                 The write file command writes the updated  disk  file  and
+
+               deletes  temporary  files.  No backup file is created. After
+
+               the file is written, control is returned  to  the  operating
+
+               system.
+
+
+
+               Example:
+
+                 ====>w
+                 A>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                             15                            
+
+
+
+
+
+
+
+
+                                                          TED USER'S MANUAL
+
+
+                                      ERROR MESSAGES
+
+
+
+               DESCRIPTION:
+
+                 TED's error messages are self-explanatory, for example: if
+
+               you attempt to write to a disk which already has 256 records
+
+               on it TED will respond with the message 'DISK FULL'. If your
+
+               directory   is  full  TED  will  respond  with  the  message
+
+               'DIRECTORY SPACE FULL'. These types of errors are considered
+
+               fatal, and in the case of fatal errors TED  will  print  the
+
+               error  message  and  return  to CP/M. If this occurs you may
+
+               find you have two working files on your  disk,  NEW.$$$  and
+
+               REV.$$$.  Since  these  files  take up disk space during the
+
+               edit session you may run out of disk space much sooner  then
+
+               you  might have imagined! It is recommended that you have at
+
+               least 2.5 times as much space on the disk as the size of the
+
+               file you are intending to edit. If  you  have  made  several
+
+               changes to your file and you get a 'DISK FULL' error you may
+
+               be  able  to  recover  some  of the changes you have made by
+
+               inspecting the first part of your NEW.$$$ file.  It  may  or
+
+               may not contain the latest changes made. If it does, you may
+
+               combine it with the original file using the PIP command.
+
+                 The following errors are fatal errors:-
+
+
+                      FILE EXTENSION ERROR
+                      DISK FULL
+                      DIRECTORY SPACE FULL
+                      DISK ERROR
+                      CLOSE NEWFILE ERROR
+                      CLOSE REVFILE ERROR
+                      CLOSE OLDFILE ERROR
+
+
+                                             16                            
+
+
+
+
+
+
+
+
+                                                          TED USER'S MANUAL
+
+
+                      MEMORY OVERFLOW(CP/M SYSTEM IS TOO SMALL FOR TED)
+
+                 In  addition  to the fatal errors there are various errors
+
+               in command format. These are not considered fatal errors and
+
+               TED  will  wait  for  further  input   after   printing   an
+
+               appropriate  error message. The non-fatal errors include the
+
+               following:-
+
+
+                      MISSING OPERAND
+                      NO SUCH LINE(ON DELETE COMMANDS)
+                      INVALID COMMAND
+                      INVALID NUMBER(ANY NUMBER >2048 OR EQUAL TO 0)
+                      INVALID LOCATE
+                      INVALID SUBSTITUTE
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                             17                            
+
+
+
+
+
+
+
+
+                                                          TED USER'S MANUAL
+
+
+                                     ACKNOWLEDGEMENTS
+
+
+
+                 TED is a modified version of ED  an  editor  designed  and
+
+               implemented  by  LTCOL  Triyono  at  the  Naval Postgraduate
+
+               School as part of his thesis research. ED  was  designed  to
+
+               run  on  the ISIS-II operating system and was part of a TEXT
+
+               processing  system  entered  in  the  Intel  Insite  library
+
+               contest which eventually won the grand prize.
+
+                 Many  of  the  data  structures  used  in  ED and TED were
+
+               originally designed by professor Gary  Kildall.  LCDR  Frank
+
+               Burkhead  served  as  LTCOL  Triyono's  thesis  advisor  and
+
+               contributed  his  guidance   and   experience   during   the
+
+               development  of  the  original  system. Alterations to ED to
+
+               allow TED to run on CP/M were made by LT Mark Moranville and
+
+               LCDR Frank Burkhead.  Further  information  on  TED  may  be
+
+               obtained from:-
+
+
+                    LT Mark Moranville(code 52mi)
+                    Naval Postgraduate School
+                    Monterey, Calif 93940
+                    ph 408-646-2253
+
+                    LCDR Frank Burkhead(code 52bg)
+                    Naval Postgraduate School
+                    Monterey, Calif 93940
+                    ph 408-646-2449
+
+
+
+
+
+
+
+
+
+
+
+
+                                             18                            
+
+
+
+                                                                                                   

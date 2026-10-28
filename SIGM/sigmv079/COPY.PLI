@@ -1,0 +1,369 @@
+/* copy - conditional file copy program (with query)
+        Must be linked with 'PLIDIO.REL'.
+	syntax:  COPY <destination> <source>
+	destination may be drive name only (source drive ~= destination)
+	source may be a wild card specification  */
+
+
+	copy: 	procedure options(main);
+	%replace
+	   TRUE           by '1'b,
+	   FALSE          by '0'b,
+	   VERSION        by 'COPY 1.0',
+	   VERDATE        by '02/05/81',
+	   HELP_CMD       by 'HELP    ',
+	   EOF            by '^Z',
+	   INTRRPT        by '^C',
+	   BUFWDS         by 64,   /* words per buffer */
+	   LISTDIM        by 20,   /* files per copy list allocation */
+	   LISTBLKS       by 5,    /* number of allocations */
+	   LISTLNGTH      by 100,  /* LISTDIM * LISTBLKS */
+	   ALLOCWDS       by 112,  /* ((LISTDIM * 11) + 5) / 2  */
+           ALLOCBYTES     by 224;  /* ALLOCWDS * 2 */
+
+%include 'diomod.dcl';
+
+	dcl
+	   version_date   char(8) external static init(VERDATE);
+
+
+	declare
+	   1 default1      based(dfcb0()),
+	     3 space       fixed(7),
+	     3 command     char(8);
+
+
+	dcl
+		1 dest based(dfcb0()),
+%include 'fcb.dcl';
+
+	dcl
+		1 source based(dfcb1()),
+%include 'fcb.dcl';
+
+
+	dcl
+		1 sourcefile,
+%include 'fcb.dcl';
+
+
+	dcl
+		1 renfile,
+%include 'fcb.dcl';
+
+
+	declare
+	   fcbp            pointer,
+	   1 dir_fcb       based(fcbp),
+%include 'fcb.dcl';
+	
+
+	declare
+		1 copy_fcb(LISTDIM) based,
+		  3 fname	char(8),
+		  3 ftype	char(3);
+
+
+	declare
+	   save_drive       bin fixed(7),
+	   maxwords         bin fixed(15),
+	   nbuffs           bin fixed(15),
+	   bufptr           pointer,
+	   cptr(LISTBLKS)   pointer,
+	   dir_mask(0:127)  bit(8) based(dbuff()),
+	   (i,j,n)          bin fixed(15) static init(0),
+	   msg              char(47) varying static init(
+	                 '^I^Isyntax: COPY <destination file> <source file>');
+
+	on error(70) begin;
+	   put list('No Source File',msg);
+	   call reboot();
+	   end;
+
+
+	on error(7) begin;
+	   n = n - 1;
+	   put skip list('List Space Exhausted');
+	   call copy_list;
+	   put skip list('Rebooting');
+	   call reboot();
+	   end;
+
+	put list(VERSION);
+	put skip;
+	if command = HELP_CMD then do;
+	    put skip list('COPY - Copy with Query');
+	    put skip(2) list('Command line');
+	    put skip list(msg);
+	    put skip list('where:');
+	    put edit('<destination> is an unambiguous filename or drive',
+	             '<source> is unambiguous unless destination is a different drive')
+				(skip(2),a);
+	    put skip(2);
+	    call reboot();
+	    end;
+
+redo:	maxwords = memwds();
+	bufptr = memptr();
+	call get_nbuffs;
+
+	/* get actual drives */
+	if source.drive = 0 then
+	   source.drive = curdsk() + 1;
+	if dest.drive = 0 then
+	   dest.drive = curdsk() + 1;
+
+	/* test for wild card in destination */
+	if wildcard(dfcb0()) then do;
+	   put skip list('Invalid destination');
+	   call reboot();
+	   end;
+
+	/* process copy command */
+	if dest.drive = source.drive & dest ~= source
+	   & ~wildcard(dfcb1()) then do;
+	      sourcefile = source;
+	      call diocopy;
+	      end;
+	else if dest.drive ~= source.drive then
+	   if wildcard(dfcb1()) then do;
+	      save_drive = source.drive;
+	      call setdma(dbuff());
+	      call alloc;
+	      i = sear(dfcb1());
+	      if i > -1 then do;
+	            do while(i > -1);
+	            unspec(i) = unspec(i) & '00000011'b;  /* for CP/M 1.4 */
+	            fcbp = addr(dir_mask(i * 32));
+	            if dir_fcb.drive = user() then do;
+	               if query() then
+	                  call add_to_list;
+	               end;
+	               i = searn();
+	            end;
+	         call copy_list;
+	         end;
+	      else
+	         signal error(70);
+	      end;
+	   else do;
+	      sourcefile = source;
+	      if dest.fname = '' & dest.ftype = '' then do;
+	         save_drive = dest.drive;
+	         dest = sourcefile;
+	         dest.drive = save_drive;
+	         end;
+	      call diocopy;
+	      end;
+	else
+	   put list('Invalid Format',msg);
+	call reboot();
+
+/* user - procedure to get user number if version > = cp/m 2.0 */
+	user: procedure returns(fixed(7));
+
+	if vers() = '0000'b4 then
+	   return(0);
+	else
+	   return(getusr());
+	end user;
+
+/* wildcard - returns true if fcb based at ptr has question marks */
+	wildcard: procedure(p) returns(bit(1));
+	declare
+	   p pointer,
+	   1 wild_fcb based(p),
+	     3 drive  bin fixed(7),
+	     3 name   char(12);
+
+	if index(wild_fcb.name,'?') > 0 then
+	   return(TRUE);
+	else
+	   return(FALSE);
+	end wildcard;
+
+/* add_to_list - add fcb to copy list */
+	add_to_list: procedure;
+
+	j = j + 1;
+	if j > LISTDIM then do;
+		call alloc;
+		j = 1;
+		end;
+	call get_nbuffs;
+	cptr(n)->copy_fcb(j).fname = dir_fcb.fname;
+	cptr(n)->copy_fcb(j).ftype = dir_fcb.ftype;
+	end add_to_list;
+
+/* alloc - allocate another block of copy list */
+	alloc: procedure;
+	declare
+	   fixed15	fixed based;
+
+	n = n + 1;
+	if n > LISTBLKS then
+		signal error(7);
+	maxwords = maxwords - ALLOCWDS;
+	addr(bufptr)->fixed15 = addr(bufptr)->fixed15 + ALLOCBYTES;
+	allocate copy_fcb set(cptr(n));
+	end alloc;
+
+
+/* copy_list - copy files in copy list */
+	copy_list: procedure;
+	declare
+	   k    fixed,
+	   l	fixed(7);
+
+	call get_nbuffs;
+	put skip list('Copying: ');
+	k = 0;
+	   do i = 1 to n;
+	      do l = 1 to LISTDIM while( i < n | l <= j);
+	      sourcefile.drive = save_drive;
+	      sourcefile.fname = cptr(i)->copy_fcb(l).fname;
+	      sourcefile.ftype = cptr(i)->copy_fcb(l).ftype;
+	      dest.fname = cptr(i)->copy_fcb(l).fname;
+	      dest.ftype = cptr(i)->copy_fcb(l).ftype;
+	      call diocopy;
+	      put list('.');
+	      k = k + 1;
+	      end;
+	   end;
+	put skip list(k,'file(s) copied to',ascii(64+dest.drive)||':');
+	end copy_list;
+
+
+/* query - query and delete if response is 'y'es */
+	query: procedure returns(bit(1));
+	declare
+	   c              char(1);
+
+	put skip list(ascii(64+source.drive)||':',
+	   dir_fcb.fname||'.'||dir_fcb.ftype,'?');
+	c = rdcon();
+	if c = INTRRPT then
+	   call reboot();
+	else if c = EOF then do;
+	   call copy_list;
+	   call reboot();
+	   end;
+	else if translate(c,'Y','y') = 'Y' then
+	   return(TRUE);
+	else
+	   return(FALSE);
+	end query;
+
+/* get_nbuffs - calculate number of buffers available for copy */
+	get_nbuffs: procedure;
+
+	nbuffs = divide(maxwords,BUFWDS,15);
+	if nbuffs = 0 then
+		do;
+		put skip list('No Buffer Space - Rebooting');
+		call reboot();
+		end;
+
+	end get_nbuffs;
+
+
+/* diocopy - direct io copy from source to dest */
+	diocopy: procedure;
+	declare
+		/* buffer management */
+		eofile bit(8),
+		i      fixed(15),
+		m      fixed(15),
+		memory (0:0) bit(16) based(bufptr),
+		buffs fixed(15);
+
+
+	/* copy fcb to rename file, count extents */
+	renfile = dest;
+
+	/* destination file will be deleted later */
+	dest.ftype = '$$$';
+
+	/* delete any existing x.$$$ file */
+	call delete(addr(dest));
+	sourcefile.fext = 0;
+
+	/* open the source file, if possible */
+	if open(addr(sourcefile)) = -1 then
+	   signal error(70);
+
+	/* source file opened, create $$$ file */
+	dest.fext = 0;
+	dest.crec = 0;
+	if make(addr(dest)) = -1 then
+		do;
+		put skip list('No Directory Space on',
+	           ascii(64+dest.drive)||':');
+		call reboot();
+		end;
+
+	/* $$$ temp file created, now copy from source */
+	eofile = FALSE;
+	buffs  = nbuffs;
+	sourcefile.crec = 0;
+		do while (^eofile);
+		m = 0;
+			/* fill buffers */
+			do i = 0 repeat (i+1) while (i<buffs);
+                        call abort_test;
+			call setdma(addr(memory(m)));
+			m = m + BUFWDS;
+			if rdseq(addr(sourcefile)) ^= 0 then
+				do;
+				eofile = TRUE;
+				/* truncate buffer */
+				buffs = i;
+				end;
+			end;
+
+		m = 0;
+			/* write buffers */
+			do i = 0 to buffs-1;
+                        call abort_test;
+			call setdma(addr(memory(m)));
+			m = m + BUFWDS;
+			if wrseq(addr(dest)) ^= 0 then
+				do;
+				put skip list(ascii(64+dest.drive)||
+	                           ': Disk Full');
+				call reboot();
+				end;
+			end;
+		end;
+
+	/* close destination file and rename */
+	dest.space(1) = sourcefile.space(1);
+
+	if close(addr(dest)) = -1 then
+	   call reboot();
+
+	/* destination file closed, erase old file */
+	call delete(addr(renfile));
+
+	/* now rename $$$ file to old file name */
+	dest.name2 = renfile.name1;
+	call rename(addr(dest));
+	end diocopy;
+
+/* abort_test - abort if console character */
+	abort_test: procedure;
+	dcl c char(1);
+
+                if break() then do;
+		   c = rdcon();
+		   put skip list('Abort (Y/N)? ');
+		   c = rdcon();
+		   if c = 'Y' | c ='y' then do;
+                       put skip list('Copy Aborted');
+                       call reboot();
+		       end;	
+                   end;
+	end abort_test;
+        
+	end copy;
+

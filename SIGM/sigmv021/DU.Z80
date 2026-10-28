@@ -1,0 +1,1713 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+;           DISK UTILITY PROGRAM
+;
+;  Here is a program we all can use.  It'll teach you,
+;  help you and be a good tool, all at once.  As you
+;  can see it has come to us via the CP/M users group.
+;  An admirer translated it to Z80 so now we all got it.
+;  If someone, who has the time, will optomize it, de-
+;  bug Wards admitted errors and then pass it to the
+;  group, we'd be even more happy.  I know I want to
+;  patch it for 2.2 and dual-sided disks. 
+;
+;  Donated to PASCAL/Z USERS GROUP, July 1980
+;
+;DISK UTILITY -	By Ward Christensen
+;DU.ASM	V3.0	EDIT 10
+;
+;	8/6/78
+;ORIGINALLY WRITTEN TO RECONSTRUCT BLOWN
+;DISKS ON CBBS VIA REMOTE ACCESS
+;
+;		----------------
+;Sorry for the lack of comments in the code 
+;portion of this program - it was just hacked
+;together to satisfy my needs, but lots of
+;other people found it useful.  Its external
+;documentation is good, but its sadly lacking
+;comments on the instructions.
+;		----------------
+;
+;	11/12/78 WLC
+;ADD LOGIN COMMAND
+;
+;	11/26/78 WLC
+;ADD DISK # TO LOGIN COMMAND
+;
+;	02/25/79 WLC
+;PUT SECTOR READ INTO "S" COMMAND
+;
+;	10/10/79 WLC
+;SAVE REGS IN BIOS CALLS
+;TRANSLATE INPUT TO UPPER CASE
+;ADD COMMANDS: 	< SAVE SECTOR
+;		> RESTORE SECT
+;		/ REPEAT
+;ALLOW CHANGE FROM-THRU
+;
+;	01/06/80 WLC
+;REWRITE "F" COMMAND
+;
+;	01/07/79
+;ADD VIEW COMMAND
+;
+;	01/08/80
+;REPOSITION AFTER "M" COMMAND
+;
+CR:	EQU	0DH
+LF:	EQU	0AH
+TAB:	EQU	09H
+;
+;Any valid command string may be placed as an
+;operand of the original DU command, i.e.:
+;
+;	DU G0;D;G2;=OK<D><A><1A>;D
+;
+;Functions supported:
+;
+;	Tnn	Seek to track nn (no read)
+;	Snn	Position to sector nn, and read
+;	Gnn	Position to group nn and read.
+;	G	Shows current position
+;	V	Views the current sector.
+;		(assumes ASCII data)
+;	Vnn	Views nn sectors
+;	Fname	print directory for file "name",
+;		then positions to it's directory 
+;		sector.
+;
+;	=string	Ascii search, starting at current
+;		sector.  <xx> hex may be imbedded,
+;		or used alone:  To find "IN 0FEH":
+;		=<db><fe>
+;
+;	L	Re-logs in the current disk. You may pull
+;		out a disk, put in a new, and "L" just
+;		to log it in (prevents 	CP/M 1.4
+;		from getting R/O errors). (hmmm, on second
+;		thought, I'm not doing any BDOS calls
+;		anyway, so no R/O errors COULD occur..
+;		owell, better safe than sorry)
+;
+;	Lx	Logs in disk 'x', such as: LB
+;
+;	D	Dump sector, hex + ASCII
+;	A	Dump sector, ASCII only
+;	H	Dump sector, hex only
+;
+;note all dump commands (D, A, H) may be optionally
+;	followed by a starting and ending address:
+;	D0,7F  is the same as just D
+;	D3,5
+;	A20,3F
+;
+;	CHaddr,val,val,val... change hex in sector
+;	CAaddr,char string... change ASCII in sector
+;		NOTE that <xx> may be hex imbedded
+;		in the Ascii:  ca0,OK<d><a><1a>
+;
+;		----> Use W to write changes to disk.
+;		Note that the C command echoes
+;		the overlaid data for verification.
+;
+;	CHaddr-addr,byte
+; or	CAaddr-addr,byte	repeats a change
+;
+;	#	(Used by Ward to set the sector
+;		order table to 1,2,3,4,5...
+;		for my strange disks)
+;
+;	+	advance 1 sector (if below track 2,
+;		this advances to next numerical, if
+;		2 or >, advances based on CP/M's normal
+;		sector scrambling algorithm, i.e. so +
+;		will get the next logical sector of the file
+;
+;	-	backs up 1 logical sector
+;
+;		note + and - may take an amount:
+;		for example, +F steps in 15 sectors
+;
+;	?	Gives command summary
+;
+;	M	Dumps a map of the group allocations
+;		for files.
+;	Mn	Shows which file is allocated to
+;		group "n".
+;
+;	R	Reads the sector currently positioned to
+;		into memory.  Note R (Read) is implicit in
+;		the G, +, and - commands, but N-O-T in the
+;		S and T commands (I did it because I was
+;		tired of disk reading after T command before
+;		I had a chance to issue the S command)
+;
+;	W	Write back the current sector (N-O-T-E may
+;		not be used after an F command, as CP/M was
+;		used to find the file in the directory
+;
+;	X	Exit back to CP/M (Must press return).  Ctl-c
+;		was too easy to hit over modem lines, so I
+;		decided on 2-byte (X, CR) to exit.
+;
+;	P	Toggle printer switch on/off
+;
+;	Z	Sleep - causes the program to pause, such
+;		as to look at a dump.  Z is 1 sec.  Znn
+;		is nn tenths of a second on a 2 MHz 8080.
+;
+;	<	Saves current sector in a save buffer
+;
+;	>	Gets saved buffer.  < and > may be used
+;		to move a sector to another place.
+;
+;	/	Repeats entire command.  Defaults
+; or	/nn	to "forever".  NN may be 2 to 254
+;
+;multiple commands may be separated by ";"
+;
+;Example: the following commands will erase the
+;	b disk directory to all E5's:
+;
+;	lb			log in b drive
+;	g0			position to dir.
+;	ch0-7f,e5		fill with e5
+;	<			save the sector
+;	>;w;+;/16		restore, write, next,
+;				repeat 16       
+;
+;----This could be shortened to:
+;
+;	lb;g0;ch0-7f,e5;<
+;	>;w;+;/16
+;
+	ORG	100H
+	LD	SP,STACK     ;EXITS VIA JMP 0
+;SET UP LOCAL JMPS TO BIOS
+	LD	HL,(1)	     ;WARM BOOT POINTER
+	LD	DE,3
+	ADD	HL,DE	
+	LD	(VCONST+1),HL
+	ADD	HL,DE
+	LD	(VCONIN+1),HL
+	ADD	HL,DE
+	LD	(VCONOUT+1),HL
+	ADD	HL,DE	     ;LIST
+	LD	(VLIST+1),HL
+	ADD	HL,DE	     ;PUNCH
+	ADD	HL,DE	     ;RDR
+	ADD	HL,DE
+	LD	(VHOME+1),HL
+	ADD	HL,DE	     ;SEL DISK
+	ADD	HL,DE
+	LD	(VSETTRK+1),HL
+	ADD	HL,DE
+	LD	(VSETSEC+1),HL
+	ADD	HL,DE
+	LD	(VSETDMA+1),HL
+	ADD	HL,DE
+	LD	(VREAD+1),HL
+	ADD	HL,DE
+	LD	(VWRITE+1),HL
+	CALL	ILPRT
+	DEFB	'DISK UTILITY (DU) V3.0 01/07/80',CR,LF
+	DEFB	CR,LF,'Type ? for help'
+	DEFB	CR,LF,'Type X to exit'
+	DEFB	CR,LF,0
+	LD	HL,80H	     ;TO INPUT BUFF
+	LD	A,(HL)
+	OR	A
+	JP	Z,PROMPTR    ;NO COMMAND
+;
+;GOT INITIAL COMMAND, SET IT UP
+;
+	LD	B,A	     ;SAVE LENGTH
+	DEC	B
+	JP	Z,PROMPTR
+	LD	DE,INBUF
+	INC	HL	     ;SKIP LEN
+	INC	HL	     ;SKIP ' '
+	CALL	MOVE
+	LD	A,CR
+	LD	(DE),A
+	LD	HL,INBUF
+	JP	PROMPTI
+;
+PROMPTR:CALL	RDBUF
+PROMPTI:LD	A,255
+	LD	(TOGO),A     ;LOOP COUNT FOR "/"
+PROMPT:	LD	SP,STACK
+	XOR	A	     ;ZERO 2-UP PRINT
+	LD	(TWOUP),A    ;..SWITCH
+	LD	A,1
+	LD	(FTSW),A     ;TELL SEARCH NOT TO INCR
+	PUSH	HL
+	LD	HL,100H
+	LD	(BUFAD),HL   ;FOR RDBYTE
+	POP	HL
+	CALL	CTLCS	     ;ABORT?
+	JP	Z,PROMPTR    ;..YES, READ BUFFER
+;DO WE HAVE TO POSITION IN DIRECTORY AFTER FIND?
+	LD	A,(FINDFLG)
+	OR	A
+	JP	NZ,POSDIR    ;POSITION IN DIRECTORY
+	LD	A,(HL)
+	CP	CR
+	JP	Z,PROMPTR
+	CP	';'	     ;LOGICAL CR?
+	INC	HL
+	JP	Z,PROMPT
+	CALL	UPCASE
+	LD	(DUMTYPE),A  ;TYPE OF DUMP (A,D,H)
+	CP	'!'	! JZ WARDSK;<----DON'T USE
+	CP	'+'	! JZ PLUS
+	CP	'-'	! JZ MINUS
+	CP	'='	! JZ SEARCH
+	CP	'<'	! JZ SAVE
+	CP	'>'	! JZ RESTORE
+	CP	'?'	! JZ HELP
+	CP	'A'	! JZ DUMP
+	CP	'C'	! JZ CHG
+	CP	'D'	! JZ DUMP
+	CP	'F'	! JZ POSFIL
+	CP	'G'	! JZ POS
+	CP	'H'	! JZ DUMP
+	CP	'L'	! JZ LOGIN
+	CP	'M'	! JZ MAP
+	CP	'P'	! JZ PRINTFF
+	CP	'R'	! JZ DOREAD
+	CP	'S'	! JZ POS
+	CP	'T'	! JZ POS
+	CP	'V'	! JZ VIEW
+	CP	'W'	! JZ DOWRITE
+	CP	'X'	! JZ 0
+	CP	'Z'	! JZ SLEEP
+	CP	'/'	! JZ REPEAT
+;
+WHAT:	CALL	ILPRT
+	DEFB	'?',0
+	JP	PROMPTR
+;
+;REPEAT BUFFER CONTENTS
+;
+REPEAT:	CALL	DECIN	     ;NN SPECIFIED?
+	LD	A,E
+	OR	A
+	JP	Z,NNN	     ;NO.
+	LD	A,(TOGO)     ;FIRST TIME?
+	CP	0FFH	     ;WAS IT 0FFH?
+	JP	NZ,NNN	     ;NO:  COUNTING
+	LD	A,E	     ;GET COUNT
+	LD	(TOGO),A     ;SET COUNT
+NNN:	LD	HL,INBUF     ;READY TO REPEAT
+	LD	A,(TOGO)
+	CP	0FFH
+	JP	Z,PROMPT     ;CONTINUOUS
+	DEC	A	     ;COUNT DOWN
+	LD	(TOGO),A
+	JP	NZ,PROMPT
+	JP	PROMPTR	     ;RESET
+;
+;TOGGLE PRINT FLAG
+;
+PRINTFF:LD	A,(PFLAG)
+	XOR	1
+	LD	(PFLAG),A
+	JP	PROMPT
+;
+;SLEEP ROUTINE, IN TENTHS OF A SEC
+;
+SLEEP:	CALL	HEXIN	     ;GET COUNT IF ANY
+	LD	A,E	     ;ANY?
+	OR	A
+	JP	NZ,SLEEPLP
+	LD	E,10
+SLEEPLP:LD	BC,8000	     ;APPROX .1 SEC @ 2MHz
+SLEEP2:	DEC	BC
+	LD	A,B
+	OR	C
+	JP	NZ,SLEEP2
+	PUSH	DE
+	CALL	CTLCS
+	POP	DE
+	JP	Z,PROMPTR
+	DEC	E
+	JP	NZ,SLEEPLP
+	JP	PROMPT
+;
+;CHECK FOR CONTROL-C OR S
+;
+CTLCS:	CALL	CONST
+	INC	A
+	RET	NZ	     ;NO CHAR
+	CALL	CONIN
+	AND	1FH	     ;ALLOW ASCII
+	CP	'S'-40H
+	CALL	Z,CONIN
+	CP	'C'-40H
+	RET		     ;0 SET IF CTL-C
+;
+LOGIN:	LD	C,RESETDK
+	PUSH	HL
+	CALL	BDOS
+	POP	HL
+	LD	A,(HL)	     ;DISK REQ?
+	LD	DE,0
+	CP	CR
+	JP	Z,LGNODK
+	CP	';'
+	JP	Z,LGNODK
+	CALL	UPCASE
+	INC	HL
+	SUB	'A'
+	LD	E,A
+LGNODK:	LD	C,SELDK
+	PUSH	HL
+	CALL	BDOS
+	POP	HL
+	CALL	NOWRITE
+	JP	PROMPT
+;
+;READ IN THE DISK DIRECTORY
+;
+READDIR:PUSH	HL
+	CALL	NOWRITE	     ;POSITIONING LOST
+	LD	A,2
+	LD	(CURTRK),A
+	LD	A,1
+	LD	(CURSEC),A
+	LD	B,16	     ;# OF SECTORS
+	LD	DE,DIRECT    ;DMA ADDR
+RDIRLP:	PUSH	BC
+	PUSH	DE
+	LD	B,D
+	LD	C,E
+	CALL	VSETDMA
+	LD	A,(CURTRK)
+	CALL	SETTRK
+	LD	A,(CURSEC)
+	CALL	SETSEC
+	CALL	READ
+	CALL	NEXTSEC
+	POP	DE
+	POP	BC
+	LD	HL,80H
+	ADD	HL,DE
+	EX	DE,HL
+	DEC	B
+	JP	NZ,RDIRLP
+	LD	BC,80H
+	CALL	VSETDMA
+	POP	HL
+	RET	
+;
+;MAP THE DIRECTORY
+;
+MAP:	CALL	READDIR	     ;READ IN DIRECTORY
+	LD	C,2	     ;DFLT START
+	CALL	HEXIN
+	PUSH	HL	     ;SAVE INBUF PTR
+	LD	A,E	     ;GET START
+	OR	A	     ;NOTHING?
+	JP	Z,MAPDF	     ;..YES, DFLT
+	LD	C,E
+MAPDF:	LD	A,C
+	CALL	HEX
+	LD	A,'-'
+	CALL	TYPE
+	CALL	GETGRP	     ;GET GRP(C) TO HL
+MAPCONT:INC	C	     ;NEXT GRP
+	JP	Z,MAPEND     ;DONE
+	PUSH	HL
+	CALL	GETGRP	     ;GET ANOTHER
+	POP	DE	     ;SEE IF SAME
+	CALL	CTLCS
+	JP	Z,MAPEND2
+	LD	A,D
+	CP	H
+	JP	NZ,MAPDIFF
+	LD	A,E
+	CP	L
+	JP	NZ,MAPDIFF
+;SAME, CONTINUE
+	JP	MAPCONT
+;
+;DIFFERENT FILE ENCOUNTERED
+;
+MAPDIFF:LD	A,C
+	DEC	A
+	CALL	HEX
+	EX	DE,HL
+	CALL	MAPNAME
+	JP	MAPDF
+;
+;END
+;
+MAPEND:	LD	A,C	     ;GET LAST
+	DEC	A
+	CALL	HEX
+	CALL	MAPNAME
+	POP	HL
+	CALL	CRLF
+;
+;END OF MAP - REPOSITION TO PREVIOUS GROUP
+;
+MAPEND2:LD	A,(GROUP)
+	PUSH	HL
+	LD	L,A
+	JP	POSGRP2
+;
+;PRINT FILE NAME POINTED TO BY HL
+;
+MAPNAME:CALL	SPACE
+	LD	A,H
+	OR	L	     ;NONE?
+	JP	Z,NONAME
+	LD	A,(HL)	     ;SEE IF ALLOC
+	OR	A	     ;ZERO?
+	LD	A,' '
+	JP	Z,MAPNSP1
+	LD	A,'('
+MAPNSP1:CALL	TYPE
+	PUSH	HL	     ;SAVE POINTER
+	INC	HL	     ;SKIP ALLOC BYTE
+	LD	B,8
+	CALL	MAPN2
+	LD	A,'.'
+	CALL	TYPE
+	LD	B,3
+	CALL	MAPN2
+	CALL	SPACE
+	LD	A,(HL)	     ;GET EXT
+	OR	'0'
+	CALL	TYPE
+	POP	HL
+	LD	A,(HL)
+	OR	A
+	LD	A,' '
+	JP	Z,MAPNSP2
+	LD	A,')'
+MAPNSP2:CALL	TYPE	     ;")" IF ERASED FILE
+	LD	A,(TWOUP)
+	XOR	1
+	LD	(TWOUP),A
+	JP	Z,CRLF
+	JP	DELIM
+;
+NONAME:	CALL	ILPRT
+	DEFB	'++FREE++        ',0
+	LD	A,(TWOUP)
+	XOR	1
+	LD	(TWOUP),A
+	JP	Z,CRLF
+DELIM:	LD	A,':'
+	JP	TYPE
+;
+;PRINT NAME, LENGTH IN B
+;
+MAPN2:	LD	A,(HL)
+	INC	HL
+	CP	' '	     ;PRINTABLE?
+	JP	C,MAPN2H     ;..NO, IN HEX
+	CP	7FH	
+	JP	C,MAPN2A
+MAPN2H:	CALL	BHEX
+	JP	MAPN2Z
+MAPN2A:	CALL	TYPE
+MAPN2Z:	DEC	B
+	JP	NZ,MAPN2
+	RET	
+;
+;FIND WHICH FILE GROUP(C) BELONGS TO
+;
+GETGRP:	LD	HL,DIRECT
+	LD	A,64	     ;# OF FILES
+	LD	(FILECT),A
+GETGLP:	PUSH	HL	     ;SAVE POINTER
+	LD	DE,15	     ;DISP TO LENGTH
+	ADD	HL,DE
+	LD	A,(HL)	     ;GET LENGTH
+	OR	A	     ;ZERO?
+	JP	Z,GETGNF     ;NO FILE
+	CP	0E5H	     ;UNUSED, FOMATTED DISK?
+	JP	Z,GETGNF
+	LD	B,A	     ;SAVE COUNT
+	DEC	B	     ;ALLOW JP BELOW
+GETGL2:	INC	HL	     ;TO NEXT
+	LD	A,(HL)	     ;GET GRP
+	CP	C	     ;CORRECT ONE?
+	JP	Z,GETGOT     ;YES, GOT IT.
+	LD	A,B	     ;GET REC COUNT
+	SUB	8
+	LD	B,A
+	JP	P,GETGL2
+;NO FILE
+GETGNF:	POP	HL
+	LD	DE,32
+	ADD	HL,DE	     ;TO NEXT ENTRY
+	LD	A,(FILECT)
+	DEC	A
+	LD	(FILECT),A
+	JP	NZ,GETGLP    ;MORE?
+	LD	HL,0	     ;NO, NOT FOUND
+	RET	
+;
+;GOT THE FILE
+;
+GETGOT:	POP	HL	     ;POINT TO NAME
+	RET	
+;
+;SAVE THE CURRENT SECTOR
+;
+SAVE:	LD	A,(WRFLG)
+	OR	A
+	JP	Z,BADW	     ;NONE TO SAVE
+	PUSH	HL
+	LD	HL,80H
+	LD	DE,SAVEBUF
+	LD	B,128
+	CALL	MOVE
+	LD	A,1	     ;..SHOW
+	LD	(SAVEFLG),A  ;..SAVED EXISTS
+	POP	HL
+	JP	PROMPT
+;
+;RESTORE THE CURRENT SECTOR
+;
+RESTORE:LD	A,(SAVEFLG)
+	OR	A
+	JP	Z,NOSAVE     ;NONE TO SAVE
+	PUSH	HL
+	LD	HL,SAVEBUF
+	LD	DE,80H
+	LD	B,128
+	CALL	MOVE
+	POP	HL
+	JP	PROMPT
+;
+NOSAVE:	CALL	ILPRT
+	DEFB	'++NO "<" SAVE COMMAND ISSUED'
+	DEFB	CR,LF,0
+	JP	PROMPTR
+;
+;MOVE (HL) TO (DE) LENGTH IN B
+;
+MOVE:	LD	A,(HL)
+	LD	(DE),A
+	INC	HL
+	INC	DE
+	DEC	B
+	JP	NZ,MOVE
+	RET	
+;
+NOWRITE:XOR	A	     ;GET 0
+	LD	(WRFLG),A    ;CAN'T WRITE NOW
+	RET	
+;
+;NO MATCH IN SEARCH, TRY NEXT CHAR
+;
+SRNOMAT:POP	HL
+	CALL	CTLCS	     ;ABORT?
+	JP	NZ,SEARCH    ;..YES
+	LD	HL,INBUF
+	LD	(HL),CR
+	JP	CALCGRP	     ;SHOW WHERE STOPPED
+;
+;SEARCH FOR CHARACTER STRING
+;
+SEARCH:	PUSH	HL	     ;SAVE STRING POINTER
+SRCHL:	CALL	RDBYTE	     ;GET A BYTE
+	PUSH	AF
+	CALL	GETVAL	     ;GET SEARCH VALUE
+	LD	B,A
+	POP	AF
+	CP	B	     ;MATCH?
+	JP	NZ,SRNOMAT   ;NO MATCH
+	INC	HL
+	LD	A,(HL)	     ;DONE?
+	CP	CR
+	JP	Z,SREQU
+	CP	';'
+	JP	NZ,SRCHL
+;GOT MATCH
+SREQU:	CALL	ILPRT
+	DEFB	'= AT ',0
+	LD	A,(BUFAD)
+	AND	7FH
+	CALL	HEX
+	CALL	CRLF
+	JP	CALCGRP
+;
+;GET VALUE FROM INPUT BUFFER
+;
+GETVAL:	LD	A,(HL)
+	CP	'<'	     ;HEX ESCAPE?
+	RET	NZ	     ;NO, RETURN
+;"<<" MEANS ONE "<"
+	INC	HL
+	LD	A,(HL)
+	CP	'<'
+	RET	Z
+;GOT HEX
+	PUSH	DE
+	CALL	HEXIN	     ;GET VALUE
+	CP	'>'	     ;PROPER DELIM?
+	LD	A,E	     ;GET VALUE
+	POP	DE
+	JP	NZ,WHAT	     ;ERROR
+	RET	
+;
+;READ A BYTE AT A TIME
+;
+RDBYTE:	PUSH	HL
+	LD	A,(FTSW)     ;FIRST READ?
+	OR	A
+	JP	NZ,READ1
+	LD	HL,(BUFAD)
+	LD	A,H
+	OR	A	     ;AT 100?
+	JP	Z,NORD	     ;NO, NO READ
+;HAVE TO READ
+	CALL	NEXTSEC
+READ1:	XOR	A
+	LD	(FTSW),A     ;NOT FIRST READ
+	LD	A,(CURSEC)
+	CALL	SETSEC
+	LD	A,(CURTRK)
+	CALL	SETTRK
+	CALL	READ
+	CALL	CALCSUB
+	LD	HL,80H
+NORD:	LD	A,(HL)
+	INC	HL
+	LD	(BUFAD),HL
+	POP	HL
+	RET	
+;
+;VIEW THE FILE IN ASCII STARTING AT
+;CURRENT SECTOR, STEPPING THRU THE DISK
+;
+VIEW:	LD	A,(WRFLG)
+	OR	A
+	JP	Z,BADDMP
+	CALL	HEXIN	     ;GET DISPL IF ANY
+	PUSH	HL
+	LD	A,E
+	OR	A
+	JP	NZ,VIEWLP
+	INC	E	     ;DFLT=1
+VIEWLP:	LD	HL,80H	     ;TO DATA
+VIEWCHR:CALL	CTLCS
+	JP	Z,VIEWEND
+	LD	A,(HL)
+	CP	1AH
+	JP	Z,VIEWEOF
+	CALL	TYPE
+	INC	L
+	JP	NZ,VIEWCHR
+	DEC	E
+	JP	Z,VIEWEND
+	PUSH	DE	     ;SAVE COUNT
+	CALL	NEXTSEC
+	LD	A,(CURSEC)
+	CALL	SETSEC	
+	LD	A,(CURTRK)
+	CALL	SETTRK
+	CALL	READ
+	POP	DE	     ;RESTORE COUNT
+	JP	VIEWLP
+;
+VIEWEOF:CALL	ILPRT
+	DEFB	CR,LF,TAB,'++EOF++',CR,LF,0
+;
+VIEWEND:POP	HL
+	CALL	CRLF
+	JP	CALCGRP
+;
+;DUMP IN HEX OR ASCII
+;
+DUMP:	LD	A,(WRFLG)
+	OR	A
+	JP	NZ,DUMPOK
+	CALL	ILPRT
+BADDMP:	DEFB	'++Can''t dump, no sector read.',CR,LF,0
+EXPL:	CALL	ILPRT
+	DEFB	'Use G command following F,',CR,LF
+	DEFB	'or R or S following T',CR,LF,0
+	JP	PROMPTR
+;
+DUMPOK:	LD	A,(HL)
+	CP	';'
+	JP	Z,DUMPDF     ;DFLT
+	CP	CR
+	JP	NZ,DUMPNDF
+;USE DEFAULT
+DUMPDF:	LD	BC,80H
+	LD	DE,0FFH
+	JP	DUMP1
+DUMPNDF:CALL	DISP
+	LD	B,D
+	LD	C,E
+	CP	CR
+	JP	Z,DUMP1
+	CP	';'
+	JP	Z,DUMP1
+	INC	HL	     ;SKIP ','
+	CALL	DISP
+;
+;BC = START, DE = END
+;
+DUMP1:	PUSH	HL	     ;SAVE COMMAND POINTER
+	LD	H,B
+	LD	L,C
+DUMPLP:	LD	A,L
+	AND	7FH
+	CALL	HEX
+	CALL	SPACE
+	CALL	SPACE
+	LD	A,(DUMTYPE)
+	CP	'A'
+	JP	Z,DUMPAS
+	PUSH	HL	     ;SAVE START
+DHEX:	LD	A,(HL)
+	CALL	HEX
+	LD	A,L
+	AND	3
+	CP	3
+	CALL	Z,SPACE
+	LD	A,L
+	AND	7
+	CP	7
+	CALL	Z,SPACE
+	LD	A,E
+	CP	L
+	JP	Z,DPOP
+	INC	HL
+	LD	A,L
+	AND	0FH
+	JP	NZ,DHEX
+DPOP:	CALL	CTLCS
+	JP	Z,PROMPTR
+	LD	A,(DUMTYPE)
+	CP	'H'
+	JP	Z,DNOAS	     ;HEX ONLY
+	POP	HL	     ;GET START ADDR
+DUMPAS:	CALL	ASTER
+DCHR:	LD	A,(HL)
+	CP	' '
+	JP	C,DPER
+	CP	7FH
+	JP	C,DOK
+DPER:	LD	A,'.'
+DOK:	CALL	TYPE
+	LD	A,E
+	CP	L
+	JP	Z,DEND
+	INC	HL
+	LD	A,L
+	AND	0FH
+	JP	NZ,DCHR
+DEND:	CALL	ASTER
+	CALL	CRLF
+	PUSH	DE
+	CALL	CTLCS
+	POP	DE
+	JP	Z,PROMPTR
+	LD	A,E
+	CP	L
+	JP	NZ,DUMPLP
+	POP	HL
+	JP	PROMPT
+;
+DNOAS:	POP	BC
+	CALL	CRLF
+	LD	A,E
+	CP	L
+	JP	NZ,DUMPLP
+	POP	HL
+	JP	PROMPT
+;
+;POSITION
+;
+POS:	PUSH	AF
+	LD	A,(HL)
+	CP	';'
+	JP	Z,POSINQ
+	CP	CR
+	JP	NZ,POSOK
+POSINQ:	POP	AF
+	JP	INQ
+;
+POSOK:	CALL	HEXIN
+	POP	AF
+	CP	'T'
+	JP	Z,POSTRK
+	CP	'S'
+	JP	Z,POSSEC
+	CP	'G'
+	JP	Z,POSGRP
+	JP	WHAT
+;
+POSTRK:	LD	A,E
+	CALL	SETTRK
+	CALL	NOWRITE	     ;TRACK DOESN'T READ
+	JP	CALCGRP
+;
+POSSEC:	LD	A,E
+	OR	A
+	JP	Z,WHAT
+	CP	27
+	JP	NC,WHAT
+	CALL	SETSEC
+	CALL	READ
+;
+CALCGRP:CALL	CALCSUB
+	JP	INQ
+;
+CALCSUB:PUSH	HL
+	LD	A,(CURTRK)
+	SUB	2	     ;GRP 0 IS TRK 2
+	LD	L,A
+	LD	H,0
+	LD	D,H
+	LD	E,L
+	ADD	HL,HL	     ;X2
+	ADD	HL,DE	     ;X3
+	ADD	HL,HL	     ;X6
+	ADD	HL,HL	     ;X12
+	ADD	HL,DE	     ;X13
+	ADD	HL,HL	     ;X26
+	LD	A,(CURSEC)
+	DEC	A
+	ADD	L
+	LD	L,A
+	LD	A,H
+	ADC	0
+	LD	H,A
+	LD	A,L
+	AND	7
+	LD	(GRPDISP),A
+	ADD	HL,HL
+	ADD	HL,HL
+	ADD	HL,HL
+	ADD	HL,HL
+	ADD	HL,HL
+	LD	A,H
+	LD	(GROUP),A
+	POP	HL
+	RET	
+;
+;POSITION IN THE DIRECTORY AFTER A FIND
+;
+POSDIR:	PUSH	HL	     ;SAVE INBUF
+	XOR	A
+	LD	(FINDFLG),A  ;CANCEL POS REQ
+	LD	A,(DIRPOS)   ;GET POSITION
+	RRA	
+	RRA	
+	PUSH	AF
+	AND	7	     ;GET GRP DISPLACEMENT
+	LD	(GRPDISP),A
+	POP	AF
+	RRA	
+	RRA	
+	RRA	
+	AND	1	     ;GET GROUP
+	LD	(GROUP),A
+	LD	L,A	     ;SETUP FOR POSGRP2
+	JP	POSGRP2	     ;POSITION TO IT
+;
+POSGRP:	LD	A,E
+	LD	(GROUP),A
+	XOR	A
+	LD	(GRPDISP),A
+	PUSH	HL
+	LD	L,E	     ;MULTIPLY
+POSGRP2:LD	H,0	     ;BY 8
+	ADD	HL,HL
+	ADD	HL,HL
+	ADD	HL,HL
+	LD	A,(GRPDISP)  ;MAY BE >0 IF "F" CMD.
+	ADD	L	     ;CAN'T CARRY
+	LD	L,A
+;DIVIDE BY 26, QUOTIENT = TRK, REMAINDER = SECTOR
+	LD	DE,-26
+	LD	B,0	     ;TRK
+DIVLP:	INC	B
+	ADD	HL,DE
+	JP	C,DIVLP
+	DEC	B
+	LD	DE,26
+	ADD	HL,DE
+	LD	A,B
+	ADD	2	     ;GROUP 0 IS TRK 2
+	CALL	SETTRK
+	LD	A,L
+	INC	A
+	CALL	SETSEC
+	CALL	READ
+	POP	HL
+	JP	INQ
+;
+POSFIL:	CALL	NOWRITE
+	LD	A,1
+	LD	(FINDFLG),A  ;SO WE POSITION LATER
+	LD	DE,FCB
+	XOR	A	     ;LOGGED IN DISK
+	LD	(DE),A
+	INC	DE
+	LD	B,8
+	CALL	MVNAME
+	LD	B,3
+	CALL	MVNAME
+	LD	DE,FCB
+	LD	C,SRCHF
+	PUSH	HL
+	CALL	BDOS
+	INC	A
+	JP	NZ,FLOK
+	LD	(DIRPOS),A   ;GRP 0 IF NOT FOUND
+	CALL	ILPRT
+	DEFB	'++FILE NOT FOUND',CR,LF,0
+	POP	HL
+	JP	PROMPT
+;
+FLOK:	DEC	A
+	LD	(DIRPOS),A   ;SAVE POS. IN DIR
+	AND	3
+	LD	L,A
+	LD	H,0
+	ADD	HL,HL	     ;X32 BYTES/ENTRY
+	ADD	HL,HL
+	ADD	HL,HL
+	ADD	HL,HL
+	ADD	HL,HL
+	LD	DE,80H
+	ADD	HL,DE	     ;HL POINTS TO ENTRY
+	LD	DE,32
+	EX	DE,HL
+	ADD	HL,DE
+	EX	DE,HL
+	LD	A,'D'
+	LD	(DUMTYPE),A
+	JP	DUMPLP	     ;WHICH POPS H
+;
+MVNAME:	LD	A,(HL)
+	CP	'.'
+	JP	Z,MVIPAD
+	CP	CR
+	JP	Z,PAD
+	CP	';'
+	JP	Z,PAD
+	CALL	UPCASE
+	LD	(DE),A
+	INC	HL
+	INC	DE
+	DEC	B
+	JP	NZ,MVNAME
+	LD	A,(HL)
+	CP	CR
+	RET	Z
+	CP	';'
+	RET	Z
+	INC	HL
+	CP	'.'
+	RET	Z
+	JP	WHAT
+;
+MVIPAD:	INC	HL
+;
+PAD:	LD	A,' '
+	LD	(DE),A
+	INC	DE
+	DEC	B
+	JP	NZ,PAD
+	RET	
+;
+PLUS:	LD	DE,1	     ;DFLT TO 1 SECT
+	LD	A,(HL)	     ;GET NEXT CHAR
+	CP	CR	     ;CR?
+	JP	Z,PLUSGO     ;..YES, DFLT TO 1
+	CP	';'
+	JP	Z,PLUSGO
+	CALL	HEXIN	     ;GET #
+	LD	A,E
+	OR	A
+	JP	Z,WHAT
+PLUSGO:	CALL	NEXTSEC
+	DEC	E	     ;MORE TO GO?
+	JP	NZ,PLUSGO    ;..YES
+;
+;OK, INCREMENTED TO SECTOR.  SETUP AND READ
+;
+PLUSMI:	LD	A,(CURSEC)
+	CALL	SETSEC	
+	LD	A,(CURTRK)
+	CALL	SETTRK
+	CALL	READ
+	JP	CALCGRP
+;
+MINUS:	LD	DE,1	     ;SET DFLT
+	LD	A,(HL)	     ;GET CHAR
+	CP	CR	     ;CR?
+	JP	Z,MINGO	     ;..YES, DFLT=1
+	CP	';'
+	JP	Z,MINGO
+	CALL	HEXIN	     ;..NO, GET ##
+	LD	A,E
+	OR	A
+	JP	Z,WHAT
+MINGO:	LD	A,(CURSEC)   ;GET CURR
+	DEC	A	     ;BACK UP
+	JP	NZ,MINOK     ;TO 0?
+	LD	A,(CURTRK)   ;..YES, BACK..
+	DEC	A	     ;..UP 1..
+	LD	(CURTRK),A   ;..TRACK
+	LD	A,26	     ;
+MINOK:	LD	(CURSEC),A
+	DEC	E
+	JP	NZ,MINGO
+	JP	PLUSMI
+;
+;GO TO NEXT SECTOR
+;
+NEXTSEC:LD	A,(CURSEC)   ;GET CURRENT
+	INC	A	     ;BUMP IT
+	CP	27	     ;NEXT TRACK?
+	JP	NZ,NEXTOK    ;NO, CONI
+	LD	A,(CURTRK)   ;BUMP..
+	INC	A	     ;..CURR..
+	LD	(CURTRK),A   ;..TRK
+	LD	A,1	     ;SECT=1
+NEXTOK:	LD	(CURSEC),A
+	RET	
+;
+;TELL WHAT GRP, DISPLACEMENT, TRK, SECT, PHY SECT
+;
+INQ:	CALL	INQSUB
+	JP	PROMPT
+;
+;POSITION INQUIRY SUBROUTINE
+;	EXECUTED VIA: G S OR T (WITH NO OPERANDS)
+;
+INQSUB:	LD	A,(CURTRK)
+	CP	2
+	JP	C,NOGRP
+	CALL	ILPRT
+	DEFB	'G=',0
+	LD	A,(GROUP)
+	CALL	HEX
+	LD	A,':'
+	CALL	TYPE
+	LD	A,(GRPDISP)
+	OR	'0'
+	CALL	TYPE
+	LD	A,','
+	CALL	TYPE
+NOGRP:	CALL	ILPRT
+	DEFB	' T=',0
+	LD	A,(CURTRK)
+	CALL	HEX
+	CALL	ILPRT
+	DEFB	', S=',0
+	LD	A,(CURSEC)
+	CALL	HEX
+	CALL	ILPRT
+	DEFB	', PS=',0
+	LD	A,(PHYSEC)
+	CALL	HEX
+	CALL	CRLF
+	RET	
+;
+CHG:	LD	A,(HL)	     ;GET TYPE (HEX, ASCII)
+	CALL	UPCASE
+	PUSH	AF	     ;SAVE "H" OR "A"
+	INC	HL
+	CALL	DISP	     ;GET, VALIDATE DISP TO DE
+	INC	HL
+	LD	BC,0	     ;SHOW NO 'THRU' ADDR
+	CP	'-'	     ;TEST DELIM FR. DISP
+	JP	NZ,CHGNTH    ;NO THRU
+	PUSH	DE	     ;SAVE FROM
+	CALL	DISP	     ;GET THRU
+	LD	B,D
+	LD	C,E	     ;BC = THRU
+	POP	DE	     ;GET FROM
+	JP	CHGAH
+CHGNTH:	CP	','
+	JP	NZ,WHAT
+CHGAH:	POP	AF
+	CP	'H'
+	JP	Z,CHGHEX
+	CP	'A'
+	JP	NZ,WHAT
+;CHANGE ASCII
+CHGALP:	LD	A,(HL)
+	CP	CR
+	JP	Z,PROMPT
+	CP	';'
+	JP	Z,PROMPT
+	LD	A,(DE)
+	CP	' '
+	JP	C,CHGAHX
+	CP	7FH
+	JP	NC,CHGAHX
+	JP	CHGA2
+CHGAHX:	CALL	BHEX
+	JP	CHGA3
+CHGA2:	CALL	TYPE
+CHGA3:	CALL	GETVAL	     ;ASCII OR <HEX>
+	LD	(DE),A	     ;UPDATE CHAR
+	INC	HL	     ;TO NEXT INPUT CHAR
+;SEE IF 'THRU' REQUESTED
+	LD	A,C
+	OR	A
+	JP	Z,CHGANTH
+	CP	E	     ;DONE?
+	JP	Z,PROMPT
+	DEC	HL	     ;..NO: MORE.
+CHGANTH:INC	E
+	JP	NZ,CHGALP
+	LD	A,(HL)
+	CP	CR
+	JP	Z,PROMPT
+	CP	';'
+	JP	Z,PROMPT
+	JP	WHAT
+;
+;CHANGE HEX
+;
+CHGHCOM:INC	HL
+CHGHEX:	LD	A,(HL)
+	CP	CR
+	JP	Z,PROMPT
+	CP	';'
+	JP	Z,PROMPT
+	CP	','	     ;DELIM?
+	JP	Z,CHGHCOM
+	PUSH	DE
+	LD	(HEXAD),HL   ;IN CASE 'THRU'
+	CALL	HEXIN	     ;POSITIONS TO DELIM
+	LD	A,E	     ;GET VALUE
+	POP	DE	     ;..ADDR
+	PUSH	AF	     ;SAVE VALUE
+	LD	A,(DE)	     ;GET OLD
+	CALL	HEX	     ;ECHO IN HEX
+	POP	AF	     ;GET NEW
+	LD	(DE),A	     ;SAVE NEW
+;
+	LD	A,C	     ;SEE IF 'THRU'
+	OR	A
+	JP	Z,CHGHNTH    ;..NO.
+	CP	E	     ;..YES, DONE?
+	JP	Z,PROMPT
+	LD	HL,(HEXAD)   ;..NO: MORE
+CHGHNTH:INC	E
+	JP	NZ,CHGHEX
+	LD	A,(HL)
+	CP	CR
+	JP	Z,PROMPT
+	CP	';'
+	JP	Z,PROMPT
+	JP	WHAT
+;
+DOREAD:	CALL	READ
+	JP	PROMPT
+;
+DOWRITE:CALL	WRITE
+	JP	PROMPT
+;
+BHEX:	PUSH	AF
+	LD	A,'<'
+	CALL	TYPE
+	POP	AF
+	CALL	HEX
+	LD	A,'>'
+	CALL	TYPE
+	RET	
+;
+HEX:	PUSH	AF
+	RRA	
+	RRA	
+	RRA	
+	RRA	
+	CALL	NIBBL
+	POP	AF
+NIBBL:	AND	0FH
+	CP	10
+	JP	C,HEXNU
+	ADD	7
+HEXNU:	ADD	'0'
+	JP	TYPE
+;
+SPACE:	LD	A,' '
+	JP	TYPE
+ASTER:	LD	A,'*'
+	JP	TYPE
+;
+ILPRT:	EX	(SP),HL
+ILPLP:	CALL	CTLCS	     ;ABORT?
+	JP	Z,PROMPTR
+	LD	A,(HL)
+	CALL	TYPE
+	INC	HL
+	LD	A,(HL)
+	OR	A
+	JP	NZ,ILPLP
+	INC	HL
+	EX	(SP),HL
+	RET	
+;
+;DISP CALLS HEXIN, AND VALIDATES A SECTOR
+;DISPLACEMENT, THEN CONVERTS IT TO AN ADDRESS
+;
+DISP:	CALL	HEXIN
+	PUSH	AF	     ;SAVE DELIMITER
+	LD	A,D
+	OR	A
+	JP	NZ,BADISP
+	LD	A,E
+	OR	A
+	JP	M,BADISP
+	ADD	80H	     ;TO POINT TO BUFFER AT 80
+	LD	E,A
+	POP	AF	     ;GET DELIM
+	RET	
+;
+BADISP:	CALL	ILPRT
+	DEFB	'++BAD DISPLACEMENT (NOT 0-7F)'
+	DEFB	CR,LF,0
+	JP	PROMPTR
+;
+HEXIN:	LD	DE,0
+	LD	A,(HL)
+	CP	'#'	     ;DECIMAL?
+	JP	Z,HDIN	     ;MAKE DECIMAL
+HINLP:	LD	A,(HL)
+	CALL	UPCASE
+	CP	CR
+	RET	Z
+	CP	';'
+	RET	Z
+	CP	','
+	RET	Z
+	CP	'-'	     ;'THRU'?
+	RET	Z
+	CP	'>'
+	RET	Z
+	INC	HL
+	CP	'0'
+	JP	C,WHAT
+	CP	'9'+1
+	JP	C,HINNUM
+	CP	'A'
+	JP	C,WHAT
+	CP	'F'+1
+	JP	NC,WHAT
+	SUB	7
+HINNUM:	SUB	'0'
+	EX	DE,HL
+	ADD	HL,HL
+	ADD	HL,HL
+	ADD	HL,HL
+	ADD	HL,HL
+	ADD	L
+	LD	L,A
+	EX	DE,HL
+	JP	HINLP
+;
+HDIN:	INC	HL	     ;SKIP '.'
+DECIN:	LD	DE,0
+DINLP:	LD	A,(HL)
+	CALL	UPCASE
+	CP	CR
+	RET	Z
+	CP	';'
+	RET	Z
+	CP	','
+	RET	Z
+	CP	'-'	     ;'THRU'?
+	RET	Z
+	INC	HL
+	CP	'0'
+	JP	C,WHAT
+	CP	'9'+1
+	JP	NC,WHAT
+	SUB	'0'
+	PUSH	HL
+	LD	H,D
+	LD	L,E
+	ADD	HL,HL	     ;X2
+	ADD	HL,HL	     ;X4
+	ADD	HL,DE	     ;X5
+	ADD	HL,HL	     ;X10
+	ADD	L
+	LD	L,A
+	LD	A,H
+	ADC	0
+	LD	H,A
+	EX	DE,HL
+	POP	HL
+	JP	DINLP
+;
+;READ IN A CONSOLE BUFFER FULL
+;
+RDBUF:	CALL	ILPRT
+	DEFB	CR,LF,':',0
+	LD	HL,INBUF
+	LD	B,0
+RDBLP:	CALL	CONIN
+	LD	C,A	     ;SAVE FOR BS TEST
+	CP	'U'-40H
+	JP	Z,RDCTLU
+	CP	CR
+	JP	Z,RDCR
+	CP	8
+	JP	Z,RDBS
+	CP	7FH
+	JP	Z,RDBS
+	CP	'R'-40H
+	JP	Z,RDCTLR
+	LD	(HL),A
+	INC	HL
+	INC	B
+	JP	M,FULL
+	CALL	TYPE
+	JP	RDBLP
+;
+FULL:	DEC	B
+	DEC	HL
+	LD	A,7	     ;'DING'
+	CALL	TYPE
+	JP	RDBLP
+;
+;GOT CR
+;
+RDCR:	LD	(HL),A	     ;SAVE IT
+	CALL	TYPE	     ;ECHO IT
+	LD	A,LF	     ;ECHO..
+	CALL	TYPE	     ;..LF
+	LD	HL,INBUF
+	RET	
+;
+;GOT DELETE OR BS, ECHO IF BS
+;
+RDBS:	XOR	A	     ;AT FRONT..
+	OR	B	     ;..OF LINE?
+	JP	Z,RDCTLU     ;..YES, ECHO ^U
+	DEC	HL
+	DEC	B
+	LD	A,C
+	CP	8	     ;BS?
+	JP	Z,BACKUP     ;ECHO THE BS
+	LD	A,(HL)	     ;ECHO..
+	CALL	TYPE	     ;..DELETED CHAR
+	JP	RDBLP
+;
+BACKUP:	LD	A,8
+	CALL	TYPE
+	JP	RDBLP
+;
+;GOT CTL-R, RETYPE
+;
+RDCTLR:	LD	(HL),CR
+	CALL	CRLF
+	LD	HL,INBUF
+	LD	B,0
+RDCRL:	LD	A,(HL)
+	CP	CR
+	JP	Z,RDBLP
+	CALL	TYPE
+	INC	B
+	INC	HL
+	JP	RDCRL
+;
+;GOT CTL-U OR BACKUP TO BEG. OF LINE.
+;
+RDCTLU:	LD	A,'^'
+	CALL	TYPE
+	LD	A,'U'
+	CALL	TYPE
+	JP	RDBUF
+;
+CRLF:	LD	A,CR
+	CALL	TYPE
+	LD	A,LF
+	JP	TYPE
+;
+UPCASE:	CP	60H
+	RET	C
+	AND	5FH	     ;MAKE UPPER CASE
+	RET	
+;
+CONST:	PUSH	BC
+	PUSH	DE
+	PUSH	HL
+VCONST:	CALL	$-$
+	POP	HL
+	POP	DE
+	POP	BC
+	RET	
+;
+CONIN:	PUSH	BC
+	PUSH	DE
+	PUSH	HL
+VCONIN:	CALL	$-$
+	POP	HL
+	POP	DE
+	POP	BC
+	RET	
+;
+;CONSOLE OUT WITH TAB EXPANSION
+;
+TYPE:	PUSH	BC
+	PUSH	DE
+	PUSH	HL
+	LD	C,A	     ;FOR OUTPUT ROUTINE
+	CP	TAB
+	JP	NZ,VCONOUT
+TYPETAB:LD	A,' '
+	CALL	TYPE
+	LD	A,(TABCOL)
+	AND	7
+	JP	NZ,TYPETAB
+	JP	TYPERET
+;
+VCONOUT:CALL	$-$	     ;ADDR FILLED IN BY 'INIT'
+;
+;UPDATE COLUMN USED IN TAB EXPANSION
+;
+	LD	A,C	     ;GET CHAR
+	CP	CR
+	JP	NZ,TYPENCR
+	LD	A,0
+	LD	(TABCOL),A
+	JP	TYPELST
+;
+TYPENCR:CP	' '	     ;CTL CHAR?
+	JP	C,TYPERET    ;..NO CHANGE IN COL
+	LD	A,(TABCOL)
+	INC	A
+	LD	(TABCOL),A
+TYPELST:LD	A,(PFLAG)
+	AND	1
+	CALL	NZ,LIST	     ;FROM C REG.
+TYPERET:POP	HL
+	POP	DE
+	POP	BC
+	RET	
+;
+LIST:	;TYPE SAVED REGS
+VLIST:	JP	$-$
+;
+HOME:	PUSH	HL
+VHOME:	CALL	$-$
+	POP	HL
+	RET	
+;
+SETTRK:	CP	77
+	JP	C,TRKOK
+	CALL	ILPRT
+	DEFB	'++not in tracks 0-76++'
+	DEFB	CR,LF,0
+	CALL	NOWRITE
+	JP	PROMPTR
+;
+TRKOK:	LD	(CURTRK),A
+	LD	C,A
+	PUSH	HL
+VSETTRK:CALL	$-$
+	POP	HL
+	RET	
+;
+SETSEC:	LD	(CURSEC),A   ;LOGICAL
+	LD	C,A
+	LD	A,(CURTRK)
+	CP	2
+	JP	C,GSETSEC    ;DON'T SCRAMBLE TRK'S 0-1
+	PUSH	HL
+	LD	HL,SECTBL-1
+	LD	A,C
+	ADD	L
+	LD	L,A
+	LD	A,H
+	ADC	0
+	LD	H,A
+	LD	A,(HL)
+	POP	HL
+	LD	C,A
+GSETSEC:PUSH	HL
+	LD	A,C	     ;GET PHYSICAL SECTOR
+	LD	(PHYSEC),A
+VSETSEC:CALL	$-$
+	POP	HL
+	RET	
+;
+SETDMA:	
+VSETDMA:JP	$-$
+;
+READ:	LD	A,1
+	LD	(WRFLG),A
+	PUSH	HL
+VREAD:	CALL	$-$
+	OR	A
+	JP	Z,READOK
+	CALL	ILPRT
+	DEFB	'++READ failed, sector may be invalid++'
+	DEFB	CR,LF,0
+READOK:	POP	HL
+	RET	
+;
+WRITE:	LD	A,(WRFLG)
+	OR	A
+	JP	NZ,PWRITE
+BADW:	CALL	ILPRT
+	DEFB	'++CANNOT WRITE UNLESS READ ISSUED'
+	DEFB	CR,LF,0
+	JP	EXPL
+PWRITE:	PUSH	HL
+VWRITE:	CALL	$-$
+	OR	A
+	JP	Z,WRITEOK
+	CALL	ILPRT
+	DEFB	'++WRITE failed++',CR,LF,0
+WRITEOK:POP	HL
+	RET	
+;
+;'SCUSE THIS KLUDGE - IT'S TO SET THE SCRAMBLE
+;TABLE TO 1,2,3,4,5.. FOR MY 3600 RPM "FLOPPY"..
+;
+WARDSK:	PUSH	HL
+	LD	HL,SECTBL
+	LD	B,1
+	LD	C,26
+WARDLP:	LD	(HL),B
+	INC	B
+	DEC	C
+	INC	HL
+	JP	NZ,WARDLP
+	POP	HL
+	JP	PROMPT
+;
+;HELP
+;
+HELP:	CALL	ILPRT
+	DEFB	'Operands in brackets [...] are optional'
+	DEFB	CR,LF
+	DEFB	CR,LF
+	DEFB	'+[n]	step in [n] sectors;'
+	DEFB	CR,LF
+	DEFB	'-[n]	step out [n] sectors'
+	DEFB	CR,LF
+	DEFB	'=xxx	search for ASCII xxx from curr sector.'
+	DEFB	CR,LF
+	DEFB	'	Caution: upper/lower case matters'
+	DEFB	CR,LF
+	DEFB	'	<nn> for hex: "IN 0" is: =<db><0>'
+	DEFB	CR,LF
+	DEFB	'	"(tab)H,0(CR)(LF)" is: =<9>H,0<D><A>'
+	DEFB	CR,LF
+	DEFB	'<	save current sector'
+	DEFB	CR,LF
+	DEFB	'>	restore saved sector'
+	DEFB	CR,LF
+	DEFB	'?	give help'
+	DEFB	CR,LF
+	DEFB	'A[ff,tt] ASCII dump'
+	DEFB	CR,LF
+	DEFB	'C	Change:'
+	DEFB	CR,LF
+	DEFB	'	CHaddr,byte,byte... (hex)'
+	DEFB	CR,LF
+	DEFB	'  or	CAaddr,data  (Ascii)'
+	DEFB	CR,LF
+	DEFB	'	<xx> Allowed for imbedded hex.'
+	DEFB	CR,LF
+	DEFB	'  or	CHfrom-thru,byte  e.g. ch0-7f,e5'
+	DEFB	CR,LF
+	DEFB	'  or	CAfrom-thru,byte'
+	DEFB	CR,LF
+	DEFB	'D[ff,tt] Dump (hex+ASCII)'
+	DEFB	CR,LF
+	DEFB	'Fn.t	Find file'
+	DEFB	CR,LF
+	DEFB	'Gnn	CP/M Allocation Group nn'
+	DEFB	CR,LF
+	DEFB	'H[ff,tt]	hex dump'
+	DEFB	CR,LF
+	DEFB	'L	Log in drive'
+	DEFB	CR,LF
+	DEFB	'Lx	Log in drive x'
+	DEFB	CR,LF
+	DEFB	'M[nn]	Map [from group nn]'
+	DEFB	CR,LF
+	DEFB	'P	Toggle printer switch'
+	DEFB	CR,LF
+	DEFB	'R	Read current sector'
+	DEFB	CR,LF
+	DEFB	'Snn	Sector nn'
+	DEFB	CR,LF
+	DEFB	'Tnn	Track nn'
+	DEFB	CR,LF
+	DEFB	'V[nn]	View [nn] ASCII sectors'
+	DEFB	CR,LF
+	DEFB	'W	Write current sector'
+	DEFB	CR,LF
+	DEFB	'X	Exit program'
+	DEFB	CR,LF
+	DEFB	'Z[nn]	Sleep [nn tenths]'
+	DEFB	CR,LF
+	DEFB	'/[nn]	Repeat [nn (decimal) times]'
+	DEFB	CR,LF,CR,LF
+	DEFB	'Cancel a function with C or Ctl-C.'
+	DEFB	CR,LF
+	DEFB	'Suspend output with S or Ctl-S.'
+	DEFB	CR,LF
+	DEFB	'Separate commands with ";".'
+	DEFB	CR,LF
+	DEFB	'All "nn" usage except "/" are '
+	DEFB	'HEX.  Use #nn for decimal.'
+	DEFB	CR,LF,0
+	JP	PROMPT
+;
+;DISK SECTOR ORDER - standard CP/M
+;
+SECTBL:	DEFB	1,7,13,19,25,5,11,17,23,3,09,15,21
+	DEFB	2,8,14,20,26,6,12,18,24,4,10,16,22
+;
+BUFAD:	DEFW	100H	     ;FORCES INITIAL READ
+HEXAD:	DEFW	0	     ;TO RE-FETCH A VALUE
+TOGO:	DEFB	0FFH	     ;REPEAT COUNT (FF=CONT)
+TWOUP:	DEFB	0
+PFLAG:	DEFB	0	     ;1=PRINT
+GROUP:	DEFB	0
+GRPDISP:DEFB	0
+SAVEFLG:DEFB	0
+CURTRK:	DEFB	0
+CURSEC:	DEFB	1
+PHYSEC:	DEFB	1
+TABCOL:	DEFB	0
+FILECT:	DEFB	0
+DIRPOS:	DEFB	0
+FINDFLG:DEFB	0	     ;1=MUST POSITION AFTER FIND
+FTSW:	DEFB	1	     ;SEARCH W/O INCREMENT
+WRFLG:	DEFB	0	     ;MAY NOT WRITE UNTIL '+', '-',
+;			 OR 'G' COMMAND
+	DEFS	100	     ;STACK SPACE
+STACK:	
+DUMTYPE:DEFS	1
+SAVEBUF:DEFS	128
+INBUF:	DEFS	128
+;
+;DIRECTORY READ IN HERE; ALSO SEARCH WORKAREA
+;
+WORK:	
+DIRECT:	DEFS	32*64
+;
+FCB:	EQU	5CH
+BDOS:	EQU	5
+RESETDK:EQU	13
+SELDK:	EQU	14
+SRCHF:	EQU	17	     ;SEARCH FIRST
+

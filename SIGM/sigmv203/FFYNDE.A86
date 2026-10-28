@@ -1,0 +1,1271 @@
+
+;	----------------------------------------------------------
+;	FFYNDE.A86 is a variant of FYNDE.A86 in which a family of
+;	files can be searched for many different keywords, which
+;	are taken one at a time from an auxiliary file. Indices or
+;	cross-reference listings are readily prepared by using it,
+;	supposing that a previous pass has isolated the indexing
+;	items and placed them in the auxiliary file. XREF.CNV can
+;	be used for the initial pass.
+;
+;	Beware:
+;		spaces count as part of patterns, especialy the
+;		first ones: <file.ext  patt> has ONE space. So
+;		does <file.ext patt >.
+;
+;		{?} requires at least ONE character.
+;
+;		    FFYNDE.A86  Copyright (C) 1984
+;		    Universidad Autonoma de Puebla
+;
+;	[Harold V. McIntosh, 1 August 1984]
+;	----------------------------------------------------------
+
+bdos	equ	224			;BDOS interrupt
+
+HT	equ	09H			;horizontal tab
+LF	equ	0AH			;line feed
+CR	equ	0DH			;carriage return
+KZ	equ	1AH			;^Z
+
+;	Delimiters for the command line
+
+LSQ	equ	'['			;begin alternative list
+RSQ	equ	']'			;end alternative list
+LBR	equ	'{'			;begin iterated expression
+RBR	equ	'}'			;end iterated expression
+ORR	equ	'!'			;separate alternatives
+
+;	Representatives of characters or classes.
+
+TAB	equ	'_'			;substitute for tab
+QUE	equ	'?'			;represent any byte
+ALF	equ	'@'			;represent any alphanumeric
+
+;	CP/M and other locations and parameters
+
+csiz	equ	0080H			;CP/M's record size
+ksiz	equ	26			;sector capacity of IN buffer
+isiz	equ	ksiz*128
+hsiz	equ	257			;max characters in Huffman code
+
+;	-------------
+	org	005CH			;CP/M's file control block
+cfcb	rb	0
+	org	0080H			;CP/M's record buffer
+cbuf	rb	0
+	org	100H
+;	-------------
+
+begn:	mov	stak,sp
+	cmp	cfcb+1,' '		;file name
+	jnz	ntut
+	mov	bx,(offset M1)		;tutorial
+ferm:	call	mssg			;message to console
+exit:	mov	sp,stak
+	mov	dl,00
+	mov	cl,00
+	int	BDOS
+
+ntut:	mov	bx,(offset M2)		;signon message
+	call	mssg			;message to console
+
+	mov	cx,12
+	mov	si,(offset cfcb)	;CP/M's file control block
+	mov	bx,(offset sfam)	;search family
+	call	miuc			;block move
+
+	mov	cx,12
+	mov	si,(offset cfcb+16)	;CP/M's file control block
+	mov	bx,(offset kfil)	;keyword FCB
+	call	miuc			;block move
+	mov	cx,(offset 0015H)	;21 0's
+	call	fiuc			;block fill
+
+	mov	bx,(offset kfil+9)	;keyword FCB
+	cmp	(byte ptr[bx]),' '
+	jnz	kext
+	mov	(byte ptr[bx]),'S'
+	inc	bx
+	mov	(byte ptr[bx]),'Y'
+	inc	bx
+	mov	(byte ptr[bx]),'M'
+
+kext:	mov	cx,9
+	mov	si,(offset cfcb+16)	;CP/M's file control block
+	mov	bx,(offset xfil)	;.XRF FCB
+	call	miuc			;block move
+	mov	(byte ptr[bx]),'X'
+	inc	bx
+	mov	(byte ptr[bx]),'R'
+	inc	bx
+	mov	(byte ptr[bx]),'F'
+	inc	bx
+	mov	cx,(offset 0015H)	;21 0's
+	call	fiuc			;block fill
+
+	mov	bx,(offset cbuf)	;CP/M's record buffer
+	mov	dl,(byte ptr[bx])
+	mov	dh,0
+	inc	dx
+	xchg	bx,dx
+	add	bx,dx
+	mov	(byte ptr[bx]),0
+	xchg	bx,dx
+
+;	Skip any initial spaces.
+
+ispa:	inc	bx
+	mov	al,[bx]
+	or	al,al
+	jnz	G1
+	jmp	X029C			;message 'bad pattern'
+G1:	cmp	al,' '
+	jz	ispa
+
+;	Skip over file name.
+
+sfil:	inc	bx
+	mov	al,[bx]
+	or	al,al
+	jnz	G3
+	jmp	X029C			;message 'bad pattern'
+G3:	cmp	al,' '
+	jnz	sfil
+
+;	skip over blanks
+
+sblk:	inc	bx
+	mov	al,[bx]
+	or	al,al
+	jnz	G5
+	jmp	X029C			;message 'bad pattern'
+G5:	cmp	al,' '
+	jz	sblk
+
+;	skip keyfile name
+
+skey:	inc	bx
+	mov	al,[bx]
+	or	al,al
+	jz	hedr			;no header desired
+	cmp	al,' '
+	jnz	skey
+	inc	bx			;pass over last space
+
+;	Read header description.
+
+hedr:	call	bala			;check balance of [], {}.
+	call	nula			;check for null alternatives
+	mov	si,(offset patt)	;command line pattern
+	call	muve			;copy & semicompile cmd line
+
+;	Open keyword file.
+
+	mov	cl,15			;(0F) open file
+	mov	dx,(offset kfil)	;keyword FCB
+	int	bdos			; - B D O S -
+	inc	al
+	jnz	okey
+	mov	bx,(offset nkey)	;'cannot open keyword file'
+	jmp	ferm			;final (error) message
+
+;	Create crossreference file.
+
+okey:	mov	cl,17			;(11) search for file
+	mov	dx,(offset xfil)	;.XRF FCB
+	int	bdos			; - B D O S -
+	inc	al
+	jz	cxrf
+	mov	bx,(offset yexi)	;'file already exists'
+	jmp	ferm			;final (error) message
+
+cxrf:	mov	cl,22			;(16) create file
+	mov	dx,(offset xfil)	;.XRF FCB
+	int	bdos			; - B D O S -
+	inc	al
+	jnz	gogo
+	mov	bx,(offset nxrf)	;'can''t open file'
+	jmp	ferm			;final (error) message
+
+gogo:	mov	bx,(offset M2)		;signon message
+	call	xref
+
+	mov	cx,4
+	mov	si,(offset lzer)	;zero line for counter
+	mov	bx,(offset ktot)	;keyword total
+	call	miuc			;block move
+
+	mov	xctr,(offset csiz)	;CP/M's record size
+	mov	xptr,(offset xbuf)	;crossreference buffer
+	mov	kctr,0000		;keyword counter
+	mov	lapo,0000		;label pointer
+	mov	bx,(offset patt)	;command line pattern
+	cmp	(byte ptr[bx]),00
+	jz	golu
+	mov	lapo,bx			;label pointer
+
+golu:	mov	si,(offset kwrd)	;keyword pattern
+	mov	bx,(offset keyr)	;raw keyword
+	call	meuv			;read & semicompile keyword
+	cmp	al,01AH
+	jz	golv
+	xor	al,al
+	mov	[si],al
+	mov	[bx],al
+	mov	enth,al			;search-again counter
+	mov	bx,(offset kwdi)	;'keyword is'
+	call	xref			;message to .XRF file
+	call	mssg			;message to console
+	mov	bx,(offset crlf)
+	call	xref			;message to .XRF file
+	call	mssg			;message to console
+	call	ongo
+	mov	bx,(offset ktot+3)	;total # keywords
+	call	inco			;increment counter
+	jmp	golu
+
+golv:	mov	bx,(offset ktot)	;'keyword totals'
+	call	xref			;message to .XRF file
+	call	mssg			;message to console
+	call	zxrf
+	jmp	exit
+
+ongo:	mov	cx,4
+	mov	si,(offset lzer)	;zero line for counter
+	mov	bx,(offset dtot)	;total throughout disk
+	call	miuc			;block move
+
+;	Scan the directory for file names.
+
+scan:	mov	cl,26			;(1A) set DMA address
+	mov	dx,(offset cbuf)	;CP/M's record buffer
+	int	bdos			; - B D O S -
+
+	mov	bx,(offset cfcb+12)
+	mov	(byte ptr[bx]),00
+
+	mov	cl,17			;(11) search once
+	mov	dx,(offset sfam)	;search family
+	int	bdos			; - B D O S -
+
+	mov	bx,(offset enth)	;search-again counter
+	inc	(byte ptr[bx])
+	mov	cl,(byte ptr[bx])
+fnth:	inc	al
+	jz	done			;we're all done
+	dec	cl
+	jz	this
+	push	cx
+	mov	cl,18			;(12) search again
+	mov	dx,(offset sfam)	;search family
+	int	bdos			; - B D O S -
+	pop	cx
+	jmp	fnth
+
+;	We're all done.
+
+done:	mov	bx,(offset dtot)	;total throughout disk
+	call	xref			;message to .XRF file
+	jmp	mssg			;message to console
+
+;	A prospective file has been located
+
+this:	dec	al
+	and	al,03
+	mov	ah,32
+	mul	ah
+	add	ax,(offset cbuf+1)
+	mov	cx,12
+	mov	si,ax
+	mov	bx,(offset cfcb+1)	;CP/M's file control block
+	call	miuc			;block move
+
+	mov	bx,(offset cfcb+9)	;CP/M's file control block
+	call	dcom			;disregard .COM files
+	jz	jsca
+	mov	bx,(offset cfcb+9)	;CP/M's file control block
+	call	dcmd			;disregard .CMD files
+	jz	jsca
+	mov	bx,(offset cfcb+9)	;CP/M's file control block
+	call	dsys			;disregard .SYS files
+	jz	jsca
+	mov	bx,(offset cfcb+9)	;CP/M's file control block
+	call	dxrf			;disregard .XRF files
+	jnz	ofcs
+jsca:	jmp	scan
+
+;	Open the file, check for squeezing.
+
+ofcs:	mov	cl,15			;(0F) open file
+	mov	dx,(offset cfcb)	;CP/M's FCB
+	int	bdos			; - B D O S -
+	inc	al
+	jnz	G20
+	jmp	exit			;quit [without message]
+G20:	xor	al,al
+	mov	cfcb+32,al		;block pointer
+	mov	dens,al			;z/nz=un/squeezed
+	mov	mult,al			;repeat factor
+	mov	ictr,0000		;input counter
+
+	mov	bx,(offset cfcb+10)	;CP/M's file control block
+	cmp	(byte ptr[bx]),'Q'
+	jz	cota
+	jmp	nsqz
+
+cota:	call	rwor			;fetch one word
+	cmp	bx,0FF76H
+	jz	rchk
+	jmp	nsqz
+
+rchk:	call	rwor			;fetch one word
+	mov	dens,0FFH		;z/nz=un/squeezed
+
+;	unsqueezed file name
+
+	mov	cx,(offset 200CH)	;twelve spaces
+	mov	bx,(offset uzfn)	;unsqueezed file's name
+	call	fiuc			;block fill
+
+	mov	cx,8
+	mov	si,(offset uzfn)	;unsqueezed file's name
+luup:	call	gbyt			;fetch one byte
+	or	al,al
+	jz	luut
+	cmp	al,'.'
+	jz	luuw
+	mov	[si],al
+	inc	si
+	loop	luup
+luuz:	call	gbyt
+	or	al,al
+	jz	luut
+	cmp	al,'.'
+	jnz	luuz
+luuw:	mov	cx,3
+	mov	si,(offset uzfn+8)
+	mov	[si],al
+	inc	si
+luur:	call	gbyt
+	or	al,al
+	jz	luut
+	mov	[si],al
+	inc	si
+	loop	luur
+luus:	call	gbyt
+	or	al,al
+	jnz	luus
+
+luut:	mov	bx,(offset uzfn+9)	;unsqueezed FCB
+	call	dcom			;disregard .COM files
+	jz	jscn
+	mov	bx,(offset uzfn+9)	;unsqueezed FCB
+	call	dcmd			;disregard .CMD files
+	jz	jscn
+	mov	bx,(offset cfcb+9)	;CP/M's file control block
+	call	dsys			;disregard .SYS files
+	jz	jscn
+	mov	bx,(offset cfcb+9)	;unsqueezed FCB
+	call	dxrf			;disregard .XRF files
+	jnz	ldic
+jscn:	jmp	scan
+
+;	load code directory
+
+ldic:	call	rwor			;fetch word
+	cmp	bx,(offset hsiz+1)
+	jnc	ldii
+	mov	bx,(offset M8)		;'code table won't fit'
+	call	mssg			;message to console
+	jmp	scan
+
+ldii:	add	bx,bx
+	add	bx,bx
+	mov	cx,bx
+	mov	si,(offset code)	;code table
+ldij:	call	gbyt			;fetch one byte
+	mov	[si],al
+	inc	si
+	loop	ldij
+
+	mov	roco,1			;rotation count
+
+nsqz:	mov	cx,4
+	mov	si,(offset lzer)	;zero line for counter
+	mov	bx,(offset lnum)	;'line number'
+	call	miuc			;block move
+
+	mov	cx,4
+	mov	si,(offset lzer)	;zero line for counter
+	mov	bx,(offset ftot)	;'file total'
+	call	miuc			;block move
+
+	mov	cx,8
+	mov	si,(offset cfcb+1)	;file name
+	mov	bx,(offset fnam)	;'file name'
+	call	miuc			;block move
+
+	mov	cx,3
+	mov	si,(offset 0065H)	;extension
+	mov	bx,(offset fext)	;'file extension'
+	call	miuc			;block move
+
+	mov	bx,(offset fhed)	;'header ----> FILE'
+	call	xref			;message to .XRF file
+	call	mssg			;message to console
+	mov	al,dens
+	or	al,al
+	jz	sixs
+	mov	bx,(offset hesq)	;'[original]'
+	call	xref			;message to .XRF file
+	call	mssg			;message to console
+
+sixs:	mov	cx,(offset 2006H)	;six spaces
+	mov	bx,(offset llbl)
+	call	fiuc			;block fill
+
+X01C8:	mov	bx,(offset lnum+3)	;line number
+	call	inco			;increment counter
+	mov	bx,(offset lbuf)	;line buffer
+	mov	ch,0FFH
+X01E0:	inc	ch
+	js	X01FD
+	push	cx
+	push	bx
+	call	inch			;char from big bffr to line bffr
+	pop	bx
+	pop	cx
+	mov	[bx],al
+	inc	bx
+	cmp	al,KZ
+	jnz	X01E8
+	mov	bx,(offset ftot)
+	call	xref			;message to .XRF file
+	call	mssg			;message to console
+	jmp	scan
+
+X01E8:	cmp	al,LF
+	jnz	X01E0
+	jmp	X0202
+
+X01FD:	mov	(byte ptr[bx]),CR
+	inc	bx
+	mov	(byte ptr[bx]),LF
+	inc	bx
+
+;	Check console for termination request. If one
+;	is present, clear it out before leaving.
+
+X0202:	mov	(byte ptr[bx]),00	;guarantee right hand fence
+
+	mov	cl,11			;(0B) console status
+	int	bdos			; - B D O S -
+	or	al,al
+	jz	culi
+
+	mov	cl,1			;(01) read console
+	int	bdos			; - B D O S -
+	cmp	al,03H			;^C
+	jnz	skpf
+
+	mov	cl,19			;(13) delete file
+	mov	dx,(offset xfil)	;.XRF FCB
+	int	bdos			; - B D O S -
+	mov	bx,(offset M4)		;"search terminated"
+	jmp	ferm			;final (error) message
+
+skpf:	mov	bx,(offset M5)		;"remainder of file skipped"
+	call	xref			;message to .XRF file
+	call	mssg			;message to console
+	jmp	scan
+
+;	Scan the current line.
+;	First see if it is labelled.
+
+culi:	mov	si,lapo			;label pointer
+	or	si,si
+	jz	X0217			;no label requested
+	mov	bx,(offset lbuf)
+	call	chek
+	jnz	X0217			;label not found
+	push	bx
+
+	mov	cx,(offset 2006H)	;six spaces
+	mov	bx,(offset llbl)
+	call	fiuc			;block fill
+
+	pop	bx
+	mov	si,(offset llbl+5)
+	mov	cx,6
+didl:	dec	bx
+	mov	al,[bx]
+	cmp	al,HT			;ignore tabs in text
+	jz	didl
+	cmp	al,' '			;quit at head of line
+	jc	dido
+	mov	[si],al
+	dec	si
+	loop	didl
+
+dido:	mov	cx,4
+	mov	si,(offset lzer)	;zero line for counter
+	mov	bx,(offset lnum)	;line number
+	call	miuc			;block move
+
+;	Now look for the pattern
+
+X0217:	mov	bx,(offset lbuf)	;line buffer
+X021A:	mov	si,(offset kwrd)	;keyword pattern
+	push	bx
+	call	chek
+	pop	bx
+	jz	X0263
+	cmp	(byte ptr[bx]),CR
+	jnz	ginc
+	jmp	X01C8			;increment l.c. at X026A
+ginc:	inc	bx
+	jmp	X021A
+
+;	Pattern matches, so type label & line containing it
+
+X0263:	mov	bx,(offset llbl)	;line label
+	call	xref			;message to .XRF file
+	call	mssg			;message to console
+	mov	bx,(offset lbuf)	;line buffer
+	call	xref			;message to .XRF file
+	call	mssg			;message to console
+	mov	bx,(offset ftot+3)
+	call	inco			;increment counter
+	mov	bx,(offset dtot+3)	;total throughout disk
+	call	inco			;increment counter
+	jmp	X01C8			;increment l.c. at X026A
+
+;	Increment ASCII counter at (HL-3).
+
+inco:	or	(byte ptr[bx]),30H
+	inc	(byte ptr[bx])
+	cmp	(byte ptr[bx]),':'
+	jnz	incr
+	mov	(byte ptr[bx]),'0'
+	dec	bx
+	jmp	inco			;increment counter
+incr:	ret
+
+;	Memory to console
+
+mssg:	mov	dl,(byte ptr[bx])
+	inc	bx
+	push	bx
+	mov	cl,2			;(02) write console
+	int	bdos			; - B D O S -
+	pop	bx
+	cmp	(byte ptr[bx]),00
+	jnz	mssg			;message to console
+	ret
+
+X029C:	mov	bx,(offset M3)		;"bad pattern"
+	call	ferm			;final (error) message
+
+;	decode next character
+
+dnch:	mov	bx,(offset code)	;code table
+dncr:	call	rbit
+	jnc	dncs
+	inc	bx
+	inc	bx
+dncs:	mov	ax,[bx]
+	cmp	ax,0FEFFH
+	jz	dnct
+	or	ax,ax
+	jns	dncu
+	not	al
+	stc
+	cmc
+	ret
+
+dnct:	stc
+	ret
+
+;	Calculate <code>+4*<offset>.
+
+dncu:	mov	bx,(offset code)	;code table
+	add	ax,ax
+	add	ax,ax
+	add	bx,ax
+	jmp	dncr
+
+;	read one bit at a time
+
+rbit:	push	bx
+	dec	roco			;rotation count
+	jnz	rbiu
+	mov	roco,8
+	call	gbyt			;fetch one byte
+	mov	roby,al			;rotating byte
+rbiu:	rcr	roby,1			;rotating byte
+	pop	bx
+	ret
+
+;	read one word
+
+rwor:	call	gbyt			;fetch one byte
+	push	ax
+	call	gbyt			;fetch one byte
+	pop	bx
+	mov	bh,al
+	ret
+
+;	Fetch the next byte. The input buffer will be refreshed if it
+;	is necessary. For normal files, one byte will be extracted from
+;	the input buffer; for squeezed files, one byte will be decoded
+;	from the incoming bit stream and subtracted from the checksum.
+
+inch:	cmp	dens,00			;z/nz = un/squeezed
+	jz	gbyt			;fetch one byte
+	cmp	mult,00			;repeat factor
+	jz	gusq
+	dec	mult			;repeat factor
+	mov	al,lach			;last character read
+	ret
+
+gusq:	call	dnch
+	jnc	guss
+	mov	al,1AH
+	ret
+
+guss:	cmp	al,090H
+	jz	gusu
+	mov	lach,al			;last character read
+	ret
+
+gusu:	call	dnch
+	or	al,al
+	jnz	gusv
+	mov	al,090H
+	ret
+
+gusv:	dec	al
+	dec	al
+	mov	mult,al			;repeat factor
+	mov	al,lach			;last character read
+	ret
+
+;	unsqueezed (normal) text
+
+gbyt:	cmp	ictr,0000		;input counter
+	jnz	gbyu
+	call	indi			;disk to IN area
+gbyu:	dec	ictr			;input counter
+	mov	bx,iptr			;input pointer
+	mov	al,[bx]
+	inc	iptr			;input pointer
+	ret
+
+indi:	mov	al,ksiz
+	mov	ictr,(offset isiz)	;input counter
+	mov	iptr,(offset ibuf)	;input buffer
+	mov	dx,iptr			;input pointer
+indd:	push	dx
+	push	ax
+
+	mov	cl,26			;(1A) set DMA address
+	int	bdos			; - B D O S -
+
+	mov	dx,(offset cfcb)	;CP/M's file control block
+	mov	cl,20			;(14) read one record
+	int	bdos			; - B D O S -
+
+	or	al,al
+	jnz	inee
+	pop	ax
+	pop	dx
+	dec	al
+	jz	inss
+	add	dx,(offset csiz)	;CP/M's record size
+	jmp	indd
+
+inee:	pop	ax
+	pop	dx
+	mov	(byte ptr[bx]),01AH
+inss:	ret
+
+;	Fetch next keyword byte.
+
+gkey:	push	bx
+	cmp	kctr,0000		;keyword counter
+	jnz	gkez
+	call	kndi			;disk to IN area
+gkez:	dec	kctr			;keyword counter
+	mov	bx,kptr			;input pointer
+	mov	al,[bx]
+	inc	kptr			;input pointer
+	pop	bx
+	ret
+
+kndi:	mov	kctr,(offset csiz)	;CP/M's record size
+	mov	bx,(offset kbuf)	;input buffer
+	mov	kptr,bx			;input pointer
+	mov	(byte ptr[bx]),KZ
+	push	bx
+	push	dx
+	push	cx
+	xchg	bx,dx
+	mov	cl,26			;(1A) set DMA address
+	int	bdos			; - B D O S -
+	mov	dx,(offset kfil)	;keyword FCB
+	mov	cl,20			;(14) read one record
+	int	bdos			; - B D O S -
+	pop	cx
+	pop	dx
+	pop	bx
+	or	al,al
+	ret
+
+;	Send line to .XRF buffer.
+
+xref:	push	bx
+xreg:	mov	al,[bx]
+	or	al,al
+	jz	xreh
+	inc	bx
+	push	bx
+	call	wxrf
+	pop	bx
+	jmp	xreg			;message to .XRF file
+xreh:	pop	bx
+	ret
+
+;	Write next crossreference byte.
+
+wxrf:	cmp	xctr,0000		;crossreference counter
+	jnz	wxrg
+	push	ax
+	call	xndi			;disk to IN area
+	pop	ax
+wxrg:	dec	xctr			;crossreference counter
+	mov	bx,xptr			;crossreference pointer
+	mov	[bx],al
+	inc	xptr			;crossreference pointer
+	ret
+
+xndi:	mov	xctr,(offset csiz)	;CP/M's record size
+	mov	dx,(offset xbuf)	;crossreference buffer
+	mov	xptr,dx
+	mov	cl,26			;(1A) set DMA address
+	int	bdos			; - B D O S -
+	mov	dx,(offset xfil)	;.XRF FCB
+	mov	cl,21			;(15) write one record
+	int	bdos			; - B D O S -
+	cmp	al,00
+	mov	bx,(offset xwre)	;'can''t write'
+	jz G67 ! jmp ferm ! G67:	;final (error) message
+	ret
+
+;	Close crossreference file.
+
+zxrf:	mov	bx,xctr
+	xchg	bx,dx
+	mov	al,dl
+	or	al,dh
+	jz	clos
+	mov	bx,xptr			;crossreference pointer
+zxrg:	mov	(byte ptr[bx]),01AH	;^Z
+	inc	bx
+	dec	dx
+	mov	al,dl
+	or	al,dh
+	jnz	zxrg
+	call	xndi
+
+clos:	mov	cl,16			;(10) close file
+	mov	dx,(offset xfil)	;.XRF FCB
+	int	bdos			; - B D O S -
+	inc	al
+	jnz	G71
+	mov	bx,(offset cclo)	;'can''t close'
+	jmp	ferm			;final (error) message
+
+;	Disregard .COM files
+
+dcom:	mov	al,[bx]
+	cmp	al,'C'
+	jnz	G71
+	inc	bx
+	mov	al,[bx]
+	cmp	al,'O'
+	jnz	G71
+	inc	bx
+	mov	al,[bx]
+	cmp	al,'M'
+	jnz	G71
+	mov	bx,(offset M6)		;".COM file disregarded"
+	call	mssg			;message to console
+	xor	al,al
+G71:	ret
+
+;	Disregard .CMD files
+
+dcmd:	mov	al,[bx]
+	cmp	al,'C'
+	jnz	G74
+	inc	bx
+	mov	al,[bx]
+	cmp	al,'M'
+	jnz	G74
+	inc	bx
+	mov	al,[bx]
+	cmp	al,'D'
+	jnz	G74
+	mov	bx,(offset M7)		;".CMD file disregarded"
+	call	mssg			;message to console
+	xor	al,al
+G74:	ret
+
+;	Disregard .XRF files
+
+dxrf:	mov	al,[bx]
+	cmp	al,'X'
+	jnz	G77
+	inc	bx
+	mov	al,[bx]
+	cmp	al,'R'
+	JNZ	G77
+	inc	bx
+	mov	al,[bx]
+	cmp	al,'F'
+	jnz	G77
+	mov	bx,(offset M9)		;".XRF file disregarded"
+	call	mssg			;message to console
+	xor	al,al
+G77:	ret
+
+;	Disregard .SYS files
+
+dsys:	mov	al,[bx]
+	cmp	al,'S'
+	jnz	G78
+	inc	bx
+	mov	al,[bx]
+	cmp	al,'Y'
+	jnz	G78
+	inc	bx
+	mov	al,[bx]
+	cmp	al,'S'
+	jnz	G78
+	mov	bx,(offset MA)		;".SYS file disregarded"
+	call	mssg			;message to console
+	xor	al,al
+G78:	ret
+
+;	Advance to next alternative
+
+nexx:	mov	bx,[bx]
+next:	mov	al,[bx]
+	or	al,al
+	jz	G80
+	inc	bx
+	call	enda
+	jz	G80
+	call	begb
+	jnz	next
+G80:	ret
+
+;	Block fill with C B's starting at (HL).
+
+fiuc:	mov	(byte ptr[bx]),ch
+	inc	bx
+	dec	cl
+	jnz	fiuc			;block fill
+	ret
+
+;	Block move of cx bytes from [si] to [bx].
+
+miuc:	mov	al,[si]
+	mov	[bx],al
+	inc	si
+	inc	bx
+	loop	miuc
+	ret
+
+;	Read and semicompile the keyword.
+;	    si store semicompiled pattern
+;	    bx store raw pattern
+;	    quit for CR or ^Z
+
+meuv:	call	gkey
+	cmp	al,CR
+	jnz	G85
+	jmp	gkey			;remove following LF
+G85:	cmp	al,01AH			;^Z
+	jnz	G86
+	ret				;end of file
+G86:	mov	[bx],al
+	inc	bx
+	cmp	al,TAB
+	jnz	mvnt
+	mov	al,HT
+mvnt:	mov	[si],al
+	inc	si
+	cmp	al,RBR
+	jz	mvrb
+	cmp	al,RSQ
+	jz	mvrb
+	cmp	al,LBR
+	jz	mvlb
+	cmp	al,LSQ
+	jz	mvlb
+	jmp	meuv
+
+mvrb:	mov	ax,bx
+	pop	bx
+	mov	[bx],si
+	mov	bx,ax
+	jmp	meuv
+
+mvlb:	push	si
+	inc	si
+	inc	si
+	jmp	meuv
+
+;	Move and semi-compile the command line.
+;	    bx points to the command line
+;	    si points to the pattern buffer
+;	    copy until a zero byte is found
+
+muve:	mov	al,[bx]
+	cmp	al,TAB
+	jnz	munt
+	mov	al,HT
+munt:	mov	[si],al
+	inc	bx
+	inc	si
+	cmp	al,RBR
+	jz	murb
+	cmp	al,RSQ
+	jz	murb
+	cmp	al,LBR
+	jz	mulb
+	cmp	al,LSQ
+	jz	mulb
+must:	or	al,al
+	jnz	muve
+	ret
+
+murb:	mov	ax,bx
+	pop	bx
+	mov	[bx],si
+	mov	bx,ax
+	jmp	must
+
+mulb:	push	si
+	inc	si
+	inc	si
+	jmp	must
+
+;	Check balance of []'s and {}'s.
+
+bala:	push	bx
+	push	cx
+	mov	cx,(offset 0101H)
+balb:	mov	al,[bx]
+	inc	bx
+	cmp	al,LSQ
+	jnz	balc
+	inc	ch
+	jmp	balb
+balc:	cmp	al,RSQ
+	jnz	bald
+	dec	ch
+	jz	balx
+	jmp	balb
+bald:	cmp	al,LBR
+	jnz	bale
+	inc	cl
+	jmp	balb
+bale:	cmp	al,RBR
+	jnz	balf
+	dec	cl
+	jz	balx
+	jmp	balb
+balf:	or	al,al
+	jnz	balb
+	mov	al,cl
+	cmp	al,01
+	jnz	balx
+	mov	al,ch
+	cmp	al,01
+	pop	cx
+	pop	bx
+	jnz G106 ! ret ! G106:
+balx:	mov	bx,(offset M3)		;"bad pattern"
+	jmp	ferm			;final (error) message
+
+;	Check for termination of alternative.
+
+enda:	cmp	al,ORR
+	jz	G107
+endb:	cmp	al,RSQ
+	jz	G107
+	cmp	al,RBR
+	jz	G107
+	or	al,al
+G107:	ret
+
+;	Check for beginning of alternative.
+
+bega:	cmp	al,ORR
+	jz	G110
+begb:	cmp	al,LSQ
+	jz	G110
+	cmp	al,LBR
+G110:	ret
+
+;	Check for null alternative.
+
+nula:	push	bx
+	call	nulb
+	pop	bx
+nulr:	ret
+
+nulb:	mov	al,[bx]
+	inc	bx
+	or	al,al
+	jz	nulr
+	call	bega
+	jnz	nulb
+	mov	al,[bx]
+	call	enda
+	jnz	nulb
+	jmp	balx
+
+;	Check for given expression.
+
+chek:	mov	ah,[bx]
+	mov	al,[si]
+	inc	si
+	call	enda
+	jz	chre
+	cmp	ah,CR
+	jz	chno
+	cmp	al,LBR
+	jnz	G116
+	jmp	chlb
+G116:	cmp	al,LSQ
+	jz	chsq
+	inc	bx
+	cmp	al,QUE
+	jz	chek
+	cmp	al,ALF
+	jz	chal
+	cmp	al,ah
+	jz	chek
+	cmp	ah,'a'
+	jc	chno
+	cmp	ah,'{'
+	jnc	chno
+	and	ah,05FH
+	cmp	al,ah
+	jz	chek
+chno:	or	al,0FFH
+chre:	ret
+
+;	Check alphanumeric.
+
+chal:	cmp	ah,'0'
+	jc	chno
+	cmp	ah,':'
+	jc	chek
+	cmp	ah,'A'
+	jc	chno
+	cmp	ah,'['
+	jc	chek
+	cmp	ah,'a'
+	jc	chno
+	cmp	ah,'{'
+	jc	chek
+	jmp	chno
+
+;	Check list of alternatives.
+
+chsq:	push	sqxx
+	push	sqaa
+	push	sqzz
+	mov	sqxx,bx
+	mov	bx,[si]
+	inc	si
+	inc	si
+	mov	sqaa,si
+	mov	sqzz,bx
+chaa:	mov	bx,sqxx
+	call	chek
+	jz	chff
+chbb:	mov	bx,sqaa			;fail so find next alternative
+chcc:	call	next
+	cmp	al,RSQ
+	jz	chdd			;no more alternatives, so fail
+	cmp	al,ORR
+	jnz	chcc
+	mov	sqaa,bx
+	mov	si,bx
+	jmp	chaa			;try next alternative
+chdd:	mov	bx,sqxx
+	or	al,0FFH
+chee:	pop	sqzz
+	pop	sqaa
+	pop	sqxx
+	ret
+
+chff:	mov	si,sqzz			;good alternative, try rest
+	call	chek
+	jz	chee
+	jmp	chbb
+
+;	Check iterative pattern.
+
+chlb:	push	text
+	push	texx
+	push	rest
+	push	rept
+	push	repp
+	mov	text,bx
+	mov	texx,bx
+	xchg	bx,si
+	mov	si,[bx]
+	inc	bx
+	inc	bx
+	mov	rept,bx
+	mov	repp,bx
+	mov	rest,si
+chlc:	mov	si,rest
+	mov	bx,text
+	call	chek			;check rest
+	jz	chzz
+chii:	mov	si,rept			;rest failed
+	mov	bx,text			;keep same text
+	call	chek			;try out the repeater
+	jnz	choo
+	mov	text,bx			;repeater worked, record progress
+	mov	bx,repp			;start alternatives over again
+	mov	rept,bx
+	jmp	chlc
+choo:	mov	bx,rept			;repeater failed, try next
+chxx:	call	next
+	cmp	al,RBR
+	jz	chyy			;this was the last, quit
+	cmp	al,ORR
+	jnz	chxx
+	mov	rept,bx
+	jmp	chii
+chyy:	mov	bx,texx
+	or	al,00			;emphasize the RBR
+chzz:	pop	repp
+	pop	rept
+	pop	rest
+	pop	texx
+	pop	text
+	ret
+
+M1	db	'The command line',CR,LF,CR,LF
+	db	'     FFYNDE [D:]FILE.EXT [E:]KEY.SYM LABEL',CR,LF,CR,LF
+	db	'will search through all instances of FILE.EXT (which',CR,LF
+	db	'may be an ambiguous reference) on disk D for lines',CR,LF
+	db	'containing keywords taken from KEY.SYM (whose disk may',CR,LF
+	db	'be specified). Any of these keywords may be regular',CR,LF
+	db	'expressions. Then the whole family of files will be',CR,LF
+	db	'searched for each line in KEY, whose default extension',CR,LF
+	db	'is SYM. Results will be shown on the console and placed',CR,LF
+	db	'in [E:]KEY.XRF. LABEL, a regular expression too, is a',CR,LF
+	db	'reference for relative line numbers; if it is omitted',CR,LF
+	db	'lines will be numbered serially in each file. Regular',CR,LF
+	db	'expressions are formed as follows:',CR,LF
+	db	'     [p1!p2!...!pn]  alternative strings',CR,LF
+	db	'     {p1!p2!...!pn}  repeated alternatives',CR,LF
+	db	'     ? any single character',CR,LF
+	db	'     @ for any alphanumeric: a-z, A-Z, 0-9',CR,LF
+	db	'     _ in place of horizontal tab',CR,LF
+	db	'Squeezed files will be searched as well as unsqueezed',CR,LF
+	db	'ones. Use ^C to quit, any other key skips rest of file.',CR,LF
+	db	00
+
+M2	db	'FFYNDE.CMD 08/01/84 ICUAP',CR,LF,00
+
+M3	db	'-- Bad Command Line --',00
+
+M4	db	CR,LF,'-- Search Terminated --',00
+
+M5	db	' -- Remainder of File Skipped --',CR,LF,00
+
+M6	db	'.COM file disregarded.',CR,LF,00
+
+M7	db	'.CMD file disregarded.',CR,LF,00
+
+M8	db	' -- Code Table Won''t Fit --',CR,LF,00
+
+M9	db	'.XRF file disregarded.',CR,LF,00
+
+MA	db	'.SYS file disregarded.',CR,LF,00
+
+nkey	db	' -- Can''t Open Keyword File --',CR,LF,00
+
+yexi	db	' -- Crossreference File Already Exists --',CR,LF,00
+
+nxrf	db	' -- Can''t Open Crossreference File --',CR,LF,00
+
+xwre	db	' -- Write Error in Crossreference File --',CR,LF,00
+
+cclo	db	' -- Can''t Close Crossreference File --',CR,LF,00
+
+enth	rb	1			;search-again counter
+sfam	db	'DFilenameEXT',00
+	rb	20
+
+sqxx	rw	1
+sqaa	rw	1
+sqzz	rw	1
+text	rw	1
+texx	rw	1
+rest	rw	1
+rept	rw	1
+repp	rw	1
+lapo	rw	1			;label pointer
+kwdi	db	'Keyword is:  '
+keyr	rb	64			;raw keyword
+hesq	db	'[original] : '
+uzfn	db	'original.xxx'		;unsqueezed file's name
+crlf	db	CR,LF,00
+fhed	db	'~~~~~~> File '
+fnam	db	'xxxxxxxx.'		;filename
+fext	db	'xxx',CR,LF,00		;file extension
+llbl	db	'      +'
+lnum	db	'         ',00		;line number
+lzer	db	'   0'			;zero line for counter
+ftot	db	'      lines found',CR,LF,00
+dtot	db	'      instances in the entire disk',CR,LF,00
+ktot	db	'      keywords processed',CR,LF,00
+	db	00			;fence for line buffer
+lbuf	rb	85H			;line buffer
+dens	rb	1			;z/nz = un/squeezed
+roby	rb	1			;rotating byte
+roco	rb	1			;rotation count
+mult	rb	1			;repeat factor
+lach	rb	1			;last character read
+ictr	rw	1			;input counter
+iptr	rw	1			;input pointer
+ibuf	rb	isiz			;input buffer
+kfil	rb	33			;keyword FCB
+kctr	rw	1			;keyword counter
+kptr	rw	1			;keyword pointer
+kbuf	rb	csiz			;keyword buffer
+xfil	rb	33			;.XRF FCB
+xctr	rw	1			;crossreference counter
+xptr	rw	1			;crossreference pointer
+xbuf	rb	csiz			;crossreference buffer
+patt	rb	256			;command line pattern
+kwrd	rb	256			;keyword pattern
+code	rb	4*hsiz			;Huffman code table
+stak	rw	1			;initialize stack pointer
+fini	rb	0
+
+	end
+  

@@ -1,0 +1,58 @@
+ptest: proc options(main);	/* parse procedures tester */
+	%replace
+	   TRUE by '1'b,
+	   FALSE by '0'b;
+
+	dcl fcbptr ptr;
+	    
+	dcl bufptr ptr;
+	    
+
+	dcl 1 fcb based(fcbptr),
+	      2 drive fixed(7),
+	      2 name char(8),
+	      2 type char(3),
+	      2 ext(4) fixed(7);
+
+
+	dcl cmdtail char(127) based(bufptr);
+
+	dcl
+	    parse entry(ptr,ptr,fixed(7)),
+	    fparse entry(ptr,ptr,fixed(7));
+
+
+	dcl
+	    UPPERCASE      char(26) static init('ABCDEFGHIJKLMNOPQRSTUVWXYZ'),
+	    LOWERCASE      char(26) static init('abcdefghijklmnopqrstuvwxyz'),
+	    module         fixed(7) static init(0),
+	    retcode        fixed(7) static init(0);
+
+	/* base fcb at default fcb (5CH), cmdtail at default buffer (80H) */
+	unspec(fcbptr) = '005C'b4;
+	unspec(bufptr) = '0081'b4;
+	
+	    do while(module < 1 | module > 2);
+	    put skip list('Test: (1) PARSE, (2) FPARSE ? ');
+	    get list (module);
+	    end;
+
+	if fcb.name = '' then do;
+            put skip list ('Enter Files: ');
+	    get edit (cmdtail) (a);
+	    cmdtail = translate(cmdtail,UPPERCASE,LOWERCASE);
+	    end;
+
+	    do while(retcode = 0);
+	    if module = 1 then
+	        call parse(bufptr,fcbptr,retcode);
+	    else
+	        call fparse(bufptr,fcbptr,retcode);
+	    if retcode > 1 then
+	        put skip(2) list('Invalid Filename');
+	    else
+	        put skip list('File:',drive,name,type,ext(1));
+	    end;
+
+	end ptest;
+

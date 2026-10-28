@@ -1,0 +1,546 @@
+{j:a
+{m:1=10,75
+{m:2=18,75
+{m:3=24,75
+{m:4=50,75
+{m:1
+V. OPTION LINE DESCRIPTION
+
+Option lines are used in Musicraft to support musical functions
+not handled by song lines. These functions are:
+
+{m:2
+{i:-8
+1.
+Call a chorus
+{i:-8
+2.
+Label a song line
+{i:-8
+3.
+Mark a measure
+{i:-8
+4.
+Set or change the number
+of intervals per octave
+{i:-8
+5.
+Mark the end of a repeat
+{i:-8
+6.
+Set or change the tempo
+{i:-8
+7.
+Set or change the waveforms
+{i:-8
+8.
+End a chorus
+
+{m:1
+Two musical functions use more than one option line,
+specifically, the chorus function and the repeat function.
+These two functions are discussed first and then each option
+line is discussed in detail.
+
+
+V.A. Chorus Function
+
+A chorus (also called a refrain) is a segment of music which
+must be performed several times in the course of a song.
+Having to input the chorus each time would become tedious.
+You can save yourself the work by entering the chorus once
+and using the C_option, L_option and X_option lines to create
+the effect.
+
+A chorus must be indicated to Musicraft by placing an
+L_option line in front of the chorus and an X_option line
+at the end of the chorus (each of these option lines will
+be discussed further below) as in the following example:
+
+{l:Song part:
+{m:2
+{l:(song body segment 1)
+{l:*C ABCXYZ
+{l:(song body segment 2)
+{l:*C ABCXYZ
+{l:(song body segment 3)
+{l:*X
+
+{i:-8
+Chorus part:
+{l:*L ABCXYZ
+{l:(chorus segment)
+{l:*X
+        
+{m:1
+{l:The effect of this structure will be the following:
+
+{m:2
+{i:-8
+1.
+Song body segment 1 is performed.
+{i:-8
+2.
+Chorus segment is performed.
+{i:-8
+3.
+Song body segment 2 is performed.
+{i:-8
+4.
+Chorus segment is performed.
+{i:-8
+5.
+Song body segment 3 is performed.
+{i:-8
+6.
+The song ends.
+
+{m:1
+You cause the chorus to be performed at a point in the
+song by placing the C_option line into the song at that
+point. PLAY will, in effect, insert the entire chorus
+into the song at that point and perform it before moving
+on to the next song line after the C_option line.
+
+The chorus must be placed at the end of the song. You can
+have as many choruses as you like (up to 128) but
+you must place them at the end of the song. (If you are
+familiar with computer programs then you probably recognize
+the similarity between the chorus and the subroutine.)
+
+It is possible for a chorus call to appear in any segment
+of a song. This includes placing a chorus call within a
+chorus.  What if a chorus calls another chorus?  A chorus
+may call another
+chorus which can, in turn, call another chorus, and so on
+for a "depth" of 16 choruses. But there is one
+rule you must ABSOLUTELY follow: don't permit a chorus to
+call itself, or to call another which, in turn, calls the first.
+This situation will result in what computer programmers
+sometimes call an "unbounded recursion". In other words,
+it will
+not stop until PLAY calls a halt to the introversion by
+canceling the song when the "eight_deep" rule is violated.
+But you can use the "nested call" capability for some
+very powerful structural developments if it doesn't
+confuse you.
+
+Incidentally, the chorus function is useful for song segments
+which must be repeated but which have different endings after
+each repetition. A possible structure might be the following.
+
+{m:2
+{l:*C X1234
+{l:(ending of first repetition)
+{l:*C X1234
+{l:(ending of second repetition)
+{l:(rest of song)
+{l:*X
+        
+{l:*L X1234
+{l:(body of repeated section not including endings)
+{l:*X
+
+{m:1
+V.B. Repeat Function
+
+A song segment can be performed up to 256 times using the
+L_option and R_option lines. The song segment to be repeated
+must be indicated to Musicraft by placing an L_option
+line in front of the segment, and placing an R_option
+line at the end of the segment. Repeated segments may
+occur at any time in a song and can occur in choruses.
+
+The normal form of a repeated segment is
+
+{m:2
+{l:*L XYXYXY
+{l:(song segment 1)
+{l:*R XYXYXY   01
+{l:(song segment 2)
+
+{m:1
+In this instance, song segment 1 will be performed two
+times (once without the repeat and once for the repeat.)
+Song segment 2 will be performed following the completion
+of the repeat.
+
+Repeated song segments can be part of other repeated song
+segments and this condition is called a "nested repeat".
+Should you wish to repeat a song segment more than the
+256 times permitted with one repeat option line,
+follow it with a second repeat option line. This extends
+the number of possible repeats to 256 times 256, or 65,536
+times.
+
+An example of a nested repeat might appear as follows.
+
+{m:2
+{l:*L PIPES
+{l:(song segment 1)
+{l:*L SATYR
+{l:(song segment 2)
+{l:*R SATYR   01
+{l:(song segment 3)
+{l:*R PIPES   01
+{l:(song segment 4)
+
+{m:1
+Here, the following events will occur.
+
+{m:2
+{i:-8
+1.
+Song segment 1 is performed once.
+{i:-8
+2.
+Song segment 2 is performed once.
+{i:-8
+3.
+Song segment 2 is repeated once.
+{i:-8
+4.
+Song segment 3 is performed once.
+{i:-8
+5.
+1, 2, 3, and 4 are repeated once.
+{i:-8
+6.
+Song segment 4 is performed once.
+
+{m:1
+There is a situation that must be avoided in the use of
+more than one repeated song segment. When the last part
+of one repeated song segment overlaps with the first
+part of a second repeated song segment, the combination
+will never terminate. This situation also has a name
+among programmers (these things happen to them but
+shouldn't) and it causes an "infinite loop". If you
+want to hear the rest of your song, avoid this situation.
+
+{m:2
+{l:*L 123.5
+{l:(song segment 1)
+{l:*L INFINITY
+{l:(song segment 2)
+{l:*R 123.5    01
+{l:*R INFINITY 01
+
+{m:1
+Incidentally, when the repeated segment is completed, the
+R_option line is reset so that the next time the repeat
+is invoked by your song, the proper number of repeats will
+again take place. 
+
+The R_option can be used to bypass a segment of music when
+you want to skip a segment the first time but intend to
+play it later as in the following example.
+
+{m:2
+{l:(song segment 1)
+{l:*R JSBACH   01
+{l:*L VIVALDI
+{l:(song segment 2)
+{l:*L JSBACH
+{l:(song segment 3)
+{l:*R VIVALDI  01
+{l:(rest of song)
+        
+{m:1
+In this example, song segment 2 will not be played until
+after the first playing of song segment 3. Note that, if
+you use a repeat to bypass a segment of music and that
+repeat is "nested" within a true repeat, you should 
+indicate a large repeat count for the bypass repeat. This
+is necessary because PLAY will decrement the repetition
+counter each time the repeat is encountered and when it
+reaches zero the repeat will be ignored.
+
+
+V.C. Chorus Call Option Line
+
+The C_option line is used to cause a chorus segment to be
+performed in place of the C_option itself. The C_option
+line is compiled by COMP and passed as part of the song
+to PLAY.
+
+A song may have as many C_option lines as are desired up to
+the limit of your computer to hold song/option lines in memory.
+
+The C_option has one part following the "C" identifying
+the option. This is the name of an L_option line marking
+the beginning of a chorus. The name must match some label.
+Otherwise, COMP will report an error and not complete the
+compilation of your song.
+
+Examples:
+
+{m:2
+{l:*C CHORUS1
+{l:*C REFRAIN
+{l:*C 5
+{a:p=1
+{m:1
+V.D. Label Option Line
+
+The L_option line is used to mark the beginning of a song
+segment. It is compiled by COMP and use to resolve label
+references made by R_option and C_option lines, and it
+is passed as part of the song to PLAY. You might use the
+L_option line for several reasons:
+
+{m:2
+{i:-8
+1.
+to indicate the beginning of a chorus segment;
+{i:-8
+2.
+to indicate the beginning of a repeat segment;
+{i:-8
+3.
+to indicate the beginning of a randomly selectable
+song segment in the modified performance mode;
+{i:-8
+4.
+to mark a convenient point in the song for use
+in the FIND function of EDIT. (You can read
+about this function in the EDIT section below.)
+
+{m:1
+A song may contain up to 128 labels. Any more than this and
+COMP will declare an error in your song.
+
+The L_option line has the following two parts beyond the
+L_option
+indicator. You provide these when you place the L_option
+line in the song.
+
+{m:2
+{i:-8
+1.
+A name which uniquely identifies the segment;
+{i:-8
+2.
+The segment select key for PLAY. 
+
+{m:1
+The label name is used by the C_option line and the R_option
+line to make reference to the L_option line. It may be
+any sequence of from one to 8 characters in
+length. The label name does not have any meaning in itself,
+incidentally, only in its reference by other option lines.
+Examples are
+
+{m:2
+{l:PART_A
+{l:REPRISE
+{l:DEVELOP
+{l:CODA
+{l:REPEAT
+{l:RPM.78
+{l:etc...
+
+{m:1
+The select key (also referred to as the label key) is used by PLAY
+to permit modification of
+the normal performance process into any sequence you might
+desire.  This feature is discussed at length in the PLAY
+section of the manual. Any key on your keyboard (excluding
+control keys) may be
+assigned to the label. If you wish to use the feature,
+it is your responsibility to insure
+that the keys assigned
+to the different L_option lines are unique.
+
+For additional information, see the discussion about the Modified 
+Performance Mode in paragraph IV.E.6.b. above.
+{a:p=1
+V.E. Measure Option Line
+
+The M_option line is used to mark measures within a song.
+It is passed as part of the song to PLAY for use in the
+rehearsal mode of PLAY. The M_option line is the only option
+which can be generated without the use of the
+OPTION menu of the EDIT program. You can insert an M_option
+line at any time when you are in the Edit and Insert modes
+of EDIT.
+
+A song may have as many M_option lines as are desired up to
+the limit of your computer to hold song/option lines in memory.
+
+The M_option line has one part following the "M" identifier.
+A four-digit measure number is placed into the M_option line
+by EDIT. This number is in order of use and is not necessarily
+in order from beginning to end of the song. When you strike the
+"M" key, the number is incremented and then used. Should
+you place a measure into a song at some point, then back up
+and place another M_option line before the first, the numbers
+will be backwards.
+
+Example:
+
+{m:2
+{l:*M 0001
+{l:(measure segment 1)
+{l:*M 0002
+{l:(measure segment 2)
+{l:*M 0003
+{l:(measure segment 3)
+{l:...etc.
+
+{m:1
+EDIT renumbers all M_option lines when it saves the
+song on floppy disk.
+
+
+V.F. Microtone Option Line
+
+The #_option line is used to set or change the number of intervals 
+within an octave. It is used by COMP in compiling song lines which 
+use the microtone notation and is not passed as part of the song to 
+PLAY.
+
+The song may have as many #_option lines as desired up to the limit 
+of your computer to hold song/option lines in memory.
+
+The #_option has one part following the "#" identifying the option. 
+You must enter a number between 1 and 99 which specifies the number 
+of intervals per octave that is to apply to note information which 
+follows the #_option line.
+
+If you do not use #_option line anywhere within the body of a song, 
+COMP will declare microtonal information as errors.
+{a:p=1
+V.G. Repeat Option Line
+
+The R_option line is used to mark the end of a repeated song
+segment. It is compiled by COMP and passed as part of the
+song to PLAY to control performance. 
+
+A song may have as many R_option lines as desired up to the
+limit of your computer to hold song/option lines in memory.
+
+The R_option has two parts following the "R" identifying
+the option.
+
+{m:2
+{i:-8
+1.
+The segment name in the beginning L_option line.
+{i:-8
+2.
+The number of repetitions of the segment.
+
+{m:1
+The name must match some label preceding the R_option line;
+otherwise, COMP will report an error and not complete the
+compilation of your song.
+
+
+V.H. Tempo Option Line
+
+The T_option line is used to set or change the tempo of
+the music which follows the point at which the option is
+used. It is used by COMP in the computation of duration
+and pitch information to be passed to PLAY. The T_option
+line is not passed to PLAY.
+
+A song may have as many T_option lines as desired up to the
+limit of your computer to hold song/option lines in memory.
+
+The T_option has one part following the "T" identifying
+the option. You must enter a number between 1 and 999 which
+specifies the number of quarter notes to be played per
+minute. This notation is like the standard Maetzel notation
+used in most published music today.
+
+If you do not use a T_option line anywhere within the body
+of a song, Musicraft will play about 80 quarter notes per
+minute.
+
+Example:
+
+We would like to play a song at 120 quarter notes per minute
+for the first 20 measures, but, beginning at measure 21,
+we would like to change the speed to 144. The following
+example shows this.
+
+{m:2
+{l:*T 120
+{l:(song segment 1)
+{l:*T 144
+{l:*M 0021
+{l:(song segment 2)
+
+
+{m:1
+V.I. Waveform Option Line
+
+The W_option line is used to permit the setting or changing
+of the sound color of the music which follows the point at
+which the W_option line is placed in the song. The W_option
+line is compiled and passed as part of the song to PLAY.
+
+PLAY permits
+up to 14 different waveform tables to be available for use
+in performance of a song. These tables are numbered from 1
+to 14. You relate these tables to the voices of your song
+by using the W_option line. By placing a waveform into a table
+referenced by a W_option line, you will have caused PLAY to
+use that particular sound color in the performance of a voice.
+
+If you do not use a W_option line anywhere within the body of
+a song, PLAY will use table 1 for all voices in the song.
+
+A song may have as many W_option lines as desired up to the
+limit of your computer to hold song/option lines in memory.
+
+A W_option line has as many parts following the "W" identifier
+as the number of voices you have declared for the song. If
+you declare three (3) voices, the W_option line has three
+(3) additional parts. Each part corresponds to a voice. The
+first part corresponds to the first voice, the second part
+to the second voice, and so forth. You may
+place any number from 1 to 14 in each part and thereby
+associate that numbered waveform table in PLAY with the voice
+corresponding to that part of the W_option line. This
+association will hold from that point until the occurrence
+of another W_option line.
+
+Example:
+
+In a 3_voice song, we would like to use table 3 with voice
+1, table 10 with voice 2, and table 2 with voice 3. The
+following W_option line will produce these results:
+
+{m:2
+{l:(song segment 1)
+{l:*W 03 10 02
+{l:(song segment 2)
+
+{m:1
+Song segment 1 will be performed by PLAY using table 1 for
+all three voices while song segment 2 will be performed
+in the manner described above.
+
+
+V.J. Chorus Exit Option Line
+
+The X_option line is used to mark the end of a chorus or the
+end of a song when a chorus is used. It is compiled by COMP
+and passed as part of the song to PLAY.
+
+If the X_option line is preceded by
+a corresponding L_option line, then it causes PLAY to return
+to the main body of the song following the C_option line
+which caused the chorus to be performed. If it is not preceded
+by a corresponding L_option line, then the song is terminated.
+You should use this feature to end songs which have choruses.
+If you omit the use of the X_option line in a song which has
+a chorus, then the chorus will be played one last time and the
+song will then terminate. See the discussion about the Chorus
+Feature above for more information.
+{a:p=1
+
+
+

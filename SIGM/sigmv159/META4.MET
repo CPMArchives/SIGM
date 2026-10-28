@@ -1,0 +1,230 @@
+.SYN COMPILE
+.FIELD VALUE 0 TYPE 3 ;
+.CONSTANT NAME 1 FIELD 3 CONSTANT 2
+		FUNC 4  UNDEFINED 0 AVAILFIELDS 5 ;
+.NAME NUMBER '0' ID '0' SAVEID '2' TEMP 'Z' STACK 'Y' UNSTACK '!' ;
+.FUNCTION IDNAME EXPRESSION TERM FACTOR
+	CONSTSIMP CONSTEXP CONSTTERM CONSTFAC
+	IDCONS ERRORMESSAGE CFAC CEXP IDNEW
+	CATNAME IDFIELD CHECKFRANGE PHRASE
+	;
+RVALUE =
+	IDNAME &CATNAME (':' IDFIELD .CAT ('M' ID:VALUE)
+	/ .EMP )
+	/CONSTSIMP
+		.CAT('N/' UNSTACK ' ')
+	/ '+' EXPRESSION .CAT('!')
+	;
+EXPRESSION = TERM $( '+'TERM .OUT('!+')
+		/'-' TERM .OUT('!-')
+	)
+	;
+TERM = FACTOR
+	$('*' FACTOR .OUT('!*')
+	/'/''256' .OUT('HZ')
+	.OUT('!D')
+	.OUT('ZY')
+	/'%256'
+	.OUT('HY')
+	.OUT('N/''256*')
+	.OUT('!-')
+	)
+	;
+FACTOR='(' EXPRESSION ')'
+	/CONSTSIMP .OUT('N/' UNSTACK 'Y')
+	/IDNAME &CATNAME (':' IDFIELD
+		.CAT('M'ID:VALUE)
+		/.EMP) .OUT('Y')
+	/'-'FACTOR .OUT('!Z')
+		.OUT('N/''0Y')
+		.OUT('Z-')
+	;
+CATNAME = ID:VALUE=:STACK
+	.ACT('!L')	!ACTS AS A ONE BYTE MACRO
+	;
+TOPLACE = IDNAME ID=:SAVEID
+	(':' IDFIELD .CAT( 'I'  ID:VALUE)
+	/.EMP )
+		SAVEID=:ID &CATNAME
+	;
+DECLARE = '.FIELD' $ (IDNEW ID=:SAVEID
+	CONSTEXP  &CHECKFRANGE NUMBER=:SAVEID:VALUE
+		FIELD=:SAVEID:TYPE
+		)	';'
+	/'.NAME' $ ( IDNEW ID=:SAVEID
+		CONSTEXP
+		UNSTACK=:SAVEID:VALUE
+		NAME=:SAVEID:TYPE
+	)		';'
+	/ '.CONSTANT' $ (IDNEW ID=:SAVEID
+		CONSTEXP
+		CONSTANT=:SAVEID:TYPE
+		UNSTACK=:SAVEID:VALUE
+	)		';'
+	/'.FUNCTION' $ (IDNEW FUNC=:ID:TYPE)
+	';'
+	;
+CONSTEXP = CONSTTERM $( '+' CONSTTERM .ACT('!+')
+	/'-' CONSTTERM .ACT('!-')
+	)
+	;
+CONSTTERM = CONSTFAC $( '*' CONSTFAC .ACT ('!*')
+	)
+	;
+CONSTSIMP = .NUM NUMBER=:STACK
+	/IDCONS ID:VALUE=:STACK
+	/.STR "'" .ACT ('N/0SY')	!VALUE IS FIRST CHARACTER
+	/'.X' .HEXNUM ]NUMBER
+	;
+CONSTFAC =
+	CONSTSIMP
+	/'-' CONSTFAC .ACT('!Z' 'N/0Y' 'Z-')
+	/'(' CONSTEXP ')'
+	;
+IDTYPE = .ACT ('LI'	!IS IT AN ID?
+		'F/' *1 !NO, RETURN
+		'ME'	!DEFINE OR FIND
+		'0M3Y' 'Z='	!ID TYPE==TEMP?
+		'L' 'R'	!TAKE AND RETURN
+		'.' *1	!NOW ACCEPT OR REWIND INPUT
+		'L'  'Z9' )
+	;
+IDNAME = .PREP NAME=:TEMP IDTYPE
+	;
+IDFIELD = .PREP FIELD=:TEMP IDTYPE
+	;
+IDFUNC = .PREP FUNC =: TEMP IDTYPE
+	;
+IDCONS = .PREP CONSTANT=:TEMP IDTYPE
+	;
+IDNEW = .PREP UNDEFINED=:TEMP IDTYPE
+	;
+CHECKFRANGE = .IF( NUMBER<=AVAILFIELDS)
+	.RETURN
+	.ELSE
+		.ERMS( NUMBER ' IS TOO BIG FOR A FIELD')
+	.END
+	;
+AOUT = '*1' .OUT('U')
+	/ '*2' .OUT ( 'V' )
+	/ '*' .OUT ( 'C' )
+	/( .STR "'"/.STR'"') .OUT ( 'P' * )
+	/RVALUE .OUT('C')
+	/'.H' RVALUE .OUT('H')
+	/'.' .OUT('XN')
+	;
+NOTSYN = ( '.OUT' '(' $ AOUT ')'
+	/ '.LAB'  .OUT ( 'P... ') AOUT
+	)
+	.OUT ( 'O' )
+	/ '.ACT' '(' $(
+		( .STR "'" / .STR '"' ) .ACT ('C')
+			('*1' .ACT('U')
+			/'*2' .ACT ('V')
+			/.EMP)
+			.ACT('O')
+		/ .STR '!'
+		) ')'
+	/']' RVALUE .OUT('Y')
+	/ RVALUE '=:' TOPLACE .OUT()
+	/'.IF' '(' CEXP ')' .OUT('F/' *1) $ NOTSYN
+		('.ELSE' .OUT ('J/'*2)  .LAB*1 .OUT('S')  $NOTSYN '.END' .LAB*2
+		/'.END'	.LAB*1 .OUT('S')  )
+	/'.CAT'
+		'(' $AOUT ')'
+	/'.CONDLAB'
+		('*1' .OUT ('UY')
+		.OUT ('0=')
+		.OUT ('T/' *1)
+		.OUT ('P... ')
+		.OUT ('U')
+	/'*2' .OUT('VY')
+		.OUT('0=')
+		.OUT('T/' *1)
+		.OUT('P... ')
+		.OUT('V')
+	)
+	.OUT('O')
+	.OUT('S')	!!! NOTE SIDE EFFECT !!!
+	.LAB *1
+	/ERRORMESSAGE
+	/'.ERROR' .OUT('SF')
+	/'.SUCCEED' .OUT('S')
+	/'.FAIL' .OUT('SF')
+	/ '&' IDFUNC .OUT ( 'G' * )
+	/'.RETURN' .OUT ( 'R' )
+	/.STR '!'
+	/'.WHILE' .LAB *1
+		'(' CEXP ')' .OUT ('F/' *2)
+		$NOTSYN
+		'.ENDWHILE'
+			.OUT('J/' *1)
+			.LAB *2
+	;
+CRIGHT=
+	'==' .OUT ('Y')
+	RVALUE .OUT('=')
+	/'!=' .OUT('Y')
+	RVALUE .OUT('=') .OUT ('SC')
+	/'<=' .OUT('Y')
+	RVALUE .OUT('<') .OUT ('SC')
+	/'>=' .OUT('Y')
+	RVALUE .OUT('>') .OUT('SC')
+	/'<' .OUT('Y')
+	RVALUE .OUT('>')
+	/'>' .OUT ('Y')
+	RVALUE .OUT('<')
+	;
+CTERM = CFAC $( '.ANDIF' .OUT('F/' *2) CFAC)
+	.CONDLAB *2
+	;
+CFAC = RVALUE CRIGHT
+	/'.NOT' CFAC .OUT('SC')
+	/'(' CEXP ')'
+	/'&' IDNEW .OUT('G' *)
+	;
+CEXP = CTERM $( '.ORIF' .OUT('T/' *1) CTERM)
+	.CONDLAB *1
+	;
+ERRORMESSAGE = '.ERMS' '(' .OUT('T/'*1) $AOUT
+	')' .OUT('XO') .LAB *1
+
+
+	;
+SYN = (  IDNEW .OUT ('G' *)
+	/ .STR "'"  .OUT ( 'LM'  * ) .OUT ( 'L' )
+	/'.ID'  .OUT ( 'LI' )
+		.OUT ( 'F/' *1 ) .OUT ( 'L' ) .OUT ( 'ME' ) .LAB *1
+	/'.NUM' .OUT ( 'LN' ) .OUT ( 'L' )
+	/'.STR' (.STR "'" / .STR '"' ) .OUT ( 'LQ' * ) .OUT ( 'L' )
+	/'.EMP' .OUT ( 'S' )
+	/'$'	.LAB *1 SYN .OUT('T/' *1) .OUT('S')
+	/'(' PHRASE ')'
+	/'.HEXNUM' .OUT('LH') .OUT('L')
+	)
+	(ERRORMESSAGE
+	/.EMP)
+
+
+	;
+SEQ = SYN .OUT ('F/' *1)
+	$ ( SYN .OUT ( 'X' ) / NOTSYN )
+	.LAB *1
+	;
+ALTS = SEQ $('/' .OUT ('T/'*1) SEQ)
+	.CONDLAB *1
+	;
+PHRASE = '.PREP' $NOTSYN ALTS
+	/ALTS
+	/NOTSYN $NOTSYN
+
+	;
+STATEMENT = .ID .LAB * '=' PHRASE ';' .OUT ( 'R' )
+	(.STR '!' /.EMP)
+
+	;
+COMPILE = '.SYN'  .ID  .OUT('S')
+	.OUT ( 'XM;' ) .OUT ('G' *) .OUT('E')
+	.ACT('XM;') $ DECLARE   $ STATEMENT
+	;
+

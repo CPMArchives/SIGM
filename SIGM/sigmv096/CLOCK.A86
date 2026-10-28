@@ -1,0 +1,432 @@
+
+M	EQU	Byte Ptr 0[BX]
+;********************************************************
+;*							*
+;*	TEST ROUTINES FOR THE COMPPRO SYSTEM		*
+;*	  SUPPORT 1  BOARD REAL TIME CLOCK		*
+;*							*
+;********************************************************
+;
+;	Verion 1.0	From System Support manual
+;	8/1/82		Keyed in by Bill Bolton.
+;
+;	Version 1.10	Modified for Australian date
+;	8/1/82		format by Bill Bolton.
+;
+;	Version 1.11	Placed version number in signon
+;	11/1/82		and added version number equates
+;			Bill Bolton
+;
+;	Version 1.12	XLT86 translation to CP/M-86
+;			Bill Bolton
+;
+BASE	EQU	50H			;BASE PORT ADDRESS
+CLKCMD	EQU	BASE+10			;CLOCK COMMAND PORT
+CLKDATA	EQU	BASE+11			;CLOCK DATA PORT
+WBOOT	EQU	0			;BIOS WBOOT ENTRY
+BDOS	EQU	00005H			;BDOS ENTRY POINT
+READ	EQU	10H			;READ BIT PATTERN
+WRITE	EQU	20H			;WRITE BIT PATTERN
+HOLD	EQU	40H			;HOLD BIT PATTERN
+ALF	EQU	0AH			;ASCII LINE FEED
+ACR	EQU	0DH			;ASCII CARRIAGE RETURN
+;
+VERS	EQU	1			;MAJOR VERSION NUMBER
+REV	EQU	12			;MINOR REVISION NUMBER
+;
+	ORG	100H
+;
+;********************************************************
+;*	THIS IS THE MAIN LOOP THAT PRINTS THE		*
+;*	SIGNON MESSAGE, DECIDES WHAT COMMAND		*
+;*	HAS BEEN ENTERED AND EXECUTES THAT ROUTINE	*
+;********************************************************
+
+START:
+	MOV	DX,(Offset SIGNON)	;INITIAL SIGNON MESSAGE
+	CALL	PMSG			;DISPLAY IT
+	CALL	GETCHAR			;GET COMMAND CHARACTER
+	CMP	AL,'X'			;EXIT TO CP/M ?
+	JNZ	L_1	
+	MOV	CL,0			;YES
+	MOV	DL,0
+	INT	224
+L_1:
+	CMP	AL,'S'			;SET TIME ?
+	JZ	SETTIME			;YES
+	CMP	AL,'D'			;DISPLAY TIME ?
+	JNZ	L_2	
+	JMP	PTIME			;YES
+L_2:
+	CMP	AL,'C'			;CONTIUOUS DISPLAY ?
+	JNZ	L_3	
+	JMP	FOREVER			;YES
+L_3:
+	MOV	DX,(Offset ERROR)	;CANT RECOGNIZE COMMAND
+	CALL	PMSG			;SO COMPLAIN ABOUT IT
+	JMPS	START			;TRY AGAIN
+;
+;********************************************************
+;*	THIS ROUTINE SETS UP HL TO POINT TO A TABLE	*
+;*	TO RECEIVE THE DIGITS TO BE WRITTEN TO THE CLOCK*
+;*	DE CONTAINS THE POINTER TO THE TABLE OF ADDRESS	*
+;*	VALUES THAT CORRESPOND TO THE DESIRED DIGIT.	*
+;*	THE TABLE IS ORGANISED IN THE PROPER ORDER FOR	*
+;*	READING AND WRITING. THE ROUTINE GETS THE	*
+;*	DIGITS FROM THE CONSOLE AND PUTS THEM INTO	*
+;*	MEMORY AND THEN WRITES THEM TO THE CLOCK.	*
+;********************************************************
+SETTIME:
+	CALL	GETTIME			;GET THE DATE AND TIME DATA
+	MOV	BX,(Offset DTABLE)	;HL <---- DIGIT TABLE ADDRESS
+	MOV	DX,(Offset ATABLE)	;DE <---- ADDRESS TABLE
+	MOV	CH,13			;NUMBER OF DIGITS TO WRITE +1
+	MOV	AL,HOLD			;SET HOLD BIT
+	OUT	CLKCMD,AL		;SEND COMMAND
+SET1:
+	DEC	CH			;DONE LAST DIGIT ?
+	JNZ	HERE			;NO
+	MOV	AL,0			;YES, CLEAR HOLD BIT
+	OUT	CLKCMD,AL		;SEND COMMAND
+	MOV	DX,(Offset TIMEIS)	;"TIME IS" MESSAGE
+	CALL	PMSG
+	CALL	CLKPRNT			;DISPLAY THE TIME
+	JMPS	START			;NEXT COMMAND
+;
+HERE:
+	MOV	AL,M			;A <---- DIGIT
+	MOV	CL,AL			;C <---- DIGIT
+	MOV	SI,DX			;A <---- COMMAND
+	MOV	AL,[SI]
+	CALL	WRTDGT			;WRITE THE DIGIT
+	LAHF				;BUMP POINTERS
+	INC	BX
+	SAHF
+	LAHF
+	INC	DX
+	SAHF
+	JMPS	SET1			;NEXT DIGIT
+
+;********************************************************
+;*	THIS ROUTINE GETS THE DIGITS FROM THE CONSOLE	*
+;*	AND STORES THEM INTO MEMORY AT THE ADDRESS	*
+;*	POINTED TO BY HL.				*
+;********************************************************
+
+GETTIME:
+	MOV	DX,(Offset ASKTIME)	;PROMPT FOR TIME INPUT
+	CALL	PMSG
+	MOV	BX,(Offset DTABLE)	;HL <---- ADDRESS TO PUT DIGITS
+GET1:
+	CALL	GETNUMB			;GET A DIGIT
+	CMP	AL,ACR			;FINISHED TIME ?
+	JZ	GETDATE			;YES
+	AND	AL,0FH			;NO, CONVERT TO BCD FORMAT
+	MOV	M,AL			;PUT DIGIT INTO MEMORY
+	INC	BX			;POINT TO NEXT TABLE ADDRESS
+	JMPS	GET1
+;
+GETDATE:
+	MOV	DX,(Offset ASKDATE)	;PROMPT FOR TIME INPUT
+	CALL	PMSG
+GET2:
+	CALL	GETNUMB			;GET A DIGIT
+	CMP	AL,ACR			;FINISHED DATE ?
+	JNZ	L_4	
+	RET				;YES
+L_4:
+	AND	AL,0FH			;NO, CONVERT TO BCD
+	MOV	M,AL			;PUT DIGIT INTO MEMORY
+	INC	BX			;POINT TO NEXT TABLE ADDRESS
+	JMPS	GET2
+
+;********************************************************
+;*	THIS ROUTINE GETS A CHARACTER FROM THE CONSOLE	*
+;*	AND CHECKS THE INPUT FOR EITHER A CARRIAGE	*
+;*	RETURN OR A VALID DIGIT BETWEEN 0-9 WILL NOT	*
+;*	RETURN UNTIL A CR OR VALID DIGIT IS TYPED	*
+;********************************************************
+
+GETNUMB:
+	CALL	GETCHAR
+	CMP	AL,ACR			;CARRIAGE RETURN ?
+	JNZ	L_5	
+	RET				;YES
+L_5:
+	CMP	AL,'0'
+	JB	GETNUMB
+	CMP	AL,'9'+1
+	JNB	GETNUMB
+	RET
+
+;********************************************************
+;*	THIS ROUTINE WRITES THE DIGIT TO THE CLOCK	*
+;*	AND CHECKS TO SEE IF THE HOURS OR DAYS 10	*
+;*	DIGIT AND SETS THE 24 HOUR AND LEAP YEAR BITS	*
+;*	ACCORDINGLY. THIS ROUTINE IS CALEED WITH DIGIT	*
+;*	ADDRESS IN A AND THE DIGIT TO BE WRITTEN IN C.	*
+;********************************************************
+
+WRTDGT:
+	LAHF				;SAVE THE COMMAND
+	XCHG	AL,AH
+	PUSH	AX
+	XCHG	AL,AH
+	ADD	AL,HOLD			;ADD IN THE HOLD BIT
+	OUT	CLKCMD,AL		;SEND COMMAND
+	CMP	AL,HOLD+5		;HOURS TEN DIGIT ?
+	JNZ	WRT1			;NO
+	MOV	AL,CL			;YES, GET DIGIT
+	ADD	AL,08H			;SET 24 HOUR MODE
+	JMPS	WRT3
+;
+WRT1:
+	CMP	AL,8+HOLD		;DAYS 10 DIGIT ?
+	JNZ	WRT2			;NO
+	MOV	AL,CL			;YES, GET THE DIGIT
+	AND	AL,03H			;SET NON-LEAP YEAR MODE
+	JMPS	WRT3
+;
+WRT2:
+	MOV	AL,CL			;A <---- DIGIT
+WRT3:
+	OUT	CLKDATA,AL		;SEND DIGIT
+	POP	AX			;GET COMMAND BACK
+	XCHG	AL,AH
+	ADD	AL,WRITE+HOLD		;ADD THE WRITE + HOLD BITS
+	OUT	CLKCMD,AL		;SEND COMMAND
+	SUB	AL,WRITE		;CLEAR THE WRITE BIT
+	OUT	CLKCMD,AL		;SEND COMMAND
+	RET
+
+;********************************************************
+;*	THIS ROUTINE READS A DIGIT FROM THE CLOCK AND	*
+;*	MASKS THE LEAP YEAR AND AND AM/PM/24 HOUR MODE	*
+;*	BITS. THIS ROUTINE IS CALLED  WITH THE DIGIT	*
+;*	ADDRESS IN A AND RTURNS WITH THE DIGIT VALUE	*
+;*	IN A.						*
+;********************************************************
+
+RDDGT:
+	ADD	AL,READ			;ADD IN THE READ BIT
+	OUT	CLKCMD,AL		;SEND COMMAND
+	CMP	AL,5+READ		;TENS HOURS DIGIT ?
+	IN	AL,CLKDATA		;GET THE DIGIT
+	JZ	L_6	
+	RET				;NO, FINISHED
+L_6:
+	SUB	AL,08H			;YES, TURN OFF 24 HOUR BIT
+	RET
+
+;********************************************************
+;*	THIS ROUTINE PRINTS THE CURRENT TIME AND DATE	*
+;*	ONCE , COMPLETE WITH COLONS AND SLASHES		*
+;********************************************************
+
+CLKPRNT:
+	MOV	BX,(Offset ATABLE)	;HL <---- TABLE ADDRESS
+	CALL	PRINTWO			;DISPLAY THE FIRST TWO DIGITS
+	MOV	AL,':'
+	CALL	PCHAR			;DISPLAY THE SEPERATOR
+	CALL	PRINTWO			;DISPLAY THE NEXT TWO DIGITS
+	MOV	AL,':'
+	CALL	PCHAR			;DISPLAY THE SEPERATOR
+	CALL	PRINTWO			;DISPLAY THE NEXT TWO DIGITS
+	MOV	AL,' '
+	CALL	PCHAR
+	MOV	AL,' '			;TWO SPACES
+	CALL	PCHAR
+	CALL	PRINTWO			;TWO MORE DIGITS
+	MOV	AL,'/'			;DISPLAY A SLASH
+	CALL	PCHAR
+	CALL	PRINTWO
+	MOV	AL,'/'
+	CALL	PCHAR
+	CALL	PRINTWO			;PRINT LAST TWO DIGITS
+	RET
+
+;********************************************************
+;*	THIS ROUTINE PRINTS TWO DIGITS FROM THE CLOCK.	*
+;*	IT IS CALLED WITH THE DIGIT ADDRESS OF THE	*
+;*	DIGIT IN HL. EXITS WITH HL POINTING TO THE	*
+;*	ADDRESS OF THE NEXT TWO DIGITS.			*
+;********************************************************
+
+PRINTWO:
+	MOV	AL,M			;A <---- ADDRESS (FROM TABLE)
+	CALL	RDDGT			;READ THE DIGIT
+	ADD	AL,30H			;CONVERT TO ASCII
+	CALL	PCHAR			;DISPLAY IT
+	INC	BX			;ADJUST POINTER
+	MOV	AL,M			;A <---- ADDRESS
+	CALL	RDDGT
+	ADD	AL,30H
+	CALL	PCHAR
+	LAHF
+	INC	BX
+	SAHF
+	RET
+
+;********************************************************
+;*	THIS ROUTINE DISPLAYS THE TIME ONCE AND JUMPS	*
+;*	BACK TO THE MAIN LOOP				*
+;********************************************************
+
+PTIME:
+	MOV	DX,(Offset TIMEIS)
+	CALL	PMSG
+	CALL	CLKPRNT
+	JMP	START
+
+;********************************************************
+;*	THIS ROUTINE DISPLAYS THE TIME CONTINUOUSLY	*
+;*	UNTIL A CONTROL C IS TYPED. IT CONTINUALLY	*
+;*	READS THE SECONDS 1 DIGIT AND WAITS FOR IT TO	*
+;*	CHANGE BEFORE DISPLAYING THE TIME.		*
+;********************************************************
+
+FOREVER:
+	MOV	AL,ALF			;LINE FEED
+	CALL	PCHAR
+FOR1:
+	MOV	AL,ACR			;CR
+	CALL	PCHAR
+	CALL	CLKPRNT			;DISPLAY THE TIME
+	MOV	AL,0			;ADDRESS OF SECONDS DIGIT
+	CALL	RDDGT			;READ DIGIT
+	MOV	CH,AL			;B <---- DIGIT
+FOR2:
+	MOV	AL,0
+	CALL	RDDGT			;READ IT AGAIN
+	CMP	AL,CH			;CHANGED ?
+	JZ	FOR2			;NO
+	JMPS	FOREVER			;YES
+
+;********************************************************
+;*	     CP/M CALLS AND UTILITY ROUTINES		*
+;*							*
+;*	THIS ROUTINE GETS A CHARACTER FORM THE CONSOLE	*
+;*	AND CONVERTS IT TO UPPERCASE, STRIPS OF PARITY	*
+;*	AND CHECKS FOR CONTROL C.			*
+;********************************************************
+
+GETCHAR:
+	PUSH	BX
+	MOV	CL,1			;BDOS CONSOLE IN
+	INT	224
+	POP	BX
+	CMP	AL,'a'			;RANGE CHECK FOR UPPER CASE
+	JB	SKIP
+	CMP	AL,'z'+1		;DITTO
+	JNB	SKIP
+	AND	AL,5FH			;CONVERT TO UPPER CASE
+SKIP:
+	AND	AL,7FH			;STRIP PARITY BIT
+	CMP	AL,03H			;CONTROL C ?
+	JNZ	L_7	
+	MOV	CL,0			;YES, EXIT TO CP/M
+	MOV	DL,0
+	INT	224
+L_7:
+	RET				;NO
+
+;********************************************************
+;*	THIS ROUTINE PRINTS A CHARACTER ON THE CONSOLE	*
+;*	AND CHECKS TO SEE IF ANY WERE ENTERED WHILE	*
+;*	PRINTING.					*
+;********************************************************
+
+PCHAR:
+	PUSH	DX
+	MOV	DL,AL			;E <---- CHARCATER
+	MOV	CL,2			;BDOS CONSOLE OUT
+	PUSH	BX
+	INT	224
+	MOV	CL,0BH			;BDOS CONSOLE STATUS CHECK
+	INT	224
+	POP	BX
+	POP	DX
+	OR	AL,AL			;CHARACTER READY ?
+	JZ	L_8	
+	CALL	GETCHAR			;YES, GET IT
+L_8:
+	RET				;NO
+
+;********************************************************
+;*	THIS ROUTINE DISPLAYS THE STRING POINTED TO	*
+;*	BY DE UNTIL $ IS FOUND.				*
+;********************************************************
+
+PMSG:
+	PUSH	BX
+	MOV	CL,9			;BDOS DISPLAY STRING
+	INT	224
+	POP	BX
+	RET
+L_9	EQU	$
+;
+	DSEG
+;
+	ORG	Offset L_9
+
+;********************************************************
+;*			MESSAGES			*
+;********************************************************
+
+SIGNON	RS	0
+	DB	ACR,ALF,ACR,ALF
+	DB	'Time and Date Test Routines for System Support 1'
+	DB	ACR,ALF
+	DB	'Version ',VERS + '0','.',REV/10 + '0',REV mod 10 +'0'
+	DB	ACR,ALF,ACR,ALF
+	DB	'Please type one of the following Commands:'
+	DB	ACR,ALF
+	DB	'S - Set the Time and Date',ACR,ALF
+	DB	'D - Display the Time and Date Once',ACR,ALF
+	DB	'C - Continuously Display the Time and Date'
+	DB	ACR,ALF
+	DB	'X - Exit to Operating System'
+	DB	ACR,ALF,ACR,ALF
+	DB	'Command: $'
+;
+ERROR	RS	0
+	DB	ACR,ALF
+	DB	'That was not one of the above commands'
+	DB	ACR,ALF
+	DB	'Please try again.$'
+;
+ASKTIME	RS	0
+	DB	ACR,ALF
+	DB	'What is the time? (24 hour format - HH:MM:SS) $'
+;
+ASKDATE	RS	0
+	DB	ACR,ALF
+	DB	'What is the date? (DD/MM/YY) $'
+;
+TIMEIS	RS	0
+	DB	ACR,ALF
+	DB	'The Time and Date are: $'
+
+;********************************************************
+;*			TABLES				*
+;*							*
+;*	THIS TABLE CONTAINS THE 'ADDRESS' VALUES	*
+;*	THAT ARE SENT IN THE COMMAND BYTE IN THE	*
+;*	FOLLOWING ORDER - HOURS 10, HOURS 1, MIN 10	*
+;*	MIN 1, SEC 10, SEC 1, DAYS 10, DAYS 1		*
+;*	MONTHS 10, MONTHS 1, YEARS 10, YEARS 1.		*
+;********************************************************
+
+ATABLE	RS	0
+	DB	5,4,3,2,1,0,8,7,0AH,9,0CH,0BH
+
+;********************************************************
+;*	THIS IS THE AREA WHICH GETS THE DIGITS AS THEY	*
+;*	ARE ENTERED FROM THE CONSOLE.			*
+;********************************************************
+
+DTABLE	RS	0
+	DB	0,0,0,0,0,0,0,0,0,0,0,0
+;
+	END
+

@@ -1,0 +1,71 @@
+(**************************************************
+*
+*	CONNECT FILES PROGRAM
+*
+*	Ray Penley put this togeather to make it 
+*  easier to open files. Add this to your library.
+*
+* Written by RAY PENLEY
+*  Donated to the Pascal/Z Users Group, Sept 1980
+*
+*************************************************)
+	
+TYPE
+  BYTE: 0..255;
+
+FUNCTION length(x: str255): INTEGER; EXTERNAL;
+PROCEDURE setlength(VAR x: str0; y: INTEGER); EXTERNAL;
+FUNCTION index(x,y: str255): INTEGER; EXTERNAL;
+
+FUNCTION ConnectFiles: boolean;
+CONST
+  dflt_extension = '.CCD';
+  fid_len	= 14;	{ Max length CP/M file names }
+TYPE
+  FID	= string fid_len;
+VAR
+  File_ID,
+  New_ID  : FID;
+  ix,jx	: BYTE;
+
+	PROCEDURE PAD(VAR ID: fid; required: BYTE);
+	CONST
+	  space = ' ';
+	BEGIN
+	  WHILE (length(ID)<required) DO append(ID,space);
+	END;
+
+BEGIN{-GETID-}
+  ConnectFiles := true;
+  setlength(File_ID,0);
+  WRITELN;
+  WRITE('Enter <Drive:><File name>  ');
+  READLN(File_ID);
+  IF (length(File_ID)>fid_len) THEN
+    setlength(File_ID,fid_len)
+  Else
+    PAD(File_ID, fid_len);
+  RESET(File_ID, TextFile);
+  IF EOF(TextFile) THEN{ ABORT }
+    BEGIN
+      error(3);
+      ConnectFiles := false;
+    END
+  ELSE
+    BEGIN
+    ix := index(File_ID,'.'); { search for an extension }
+    jx := index(File_ID,' '); { search for the first space }
+    IF (ix=0) THEN{ no extension was specified }
+      setlength(File_ID,jx-1)
+    Else
+      setlength(File_ID,ix-1);
+    setlength(New_ID,0);
+    append(New_ID, File_ID);
+    append(New_ID, dflt_extension);
+    PAD(New_ID, fid_len);
+    REWRITE(New_ID, Work_File);
+    END;
+END; {of ConnectFiles}
+
+{++++++++++++++++++++++++++++++++++++++++++++++++}
+

@@ -1,0 +1,114 @@
+
+* report.cmd 03/15/83  hmvt
+* note - only phone and wordstar list programs have been written
+
+* present report menu
+SET FORMAT TO SCREEN
+ERASE
+
+* set up loop to repeat until user is done
+STORE t TO notend
+DO WHILE notend
+
+STORE ' ' TO printer
+STORE ' ' TO disk
+STORE '        ' TO filename
+STORE '?' TO command
+
+* display first half of menu
+ERASE
+@  1,22 SAY "> > >  R E P O R T  M E N U  < < <"
+@  2, 0 SAY "--------------------------------------------------------------------------------"
+@  4,25 SAY "1. Print list by Last Names"
+@  6,25 SAY "2. Print list by Companys"
+@  8,25 SAY "3. Print list by Zipcodes"
+@ 10,25 SAY "4. Print phone number list"
+@ 12,25 SAY "5. Make WordStar-MailMerge Files"
+@ 14,25 SAY "6. Return to Main Menu"
+@ 16, 0 SAY "--------------------------------------------------------------------------------"
+@ 17,30 SAY "WHAT NEXT"
+@ 17,40 GET command PICTURE '!'
+READ
+
+* if a report is requested then do second half of menu
+IF command  >'0' .AND. command <  '5'
+
+@ 19,22 SAY "Send Report to the Printer (Y\N)"
+@ 19,55 GET printer PICTURE '!'
+READ
+
+@ 21,22 SAY "Send Report to a Disk File (Y\N)"
+@ 21,55 GET disk PICTURE '!'
+READ
+
+* only aks for filename if disk file was requested
+IF disk ='Y'
+  @ 23,33 SAY "Enter Disk File Name"
+  @ 23,55 GET filename PICTURE '!!!!!!!!'
+  @ 23,65 SAY "(.TXT added )"
+  READ
+ENDIF
+
+* set up printer is necessary
+IF printer = 'Y'
+  SET print ON
+ENDIF
+
+* send the report to a text file if disk is yes
+* and a filename has been given
+IF disk = 'Y' .AND. filename <> ' '
+	* make a proper REPORT file name that is of type TXT
+	STORE $(filename,1,8) TO filename
+	STORE filename+'.TXT' TO filename
+  SET ALTERNATE TO &filename
+  SET ALTERNATE ON
+ENDIF
+ENDIF
+* clear the screen for the report
+ERASE
+
+* do the requested report
+DO CASE
+ 
+	CASE command = '1'
+        SET index TO lastname 
+        REPORT FORM namelist 
+ 
+        CASE command = '2'
+        SET index TO company 
+        REPORT FORM companies
+
+	CASE command = '3'
+	SET INDEX TO zip       
+        REPORT FORM zips
+
+	CASE command = '4'
+        DO phone.acg
+ 
+	CASE command = '5'
+	DO wsfile.acg
+
+	CASE (command = '6' .OR. COMMAND = 'Q')
+	STORE f TO notend
+
+ENDCASE
+
+* turn off the printer and disk file
+* if they were already off - this means nothing
+SET PRINT OFF
+SET ALTERNATE OFF
+
+
+ENDDO 
+
+
+* release the local variables
+RELEASE ALL
+
+* restore the original variables
+STORE t TO more
+STORE '?' TO command
+
+* restore the proper indices
+SET index TO lastname, company, zip 
+

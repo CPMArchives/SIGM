@@ -1,0 +1,350 @@
+Sig/M	volume 39	Updated IBM 3740 Disk Utility
+			Language Analyzer
+
+	-CATALOG.039	contents of Sig/M volume 39
+	ACKLIST.039	acknowledgement file
+	CRCKLIST.039	checksum file of Sig/M volume 39
+
+index	name		size	description
+
+39.01	3740UTIL.SUB	 1K	Updated 3740 Disk Utility
+39.02	3740UTIL.DOC	 8K	     /
+39.03	3740UTIL.ASM	67K	    /
+39.04	3740UTIL.COM	13K	   /
+39.05	MACS3740.LIB	17K	  /
+39.06	EGRAMMAR.GMR	 1K	Language Analyzer
+39.07	EXAMPLE.GMR	 1K			  /
+39.08	EXAMPLE2	 1K		         /
+39.09	GRAMMA		 1K		        /
+39.10	LL1ANL.DOC	 6K	               /
+39.11	LL1ANL.PLI	 3K		      /
+39.12	LL1ANL.SUB	 1K	       	     /
+39.13	LL1LNK.SUB	 1K		    /
+39.14	LL1P00.PLI	 3K	           /
+39.15	LL1P10.PLI	18K	          /
+39.16	LL1P1O.PLI	19K	         /
+39.17	LL1P20.PLI	 7K	        /
+39.18	LL1P30.PLI	10K	       /
+39.19	LL1P40.PLI	 6K	      /
+39.20	LL1P50.PLI	 5K	     /
+39.21	LL1P60.PLI	 4K	    /
+39.22	LL1P70.PLI	 4K	   /
+39.23	LL1P80.PLI	 6K	  /
+39.24	LL1PRC.PLI	13K	 /
+
+.HE     * * *  INDEX  * * *
+                          INTRODUCTION
+
+
+     Thå  followinç manuaì describeó thå uså anä functioî oæ  thå 
+CP/Í  - IBÍ  disë utility®   Iô ió designeä tï allo÷ thå useò  tï 
+easily transfer data between CP/M and IBM disk formats.
+
+
+
+
+
+
+
+
+CP/Í ió á registereä trademarë oæ Digitaì Research¬ Gardeî Grove¬ 
+CA®   IBÍ  ió  á registereä trademarë oæ  Internationaì  Businesó 
+Machines, Poughkeepsie, NY.
+
+.paŠ.he TABLE OF CONTENTS
+INTRODUCTION ................................................   1
+INITIALIZE AN IBM DISKETTE ..................................   2
+CHANGE AN IBM VOLUME SERIAL NUMBER ..........................   3
+CHANGE AN IBM DATASET'S DIRECTORY ENTRY .....................   4
+DELETE AN IBM DATASET'S DIRECTORY ENTRY .....................   5
+LIST AN IBM DATASET'S DIRECTORY .............................   6
+TRANSFER CP/M TO IBM DATASET (BLOCK FORMAT) .................   7
+TRANSFER IBM TO CP/M DATASET (BLOCK FORMAT) .................   8
+TRANSFER CP/M TO IBM DATASET (SOURCE FORMAT) ................   9
+TRANSFER IBM TO CP/M DATASET (SOURCE FORMAT) ................  10
+DISPLAY AN IBM DATASET ......................................  11
+HARDWARE/SOFTWARE REQUIREMENTS ..............................  12
+MAINTENANCE POLICIES ........................................  13
+PROGRAM ERROR REPORT ........................................  14
+.PAŠ.HE INTRODUCTION
+                          Introduction
+
+     Thió  prograí  waó developeä sï thaô developemenô  coulä  bå 
+performeä  oî á smalì computeò utilizinç CP/Í foò largå IBÍ site®  
+Thå  datá oò programó werå codeä usinç thå  smalì  computer¬  anä 
+theî  transfereä  tï  thå IBÍ computeò  utilizinç  thió  program®  
+Also¬  certaiî  datá werå transferreä bacë tï thå smalì  computeò 
+foò  updatinç  anä  agaiî transferreä bacë tï thå  IBÍ  computer®  
+Thus¬  thå timå involveä foò codinç anä keypunchinç werå absorbeä 
+oî thå smalì machine®   All transfers were performed by diskette.
+     Thió  manuaì assumeó thaô thå readeò haó á workinç knowledgå 
+oæ botè CP/Í anä IBÍ operatinç systems®   Iî particular¬ thå useò 
+shoulä  fullù understanä thå basiã disë layouô foò  IBÍ  Standarä 
+Interchangå Format®   Thió prograí assumeó thå SIÆ throughouô anä 
+waó  writteî tï bå compatiblå witè onlù it®   NO„ otheò IBÍ formaô 
+ió  utilized®   Foò furtheò informatioî concerninç  thió  format¬ 
+pleaså revie÷ manuaì GA21-9182¬ IBÍ Generaì Informatioî Manuaì oî 
+Diskettes.
+     Thå  prograí waó designeä tï bå menõ driveî witè  prompting®  
+Currently¬  eacè  responså  ió verified¬  anä iæ  incorrect¬  re-
+prompted®   Iæ yoõ makå á mistakå whicè ió á valiä reply¬ re-booô 
+CP/Í anä restarô thå program®   Aô thió time¬  nï backuğ facilitù 
+ió offereä sï bå carefuì aó tï youò responses.
+     Wheî workinç witè CP/Í files¬  thå filå nameó arå assumeä tï 
+bå  aî  1-¸ bytå namå witè á typå oæ '.DAT'®   Thå 1-¸ bytå  namå 
+musô corresponä witè á filå namå oî thå IBÍ diskette.
+.paŠ.HE INITIALIZE AN IBM DISKETTE
+                   Initialize an IBM Diskette
+
+     Tï  initializå  á  diskettå iî  IBÍ  SIÆ  format¬  uså  thió 
+command®  Placå thå diskettå tï bå initializeä iî thå appropriatå 
+drive®   Selecô  thió functioî (1)®   Replù witè thå drivå (A-D)®  
+Theî replù witè thå ne÷ 6-bytå volumå seriaì number®  Thå prograí 
+wilì  theî formaô thå diskettå tï IBÍ specifications®   Thió  maù 
+takå  á  fe÷ minuteó sï don'ô bå alarmeä iæ iô doesn'ô  replù  tï 
+yoõ immediately®   Afteò initialization¬ thå diskettå ió readù tï 
+use as an IBM diskette.
+.PAŠ.HE CHANGE AN IBM VOLUME SERIAL NUMBER
+               Change an IBM Volume Serial Number
+
+     Thió  functioî  allowó  thå useò tï  simplù  changå  aî  IBÍ 
+diskette'ó volumå seriaì number®  Uså functioî codå (2© tï invokå 
+it®  Replù witè thå disë drivå (A-D© thaô thå diskettå ió on¬ anä 
+theî replù witè thå ne÷ volumå seriaì number¬ 1-¶ characters®  Nï 
+checkinç  ió donå oî thå resô oæ thå diskette®   Onlù thå  volumå 
+serial number is changed.
+.PAŠ.HE CHANGE AN IBM DATASET'S DIRECTORY ENTRY
+             Change an IBM Dataset's Directory Entry
+
+     Thió  functioî allowó yoõ tï changå thå directorù entrù  foò 
+aî IBÍ file®   Yoõ wilì uså thió entrù tï creatå á  file¬  renamå 
+iô oò adjusô itó parameters®   Tï invokå thió function¬  uså codå 
+(3)®   Replù  witè  thå disë drivå containinç thå  IBÍ  diskette®  
+Theî replù witè thå directorù sectoò tï bå changed®  Yoõ caî finä 
+thå  sectoò numbeò bù usinç functioî (6)¬  Lisô  Directory®   Thå 
+prograí wilì theî displaù alì thå fieldó iî thå entrù anä requesô 
+thaô yoõ entrù á ne÷ value®   Enteò ONLY„ thå fieldó thaô yoõ wanô 
+tï change®   Wheî thå lasô fielä haó beeî entered¬  thå directorù 
+wilì  automaticallù bå updated¬  anä á completioî messagå wilì bå 
+posted to the terminal.  You will then return to the main menu.
+.PAŠ.HE DELETE AN IBM DATASET'S DIRECTORY ENTRY
+Delete an IBM Dataset's Directory Entry
+
+     Tï deletå á dataseô froí aî IBÍ diskette¬ placå thå diskettå 
+iî á drive¬  invokå functioî codå (4)¬ enteò thå disë drivå (A-D© 
+oî whicè thå diskettå resides¬ anä enteò thå sectoò numbeò oæ thå 
+directorù  entry®   Iæ yoõ arå iî doubô aó tï thå sectoò  number¬ 
+uså functioî codå (6)¬  Lisô Directory¬  tï finä ouô whaô iô  is®  
+Wheî thå entrù haó beeî deleteä anä á completioî messagå haó beeî 
+posted, control will return to the main menu.
+.PAŠ.HE LIST AN IBM DIRECTORY
+.PAŠ.HE TRANSFER A CP/M FILE TO IBM FORMAT (BLOCK)
+.PAŠ.HE TRANSFER AN IBM FILE TO CP/M FORMAT (BLOCK)
+.PAŠ.HE TRANSFER A CP/M FILE TO IBM FORMAT (SOURCE)
+.PAŠ.HE TRANSFER AN IBM FILE TO CP/M FORMAT (SOURCE)
+.PAŠ.HE MAINTENANCE POLICIES
+                      Maintenance Policies
+
+     Iî thå evenô oæ á problem¬  contacô Roberô M® Whitå aô (208© 
+377-0336®   Hå ió responsiblå foò answerinç questionó relatinç tï 
+installation¬  operatioî  anä  maintenance®   Iæ thå  probleí  ió 
+determineä tï bå á parô oæ thió package¬  pleaså obtaiî á printeä 
+dumğ beforå callinç foò support®   ALL„ useò modificationó musô bå 
+removeä  beforå obtaininç anù erroò analysió anä correctioî  froí 
+Roberô M®  White®  Iæ thå probleí persistó afteò initiaì contact¬ 
+pleaså  completå thå Prograí Erroò Reporô supplieä aó á  parô  oæ 
+thió  manuaì anä senä iô alonç witè alì supportinç  documentatioî 
+to:
+                    Robert M. White
+                    8530 Stonehaven
+                    Boise, ID  83704
+
+     Roberô  M®  Whitå wilì providå custoí modificationó tï useró 
+whï requesô them®   Theså modificationó maù requirå aî additionaì 
+chargå  anä  maù noô bå quaranteeä tï functioî correctlù  iî  alì 
+futurå releases®   Alì agreementó musô bå iî writing®   Estimateó 
+wilì bå issueä pertaininç tï thå worë involveä iî performinç  thå 
+modifications.
+.PAŠ.HE Program Error Report
+Date: _______ß Title:___________________________________________
+
+Submittor:______________________________________________________
+
+Address:  ______________________________________________________
+
+          ______________________________________________________
+
+          ______________________________________________________
+
+Phone:    (   ) ___-____ ext. ____
+
+Error Description:
+
+
+
+
+
+
+
+
+
+
+Environment:
+     Computer Type: ________________________________________
+
+     Core Size:     _____k
+
+     No. and type of disks: ________________________________
+
+     Console type:  ________________________________________
+
+     CP/M release:  ________________________________________
+.PAŠ
+*****************************************************************
+*		     LL(1) Language Analyzer			*
+*****************************************************************
+
+BY:
+	ROBERT M. WHITE
+	H & W COMPUTER SYSTEMS, INC.
+	P.O. BOX 4173
+	BOISE, ID  83704
+
+DESCRIPTION:
+	Thió  systeí  readó  á  BNÆ  descriptioî  oæ  aî   LL(1© 
+language¬  analyzeó  iô  foò erroró anä generateó thå  selectioî 
+setó foò thå productions®   Variouó intermediatå tableó arå alsï 
+generated to allow better debugging of the language.
+
+SOURCE LANGUAGE:
+	PL/I-8° distributed by DIGITAÌ RESEARCH¬  PACIFIÃ GROVE¬ 
+CALIFORNIA.  Release developed under was 1.3.
+
+SYSTEM REQUIRED:
+    1.  8080/Z80 processor w/60k minimum.
+    3.  2 disk drives (I used Double-Density w/600k capacity.)
+    2.  CP/Í   Release  1.´  or  above  distributed  by  DIGITAÌ 
+RESEARCH, PACIFIC GROVE, CALIFORNIA.
+    3.  PL/I-8° distributed by DIGITAÌ RESEARCH¬  PACIFIÃ GROVE¬ 
+CALIFORNIA.  Release developed under was 1.3.
+
+INSTALLATION:
+	1©  Adjusô LL1ANL.SUÂ tï reflecô thå propeò drivå  whicè 
+            contains the source.
+	2)  Submit the file, LL1ANL.SUB.
+
+SYSTEM EXECUTION:
+	1©   Puô thå BNÆ grammaò intï á filå witè thå  extensioî 
+             oæ GMÒ (i.e®  EXAMPLE.GMR)®   Thió filå ió expecteä 
+             tï bå iî standarä sourcå formaô (i.e®  eacè linå ió 
+             terminateä witè á carriage-return¬ line-feed)®  Thå 
+             format of the BNF must be as follows:
+		<grammar> -> <rule> '<eof>'
+			  ;
+		<rule> -> '<ident>' <alt> ';' <rule>
+		       -> 
+		       ;
+		<alt> -> '->' <rp> <alt>
+		      ->
+		      ;
+		<rp> -> '<string>' <rp>
+		     -> '<ident>' <rp>
+		     ->
+		     ;
+	     Aî  identifieò ió anù 1-¸ characteró surroundeä  bù 
+             <...¾  (i.e®   <grammar>®   Á  strinç  ió  anù  1-¸ Š             characteró   surrounä  bù   quoteó   (i.e®   '->')®  
+             Commentó  maù  bå addeä tï thå enä oæ anù  linå  bù 
+             merelù  codinç á '$ § anä theî thå  comments®   Thå 
+             analyzeò  alsï  haó certaiî switcheó whicè  maù  bå 
+             turneä  oî oò ofæ bù usinç thå '$§ followeä bù  thå 
+             switcè  numbers®    Revie÷  program¬   LL1P10¬  foò 
+             further information.
+	2©   Sincå  thå  programó useó overlays¬  thå  currentlù 
+             loggeä  disë musô bå thå onå containinç thå  objecô 
+             foò LL1ANL.COM®   Tï analyzå á grammar¬  enteò  thå 
+             following:
+			LL1ANL grammar_file_name<return>
+             For example, the example grammar was analyzed with:
+			LL1ANL EXAMPLE<return>
+             The file extension of GMR is always assumed.
+        3)   Prinô  thå  filå  witè thå extensioî oæ  PRÎ  (i.e® 
+             EXAMPLE.PRN)®  Thió wilì prinô thå selectioî seô aó 
+             welì  aó thå intermediatå tableó useä tï  calculatå 
+             thå selectioî set®  Thå lasô reporô wilì onlù exisô 
+             iæ  thå grammaò ió noô LL(1© anä iô  wilì  indicatå 
+             whicè productionó causeä iô noô tï be.
+
+FILES DONATED:
+	EXAMPLE.GMR - First example grammar
+	EXAMPLE2.GMR - Second example grammar
+	LL1ANL.DOC - The file that you are reading.
+	LL1ANL.PLI - Driver program
+	LL1ANL.SUB - Command List to Compile and  Link 
+                     the language analysis programs.
+	LL1CMN.DCL - Common area for all programs
+	LL1LNK.SUB - Command List to Link the language analysis
+		     programs after re-compiling one of them.
+	LL1PRC.DCL - Common Procedures Declarations
+	LL1PRC.PLI - Common Procedures generated in LL1ANL
+	LL1P10.PLI - Language Parser
+	LL1P20.PLI - Language Sort and Print
+	LL1P30.PLÉ - Languagå Analysió - Finä Nullablå 
+                     Productionó anä Non-terminals
+	LL1P40.PLÉ - Languagå Analysió - Calculate the 
+                     Beginning type relationships
+	LL1P50.PLÉ - Languagå Analysió - Calculate the 
+                     Ending type relationships
+	LL1P60.PLÉ - Languagå Analysió - Calculate the 
+                     Follow Set Relationship
+	LL1P70.PLÉ - Languagå Analysió - Calculate the 
+                     Selection Set for all productions
+	LL1P80.PLÉ - Languagå Analysió - Validate that 
+                     the language is LL(1)
+
+REFERENCES:
+	These programs were written from the outline given in:
+		'COMPILER DESIGN THEORY' by P.M. Lewis III,
+		D.J. Rosenkrantz and R.E. Stearns, Addison-
+		Wesley Publishing Company, 1978.
+	If you are going to use this system, it is highly re-
+	commended that you get this book.
+	Other books referenced:
+		1. 'Compiler Design and Construction' by
+		   Arthur Pyster, Van Nostrand Reinhold Co.,
+		   1980.
+		2. 'Structured System Programming' by Jim
+		   Welsh & Michael McKeag, Prentice-Hall
+		   International, Inc., 1980.
+		3. 'Algorithms + Data = Programs', by N.
+		   Wirth, Prentice-Hall International, Inc.,
+		   1976.
+
+FUTURE ENHANCEMENTS:
+	The following is list of items that I may or may not get
+	around to doing.  They represent enhancements or changes
+	for the better (I hope!).
+		1.  Add the following to the input language:
+		    a.  Allow sections of terminals to be sur-
+			rounded by parentheses followed by a
+			'?' for 0 or 1 repetitions, '*' for 0 or
+			more repetitions or '+' for 1 or more
+			repetitions.
+		    b.  Allow lists to be defined as <nt> LIST
+			',' which denotes a list of <nt>'s seperated
+			by commas.
+		2.  Add a phase which checks for left recursion 
+		    since this is the most deadly sin.
+		3.  Add a phase which given the internal language
+		    tables and the selection set produces the outline
+		    of the compiler for all the various rules.
+
+NOTICE OF PUBLIC DOMAIN:
+	The files herein contained and denoted under my controlŠ	arå  herebù  placeä intï thå publiã domaiî  anä  maù  bå 
+        freely distributed for any non-commercial personal use.
+
+
+
+			Robert M. White
+			July 15, 1981
+
+

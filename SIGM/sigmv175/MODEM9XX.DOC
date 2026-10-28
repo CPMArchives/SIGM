@@ -1,0 +1,1067 @@
+ThÂ followinÁ documentatioÓ iÛ foÚ thÂ CP/M-8∞ versioÓ oÊ MODEM9Æ ç
+
+ThÂ CP/M-8∂ versioÓ iÛ almosÙ identical¨ buÙ thÂ sizÂ oÊ thÂ texÙ ç
+capturÂ† buffeÚ† iÛ fixe‰ aÙ 16À (yoı caÓ makÂ iÙ largeÚ† iÊ† yoı ç
+wanÙ to© ratheÚ thaÓ beinÁ selÊ sizinÁ tÔ thÂ basÂ oÊ thÂ CP/M-8∞ ç
+BDOSÆ
+
+FoÚ† additionaÏ† informatioÓ abouÙ thÂ CP/M-8∂† versioÓ† seÂ† thÂ ç
+(hopefully© accompanyinÁ filÂ MODEM-86.DOC. Bill Bolton
+
+Credit where credit is due department. . .
+*******************************************************************
+***								***
+***  MODEM9XX.DOC  Documentation for CP/M User's Group Program. ***
+***								***
+***		   This expands on the info in MODEM7.DOC.	***
+***		   January 11, 1983. Tom McCormick, Houston TX  ***
+***								***
+***		   Updated for use with MODEM797 enhancements.	***
+***		   February 14, 1983. Paul Sittler, Coll Sta TX ***
+***								***
+***		   Updated for use with MODEM9xx enhancements.	***
+***		   March 20, 1983. P. L. Kelley, Lexington, MA  ***
+***								***
+*******************************************************************
+
+NOTE: The xx in MODEM9xx stands for the last two digits in the ver-
+sion number.
+
+			     CREDITS:
+
+Original MODEM program and documentation by Ward Christensen.
+
+Revisions by a cast of thousands.
+
+MODEM7.DOC by Mark Zeiger/James Mills  11/04/80.
+
+MODEM797.HLP by Paul Sittler/Tom McCormick 3/1/83.
+
+			      SUMMARY:
+			      --------
+     MODEM9xx  is a public domain CP/M program which works on  many 
+different brands of computers.	It is used to send information from 
+one  computer  to another,  using either wires or  telephones.	 If 
+telephones  are  used,	each computer must use	a  hardware  device 
+called a "modem",  hence the name for this program.  It may also be 
+used with two computers in the same room cabled directly together.
+
+     Unlike most CP/M programs,  MODEM9xx must be modified for each 
+different  brand  of computer on which it is  installed.   This  is 
+because  MODEM9xx does not use CP/M in a normal way,  but  communi-
+cates directly with the modem port of your computer (bypassing CP/M 
+for some functions). 
+
+     You  should  locate a copy of MODEM9xx which has already  been äset up for your model of computer. If you can't find a copy already 
+configured for your computer,  you should seek assistance in confi-
+guring MODEM9xx to some new or non-standard equipment.	This can be 
+done through your computer dealer,  or a user's group in your area.  
+It  would  also  be  helpful to have someone show you  how  to	use 
+MODEM9xx the first time.
+
+     MODEM9xx uses  the  file transfer routines  written  by   Ward
+Christensen  in his CP/M file transfer program (V2.0 as of  8/6/79)  
+and  is  compatable with his program in single file transfer  mode. 
+
+     Multi-file  transfers  are possible with two  systems  running  
+the program described below.  This is provided by the batch feature  
+while  <S>ending  or <R>eceiving files with the <B>ulk	subcommand.  
+It  is accomplished with a single line command,  thus  freeing	the 
+operator from having to enter a command for each file.
+
+The MODEM9xx program has two principal functions:
+
+     1.  Communication with a timesharing or another CP/M computer.
+     2.  Program transfer with error-checking checksum control.
+
+	    NOTE: A special version of the MODEM program exists for
+		  the DC Hayes Smartmodem (an external, RS-232 modem).
+		  This can be found under filenames beginning with
+		  SMODEM, SMODM, SMDM, or SMOD.
+
+		       How to Use MODEM9xx
+
+     In the discussion and examples that follow,  where examples of 
+user/computer interaction are used, that which is typed by the user 
+is  underlined	with the hyphen (-) symbol on the line beneath	it.  
+Those  items that are supplied by the computer are simply typed  as 
+they would appear on the screen.   As another convention,  the sym-
+bols <CR> denote the entry of a carriage return, and CTRL-S is used 
+to mean "hold the control key down while hitting an S."
+
+     MODEM9xx  is  a CP/M command file,  and will  ordinarily  look 
+something  like MODEM9xx.COM in a directory.   In order to use	it, 
+the  system  should have CP/M running and display the  CP/M  system 
+command  prompt  (  A> ) being displayed.   We	are  assuming  that 
+MODEM9xx.COM is on drive A:.  MODEM9xx signs on very politely, with 
+a  short sign-on message,  and the reminder that to get  Help,	you 
+need only to type "H."
+
+A>MODEM9xx<CR>
+  ------------
+MODEM 9.xx - 03/20/83
+Version for: Heath H89  
+
+Drive A
+COMMAND (H for Help): 
+
+Drive A
+COMMAND (H for Help): H<CR>ä		      -----
+
+"H" option -- <H>elp Screens
+
+     If  the <H>elp option is entered at the  command  prompt,	the 
+     <H>elp Screens are displayed.  These three screens of informa-
+     tion  outline the options available to the user,  and  provide 
+     brief explanations of each.   The <H>elp screens have a prompt 
+     that indicates that the user should press any key to continue.  
+     These  are  not  "Menus"  and commands must be  given  at	the 
+     COMMAND (H for Help): prompt.
+
+	       Single Letter Commands
+
+ H  - Display this information
+ ?  - Display current settings
+ T  - Terminal mode
+ E  - Terminal mode with echo
+ L  - Terminal mode with local echo
+     For capturing text use T(or E or L) FILENAME.TYP and
+     Start & Stop toggles described on subsequent screen.
+ R  - Receive file using Christensen Protocol
+ S  - Send file using Christensen Protocol
+     Command is: R(or S) FILENAME.TYP
+     R and S can use the following subcommands:
+	  B  - Bulk transfer using wildcards (e.g. *.*)
+	  Q  - Quiet mode (no messages to console)
+	  T  - Return to terminal mode after transfer
+	  V  - View bytes transferred on console
+The single letter commands may also be used on the
+command line when the program is initially executed.
+
+HIT any KEY to CONTINUE<CR>
+		       ----
+
+	       Three Letter Commands
+
+CPM - Exit from this program to CP/M
+DIR - List directory and space free (may specify drive)
+ERA - Erase file (may specify drive)
+LOG - Change default drive/user (specify drive/user)
+      and reset disks.	e.g. LOG A0, LOG B (user unchanged)
+FOP - Display commands for setting terminal mode file
+      output parameters
+DSC - Disconnect the modem from the telephone line
+TCC - Toggle Checksum/CRC mode on receive
+TBR - Toggle backspace to rub conversion
+TLC - Toggle  1) local command immediate
+	      2) local command after ctrl-^
+TLF - Toggle send linefeed after carriage return
+NUM - List remote systems
+SET - Set communication ports
+
+    The following are terminal text buffer commands:
+DEL - Delete memory buffer and fileäNOL - Return to terminal mode - no loss of data in buffer
+WRT - Write memory buffer to disk file
+
+HIT any KEY to CONTINUE<CR>
+		       ----
+
+     Local Commands while in Terminal Mode
+
+ctrl-E	- Exit to command mode
+ctrl-O  - Transmit string',CR,LF
+     Must be followed by number of string (0-9)
+     or L to display list of strings
+ctrl-P	- Toggle printer
+ctrl-Y	- Start copy into buffer
+ctrl-R	- Stop copy into buffer
+     Start & Stop may be toggled as often as desired.
+     A ":" at start of line indicates buffer is open.
+     XOFF automatically used to stop input when writing
+     full buffer to disk, XON sent to resume.
+ctrl-T	- Transfer ASCII file to remote
+ctrl-^	- Send local control character to remote
+
+Drive A
+COMMAND (H for Help):
+
+     At  this  point MODEM9xx has completed its  hopefully  helpful 
+three-screen display and is awaiting your command. The SET  command
+will  not be displayed if a setup routine has not been  written for
+your UART/MODEM, an alternate command will be dispalyed, TIM, which
+allows  you to enter your modem speed so that the program can  give
+proper file transfer timing information. The control codes display-
+ed  may differ from  those give above  since the user can  redefine
+them. We will now enter the second option on the first help screen,
+the "?" option.
+
+Drive A
+COMMAND (H for Help): ?<CR>
+		      -----
+
+		  Current Settings
+
+CRC mode set
+Printer is off
+Carrier not present
+Modem speed is 300 baud
+Backspace is backspace
+Linefeed NOT sent after <CR>
+Use ctrl-^ to send local command to remote
+Terminal mode file buffer is inactive
+Unused portion of buffer is 36608 bytes
+Word length is eight, number of stop bits is one, parity is none
+Linefeed NOT sent after <CR> in terminal mode file output
+End-of-file character NOT sent in terminal mode file output
+XOFF testing NOT used in terminal mode file output
+XON NOT automatically tested after <CR> in terminal mode file outputäWaiting for character echo NOT used in terminal mode file output
+Terminal mode file output delay is 0.00 seconds per character
+Additional delay after <CR> is 0.00 seconds
+
+
+Drive A
+COMMAND (H for Help): 
+
+     The  screen is now displaying options as currently  set up  in
+the  program as well as other information on the the current  state
+of  the program. The options may be changed as the user desires  by 
+use  of some of the  three letter  commands  displayed in  the help 
+screen earlier. There is a special help screen for setting terminal
+mode file output parameters. We will now display this screen.
+
+Drive A
+COMMAND (H for Help): FOP<CR>
+		      -------
+
+     Commands for Setting Terminal Mode File Output Parameters
+
+SPD - Set speed of file output
+TEF - Toggle transmission of end-of-file character
+TSL - Toggle stripping linefeeds
+TWE - Toggle wait for character echo
+TXF - Toggle XOFF testing
+TXN - Toggle XON waiting after <CR>
+
+Drive A
+COMMAND (H for Help): 
+
+
+Drive A
+COMMAND (H for Help): T<CR>
+		      -----
+     In  MODEM9xx there are three different terminal  modes.   They 
+are  all used to communicate with other computers.   They  are	all 
+slightly  different to allow the user a great degree of flexibility 
+in  picking the proper one for the job at hand.   All three may  be 
+opened	with an optional file name for capturing text (ASCII)  data 
+and saving it as a disk file.  
+
+Terminal Mode - <T>erminal Option
+---------------------------------
+
+	  This	is the "normal" terminal mode wherein the  computer 
+     is used essentially to emulate a time sharing  terminal.	You 
+     will  be  able  to use your computer as if it  were  a  normal 
+     terminal  in full duplex mode.   The characters that you  type 
+     will  not be printed to the screen as you enter them,  but the 
+     screen  will display whatever is sent to it by  the  computer.  
+     This  is  the  way  to use your computer  with  most  bulletin 
+     boards, RCP/M's, and mainframes.
+
+Terminal Mode - <E>cho Optionä-----------------------------
+
+	  This	terminal  mode automatically echos  characters	re-
+     ceived  from another computer.   This is useful if you wish to 
+     communicate with somebody running the terminal portion of	the 
+     program.  Only one computer should be in this mode at a time.
+
+	  This	<E>cho	terminal mode is used at one end while	the 
+     <T>erminal  mode is used at the other end in cases where  key-
+     board-to-keyboard communications are desired.  Both ends  will 
+     see  anything entered at either end.   This is a useful  setup 
+     for  verifying that the connections are right before beginning 
+     file transfers.
+
+	REMEMBER. . .	One computer in <E>cho mode, while. . .
+			the other must be in <T>erminal mode.
+
+	  Otherwise,  you  will  either not see your own keyed	en-
+     tries,  or you will see an eternal ping pong match while  both 
+     ends echo some character.	 If this situation occurs,  enter a 
+     ConTRoL-E and use the <T>erminal option.
+
+Terminal Mode -- <L>ocal Echo Option
+------------------------------------
+
+	  The  <L>ocal	Echo  Terminal option is the  same  as	the 
+     <T>erminal  option,  except that the characters entered on the 
+     keyboard are echoed back to the screen.   This is useful  when 
+     communicating  with the WYLBUR front end processor for the HAL 
+     TSO option, or some other computer that does not echo back the 
+     characters that it receives.   The local Echo option is essen-
+     tially  the same as the <T>erminal option with a  change  from 
+     full to half duplex on the modem.
+
+Terminal Mode  --  <T>erminal, <E>cho, or <L>ocal Options
+---------------------------------------------------------
+
+	Any of the three terminal options, <T>erminal, <E>cho, or
+    <L>ocal echo  may be used  either with or without an optional
+    filename specified after the command.
+
+	  If a file name is NOT specified after the  <T>,  <E>,  or 
+     <L>  terminal mode command,  then you will be in the so-called 
+     "dumb" terminal mode,  and cannot save any of the tranmissions 
+     from or to your computer.
+
+	  If a file name IS specified, it should be for a new file. 
+     The  information  received by the modem may then be  saved  in 
+     memory  and later written on disk.   The save text  in  memory 
+     feature is turned ON by ConTRoL-Y, and then OFF by ConTRoL-R.
+
+     The sequence of commands to save a file is:
+
+COMMAND (H for Help):T MESSAGE.TXT make up your own filename,  be 
+		     ------------- sure  you have enough free space ä				   on diskette.
+
+NOTE:  You could alternatively have used the <E>cho or <L>ocal echo 
+terminal options in place of the <T> terminal option.  The one that 
+you select will depend on whom you are communicating with.
+
+	       ConTRoL-Y	   begin holding in memory at  this 
+	       ---------	   point;  (you could choose not to 
+				   save  your logging-in  transmis-
+				   sions).   A colon will appear on 
+				   your  CRT  in column 1 of  every 
+				   line  to indicate that the  save 
+				   feature  is active.	 The  colon 
+				   will NOT be saved in your  file, 
+				   it  is  just there  to  indicate 
+				   that  the  save text  in  memory 
+				   feature is on.
+
+	       ConTRoL-R	   turn  off the saving feature  to 
+	       ---------	   bypass something.   Nothing will 
+				   be saved until another ConTRoL-Y 
+				   is  entered.   No colon will ap-
+				   pear  at  the the left  edge  of 
+				   your CRT at this point.
+
+	       ConTRoL-E	   Exits  <T>erminal (or any)  mode 
+	       ---------	   and	returns  to  the   MODEM9xx 
+				   command prompt.
+
+COMMAND (H for Help): WRT	   You MUST enter WRT at this point 
+		      ---	   to  move the data from memory on 
+				   to  a diskette.   If you  forget 
+				   this, you can forget about find-
+				   ing	anything in your "file"  on 
+				   diskette.
+
+Additional notes about the <T>, <E>, or <L> Terminal options:
+
+     1.  ConTRoL-Y causes the transmission to be held in a "buffer" 
+     in  memory.   Only  the WRT command (after you return  to	the 
+     menu) will move it into your file on diskette.
+
+     2.  After	viewing  the transmission,  and placing it  into  a 
+     buffer in memory,	you may decide that you DO NOT want to save 
+     it.   Simply eliminate entering the WRT command,  and go on to 
+     something else.
+
+     3. Be sure you have enough free diskette space to hold the new 
+     file  you	are creating with the WRT command.   You must  make 
+     sure ahead of time.
+
+     4.  If  the  memory buffer fills up while you are receiving  a 
+     lengthy transmission,  MODEM9xx will automatically stop recei-
+     ving.   It will ask the other computer to wait,  by sending an 
+     X-OFF  or	ConTRoL-S.   It will then write the information  to ä     your disk file,  and ask the other computer to begin transmit-
+     ting more information by sending an X-ON or  ConTRoL-Q.   Your 
+     computer  will then resume receiving  the	transmission.	You 
+     will  not lose anything if the other computer understands X-ON 
+     and X-OFF.
+
+     5.   The memory buffer is from the top of the modem program to 
+     the bottom of BDOS.  In a 64k machine,  this is usually enough 
+     to  hold 20 minutes of steady transmission at 300 baud,  or  5 
+     minutes at 1200 baud.   The computer with which you are commu-
+     nicating  must  accept the X-ON and X-OFF (ConTRoL-Q and  Con-
+     TRoL-S)  protocol convention or data will be lost	while  your 
+     buffer is written to your disk file.   You can verify that the 
+     other  computer  will wait by entering a ConTRoL-S  from  your 
+     keyboard  and seeing if the transmission stops until you enter 
+     ConTRoL-Q.
+
+     6.   If  the transmission or file you are receiving is smaller 
+     than your memory buffer (approx.  your memory size,  less 27k) 
+     then you do not have to worry because you will not have to try 
+     to pause the remote system while you write.   If it is  larger 
+     than your buffer,	AND the remote system does not recognize X-
+     ON  and  X-OFF,  you may have to break the  transmission  into 
+     smaller pieces.
+
+     7.   Receiving a program source file such as .ASM or .BAS	can 
+     be  done  in any of the terminal modes from  another  computer 
+     which is NOT using MODEM9xx.   However, be aware that you have 
+     no error	checking in the <T>,  <E>,  or <L> terminal  modes.
+     These  should  only be used for program  transfers  where	the 
+     other  computer does not have the MODEM9xx program.   You	may 
+     want  to transmit two copies of a file,  then use CRCK or COM-
+     PARE  to see if identical copies were received.   This is	NOT 
+     needed if both ends have MODEM9xx and the <S>end and <R>eceive 
+     modes were used for the file transfer.
+
+     8.  If a filename is  NOT	specified after the <T>, <E>, or <L>
+     terminal command, then transmissions can not be saved.
+
+     9.   When communications are done,  use ConTRoL-E to exit from
+     the <T>,  <E>, or <L> terminal mode and see the command prompt 
+     again.
+
+     10.  If you chose any terminal mode with a filename,  the file 
+     to  which you  are writing  must then be closed by  using	the  
+     "WRT"  command.  If this is not done, all data will be lost.
+
+     11.  The  original author of MODEM (Ward Christensen)  decided 
+     not   to  close   the file automatically since there  will  be  
+     times  when you leave the terminal mode and then decide to re-
+     enter.   This may be done while at the Command prompt by using 
+     the  "NOL" command.   You may put data into the same  file  as 
+     many  times  as  you wish as long as you have not	closed	the 
+     fil1 with	the "WRT" command.
+ä
+TO SEND A FILE FROM TERMINAL MODE:
+----------------------------------
+
+	  While in <T>, <E>, or <L> terminal mode, a ConTRoL-T will 
+     put  you in File Transfer mode.   This will allow you to  send 
+     the  contents of an ASCII file over the modem.   This  routine 
+     does  no error checking and  there are no protocols  specified 
+     between  this program and the  receiving computer	other  than 
+     that  it should be ready  to receive data via the modem.	The 
+     use of ConTRoL-X will cancel the transfer.
+
+	  You  could use this mode to send MBOOT.ASM or other  pro-
+     grams to another computer which is not using MODEM8xx.  If the 
+     other computer is not using one of the MODEM programs,  do not 
+     bother to try to use the <S>end or <R>eceive options explained 
+     below.   They require coordinated error checking by one of the 
+     MODEM programs at both ends.
+
+
+FILE TRANSFER - <S>end and <R>eceive Options
+-------------
+
+	  <S>end  and <R>eceive are the same as in the	CP/M  Modem  
+     program  written by Ward Christensen except that upon  comple-
+     tion  of the transfer,  control returns to the Command  prompt 
+     unless  the  secondary "T" option has been selected.   In	the 
+     latter case, control returns to <T>erminal mode.
+
+	  Remember  that if you are operating a remote CP/M  (RCPM) 
+     computer  using a timesharing program (such as Ward  Christen-
+     sen's "BYE"),  the remote system's XMODEM program will send or 
+     receive  single files (except .COM).   This is done using com-
+     mands of the same general format as outlined below for MODEM9xx.
+
+	  Examples of commands for  <S>ending  and  <R>eceiving are
+     listed below.
+
+Multi-file transfers  (not available with XMODEM programs on RCPM's)
+--------------------
+
+	  Using the  <B>ulk  batch secondary option,  more than one
+     file may be transferred.	Ambiguous  filenames are  accepted.
+     This is one of the major  enhancements  of  MODEM7  and  later
+     versions of the MODEM program.
+
+	  To <S>end a <B>ulk batch of files,  enter  SB followed by
+     one or more filenames.  For example:
+
+	  COMMAND (H for Help): SB B:ST*.BAS C:SWEEP.DOC D:*.*
+
+	  The individual filenames should be separated by a  space, 
+     and  should  include  the correct	drive  identifier  (B:	 C:  
+     etc.).   If  no drive identifier is specified,  the  currently 
+     logged drive will be assumed to contain the file(s).ä
+	  The filenames may contain wildcards ( * or ?, where  the
+     asterisk may match any string of characters,  and the question 
+     mark may represent any one character)
+
+	  As of 1/1/83, there was a 64 filename maximum; be careful 
+     using those wildcards.
+
+	  Ensure  that	the  receiving computer's  disk  drive	has 
+     enough free space to hold the  file(s) that you are  <S>ending
+     to it.
+
+	  To  <R>eceive a <B>ulk batch of files,  enter RB followed
+     only by the disk drive specifier (B: C: etc.)  For example,
+
+		    COMMAND (H for Help): RB B:<CR>  
+					  ---------
+     You  DO NOT enter filenames at the receiving end during  batch 
+     transfers.  They are sent with the files.
+
+	  If you merely enter RB and omit the drive specifier,	the 
+     default  or currently logged-in drive will be used to  receive 
+     the file.	For example:
+
+		    Drive A
+		    COMMAND (H for Help): RB <CR>
+					  -------
+      the command shown here is telling the computer to <R>eceive a
+      <B>ulk batch of files, placing them on the currently logged or
+      default drive.  The Default drive in this case is A:, as shown
+      on the line above the COMMAND (H for Help): prompt line.
+Using the <V>iew secondary option:
+------------------------------------
+
+     If  you are receiving a file you know to be  readable  (ASCII) 
+such  as a .DOC documentation file,  you can view it as it is being 
+<R>eceived.   This  can be a real timesaver if it is used to <V>iew 
+documentation files being <R>eceived while trying to decide whether
+or not to transfer software from a remote machine.   Simply add the 
+letter "V" following the letter "R" in your <R>eceive command.	For
+example:
+		    Drive A
+		    COMMAND (H for Help): RV MODEM9xx.DOC<CR>
+					  -------------------
+
+
+MODEM9xx Command Examples:
+--------------------------
+
+Note:	All of these examples assume you are at the "COMMAND (H for 
+Help):" prompt of MODEM9xx.   If you are still in one of the termi-
+nal modes, enter a ConTRoL-E to get to this prompt.
+
+
+     SINGLE FILE TRANSFERS:ä     ----------------------
+
+	S MODEM.DOC		<S>ends MODEM.DOC from logged-in drive
+
+	R B:MODEM.DOC		<R>eceives MODEM.DOC on drive B: disk
+
+
+	S B:MODEM.DOC		<S>ends from drive B:
+
+	R A:MODEM.DOC		<R>eceives on drive A:
+
+
+     MULTIPLE FILE TRANSFERS:
+     ------------------------
+
+	SB B:MODEM*.*		<S>ends from B: all files beginning
+				with the letters MODEM
+
+	RB B:			<R>eceives files on B:
+
+
+	SB B:F1.BAS C:F2.COM	<S>ends two files
+
+	RB			<R>eceives files on logged-in disk
+
+
+	SB B:MODEM*.* B:F1.BAS C:F2.COM   combines two examples above.
+
+	RB B:			<R>eceives files on B:
+
+     MULTIPLE FILE TRANSFERS (cont'd)
+     --------------------------------
+
+                              Note:
+                              -----
+
+     Multi-file  transfers  may  only be started from  the  command 
+prompt.   They may not be specified when the MODEM program is  cal-
+led.  In other words,
+
+		    A>MODEM9xx SB  *.COM
+
+will result in an INVALID OPTION error message.  You must be at the
+
+		    Drive A
+		    COMMAND (H for Help):
+
+prompt to do multiple file transfers.  The proper usage is
+
+		    Drive A
+		    COMMAND (H for Help): SB *.COM
+					  --------
+
+     THREE LETTER COMMANDS DEFINED
+     -----------------------------ä
+	       Three Letter Commands
+
+DIR - List directory and space free (may specify drive)
+CPM - Exit from this program to CP/M
+ERA - Erase file (may specify drive)
+LOG - Change default drive/user (specify drive/user)
+      and reset disks.	e.g. LOG A0, LOG B (user unchanged)
+FOP - Display commands for setting terminal mode file
+      output parameters
+DSC - Disconnect the modem from the telephone line
+TCC - Toggle Checksum/CRC mode on receive
+TBR - Toggle backspace to rub conversion
+TLC - Toggle  1) local command immediate
+	      2) local command after ctrl-^
+TLF - Toggle send linefeed after carriage return
+NUM - List remote systems
+SET - Set communication ports
+
+     The following are terminal text buffer commands:
+DEL - Delete memory buffer and file
+NOL - Return to terminal mode - no loss of data in buffer
+WRT - Write memory buffer to disk file 
+
+  DIR - The  "DIR" command lists the directory of a CP/M disk.	 It
+	also  shows the amount of space free on the disk  expressed 
+	in Kilobytes.  A drive may be specified (ie. DIR B:) or the 
+	default drive will be listed.  Wildcards (*'s and ?'s)	may 
+	be  used  the  same as when DIR is run from the  A>  prompt 
+	under CP/M.  For example, 
+
+	      Drive A
+	      COMMAND (H for Help): DIR B:*.BAS<CR>
+				     --------------
+	would  display a directory listing of all files on Drive B: 
+	with any FILENAME that have a file type of .BAS.
+
+  CPM - The "CPM" command ends the MODEM program and returns to CP/M.
+
+    >>>>---->  THIS IS HOW YOU EXIT THE MODEM9xx PROGRAM.  <----<<<<
+		   COMMAND (H for Help): CPM<CR>
+					 -------
+		   A>
+	 The  computer	will respond with the  CP/M  system  command 
+	prompt.
+
+  LOG - The  "LOG"  command  allows you to  change  your  currently 
+	logged	in  (default) disk drive and user level.   It  also 
+	allows	you to change disks in the drive.   This  comes  in 
+	handy  when you wish to bring in a large file and your	DIR 
+	shows that you don't have enough disk space to hold it.
+
+  FOP - This command  displays a  submenu of three letter  commands
+	which effect terminal mode file output.
+ä  DSC - This  command will disconnect the modem from the  telephone
+	if  your system has that capabiltiy.  If disconnect is  not
+	possible then this command can be eliminated from the  menu
+	at assembly time.
+
+  TCC - This  allows  you  to select the default  method  of  error 
+	checking protocol for transferring data.
+
+  TBR - The "TBR" command lets you change the "backspace" character 
+	to  a "rubout" character when communicating with  terminals 
+	or computers that need it.
+
+  TLC - This  changes the local command mode from an immediate type 
+	to  one that sends a control character to a remote  machine 
+	only after a ConTRoL-^.
+
+  TLF - This  allows  you to either send or not send  a  "linefeed" 
+	character  after  every "carraige return" sent out  in	the 
+	terminal  mode.
+
+  NUM - This command displays on the screen a listing of frequently 
+	called	telephone numbers,  such as those for  computerized 
+	Bulletin Board systems, Remote CP/M's, etc.
+
+  SET - The  "SET"  command  allows you to set	the  communications 
+	ports for the PMMI modem,  and for certain other  machines.  
+	You  may  be able to change things like  baud  rates,  word 
+	length, number of stop bits, and so on.  This is not imple-
+	mented	for  most machines,  as the assumption is that	you 
+	will be able to set these things on your machine through  a 
+	manufacture-supplied  utility called CONFIG.COM,  CONFIGUR-
+	.COM, SETUP.COM, or the like.
+
+ TIM -  If the SET command is not implimented then this command  is
+	used to set the baud rate so that the program can  properly
+	display the time to transfer a file.
+
+ DEL -  The  "DEL"  command  erases the most recent file   accessed  
+	in  Terminal mode.   This is used when you decide  after  a 
+	communication  session that you don't want to save on  disk 
+	the information just gathered.
+
+  NOL - Use the "NOL" command to RE-ENTER any of the three terminal 
+	modes with NO Loss of data after going to the command  mode 
+	with a CTRL-E.	 If this is done, you will still be able to 
+	save the information in the memory buffer if you were doing 
+	so before you quit the terminal mode.	Note that this will 
+	return you to whichever terminal mode (<T>erminal,  <E>cho, 
+	or  <L>ocal  Echo)  you were using before you went  to	the 
+	command mode.
+
+  WRT - The  "WRT"  command  must be used  after  leaving  Terminal  
+	mode.  This writes the last buffer to disk and closes	the 
+	file.	Failure to use the "WRT" command results in loss of 
+	all data and a file of length zero.ä
+
+     Commands for Setting Terminal Mode File Output Parameters
+
+SPD - Set speed of file output
+TEF - Toggle transmission of end-of-file character
+TSL - Toggle stripping linefeeds
+TWE - Toggle wait for character echo
+TXF - Toggle XOFF testing
+TXN - Toggle XON waiting after <CR>
+
+  SPD - The  "SPD" command allows you to add delay time after  each 
+	character  sent  or each carraige  return  sent.   This  is 
+	useful	if you are communicating with a hard copy  terminal 
+	or  even a mainframe that cannot capture the characters  as 
+	fast as you can send them.
+
+  TEF - When transferring a text file to another CP/M system it  is
+	sometimes useful to send an end-of-file (EOF) marker.  This
+	toggle will turn on/off sending an EOF.
+
+  TSL - When  sending text to a mainframe it  is usually  desirable
+	not to transmit linefeeds. On the other hand, when  sending 
+	text files  to another CP/M system it is usually  desirable
+	to  send linefeeds.  This  toggle will  turn on/off sending
+	linefeeds.
+
+  TWE - If  the remote echoes, one of the most reliable methods  of 
+	sending text is to wait for the transmitted character to be
+	echoed. This toggle will turn this option on/off.
+
+  TXF - Some mainframes (and micros) send XOFF when they want  your
+	micro to stop transmitting and send XON when they are ready
+	to resume accepting text. This toggle will turn XOFF  test-
+	on/off.
+
+  TXN - Certain systems, such as the ASCII interfaces for IBM 370s,
+	always send an XOFF on receipt of a <CR> and send XON  when
+	the system is prepared to receive another line. This toggle
+	turns on/off waiting for an XON after a <CR>.
+
+NOTE: Only one of the TWE, TXF and TXN toggles can be on.
+
+
+LOCAL COMMANDS THAT MAY BE USED WHILE IN THE TERMINAL MODE
+----------------------------------------------------------
+
+     Local Commands while in Terminal Mode
+
+ctrl-E	- Exit to command mode
+ctrl-O  - Transmit string
+     Must be followed by number of string (0-9)
+     or L to display list of strings
+ctrl-P	- Toggle printer
+ctrl-Y	- Start copy into bufferäctrl-R	- Stop copy into buffer
+     Start & Stop may be toggled as often as desired.
+     A ":" at start of line indicates buffer is open.
+     XOFF automatically used to stop input when writing
+     full buffer to disk, XON sent to resume.
+ctrl-T	- Transfer ASCII file to remote
+ctrl-^	- Send local control character to remote
+
+CTRL-E	This command is the way to leave any mode and return to the
+	COMMAND (H for Help): prompt.  You may then use your choice
+	of the three-letter commands.
+
+CTRL-O	This allows you to transmit pre-defined strings of characters
+	characters if they have been put into your program.
+
+CTRL-P	This will  cause  the  characters  sent to the screen to be
+	simultaneously	sent to the printer,  or LST:  device.	 It
+	works the same way as the printer toggle in the CP/M opera-
+	ting  system.	The  first use turns it on,  the second use
+	turns it off, etc.
+
+CTRL-Y	This is used with the CTRL-R command to control the process
+	of putting text into the memory buffer.   The CTRL-Y begins
+	putting text into the buffer, while the CTRL-R suspends the
+	process.
+
+CTRL-T	This initiates the  transmission  of  a  text (ASCII) file
+	without any error checking protocol.   This should be used
+	to send text files to machines that are not running any of
+	the MODEM programs.
+
+
+NOTE:   The control codes displayed  by the program  may differ from
+those give above since they can be redefined at assembly time.
+
+
+		      A Typical Session With MODEM9xx
+
+     The computer is on and the CP/M operating system is 'booted' so
+that  the screen displays the A> command prompt from CP/M.   We have
+inserted the disk with MODEM9xx.COM into disk drive A:	We will wish
+to write on disk A: so we 'warm-boot' with a ConTRoL-C.
+
+A>^C
+  --
+
+A>MODEM9xx<CR>
+  ------------
+MODEM 9.xx - 03/20/83
+Version for: Heath H89  
+
+Drive A
+COMMAND (H for Help): H<CR>
+		      -----
+ä	     Single Letter Commands
+
+ H  - Display this information
+ ?  - Display current settings
+ T  - Terminal mode
+ E  - Terminal mode with echo
+ L  - Terminal mode with local echo
+     For capturing text use T(or E or L) FILENAME.TYP and
+     Start & Stop toggles described on subsequent screen.
+ R  - Receive file using Christensen Protocol
+ S  - Send file using Christensen Protocol
+     Command is: R(or S) FILENAME.TYP
+     R and S can use the following subcommands:
+	  B  - Bulk transfer using wildcards (e.g. *.*)
+	  Q  - Quiet mode (no messages to console)
+	  T  - Return to terminal mode after transfer
+	  V  - View bytes transferred on console
+The single letter commands may also be used on the
+command line when the program is initially executed.
+
+HIT any KEY to CONTINUE<CR>
+		       ----
+
+
+	      Three Letter Commands
+
+DIR - List directory and space free (may specify drive)
+CPM - Exit from this program to CP/M
+ERA - Erase file (may specify drive)
+LOG - Change default drive/user (specify drive/user)
+      and reset disks.	e.g. LOG A0, LOG B (user unchanged)
+FOP - Display commands for setting terminal mode file
+      output parameters
+DSC - Disconnect the modem from the telephone line
+TCC - Toggle Checksum/CRC mode on receive
+TBR - Toggle backspace to rub conversion
+TLC - Toggle  1) local command immediate
+	      2) local command after ctrl-^
+TLF - Toggle send linefeed after carriage return
+NUM - List remote systems
+SET - Set communication ports
+    The following are terminal text buffer commands:
+DEL - Delete memory buffer and file
+NOL - Return to terminal mode - no loss of data in buffer
+WRT - Write memory buffer to disk file
+
+HIT any KEY to CONTINUE<CR>
+		       ----
+
+    Local Commands while in Terminal Mode
+
+ctrl-E	- Exit to command mode
+ctrl-O  - Transmit string
+     Must be followed by number of string (0-9)
+     or L to display list of stringsäctrl-P	- Toggle printer
+ctrl-Y	- Start copy into buffer
+ctrl-R	- Stop copy into buffer
+     Start & Stop may be toggled as often as desired.
+     A ":" at start of line indicates buffer is open.
+     XOFF automatically used to stop input when writing
+     full buffer to disk, XON sent to resume.
+ctrl-T	- Transfer ASCII file to remote
+ctrl-^	- Send local control character to remote
+
+Drive A
+COMMAND (H for Help): ?<CR>
+		      -----
+
+		 Current Settings
+
+CRC mode set
+Printer is off
+Carrier present
+Modem speed is 300 baud
+Backspace is backspace
+Linefeed NOT sent after <CR>
+Use ctrl-^ to send local command to remote
+Terminal mode file buffer is inactive
+Unused portion of buffer is 36608 bytes
+Word length is eight, number of stop bits is one, parity is none
+Linefeed NOT sent after <CR> in terminal mode file output
+End-of-file character NOT sent in terminal mode file output
+XOFF testing NOT used in terminal mode file output
+XON NOT automatically tested after <CR> in terminal mode file output
+Waiting for character echo NOT used in terminal mode file output
+Terminal mode file output delay is 0.00 seconds per character
+Additional delay after <CR> is 0.00 seconds
+
+Drive A
+COMMAND (H for Help): 
+
+Drive A
+COMMAND (H for Help): T BBS.DIR<CR>
+		      -------------
+File exists -- Type 'Y' to erase: Y
+				  -
+CTRL-Y
+------
+** Memory buffer open **
+
+ :  then  the  little red modem received many characters that were 
+ :simply stuffed into the memory buffer in the computer.  You 
+ :should remember that this colon is simply a symbol to remind
+ :you that you are capturing the stuff coming in into your 
+ :buffer.  It will not be written to disk until a "WRT" command. .
+CTRL-R
+------
+** Memory buffer closed **
+äCTRL-E
+------
+
+** There may be text in the memory buffer **
+** It will be lost unless NOL or WRT commands are used **
+
+Drive A
+COMMAND (H for Help): WRT<CR>
+		      -------
+Drive A
+COMMAND (H for Help): ?<CR>
+		      -----
+
+		Current Settings
+
+CRC mode set
+Printer is off
+Carrier present
+Modem speed is 300 baud
+Backspace is backspace
+Linefeed NOT sent after <CR>
+Use ctrl-^ to send local command to remote
+Terminal mode file buffer is inactive
+Unused portion of buffer is 36608 bytes
+Word length is eight, number of stop bits is one, parity is none
+Linefeed NOT sent after <CR> in terminal mode file output
+End-of-file character NOT sent in terminal mode file output
+XOFF testing NOT used in terminal mode file output
+XON NOT automatically tested after <CR> in terminal mode file output
+Waiting for character echo NOT used in terminal mode file output
+Terminal mode file output delay is 0.00 seconds per character
+Additional delay after <CR> is 0.00 seconds
+
+
+Drive A
+COMMAND (H for Help): 
+
+Drive A
+COMMAND (H for Help): TXO<CR>
+		      -------
+
+Use XOFF testing? (Y/N): Y<CR>
+			 -----
+XOFF testing used in terminal mode file output
+Therefore -
+XON NOT automatically tested after <CR> in terminal mode file output
+Waiting for character echo NOT used in terminal mode file output
+
+Drive A
+COMMAND (H for Help): TBR<CR>
+		      -------
+Backspace is rub
+
+Drive A
+COMMAND (H for Help): SPD<CR>ä		      -------
+
+Enter character output delay [0(none) - 9(longest delay)]: 5<CR>
+							   -----
+Terminal mode file output delay is 0.10 seconds per character
+
+
+Enter additional delay after <CR> [0-9]: 5<CR>
+					 -----
+Additional delay after <CR> is 0.40 seconds
+
+
+Drive A
+COMMAND (H for Help): DIR C:<CR>
+		      ----------
+NO FILE
+Drive A has 274K bytes free
+
+Drive A
+COMMAND (H for Help): DIR C<CR>
+		      ---------
+NO FILE
+Drive A has 274K bytes free
+
+Drive A
+COMMAND (H for Help): DIR C:<CR>
+		      ----------
+MBOOT-89.ASM | BYE80   .ASM | DUUP    .COM | DUUP    .DOC 
+MODEM7	.COM | OSBMAST .CAT | P/DCAT  .DIR | RENAME  .COM 
+RENAME	.DOC | SD4-41  .ASM | SYSGEN  .COM | WYLZEATH.MAC 
+Drive C has 78K bytes free
+
+Drive A
+COMMAND (H for Help): LOG C5<CR>
+		      ----------
+Insert disk for drive C
+Hit return when ready <CR>
+		      ----
+Drive C, User 5
+COMMAND (H for Help): ?<CR>
+		      -----
+
+		 Current Settings
+
+Checksum mode set
+Printer is off
+Carrier present
+Modem speed is 300 baud
+Backspace is rub
+Linefeed NOT sent after <CR>
+Use ctrl-^ to send local command to remote
+Terminal mode file buffer is inactive
+Unused portion of buffer is 36608 bytes
+Word length is eight, number of stop bits is one, parity is none
+Linefeed NOT sent after <CR> in terminal mode file outputäEnd-of-file character NOT sent in terminal mode file output
+XOFF testing used in terminal mode file output
+XON NOT automatically tested after <CR> in terminal mode file output
+Waiting for character echo NOT used in terminal mode file output
+Terminal mode file output delay is 0.10 seconds per character
+Additional delay after <CR> is 0.40 seconds
+
+Drive A
+COMMAND (H for Help): TLF<CR>
+		      -------
+Linefeed sent after <CR>
+
+Drive A
+COMMAND (H for Help): ?<CR>
+		      -----
+
+	       Current Settings
+
+Checksum mode set
+Printer is off
+Carrier present
+Modem speed is 300 baud
+Backspace is rub
+Linefeed sent after <CR>
+Use ctrl-^ to send local command to remote
+Terminal mode file buffer is inactive
+Unused portion of buffer is 36608 bytes
+Word length is eight, number of stop bits is one, parity is none
+Linefeed NOT sent after <CR> in terminal mode file output
+End-of-file character NOT sent in terminal mode file output
+XOFF testing used in terminal mode file output
+XON NOT automatically tested after <CR> in terminal mode file output
+Waiting for character echo NOT used in terminal mode file output
+Terminal mode file output delay is 0.10 seconds per character
+Additional delay after <CR> is 0.40 seconds
+
+Drive A
+COMMAND (H for Help): CPM<CR>
+A>		      -------
+
+

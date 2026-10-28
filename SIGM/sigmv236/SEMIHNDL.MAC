@@ -1,0 +1,174 @@
+          title 'semidisk handler routines'
+
+true      equ -1
+false     equ 0
+
+banked    equ true
+
+          .Z80
+
+          entry sinit,slogin,sread,swrite
+          external @trk,@sect,@dma,@ermde  
+          external ?pmsg,?pderr,?wboot
+                       if banked
+          external @cbnk,@dbnk,?bank
+                       endif
+
+          dseg
+
+data      equ 80H              ; semidisk origin
+byte      equ data+1
+trk       equ data+2
+sect      equ data+3
+
+sinit:                         ; check for board set
+          xor a                ; clear a
+          out (trk),a          ; track 0
+          out (sect),a         ; sector 0
+          out (byte),a         ; byte 0
+          in a,(data)          ; get first test byte
+          cp 80h               ; test value
+          jr nz,clx            ; jump to clear board instructions
+          ld a,10h
+          out (byte),a
+          in a,(data)          ; second test byte
+          cp 80h
+          ret z                ; return if board set
+
+clx:                           ; clear semidisk
+          xor a                ; clear a
+          out (byte),a         ; start byte count
+          ld d,80h             ; parity fill data
+          ld e,a               ; initial track
+          call settr           ; 2 parity tracks
+          call settr
+          ld d,0e5h            ; directory fill data
+          call settr
+          call settr
+          ret
+
+settr:                         ; set track to value in d
+          ld a,e
+          out (trk),a          ; set track number
+          inc e                ; increment track number
+          xor a                ; clear sector counter
+          ld b,10h             ; count+sector port
+sectlp:   out (sect),a         ; set sector
+          inc a                ; increment sector number
+          ld h,b               ; store b
+          ld bc,8000h+data     ; count+data port
+bytelp:   out (c),d            ; enter data
+          djnz bytelp
+          ld b,h               ; recover b for outer loop
+          djnz sectlp
+          ret
+
+slogin:   ret                  ; no action here
+
+sread:    call setup
+                       if banked
+          jp rl                ; jump to common memory
+                       else
+rlu:      in d,(c)
+          ld (hl),d
+          add a,d
+          inc hl
+          djnz rlu
+                       endif
+srx:      call parity
+          in d,(c)
+          sub d
+
+          ret z                ; normal exit
+
+          ld a,(@ermde)        ; error mode
+          inc a                ; if (@ermde==0ffh get zero)
+          jr z,herror          ; if error messages are not being sent
+          call ?pderr
+          jp ?wboot
+herror:   inc a                ; error indicator = 1
+          ret
+
+swrite:   call setup
+                       if banked
+          jp wl                ; jump to common memory
+                       else
+wlu:      add a,(hl)
+          outi
+          jr nz,wlu
+                       endif
+swx:      call parity
+          out (c),a
+          xor a                ; clear a
+          ret
+
+setup:                         ; setup parameters for read & write
+          ld a,(@trk)
+          out (trk),a
+          ld a,(@sect)
+          out (sect),a
+          ld bc,8000h+data     ; count in b, data port in c
+          ld hl,(@dma)
+          xor a                ; clear a
+          out (byte),a
+                       if banked
+          ld a,(@dbnk)         ; bank for read or write
+                       endif
+          ret
+
+parity:                        ; get parity word
+                       if not banked
+          ld d,a               ; keep a
+                       endif
+          ld a,(@trk)          ; get track
+          ld e,a               ;    & store in e
+          and 80h              ; keep bit 7
+          rlca                 ;    & move it to bit 1
+          out (trk),a          ; Use it as track number
+          ld a,e               ; get track again
+          and 78h              ; 01111000 binary
+          rrca                 ; right shift 3 times
+          rrca
+          rrca
+          out (sect),a         ; semidisk sector 0-15
+          ld a,e               ; get track again
+          and 7                ; 00000111 binary
+          rlca                 ; left shift 4 bits
+          rlca
+          rlca
+          rlca
+          ld e,a               ; hold in e
+          ld a,(@sect)         ; get sector
+          add a,e              ; form byte number
+          out (byte),a         ;    and pass to semidisk
+          ld a,d               ; restore a
+          ret
+                       if banked
+          cseg                 ; read & write in common
+
+rl:       call ?bank
+          xor a
+rl1:      in d,(c)             ; read in byte
+          ld (hl),d            ; store in memory
+          add a,d              ; add to accumulator for parity
+          inc hl               ; inc memory pointer
+          djnz rl1             ; loop until b=0
+          ld d,a               ; keep a
+          ld a,(@cbnk)         ; restore bank
+          call ?bank
+          jp srx               ; return to banked memory
+
+wl:       call ?bank
+          xor a
+wl1:      add a,(hl)           ; add to accumulator from memory
+          outi                 ; copy memory to port, inc registers
+          jr nz,wl1            ; loop until b=0
+          ld d,a               ; keep a
+          ld a,(@cbnk)         ; restore bank
+          call ?bank
+          jp swx               ; return to banked memory
+                       endif
+
+          end
+ore a
+     

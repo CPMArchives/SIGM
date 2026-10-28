@@ -1,0 +1,134 @@
+VOLUME 38
+
+(1) CP/M speed up utilities (and bios auto-reloc)
+(2) Tarbell controller utilities
+
+NUMBER	SIZE	NAME		COMMENTS
+
+		-CATALOG.038	CONTENTS OF CP/M VOL. 38
+	5K	ABSTRACT.038	Abstracts on some of the files.
+38.1	5K	BVBOOT.ASM	(1) Boot for full sized..
+				    Tarbell sys running BVIOS
+38.2	28K	BVIOS.ASM	(1) Compact BIOS allowing..
+				    ..Tarbell systems to not..
+				    ..be 1K smaller
+38.3	56K	DFOCO.ASM	(2) Double Density FOrmat and..
+38.4	8K	DFOCO.COM	(2) ..COpy option for Tarbell..
+38.5	20K	DFOCO.DOC	(2) ..and Delta disk cntrlrs
+38.6	1K	DMSPATCH.ASM	(1) FAST patch for Digital..
+				    ..Micro Systems Drives
+38.7	1K	DSCUSPAT.ASM	(1) FAST patch for Discus 2D
+38.8	20K	FAST.ASM	(1) Speed up transients via..
+38.9	2K	FAST.COM	(1) track & dir. buffering.
+38.10	3K	FASTNSTL.DOC	(1) FAST installation doc
+38.11	18K	FMAN.PRN	(1) FAST operations manual
+38.12	18K	MACRO.LIB	(2) Used by DFOCO
+38.13	1K	MICROPAT.ASM	(1) FAST patch for Micropolis
+38.14	15K	PACKUP.ASM	(1) Part of FAST
+38.15	4K	REL.ASM		(1) Relocation utility source
+38.16	2K	REL.UTL		(1) Relocation utility
+38.17	2K	RELCPM.DOC	(1) Doc on relocation pgms
+38.18	1K	RELCPM.SUB	(1) Submit file for relocations
+38.19	1K	RELED.SUB	(1) Submit file for relocations
+38.20	2K	RELHDR.ASM	(1) Hdr for REL.UTL
+38.21	3K	RSPEED.ASM	(1) Routine to determine how..
+38.22	1K	RSPEED.COM	(1) ..fast your disk reads,..
+				    to set up SPEED, FAST
+38.23	1K	SKEW2PAT.ASM	(1) Skew table patch for FAST
+38.24	1K	SKEW3PAT.ASM	(1) Skew table patch for FAST
+38.25	2K	SMAN.PRN	(1) SPEED operations manual..
+				    addendum to FMAN.PRN
+38.26	5K	SPEED.COM	(1) CCP replacement with
+				    full track blocking etc.
+38.27	3K	UTL.LIB		(1) Macro library for reloc.
+
+
+
+-------------------- VOLUME 38 ABSTRACTS ----------------------
+
+TITLE:  CP/M SPEED UP UTILITIES, TARBELL CONTROLLER UTILITIES
+
+SPEED.COM is a transient which makes the CCP portion of CP/M
+permenantly resident and provides the disk I/O buffering of
+FAST.COM (see FAST.ABS).  Benifits include a 30 to 60%
+decrease in transient execution time and much faster submit
+file execution (warm boots don't have to access the disk).
+Also, you can operate on disks in drive a without having
+to sysgen them.  As with FAST, memory from the TPA is used
+for buffering and keeping the CCP resident, so lots of memory
+is helpful (a 32K - 48K CP/M is usually enough).  SPEED will
+work with any disk controller, but may require simple object
+patches if your controller is not as fast as a Tarbell,
+which is able to read physically adjacent sectors.  Patch
+files are DMSPATCH, SKEW2PAT, SKEW3PAT, DSCUSPAT, and 
+MICROPAT with patching instructions in FASTNSTL.DOC.
+Documentation is provided in SMAN.PRN.  SPEED and FAST are not
+compatible with CP/M 2.0.  Reviewed by Robert A. Van Valzah.
+
+The file FAST.COM is a transient which allows other transients
+to run faster, mainly by buffering disk I/O.  Running time can
+be reduced by 30% to 50% for things like PIP, MAC, ASM, ED,
+in short, anything which is heavy on disk I/O.  FAST will run
+with any disk controller hardware, but may require simple
+patches to get best performance.  FAST is effectivly trading
+memory for execution speed, so a large system size is helpful
+(it reduces the size of the TPA by about 10K).  FAST.COM may be
+patched to work with any format disk including minis and
+double density.  The source code is well commented and
+structured, and should be relativly easy to modify.  The files
+FAST.ASM, PACKUP.ASM, and REL.UTL are necessary for assembly.
+Fairly complete documentation is provided in FMAN.PRN.
+See above for more info.  Reviewed by Robert A. Van Valzah.
+
+The files BVIOS.ASM and BVBOOT.ASM contain a Basic Input
+Output System for the Tarbell single density disk controller
+written by Bob Van Valzah.  It's features include small
+size (you can run a real 48K system in 48K of memory, unlike
+the Tarbell BIOS) and compatibility with UCSD PASCAL.
+Optionaly, a VDM driver, a Diablo Hy-Type I driver, and
+keyboard case conversion can be included with assembly
+time switches.  The code is very well commented, but due
+to space limitaion there are some coding tricks which
+may limit how easily it is modified.  Reviewed by
+Robert A. Van Valzah.
+
+DFOCO is a Double density FOrmat and COpy utility for use with
+the Tarbell single and double density controllers or the Delta
+Products double density controller.  Provides the ability to
+format and copy individual tracks.  Disks can be formatted in
+single or double density (if you have a double density
+controller) and are automatically validated after formatting.
+Disks can be formatted with the sector numbers "skewed" and
+"offset" for better performance.  The speed of this program
+is several times that of most format and copy programs - 17s
+for validate, 43s for format, 46s for full disk copy.  The
+source code (DFOCO.ASM) is well commented and structured but
+requires MAC and MACRO.LIB for assembly.  Documentation is
+provided in DFOCO.DOC.  This program is still under development
+and may be a bit buggy.  Reviewed by Robert A. Van Valzah.
+
+REL.UTL is a utility for building relocation bit maps as used
+by DDT, SID, and MOVCPM for static relocation of 8080 code to
+page boundaries.  It is useful to anyone wishing to write
+transients which relocate themselves (see FAST.ASM or REL.ASM).
+In order to assemble REL you will need MAC, SID, and the
+following files:  REL.ASM, REL.UTL, RELHDR.ASM, UTL.LIB, and
+RELED.SUB.  Note that REL.UTL must relocate itself to the top
+of memory when loaded and therefore a working copy of REL.UTL 
+is need to assemble a new version (don't ask me how the first
+one was assembled!).  The relocation technique used is
+described in an article by G. A. Kildall appearing in Dr. Dobbs
+Journal number 22.  Reviewed by Robert A. Van Valzah.
+
+RELCPM.DOC contains instructions on how to integrate your BIOS
+into MOVCPM.COM so that you build a CP/M system with a new
+memory size almost instantly.  This would be useful to anyone
+who frequently changes hardware configurations.  It requires
+REL.UTL, SID.COM, MAC.COM and some modificaton of your BIOS.
+The file RELCPM.SUB will be save you from some typing.
+Generating a new MOVCPM.COM is not simple and requires a good
+familiarity with assembler language programming and your BIOS.
+It should not be attemepted unless you consider yourself a
+"hacker" (if you don't know what a hacker is, you aren't one).
+Reviewed by Robert A. Van Valzah.
+

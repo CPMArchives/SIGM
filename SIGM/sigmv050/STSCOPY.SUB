@@ -1,0 +1,34 @@
+;STSCOPY.SUB		June 16, 1981
+;
+;Type SUBMIT STSCOPY z xxx mm hhhh y, where 'z' is the destination
+;drive for the output of the STSCOPY.SUB file (this file),
+;xxx is your customized unit record I/O source file,
+;mm is the memory size - 2 in 1K byte units, and hhhh is the
+;hexadecimal offset for loading the BIOS.  For example,
+;if the memory size is 55K, then mm is 53 and hhhh is 5180.
+;y is P if the PRN files are to be printed, otherwise ;.
+;
+;	Assemble BIOS
+PIP $1:STSBIOS.ASM=CONFIG,DTC,BIOS1,BIOS2,$2,BIOS3,MODEL,BIOS4[V]
+ASM $1:STSBIOS
+ERA $1:STSBIOS.ASM
+$5IP PRN:=$1:STSBIOS.PRN[T6]
+ERA $1:STSBIOS.PRN
+;
+;	Assemble STSCOPY
+PIP $1:STSCOPY.ASM=CONFIG,DTC,STSCOPY[V]
+ASM $1:STSCOPY
+ERA $1:STSCOPY.ASM
+$5IP PRN:=$1:STSCOPY.PRN[T6]
+ERA $1:STSCOPY.PRN
+LOAD $1:STSCOPY
+ERA $1:STSCOPY.HEX
+;
+;	Construct STSCPM.COM
+MOVCPM $3 *
+DTCLOAD $1:STSBIOS O=$4
+;Maximum system size is 57
+SAVE 57 $1:STSCPM.COM
+ERA $1:STSBIOS.HEX
+;STSCOPY.SUB done.
+

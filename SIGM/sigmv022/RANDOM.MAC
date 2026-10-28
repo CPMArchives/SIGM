@@ -1,0 +1,87 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+;		PSUEDO RANDOM NO.GENERATOR
+;		 by Bob Harsch
+;		    2362 American River Dr
+;		    Suite 311
+;		    Sacramento, 95825
+;
+;  This is a professional program that is fully copy
+;  righted and is not to be used, copyed or stored in
+;  any form whatsoever. Bob Harsch is donating this 
+;  program to the Pascal/Z Users Group for the personal
+;  use of its members only.  No commercial use allowed 
+;  at all.  When used in a members program, credit must 
+;  be given to Bob Harsch.  This approach has been under
+;  test for two years so a lot of time and effort has 
+;  gone into proving this program.
+;  This is the best Random number generator I have seen
+;  so give Bob credit due him.  You may contact him 
+;  directly, if you desire, for applications other
+;  than personal use.
+;
+;	Published by the Pascal/Z Users Group, Aug 1980
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 
+.COMMENT }
+{ Function to generate a random byte for a calling PASCAL/Z
+program.  Result returned in DE where D = 0 and E = random
+byte.  External header declaration for calling sequence
+should be:
+
+type	byte = 0..255;
+	seedarray = array [ 0..n ] of byte;
+function ranbyt( var seeds : seedarray ) : byte; external;
+
+    Where the range of n is 5 <= n <= 255  and seeds[0] 
+equals the number of seeds that will be used iteratively to 
+create a random byte from seeds[1] on.  The range of 
+seeds[0] should be: 5 <= seeds[0] <= n, but this routine is
+fastest when seeds[0] = 5.
+     By appending the random bytes together, formed from 
+consecutive calls, a large random number may be obtained.  
+The array seeds is returned altered ( cell values seeds[1] 
+to seeds[ seeds[0] ]) for future random byte generations.
+    This routine may be used to hash a variable length 
+string into a direct address by subsituting the symbol 
+string itself as the seeds values ( padding with blanks to
+produce the needed length of 5 or greater).
+}
+	.Z80
+	ENTRY	RANBYT
+RANBYT:	POP	DE	;RETURN ADDRESS.
+	POP	HL	;TOP ADDRESS OF ARRAY SEEDS.
+	LD	A,(HL)	;A= NUMBER OF SEEDS IN ARRAY.
+	LD	B,A	;B= NUMBER OF SEEDS IN ARRAY.
+	CP	5	;SET FLAGS, TEST IF SEED NUMBER < 5.
+	LD	A,0	;A=0 IN CASE OF ERROR. FLAGS UNCHANGED.
+	JR	C,ERROR	;0 THRU 4 SEEDS ARE WRONG,RET ZERO.
+	DEC	B
+	DEC	B	;LAST TWO CELLS IN ARRAY IS OPERATED
+			; ON OUTSIDE THE LOOP.
+	DEC	HL	;(HL)= FIRST SEED IN ARRAY.
+;
+;ITERATE SEEDS[0]-2 TIMES TO COMPUTE RANDOM BYTE IN A REG.
+LOOP:	INC	(HL)	;INCREMENT SEED VALUE.
+	LD	A,(HL)
+	DEC	HL	;HL POINTS TO NEXT SEED VALUE IN ARRAY.
+	ADD	A,(HL)
+	RRCA		;ROTATE RIGHT CIRCULAR ACCUMULATOR.
+	LD	(HL),A
+	DJNZ	LOOP
+;
+;LAST ITERATION TO COMPUTE RANDOM BYTE IN A REG.
+	DEC	HL	;HL POINTS TO LAST SEED VALUE IN ARRAY.
+	ADD	A,(HL)
+	CPL		;INSTR NOT IN LOOP. COMPLEMENT ACCUM.
+	RRCA		;ROTATE RIGHT CIRCULAR ACCUMULATOR.
+	LD	(HL),A
+;
+;ASSIGN DE TO RANDOM BYTE IN A REG. BEFORE RETURNING.
+ERROR:	EX	DE,HL	;HL= RETURN ADDR, DE= RANDOM BYTE.
+	LD	D,0
+	LD	E,A	;PASCAL/Z FUNCTION RETURN CONVENTION.
+	XOR	A	;A=0 FOR PASCAL/Z.
+	JP	(HL)	;RETURN.
+	END
+

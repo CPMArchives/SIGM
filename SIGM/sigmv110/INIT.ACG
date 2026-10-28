@@ -1,0 +1,61 @@
+* init.cmd 02/12/83
+* this program is run once, when main.cmd is first start 
+* it will initialize the variables, set up environment, 
+* place all command which affect the entire system here 
+
+* define environment with set commands 
+* place your choice of intensity, bell, confirm, etc 
+SET talk OFF 
+SET intensity OFF 
+
+* check for add.mem 
+* if it isn ' t there, re-initialize the memory variables 
+* then same them to a mem files, and clear memory 
+IF .not. FILE( "add.mem" ) 
+  STORE '                         ' TO mlastname 
+  STORE '                    ' TO mfname 
+  STORE '               ' TO mspouse 
+  STORE '              ' TO mmr 
+  STORE '                                             ' TO mtitle
+  STORE '                                             ' TO mcompany1
+  STORE '                                             ' TO mcompany2
+  STORE '                                        ' TO mcaddress
+  STORE '          ' TO msuite
+  STORE '                    ' TO mccity 
+  STORE '  ' TO mcst 
+  STORE '     ' TO mczip 
+  STORE '                                        ' TO maddress
+  STORE '          ' TO mapt
+  STORE '                    ' TO mcity 
+  STORE '  ' TO mst 
+  STORE '     ' TO mzip 
+  STORE '             ' TO mophone 
+  STORE '             ' TO mphone
+  STORE '                      ' TO mdear
+  STORE ' ' TO msend
+  STORE '                                             ' TO mmisc
+  STORE '   ' TO mcs1 
+  STORE '   ' TO mcs2
+  STORE '   ' TO mcs3
+  STORE '   ' TO mcs4
+  STORE '   ' TO mcs5
+  STORE '   ' TO mcs6
+  STORE '        ' TO mupdate
+  SAVE TO ADD
+  RELEASE ALL
+ENDIF .not. FILE( "add.mem" )  
+
+* set up bell
+
+STORE 'Y' TO command
+@ 20,10 SAY 'Do you wish to use signal beep ? ' GET command PICTURE '!' 
+READ
+IF command = 'N' 
+  SET bell OFF
+ENDIF command = 'N'  
+
+
+* lets use first the name index
+
+USE acg INDEX lastname,company, zip 
+

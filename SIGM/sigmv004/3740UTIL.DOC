@@ -1,0 +1,181 @@
+.HE     * * *  INDEX  * * *
+                          INTRODUCTION
+
+
+     Thå  followinç manuaì describeó thå uså anä functioî oæ  thå 
+CP/Í  - IBÍ  disë utility®   Iô ió designeä tï allo÷ thå useò  tï 
+easily transfer data between CP/M and IBM disk formats.
+
+
+
+
+
+
+
+
+CP/Í ió á registereä trademarë oæ Digitaì Research¬ Gardeî Grove¬ 
+CA®   IBÍ  ió  á registereä trademarë oæ  Internationaì  Businesó 
+Machines, Poughkeepsie, NY.
+
+
+Copyright (C) 1980, Robert M. White
+                    8530 Stonehaven
+                    Boise, ID  83704
+
+Alì rightó arå reserved®   Thió documenô maù not¬  iî wholå oò iî 
+part¬  bå copied¬  photocopied¬ reproduced¬ translateä oò reduceä 
+tï  anù electroniã mediuí readablå forí withouô thå prioò writteî 
+consent of Robert M. White.
+
+
+
+.paŠ.he TABLE OF CONTENTS
+INTRODUCTION ................................................   1
+INITIALIZE AN IBM DISKETTE ..................................   2
+CHANGE AN IBM VOLUME SERIAL NUMBER ..........................   3
+CHANGE AN IBM DATASET'S DIRECTORY ENTRY .....................   4
+DELETE AN IBM DATASET'S DIRECTORY ENTRY .....................   5
+LIST AN IBM DATASET'S DIRECTORY .............................   6
+TRANSFER CP/M TO IBM DATASET (BLOCK FORMAT) .................   7
+TRANSFER IBM TO CP/M DATASET (BLOCK FORMAT) .................   8
+TRANSFER CP/M TO IBM DATASET (SOURCE FORMAT) ................   9
+TRANSFER IBM TO CP/M DATASET (SOURCE FORMAT) ................  10
+DISPLAY AN IBM DATASET ......................................  11
+HARDWARE/SOFTWARE REQUIREMENTS ..............................  12
+MAINTENANCE POLICIES ........................................  13
+PROGRAM ERROR REPORT ........................................  14
+.PAŠ.HE INTRODUCTION
+                          Introduction
+
+     Thió  prograí  waó developeä sï thaô developemenô  coulä  bå 
+performeä  oî á smalì computeò utilizinç CP/Í foò largå IBÍ site®  
+Thå  datá oò programó werå codeä usinç thå  smalì  computer¬  anä 
+theî  transfereä  tï  thå IBÍ computeò  utilizinç  thió  program®  
+Also¬  certaiî  datá werå transferreä bacë tï thå smalì  computeò 
+foò  updatinç  anä  agaiî transferreä bacë tï thå  IBÍ  computer®  
+Thus¬  thå timå involveä foò codinç anä keypunchinç werå absorbeä 
+oî thå smalì machine®   All transfers were performed by diskette.
+     Thió  manuaì assumeó thaô thå readeò haó á workinç knowledgå 
+oæ botè CP/Í anä IBÍ operatinç systems®   Iî particular¬ thå useò 
+shoulä  fullù understanä thå basiã disë layouô foò  IBÍ  Standarä 
+Interchangå Format®   Thió prograí assumeó thå SIÆ throughouô anä 
+waó  writteî tï bå compatiblå witè onlù it®   NO„ otheò IBÍ formaô 
+ió  utilized®   Foò furtheò informatioî concerninç  thió  format¬ 
+pleaså revie÷ manuaì GA21-9182¬ IBÍ Generaì Informatioî Manuaì oî 
+Diskettes.
+     Thå  prograí waó designeä tï bå menõ driveî witè  prompting®  
+Currently¬  eacè  responså  ió verified¬  anä iæ  incorrect¬  re-
+prompted®   Iæ yoõ makå á mistakå whicè ió á valiä reply¬ re-booô 
+CP/Í anä restarô thå program®   Aô thió time¬  nï backuğ facilitù 
+ió offereä sï bå carefuì aó tï youò responses.
+     Wheî workinç witè CP/Í files¬  thå filå nameó arå assumeä tï 
+bå  aî  1-¸ bytå namå witè á typå oæ '.DAT'®   Thå 1-¸ bytå  namå 
+musô corresponä witè á filå namå oî thå IBÍ diskette.
+.paŠ.HE INITIALIZE AN IBM DISKETTE
+                   Initialize an IBM Diskette
+
+     Tï  initializå  á  diskettå iî  IBÍ  SIÆ  format¬  uså  thió 
+command®  Placå thå diskettå tï bå initializeä iî thå appropriatå 
+drive®   Selecô  thió functioî (1)®   Replù witè thå drivå (A-D)®  
+Theî replù witè thå ne÷ 6-bytå volumå seriaì number®  Thå prograí 
+wilì  theî formaô thå diskettå tï IBÍ specifications®   Thió  maù 
+takå  á  fe÷ minuteó sï don'ô bå alarmeä iæ iô doesn'ô  replù  tï 
+yoõ immediately®   Afteò initialization¬ thå diskettå ió readù tï 
+use as an IBM diskette.
+.PAŠ.HE CHANGE AN IBM VOLUME SERIAL NUMBER
+               Change an IBM Volume Serial Number
+
+     Thió  functioî  allowó  thå useò tï  simplù  changå  aî  IBÍ 
+diskette'ó volumå seriaì number®  Uså functioî codå (2© tï invokå 
+it®  Replù witè thå disë drivå (A-D© thaô thå diskettå ió on¬ anä 
+theî replù witè thå ne÷ volumå seriaì number¬ 1-¶ characters®  Nï 
+checkinç  ió donå oî thå resô oæ thå diskette®   Onlù thå  volumå 
+serial number is changed.
+.PAŠ.HE CHANGE AN IBM DATASET'S DIRECTORY ENTRY
+             Change an IBM Dataset's Directory Entry
+
+     Thió  functioî allowó yoõ tï changå thå directorù entrù  foò 
+aî IBÍ file®   Yoõ wilì uså thió entrù tï creatå á  file¬  renamå 
+iô oò adjusô itó parameters®   Tï invokå thió function¬  uså codå 
+(3)®   Replù  witè  thå disë drivå containinç thå  IBÍ  diskette®  
+Theî replù witè thå directorù sectoò tï bå changed®  Yoõ caî finä 
+thå  sectoò numbeò bù usinç functioî (6)¬  Lisô  Directory®   Thå 
+prograí wilì theî displaù alì thå fieldó iî thå entrù anä requesô 
+thaô yoõ entrù á ne÷ value®   Enteò ONLY„ thå fieldó thaô yoõ wanô 
+tï change®   Wheî thå lasô fielä haó beeî entered¬  thå directorù 
+wilì  automaticallù bå updated¬  anä á completioî messagå wilì bå 
+posted to the terminal.  You will then return to the main menu.
+.PAŠ.HE DELETE AN IBM DATASET'S DIRECTORY ENTRY
+Delete an IBM Dataset's Directory Entry
+
+     Tï deletå á dataseô froí aî IBÍ diskette¬ placå thå diskettå 
+iî á drive¬  invokå functioî codå (4)¬ enteò thå disë drivå (A-D© 
+oî whicè thå diskettå resides¬ anä enteò thå sectoò numbeò oæ thå 
+directorù  entry®   Iæ yoõ arå iî doubô aó tï thå sectoò  number¬ 
+uså functioî codå (6)¬  Lisô Directory¬  tï finä ouô whaô iô  is®  
+Wheî thå entrù haó beeî deleteä anä á completioî messagå haó beeî 
+posted, control will return to the main menu.
+.PAŠ.HE LIST AN IBM DIRECTORY
+.PAŠ.HE TRANSFER A CP/M FILE TO IBM FORMAT (BLOCK)
+.PAŠ.HE TRANSFER AN IBM FILE TO CP/M FORMAT (BLOCK)
+.PAŠ.HE TRANSFER A CP/M FILE TO IBM FORMAT (SOURCE)
+.PAŠ.HE TRANSFER AN IBM FILE TO CP/M FORMAT (SOURCE)
+.PAŠ.HE MAINTENANCE POLICIES
+                      Maintenance Policies
+
+     Iî thå evenô oæ á problem¬  contacô Roberô M® Whitå aô (208© 
+377-0336®   Hå ió responsiblå foò answerinç questionó relatinç tï 
+installation¬  operatioî  anä  maintenance®   Iæ thå  probleí  ió 
+determineä tï bå á parô oæ thió package¬  pleaså obtaiî á printeä 
+dumğ beforå callinç foò support®   ALL„ useò modificationó musô bå 
+removeä  beforå obtaininç anù erroò analysió anä correctioî  froí 
+Roberô M®  White®  Iæ thå probleí persistó afteò initiaì contact¬ 
+pleaså  completå thå Prograí Erroò Reporô supplieä aó á  parô  oæ 
+thió  manuaì anä senä iô alonç witè alì supportinç  documentatioî 
+to:
+                    Robert M. White
+                    8530 Stonehaven
+                    Boise, ID  83704
+
+     Roberô  M®  Whitå wilì providå custoí modificationó tï useró 
+whï requesô them®   Theså modificationó maù requirå aî additionaì 
+chargå  anä  maù noô bå quaranteeä tï functioî correctlù  iî  alì 
+futurå releases®   Alì agreementó musô bå iî writing®   Estimateó 
+wilì bå issueä pertaininç tï thå worë involveä iî performinç  thå 
+modifications.
+.PAŠ.HE Program Error Report
+Date: _______ß Title:___________________________________________
+
+Submittor:______________________________________________________
+
+Address:  ______________________________________________________
+
+          ______________________________________________________
+
+          ______________________________________________________
+
+Phone:    (   ) ___-____ ext. ____
+
+Error Description:
+
+
+
+
+
+
+
+
+
+
+Environment:
+     Computer Type: ________________________________________
+
+     Core Size:     _____k
+
+     No. and type of disks: ________________________________
+
+     Console type:  ________________________________________
+
+     CP/M release:  ________________________________________
+.PAŠ
+

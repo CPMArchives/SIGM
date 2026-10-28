@@ -1,0 +1,63 @@
+
+[BADD.TNG]
+[Turing Machine which sums binary numbers]
+
+[[
+This Turing Machine will sum two binary numbers.
+Its initial tape should have the form =a+b=, with
+the head positioned at the right equal sign. For
+example,
+
+          =111110+011#=
+
+Each keystroke will show one step in the Machine`s
+operation, until the sum has been completed and the
+extra symbols have been erased.
+]]
+
+
+
+(Q0,=, ,dig,-)
+(dig,0,=,zle,-)
+(dig,1,=,ole,-)
+(dig,+,+,lef,-)
+(zle,0,0,zle,-)
+(zle,1,1,zle,-)
+(zle,+,+,zad,-)
+(ole,0,0,ole,-)
+(ole,1,1,ole,-)
+(ole,+,+,oad,-)
+(zad,a,a,zad,-)
+(zad,b,b,zad,-)
+(zad,0,a,rig,+)
+(zad,1,b,rig,+)
+(zad,=,=,rig,+)
+(oad,a,a,oad,-)
+(oad,b,b,oad,-)
+(oad,0,b,rig,+)
+(oad,1,a,car,-)
+(oad,=,b,new,-)
+(car,0,1,rig,+)
+(car,1,0,car,-)
+(car,=,1,new,-)
+(new,.,=,rig,+)
+(rig,0,0,rig,+)
+(rig,1,1,rig,+)
+(rig,a,a,rig,+)
+(rig,b,b,rig,+)
+(rig,+,+,rig,+)
+(rig,=, ,dig,-)
+(lef,0,0,lef,-)
+(lef,1,1,lef,-)
+(lef,a,a,lef,-)
+(lef,b,b,lef,-)
+(lef,=, ,fin,+)
+(fin,0,0,fin,+)
+(fin,1,1,fin,+)
+(fin,a,0,fin,+)
+(fin,b,1,fin,+)
+(fin,+, ,fin,+)
+(fin,=, ,H,-)
+
+[end]
+

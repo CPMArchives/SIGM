@@ -1,0 +1,89 @@
+	SET UP ROUTINE FOR THE CP/M MODEM PROGRAM.   9/15/80
+
+This information is given for those who do not wish to re-assemble
+the modem program for their system because they do not have MAC, do
+not have the source code, or are lazy. If you have a PMMI Modem board,
+with base port set at E0H, and do want backup (.BAK) copies (if the file
+being received already exists), the program will run as is. If not,
+make the patches listed below.
+
+Use the L command ( L100 ) of DDT or SID to list the program and
+use the S command to make the following changes:
+
+0100 C3 2D01	JMP 012DH  <---  Do not change
+
+(Note: The L command of DDT or SID displays 0FFH as "RST 07" and 0 as "NOP")
+
+0103 FF			   <--- 0FFH if PMMI modem, else zero
+
+0104 FF			   <--- 0FFH if Imsai with front panel,
+				else zero.
+
+0105 00			   <--- 0FFH if 4 MHz Z-80 (or maybe fast 8085)
+				else 0
+
+0106 00			   <--- Zero if you want files that exist
+				to be deleted if a file of the same
+				name is sent in multifile transfer.
+				0FFH if you want the existing file
+				to be changed to type "BAK".
+
+				Note: In CP/M 2 existing R/O or
+				      SYS files	are changed to
+				      type BAK whether this byte
+				      is set or not.
+
+0107 FF			   <--- 0FFH if you want program to come
+				up in expert (XPR) mode without
+				calling A>MODEM X else zero if
+				you want menu or X command.
+
+0108 7D			   <--- 7DH for 20 pulses/sec dialing
+		PMMI		(PMMI modem only). 0FAH if your
+		ONLY		phone exchange is older and needs
+				a slower dialing rate.
+
+
+0109 DB XX	IN  XX     <--- Put modem status port in 010AH
+010B C9		RET		(Base port if PMMI)
+
+
+If you have a PMMI modem board, no other patches need be made.
+Leave DDT with ^C and type
+
+		SAVE 35 MODEM.COM	(OR M.COM)
+
+If you do not have a PMMI modem, make the following patches also:
+
+010C D3 XX	OUT XX	   <--- Put modem data port in 010DH
+010E C9		RET
+
+010F E6 XX	ANI XX	   <--- Put bit tested when modem ready to
+0111 C9		RET		send in 0110H
+
+0112 FE XX	CPI XX	   <--- Same as 0110H if port uses positive logic (JZ).
+0114 C9		RET		Hex zero if port uses negative logic (JNZ).
+
+0115 DB XX	IN XX	   <--- Put modem data port (again) in 0116H.
+0117 C9		RET
+
+0118 E6 XX	ANI XX	   <--- Put bit tested when modem ready to receive
+011A C9		RET		in 0119H
+
+011B FE XX	CPI XX	   <--- Same as 0119H if port uses positive logic.
+011D C9		RET		Hex zero if port uses negative logic.
+
+011E C3 XXXX	JMP XXXX   <--- 011EH contains a jump to a modem or port
+				initialization routine. If your modem does
+				not need to be initialized, put a RET (C9H)
+				in 011EH .If you need initialization, write
+				your routine for the memory location addressed
+				by the jump. The initialization routine
+				must end with a RET instruction. You have
+				approximately 190 (decimal) bytes for the
+				routine.
+
+You are finished. Leave DDT (using ^C) and type
+
+		SAVE 29 MODEM.COM
+

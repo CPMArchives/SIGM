@@ -1,0 +1,977 @@
+.COMMENT ;
+ Floppy Disc Test for Z-80 CP/M Systems
+ Dr. Dobb's:  April 1981
+
+Version 1.0
+
+The purchaser may freely create any number of copies of this
+program on magnetic media as necessary to support his computer
+system(s). Further resale of this program is prohibited.
+
+COPYRIGHT (c) 1980 by
+Ray Duncan
+Laboratory Microsystems
+4147 Beethoven Street
+Los Angeles. CA 90066
+;
+
+CPM		EQU	5H	; References to..
+WBOOT		EQU	0H	; ..operating system
+;				  References to..
+CR		EQU	0DH	; ..ASCII characters
+LF		EQU	0AH
+FF		EQU	0CH
+TAB		EQU	09H
+;
+; Parameters for disk (supplied as single density, soft sect.)
+; 
+$DRVF		EQU	1H	; First drive to allow
+;				  ..testing (0=A, 1=B etc.)
+$DRVL		EQU	3H	; Last drive to allow test
+$TRKF		EQU	0H	; First track
+$TRKL		EQU	76	; Last track
+$SECF		EQU	1	; First sector
+$SECL		EQU	26	; Last sector
+$BPS		EQU	128	; Bytes per sector
+$BPT		EQU	$BPS*$SECL ; Bytes per sector
+$DIG		EQU	2	; Number of digits to accept
+				; ..in track and sector assign.
+				; ..(Should be set larger for
+				; .. devices having track/
+				; .. sector numbers >99 )
+;
+$VER		EQU	1	; Program version
+$REV		EQU	0	; .. revision
+;
+		.Z80
+		ASEG
+;
+		ORG	100H
+START:
+		JP	DTST	; Enter from CPM
+;
+; Global varables for use by all routines
+;
+PASS:		DW	0	; Current pass
+ERRORS:		DW	0	; Error count for pass
+;
+; The following variables are used by RDBUF and WRTBUF to
+;  address the disk, and display failing disk addresses.
+;
+DRV:		DB	0	; Drive to test
+TRK:		DW	0	; Current track
+SEC:		DW	0	; Current sector
+BUFFER:		DW	0	; Current memory address
+IOLEN:		DW	0	; Bytes last transferred
+;
+; The following variables define the area to be tested on
+;  the selected drive.
+;
+TRKF:		DW	0	; First track to test
+TRKL:		DW	0	; Last track to test
+SECF:		DW	0	; First sector to test
+SECL:		DW	0	; Last sector to test
+;
+; The following variables define the test mode
+;
+BYPASS:		DB	0	; 0=do not bypass error item.
+				; 1=bypass error itemization,
+				; ..print total errors per pass.
+SKEW:		DB	0	; 0=no sector skew
+				; 1=use sector skew for speed
+LIST:		DB	0	; 0=print errors on terminal
+				; 1=print errors on list dev.
+LOCKIO:		DB	0	; 0=no lock
+				; 1=lock on read
+				; 2=lock on write
+RESTOR:		DB	0	; 0=do not restore original
+				; ..data, 1=restore original
+				; ..data on disk.
+LOCKPT:		DB	0	; 0=use variable test data
+				; ..pattern, 1=lock on user
+				; ..supplied data pattern.
+PATTRN:		DB	0	; Contains user supplied
+				; ..8 bit data pattern.
+PASSL:		DW	0	; Last pass to do on this test
+DIGITS:		DB	$DIG	; Max. number of digits to be
+				; ..accepted during hex. or dec.
+				; ..numeric input.
+XTRAN:		DW	SECTRB	; Address of sector XLATE table
+;
+; Disk test --- main control
+;
+DTST:				; Entry from CPM
+	LD	DE,DTSTA 	; Print program title
+	LD	C,9
+	CALL	CPM
+	LD	HL,(CPM+1)
+	LD	DE,BUFFEND
+	OR	A		; Make sure enough user
+	SBC	HL,DE		; ..memory to execute test
+	JR	NC,DTST01
+	LD	DE,DTSTS 	; Not enough memory
+	LD	C,9		; Print warning and exit
+	CALL	CPM
+	JP	WBOOT
+DTST01:				; Ckeck CPM version
+	LD	C,12
+	CALL	CPM
+	LD	A,L		; Make sure 2.x
+	AND	0F0H
+	CP	20H
+	JR	Z,DTST02
+	LD	DE,DTSTZ	; Not CPM 2.x, print
+	LD	C,9		; ..error message and quit
+	CALL	CPM
+	JP	WBOOT
+DTST02:				; Initialize variables
+	XOR	A
+	LD	(BYPASS),A
+	LD	(SKEW),A
+	LD	(LIST),A
+	LD	(LOCKIO),A
+	LD	(RESTOR),A
+	LD	(LOCKPT),A
+	LD	(PASS),A
+	LD	(PASS+1),A
+	LD	(ERRORS),A
+	LD	(ERRORS+1),A
+				; Now set up test configuration
+	LD	DE,DTSTB
+	CALL	GETYN		; Itemize errors?
+	CP	'y'
+	JR	Z,DTST03 	; Yes
+	LD	A,1		; No
+	LD	(BYPASS),A
+	JR	DTST04		; Skip query for output device
+				; ..since errors will not be listed
+DTST03:				; Audit errors on console
+	LD	DE,DTSTC 	; ..or line printer?
+	CALL	GETL
+	CP	'c'
+	JR	Z,DTST04 	; c=use console
+	CP	'p'
+	CALL	NZ,QUERY
+	JR	NZ,DTST03 	; No match, try again
+	LD	A,1		; p=use line printer
+	LD	(LIST),A
+DTST04:				; Lock on read or write?
+	LD	DE,DTSTD
+	CALL	GETL
+	CP	'n'		; n=no locks
+	JR	Z,DTST06
+	CP	'r'		; r=lock on read
+	JR	NZ,DTST05
+	LD	A,1
+	LD	(LOCKIO),A
+	JR	DTST12		; Bypass queries about restore
+				; ..mode and data pattern, since
+				; ..we are locked in read mode
+DTST05:
+	CP	'w'		; w=lock on write
+	CALL	NZ,QUERY
+	JR	NZ,DTST04 	; No match, try again
+	LD	A,2
+	LD	(LOCKIO),A
+	JR	DTST08		; Bypass restore question
+				; ..since we are locked in
+				; ..write mode
+DTST06:
+	LD	DE,DTSTE 	; Restore user data?
+	CALL	GETYN
+	CP	'y'		; y=restore
+	JR	NZ,DTST08
+	LD	A,1		; n=do not restore
+	LD	(RESTOR),A
+DTST08:
+	LD	DE,DTSTF 	; Lock on data pattern?
+	CALL	GETYN
+	CP	'n'
+	JR	Z,DTST12	; n=use variable pattern
+	LD	A,1		; y=lock on pattern
+	LD	(LOCKPT),A	; ..supplied by operator
+	LD	DE,DTSTG	; Accept data pattern
+	CALL	GETH		; ..from keyboard
+	LD	(PATTRN),A
+DTST12:
+	LD	DE,DTSTH	; Select drive to be tested
+	CALL	GETL
+	SUB	'a'		; Convert to logical number
+	CP	$DRVF		; Make sure its legal
+	CALL	C,QUERY
+	JR	C,DTST12	; Too small, try again
+	CP	$DRVL+1
+	CALL	NC,QUERY
+	JR	NC,DTST12	; Too large, try again
+	LD	(DRV),A		; Save drive assignment
+	ADD	A,'A'		; Also format for output
+	LD	(DTSTI1),A
+	LD	DE,DTSTI	; Confirm selected drive?
+	CALL	GETYN
+	CP	'n'
+	JR	Z,DTST12	; Not confirmed, try again
+	LD	HL,$TRKF	; Initialize track limits
+	LD	(TRKF),HL
+	LD	HL,$TRKL
+	LD	(TRKL),HL
+DTST15:
+	LD	DE,DTSTJ	; Test all tracks?
+	CALL	GETYN
+	CP	'y'		; y=use all of them
+	JR	Z,DTST20	; n=user wants to specify
+DTST17:
+	LD	DE,DTSTK	; Enter first track to test
+	CALL	GETN
+	LD	(TRKF),HL	; Save it
+	LD	DE,DTSTL	; Enter last track to test
+	CALL	GETN
+	LD	(TRKL),HL	; Save it
+	LD	DE,(TRKF)	; Make sure first
+	OR	A		; ..track<=last track
+	SBC	HL,DE
+	CALL	C,QUERY		; Wrong, start again
+	JR	C,DTST17
+DTST20:
+	LD	HL,$SECF	; Initialize sector limits
+	LD	(SECF),HL
+	LD	HL,$SECL
+	LD	(SECL),HL
+DTST22:
+	LD	DE,DTSTM	; Use all sectors of each track
+	CALL	GETYN
+	CP	'y'		; y=use all sectors
+	JR	Z,DTST26	; n=user wants to specify
+DTST24:
+	LD	DE,DTSTN	; Enter first sector to test
+	CALL	GETN
+	LD	(SECF),HL	; Save it
+	LD	DE,DTSTO	; Enter last sector to test
+	CALL	GETN
+	LD	(SECL),HL	; Save it
+	LD	DE,(SECF)	; Make sure first
+	OR	A		; ..sector<=last sector
+	SBC	HL,DE
+	CALL	C,QUERY
+	JR	C,DTST24	; Error, start again
+DTST26:				; All variables set up now --
+	LD	DE,DTSTP	; ..how many test passes
+	CALL	GETN		; ..should be made?
+	LD	(PASSL),HL	; Save # of passes
+	LD	DE,DTSTT	; Print advisory message
+	LD	C,9		; ..as test begins
+	CALL	CPM
+	LD	DE,DTSTU	; Remind user whether he is
+	LD	A,(RESTOR)	; ..using restore mode
+	OR	A
+	JR	Z,DTST32
+	LD	DE,DTSTV
+DTST32:
+	LD	C,9
+	CALL	CPM
+DTST40:				; Begin a pass
+	LD	HL,(TRKF)
+	LD	(TRK),HL	; Initialize current track
+DTST42:				; Process next track
+	LD	C,6		; Check for interruption
+	LD	E,0FFH
+	CALL	CPM		; ..from console
+	OR	A
+	JP	NZ,DTST94	; Break detected, quit
+	LD	A,(RESTOR)
+	OR	A		; Is this restore mode?
+	JR	Z,DTST45	; No jump
+	LD	HL,BUFF3	; Yes, save current disk
+	LD	DE,MERR1	; ..contents
+	CALL	RDBUF
+DTST45:
+	LD	A,(LOCKIO)
+	CP	1		; Is this lock on read?
+	JR	Z,DTST47	; Yes jump
+	LD	HL,BUFF1	; Set up test pattern
+	LD	DE,$BPT
+	CALL	BUFPAT
+	LD	HL,BUFF1	; Write test pattern
+	LD	DE,MERR2
+	CALL	WTBUF
+DTST47:
+	LD	A,(LOCKIO)
+	CP	2		; Is this lock on write?
+	JR	Z,DTST70	; Yes, jump
+	LD	HL,BUFF2	; Read back test pattern
+				; (or just read existing data
+				; ..if locked on read)
+	LD	DE,MERR3
+	CALL	RDBUF
+DTST50:
+	LD	A,(LOCKIO)
+	OR	A		; Is this lock on read or write
+	JR	NZ,DTST70	; Yes, jump
+				; No, compare test data
+	LD	HL,BUFF1	; ..written, to data read
+	LD	DE,BUFF2	; ..back from disk. If
+	LD	BC,MERR4	; ..difference found,
+	CALL	BUFCMP		; ..print error message
+DTST70:
+	LD	A,(RESTOR)
+	OR	A		; Using restore mode?
+	JR	Z,DTST80	; No, jump
+				; Yes, write back user's data
+	LD	HL,BUFF3
+	LD	DE,MERR6
+	CALL	WTBUF
+	LD	HL,BUFF1	; Verify that
+	LD	DE,MERR7	; ..it was rewritten OK
+	CALL	RDBUF
+	LD	HL,BUFF1
+	LD	DE,BUFF3
+	LD	BC,MERR5	; Check restored data
+	CALL	BUFCMP		; If difference found, print
+				; ..'data cannot be restored'
+DTST80:
+	LD	DE,(TRK)	; Advance current track
+	INC	DE
+	LD	(TRK),DE
+	LD	HL,(TRKL)
+	OR	A		; Done with all tracks?
+	SBC	HL,DE
+	JP	NC,DTST42	; No, process another
+DTST90:				; End of pass
+	LD	BC,(PASS)
+	INC	BC		; Count passes
+	LD	(PASS),BC
+	LD	HL,DTSTR1
+	CALL	CONV		; Convert pass #
+	LD	BC,(ERRORS)
+	LD	HL,DTSTR2
+	CALL	CONV		; Convert error count
+	LD	DE,DTSTR	; Print pass and errors
+	LD	C,9		; ..on console
+	CALL	CPM
+	LD	A,(LIST)	; Also using printer?
+	OR	A
+	JR	Z,DTST92	; No, jump
+				; Yes, also send pass and error
+				; ..count to printer
+	LD	HL,DTSTR
+	CALL	PERR9
+DTST92:				; Reset error count
+	XOR	A
+	LD	(ERRORS),A
+	LD	(ERRORS+1),A
+	LD	HL,(PASS)
+	LD	DE,(PASSL)
+	OR	A		; Are enough passes done?
+	SBC	HL,DE
+	JP	C,DTST40	; Not yet, loop done with all
+DTST94:				; ..passes
+	LD	DE,DTSTW	; Ask whether to exit
+	CALL	GETL		; ..or to continue test
+	CP	'c'		; c=continue
+	JP	Z,DTST
+	CP	'e'		; e=exit
+	JR	NZ,DTST94	; If no match, try again
+	LD	DE,DTSTX	; Print goodbye
+	LD	C,9
+	CALL	CPM		; ..and return control
+	JP	WBOOT		; ..to CP/M
+;
+; Routines to read and write up to one track
+;
+RDBUF:				; Read current track from
+				; ..secf to secl
+				; Call hl=buffer base addr
+				; ..   de=error msg addr
+	LD	(RDBUFA),DE	; Save message address
+	LD	(BUFFER),HL	; Save buffer address
+	LD	HL,0		; Initialize transfer byte
+	LD	(IOLEN),HL	; ..count
+	CALL	SELDSK		; Select disk
+	LD	HL,(SECF)
+	LD	(SEC),HL	; Initialize current sector
+RDBUF1:
+	CALL	SETIO		; Setup track, sector, memory
+	CALL	READ		; Now request transfer
+	OR	A		; Was I/O successful?
+	JR	Z,RDBUF2	; No error, jump
+	LD	DE,(RDBUFA)
+	CALL	PERR		; I/O error, audit it
+RDBUF2:
+	CALL	RWADV		; Advance sector address
+	JR	NC,RDBUF1	; Not done, read another
+	RET			; Back to caller
+;
+RDBUFA:	DW	0		; Address of error message
+;
+WTBUF:				; Write current track
+				; ..from secf to secl
+				; Call de=error msg addr
+				; ..   hl=buffer base addr
+	LD	(WTBUFA),DE	; Save message address
+	LD	(BUFFER),HL	; Save memory addr
+	LD	HL,0		; Initialize transfer
+	LD	(IOLEN),HL	; ..byte count
+	CALL	SELDSK		; Select disk drive
+	LD	HL,(SECF)
+	LD	(SEC),HL	; Initialize current sector
+WTBUF1:
+	CALL	SETIO		; Set track, sector, memory
+	CALL	WRITE		; Request disk write
+	OR	A		; Any I/O errors?
+	JR	Z,WTBUF2	; No, jump
+	LD	DE,(WTBUFA)
+	CALL	PERR		; Error, audit it
+WTBUF2:
+	CALL	RWADV		; Advance sector address
+	JR	NC,WTBUF1	; Not done, write another
+	RET			; Back to caller
+;
+WTBUFA	EQU	RDBUFA		; Save address of error msg
+;
+RWADV:				; Advance sector and memory addr
+	LD	DE,$BPS		; de<--bytes per sector
+	LD	HL,(BUFFER)
+	ADD	HL,DE		; Update buffer address
+	LD	(BUFFER),HL
+	LD	HL,(IOLEN)
+	ADD	HL,DE		; Count bytes transferred
+	LD	(IOLEN),HL
+	LD	DE,(SEC)	; Advance current sector
+	INC	DE
+	LD	(SEC),DE
+	LD	HL,(SECL)
+	OR	A		; Done with all sectors?
+	SBC	HL,DE		; Exit with carry set if done
+	RET
+;
+; Set up buffer with test pattern
+;
+BUFPAT:				; Call hl=buffer base address
+				; ..   de=byte length to set up
+	LD	A,(LOCKPT)
+	OR	A		; Are we locked on user specified
+				; ..data pattern?
+	JR	NZ,BUFPA2	; Yes, jump
+BUFPA1:
+	LD	A,R		; Read refresh register
+	XOR	H
+	ADD	A,L		; Make data a function of memory
+				; ..address
+	LD	(HL),A		; ..and store it
+	INC	HL		; Advance buffer address
+	DEC	DE		; Count bytes stored
+	LD	A,D		; Done yet?
+	OR	E
+	JR	NZ,BUFPA1	; No, loop
+	RET
+BUFPA2:
+	LD	A,(PATTRN)	; User specified parrern
+	LD	(HL),A		; Store one byte
+	INC	HL		; Advance buffer pointer
+	DEC	DE		; Count bytes stored
+	LD	A,D		; Done yet?
+	OR	E
+	JR	NZ,BUFPA2	; Not done, loop
+	RET			; Exit
+;
+;Compare specified buffer and print error message if difference found
+;
+BUFCMP:				; Call bc=error msg addr
+				; ..   de=1st buffer addr
+				; ..   hl=2nd buffer addr
+	LD	(BUFCMA),BC	; Save message addr
+	LD	(BUFCMB),HL	; Save base of buffer
+	LD	BC,(IOLEN)	; Length to compare
+BUFCM1:
+	LD	A,(DE)		; Fetch byte from 1st buffer
+	CP	(HL)		; Compare it to 2nd buffer
+	JR	NZ,BUFCM3	; Difference found, jump
+BUFCM2:
+	INC	HL		; Advance buffer addresses
+	INC	DE
+	DEC	BC		; Count bytes
+	LD	A,B		; Done yet?
+	OR	C
+	JR	NZ,BUFCM1	; No, loop
+	RET			; Back to caller
+BUFCM3:				; Difference found, print
+				; ..error audit trail
+	PUSH	BC		; First save registers
+	PUSH	DE
+	PUSH	HL
+	LD	DE,(BUFCMB)
+	OR	A
+	SBC	HL,DE		; Find a buffer offset
+	PUSH	HL		; Now divide by bytes per
+	POP	BC		; ..sector to find relative
+	LD	DE,$BPS		; ..sector number
+	CALL	DIV
+	LD	HL,(SECF)
+	ADD	HL,BC		; Add relative sector to first
+				; ..sector to find actual
+				; ..address for use by PERR
+	LD	(SEC),HL
+	LD	DE,(BUFCMA)
+	CALL	PERR		; Now audit error
+	POP	HL		; Restore registers
+	POP	DE
+	POP	BC
+BUFCM4:				; Advance memory address out of
+				; ..this sector where an error
+				; ..was found
+	INC	HL		; Bump buffer addresses
+	INC	DE
+	DEC	BC		; Done with all data area?
+	LD	A,B
+	OR	C
+	RET	Z		; Yes, exit compare routine
+	LD	A,L		; Check if on new sector
+	AND	$BPS-1		; ..boundary
+	JR	Z,BUFCM1	; Found it, go compare more data
+	JR	BUFCM4		; Keep adv until sector boundary
+;
+BUFCMA:	DW	0		; Address of error message
+BUFCMB:	DW	0		; Base buffer addresses
+;
+; Error printing routine, prints pass, drive, track, sector
+;  and message specified by caller on the console device.
+;
+PERR:				; Call de=error message address
+	LD	A,(BYPASS)
+	OR	A		; Is error itemization bypass set
+	JR	NZ,PERR2	; Yes, skip printing and go count
+	LD	(PERRA),DE	; Save message address
+	LD	BC,(PASS)
+	INC	BC
+	LD	HL,PERRC	; Convert current pass
+	CALL	CONV
+	LD	A,(DRV)		; Form drive name
+	ADD	A,'A'
+	LD	(PERRD),A
+	LD	BC,(TRK)	; Convert current track
+	LD	HL,PERRE
+	CALL	CONV
+	LD	BC,(SEC)	; Convert current sector
+	LD	A,(SKEW)	; Is skew in effect?
+	OR	A
+	JR	Z,PERR0		; No
+	CALL	SECTRAN		; Yes, translate sector
+PERR0:
+	LD	HL,PERRF
+	CALL	CONV
+	LD	A,(LIST)	; Should output be on
+	OR	A		; ..console or printer?
+	JR	NZ,PERR3	; Jump, use printer, fall thru
+	LD	HL,(ERRORS)	; ..use console
+	LD	A,H		; Is this the first error?
+	OR	L
+	JR	NZ,PERR1	; No, jump
+	LD	DE,DTSTQ	; Print title for errors
+	LD	C,9
+	CALL	CPM
+PERR1:
+	LD	DE,PERRB	; Print disk address
+	LD	C,9
+	CALL	CPM
+	LD	DE,(PERRA)	; Print error type
+	LD	C,9
+	CALL	CPM
+PERR2:
+	LD	HL,(ERRORS)	; Count errors
+	INC	HL
+	LD	(ERRORS),HL
+	RET			; Back to caller
+PERR3:				; Errors to printer
+	LD	HL,(ERRORS)
+	LD	A,H		; Is this 1st error to be
+	OR	L		; ..printed this pass?
+	JR	NZ,PERR4	; No, jump
+	LD	HL,DTSTQ	; Yes, print title
+	CALL	PERR9
+PERR4:
+	LD	HL,PERRB	; Print disk address
+	CALL	PERR9
+	LD	HL,(PERRA)
+	CALL	PERR9		; Print error type
+	JR	PERR2		; Go count errors
+PERR9:				; Send a string terminated by
+				; ..'$' to list device
+	LD	A,(HL)		; Fetch next character
+	CP	'$'		; Is it terminator?
+	RET	Z		; Yes, exit
+	PUSH	HL		; Save string address
+	LD	E,A		; Send this character
+	LD	C,5
+	CALL	CPM
+	POP	HL		; Restore string address
+	INC	HL		; ..and increment it
+	JR	PERR9		; Check next character
+;
+PERRA:	DW	0		; Addrs of msg describing error
+PERRB:	DB	CR,LF
+PERRC:	DB	'nnnn    '	; Pass #
+PERRD:	DB	'n     '	; Drive
+PERRE:	DB	'nnnn   '	; Track
+PERRF:	DB	'nnnn   $'	; Sector
+;
+; Disk interface to CP/M BIOS
+;
+SELDSK:
+	LD	A,(DRV)		; Select disk drive
+	LD	C,A
+	LD	DE,24
+JPBIOS:				; This routine links to the
+	LD	HL,(WBOOT+1)	; ..desired routine through
+	ADD	HL,DE		; ..the standard CP/M
+	JP	(HL)		; ..BIOS jump table
+SETTRK:
+	LD	BC,(TRK)	; Select track
+	LD	DE,27
+	JR	JPBIOS
+SETSEC:
+	LD	BC,(SEC)	; Select sector
+	LD	DE,30
+	LD	A,(SKEW)	; Use sector skew?
+	OR	A
+	JR	Z,JPBIOS	; No
+	CALL	SECTRAN		; Translate sector addr
+	JR	JPBIOS
+SETDMA:
+	LD	BC,(BUFFER)	; Set memory addr
+	LD	DE,33
+	JR	JPBIOS
+SETIO:
+	CALL	SETTRK		; Set up track, sector,
+	CALL	SETSEC		; ..and memory address
+	CALL	SETDMA		; ..for subsequent read
+	RET			; ..or write
+READ:
+	LD	DE,36		; Read one disk sector
+	JR	JPBIOS
+WRITE:
+	LD	DE,39		; Write one disk sector
+	JR	JPBIOS
+SECTRAN:			; Translate logical to physical
+				; Call bc=logical sector
+				; ..   hl=physical sector
+	PUSH	HL
+	LD	HL,SECTRB-1
+	ADD	HL,BC
+	LD	C,(HL)
+	POP	HL
+	RET
+;
+SECTRB:		DB	1,7,13,19,25	; Table built
+		DB	5,11,17,23	; ..with skew
+		DB	3,9,15,21	; ..factor = 6
+		DB	2,8,14,20,26	; 128 byte sector
+		DB	6,12,18,24
+		DB	4,10,16,22
+;
+; Messages for test initialization and error printing
+;
+DTSTA:		DB	CR,LF,LF
+		DB	'Z-80 Floppy Disk '
+		DB	'Test version '
+		DB	$VER+'0','.'
+		DB	$REV+'0',CR,LF
+		DB	'(c) 1980 Laboratory '
+		DB	'Microsystems',CR,LF,'$'
+DTSTB:		DB	CR,LF,'Itemize '
+		DB	'errors?    $'
+DTSTC:		DB	CR,LF,'Use '
+		DB	'console or printer'
+		DB	'? (C/P) $'
+DTSTD:		DB	CR,LF,'Lock on read '
+		DB	'or write? (N/R/W) $'
+DTSTE:		DB	CR,LF,'Restore '
+		DB	'original data? $'
+DTSTF:		DB	CR,LF,'Lock on '
+		DB	'data pattern? $'
+DTSTG:		DB	CR,LF,'Enter data '
+		DB	'pattern, hex 00-FF$'
+DTSTH:		DB	CR,LF,'Drive '
+		DB	'to be tested '
+		DB	'(',$DRVF+'A','-'
+		DB	$DRVL+'A',') $'
+DTSTI:		DB	CR,LF,'Confirm: test drive '	
+DTSTI1:		DB	'X ? $'
+DTSTJ:		DB	CR,LF,'Test all '
+		DB	'tracks?    $'
+DTSTK:		DB	CR,LF,'First '
+		DB	'track to test      $'
+DTSTL:		DB	CR,LF,'Last '
+		DB	'track to test      $'
+DTSTM:		DB	CR,LF,'Test all '
+		DB	'sectors?    $'
+DTSTN:		DB	CR,LF,'First '
+		DB	'sector to test    $'
+DTSTO:		DB	CR,LF,'Last '
+		DB	'sector to test    $'
+DTSTP:		DB	CR,LF,'How many '
+		DB	'test passes?    $'
+DTSTQ:		DB	CR,LF,LF,'Pass  '
+		DB	'Drive  Track  '
+		DB	'Sector  Error-type'
+		DB	CR,LF,'$'
+DTSTR:		DB	CR,LF,LF,'Pass '
+DTSTR1:		DB	'nnnn complete, '
+DTSTR2:		DB	'nnnn errors.'
+		DB	CR,LF,'$'
+DTSTS:		DB	CR,LF,'Not enough '
+		DB	'memory to execute.'
+		DB	CR,LF,'$'
+DTSTT:		DB	CR,LF,LF,'Beginning '
+		DB	'disk test - push '
+		DB	'any key to abort '
+		DB	'program. ',CR,LF,'$'
+DTSTU:		DB	'WARNING: user data '
+		DB	'will not be '
+		DB	'restored. ',CR,LF,'$'
+DTSTV:		DB	'User data will be '
+		DB	'restored. ',CR,LF,'$'
+DTSTW:		DB	CR,LF,'Continue or '
+		DB	'exit test? (C/E)$'
+DTSTX:		DB	CR,LF,LF
+		DB	'Goodbye. ',CR,LF,'$'
+DTSTY:		DB	CR,LF,'Use sector '
+		DB	'skew?  $'
+DTSTZ:		DB	CR,LF,'Need CP/M 2.x '
+		DB	'to execute. ',CR,LF,'$'
+MERR1:		DB	'read error - original data$'
+MERR2:		DB	'write error - test pattern$'
+MERR3:		DB	'read error - test pattern$'
+MERR4:		DB	'compare error - test pattern$'
+MERR5:		DB	'original data cannot '
+		DB	'be restored$'
+MERR6:		DB	'write error - restore phase$'
+MERR7:		DB	'read error - restore phase$'
+;
+; Utility and console input routines
+;
+GETYN:				; Get y or n response from operator
+				; Call de= address of cue
+				; ..    a=y or n
+	PUSH	DE		; Save cue address
+	LD	C,9		; Print cue message
+	CALL	CPM
+	LD	DE,GETYNA	; Print possible answers
+	LD	C,9
+	CALL	CPM
+	CALL	GETCHAR		; Get a character from console
+	OR	20H		; Fold to lowercase
+	POP	DE		; Restore cue address
+				; ..in case needed again
+	CP	'y'		; Make sure response is OK
+	RET	Z		; Exit if y
+	CP	'n'
+	RET	Z		; Exit if n
+	PUSH	DE
+	CALL	QUERY		; Print '?' if not
+	POP	DE		; ..y or n, try again
+	JR	GETYN
+;
+GETYNA:	DB	'(Y/N) ',TAB,'> $'
+;
+GETL:				; Get any response from operator
+				; Call de=cue address
+				; ..    a=ASCII character
+	LD	C,9		; Print cue message
+	CALL	CPM
+	LD	DE,GETLA	; Tab and print
+	LD	C,9		; ..cue mark
+	CALL	CPM
+	CALL	GETCHAR		; Read console
+	OR	20H		; Fold lowercase
+	RET
+;
+GETLA:	DB	TAB,'> $'
+;
+GETN:				; Get a decimal # from the console
+				; Call de=cue address
+				; ..return hl=number
+	PUSH	DE		; Save cue message address
+	LD	C,9
+	CALL	CPM		; Print cue message
+	LD	DE,GETNA	; Print tab and cue mark
+	LD	C,9
+	CALL	CPM
+	LD	HL,0		; Initialize forming answer
+	LD	A,(DIGITS)
+	LD	B,A		; Total chars allowed to be input
+GETN1:
+	PUSH	HL		; Save answer
+	PUSH	BC		; Save char count
+	CALL	GETCHAR		; Read console
+	POP	BC		; Restore char count
+	POP	HL		; Restore forming answer
+	CP	CR		; Is this return?
+	JR	Z,GETN9		; Yes, exit with answer
+	CP	'0'		; Is this legal char.?
+	JR	C,GETN3		; No, jump
+	CP	'9'+1		; Is this legal char.?
+	JR	NC,GETN3	; No, jump
+	AND	0FH		; Isolate bottom 4 bits
+	PUSH	HL		; Previous data * 10
+	POP	DE
+	ADD	HL,HL		; *2
+	ADD	HL,HL		; *4
+	ADD	HL,DE		; *5
+	ADD	HL,HL		; *10
+	LD	E,A		; Now add in this digit
+	LD	D,0
+	ADD	HL,DE
+	DJNZ	GETN1		; Count characters accepted
+	JR	GETN9		; Enough accepted, exit
+GETN3:				; Illegal character detected
+	CALL	QUERY		; Print '?' and
+	POP	DE		; ..restart input
+	JR	GETN
+GETN9:				; Input complete, clean
+	POP	DE		; ..stack and exit with
+	RET			; ..answer in (hl)
+;
+GETNA:	DB	TAB,'> $'
+GETNB:	DB	'?$'
+;
+GETH:				; Get $dig hex digits from kbd
+				; Call de=cue address
+				; Return a=lower 8 bits of #
+				; ..    hl=entire 16 bit #
+	PUSH	DE		; Save cue address
+	LD	C,9
+	CALL	CPM		; Print cue message
+	LD	DE,GETHA	; Print tab and cue mark
+	LD	C,9
+	CALL	CPM
+	LD	HL,0		; Initialize forming answer
+	LD	A,(DIGITS)
+	LD	B,A		; Max digits to accept
+GETH1:
+	PUSH	BC		; Save registers
+	PUSH	HL
+	CALL	GETCHAR		; Read console
+	POP	HL
+	POP	BC		; Restore registers
+	CP	CR		; If <CR> exit
+	JR	Z,GETH25
+	CP	'0'		; Make sure its legal
+	JR	C,GETH3		; No, jump
+	CP	'9'+1		; If alpha fold to
+	JR	C,GETH15	; ..lowercase
+	OR	20H
+GETH15:
+	CP	'f'+1		; Make sure its legal
+	JR	NC,GETH3	; No, jump
+	CP	'a'		; Check if alpha
+	JR	C,GETH2		; Jump if 0-9
+	ADD	A,9		; Add correction
+GETH2:
+	AND	0FH
+	ADD	HL,HL		; Previous data *16
+	ADD	HL,HL		; (Left shift 4 bits)
+	ADD	HL,HL
+	ADD	HL,HL
+	ADD	A,L		; Add this char to it
+	LD	L,A		; ..forming result
+	DJNZ	GETH1		; Keep reading console
+GETH25:
+	POP	DE		; Clean up stack
+	LD	A,L		; Put lower 8 bits of answer
+				; ..in 'A'. (incase exit by <CR>)
+	RET
+GETH3:
+	CALL	QUERY		; Print '?'
+	POP	DE		; ..then restart input
+	JR	GETH
+;
+GETHA:	DB	TAB,'> $'
+;
+QUERY:
+	PUSH	AF		; Save flags
+	LD	C,9		; Print '?'
+	LD	DE,QUERYA
+	CALL	CPM
+	POP	AF		; Restore flags
+	RET
+;
+QUERYA:	DB	' ?$'
+;
+GETCHAR:			; Get 1 char from console via
+				; ..raw input mode. Do not echo
+				; ..<CR>
+	LD	E,0FFH		
+	LD	C,6
+	CALL	CPM		; Read console
+	OR	A		; Anything there?
+	JR	Z,GETCHAR	; No, try again
+	CP	CR		; Is it <CR>?
+	RET	Z		; Yes
+	PUSH	AF		; No, echo it
+	LD	E,A
+	LD	C,6
+	CALL	CPM
+	POP	AF		; Restore 'A' and exit
+	RET
+CONV:				; Convert binary to decimal ASCII
+				; Call bc=binary, in range 0000-9999
+				; ..   hl=first byte addr to store
+	LD	DE,1000
+	CALL	DIV
+	CALL	CONV9		; Thousands digit
+	LD	DE,100
+	CALL	DIV
+	CALL	CONV9		; Hundreds digit
+	LD	DE,10
+	CALL	DIV
+	CALL	CONV9		; Tens digit
+	CALL	CONV9		; Units
+	RET			; Back to caller
+CONV9:
+	LD	A,C		; Turn quotient into
+	ADD	A,'0'		; ..ASCII char and
+	LD	(HL),A		; ..store it
+	INC	HL		; Bump output pointer
+	PUSH	DE		; bc<--remainder
+	POP	BC
+	RET
+DIV:				; Single precision divide
+				; Call bc=numerator
+				; ..   de=divisor
+				; Return bc=quotient
+				; ..     de=remainder
+	PUSH	HL
+	LD	HL,0
+	OR	A
+	SBC	HL,DE
+	EX	DE,HL
+	LD	HL,0
+	LD	A,17
+DIV0:
+	PUSH	HL
+	ADD	HL,DE
+	JR	NC,DIV1
+	EX	(SP),HL
+DIV1:
+	POP	HL
+	PUSH	AF
+	RL	C
+	RL	B
+	RL	L
+	RL	H
+	POP	AF
+	DEC	A
+	JR	NZ,DIV0
+	OR	A
+	RR	H
+	RR	L
+	EX	DE,HL
+	POP	HL
+	RET
+;
+BUFF1		EQU	1000H		; Disk buffers
+BUFF2		EQU	$BPT*2+BUFF1
+BUFF3		EQU	$BPT*2+BUFF2
+BUFFEND		EQU	$BPT*2+BUFF3
+;
+		END	100H
+

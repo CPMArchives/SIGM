@@ -1,0 +1,98 @@
+El Paso TX   -   10/26/83
+
+Now, how did Digital Research ever get the idea of using "the number of
+days since 01/01/78" for their MP/M and CP/M plus system date format?
+Surely, they must have had a reason and the prime consideration, I assume,
+was space. Space is what is at a prime in disk directories, so they
+decided to make the date as small as possible.
+
+It just so happens you can get 179 years into 16 bits. That plus the fact
+that microprocessors, CP/M and 8- and 16-bit stuff will probably not be
+with us anymore in 20-30 years, assures that the format doesn't get
+obsolete.
+
+Unfortunately, the format brings with it the agony of conversions.
+Enter myself. Now, you have someone to thank (or curse) for taking the
+conversion work off your fingers. I have written two routines which I
+call DATE and UNDATE. They can be assembled and linked into any program
+using RMAC/LINK or M80/L80 and provide conversion functions for you.
+I decided to keep it simple and not provide Microsoft FORTRAN etc.
+compatibility, but rather gear it towards the assembly language
+programmer. Since most existing clock routines already are written to
+provide ASCII output, and since the UNDATE function will probably
+quite often be used to convert keyboard input data, no provision was
+made to convert a binary or packed BCD date.
+
+This is a description of the two routines, their actions and parameters:
+
+DATE
+====
+
+The DATE routine is to be called at it's entry point, @DCVRT, with
+the date to be converted in HL in Digital Research format. The DATE
+routine expects a global symbol, @DCFLD, to be the pointer to the first
+byte of an ASCII date field. On exit, that date field will be filled
+with the date corresponding to the input value in ASCII. A typical
+field, which is usually declared in the main module would look like this:
+
+@DCFLD:	DB	'  /  /  $'
+
+The field can be totally empty, or hold a previous date. No error checking
+is done and only bytes 0,1,3,4,6, and 7 are written. If delimiters are
+needed, they should be in place like above. If the field is terminated
+by a dollar sign, it can be printed under CP/M with:
+LXI D,@DCFLD ! MVI C,9 ! CALL 5
+
+
+UNDATE
+======
+
+The UNDATE routine is to be called at it's entry point, @UDCVT. The
+contents of the registers are irrelevant. A date field structure
+exactly as described for the DATE routine above should be present
+and declared with global symbol @DCFLD as it's first byte. UNDATE
+will convert the ASCII date, which must be stored in MM/DD/YY format,
+to Digital Research format and return the resulting 16-bit value in HL.
+NOTE: The date is checked for the following format errors:
+
+	Year 77 or earlier
+	Month over 20
+	Day over 40
+	Non-numeric ASCII character
+
+and the routine will abort with the CARRY flag set and all registers
+holding undefined values. If none of the above format errors are
+detected, CARRY will be RESET and HL will hold the result. Despite
+the rudimentary error checking, the CALLING PROGRAM is responsible
+for a valid date field!
+
+
+NOTES:
+======
+
+	Both routines can probably be improved a bit, especially the DATE
+	routine is a bit slow.
+
+	YOU, the writer of the main module using these routines, are
+	responsible for properly initializing the date field.
+
+	I chose to use simple names, such as DATE and UNDATE to identify
+	the source modules. In order to avoid possible symbol conflicts,
+	I decided to be a lot more cryptic with the name selection for
+	the entry points and the parameter.
+	Again, the entry point for DATE is @DCVRT, and the entry point
+	for UNDATE is @UDCVT, while the ASCII date field is @DCFLD.
+
+	You might, if you intend to do a lot of programming, put these
+	routines into some form of library, possible append them to
+	the SYSLIB library (If Rick Conn doesn't mind...)
+
+Have fun converting dates!
+
+
+P.S.	These routines work. I write a small program which started at day
+	1 and counted up, displaying the date first in DRI format, then in
+	ASCII, and then converted the ASCII back to DRI format, and in all
+	cases it translated correctly up to 12/31/99. Hardest part was
+	convincing the DATE routine that there is no MM/00/YY...
+riter 

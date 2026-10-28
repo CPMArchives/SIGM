@@ -1,0 +1,151 @@
+
+             SET UP ROUTINE FOR THE CP/M MODEM PROGRAM
+                     Version 7.97   12/26/82
+
+
+12/26/82  Updated to v7.97		      - Bruce Ratoff
+12/20/82  Updated to v7.96                    - Paul Kelley
+12/12/82  Updated to v7.95                    - Irv Hoff
+11/30/82  Updated to v7.94                    - Paul Kelley
+
+
+This information is given for those who do not wish to re-assemble
+the modem program for their system because they do not have the source
+code, or find this method simpler.  Use 'DDT' or 'SID' or 'DUUP' to
+make the following changes for your computer.  If using 'DDT' or 'SID'
+do this when finished:
+
+                     A>SAVE 64 MODEM797.COM
+
+Experienced assembly language programmers should note that there is more
+flexiblity if MCNFG797.HEX is used to overlay MODEM797.COM. MCNFG797.ASM
+allows you to set the parameters discussed below. It also provides a
+permanent source file for your modem initialization routines as well as
+allowing you to change the values of the local characters, improve the
+display output, add a routine for changing modem parameters, and define a
+logon sequence for use with remote systems. Users should also be aware of
+a similar overlay file, MCOSB797.ASM, set up for the Osborne-1 as an
+example of memory mapped I/O.
+
+
+0103  FF     <--- FF if PMMI modem, else 00.
+
+0104  00     <--- Don't change.
+
+0105  00     <--- Don't change.
+
+0106  04     <--- Clock speed in MHz, 08 maximum
+
+0107  00     <--- 00 if you want files that exist to be deleted if
+                        a file of the same name is sent in multi-file
+                        transfer.  FF if you want the existing file
+                        to be changed to "BAK".
+
+                        Note: In CP/M 2.x, existing R/O or SYS files
+                              are changed to "BAK" whether this byte
+                              is set or not.
+
+0108  00     <--- 00 for default to CRC, FF for default to checksum
+
+0109  FF     <--- FF allows toggling of Checksum to CRC
+
+010A  00     <--- 00 leave backspace normal, FF convert to rubout
+  
+010B  FF     <--- FF allows toggling of backspace to rubout
+
+010C  00     <--- 00 send CR-only, FF send CR-LF both  (00 normal)
+
+010D  FF     <--- FF allows toggling of line feed after carriage return
+
+010E  00     <--- 00 don't change
+
+010F  FF     <--- FF to prevent overwriting CCP, 00 if ok to overwrite
+
+0110  00     <--- 00 not local command if control-^ precedes
+
+0111  FF     <--- FF allows toggling of local command on next char
+
+0112  FF     <--- FF allows toggling of printer on/off
+
+0113  00     <--- FF for XOFF testing in terminal mode text file output
+
+0114  00     <--- FF for wait for XON after CR in terminal mode output,
+		    useful for certain timesharing systems
+
+0115  FF     <--- FF allows toggling of XOFF/XON testing
+
+0116  01     <--- Sets the default speed for showing time to send a
+                    file in "S" command.  Select the one you normally
+                    use "most of the time" as you can easily change it
+                    temporarily using a menu command. Use one of these: 
+                    00=110, 01=300, 02=450, 03=600, 04=710, 05=1200
+		    06=2400, 07=4800, 08=9600
+
+0117  00     <--- 00 for no delay between characters.  In terminal mode
+                    there are times when a delay is nice, like sending
+                    a pretyped file to a bulletin board system.  Choices
+                    from 0-9.
+                    00=no delay, 01=.02 seconds -- 09=0.18 seconds, etc.
+
+0118  00     <--- 00 for no extra delay after CR.  Some bulletin board
+		    systems, etc. require an extra delay after each CR.
+		    Choices from 0-9.
+		    00=no delay, 01=.08 seconds -- 09=0.72 seconds, etc.
+
+0119  1E     <--- Bell repeat timing, 1E = about 1 second
+
+
+      (area from 011A through 0120 does not need to be changed)
+
+
+0121  7D     <--- 7D for 20 PPS, FA for 10 PPS (PMMI board)
+
+0122  00 00  <--- Put cold reboot address here if you        (PMMI only)
+                    have one, set now to warm reboot
+                    Put "LSP" part first, then "MSP".
+
+
+      (the following addresses skip bytes not necessary to change)
+
+
+0128  C0    <--- Your modem control port (port C0H shown here).
+
+012B  C1    <--- Your modem data port "OUT" (port C1H shown here).
+
+012E  C1    <--- Your modem data port "IN" (port C1H shown here).
+
+0131  01    <--- Your modem status bit for "transmit ready".
+
+0134  01    <--- Your modem status bit level when ready to send.
+
+0137  02    <--- Your modem status bit for "receive ready".
+
+013A  02    <--- Your modem status bit for "receive ready".
+
+013D  C2    <--- Your modem Baud rate port "IN"              (PMMI only)
+
+0140  C2    <--- Your modem Baud rate port "OUT"             (PMMI only)
+
+0143  C3    <--- Your modem control port #2                  (PMMI only)
+
+0146  C0    <--- Your modem control port "OUT"               (PMMI only)
+
+                 
+=  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =
+
+
+014D  C3 D9 01   "JMP  01D9"  Many CP/M systems initialize the modem
+			port via CONFIG.COM, etc.  If you wish to
+      NON-PMMI 		initialize the ports yourself, use the address
+			shown here (01D9H) for your routine.  End it
+			with a C9 (RET). You have space up to 0617H.
+
+=  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =
+
+
+When finished with the changes, exit 'DDT' via CTL-C then save as shown
+at the start of this file.
+
+
+                                              By Irv Hoff 
+

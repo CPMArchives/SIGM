@@ -1,0 +1,418 @@
+TUTORIAL (headings are approximate):
+copyright (C) 1983 by E. E. Bergmann
+General, the prompt and stack.
+Using memory, constants and variables.
+Simple i/o, defining new words.
+Iteration and conditional.
+Numerical i/o.
+Redefining and FORGET.
+The editor.
+::
+:::
+*********************************************************
+*							*
+* PISTOL-Portably Implemented Stack Oriented Language	*
+*			Version 2.0			*
+* (C) 1983 by	Ernest E. Bergmann			*
+*		Physics, Building #16			*
+*		Lehigh Univerisity			*
+*		Bethlehem, Pa. 18015			*
+*							*
+* Permission is hereby granted for all reproduction and *
+* distribution of this material provided this notice is *
+* included.						*
+*							*
+*********************************************************
+::
+:::
+[A carriage return will continue the scroll;
+a "Q" and then a carriage return will abort]
+	Before discussing some examples and features, it is
+probably best to understand the "prompt".  The prompt is what a
+program types at the beginning of the line when it is awaiting
+input from the user.  The prompt supplied by PISTOL can be
+several characters long and it is to inform or remind the user
+about the "state" of the program.  If a number appears at the
+beginning of the prompt, it signifies that the parameter stack
+is not empty.  Next, a letter is displayed (such as "X") that
+indicates the current number base used for i/o ("X", the Roman
+numeral for "10", signifies decimal). After this letter there
+may be other characters or symbols that are used to indicate if
+you are in the middle of some syntactical construction.
+Finally, the ">" completes the prompt expression.  In the
+examples supplied above and below we have attempted to suggest
+the typical prompts that one might expect to see.
+
+	After educating PISTOL by loading PBASE2 or by
+restoring CORE2, the system is "smarter" you can try the
+following examples:
+
+X> 1 2 23 STACK
+
+The system takes each number as encountered and places them on
+the stack.  The word, STACK , prints the current contents of
+the stack without changing the stack in any way.
+
+	Now try typing:
+3X> + STACK
+
+This should result in the addition of the top two members of
+the stack (2 and 23) and placing the result (answer 25) back on
+the stack. The word STACK then displays the current contents of
+the stack.
+
+	Now try typing:
+2X> * stack
+
+The top two items of the stack will be multiplied together and
+the result left on the stack.  The word, "stack" is interpreted
+as STACK, and we see that the only thing on the stack is the
+answer 25.
+
+	To disable the automatic interpretation of lowercase
+as uppercase, type:
+
+X> RAISE OFF (or "raise off")
+
+and successive lines will be interpreted without conversion of
+lowercase to uppercase.  To revert to conversion, type:
+
+X> RAISE ON
+
+	There are a number of different options that can be
+invoked such as ECHO ON and ECHO OFF which control the listing
+of files read in by the '<filename> LOAD operation.  One can
+use CONSOLE ON and CONSOLE OFF to determine what reaches the
+terminal.  An error condion will automatically restore output
+to the terminal.  LIST ON and LIST OFF will determine what
+output will also be routed to the output list file(of course a
+listfile has to be declared first).  This is useful to have a
+more permanent record of what happened during a session.  There
+is also a SHOWCODE and a NOSHOWCODE which will show the results
+of compiling each input line (that is for those who want or
+like to know what is going on behind the scenes).
+
+	On the DEC-20 (and also in CP/M) one can exit from
+PISTOL by using a control-C, but a more "refined" way is to
+type the word, BYE, which will return you to the operating
+system.
+::
+:::
+	PISTOL can examine the contents of its own (virtual)
+memory. The W@ ("fetch") operator is similar in spirit to
+the PEEK function in BASIC.  To place the contents of a
+memory location on the stack one simply places the address
+on stack and then types W@ .  For example, if we want to
+place on the stack the current value of RADIX, the base used
+in all I/O number conversion, we need to find the value
+stored in the RAM location at USER (i.e. what is RAM[USER]?)
+we can type:
+
+X> USER W@
+
+which will place the desired information on stack.  The inverse
+operation, which is more dangerous(because a mistake can crash
+the program), is to store a new value in the RADIX, hence
+change the number base.  The operator, W! ("word store"),
+performs this function(for this example we suppose that the
+RADIX address is 12345 decimal, usually, it is not):
+
+X> 16 12345 W!
+
+would convert PISTOL to converse in hexadecimal.
+
+	Of course it is awkward to remember constants, such
+as the address of RADIX so we can define such constants by:
+
+ > DECIMAL
+X> 12345 'RADIX CONSTANT
+
+After such a CONSTANT definition we can redo the examples that
+use W@ and W! by (RADIX is in fact already defined in PBASE2):
+
+X> RADIX W@
+and
+X> 16 RADIX W!
+
+	As an additional convenience the user can define space
+for variables with the word, VARIABLE.  For example, If you
+wish to define a variable with the initial value 0 and named
+ANSWER, you should type:
+
+X> 0 'ANSWER VARIABLE
+
+Later, if you wish to perform the PASCAL statement:
+
+ANSWER := ANSWER + 1;
+
+you would write the PISTOL code:
+
+X> ANSWER W@ 1 + ANSWER W!
+
+Notice that you MUST choose an initial value in VARIABLE and,
+of course, CONSTANT definitions.
+
+	Just like the convenience feature of PASCAL,
+for which one can use SUCC(ANSWER) to increment ANSWER
+by one, there exists an analogous operator (or you can
+define your own!):
+
+X> ANSWER 1+W!
+
+::
+:::
+	The language has many resources beyond those
+presented so far.  Perhaps the most significant is the
+ability to define new words or definitions to make the
+language increasingly smarter. Try examining the contents of
+the file, PBASE2 , to see how the definitions may be formed.
+As a complex example, the word, = is defined whose function
+is to take the top item off of the stack and print its
+value.  For example, typing:
+
+X> 8 8 + =
+
+will cause the system to respond with the answer: 16.  Note
+that this calculation causes no net change to the stack (it
+is the presence of a number before "X>" that indicates the
+number of items in the stack at that moment); its contents
+before the first "8" was typed is the same as its contents
+after the system responds with 16.  Thus the definition of
+the word = has increased the convenience of the system for
+arithmetic calculations.
+
+	The system can and does handle strings.  Suppose you
+would like the system to output "HELLO".  Try typing:
+
+X> 'HELLO MSG
+
+The system will take the 'HELLO as a string to be placed upon
+the stack.  The MSG ,"message" takes the top item off of the
+stack, assumes it to be a string, and prints it.  The stack
+contains the same stuff after MSG is executed as before the
+'HELLO was typed.
+
+	Useful I/O words are CR which will output a carriage
+return and line feed sequence.  The word SPACE will output a
+space. And the word SPACES will pop the top of stack to obtain
+the number of spaces to be output.  For example:
+
+X> 'HELLO MSG SPACE 'HELLO MSG CR 5 SPACES 'BYE MSG
+
+should produce:
+
+HELLO HELLO
+     BYE
+
+
+	Standard output would be most tedious if we could not
+create definitions to speed up programming.  Here is a humorous
+example:
+
+X> 'HELLO : 'HELLO, MSG SPACE 'YOURSELF! CR ;
+
+The use of : and ; provide the means to define a new word
+"HELLO" Later, you can type:
+
+X> HELLO
+
+and the system will respond:
+
+HELLO, YOURSELF!
+
+	Thus we see that the pair of symbols, ":" and ";"
+delineate a structure used to make definitions.  The material
+in between the two symbols becomes the definition of the word
+whose name is the string that was lastly placed on the stack
+before the ":".
+
+	One can create strings with embedded blanks and tabs up
+to 127 characters long by using double quotes to delineate both
+ends of the string.  For example, the word, HELLO, defined
+above, could have been defined:
+
+'HELLO : "HELLO, YOURSELF!" MSG CR ;
+
+Even with RAISE ON, lowercase characters within double
+quotation marks will not be converted.
+
+::
+:::
+	There are other types of structures.  The pair of
+words, DO and LOOP permit an iterative structure.  They use the
+top two quantities on the stack as limits of iteration.  So:
+
+X> nn n DO ... LOOP
+
+is equivalent to the PASCAL structure:
+
+	FOR  I := n TO (nn-1) DO
+		BEGIN ... END;
+
+To place the current value of the iteration variable on the
+stack one uses the word, "I" .  Here is an example that you can
+try:
+
+X> 'COUNTING : CR 1 + 1 DO I = SPACE LOOP ;
+
+X> 10 COUNTING
+and see PISTOL counting to 10.
+
+	An alternative terminating word to this structure is
++LOOP.  If one uses in PISTOL:
+
+	nn n DO ... m +LOOP
+one simulates the BASIC structure:
+
+100 FOR I=n TO (nn-1) STEP m
+.
+.
+.
+200 NEXT I
+
+	PISTOL supports a conditional structure of the form:
+
+	IF ... ELSE .... THEN
+
+When the IF is encountered the top of the stack is used as a
+boolean variable; it is considered false if equal to zero and
+true otherwise (as in LISP).  If true, the actions "..." that
+are bracketed between IF and ELSE are carried out; then program
+flow skips to what follows THEN.  Whereas, if the top of the
+stack was false, the actions "...." between ELSE and THEN are
+carried out instead. The "ELSE ...." portion is optional, in
+analogy to PASCAL.
+
+	To illustrate, here is an example:
+
+X> 'STATE? :
+X:> 'TURNED- MSG W@ IF 'ON ELSE 'OFF THEN
+1X:> MSG ;
+X>
+
+Trying this new word:
+
+X> CONSOLE STATE?
+we get the response:
+TURNED-ON
+
+whereas for:
+
+X> LIST STATE?
+TURNED-OFF
+
+	PISTOL supports a number of other structures which are
+analogous to the PASCAL structures:
+
+		WHILE .. DO ... ;
+
+			and
+
+		REPEAT ... UNTIL NOT .. ;
+
+They are, respectively:
+
+		BEGIN .. IF ... REPEAT
+
+			and
+
+		BEGIN ... .. END
+
+	As in most languages, structures may be nested.  In the
+interest of user convenience, the prompt will indicate whether
+execution is being deferred, pending completion of unfinished
+structures.
+::
+:::
+	PISTOL can communicate in a variety of different number
+bases, as was alluded to in the section on W@ and W! . Changing
+bases has been formalized by a set of defined words provided in
+PBASE2.  These words are: BINARY(B), OCTAL(Q), DECIMAL(X), and
+HEX(H); the parenthesized letter is the corresponding symbol
+that appears in the prompt.  Thus, in the examples described
+above, the number base was decimal.  Here are a few examples of
+the use of other number bases:
+
+X> HEX
+H> 8 8 + =
+10
+H> 11 BINARY =
+10001
+B> 2
+2 ?
+***PISTOL 2.0***
+
+B>
+	Whenever the system responds with ***PISTOL 2.0*** it
+has performed an ABORT which resets stacks and prints this
+identifying message.
+::
+:::
+	You may "redefine" words, that is to say, the same name
+may be used again and again.  Earlier definitions that use the
+word will continue to utilize the old meaning; future defini-
+tions that reference the redefined word will access the new
+meaning.  A warning will be issued when you are redefining.
+
+	It is important to keep in mind that when new words are
+defined, their names are added to the "string stack" and the
+compiled code is added to the "code stack".  If a recent
+definition is not satisfactory, or no longer serves a need, you
+may wish to "FORGET" it, so that the "string stack" and the
+"code stack" are popped of this useless material.  To discard
+this definition AND ALL SUBSEQUENT DEFINITIONS, one should
+type:
+
+X> '<name> FORGET
+
+	To obtain the code locations and names of the last ten
+definitions, type:
+
+X> TOP10
+
+To obtain information successively on the ten previous
+definitions, type:
+
+1X> NEXT10
+
+::
+:::
+	A crude, line-oriented editor has been implemented
+inside PISTOL.  Try it out by typing the following sequence
+of commands:
+
+X> LI
+
+X> 3 LI
+
+X> 3 5 LI
+
+X> 4 2 LI
+
+X> 3 INPUT
+3: MARY HAD
+4: A LITTLE
+5: LAMB.
+6: <cr>
+
+
+X> LI
+
+X> 3 DELETE
+
+X> LI
+
+	It is possible to test definitions or other commands
+while they are still in the edit buffer.  Make sure that the
+edit buffer has the word: ;F at the end ot the section that
+you wish to test (it acts as a logical end-of-file).
+Determine the line number of the portion where you wish to
+start the test, say it is line 14.  All you need to type is:
+
+X> 14 LOAD
+
+This degree of interaction should appeal to those who like 
+BASIC!?
+:
+less material.  To discard
+this de

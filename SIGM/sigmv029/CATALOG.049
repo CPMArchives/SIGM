@@ -1,0 +1,573 @@
+VOLUME 49
+
+DESCRIPTION:	FORTRAN, RATIONAL FORTRAN PROGRAMS.
+		CDOS ROUTINES FOR CP/M.
+
+NUMBER	SIZE	NAME		COMMENTS
+
+		-CATALOG.049	CONTENTS OF CP/M VOL. 49
+49.1	4K	4FDCBIOS.DOC	Files for running CP/M 2.0+
+49.2	2K	4FDCBIOS.HEX
+49.3	13K	4FDCBIOS.Z80	  on CDOS systems using this
+49.4	1K	4FDCBOOT.HEX
+49.5	2K	4FDCBOOT.Z80	  BIOS and BOOT.
+49.6	11K	ABSTRACT.049	Abstracts of the files on this
+				disk.
+49.7	1K	ASMDEF.RAT	Used by LCAT, part of RATFOR.
+49.8	6K	ASTRO.FOR	FORTRAN Astronomy program.
+49.9	10K	CDOS.DOC	Comments on CDOS features.
+49.10	2K	CDOSCOPY.COM	Full disk copy program
+49.11	2K	CDOSCOPY.DOC	  for CDOS systems,
+49.12	4K	CDOSCOPY.HEX	  single or double
+49.13	26K	CDOSCOPY.PRN	  density, and single
+49.14	12K	CDOSCOPY.Z80	  or double sided.
+49.15	1K	CONSTS.RAT	Definitions of some frequently
+				used constants (RATFOR).
+49.16	1K	F77.DOC		FORTRAN 77 Documentation.
+49.17	1K	F77DEF.RAT	FORTRAN 77 Functions.
+49.18	2K	F77LIB.FOR	Definitions of some intrinsic
+				FORTRAN 77 functions.
+49.19	3K	FILTER.Z80	Source code for emulating CDOS
+49.20	1K	FILTER.HEX	  calls under standard CP/M.
+49.21   6K	FILTER2.Z80	Modified version of FILTER
+49.22	1K	FILTER2.HEX	  (above)
+49.23	2K	INDEX.Z80	RATFOR Subroutine.
+49.24	1K	INDEXT.FOR	Test for INDEX.Z80.
+49.25	1K	IOER.Z80	Used by LCAT (RATFOR).
+49.26	1K	LCAT.DOC	Used to concatenate Microsoft
+49.27	3K	LCAT.RAT	  .REL files.
+49.28	2K	MINV.DOC	Matrix Inversion Determinant
+49.29	3K	MINV.FOR	  Calculator, FORTRAN and
+49.30	3K	MINV.RAT	  RATFOR source code.
+49.31	2K	RATCOMNS.RAT	Used by RATFOR.
+49.32	3K	RATFOR.DOC	Documentation of RATFOR.
+49.33	40K	RATFOR.FOR	FORTRAN source code for RATFOR.
+49.34	25K	RATFOR.RAT	RATFOR source code for RATFOR.
+49.35	17K	RATFOR.REL	Microsoft .REL file, does not
+				include library routines.
+49.36	1K	READLB.Z80	Subroutine for SCOPY (RATFOR).
+49.37	1K	RFG.CMD		CDOS equivelent of a submit
+				file. (^=$).
+49.38	1K	SCOPY.DOC	Direct Disk I/O (RATFOR).
+49.39	2K	SCOPY.FOR	  FORTRAN source code.
+49.40	1K	SORTI.DOC	Quicksort program (RATFOR).
+49.41	2K	SORTI.FOR	  FORTRAN Source code.
+49.42	3K	SORTI.RAT	  RATFOR Source code.
+49.43	1K	TRNSLT.Z80	Used by RATFOR.
+
+NOTE:  Most of the FORTRAN files on this disk will run on
+Z-80 processors only, some will run only with Cromemco CDOS.
+Check the abstracts and .DOC files for more details.
+
+
+    CBIOS for Cromemco 4FDC or CCS 2422 disk controller
+
+    4FDCBIOS.Z80  and  4FDCBOOT.Z80 are the bootstrap and Cbios
+for running CP/M 2.x with a Cromemco 4FDC controller  board,  a
+Z80*  cpu,  and  minimum  20K  of  RAM.   CP/M  1.4  can also be
+supported if some of the 2.x-only code is removed. This code is
+also applicable to,  and tested upon,  the California Computer
+Systems disk controller board model 2422, if a serial port at 0
+compatible with CDOS is used (a 3P + S, or a Cromemco TUART, or
+the serial port on a Cromemco Single Card Computer.)
+
+    This source is capable of supporting three types of  disks:
+5  inch  (such  as  Wangco),  8  inch  (such  as  Shugart), and
+single-arm voice-coil 8 inch (such as Persci).  Between one and
+four  drives  are supportable, but no intermixing.  There is no
+current support for  double-sided  drives,  but  it  should  be
+easily addable.
+
+    There is no support for the double density mode in the Cro-
+memco 16FDC, or the CCS 2422. This bios is limited to 128 byte
+sectors.
+
+    The  8  inch  format  is  compatable with all CP/M and CDOS
+versions currently known.  The 5 inch format  (skew  of  5)  is
+compatable with all 5 inch CDOS formats currently used.
+
+    It  is  assumed  that  the  main  console, at port zero, is
+already initialized by RDOS or some other program.  If not, you
+can insert the necessary code into 4FDCBOOT.Z80.
+
+    As additional features, the routine  contains  an  optional
+reader-punch  and  printer  support  routine, via TUART and PRI
+boards, and a standard  missing  memory  check.   The  external
+interrupt  of the TMS 5501 is enabled on the 4FDC, which causes
+a 0FF interrupt, which is the same as a missing  memory  board.
+I  like  to use this to break out of loops without losing CP/M.
+If this is not desired, it is easily removed from the code.
+    Also, in a commented section is a small modification so the
+DEL key (07FH) is changed to a Control-U by the  CBIOS,  for
+those who have Backspace on the terminal.  I do not like to use
+two  hands  just to be able to erase a mistake.
+    The source is for Cromemco Z80  assembler,  and  there  are
+five  constants  in  the  front to be changed to select various
+options.
+
+    First, select the type of drive: If  5  inch,  LARGESW  and
+PERSCISW  should be 0.  If 8 inch Shugart, LARGESW should be 1,
+PERSCISW 0.  If Persci, PERSCISW should be 1.   LARGESW  should
+also be altered in 4FDCBOOT.Z80.
+
+    Next, NUMDRIVES should be 1 to 4 for 5" and 8" drives, and
+2 or 4 for Persci double-disk drives.
+
+    Then, to have support for printer and TUART, BIGIOSW should
+be  1,  otherwise 0.  You might also wish to change BAUDRATE to
+the desired value for the reader-punch (110 baud is supplied).
+Note: if the CCS 2422 is used, it may be necessary to supply an
+initialization and bootstrap routine for the console port, if
+that is on a TUART addressed at zero. The current code does not
+initialize the port at zero, assuming that has been done before
+the disk was booted. The code for the TUART referred to here is
+for an additional TUART port, not the console port, but it is
+easy to add the necessary code to initialize the console port
+also.
+
+    Finally, set BEGINADR to the start of  the  CBIOS.   It  is
+supplied as 0E400, which is for a 64K system.  This should also
+be altered in 4FDCBOOT.Z80.
+
+    The  switches  on  the 4FDC are set exactly as described in
+the board manual.  For a system  over  48K,  the  ROM  must  be
+disabled  upon  bootstrapping.   For a smaller system, the RDOS
+can stay in, or not, as you desire.  For a CCS 2422 controller,
+the same statement applies, except the 2422 ROM need not be dis-
+abled unless the system memory exceeds 60K.
+
+    4FDCBOOT.HEX and 4FDCBIOS.HEX are supplied, assembled from 
+the source files. They are set for a 64K version of CP/M. You
+can use them in another system if you can put about 8K at the
+upper end of memory (E000) and maybe 16K at the low end (0000)
+to be able to re-assemble the files.
+
+
+          GENERAL NOTES ON CDOS' UNDOCUMENTED FEATURES
+
+When  CDOSGEN asks you whether the drive is large [L] or  small 
+[S] try answering 'X'.  You will then get a menu for  Shugarts, 
+etc.
+
+You  can  use  the  'SYS.DIR'  FCB  create call of CDOS 1.07 or
+higher to access  the  directory  regardless  of  its  size  or
+position  on the disk.  Although the FCB created with this call
+is write protected, you can reset that  attribute  bit and  can
+then write to the directory as well as read it.
+
+Disk Labels.
+A directory label is written to the disk by STAT and is used to 
+ascertain  the  storage capacity of the disk and the number  of 
+directory entries (64 to 512).
+The last 8 bytes of the first boot loader sector (usually  side 
+0  track 0 sector 1) are always recorded in single density  and 
+contain eight bytes indicating the type of disk to the BIOS, eg
+     LGSSSD
+for Large (8"), Single Sided, Single Density
+or   LGDSDD
+for 8" Double Sided, Double Density diskettes (1.2 MBytes)
+
+STAT  2.15  was written for a WD1797 FDC chip (it  records  the 
+side  numbers  into the address fields) although a  WD1793  was 
+eventually used.  CDOS 2.36 does not support the 1797, however, 
+and this chip will not work instead of the 1793 on the 16FDC.
+
+Double Density Recording Format:
+16 sectors of 512 bytes are used per track.(MFM)
+A 12 interleave is used (1,C,7,2,D,8,3,E,9,4,F,A,5,10,B,6)
+Although  a 4 interleave can be read as COM files in my 4MHz no 
+wait state system a 6 interleave speeds throughput by a  factor 
+of  two.  (use 1,2,3,4,5,6,C,D,E,F,10,7,8,9,A,B).  INIT can  be 
+modified  to  do  this..  if  interested write me  and  I  will 
+disclose all....
+
+Finally,  if  someone has deciphered how to call the 2.36  BIOS 
+directly without getting error returns I am all ears...
+
+Trevor Marshall,
+26 Mirrelia Way, Ferndale, Western Australia 6155
+phone International (619)4576049   or national (09)457 6059
+14 December 1980
+
+Notes added by:	Chuck Weingart		February 1, 1981
+		2152 W. Iowa
+		Chicago, Ill 60622
+
+On the "X" feature of CDOSGEN, described above, you must respond
+to  several  questions,  such  as  "Fast  or  Slow",  "Single or
+Double".  All Shugart type drives are "slow".   "Double"  drives
+are  those like the Persci, that have one seek mechanism for two
+different disks, or when you are  using  a  Shugart  851  double
+sided  drive as two "drives" (one "drive" on each side, requires
+rewiring the cable).
+
+In CDOSGEN 2.36, when you respond "S" to  the  drive  type,  you
+again  get  a "Fast or Slow?"  question.  MPI drives are "fast",
+and Shugart 400 and Wangco drives are "slow" in my experience.
+
+It is easy to attach one of the new Shugart  801/851  drives  to
+the 4FDC, just use the "TS" data separator (install the jumper).
+If  you  are  trying  to use an old 800-1 or 801 drive, the data
+separator adjustments probably have to be changed to  work  with
+the 4FDC.
+
+To attach the MPI model 52 double-sided 5" drive to a 4FDC, just
+add  a jumper on the 4FDC from J4 pin 21 to J2 pin 32, if one is
+not already there.  Then gen a 5"  double-sided  drive  at  that
+position  with 2.17 or greater, initialize some disks with INIT,
+and write a double-sided label with STAT, and you are  ready  to
+go. I converted to double-sided in one hour, and it's great!
+
+To  attach  a  Shugart 851 to the 4FDC, install the TS jumper as
+noted above.  Disconnect the wires 2, 12, 18, and  32  from  the
+cable (at the drive end is easiest).  Connect the Shugart pin 12
+to  the 4FDC pin 2 (for side select), Shugart pin 30 to 4FDC pin
+4 (for Drive select 3), and Shugart pin 32 to 4FDC pin  18  (for
+Drive select 4).  Connect a jumper from J4 pin 21 to J3 pin 2 if
+one  is  not  already  there.   Use  the "X" feature and 2.17 or
+greater, initialize disks with INIT, and label  the  disks  with
+STAT for double-sided operation.
+
+CDOS  1.07  can  be  used  unchanged  on the California Computer
+Systems 2422 disk controller if there is a  Cromemco  compatible
+console  port  at  0,  such  as a 3P + S, Cromemco TUART, or the
+console on the Cromemco SCC.  The latter will have to  have  two
+modifications  made:  the  prom (U25) must be altered to put the
+parallel port at address 04 somewhere else  (such  as  0E),  and
+there  must  be  a 220 ohm resistor in series with U52 pin 6 (to
+delay PWR) and a 400pf capacitor from U52 pin 6 to  ground  (pin
+8).
+
+CDOS 2.17 can be used on  the  CCS  2422  controller  in  single
+density  if  one  uses  the  1.07  bootstrap  loader.   The 2.17
+bootstrap will not work without a hardware change  on  the  2422
+board,  and  it is somewhat lengthy.  There will be a persistent
+problem of read errors on track 2 sector 1, but this is  due  to
+the  WD1793 chip.  Just Retry the operation and it will clear up
+every time.
+
+CDOS 2.17 has a command, VERIFY, with  one  of  three  operands.
+VERIFY ON will enable read-after-write verification on the disk.
+VERIFY  OFF will disable that, and just VERIFY will indicate the
+status of the feature.  VERIFY is not present in CDOS 2.36.
+
+CDOS 2.17 and up has  several  undocumented  commands:  REM  and
+ATTR.   ATTR  is  the  same  as  ATRIB, and REM is for inserting
+remarks into your batch file, because the REM line is ignored.
+
+Although  it  isnt  currently  stated  in  any   Cromemco   doc-
+umentation  that  I have seen (and I have written Cromemco twice
+about it with no answer),  all  versions  of  Cromemco  software
+shipped  since  about  February 1980 come with the system genned
+for 64K.  If you have a copy of CDOS 1.07, you can run the  2.17
+or  2.36  versions  of CDOSGEN under 1.07 in order to generate a
+smaller system.  The new versions of CDOSGEN will not run  in  a
+32K system, tho, they are quite a bit bigger.
+
+For users of non-Cromemco memory boards that want to get a "full
+house"  (64K),  here is how to add a Phantom signal to the 4FDC.
+Add a jumper from IC46(74367) pin 15 to IC31(2708) pin 20.   Add
+a  jumper from IC46 pin 12 to pin 8 (ground).  Add a jumper from
+IC46 pin 11 to S100 pin 67 (Phantom output).  The  memory  board
+addressed  at  C000H  must  respond  to  the  Phantom signal, of
+course.  The RES switch (SW2) must be set on.  This way, you can
+use the 4FDC RDOS program until CDOS is booted, then  the  EPROM
+will  be turned off and the memory board "behind" it can then be
+used.  This method must be used even in  many  boards  that  are
+advertised  as  "Cromemco banking compatible" because the boards
+do not have the feature of being bank-disabled upon power-up.
+
+CDOS 2.17 now takes about 11K minimum for itself.  CDOS 2.36 now
+takes 14K minimum.
+
+STAT for 2.36 has several undocumented switches: /M, /N, /E, and
+/EZ.   STAT/M  allows  you to change the "master" drive (the one
+that CDOS looks at if it cant find  a  program  on  the  current
+drive).   STAT/N  gives  a  5-up directory display.  STAT/E is a
+directory erase, with prompting.  STAT/EZ erases, and no prompts
+as I recall.
+
+Jordan Siedband tells me that 2.36  will  not  read  CP/M  disks
+correctly,  cause  unknown.   Keep  a copy of 2.17 around if you
+want to continue to use CPMUG stuff.  There is one thing that is
+obvious to anyone who has looked: CP/M and CDOS directories  are
+compatable  only in  "1.4 mode", that is, no system flags of any
+kind set in the directories,  either  CP/M  2.2  flags  or  CDOS
+flags. When they  are  not  compatable, the one operating system
+will usually clobber directory entries in the  other  format  or
+refuse to work.
+
+CDOS 1.07 and up have an  undocumented  error  message:  LOGICAL
+DISK ERROR n.  This message is produced if you do something like
+request  a  track that does not exist, or a sector that does not
+exist, or try an operation that is impossible for the  drive  to
+perform.   You will generally get these messages only if you are
+trying to do disk I/O thru the "BIOS" directly.
+
+There is a small bug in the Divide Integers CDOS call  (8AH)  in
+2.17  -  the BC register will be altered.  No problem in 1.07 or
+2.36 as far as I can tell.
+
+All  versions  of  CDOS have the CP/M "BIOS" jump table in them,
+but none of them use it.  That is, you can jump to  the  entries
+in this table, but cannot modify the jump addresses in the table
+and  expect it to work.  The first entry in the table, the "cold
+start" jump, is a jump to itself, because CDOS never  uses  this
+entry,  and  the  user  is not supposed to use it, either.  This
+makes routines like FAST rather difficult  to  use  under  CDOS.
+Some CPMUG programs set themselves below the operating system by
+changing the address at location 6, but that will not work under
+CDOS.   You  can use the CDOS call 97H to do the same thing, see
+the manual for details.
+
+All  versions of CDOS I have used  try  to initialize all  TUART
+ports in the system.  That is, they will output to ports 12, 13,
+22,  23,  52,  53,  62, ...  F2, and F3.  If you have some other
+hardware at those addresses, good luck.  CDOS will also zero out
+the Dazzler port at 0E every time it starts disk I/O.
+
+CDOS 2.17 and up will disable all interrupts when doing disk I/O
+and never  re-enable.   This  means  you  can't  use  the  timer
+interrupts available in the TMS5501.
+
+If anyone figures out what attributes S and U are, I would like
+to know.  They can be set, reset, and listed,  but dont seem to
+make any difference to the operating system. Could they be used
+for Hard disk files?
+
+	SCOPY enables you to search a strange disk on drive B
+for ASCII files which may not be recoverable via a directory,
+and copy them to an MCOS file on drive A.  This should permit
+recovery of files which have been erased, and is also intended
+for recovery of files from ISIS or GE disks.
+
+ABSTRACTS FOR CP/M USERS' GROUP VOLUME 49
+-----------------------------------------
+
+This volume consists mostly of Rational Fortran (RATFOR) files.
+A letter and abstract by the author are presented here, as
+well as several abstracts on various files by Chuck Weingart
+of the Chicago Area Computer Hobbyist Exchange.  Please note
+that some of the files on this disk rely on Cromemco CDOS
+calls and are not compatible with "standard" CP/M systems.
+Almost ALL FORTRAN and RATFOR files require a Z-80 processor.
+See the abstracts by Chuck which point these out.
+01/28/81		Jim Mills, CACHE SIG CP/M Chairman
+
+------------------------------------------------------------
+
+1 E. Lakeview Dr. #17
+Cincinnati, OH 45237.
+Oct 1, 1979
+
+CP/M Users Group
+--etc--
+	I have enclosed a disk which has RATFOR.RAT adapted for
+Fortran-80.  This gives essentially identical results to your
+volume 24 RATFOR.COM but is somewhat faster and gives people
+the chance to play with it.  Also the foreign .COM file
+is hard to work with.  I had to write a special program
+to copy it correctly on my system.  The disk also has some
+useful sample programs.
+				Tim Prince
+------------------------------------------------------------
+
+     This disk contains mainly utility programs associated with
+the Ratfor preprocessor and helps to bring some of the FORTRAN
+77 functions into FORTRAN-80.  The Ratfor follows the Addison-
+Wesley code closely but uses BYTE variables as appropriate.
+Transliteration, which is done inefficiently in the A-W ver-
+sion, is omitted.  The matrix inversion-determinant calculator
+MINV and the address quicksort SORTI are given as examples of
+the use of Ratfor.
+     The INDEX subroutine is given both in FORTRAN (in F77LIB)
+and Z80 versions.  As FORTRAN-80 does not permit the usage of
+this function to be as in FORTRAN 77, the calling sequence is
+somewhat arbitrary.
+     LCAT, for concatenating .REL files, calls assembler
+library functions which may not be available on some systems.
+However, the .COM file may work anyway.  SCOPY calls the
+READLB subroutine which will have to be rewritten for systems
+which do not support the same extended CP/M calls.
+					Tim Prince
+
+------------------------------------------------------------
+
+		REVIEWS BY CHUCK WEINGART
+
+RATFOR is a preprocessor for FORTRAN source programs which
+facilitates control constructs and text insertions, described
+in "Software Tools" by Kernighan and Plauger (Addison-Wesley).
+RATFOR source code is free form, with statements separated by ;
+or [CR]. Ratfor statements include extensions to Fortran such
+as IF ELSE, WHILE, REPEAT UNTIL, FOR, BREAK, NEXT, and INCLUDE.
+An earlier version of RATFOR.COM is in CPMUG V.24. This new
+version runs only on a Z80, is faster, has documentation
+(RATFOR.DOC), source (RATFOR.RAT, RATFOR.FOR), and uses
+RATCOMNS.RAT and TRNSLT.Z80. The resulting Fortran program is
+then compiled with Microsoft FORTRAN-80 or Cromemco Fortran,
+V3.21. This should run on any version of CP/M that supports the
+Fortran and has a Z80. (reviewed by Chuck Weingart)
+
+F77LIB.FOR is a file containing definitions of most of the new
+intrinsic functions in FORTRAN 77.  These functions can be
+employed by searching the file F77LIB.REL which will be created
+by compiling F77LIB.FOR There is also an INCLUDE file
+CONSTS.RAT which automatically defines some frequently used
+constants. INDEX.Z80 is a subroutine given both in FORTRAN (in
+F77LIB) and Z80 versions.  They are  written in Cromemco
+Z80 Fortran and assembler language, but should be acceptable to
+Microsoft versions. INDEXT.FOR is a test for INDEX. There is
+some Fortran-77 documentation in F77.DOC and F77DEF.DOC.
+(reviewed by Chuck Weingart)
+
+LCAT.RAT are for concatenating Microsoft .REL files,  described
+in LCAT.DOC. It calls CDOS Z80 assembler library functions
+which are not be available on CP/M systems. This is written for
+RATFOR, and uses ASMDEF.RAT and IOER.Z80, written in Cromemco
+Z80 assembler, Microsoft will also work. There are two possible
+problems with this routine, both related to the end-of-file.
+First, some versions of Microsoft Fortran did not put an eof
+(1A hex) at the end of the REL library.  Second, this program
+stops if it hits 9E1A Hex, and there is a small chance of that
+ocurring in the middle of a file, so don't destroy your old
+library before checking the output of LCAT. (reviewed by Chuck
+Weingart)
+
+MINV.RAT and MINV.FOR contain a subroutine which inverts a
+matrix and calculates the determinant. It does not have any
+protection against the case where the equations are of wildly
+different orders of magnitude. There is a test case included in
+the file. These are included as tests for RATFOR, and the
+Fortran version will run on Microsoft or Cromemco Fortran,
+V3.21, any supported size and version of CP/M or CDOS,
+respectively. The DOC file includes some, but not all, info
+needed to use. Look at the test file included for more.
+(reviewed by Chuck Weingart)
+
+SORTI.RAT, SORTI.FOR are an address quicksort with a test
+driver program. Unfortunately, although the FORTRAN appears
+essentially identical to a successful program developed on a
+large system, the Microsoft version doesn't work yet. They are
+given as examples of the use of RATFOR. The SORTI.DOC file has
+some information describing the use of this routine. The FOR
+file will compile on Microsoft or Cromemco Fortran, V3.21, with
+any supported CP/M or CDOS, respectively. (reviewed by Chuck
+Weingart)
+
+SCOPY.FOR does direct disk I/O, either disk to disk or disk to
+console, described scantily in SCOPY.DOC. The FOR file should
+be useable by any Microsoft or Cromemco Fortran, V3.21. It
+calls the READLB.Z80 subroutine which will have to be rewritten
+for systems which do not support the same CDOS calls. READLB is
+written in Z80 assembler, Microsoft is acceptable. (reviewed by
+Chuck Weingart)
+
+------------------------------------------------------------
+
+		NON-RATFOR PROGRAM REVIEWS
+
+FILTER.ASM
+FILTER.HEX
+FILTER2.ASM
+FILTER2.HEX
+FILTER.ASM is source taken from an article by J. Warner in the
+January, 1980 issue of Dr. Dobbs. It implements two essential
+CDOS calls, 80H and 86H, to allow some Cromemco software to run
+under CP/M*. This is commented Zilog Z80* source, and can be
+assembled by Microsoft or CDOS* assemblers. The chicken-egg
+problem is avoided by supplying the FILTER.HEX file to bring up
+the CDOS assembler. As supplied, Cromemco Fortran IV and COBOL
+will not work with it, more functions must be added. This
+routine is installed by making it part of the memory image of a
+program: using DDT, load FILTER.HEX, then load the Cromemco
+program starting at 200H, and then save the combined programs.
+When it gets control it boosts the function code filter into
+place at the top of the TPA and then moves the original program
+down to 100H and jumps to it.  (reviewed by Chuck Weingart)
+
+FILTER2.ASM is the source for a modified version of FILTER.ASM,
+primarily minor improvements and one bug fix. More comments 
+are also included from the original article in DDJ. The same
+installation procedures and comments as FILTER apply to FILTER2,
+including FILTER2.HEX. (FILTER2 is from the reviewer, Chuck
+Weingart.)
+
+Warning: CP/M and Cromemco CDOS directories are partially in-
+compatable. The first byte of each FCB must be made zero (1.4
+mode). These routines do not allow most Cromemco software to
+run on non-Cromemco equipment. They are supplied here to let
+the Cromemco owner run his/her legitimately obtained programs
+under CP/M on Cromemco hardware. It does not appear that any
+any software supplied with versions of CDOS after 2.17 are
+compatible with CP/M (2.2) with FILTER.
+
+4FDCBIOS.DOC
+4FDCBIOS.Z80
+4FDCBIOS.HEX
+4FDCBOOT.Z80
+4FDCBOOT.HEX
+4FDCBIOS.Z80 and 4FDCBOOT.Z80 are the cbios and boot programs
+for running CP/M 2.x on a Cromemco 4FDC disk controller board,
+or a California Computer Systems 2422 disk controller, with a
+3P + S or Cromemco TUART or similar console port at address 0.
+Assembly options include memory size, one to four drives, supp-
+ort for 5", 8" Shugart, and 8" Persci drives. Drivers for the
+Cromemco TUART for paper tape and Cromemco printer board are
+optionally included. The source is moderately commented, not
+structured, in Cromemco Z80 assembler; Microsoft can also be
+used. The source is supplied for two 8" Shugart drives and 64K,
+and 4FDCBIOS.HEX and 4FDCBOOT.HEX are the assembled output
+files. Since the 4FDC is designed for the Z80*, conversion to
+8080 would be difficult. 4FDCBIOS.DOC contains detailed doc-
+umentation. (abstract by Chuck Weingart)
+
+CDOS.DOC
+This is an accumulation of comments by Trevor Marshall and this
+reviewer for users of Cromemco hardware and software. Nothing
+can be guaranteed, but everything is true as far as can be
+checked. (No attempt is made to help those who want to run the
+cheap Cromemco programs on CP/M without buying any Cromemco
+hardware). Must reading for CDOS users who participate in
+CPMUG. (reviewed by Chuck Weingart)
+
+CDOSCOPY.COM
+CDOSCOPY.DOC
+CDOSCOPY.HEX
+CDOSCOPY.PRN
+CDOSCOPY.Z80
+CDOSCOPY is the COPY program, CPMUG 1.3, converted to Z80 and
+extensively rewritten by Trevor Marshall to work on the Cromemco
+CDOS operating system. The program supports 8" disks, single or
+double sided, single or double density. It is possible to con-
+vert the program for 5" disks, see the DOC file for details.
+As supplied, would require a 48K system to copy double-density
+disks, but I have not personally been able to verify operation
+that way. The program runs correctly, but unfortunatly slower
+than the COPY program because of CDOS internal operations. A
+single-sided, single density disk copies in around 5 minutes.
+Supplied are the source file (.Z80), the output (.HEX), the
+print file (.PRN), and the executable program (.COM). This pro-
+gram runs only on a CDOS system, with all Cromemco hardware as
+required by that operating system, and assembles only with the
+Cromemco Z80 assembler. (reviewed by Chuck Weingart)
+
+ASTRO.FOR is a series of Fortran routines to do astronomical 
+calculations. (Borrowed from an old SMITHSONIAN ASTROPHYSICAL
+OBSERVATORY computing note.) Of only specialized interest but
+for the DECML, IDECML, and KDECML; These are routines for free
+format reading from Fortran. They are used by reading the
+characters into a LOGICAL*1 array of dimension of say 80, using
+a format of say 80A1. Successive calls to DECML as a function
+then give the real numbers on that line. The variable N is a
+pointer, the current column of the input buffer. Can be com-
+piled by CDOS or Microsoft Fortran IV, tho their usefulness can
+only be judged by an astronomer. (Reviewed bu Chuck Weingart)
+
+* Please note that Z80 is a trademark of Zilog, Inc. CP/M is
+a trademark of Digital Research, and CDOS is a trademark of 
+Cromemco, Inc. Use of the term Z80 in this application is in
+no way meant to imply that this program was written by Zilog,
+(or Digital Research, or Cromemco).
+
+

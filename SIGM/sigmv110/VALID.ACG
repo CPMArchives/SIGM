@@ -1,0 +1,159 @@
+* valid.acg   03/15/83 hmvt, sml
+
+* this module validates added records
+
+* set up a couple of control variables
+STORE t TO more
+
+IF msend = 'Y' .OR. msend = 'N'
+
+
+* test if there is a bad field validation
+DO CASE
+
+	CASE mfname = ' '
+	  STORE t TO error
+
+	CASE mmr = ' '
+	  STORE t TO error
+
+	CASE mdear = ' '
+	  STORE t TO error
+ 
+ENDCASE
+
+ELSE
+   STORE t TO error
+ENDIF msend = 'Y'
+
+* if test for error was true then fix the fields that need fixing
+IF error
+
+* erase old format
+SET FORMAT TO SCREEN
+ERASE
+
+?'                   Please Correct the Indicated Data'
+* display screen data entry form and the entered data
+* use say-rec.fmt with the stuff above and below the dashed line removed
+@ 02,00 SAY '+-------------------'                             
+@ 02,20 SAY '--------------------'                             
+@ 02,40 SAY '--------------------'                             
+@ 02,60 SAY '-------------------+'                             
+@ 03,00 SAY 'Lastname: '                                      
+@ 03,10 SAY mlastname                                           
+@ 03,40 SAY 'First & MI: '                                     
+@ 03,53 SAY mfname                                              
+@ 04,00 SAY 'Spouse: '                                         
+@ 04,10 SAY mspouse                                             
+@ 04,40 SAY 'Address as: '                             
+@ 04,53 SAY mmr                                                 
+@ 06,00 SAY 'Title: '                                    
+@ 06,08 SAY mtitle                                             
+@ 07,00 SAY 'Company (line 1): '                               
+@ 07,20 SAY mcompany1                                           
+@ 08,08 SAY '(line 2): '                            
+@ 08,20 SAY mcompany2                       
+@ 09,00 SAY 'Company address: '                                
+@ 09,20 SAY mcaddress                                           
+@ 09,62 SAY 'Room: '
+@ 09,68 SAY msuite
+@ 10,00 SAY 'City: '                                 
+@ 10,08 SAY mccity                                              
+@ 10,33 SAY 'State: '                                          
+@ 10,40 SAY mcst                                            
+@ 10,48 SAY 'Zipcode: '                                        
+@ 10,57 SAY mczip                                              
+@ 12,00 SAY 'Home address: '                               
+@ 12,17 SAY maddress                                            
+@ 12,60 SAY 'Apt: '
+@ 12,67 SAY mapt
+@ 13,00 SAY 'City: '                               
+@ 13,11 SAY mcity                                            
+@ 13,33 SAY 'State: '
+@ 13,40 SAY mst
+@ 13,48 SAY 'Zipcode: '
+@ 13,57 SAY mzip 
+@ 14,00 SAY 'Phone - office: '
+@ 14,16 SAY mophone
+@ 14,38 SAY 'home: '
+@ 14,44 SAY mphone
+@ 15,00 SAY 'Dear -'       
+@ 15,08 SAY mdear    
+@ 15,35 SAY 'Send letters to office (Yes/No): '
+@ 15,68 SAY msend                 
+@ 16,00 SAY 'Code: 1.-'
+@ 16,10 SAY mcs1
+@ 16,15 SAY '2.-'
+@ 16,20 SAY mcs2
+@ 16,25 SAY '3.-'
+@ 16,30 SAY mcs3
+@ 16,35 SAY '4.-'
+@ 16,40 SAY mcs4
+@ 16,45 SAY '5.-'
+@ 16,50 SAY mcs5
+@ 16,55 SAY '6.-'
+@ 16,60 SAY mcs6
+@ 17,00 SAY 'Misc: '
+@ 17,08 SAY mmisc 
+@ 17,54 SAY 'Date update: '
+@ 17,68 SAY mupdate
+@ 18,00 SAY '+--------------------'
+@ 18,20 SAY '---------------------'
+@ 18,40 SAY '---------------------'
+@ 18,60 SAY '-------------------+' 
+
+* keep looping until all fields are fixed
+DO WHILE more
+* which ones are bad - fix one at a time
+DO CASE
+
+	CASE mfname = ' '
+	  @ 20,15 SAY 'Must add a First Name                                  '
+	  @ 03,53 GET mfname
+	  READ
+
+	CASE mmr = ' '
+	  @ 20,15 SAY 'Must have Mr. or Miss. etc                             '
+	  @ 04,53 GET mmr
+	  READ
+
+	CASE mdear = ' '
+	  @ 20,15 SAY 'Must have a salutation for Dear.....                   '
+	  @ 15,08 GET mdear
+	  READ
+
+       
+
+
+       CASE  msend                             
+
+       * validate msend further
+            IF msend = 'Y' .OR. msend = 'N'
+              STORE f TO more         
+            ELSE
+              @ 20,15 SAY 'Must answer "Y" or "N" to send letter to office   '
+              @ 15,68 GET msend picture '!'
+              READ
+            ENDIF msend = 'Y' .OR. msend = 'N'
+
+       CASE more
+          STORE f TO more
+
+
+ENDCASE
+
+ENDDO while more
+
+* restore the add record data entry format 
+ERASE
+SET FORMAT TO mod-rec
+
+ENDIF error
+
+* release local variables
+RELEASE error,more
+
+* restore selected variables
+STORE t to more
+

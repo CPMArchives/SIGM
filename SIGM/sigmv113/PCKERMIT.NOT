@@ -1,0 +1,96 @@
+ 7-Feb-83 15:45:42-EST,00002181;000000000001
+Date:  7 Feb 1983 1543-EST
+From: Sy.WBC3 at CU20C (Bill Catchings)
+Subject: [Nick Bush <OC.SITGO at CU20C>: KERMIT-86]
+To: Sy.FdC at CU20B
+
+This might be of interest.
+
+		-Bill
+
+                ---------------
+
+Date:  4 Feb 1983 1730-EST
+From: Nick Bush <OC.SITGO at CU20C>
+Subject: KERMIT-86
+To: sy.wbc3
+
+After I mailed you I noticed that there was a copy of KERMIT-86 on CU20B.
+I KERMIT'ed it over here and have implemented the support in it for
+the Heathkit/Zenith Z-100.  There is a .COR (correction) file on
+CU20C::PS:<OC.SITGO> called PCKERM.COR.  This contains the differences
+between the copy of PCKERMIT.ASM that was on CU20B::KER: on 31-Jan-83
+and my copy with the Z-100 support.  I would produce the new PCKERMIT.ASM,
+except that I do not have a copy of the base file on any of your systems
+(since there has apparently been an edit made to the one on KER:).
+If you wish to produce a copy with the Z-100 support, you must do the
+following:
+
+@DEFINE OLDKER: Base-file-specification (PCKERMIT.ASM from 31-Jan-83).
+@DEFINE NEWKER: New-file-specification
+@DEFINE FED: PS:<OC.SITGO>	! On CU20C
+@RUN FED:FED
+*NEWKER:_OLDKER:,FED:PCKERM.COR
+*^C
+
+At this point you will have a copy of KERMIT-86 with the code for a
+Z-100.  It will not (obviously) have whatever changes were made to
+KERMIT-86 at CUCCA since 31-Jan.  (As far as I can tell, that is a very
+minor change, 1 or 2 lines added or removed.)
+
+I noticed a few problems with KERMIT-86 on the IBM PC.  One is that
+it did not work at 300 baud - I assume the constant is wrong.  The
+other problems are in the command processor - there are a number of
+things which show up when characters are deleted.  Also it seems
+that control-R is not supported.  One other problem is in the VT-52
+emulation - the reverse line feed does not work properly.
+
+One problem with the command routines which showed up in the Z-100
+version - for some unknown reason the keyword function will not
+accept either of the SET BAUD entries which start with a 4 (45 or 4800).
+
+If you have any problems or questions about the above, you can call me
+at (201)-420-5457.
+
+					Nick Bush
+-------
+-------
+10-Feb-83 10:53:37-EST,1625;000000000001
+Date: 10 Feb 1983 1053-EST
+From: Daphne Tzoar <Sy.Daphne at CU20B>
+Subject: PC Kermit
+To: OC.SITGO at CU20C
+
+Hi --
+  Since I've been working on Kermit for the PC, Bill forwarded your
+ note.  I appreciate your pointing out problems -- I'd like to make
+ as many improvements as I can for the second release.  Also, one
+ thing you should know -- Kermit will be a bit "unstable" for the
+ first week or so if major bugs are found.  So you should check
+ the directory frequently.
+
+ About the points you brought up, 300 baud did not work with the
+ version that had been on the -20 but it should be fixed by now.
+ The interrupt for setting baud was somewhat limited, so we used
+ some code that was on the Arpanet.  In the program, a zero was 
+ always output for the second byte of information (and you needed
+ a one for 300 baud.)  I've changed the coded and have tested it;
+ it seems ok.  
+
+ The command processor might do funny things with escape chars --
+ I've never noticed a problem with deletions.  What did it do?
+ About the problem with the Z-100 version -- I can't think offhand
+ why Kermit won't let you set the baud to 4800 (the only baud rate
+ I implemented that start's with a 4.)  Did it set the other baud
+ rates properly? 
+
+ Finally (phew), I didn't implement control-R.  I can put it on a 
+ list of features to add or if you'd like to do it and pass along 
+ the change...... And about the reverse line feed, all other micro 
+ versions of Kermit treat it as cursor up (so that's what the PC 
+ version did.)  It should be easy to modify and I can put it in 
+ Version 2.
+
+ 
+-------
+

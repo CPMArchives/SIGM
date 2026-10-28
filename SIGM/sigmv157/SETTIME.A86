@@ -1,0 +1,181 @@
+; DATE 12/07/83  17:20         last revision
+
+	TITLE	'Set System Time v1.0'
+; SETTIME.A86
+; H. M. Van Tassell 120 Hill Hollow Road, Watchung, NJ 07060 201-755-5372
+; A program to set the MP/M or CP/M Plus clock and print time on screen
+; Intended to be run at system start-up.
+
+; This program reads the Compupro System Support Clock but can
+; be used with any similar clock. The hard part is the date conversion
+; to Julian.
+
+; This get time routine was first written to be included in the
+; BIOS or XIOS to set system clock and keep time using a one sec tick
+; interrupt from a timer or some other tick generator
+
+; RASM86 SETTIME $SZPZ
+; LINK86 SETTIME
+
+; if you dont have RASM86 you may use ASM86 and GENCMD.
+
+
+CR		equ	0Dh
+LF		equ	0Ah
+
+PORT_BASE	equ	050h
+CLKCMD		equ	PORT_BASE + 10
+CLKDATA		equ	PORT_BASE + 11
+
+	
+	CSEG
+
+	call gettime		;read system support clock
+	mov dx,offset ascii_str ;print time on the screen
+	mov cl,9
+	int 224
+	mov dx,offset bin_str	;send time to system storage
+	mov cl,104
+	int 224
+	mov cl,0		;quit
+	mov dl,0
+	int 224
+
+;****************************************
+;*					*
+;*	Routine to get	time		*
+;*					*
+;****************************************
+;-------
+gettime:
+;-------
+;
+; read time from system support clock and put into both
+; a date string in ascii and the sysdata block
+; the datestr can be used to print time on console
+; 
+	mov	si,0		;start reading at seconds
+	mov	di,17		; into datestr
+	call	rtwo
+	mov	tod_sec,ah
+;	cmp	ah,0		;is sec=0?
+;	jne	get_exit
+;	call	rtwo
+;	mov	tod_min,ah
+;	cmp	ah,0		;is min=0?
+;	jne	get_exit
+;	call	rtwo
+;	mov	tod_hr,ah
+;	cmp	ah,0		;if hr=0 it's midnite
+;	jne	get_exit
+;
+; get date into date string and convert calender
+; date to julian date (1/1/78)
+;
+set_date:
+	mov	si,2		;ptr to min in digtab
+	mov	di,14		;ptr to min in datestr
+	call	rtwo		;set min & hr for init. call
+	mov	tod_min,ah
+	call	rtwo
+	mov	tod_hr,ah
+	dec	di		;skip over space
+ctoj:	call	rtwo		;convert date to julian
+	mov	bh,0		;get yr as bin in al
+	mov	bl,al		;bx=year-1900
+	mov	di,1		;point to month
+	call	rtwo		;get month into al
+	sub	al,3		;is month in mar-feb of "year"
+	jnc	ctoj1
+	add	al,12		;jan or feb become 10,11
+	dec	bx		;...of prior year
+ctoj1:	xor	ah,ah		;bx="year"
+	push	ax		;ax="month",save it
+	mov	ax,1461		;mult "year" by leap year cycle
+	mul	bx		;bx*ax=[dx,ax]
+	mov	cx,4		;divide by 4
+	xor	dh,dh
+	div	cx		;[dx,ax]/cx=ax (quotient)
+	mov	bx,ax		;save quotient in bx
+	pop	ax		;restore "month"
+	push	bx		;save ("year"*1461)/4
+	mov	bx,153		;mult "month" by 153
+	mul	bx		;bx*ax=[dx,ax]
+	inc	ax
+	inc	ax		;add 2 to low order bits
+	mov	cx,5		;divide by 5
+	xor	dh,dh
+	div	cx		;ax=("month"*153+2)/5
+	pop	bx		;bx=("year"*1461)/4
+	add	bx,ax		;add em
+	mov	di,4		;point to days
+	call	rtwo		;get days into al
+	mov	ah,0
+	add	ax,bx		;add days
+	sub	ax,28429+1	;convert to 1/1/78
+	mov	tod_day,ax	;stash it away
+get_exit: ret
+
+;
+; get 2 bcd clock digits and update string
+; and convert to binary & bcd time digits
+;
+rtwo:	call	rone		;get lo order digit in al
+	mov	dl,al		;save it in reg dl
+	add	al,'0'		;convert to ascii
+	mov	datestr[di],al ;and put in buffer
+	dec	di		;backup in string
+	call	rone		;get hi order digit
+	mov	dh,al		;save it in dh
+	add	al,'0'
+	mov	datestr[di],al
+	dec di! dec di		;backup over sepr
+	mov	al,dh		;recover hi digit
+	mov	cl,10		;mult by 10
+	mul	cl		;al=10*digit
+	add	al,dl		;add lo digit
+	mov	cl,4		;rotate hi order bcd
+	rol	dh,cl		;...into hi nibble
+	add	dh,dl		;and add low order bcd
+	mov	ah,dh		;ah=bcd time digit
+	ret			;al=binary time digit
+;
+; get a bcd clock digit into al
+; enter: si  point to digtab
+;
+rone:	mov	al,digtab[si]		;get the digit number
+	inc	si			;bump to next digit
+	add	al,10h			;add read mask
+	out	clkcmd,al	
+	cmp	al,15h			;is it hours 10 digit
+	in	al,clkdata
+	jnz	rone9
+	sub	al,08h			;yes-kill 24 hour bit
+rone9:	and	al,0fh			;strip irrelevant bits
+	ret				;al=bcd clock digit
+
+
+	eject
+	DSEG
+;********************************
+;*				*
+;*	data for routine	*
+;*				*
+;********************************
+
+bin_str		rs	0
+tod_day		rw	1
+tod_hr		rb	1
+tod_min		rb	1
+tod_sec		db	0
+
+ascii_str	db	CR,LF
+		db	'System time set '
+datestr		db	'MM/DD/YY  '	 ;date string
+timestr		db	'HH:MM:00'	 ;time string
+		db	CR,LF,'$'
+
+digtab	db	0,1,2,3,4,5,11,12,9,10,7,8
+;		ss  mm  hh   yy   mm   dd
+
+	end

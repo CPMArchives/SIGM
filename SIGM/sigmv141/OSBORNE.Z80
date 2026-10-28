@@ -1,0 +1,29 @@
+;Utility to get data to PIP on an OSBORNE 1
+;
+	ORG	103H
+	JP	GETCHAR
+; PUTCHAR not implemented at present
+	ORG	109H
+CHAR:	DS	1
+;
+	ORG	4000H
+GETCHAR: DI		;Lock out trouble
+	XOR	A
+	OUT	0,A
+	LD	(0EF08H),A
+; Now have switched in other bank, let's get data
+LP1:	LD	A,(2A00H)
+	AND	01
+	JR	Z,LP1
+	LD	A,(2A01H)
+	LD	C,A	;Save char
+;Switch normal RAM back again
+	LD	A,1
+	OUT	1,A
+	LD	(0EF08H),A
+;Mem back in, stash char
+	LD	A,C
+	LD	(9),A	;Put char at PIP's input locn
+	EI
+	RET
+;

@@ -1,0 +1,613 @@
+*****************************************************************
+*								*
+*		YALE CATALOGUE OF BRIGHT STARS			*
+*								*
+*	DOCUMENTATION FOR THE MACHINE-READABLE VERSION OF	*
+*	THE YALE CATALOGUE OF BRIGHT STARS			*
+*						R-SAW-7/79-36	*
+*								*
+*****************************************************************
+
+The YALE CATALOGUE OF BRIGHT STARS is in the public domain, and
+this documentation on the catalogue was extracted almost verbatum
+from a booklet, also in the public domain, whose preparation
+was funded by:
+
+	National Aeronautics and Space Administration
+	Goddard Space Flight Center
+	Greenbelt, Maryland  2077l
+
+under contract NAS 5-25369 by:
+
+	Theresa A. Nagy
+	Systems and Applied Sciences Corporation
+	6811 Kenilworth Avenue
+	Riverdale, Maryland  20840
+
+This database is revision 3 of the Yale Catalogue of Bright Stars,
+and it was obtained on 9 track tape on March 17, 1981 from:
+
+	Dr. Wayne Warren
+	National Space Science Data Center
+	Code 601
+	Godard Space Center
+	Greenbelt, Md  20771
+
+Dr. Warren says that revision 4 of the catalogue is due in late
+1981, and that it will have revisions in the magnitude and color
+data for about 10% of the stars.  The National Space Science Data
+Center does NOT have the capability of supplying the data base
+or revisions on floppy disks.
+
+The people who funded the documentation of this catalog, and the
+people who did the documentation work for a living.  PLEASE DO 
+NOT MAKE THEM COMPLETLY UNPRODUCTIVE BY CALLING THEM UP FOR 
+INFORMATION.
+
+The documentation is all here in this file.  Two 
+programs written in Microsoft BASIC, Version 5.2, STAR.BAS,
+showing how to access the data and STARVAL.BAS, which reads all 
+of the database and performs a SIMPLE check to verify database 
+integrity are on this disk.  The database, called STARx.DAT, is  
+on this and seven additional disks.
+
+disk1	STAR.DOC	documentation
+	STAR.BAS	sample database access program
+	STARVAL.BAS	database validation program
+	STAR1.BAD	BAD database on stars 0001 thru 0050
+			    to show the errors that STARVAL
+			    can and cannot find in the data.
+	STAR1.DAT	database on stars 0001 thru 0884
+disk2	STAR2.DAT	database on stars 0885 thru 2059
+disk3	STAR3.DAT	database on stars 2060 thru 3234
+disk4	STAR4.DAT	database on stars 3235 thru 4409
+disk5	STAR5.DAT	database on stars 4410 thru 5584
+disk6	STAR6.DAT	database on stars 5585 thru 6759
+disk7	STAR7.DAT	database on stars 6760 thru 7934
+disk8	STAR8.DAT	database on stars 7935 thru 9110
+
+*****************************************************************
+*								*
+*	Table of Contents/List of Tables			*
+*								*
+*****************************************************************
+
+Section 1 - Introduction . . . . . . . . . . . . . . . . . 1-1
+Section 2 - Tape Contents  . . . . . . . . . . . . . . . . 2-1
+Section 3 - Tape Characteristics . . . . . . . . . . . . . 3-1
+Section 4 - Remarks and Modifications  . . . . . . . . . . 4-1
+Section 5 - Sample Listing . . . . . . . . . . . . . . . . 5-1
+
+Table 2-l   Tape Contents  . . . . . . . . . . . . . . . . 2-2
+Table 3-1   Tape Characteristics . . . . . . . . . . . . . 3-2
+Table 4-1   Published Errata in the Third Edition  . . . . 4-3
+Table 4-2   Stars with Sign Error of the Galactic 
+		Latitued in the Published Catalogue  . . . 4-4
+Table 5-1   Sample Listing . . . . . . . . . . . . . . . . 5-1
+
+*****************************************************************
+*								*
+*	Section 1 - Introduction				*
+*								*
+*****************************************************************
+
+In recent years there has been a trend away from publishing
+catalogues in book form to preparing catalogues by computer
+and distributing them on magnetic tape, with appearance in
+book form as a secondary occurrence.  This memo is the result
+of the development of the documentation for the machine-
+readable version of the catalogue and includes the basic 
+information given the origional preface of the published
+catalogue.  This memo should be distributed along with any 
+copy of the machine-readable version of the catalogue.
+
+*****************************************************************
+*								*
+*	Section 2 - Tape Contents				*
+*								*
+*****************************************************************
+
+A byte-by-byte description of the contents of the catalogue
+is given in Table 2-1.  The information in the "Description"
+column is derived mainly from the published version of the 
+catalogue whenever possible.  The "Suggested Format" column
+is for FORTRAN-formatted reads.
+
+**************** Table 2-1  Tape Contents ***********************
+
+Byte	Description					Format
+
+1-4	Yale Bright Star (BS)				I4
+	   (= Harvard Revised (HR) Number)
+
+5-7	Flamsteed Number				I3
+
+8-14	Name						7A1
+	   (Greek letters coded: alpha = 0l . .
+	   omega = 24)
+
+15	Sign of Bonner Durchmusterung (BD)		A1
+
+16-22	DM Number					I7
+
+23-28	Henry Draper (HD) Number			I6
+
+29-33	Boss General Catalog (GC) Number		I5
+
+34-37	Trig. Parallax Catalogue Number			I4
+	   (when followed by decimal - 1963
+	   Supplement)
+
+38-43	Radial Velocity Catalogue Number		I6
+
+44	Double Star Catalogue				A1
+	   b - implies Aitken's Catalogue of
+		 Double Stars
+	   R - implies Rossiter's Catalogue of 
+		 Southern Double Stars
+	Other catalogues or lists unnumbered,
+	are represented be letters:
+	   I - Innes
+	   F - Finsen
+	   K - Kuiper
+	   B - van Biesbroeck or van den Bos
+
+45-49	Catalogue Number				I5
+
+50-51	Blank or letters indicating componets		2A1
+	   of multiple-star system.
+
+52-59	Variable Star Catalogue				8A1
+	   (1958 or 1961 Supplement, suspected
+	   but unconfirmed variables are 
+	   represented by "VAR?"left justified)
+
+60-65	***** Right Ascension (epoch 1900.0) *****
+
+60-61	Hours						I2
+
+62-63	Minutes						I2
+
+64-65	Seconds						I2
+
+66	Sign of Ten-Year change in Right Ascension	A1
+
+67-69	Ten-Year change in Right Ascension		I3
+	   (unit = seconds)
+
+70-74	***** Declination (epoch 1900.0) *****
+
+70	Sign						A1
+
+71-72	Degrees						I2
+
+73-74	Minutes						I2
+
+75-79	***** Galactic Longitude *****
+
+75-77	Degrees						I3
+
+78-79	Minutes						I2
+
+80-84	***** Galactic Latitued *****
+
+80	Sign						A1
+
+81-82	Degrees						I2
+
+83-84	Minutes						I2
+
+85-88	BS-HR Number					I4
+
+89-94	***** Right Ascension (epoch 2000.0) *****
+
+89-90	Hours						I2
+
+91-92	Minutes						I2
+
+93-94	Seconds						I2
+
+95-99	***** Change in Right Ascension *****
+	****** (epoch 2000.0 - 1900.0) ******
+
+95	Sign						A1
+
+96-97	Minutes						I2
+
+98-99	Seconds						I2
+
+100-104	***** Declination (epoch 2000.0) *****
+
+100	Sign						A1
+
+101-102	Degrees						I2
+
+103-104 Minutes						I2
+
+105-107	***** Change in Declination *****
+	**** (epoch 2000.0 - 1900.0) ****
+
+105	Sign						A1
+
+106-107	Minutes						I2
+
+108-111	***** Visual Magnitude *****
+
+108	Sign						A1
+	   (if minus (-) magnitude)
+
+109-111	Visual Magnitude				I3
+	   (unit = 0.01 magnitude)
+
+112-113	Source:						2A1
+	   b - Indicates photoelectric determination
+		  by UBV System
+	   R - Indicates HR magnitudes reduced by
+		  Rybka to V system
+	   H - Indicates original HR magnitude was
+		  was retained
+	   B - Indicates blended images
+
+	***** Color *****
+
+114	Sign						A1
+
+115-117	B-V in UBV System				I3
+	   (unit = 0.01 magnitude)
+
+118-139 Spectral Class					22A1
+	   (if composit spectral class,
+	   plus (+) in byte 139)
+
+140	Sign						A1
+
+141-144	value						I4
+	   (unit = 10^-3 arcsec)
+
+145-149	***** Annual Proper Motion in Declination *****
+
+145	Sign						A1
+
+146-149	Value						I4
+	   (unit = 10^-3 arcsec)
+
+150-154	***** Parallax *****
+
+150	Sign						A1
+
+151-153	Trigonometric Parallax				I3
+	   (unit = 10^-3 arcsec)
+
+154	D indicates Dynamical Parallax, which is	A1
+	given only when Trigonometric Parallax
+	is not available
+
+155-160	***** Radial Velocity *****
+
+155	Sign						A1
+
+156-160	Velocity (km/sec)				5A1
+	   ("V?" appears not right justified)
+
+	***** Double Star Data *****
+
+161-163	Magnitude difference between two componets	I3
+	of a visual binary, or between two brightest
+	componets of a multiple system from the
+	double star catalog, which may be inconsistent
+	with the values given in bytes 107-110.
+	   (unit = 0.01 magnitude)
+
+164-167	Maxium observed separation of the same two	I4
+	componets acording to the paticular catalog
+	cited.
+	   (unit = 0.1 arcsec)
+
+168	Number of componets having lettered 		I1
+	designations in the catalog of double stars.
+
+169-170	Remarks:
+	1 - The companion is optical.
+	2 - Visual binary.
+	3 - Common proper motion componets.
+	4 - Fixed-seperation companion.
+	5 - Two spectra are indicated on the
+	       radial velocity plates.
+	6 - The star is a spectroscopic binary.
+	7 - Magnitude and color given refer to 
+	       the combined light of two or 
+	       more stars.
+
+	The following letters refer to types of
+	remarks that appear in the book form of
+	the catalogue:
+
+	D - Double star data.
+	G - Cluster, group, aggregate, or 
+	       association membership.
+	M - Comments on magnitude or color, except
+	       data on known variable stars.
+	N - The name of a bright star.
+	R - Radial velocity comments, including
+	       data on spectroscopic binaries.
+	S - Comments on Spectra.
+	V - Remarks on variable stars other than
+	       the data from General Catalogue of
+	       Variable Stars and its Supplement,
+	       which are abstracted in the Remarks
+	       for all stars with named variable
+	       star designations.
+	* - Any combination of the above categories 
+	       and other comments not falling under
+	       any of those categories.
+
+171-178	Right ascension (1900) in radians		F8.4
+
+179-186	Declination (1900) in radians			F8.4
+
+187-194	Right ascension (2000) in radians		F8.4
+
+194-202	Declination (2000) in radians			F8.4
+
+*****************************************************************
+*								*
+*	Section 3 - Tape Characteristics			*
+*								*
+*****************************************************************
+
+***** The Star Catalogue is normally supplied on IBM compatible
+***** 9 track computer tape (eg. EBCDIC characters).  It is also
+***** available on special request on DEC compatible 9 track
+***** computer tape (eg. ASC-II characters).  The data on the 
+***** floppy disks are in ASCII.
+
+The information contained in this section is sufficient for
+the user to read the machine-readable version of the catalogue.
+The statistics of the contents of the entire tape are given in
+Table 3-1, if more than one number is given for any entry this
+refers to a data set with more than one file.  The multiple 
+numbers then refer to the first, second, third, etc. files of
+the tape.
+
+*********** Table 3-l  IBM/EBDIC Tape Characteristics ***********
+
+Catalogue				YBS
+Number of Tracks			9
+Density (BPI)				1600
+Number of files				1
+Logical Record Length (bytes)		202
+Blocksize (bytes)			20200
+Blocking Factor				100
+Record Format (IBM OS/JCL)		FB
+Total number of logical Records		9110
+Total number of blocks			92
+
+********** Table 3-1  DEC/ASCII Tape Characteristics ************
+
+Catalogue				YBS
+Number of Tracks			9
+Density (BPI)				800
+Number of files				1
+Logical Record Length (bytes)		202
+Normal Blocksize (bytes)		15150
+Last Block Blocksize (bytes)		7070
+Blocking Factor				75
+Record Format (IBM OS/JCL)		FB
+Total Number of logical Records		9110
+Total Number of Blocks			122
+
+*****************************************************************
+*								*
+*	Section 4 - Remarks and Modifications			*
+*								*
+*****************************************************************
+
+The magnetic tape version of the Third Revised Edition 
+of the Catalogue of Bright Stars (1964, Yale University 
+Observatory) was received in 1972 from the U. S. Naval
+Observatory.  This version of the catalogue had seperate
+data files for the left-hand and the right-hand pages of
+the catalogue.  Listed below are the modifications to 
+that version.
+
+1.	Overpunches existed in several fields.  These
+	fields were decoded and all amperstands were
+	converted to plus (+) signs.
+
+2.	Right-hand and left-hand page dara were merged
+	into one data file.
+
+3.	The tape was converted from a 7-track to a
+	9-track tape.
+
+4.	The record size was expanded from 84 bytes
+	(each page with overpunches included) to
+	202 bytes.
+
+5.	All published errata (cf. table 4-1) have been
+	incorporated in the magnetic tape version.
+
+6.	One star (BS 1612) was found to have a blank
+	magnitude field which when read with a FORTRAN
+	F format yielded a zero value.  This field was
+	corrected to 3.8 as per the published catalogue.
+
+7.	The double star number or leter was not right
+	or left justified.  The bytes containing this 
+	information were modified so that only the 
+	number appears in bytes 45-49 and the letter 
+	portion of the identification appears only in
+	bytes 50-5l.
+
+8.	The equatorial coordinates at both epochs 1900
+	and 2000 were computed in radians and added to
+	each record.
+
+In addition to the published errata other identification
+errors have been noted over the past years.  These possible
+errors are listed below for reference but the corrections
+have not been made to the machine-readable version (except
+for star BS 1101) of the catalogue since they do not 
+constitute a published set of errata.
+
+BS #	Published Value			Correction
+
+67	DM +1 degree 28			DM +0 degree 28
+1101	DM -1 degree 572		DM -0 degree 572
+6165	B-V +0(m/.)26			B-V -(m/.)26
+7705	HD 191570			HD 191571
+8417	HD 209790			HD 209791
+8841	HD 219449			HD 219430
+
+*****   (m/.) was printed as a "." with a "m" directly above 
+*****   the "."
+
+The second edition of the Yale Bright Star Catalogue
+(1940) included all except 19 of the 9110 stars first
+listed in the Harvard Annals (Volume 50, 1908), the "HR"
+catalogue whose numbering was exactly taken over in the 
+Yale Bright Star Catalogue (YBS).  There are 19 blank 
+records in both the published version of the catalogue
+as well as the machine-readable version of the YBS.
+There are 9091 records with information, and 19 
+records with just the HR number (the remainder of the 
+record is blank).  The HR stars which are blank are
+given below.
+
+	92	95	182	663	1057
+	1630	1841	2472	2496	3515
+	3671	6309	6437	6515	7138
+	7189	7539	8296	8945
+
+In addition to the information given in the Catalogue
+of Bright Stars - Third Revised Edition, the value of
+the 10-year change in the right ascension (bytes 66-69)
+is given plus the equatorial coordinates at both epochs
+(1900 and 2000) in radians (bytes 171-202).
+
+The published version of the catalogue had sign errors
+for the stars listed in Table 4.2.  For all of the stars
+listed a minus sign should appear for the sign of the
+galactic latitude in the hard copy, the magnetic tape 
+version is correct.
+
+It should be noted that more stars have colors on the
+machine-readable version of this catalogue than given
+in the published version of the catalogue.  Also, 
+sometimes the spectral type differs from that as listed
+in the Third Revised Edition (e.g. HR 72 is given as 
+a G0 star in the published catalogue but as a G5 IV-V
+star on the tape).  It is unclear what or who is the
+source of these updates.
+
+******** Table 4-1 Published errata in the Third Edition ********
+
+BS #	Column			For		Read
+
+472	R			blank		3
+967	Radial Velocity		-65		-6
+969	Radial Velocity		+22		+2
+1210	Double Srars:
+	  delta m		blank		4.2
+	  Sep			blank		75.3
+	  No			blank		3
+1966	RA (2000)		2x		27
+2063	DM			11711		1171a
+2402	DM			136		1136
+2564	Dec (1900)		1'		18'
+3366	HD			72622		72292
+3445	B-V			-0.71		+0.71
+3759	Radial Velocity		+98		+10
+3962	HD			87330		87318
+4101	R			blank		1
+4450	delta alpha		5v		55
+5422	R			2		1
+5703	Dec (1900)		+		-
+	Galactic Long		20 deg 59'	347 deg 43'
+	Galactic Lat		+53 deg 21'	+34 deg 3'
+	Dec (2000)		+14 deg 49'	-15 deg 33'
+5839	Radial Velocity		+8		+4
+6206	Double Stars: Sep	957.		95.7
+6616	B-V			+1.16		+0.70
+6622	Spectral Class		B35		B3V
+6984	RA (1900)		27s		37s
+	Galactic Long		l'		2'
+	Galactic Lat		5'		3'
+	RA (2000)		4s		14s
+7257	Radial velocity		+16		+13
+7517	HD			186648		186675
+7543	R			blank		1
+7567	Variable Star Cat	V   Cyg		V280 yg
+7645	R			blank		1
+8225	R			blank		1
+8570	HD			213306		213296
+8571	HD			213307		213306
+8833	R			blank		1
+
+********** Table 4-2  Stars with sign error of the **************
+********** galactic latitude in the published catalogue. ********
+
+93	488	561	839	964	1046	1073	1324
+1330	1550	1612	1615	1689	1779	1795	1805
+1843	1850	1914	1945	2074	2116	2135	2184
+2223	2250	2253	2269	2287	2342	2362	2385
+2404	2422	2432	2441	2474	2479	2517	2530
+2582	2622	2639	2694	2723	2796	2825	2853
+2923	2992	3004	3034	3099	3113	3160	3170
+3177	3237	3237	3242	3253	3267	3270	3296
+3327	3328	3520	3588	3614	3784	3837	3875
+3920	4091	4095	4114	4144	4147	4169	4177
+4179	4188	4198	4210	4228	4239	4271	4487
+4499	4511	4541	4573	4599	4603	4644	4729
+4730	4730	4781	4771	4830	4972	5171	5349
+5459	5460	5546	5873	5937	6197	6381	6392
+6398	6450	6456	6522	6700	6716	6724	6727
+6762	6798	6825	6838	6858	6946	6973	7158
+7315	7331	7332	7357	7437	7458	7472	7490
+7540	7670	7743	7770	7826	7911	7926	7984
+8023	8035	8053	8064	8107	8136	8161	8185
+8206	8259	8677	8745	8797	8803	8894	8990
+9100
+
+*****************************************************************
+*								*
+*	Section 5 - Sample Output Listing			*
+*								*
+*****************************************************************
+
+The following is a listing of the EBCDIC (ASCII) characters
+on the machine readable version of this catalogue.  If this
+document represents a binary tape, this listing is a formatted
+listing for convience.  The sample listing represents the
+contents of the first phusical block on the tape.  The header
+numbers (first three lines) when read vertically refer to the 
+byte which then agrees with the information in table 2-1.
+
+********* Table 5-1  Sample Output Listing **********************
+
+***** note: due to lazyness and your probable lack of a 132 
+***** column line printer, I have reformatted the sample listing
+***** and only included a few stars vs the 100 stars in the
+***** documentations sample listing.  You should be able to 
+***** get the general idea tho.
+
+Bytes		 1	   2	     3	       4	 5
+	123456789 123456789 123456789 123456789 123456789
+
+000-050 0001          +4404550     3   54        35    46
+051-100           0 0 2+ 31+444011426-16530001 0 511+ 5 9+
+101-150 4513+33 646 R         A0               -0016-0017
+151-200     - 18   29 2153    0.0001  0.7796  0.0226  0.78
+201-202 92
+
+000-050 0002          - 104525     6   51        32      
+051-100          235956+ 31- 1 3 9819-61 80002 0 5 4+ 5 8-
+101-150  030+33 628  +110G    G9               +0039-0055
+151-200     + 14              6.2829 -0.0183  0.0221 -0.00
+201-202  87
+
+
+***** note: due to the poor quality of the photoreduced
+***** printout, 5s, 6s, 8s, & 9s may have been mistaken 
+***** each other.
+

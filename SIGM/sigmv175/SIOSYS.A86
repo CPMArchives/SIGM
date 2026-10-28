@@ -1,0 +1,413 @@
+;
+;			RAINBOW.A86
+;
+;	For the DEC Rainbow communications port.
+;
+;
+;Change the clock speed to suit your system.
+CLKRATE	EQU	5		;clock speed in MHz, 8 MHz maximum
+;
+;Do not change the next three equates.
+SETUP	EQU	TRUE
+DISCON	EQU	TRUE
+CARDET	EQU	TRUE
+SCRNCLR	EQU	TRUE
+;
+;Z80 SIO equates.
+MODRCVB	EQU	01H		;bit to test for received data
+MODRCVR	EQU	MODRCVB		;change to 0 if bit is 0 when
+				;data received
+MODSNDB	EQU	04H		;bit to test for ready to send
+MODSNDR	EQU	MODSNDB		;change to 0 if bit is 0 when
+				;ready to send
+;
+MODDATP	EQU	040H
+MODCTLP	EQU	042H
+MODBAUP	EQU	06H
+MODDTRP	EQU	02H
+;
+CLR1	EQU	27
+CLR2	EQU	'['
+CLR3	EQU	'0'
+CLR4	EQU	'J'
+;
+SCLR1	EQU	27
+SCLR2	EQU	'['
+SCLR3	EQU	'2'
+SCLR4	EQU	'J'
+SCLR5	EQU	27
+SCLR6	EQU	'['
+SCLR7	EQU	'H'
+;
+CLREOS:		CALL	ILPRT
+;
+		DB	CLR1,CLR2,CLR3,CLR4,0
+		RET
+;
+CLRSCRN:	CALL	ILPRT
+;
+		DB	SCLR1,SCLR2,SCLR3,SCLR4,SCLR5,SCLR6,SCLR7,0
+		RET
+;
+INMODCTLP:	IN	AL,MODCTLP ! RET	 ;in modem control port
+		RB	OFFSET INMODCTLP-(offset $)+16  ;extra space
+OUTMODDATP:	OUT	MODDATP,AL ! RET	 ;out modem data port
+		RB	OFFSET OUTMODDATP-(offset $)+16 ;extra space
+INMODDATP:	IN	AL,MODDATP ! RET	 ;in modem data port
+		RB	OFFSET INMODDATP-(offset $)+16  ;extra space
+ANIMODSNDB:	AND	AL,MODSNDB ! RET	 ;bit to test for send ready
+		RB	OFFSET ANIMODSNDB-(offset $)+16 ;extra space
+CPIMODSNDR:	CMP	AL,MODSNDR ! RET	 ;value of send bit when ready
+		RB	OFFSET CPIMODSNDR-(offset $)+16 ;extra space
+ANIMODRCVB:	AND	AL,MODRCVB ! RET	 ;bit to test for receive ready
+		RB	OFFSET ANIMODRCVB-(offset $)+16 ;extra space
+CPIMODRCVR:	CMP	AL,MODRCVR ! RET	 ;value of receive bit when ready
+;
+;This is where the message goes giving the system for
+;which MODEM9 has been customized.
+;
+SYSVER:
+	CALL	ILPRT
+	DB	'Set Up for: DEC Rainbow (CP/M-86/80)',CR,LF,LF,0
+	RET
+;
+;The following are used in setting up the Z80 SIO (and what a pain
+;in the neck it is too!)
+;No need to change for another micro if INIT and SETUP are FALSE.
+;
+;control bytes
+RSTINS	EQU	18H	;reset SIO - register 0
+RSTERR	EQU	30H	;reset parity and overrun flags - register 0
+REG1INS	EQU	0	;no interrupts - register 1
+REG3INS	EQU	0C1H	;8 Rx bits, Rx enable -register 3
+RENABL	EQU	1	;Rx enable
+REG4INS	EQU	44H	;16X baud rate, 1 stop bit, no parity - register 4
+CLK16	EQU	40H	;16X baud rate
+REG5INS	EQU	0EAH	;8 Tx bits, Tx enable, RTS, DTR - register 5
+ONINS	EQU	8AH	;Tx enable, RTS, DTR - register 5
+OFFINS	EQU	68H	;8 Tx bits, Tx enable, no RTS, no DTR -register 5
+;End of Z80 SIO specific equates for initialization.
+BAUD12	EQU	88H	;1200 baud
+DECDTR	EQU	0CH	;DTR for special DEC DTR port
+STSPEED	EQU	3	;1200bps
+;
+;
+;The following is used to initialize the Z80 SIO on execution
+;of MODEM9.
+;
+INITMOD:
+	MOV	AL,3		;MSPEED 1200 baud value
+INITSPD	EQU	OFFSET $ -1
+	MOV	MSPEED,AL
+	MOV	BX,Offset BDTABL
+	MOV	AH,0
+	ADD	BX,AX
+	MOV	AL,Byte Ptr [BX]
+	MOV	CS: Byte Ptr .SETBD,AL
+;
+	MOV	AL,DECDTR
+	NOT	AL
+	OUT	MODDTRP,AL
+;
+	MOV	AL,0		;select register 0
+	OUT	MODCTLP,AL
+	MOV	AL,RSTINS
+	OUT	MODCTLP,AL
+	MOV	AL,1		;select register 1
+	OUT	MODCTLP,AL
+	MOV	AL,REG1INS
+	OUT	MODCTLP,AL
+	MOV	AL,3		;select register 3
+	OUT	MODCTLP,AL
+	MOV	AL,REG3INS
+PARM1	EQU	OFFSET $ -1
+	OUT	MODCTLP,AL
+	MOV	AL,4		;select register 4
+	OUT	MODCTLP,AL
+	MOV	AL,REG4INS
+PARM2	EQU	OFFSET $ -1
+	OUT	MODCTLP,AL
+	MOV	AL,5		;select register 5
+	OUT	MODCTLP,AL
+	MOV	AL,REG5INS
+PARM3	EQU	OFFSET $ -1
+	OUT	MODCTLP,AL
+	MOV	AL,BAUD12
+SETBD	EQU	OFFSET $ -1
+	OUT	MODBAUP,AL
+	RET
+;
+;
+;The following routine changes the baud rate, stop bits and parity on
+;the Z80 SIO from the command level. Note the routine MUST modify the
+;parameters used by the INITMOD routine.
+;
+;The following are parameters/masks used in setting word length
+;stop bits and parity for the Z80 SIO.
+MSKWD	EQU	0C0H	;word length mask
+RSEVEN	EQU	40H	;receive seven bit word
+REIGHT	EQU	0C0H	;receive eight bit word
+TSEVEN	EQU	20H	;transmit seven bit word
+TEIGHT	EQU	60H	;transmit eight bit word
+MSKST	EQU	0CH	;stop bit mask
+ONE	EQU	04H	;one stop bit
+TWO	EQU	0CH	;two stop bits
+MSKPA	EQU	03H	;mask for parity bits
+NONE	EQU	00H	;no parity
+ODD	EQU	01H	;odd parity
+EVEN	EQU	03H	;even parity
+;
+;
+SETUPR:	PUSH	BX
+	CALL	CLRTST
+	CALL	ILPRT
+	DB	'                 UART/Modem Control',CR,LF,LF,LF
+	DB	'Current settings -',CR,LF,0
+	CALL	SETTIM2
+	CALL	GIVEPRM
+	CALL	ILPRT
+	DB	CR,LF
+	DB	'Enter choices below - <CR> for no change',CR,LF,0
+AGAIN:	MOV	DX,OFFSET BAUDBUF	;point to input buffer for ILCOMP
+	CALL	ILPRT
+	DB	'Baud Rate (300, 600, 1200, 2400, 4800, 9600): ',0
+	CALL	INBUFF
+	MOV	DX,OFFSET BAUDBUF+2
+	CALL	ILCOMP	;compare BAUDBUF+2 with characters below
+	DB	'300',0
+	MOV	AL,1
+	JNC	OK		;go if got match
+	CALL	ILCOMP
+	DB	'600',0
+	MOV	AL,2
+	JNC	OK
+	CALL	ILCOMP
+	DB	'1200',0
+	MOV	AL,3
+	JNC	OK
+	CALL	ILCOMP
+	DB	'2400',0
+	MOV	AL,4
+	JNC	OK
+	CALL	ILCOMP
+	DB	'4800',0
+	MOV	AL,5
+	JNC	OK
+	CALL	ILCOMP
+	DB	'9600',0
+	MOV	AL,6
+	JNC	OK
+	CALL	ILCOMP
+	DB	' ',0
+	JNC	AGAIN2
+	CALL	WRONG
+	JMP	AGAIN		;try again
+;
+OK:	MOV	CS: BYTE PTR .INITSPD,AL
+	MOV	MSPEED,AL
+;
+AGAIN2:	MOV	DX,OFFSET BAUDBUF	;point to input buffer for ILCOMP
+	CALL	ILPRT
+	DB	CR,LF
+	DB	'Word Length (7, 8): ',0
+	CALL	INBUFF
+	MOV	DX,OFFSET BAUDBUF+2
+	CALL	ILCOMP	;compare BAUDBUF+2 with characters below
+	DB	'7',0
+	MOV	AL,RSEVEN
+	MOV	CH,TSEVEN
+	JNC	OK2
+	CALL	ILCOMP
+	DB	'8',0
+	MOV	AL,REIGHT
+	MOV	CH,TEIGHT
+	JNC	OK2
+	CALL	ILCOMP
+	DB	' ',0
+	JNC	AGAIN3
+	CALL	WRONG
+	JMP	AGAIN2
+;
+OK2:	MOV	RWDLEN,AL
+	MOV	TWDLEN,CH
+;
+AGAIN3:	MOV	DX,OFFSET BAUDBUF	;point to input buffer for ILCOMP
+	CALL	ILPRT
+	DB	CR,LF
+	DB	'Stop Bits (1, 2): ',0
+	CALL	INBUFF
+	MOV	DX,OFFSET BAUDBUF+2
+	CALL	ILCOMP	;compare BAUDBUF+2 with characters below
+	DB	'1',0
+	MOV	AL,ONE
+	JNC	OK3
+	CALL	ILCOMP
+	DB	'2',0
+	MOV	AL,TWO
+	JNC	OK3
+	CALL	ILCOMP
+	DB	' ',0
+	JNC	AGAIN4
+	CALL	WRONG
+	JMP	AGAIN3
+;
+OK3:	MOV	STPLN,AL
+;
+AGAIN4:	MOV	DX,OFFSET BAUDBUF	;point to input buffer for ILCOMP
+	CALL	ILPRT
+	DB	CR,LF
+	DB	'Parity (None, Even, Odd): ',0
+	CALL	INBUFF
+	MOV	DX,OFFSET BAUDBUF+2
+	CALL	ILCOMP	;compare BAUDBUF+2 with characters below
+	DB	'NONE',0
+	MOV	AL,NONE
+	JNC	OK4		;go if got match
+	CALL	ILCOMP
+	DB	'EVEN',0
+	MOV	AL,EVEN
+	JNC	OK4
+	CALL	ILCOMP
+	DB	'ODD',0
+	MOV	AL,ODD
+	JNC	OK4
+	CALL	ILCOMP
+	DB	' ',0
+	JNC	GOSET
+	CALL	WRONG
+	JMP	AGAIN4		;try again
+;
+OK4:	MOV	PARIT,AL
+;
+GOSET:	MOV	AL,RENABL
+	OR	AL,RWDLEN
+	MOV	CS: BYTE PTR .PARM1,AL
+	MOV	AL,ONINS
+	OR	AL,TWDLEN
+	MOV	CS: BYTE PTR .PARM3,AL
+	MOV	AL,PARIT
+	OR	AL,STPLN
+	OR	AL,CLK16
+	MOV	CS: BYTE PTR .PARM2,AL
+	CALL	ILPRT
+	DB	CR,LF
+	DB	'New settings -',CR,LF,0
+	CALL	SETTIM2
+	CALL	GIVEPRM
+	POP	BX
+	JMP	INITMOD		;reset Z80 SIO
+;
+GIVEPRM:
+	CALL	GETPRM
+	CALL	ILPRT
+	DB	'Word length is ',0
+	MOV	AL,RWDLEN
+	CMP	AL,RSEVEN
+	JNZ	NOTSEV
+	CALL	ILPRT
+	DB	'seven',0
+	JMP	GIVEST
+NOTSEV:	CALL	ILPRT
+	DB	'eight',0
+GIVEST:	CALL	ILPRT
+	DB	', number of stop bits is ',0
+	MOV	AL,STPLN
+	CMP	AL,ONE
+	JNZ	NOTONE
+	CALL	ILPRT
+	DB	'one',0
+	JMP	GIVEPA
+NOTONE:	CALL	ILPRT
+	DB	'two',0
+GIVEPA:	CALL	ILPRT
+	DB	', parity is ',0
+	MOV	AL,PARIT
+	CMP	AL,NONE
+	JNZ	NOTNON
+	CALL	ILPRT
+	DB	'none',CR,LF,0
+	RET
+NOTNON:	MOV	AL,PARIT
+	CMP	AL,ODD
+	JNZ	NOTODD
+	CALL	ILPRT
+	DB	'odd',CR,LF,0
+	RET
+NOTODD:	CALL	ILPRT
+	DB	'even',CR,LF,0
+	RET
+;
+GETPRM:	MOV	AL,CS: BYTE PTR .PARM1	;get present word length
+	AND	AL,MSKWD	
+	MOV	RWDLEN,AL
+	MOV	AL,CS: BYTE PTR .PARM2	;get stop bits and parity
+	MOV	CH,AL
+	AND	AL,MSKST
+	MOV	STPLN,AL
+	MOV	AL,CH
+	AND	AL,MSKPA
+	MOV	PARIT,AL
+	RET
+;
+WRONG:	CALL	ILPRT	;all matches failed - tell operator
+	DB	'++ Incorrect entry ++',CR,LF,BELL,0
+	RET
+;
+;Table of baud rate parameters
+BDTABL	EQU	Offset $
+	DB	000H		;110 Not used
+	DB	066H		;300
+	DB	077H		;600
+	DB	088H		;1200
+	DB	0BBH		;2400
+	DB	0DDH		;4800
+	DB	0EEH		;9600
+	DB	000H		;19200 Not used
+;
+RWDLEN	DB	REIGHT
+TWDLEN	DB	TEIGHT
+STPLN	DB	ONE
+PARIT	DB	NONE
+;
+BAUDBUF:
+	DB	10,0
+	RB	10
+;
+;
+;For MODEMs which disconnect from the telephone line when data terminal
+;ready (DTR) drops, the following routine will disconnect.
+;
+HANGUP	EQU	0		;HANG UP THE TELEPHONE
+;
+DISCR:	MOV	AL,DECDTR
+	OUT	MODDTRP,AL
+	RET
+;
+;
+;The following routine will give the carrier detect status when the
+;Present version is used with a modem whose clear-to-send line follows
+;carrier detect. Change CTS to RLSD if your modem connection presents
+;the CXR line to the SIO.
+;
+RSTEXS	EQU	10H		;select register 0, reset external status
+CTS	EQU	20H		;CLEAR TO SEND
+RLSD	EQU	10H		;RECEIVED LINE SIGNAL (CARRIER) DETECT
+;
+DETCAR:	MOV	AL,CARDETFLG
+	OR	AL,AL
+	JZ	DETCARRET	;RETURN IF FALSE
+	CALL	ILPRT
+	DB	'Carrier ',0
+	IN	AL,MODDTRP
+	AND	AL,RLSD
+	JZ	DETCAR1
+	CALL	ILPRT
+	DB	'not ',0
+DETCAR1:
+	CALL	ILPRT
+	DB	'present',CR,LF,0
+DETCARRET:
+	RET
+;
+
+

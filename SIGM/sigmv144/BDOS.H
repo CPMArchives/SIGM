@@ -1,0 +1,45 @@
+/*
+	The BDOS definitions
+*/
+#define	SYSRESET	0
+#define	CONSOLEIN	1
+#define	CONSOLEOUT	2
+#define	READERIN	3
+#define	PUNCHOUT	4
+#define	LISTOUT		5
+#define	DIRECTIO	6
+#define	GETIOBYTE	7
+#define	SETIOBYTE	8
+#define	PRINTBUFF	9
+#define	READBUFF	10
+#define	CONSOLESTAT	11
+#define	GETVERSION	12
+#define	DISKRESET	13
+#define	SELECTDISK	14
+#define	OPENFILE	15
+#define	CLOSEFILE	16
+#define	SEARCHFIRST	17
+#define	SEARCHNEXT	18
+#define	DELETEFILE	19
+#define	ERASEFILE	19
+#define	READSEQ		20
+#define	WRITESEQ	21
+#define	MAKEFILE	22
+#define	CREATEFILE	22
+#define	RENAMEFILE	23
+#define	GETLOGIN	24
+#define	GETCURRENT	25
+#define	SETADDRESS	26
+#define	GETALLOC	27
+#define	WRITEPROT	28
+#define	GETREADONLY	29
+#define	SETFILEATTR	30
+#define	GETPARMS	31
+#define	USERCODE	32
+#define	READRAND	33
+#define	WRITERAND	34
+#define	FILESIZE	35
+#define	SETRANDOM	36
+#define	DRIVERESET	37
+#define	ZWRITERAND	40
+

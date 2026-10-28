@@ -1,0 +1,274 @@
+General
+BIN                     -- Char Input Via BDOS
+BIST                    -- Char Input Status Via BDOS
+BOUT                    -- Char Output Via BDOS
+CAPIN/CAPINE            -- Char Input and Capitalize w/Echo
+CIN/RIN                 -- Char Input
+COUT/LOUT/POUT/SOUT     -- Char Output
+CCOUT/CLOUT/CPOUT/CSOUT -- Char Output with Ctrl Chars
+CONDIN                  -- Conditional Input
+CRLF/LCRLF/SCRLF        -- New Line Output
+CST                     -- Console Status
+:General
+     Thió  seô oæ routineó provideó simplå I/Ï  capabilitieó 
+witè  absolutelù nï sidå effectó oî anù  registers®   Direcô 
+BIOÓ  calló arå useä oî alì routineó excepô foò  BIN¬  BIST¬ 
+anä BOUT¬  sï functionó sucè aó ^Ğ (whicè arå implementeä bù 
+thå BDOS© wilì noô worë by-and-large.
+
+     Thå  seô oæ I/Ï capabilitieó provideä bù theså routineó 
+includes:
+          Character Input from Console and Reader
+          Character Output to Console, Printer, and Punch
+          Character Output to Console, Printer, and Punch
+               with Control-Character Processing
+          Console Input Status
+          Conditional Input
+          New Line (CRLF) Output
+          Capitalized Character Input
+
+     Switcheä  Outpuô  ió provideä iî thió seô oæ  routines» 
+theså  arå  calleä  thå  S-serieó  oæ  routines¬   anä   arå 
+complementarù tï thå S-serieó numeriã prinô routines.
+
+     Thå  S-serieó  oæ routineó ió differenô froí thå  otheò 
+serieó  iî thaô thå S-serieó useó aî externaì datá  bytå  tï 
+determinå  wherå thå outpuô ió tï bå routed®   Thió bytå  ió 
+referreä  tï aó SCTLFÌ (Ó Controì Flag)¬  anä itó  switchinç 
+functioî ió illustrateä iî thå followinç table:
+
+     ----- SCTLFL -----
+      Binary        Hex       Outputs to
+
+     00000000B      00H       Nothing
+     00000001B      01H       Console
+     10000000B      80H       Printer
+     10000001B      81H       Console and Printer
+
+
+     Iæ  thå  programmeò  doeó  noô  initializå  thå  SCTLFÌ 
+variablå beforå hå useó aî S-routine¬  outpuô wilì gï tï thå 
+consolå (defaulô valuå oæ SCTLFÌ ió 01H).
+
+
+     Aî examplå oæ codå usinç S-routineó is:
+
+          EXT  SCTLFL,SOUT    ; SCTLFL flag, SOUT routine
+          ...
+          MVI  A,81h     ; enable printer and console
+          STA  SCTLFL
+          ...
+          MVI  A,'A'     ; print character 'A'
+          CALL SOUT
+          ...
+          MVI  A,80H     ; enable printer only
+          STA  SCTLFL
+          ...
+          MVI  A,'a'     ; print character 'a'
+          CALL SOUT
+          ...
+
+
+
+:BDOS Console Char Input Routine
+     Routine Names:  BIN
+
+     Functionº
+
+     Inpuô characteò froí CONº iî Registeò A via BDOS.
+
+     Inputs:  -None-
+
+     Outputs:  A = Character input from CON:
+
+     Registers Affected:  PSW
+
+     SYSLIB Routines Called:  -None-
+
+     Special Error Conditions:  -None-
+
+:BDOS Character Input Status Routine
+     Routine Names:  BIST
+
+     Functionº
+
+     Returî thå consolå inpuô characteò statuó foò CONº  viá 
+BDOÓ iî Registeò Á (Zerï Flaç Set)®   A=° anä Zerï Flaç  Seô 
+iæ  nï  characteò  ió  available»  A=0FFÈ  anä  NÚ  iæ  chaò 
+available.
+
+     Inputs:  -None-
+
+     Outputs:  A=0 and Z if No Char; A=0FFH and NZ if Char
+
+     Registers Affected:  PSW
+
+     SYSLIB Routines Called:  -None-
+Š     Special Error Conditions:  -None-
+
+:BDOS Character Output Routine
+     Routine Names:  BOUT
+
+     Functionº
+
+     Outpuô characteò iî Registeò Á tï CONº viá BDOS.
+
+     Inputs:  A = Character to Output to CON:
+
+     Outputs:  -None-
+
+     Registers Affected:  -None-
+
+     SYSLIB Routines Called:  -None-
+
+     Special Error Conditions:  -None-
+
+:Capitalized Input Routines
+     Routine Names:  CAPIN, CAPINE
+
+     Functionº
+
+     Inpuô  characteò froí CONº  anä capitalizå  it®   CAPIÎ 
+returnó  thió  characteò  iî  A¬   anä  CAPINÅ  echoeó  thió 
+characteò anä theî returnó iô iî A.
+
+     Inputs:  -None-
+
+     Outputs:  A = Capitalization of Char Input from CON:
+
+     Registers Affected:  PSW
+
+     SYSLIB Routines Called:  -None-
+
+     Special Error Conditions:  -None-
+
+:Char Input Routines
+     Routine Names:  CIN, RIN
+
+     Functionº
+
+     Inpuô  characteò  froí CONº  (CIN©  oò  RDRº  (RIN©  iî 
+Registeò A.
+
+     Inputs:  -None-
+
+     Outputs:  A = Character input from CON: or RDR:
+
+     Registers Affected:  PSW
+
+     SYSLIB Routines Called:  -None-
+
+     Special Error Conditions:  -None-Š
+:Character Output Routines
+     Routine Names:  COUT, LOUT, POUT, SOUT
+
+     Functionº
+
+     Outpuô  characteò iî Registeò Á tï  CONº  (COUT)¬  LSTº 
+(LOUT)¬ PUNº (POUT)¬ oò switcheä outpuô (SOUT).
+
+     Inputs:  A = Character to output
+
+     Outputs:  -None- (Character is output)
+
+     Registers Affected:  -None-
+
+     SYSLIB Routine Called:  -None-
+
+     Special Error Conditions:  -None-
+
+:Control Character Output Routines
+     Routine Names:  CCOUT, CLOUT, CPOUT, CSOUT
+
+     Functionº
+
+     Outpuô  characteò iî Registeò Á tï  CONº  (COUT)¬  LSTº 
+(LOUT)¬ PUNº (POUT)¬ oò switcheä outpuô (CSOUT© witè controì 
+characteò processing®   Alì characteró witè ASCIÉ codeó lesó 
+thaî <SP¾ (spacå ½ 20H© iî valuå excepô <NULL>¬ <BEL>¬ <BS>¬ 
+<LF>¬  anä <CR¾ arå outpuô aó aî uparro÷ (^© followeä bù thå 
+correspondinç   letteò  generateä  bù  addinç  40È  tï   thå 
+characteò valuå (i.e.¬  ± outputó aó "^A"¬ ² aó "^B"¬ etc.)®  
+Again¬  thå characteró lesó thaî <SP¾ iî valuå NOÔ outpuô iî 
+thió manneò arå --
+
+          <NULL>  <BEL>  <BS>  <LF>  <CR>
+
+Anù characteò oæ valuå greateò thaî <SP¾ ió outpuô normally.
+
+
+     Inputs:  A = Character to output
+
+     Outputs:  -None- (Character/Code is output)
+
+     Registers Affected:  PSW (only the Flags;
+                              Register A is NOT affected)
+
+     SYSLIÂ Routineó Calledº  COUÔ (foò CCOUT)»
+                              LOUÔ (foò CLOUT)»
+                              POUÔ (foò CPOUT);
+                              SOUT (for CSOUT)
+
+     Special Error Conditions:  -None-
+
+:Conditional Input
+     Routine Name:  CONDIN
+
+     Functionº
+
+     Inpuô  á  characteò  froí CONº  iæ  onå  ió  available» 
+otherwise¬  returî  á  flaç statinç thaô á characteò ió  noô 
+availablå oî CON:.
+
+     Inputs:  -None-
+
+     Outputs:  A = character typed at CON: (if available)
+               Zero Flag is set (Z) if no char available
+               Zero Flag is reset (NZ) if char available
+
+     Registers Affected:  PSW
+
+     SYSLIB Routines Called:  CIN, CST
+
+     Special Error Conditions:  -None-
+
+:<CR> <LF> Output
+     Routine Names:  CRLF, LCRLF, SCRLF
+
+     Function:
+
+     Prinô <CR¾ anä <LF¾ oî CONº  (CRLF)¬  LSTº  (LCRLF)¬ oò 
+switcheä outpuô (SCRLF).
+
+     Inputs:  -None-
+
+     Outputs:  -None- (<CR> <LF> is printed)
+
+     Registers Affected:  -None-
+
+     SYSLIB Routines Called:  LOUT (for LCRLF);
+                              POUT (for CRLF);
+                              SOUT (for SCRLF)
+
+     Special Error Conditions:  -None-Š
+:Console Status Routine
+     Routine Name:  CST
+
+     Functionº
+
+     Inpuô thå statuó oî CONº  iî Registeò A®   Iæ Reaä Datá 
+Available¬ A=0» otherwise¬ A=1.
+
+     Inputs:  -None-
+
+     Outputs:  A = Console Status
+                   0 --> Read Data Available (RDA)
+                   1 --> Read Data Not Available (Not RDA)
+               Zerï Flaç ió Affecteä (Ú seô iæ RDA¬ NÚ if
+                    noô RDA)
+
+     Registers Affected:  PSW
+     SYSLIB Routines Called:  -None-
+     Special Error Conditions:  -None-
+
+

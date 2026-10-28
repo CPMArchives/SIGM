@@ -1,0 +1,25 @@
+;
+; VLIB Module Name:  VIDA
+; Author:  Richard Conn
+; VLIB  Version Number:  1.0
+; Module Version Number:  1.0
+; Module Entry Points:
+;	VIDSKP
+; Module External References:
+;
+
+;
+;  VIDSKP - Skip over video string pted to by HL; pt to byte after string
+;
+vidskp::
+	mov	a,m	;get next char
+	inx	h	;pt to next
+	ora	a	;done if zero
+	rz
+	cpi	'\'	;literal value?
+	jnz	vidskp	;continue if not
+	inx	h	;pt to after literal value
+	jmp	vidskp
+
+	end
+

@@ -1,0 +1,165 @@
+* DATE 07/20/84  17:58
+* edit.cmd
+* this program will edit the current record
+STOR CHR(PEEK (063)) TO dr
+* if deleted it cant be edited so
+RECA
+* store field variables into mem variables for editing
+STOR baddr TO mbaddr
+STOR bcode TO mbcode
+STOR $(bcity,1,20) TO mbcity
+STOR $(bcity,21,2) TO mbst
+STOR $(bcity,23,5) TO mbzip
+STOR $(bdata,1,25) TO mbmgr
+STOR $(bdata,26,13) TO mbphone
+STOR $(bdata,39,2) TO mbtype
+STOR $(bdata,41,3) TO mbunit
+STOR $(bdata,44,8) TO mbacq
+STOR bprice TO mbprice
+STOR remit TO mremit
+STOR phone TO mphone
+STOR remitad TO mremitad
+STOR remitc TO mremitc
+STOR checks TO mchecks
+STOR bnotes TO mbnotes
+STOR bupdate TO mbupdate
+* set up screen and prompt for editing
+ERAS
+STOR 'Edit Building Data' TO mode
+STOR 'Enter the new or corrected information' TO prompt1
+STOR "Control 'Q' to end edit session" TO prompt2
+@ 0,26 SAY mode
+@ 1, 0 SAY " -------------------------------------------------"
+@ 1,50 SAY "-----------------------------"
+@ 3, 1 SAY "Address:"
+@ 3,55 SAY "Code:"
+@ 4, 4 SAY "City:"
+@ 4,37 SAY "State:"
+@ 4,56 SAY "Zip:"
+@ 6, 1 SAY "Manager:"
+@ 6,54 SAY "Phone:"
+@ 7, 4 SAY "Type:"
+@ 7,44 SAY "Number of Units:"
+@ 9, 0 SAY "Acquired:"
+@ 9,45 SAY "Purchase Price:"
+@ 11,28 SAY "Send Rental Payments To:"
+@ 12,00 SAY "Company:"
+@ 12,54 SAY "Phone:"
+@ 13,01 SAY "Street:"
+@ 14,03 SAY "City:"
+@ 15,00 SAY "Chks To:"
+@ 17,02 SAY "Notes:"
+@ 18,52 SAY "Updated:"
+@ 19, 0 SAY " -------------------------------------------------"
+@ 19,50 SAY "-----------------------------"
+@ 20, 4 SAY prompt1
+@ 21, 4 SAY prompt2
+@ 3,10 GET mbaddr
+@ 3,61 GET mbcode PICTURE '99'
+@ 4,10 GET mbcity
+@ 4,44 GET mbst PICTURE '!!'
+@ 4,61 GET mbzip PICTURE '99999'
+@ 6,10 GET mbmgr
+@ 6,61 GET mbphone PICTURE '(999)999-9999'
+@ 7,10 GET mbtype
+@ 7,61 GET mbunit
+@ 9,10 GET mbacq PICTURE '99/99/99'
+@ 9,61 GET mbprice
+@ 12,10 GET mremit
+@ 12,61 GET mphone
+@ 13,10 GET mremitad
+@ 14,10 GET mremitc
+@ 15,10 GET mchecks
+@ 17,10 GET mbnotes
+@ 18,61 GET mbupdate PICTURE '99/99/99'
+READ
+CLEA GETS
+* test if there is a bad field validation
+DO CASE
+CASE mbcode = ' '
+* no building code
+ STOR t TO error
+OTHE
+ STOR f TO error
+ENDC
+* if test for error was true then fix the fields that need fixing
+IF error
+* erase the lines to be used for prompts
+ @ 00,00
+ @ 20,00
+ @ 21,00
+* tell them to correct it
+ @ 0,18 SAY 'Please Correct the Indicated Data'
+* keep looping until all fields are fixed
+ STOR t to an:error
+ DO WHIL an:error
+  DO CASE
+  CASE mbcode = ' '
+   @ 20,15 SAY 'Must have a building code                              '
+   @ 03,61 GET mbcode PICTURE '99'
+   READ
+  OTHE
+   STOR f TO an:error
+  ENDC
+ ENDD while an:error
+ENDI error
+STOR 'N' TO command
+@ 20,00
+@ 21,00
+@ 20,15 SAY 'Are there any more changes ?                        '
+@ 20,48 GET command picture '!'
+READ
+IF command = 'Y'
+ @ 0,00
+ @ 3,10 GET mbaddr
+ @ 3,61 GET mbcode PICTURE '99'
+ @ 4,10 GET mbcity
+ @ 4,44 GET mbst PICTURE '!!'
+ @ 4,61 GET mbzip PICTURE '99999'
+ @ 6,10 GET mbmgr
+ @ 6,61 GET mbphone PICTURE '(999)999-9999'
+ @ 7,10 GET mbtype
+ @ 7,61 GET mbunit
+ @ 9,10 GET mbacq PICTURE '99/99/99'
+ @ 9,61 GET mbprice
+ @ 12,10 GET mremit
+ @ 12,61 GET mphone
+ @ 13,10 GET mremitad
+ @ 14,10 GET mremitc
+ @ 15,10 GET mchecks
+ @ 17,10 GET mbnotes
+ @ 18,61 GET mbupdate PICTURE '99/99/99'
+ @ 20,00
+ @ 21,00
+ @ 20,04 SAY prompt1
+ @ 21,04 SAY prompt2
+* let user enter data
+ READ
+ CLEA GETS
+ENDI command = 'Y'
+REPL baddr WITH mbaddr, bcode WITH mbcode
+REPL bcity WITH mbcity + mbst + mbzip
+REPL bdata WITH mbmgr + mbphone + mbtype + mbunit + mbacq
+REPL bprice WITH mbprice, remit WITH mremit, phone WITH mphone
+REPL remitad WITH mremitad, remitc WITH mremitc,checks WITH mchecks, bnotes WITH mbnotes
+* ask if an automatic update of the date is wanted
+IF $(DATE(),1,2) <> '00'
+ STOR 'Y' TO command
+ @ 20,00
+ @ 21,00
+ @ 20,12 SAY 'Do You wish to UpDate to Todays Date (Y/N) ?'
+ @ 20,57 GET command PICTURE '!'
+ READ
+ IF command = 'Y'
+  REPL bupdate WITH  DATE()
+ ELSE
+  REPL bupdate WITH mbupdate
+ ENDI $(date)
+ENDI command = 'Y'
+RELE ALL
+* restore original memory
+STOR '?' TO command
+STOR t TO more
+STOR t TO first
+RETU
+

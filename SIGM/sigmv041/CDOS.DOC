@@ -1,0 +1,66 @@
+The  CDOS*.*  files on this disks were developed by the  author 
+whilst  changing  from CP/M to CDOS.  Having used  them  widely 
+under CP/M their feature were sorely missed under CDOS.
+Some  programs,  such as UCAT and FMAP appeared to need  little 
+modification  and were easily changed,  SAP and COPY have  been 
+almost re-written.
+
+CDOSSAP  uses  the 'SYS.DIR' FCB create call of  CDOS  2.17  or 
+higher  to  access  the  directory regardless of  its  size  or 
+position on the disk.  (I think the call is in v1.07 as  well). 
+Although  the  FCB  created with this call is  write  protected 
+CDOSSAP  resets  that attribute bit and can then write  to  the 
+directory as well as read it.
+
+CDOSCOPY  operates  as a literal copy utility.  The  disks  are 
+first  logged in and then the program flow (and constants)  are 
+adjusted  to reflect the number of logical blocks on  the  disk 
+(its storage capability). With S/D S/S disks it operates on all 
+tracks,  but  with all others does not necessarily transfer the 
+boot loader.
+It  has  not been tested with 5" disks and the code  will  need 
+minor mods to effect their copy. These mods should take 5 or 10 
+minutes.
+
+          GENERAL NOTES ON CDOS' UNDOCUMENTED FEATURES
+
+When  CDOSGEN asks you whether the drive is large [L] or  small 
+[S] try answering 'X'.  You will then get a menu for  Shugarts, 
+etc.
+
+The SYS.DIR open call has been discussed above. Try it.
+
+Disk Labels.
+A directory label is written to the disk by STAT and is used to 
+ascertain  the  storage capacity of the disk and the number  of 
+directory entries (64 to 512).
+The last 8 bytes of the first boot loader sector (usually  side 
+0  track 0 sector 1) are always recorded in single density  and 
+contain eight bytes indicating the type of disk to the BIOS, eg
+     LGSSSD
+for Large (8"), Single Sided, Single Density
+or   LGDSDD
+for 8" Double Sided, Double Density diskettes (1.2 MBytes)
+
+STAT  2.15  was written for a WD1797 FDC chip (it  records  the 
+side  numbers  into the address fields) although a  WD1793  was 
+eventually used.  CDOS 2.36 does not support the 1797, however, 
+and this chip will not work instead of the 1793 on the 16FDC.
+
+Double Density Recording Format:
+16 sectors of 512 bytes are used per track.(MFM)
+A 12 interleave is used (1,C,7,2,D,8,3,E,9,4,F,A,5,10,B,6)
+Although  a 4 interleave can be read as COM files in my 4MHz no 
+wait state system a 6 interleave speeds throughput by a  factor 
+of  two.  (use 1,2,3,4,5,6,C,D,E,F,10,7,8,9,A,B).  INIT can  be 
+modified  to  do  this..  if  interested write me  and  I  will 
+disclose all....
+
+Finally,  if  someone has deciphered how to call the 2.36  BIOS 
+directly without getting error returns I am all ears...
+
+Trevor Marshall,
+26 Mirrelia Way, Ferndale, Western Australia 6155
+phone International (619)4576049   or national (09)457 6059
+14 December 1980
+

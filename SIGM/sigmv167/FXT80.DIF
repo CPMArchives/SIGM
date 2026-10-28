@@ -1,0 +1,21 @@
+File 1, Line 54: ;	14 January 1984 - 1st file takes default extension .REC
+
+File 1, Line 166: 	db	'      January 23, 1984',0DH,0AH,'$'
+File 2, Line 165: 	db	'      November 20, 1983',0DH,0AH,'$'
+
+File 1, Line 578: ;[change]
+File 1, Line 579: 	lxi	h,tfcb+9	;if no extension, default to .REC
+File 1, Line 580: 	mov	a,m		;
+File 1, Line 581: 	cpi	' '		;
+File 1, Line 582: 	jnz	yext		;
+File 1, Line 583: 	mvi	m,'R'		;
+File 1, Line 584: 	inx	h		;
+File 1, Line 585: 	mvi	m,'E'		;
+File 1, Line 586: 	inx	h		;
+File 1, Line 587: 	mvi	m,'C'		;
+File 1, Line 588: yext:	call	pualt		;save secondary file name
+File 1, Line 589: ;[endchange]
+
+File 2, Line 577: 	call	pualt		;save secondary file name
+
+

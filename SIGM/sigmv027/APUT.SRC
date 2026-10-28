@@ -1,0 +1,481 @@
+;    FILE APUTST.SRC      VER.1.0
+;    CREATED 9-16-80
+;    LAST UPDATE 9-25-80  WRITTEN BY D.A. STEELE
+
+;    THIS PROCEDURE WILL DO A FEW TESTS TO ASSURE THAT THE APU
+;    IS FUNCTIONING.  THE TESTS ARE NOT CONCLUSIVE HOWEVER
+;    AND THE USER SHOULD NOT ASSUME THAT ALL OPERATIONS OF THE
+;    APU HAVE BEEN CHECKED.
+
+;    THIS MODULE SHOULD BE DECLARED EXTERNAL IN THE PASCAL
+;    MONITOR PROGRAM
+;
+;    FUNCTION APUT : INTEGER; EXTERNAL
+
+;    THIS MODULE WILL RETURN TRUE OF FALSE DEPENDING WHETHER
+;    OR NOT THE TEST PASSED OR FAILED.  TRUE = FAILED.
+
+
+          NAME APUT
+          ENTRY APUT
+
+
+APUDAT:   EQU       0AAH
+APUSTAT:  EQU       0ABH
+SADD:     EQU       6CH
+SSUB:     EQU       6DH  ;SUBTRACT TOS FROM NOS
+SMUL:     EQU       6EH  ;I6 BIT MULTIPLY
+SMUU:     EQU       76H  ;16 BIT MILTIPLY
+SDIV:     EQU       6FH  ;16 BIT DIVIDE    
+DADD:     EQU       2CH  ;23 BIT ADD
+DSUB:     EQU       2DH  ;32 BIT SUBTRACT
+DMUL:     EQU       2EH  ;32 BIT MULTIPLY LOWER
+DDIV:     EQU       2FH  ;32 BIT DIVIDE
+FADD:     EQU       10H  ;32 BIT FLOATING ADD
+FSUB:     EQU       11H  ;32 BIT FLOATING SUBTRACT
+FMUL:     EQU       12H  ;32 BIT FLOATINNG MULTIPLY
+FDIV:     EQU       13H  ;32 BIT FLOATING DIVIDE
+SQRT:     EQU       1    ;SQUARE ROOT
+PWR:      EQU       0BH  ;RAISE TO A POWER
+FIXD:     EQU       1EH  ;FLOAT => FIX
+FLTD:     EQU       1CH  ;FIX => FLOAT
+CHSD      EQU       34H  ;FIXED SIGN CHANGE
+CHSF      EQU       15H  ;FLOAT SIGN CHANGE
+XCHD      EQU       26H  ;EXCHANGE TOS W/ NOS
+
+ATEST1:   EQU       1    ;APU BUS ERROR TEST
+ATEST2:   EQU       2    ;APU STACK TEST
+ATEST3:   EQU       4    ;DADD TEST
+ATEST4:   EQU       8    ;DSUB TEST
+ATEST5:   EQU       10H  ;DMUL & DDIV TEST
+ATEST6:   EQU       20H  ;UNUSED
+ATEST7:   EQU       40H  ;16 BIT ARITHMATIC TEST
+ATEST8    EQU       80H  ;MISC TEST
+
+APUSTOR:  DS        16   ;STORAGE AREA FOR RESULTSŠAPUERR:   DS        2    ;THE MODULE ARROR FLAG
+ATEST:    DS        1    ;THE TEST BEING DONE
+STATUS:   DS        1    ;STORAGE FOR THE STATUS BYTE
+
+
+;========================================================
+;THIS ROUTINE WILL SEND THE COMMAND IN A TO THE APU
+;AND THEN MONITOR THE STATUS BYTE UNTIL IT GOES NOT
+;BUSY OR UNTIL 64K MACHINE CYCLES HAVE PASSED
+;IF A NOT BUSY IS NOT RECEIVED THEN THE ERROR FLAG IS SET TO
+;ALL ONES
+;
+OUTIT:    PUSH      B
+          OUT       APUSTAT   ;OUTPUT THE COMMAND
+          LXI       B,0FFFFH  ;SET THE TIMER
+OUTIT1:   DCX       B
+          IN        APUSTAT   ;GET THE STATUS BIT
+          ANI       80H       ;SEE IF THE BUSY BIT IS 1
+          JNZ       OUTXIT
+          
+          MOV       A,B       ;START CHECKING THE B REGISTER
+          ORA       C         ;DON'T FORGET THE BOTTOM HALF
+          CPI       0         
+          JNZ       OUTIT1    ;IF ISN'T 0 THEN GO ANOTHER ROUND
+          LXI       H,APUERR+1;IF IT IS ZERRO THEN THE APU IS BAD
+          MVI       M,2       ;SET THE ERROR FLAG 
+
+OUTXIT:   POP       B
+          RET                 ;AND RETURN
+
+;=============================================================
+;ERROR ROUTIME TO OR IN THE NEW ERROR
+ERROR:    PUSH      B
+          LDA       APUERR    ;GET THE ERROR FLAG
+          MOV       B,A
+          LDA       ATEST     ;GET TEST TYPE
+          ORA       B
+          STA       APUERR    ;STORE THE ERROR FLAG
+          POP       B
+          RET     
+;===========================================================
+;    THIS IS A COMPARE ROUTINE TO CPMPARE A STRING OF BITS
+;    THE LENGTH OF WHICH IS IN BC AND IS POINTED TO BY HL
+;    WITH ANOTHER STRING POINTED TO BY DE.
+
+COMPX:
+COMPX1:   MOV       A,M       ;GET ONE OF THE FIRST BYTES
+          XCHG
+          CCI                 ;COMPAIR A WITH MEMORY. INX HL
+                              ;AND DCX BC.
+          CNZ       ERROR     ;IF THE BYTES ARE NOT EQUAL ERROR
+          XCHG
+          INX       H         ;INCREMENT THE OTHER POINTER
+          MOV       A,B       ;IS IT THE END OF THE STRING
+          ORA       CŠ          NOP                 ;MAINTAIN CODE SIZE         
+          JNZ       COMPX1    ;IF NOT END DO IT AGAIN
+          RET
+
+;===========================================================
+;THIS WILL TEST THE BUS LINES TO THE APU
+
+REGTST:   MVI       C,APUDAT       ;PUT PORT NUMBER IN C FOR MOVE
+          MVI       B,16           ;GOING TO MOVE 16 BYTES
+APU1:     OUTP      D              ;OUTPUT THE PATTERN 16 TIMES
+          DCR       B              ;COUNT THE OUTPUTS
+          JNZ       APU1
+
+          ; NOW READ THE 16 BYTES BACK
+          MVI       B,16           ;THERE'S 16 OF THEM
+APU11:    INP       A              ;GET THE TOS
+          CMP       D              ;IT SHOULD NOT HAVE CHANGED
+          CNZ       ERROR          ;IF IT HAS CHANGED THEN ERROR
+          DCR       B
+          JNZ       APU11
+          RET                      ;END OF BUS TEST
+          
+
+APUT1:  MVI       D,01010101B    ;FILL D WITH A PATTERN
+          CALL      REGTST
+          MVI       D,10101010B    
+          CALL      REGTST         ;DI FINAL BUS TEST
+          RET
+
+
+;===========================================================
+;    NEXT IS A TST OF ALL APU REGISTERS. ALL 256 BIT PATTERNS
+;    WILL BE TESTED IN EACH REGISTER
+
+APUT2:    MVI       D,0
+
+APUT21: CALL      REGTST
+          OUTP      D         ;SLIDE THE APU REGISTER WINDOW
+          INR       D         ;GET THE NEXT BIT PATTERN
+          JNZ       APUT21  ;IF WE HAVN'T DONE THEM ALL THEN CONTINUE
+          RET
+
+;===========================================================
+;    THE NEXT TEST WILL TEST THE DOUBBLE ADD INSTRUCTION OF 
+;    THE APU
+
+RES:      DB        0,0FFH,0FFH,0FFH
+APUT3:  MVI       C,APUDAT
+APUT31: MVI       D,55H     ;OUTPUT THE FIRST OPERAND
+          OUTP      D
+          OUTP      D
+          OUTP      D
+          MVI       D,0
+          OUTP      D
+Š          MVI       D,0AAH     ;OUTPUT THE SECOND OPERAND
+          OUTP      D
+          OUTP      D
+          OUTP      D
+          MVI       D,0
+          OUTP      D
+
+          MVI       A,DADD
+          CALL      OUTIT     ;OUTPUT THE OPCODE
+
+          MVI       C,APUDAT  ;TIME TO GET THE RESULT
+          LXI       H,APUSTOR ;STRING TO PUT IT IN
+          MVI       B,4       ;THE LENGTH
+          INIR                ;MOVE IT IN
+
+          LXI       B,4       ;COMPAIR THE RESULTS
+          LXI       H,RES
+          LXI       D,APUSTOR
+          CALL      COMPX
+          RET
+
+;============================================================
+;    THIS WILL TEST DADD AND DSUB BY TAKING A NUMBER-ADDING A
+;    SECOND NUMBER TO IT AND THEN SUBTRACTING THE FIRST NUMBER
+;    FROM THE SECOND.  THE RESULT SHOULD BE THE SECOND NUMBER
+;
+NUM1      DB   0,0AAH,55H,0AAH
+NUM2      DB   1,55H,0AAH,55H
+
+APUT4:  MVI       C,APUDAT  ;DATAPORT IN C
+          MVI       B,8       ;MOVING 8 BYTES
+          LXI       H,NUM2+3  ;START W/ LSB
+          OUTDR               ;LOAD THE APU
+
+          MVI       A,DADD
+          CALL      OUTIT     ;ADD THE TWO NUMBERS
+
+          MVI       B,4       ;MOVING 4 BYTES
+          LXI       H,NUM2-1  ;START W/ LSB
+          OUTDR               ;LOAD APU WITH FORST NUMBER AGAIN
+
+          MVI       A,DSUB
+          CALL      OUTIT     ;SUBTRACT THE FIRST FROM THE SECOND
+
+          LXI       H,APUSTOR
+          MVI       B,4
+          INIR                ;GET THE 4 BYTE RESULT
+
+          LXI       H,APUSTOR
+          LXI       D,NUM2
+          LXI       B,4       ;COMPAIR 4 BYTES
+          CALL      COMPX
+          RET
+
+;============================================================Š;    THIS TEST WILL TEST MULTIPLY AND DIVIDE BY TAKING A NUMBER
+;    AND MULTIPLYING IT BY A SECOND NUMBER AND THEN DIVIDING
+;    THE RESULT BY THE FIRST NUMBER.  THE FINAL RESULT SHOULD
+;    BE THE SECOND NUMBER.
+
+
+NUMA:     DB   0,0,5,3
+NUMB:     DB   0,0,1,2
+APUT5:
+
+          MVI       C,APUDAT
+          MVI       B,8
+          LXI       H,NUMB+3
+          OUTDR               ;LOAD THE APU
+
+          MVI       A,DMUL
+          CALL      OUTIT     ;DO THE MULTIPLY
+
+          MVI       B,4       ;GETTING 4 BYTES
+          LXI       H,NUMB-1  ;GET THE FIRST NUMBER AGAIN
+          OUTDR               ;PUT IT IN THE APU
+          MVI       A,DDIV
+          CALL      OUTIT     ;DO THE DIVIDE
+
+          LXI       H,APUSTOR ;GET READY TO STORE THE DATA
+          MVI       B,4       ;4 BYTES
+          INIR                ;GET THE RESULTS
+
+          LXI       H,NUMB    ;COMPAIR THE ANSWER
+          LXI       D,APUSTOR
+          LXI       B,4
+          CALL      COMPX
+          RET
+
+;============================================================
+;    THIS TEST WILL CHECK TO SEE IF THE CORRECT RESULTS ARE
+;    RETURNED IF THE BUSY BIT IF THE APU IS NOT CHECKED.
+;
+;
+IX        DB        0,0,0,5
+IY        DB        0,0,0,0FH
+IR        DB        0,0BH,96H,4FH
+
+APUT6:
+          MVI       C,APUDAT
+          MVI       B,4
+          LXI       H,IY+3
+          OUTDR               ;LOAD THE OPERANDS IN THE APU
+          MVI       A,FLTD
+          CALL      OUTIT     ;CONVERT TO FLOATING POINT
+
+          MVI       B,4
+          LXI       H,IX+3
+          OUTDR               ;LOAD SECOND OPERAND
+          MVI       A,FLTDŠ          CALL      OUTIT     ;CONVERT TO FLOATING POINT
+
+          MVI       A,PWR
+          OUT       APUSTAT   ;RAISE IT TO THE POWER
+
+          MVI       A,FIXD
+          CALL      OUTIT     ;CONVERT TO FIXED POINT
+
+          LXI       H,APUSTOR
+          MVI       B,4
+          INIR                ;GET THE RESULT
+
+          LXI       H,IR
+          LXI       D,APUSTOR
+          LXI       B,3       ;JUST CHCK HIGH 3 BYTES - LOW PRECISION
+          CALL      COMPX     ;COMPAIR THE RESULT
+
+          RET                 ;AND RETURN
+
+
+;============================================================
+;    THIS TEST WILL CHECK THE FOUR 16 BIT FUNCTIONS
+;    BY ADDING A NUMBER TO ITSELF- THEN SUBTRACTING ITSELF-
+;    THEN MULTIPLYING AND DIVIDING.  THE RESULT SHOULD BE THE
+;    ORIGIONAL NUMBER
+
+NUM       DB        0,0FH,0,0FH
+
+APUT7:
+          MVI       C,APUDAT
+          MVI       B,4       ;MOVING 4 BYTES
+          LXI       H,NUM+3   ;START WITH THE LOW BIT
+          OUTDR               ;LOAD THE APU
+          MVI       A,SADD    ;GET READY TO ADD
+          CALL      OUTIT     ;DO THE ADD
+          
+          MVI       B,2       ;READY TO LOAD ANOTHER OPERAND
+          LXI       H,NUM+1
+          OUTDR               ;LOAD THE APU
+          MVI       A,SSUB    ;GET READY TO SUBTRACT
+          CALL      OUTIT     ;DO THE SUBTRACT
+          
+          MVI       B,2       ;READY TO LOAD NEXT OPERAND
+          LXI       H,NUM+1   
+          OUTDR               ;LOAD THE APU
+          MVI       A,SMUL    ;GET READY TO MULTIPLY
+          CALL      OUTIT     ;DO THE MULTIPLY
+
+
+          MVI       B,2       ;READY TO LOAD NEXT OPERAND
+          LXI       H,NUM+1
+          OUTDR               ;LOAD THE APU
+          MVI       A,SDIV
+          CALL      OUTIT     ;DI THE DIVIDE
+Š          LXI       H,APUSTOR ;GET READY TO STORE THE RESULTS
+          MVI       B,2       ;IT WILL BE 2 BYTES LONG
+          INIR                ;MOVE IT INTO MEMORY
+
+          LXI       H,NUM     ;GET THE ADDRESS OF THE NUMBER
+          LXI       D,APUSTOR ;GET THE ADDRESS OF THE RESULT
+          LXI       B,2       ;ITS TWO BYTES LONG
+          CALL      COMPX     ;COMPAIR THE RESULTS
+
+          RET                 ;TO THE BACKGROUND
+
+
+;============================================================
+;    THIS TEST WILL DO A TEST OF THE FOLLOWING FUNCTIONS
+;    SQRT, PWR, FIXD, FLTD, CHSF
+;
+NUMX      DB        0,0,0FH,0FFH
+NUMY      DB        0,0,0,2
+RES1      DB        0,0FFH,0E0H,01
+RES2      DB        0,0FFH,0DFH
+APOP4:    LXI       H,APUSTOR ;GET READY TO STORE THE RESULTS
+          MVI       B,4       ;4 BYTES OF DATA 32 BITS
+          INIR                ;MOVE IT INTO MEMORY
+          RET
+
+APUSH4:   MVI       B,4       ;PUSHING IN 4 BYTES
+          LXI       H,APUSTOR+3 ;USE THE LAST ANSWER
+          OUTDR
+          RET
+
+GOCOMP:   LXI       D,APUSTOR ;THE ADDRESS OF THE RESULT
+          LXI       B,3       ;TESTING 3 BYTES
+          CALL      COMPX     ;DO THE COMPAIR
+          RET
+
+APUT8:    MVI       C,APUDAT  ;GET THE OUTPUT PORT
+          MVI       B,4       ;GOING TO PUSH IN 4 BYTES
+          LXI       H,NUMX+3
+          OUTDR               ;LOAD THE APU
+
+          MVI       A,FLTD    ;CONVERT TO FLOATING POINT
+          CALL      OUTIT
+
+          MVI       A,FIXD    ;CONVERT TO FIXED
+          CALL      OUTIT
+
+          CALL      APOP4     ;GET THE TOS
+          LXI       H,NUMX    ;RESULT SHOULD BE WHAT WAS PUT IN
+          CALL      GOCOMP
+
+APWR:     MVI       C,APUDAT
+          CALL      APUSH4    ;GET THE NUMBER BACK
+          MVI       A,FLTD    ;CONVERT TO F.P
+          CALL      OUTIT
+Š          MVI       B,4
+          LXI       H,NUMY+3  ;PUSH IN TO POWER OF TEN
+          OUTDR
+          MVI       A,FLTD    ;FLOAT IT
+          CALL      OUTIT
+
+          MVI       A,PWR     ;RAISE TO THE PWR OF NUMY
+          CALL      OUTIT
+
+          MVI       A,FIXD    ;CONVERT TO FIXED
+          CALL      OUTIT
+
+          CALL      APOP4     ;GET THE RESULT
+          LXI       H,RES2    ;SHOULD BE RESULT 2
+          CALL      GOCOMP    ;GO DO THE COMPAIR
+
+SQRTT:    MVI       C,APUDAT
+          MVI       B,4
+          LXI       H,RES1+3
+          OUTDR
+
+          MVI       A,FLTD    ;CONVERT TO F.P
+          CALL      OUTIT
+
+          MVI       A,SQRT    ;TAKE THE SQUARE ROOT
+          CALL      OUTIT
+
+          MVI       A,FIXD    ;CONVERT TO FIXED POINT
+          CALL      OUTIT
+
+          CALL      APOP4
+          LXI       H,NUMX    ;THE RESULT SHOULD BE NUMX
+          CALL      GOCOMP
+
+
+          RET                 ;FROM TEST 8
+
+
+;============================================================
+;THIS IS THE MAIN DRIVER FOR THIS MODULE
+;============================================================
+;
+APUT:                  ;SAVE THE REGISTERS FOR PASCAL
+          PUSH      H
+          
+          XRA       A    
+          STA       APUERR    ;ZERO THE ERROR FLAG
+          STA       APUERR+1
+
+INIT:     MVI       A,1AH     ;TO INITIALIZE , PUSH PI
+          CALL      OUTIT     ;ONTO STACK
+          MVI       B,16      ;WE WILL POP NO MORE THAN 16
+INIT1:    IN        APUDAT    ;READ THE DATA PORT
+          CPI       0DAH      ;THIS IS WHAT IT SHOULD BE
+          JZ        T1        ;CHECK THE WHOLE STACKŠ          DCR       B         ;COUNT IT
+          JNZ       INIT1
+          LXI       H,APUERR+1
+          MVI       M,01H
+          JMP       XIT
+
+T1:       MVI       A,ATEST1  ;SET THE TEST BEING DONE
+          STA       ATEST     
+          CALL      APUT1   ;CALL THE TEST
+
+T2:       MVI       A,ATEST2
+          STA       ATEST
+          CALL      APUT2
+
+T3:       MVI       A,ATEST3
+          STA       ATEST
+          CALL      APUT3
+
+
+T4:       MVI       A,ATEST4
+          STA       ATEST
+          CALL      APUT4
+
+T5:       MVI       A,ATEST5
+          STA       ATEST
+          CALL      APUT5
+
+T6:       MVI       A,ATEST6
+          STA       ATEST
+          CALL      APUT6
+
+T7:       MVI       A,ATEST7
+          STA       ATEST
+          CALL      APUT7
+
+T8:       MVI       A,ATEST8
+          STA       ATEST
+          CALL      APUT8
+
+XIT:      XRA       A         ;GET READY TO RETURN TO PASCAL
+          LXI       H,APUERR  ;THE ADDRESS OF THE ERROR FLAG
+          MOV       E,M       ;PUT THE ERROR FLAG IN E
+          INX       H
+          MOV       D,M       ;ZERO D
+          POP       H
+          RET                 ;RETURN TO PASCAL
+
+
+

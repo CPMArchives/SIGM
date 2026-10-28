@@ -1,0 +1,475 @@
+
+
+INSTRUCTIONS FOR RUN80 FORMATTING PROGRAM
+
+
+;   Copyright   (C)   1981,  T.  Shapin,  Orange,  CA.  This
+documentation may not be sold but may be distributed without
+charge. RUN80 is a text formatting program that runs  on  an
+8080  microprocessor  system  under  CP/M.  It  is useful in
+writing reports, manuals, etc. It will  automatically  break
+text into pages, number the pages, add headings and footings
+and justify the right margin.
+
+      You  prepare  your  text  by using any standard editor
+that runs under the CP/M operating  system.  You  give  your
+text file a name and an extension of "RNO" (which stands for
+RUNOFF).  For  example,  "REPT1.RNO". You then type the CP/M
+command "RUN80 REPT1". This starts the RUN80 program,  reads
+a  REPT1.RNO  file  from  your disk and produces a formatted
+file with the name "REPT1.MEM" (where  the  "MEM"  extension
+stands  for memo). This file can be typed by giving the CP/M
+command "TYPE REPT1.MEM"  if  your  hard  copy  terminal  is
+connected to your terminal.
+
+      While  you  are  typing  your text, you add formatting
+commands that tell RUN80 how you want your  test  formatted.
+Each  formatting  command  is  put  on  a line by itself and
+starts with a period. These commands can be in either  upper
+or lower case.
+
+F_o_r_m_a_t_t_i_n_g_ C_o_m_m_a_n_d_s_
+
+The  standard page layout is 60 characters wide and 66 lines
+high. This fits nicely on an 8-1/2 by 11 inch sheet. If  you
+want to print a shorter page, say 8-1/2 inches high, put the
+command
+
+         .pl 51
+
+in your text file.
+
+      The  page  format is set up for a header and a footer.
+This page was prepared with a header command like this:
+
+         .he INSTRUCTIONS FOR RUN80 FORMATTING PROGRAM
+
+      Both the header and the footer are optional and can be
+changed at any time. If the  character"#"  appears  in  the
+header  or  footer  command line, it will be replaced by the
+page number. The footer command line to  prepare  this  page
+looks like this:
+
+         .FO Page #
+
+If you want to start the header or footer with blanks, start
+with  a  quote,  "'", which will prevent leading blanks from
+being discarded.
+
+      By default, the formatting program fills output  lines
+by  packing  as  many input words as possible onto an output
+line before printing it. The lines are also justified (right
+
+
+Page 1
+
+
+
+
+INSTRUCTIONS FOR RUN80 FORMATTING PROGRAM
+
+
+margins are made even) by inserting extra  spaces  into  the
+line  before output. People normally want filled text, which
+is why it is the default. It can be turned  off  however  by
+the no-fill command:
+
+         .nf
+
+and   thereafter   lines   will   be   printed  without  any
+rearrangement. Filling can be turned back on with  the  fill
+command:
+
+         .fi
+
+      When  .nf  is encountered, there may be a partial line
+collected but not yet output. The .nf will force  this  line
+out  before  anything  else happens. This action is called a
+"break". Many commands  cause  a  break  as  part  of  their
+action. To force a break explicitly, use:
+
+         .br
+
+      To  get  extra  blanks  lines,  you  can  use the skip
+command:
+
+         .sk
+
+      To skip more than one blank line, follow this  with  a
+number.  (A space is always required between the command and
+the number.) For example:
+
+         .sk 2
+
+will skip 2 blank lines.
+
+      A line that begins with spaces is a special  case.  If
+there  is nothing except spaces on the line, the line causes
+a break and produces a number of blank lines  equal  to  the
+current  line  spacing.  These  lines  are  never  discarded
+regardless of where they appear, so they provide  a  way  to
+get  blank  lines  at  the  top  of a page. If there are "n"
+leading spaces followed by text, it it causes a break and  a
+temporary  indent  of  "+n".  These  actions  will  cause  a
+document that contains no formatting commands at all  to  be
+reasonably formatted.
+
+      The default line spacing is single space. To change to
+double spacing, use the command:
+
+         .sp 2
+
+Or use three for triple spacing, etc.
+
+      The  page  command  causes  a skip to the top of a new
+page and also causes a break. If you add a  number  to  this
+command, the new page will be given that number:
+
+
+
+Page 2
+
+
+
+
+INSTRUCTIONS FOR RUN80 FORMATTING PROGRAM
+
+
+         .pg 15
+
+      To center the next line of output use:
+
+         .ce
+
+and you can center the next five lines of output by adding a
+number:
+
+         .ce 5
+
+or if you don't like to count lines use a big number:
+
+                               .ce 500
+                               lots of
+                             lines to be
+                              centered 
+                  .ce 0   (to cancel the centering)
+
+      Underlining operates much like centering:
+
+       .ul n
+
+causes  the  text  on the next n lines to be underlined upon
+output. But .ul does not cause a break, so words  in  filled
+text may be underlined by:
+
+words and words and
+       .ul lots more words.
+
+to produce:
+
+words and words and l_o_t_s_ m_o_r_e_ words.
+
+      The indent command controls the left margin.
+
+       .in n
+
+causes all subsequent lines to be indented by "n" positions.
+The normal default indent is "0". The command:
+
+       .rm  n sets the right margin to n. The line length of
+filled lines is the difference between the right margin  and
+indent values. These margin commands do not cause a break.
+
+      The  temporary  indent sets the indent to position "n"
+for one output line only.
+
+       .ti n
+
+If "n" is less  than  the  current  indent,  the  indent  is
+backwards  (a hanging indent). We will show some examples of
+this.
+
+      Since absolute numbers are often awkward, RUN80 allows
+relative  values  to  be  used  as  command  arguments.  All
+
+
+Page 3
+
+
+
+
+INSTRUCTIONS FOR RUN80 FORMATTING PROGRAM
+
+
+commands  that  allow a numeric argument "n" also allow "+n"
+or "-n" instead, to signify a change in the  current  value.
+For instance,
+
+       .rm -10
+       .in +10
+
+shrinks  the  right  margin by 10 from its current value and
+moves the indent 10 places farther to the right. Thus,
+
+       .rm 10 and .rm +10
+
+are quite different.
+      Relative values are particularly useful with ".ti"  to
+temporarily indent relative to the current indent.
+
+       .in +5
+       .ti +5
+
+produces  a  left  margin indented by 5, with the first line
+indented by a further 5 spaces. And
+
+       .in +5
+       .ti -5
+
+produces a hanging indent as in a numbered paragraph:
+
+1.  Now is the time for all good people
+to come to the aid of their party.
+
+      Normally tabs in  the  input  file  are  converted  to
+single  spaces.  Tab  stops  can be set with a tabs command,
+e.g. you can set tab stops at column 9, 17, 25 and 35 by the
+command
+
+       .ta 9,17,25,35
+
+in your text file. Then when you type a tab key in your text
+(or control-I for terminals that do not  have  a  tab  key),
+enough  spaces  will  be  added  in  the  line  to  move the
+following characters to the next tab position. Tab stops are
+cancelled by a ".ta 0" command, where the  first  number  is
+zero.
+
+S_p_e_c_i_a_l_ C_h_a_r_a_c_t_e_r_s_
+
+The use of "#" in headers and footings to get a page number
+was  already mentioned. When it is typed in text, it is used
+to get a non-expandable blank in filled and justified lines.
+For example,
+
+       3.##This is the reason ...
+
+will always have exactly two  blanks  after  the  "3."  even
+though  the  program  may  add  extra blanks to this line in
+order to make the right margin even. When TABS and tab stops
+
+
+Page 4
+
+
+
+
+INSTRUCTIONS FOR RUN80 FORMATTING PROGRAM
+
+
+are  used  in  justified  text,  non-expanding  blanks   are
+inserted. In unfilled text, plain blanks are inserted.
+      A  special escape character "`" is used to mean print
+the following character and ignore and  special  meaning  it
+otherwise  has.  It  can be used to print itself or the "#"
+character.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Page 5
+
+
+
+
+SUMMARY OF RUN80 FORMATTING COMMANDS
+
+
+      COMMAND    BREAK?  DEFAULT FUNCTION
+      -------    ------  ------- -------- 
+
+         .BR             YES             CAUSE A LINE BREAK 
+
+         .CE     N       YES     N= 1    CENTER THE NEXT N LINES 
+
+         .FI             YES             START FILLING (MOVE WORDS							TO FILL 
+LINES)
+
+
+         .FO             NO      EMPTY   FOOTER TITLE 
+
+         .HE             NO      EMPTY   HEADER TITLE 
+
+         .IN     N       NO      N=0     INDENT N SPACES 
+
+         .NF             YES             STOP FILLING 
+
+         .PG     N       YES     N=+1    BEGIN PAGE NUMBERED N 
+
+         .PL     N       NO      N=66    SET PAGE LENGTH TO N 
+
+         .RM     N       NO      N=60    SET RIGHT MARGIN TO N 
+
+         .SK     N       YES     N=1     SPACE DOWN N LINES 
+
+         .SP     N       NO      N=1     LINE SPACING IS N 
+
+         .TA N,N...      NO      CLEARS  SET TAB STOPS (10 MAX) 
+
+         .TI     N       YES     N=0     TEMPORARY INDENT OF N 
+
+         .UL     N       NO      NO      N=1     UNDERLINE WORDS				
+						 IN NEXT N LINES
+
+S_p_e_c_i_a_l_ C_h_a_r_a_c_t_e_r_s_ "#" in a  heading  or  footing  will  be
+changed to the page number.
+
+"#   in   filled   text   will   be   changed   to   blank
+(non-expandable). The escape character "`" means  to  print
+the next character literally.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Page 
+
+
+
+
+SUMMARY OF RUN80 FORMATTING COMMANDS
+
+
+@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Page 1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,24 @@
+
+{	CAPSTR
+
+	Scans a string and capitalizes any lower case letters
+	encountered. Other characters are not affected.
+
+	Requires gobally declared
+		TYPE	string255 = string 255;
+			byte = 0..255;
+		PROCEDURE capchar;
+}
+
+PROCEDURE capstr (VAR str : string255);
+
+CONST	offset = 32;
+
+VAR	ch : char;
+	loc : byte;
+
+begin
+	for loc := 1 to length(str) do capchar(str[loc])
+end;
+
+

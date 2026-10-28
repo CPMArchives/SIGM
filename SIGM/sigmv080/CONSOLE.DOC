@@ -1,0 +1,74 @@
+	  CONSOLE-CONTROL PROCEDURES FOR PASCAL/Z
+
+	The console-control procedures "Conact", GotoXY", 
+and "ReadXY" are provided as built-in extensions to the 
+language in Pascal/M and UCSD Pascal, but not in Pascal/Z. 
+The accompanying files "CONACT.PSP" and "GOTOXY.PSP" 
+(filetype "PSP" is for "PaScal Procedure", to distinguish 
+such a file from an executable Pascal program) provide two 
+of these procedures. The third, "ReadXY", has not yet been 
+successfully implemented, for reasons described later.
+	Since the Pascal/M and UCSD console procedures are 
+called frequently from programs written in either of these 
+two implementations of Pascal, conversion of such programs 
+to Pascal/Z can be done much more easily if the necessary 
+procedures can simply be included in the program and called
+in the same way. Since most CRT terminals use different 
+control codes for the actions needed, however, it will be 
+necessary to change the codes shown here to whatever your 
+own terminal requires. In most cases, this will require no 
+changes in the procedure headings or the formal parameter 
+types, though, so the interface to the programs can be the 
+same, no matter which terminal you have. To repeat a theme 
+I've used elsewhere, maximum compatibility between 
+different programmers, and different dialects of Pascal, 
+should benefit all of us -- and if you take the trouble to 
+get these procedures working right for your hardware setup,
+and then use them in your own programs, it should be one 
+more step toward this goal.
+	Since it may not always be obvious, from the 
+information given in the various manuals (it certainly 
+wasn't in mine), exactly how to get hardware-dependent 
+procedures like these working right, some trial and error 
+may be required. To facilitate this process, I also wrote 
+a program called "CONSOLE.PAS", to test the procedures.
+Unfortunately, neither this nor "READXY" could be included 
+on this disk, due to two problems with Pascal/Z that I 
+haven't yet figured out solutions for. One is that the 
+"Read" function is improperly implemented from the "Input" 
+(console) file, and it acts like "Readln" instead (waits 
+for a "Return" before accepting the input). The other is 
+the failure to provide a non-echoing mode for inputs from 
+the console, like the "Keyboard" file in Pascal/M and UCSD.
+Together these flaws make it impossible to move the cursor 
+around under user control, or accept the X,Y return values 
+from "ReadXY", since everything keeps getting echoed to the
+screen. I've tried a number of ways of working around these
+problems, including the "Input" procedure on p. 77 of the
+Pascal/Z Manual, but so far without success. If I were a 
+better assembly-language programmer, I might have been able
+to make it work, but (now, here comes the soapbox) the 
+whole point of using a high-level (and in the case of 
+Pascal/Z, high-priced!) language is to avoid having to do 
+this sort of low-level hacking. After about a week of 
+unsuccessful attempts, I decided that there were better 
+ways to spend my time than trying to add features to the 
+language that should have been there in the first place. 
+Good console-control procedures are a must for a language 
+that's going to be used to develop serious applications 
+software, and I can only hope that they are provided for 
+Pascal/Z before much longer (sorry about the tirade, but it
+was a long, frustrating experience). Anyway, try out the 
+two procedures that I was able to use (they seem to work in
+my programs, at least -- see "ARTIL/Z.PAS" for some 
+examples), and good luck with them.
+
+			Jim Bearden
+			Cancer Center, University of Hawaii
+			1236 Lauhala Street
+			Honolulu, Hawaii 96813
+ luck with them.
+
+			Jim Bearden
+			Cancer Center, University of Hawaii
+			1236 Lauh

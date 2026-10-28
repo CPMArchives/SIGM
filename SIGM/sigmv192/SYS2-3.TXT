@@ -1,0 +1,240 @@
+.he                     SYSLIB 3.0 Upgrade Notes
+.fo                                                    Page #
+
+                   Notes on Changes in SYSLIB
+                  From SYSLIB 2.7 to SYSLIB 3.0
+
+                          Richard Conn
+                        February 1, 1984
+
+     Thió  documenô  summarizeó thå changeó madå tï SYSLIÂ  undeò 
+Versioî 3.° froí thå previouó version¬  2.7®  SYSLIÂ 3.° consistó 
+oæ oveò 21° routineó iî oveò 15° modules¬ eacè modulå residinç iî 
+á separatå file.
+
+A®  Changeó Madå tï Existinç Routineó anä Modules
+
+     1® Alì oæ thå ZCPR2-specifiã routineó havå beeî removeä froí 
+SYSLIB®  Theså arå no÷ placeä iî á separatå librarù anä havå beeî 
+updateä tï reflecô ZCPR³ ratheò thaî ZCPR2®   SYSLIÂ 2.· ió stilì 
+tï bå useä tï supporô ZCPR2¬ whilå SYSLIÂ 3.° anä Z3LIÂ arå tï bå 
+useä tï supporô ZCPR3.
+
+     2®  Disk-Baseä Nameä Directorieó arå noô supporteä iî Z3LIB®  
+Thå  ZDNAMÅ  routinå  haó  beeî  omitted¬  anä  ZCPRQ2¬  ZFNINIT¬ 
+ZDNFIND¬  anä  ZFNAMÅ  havå beeî changeä tï removå  anù  featureó 
+relatinç  tï  disk-baseä nameä directories®   Memory-baseä  nameä 
+directorieó  arå  stilì  supported®   Modulesº   SZFNAME.MAÃ  anä 
+SZGPINS.MAÃ  changeä anä no÷ nameä Z3FNAME.MAÃ  anä  Z3GPINS.MAC®  
+Also¬  tï tesô thå valuå oæ thió change¬  XÄ waó reassembled¬ anä 
+thå  ne÷ COÍ filå ió 1± blockó (almosô 1.5K© smalleò thaî thå olä 
+version.
+
+     3®   Alì  matè routineó havå beeî brokeî ouô  intï  separatå 
+moduleó aó appropriate®  Therå arå no÷ 1² matè moduleó iî SYSLIB®  
+Modulesº  SMATH.MAÃ removed¬ SMTHnî (0± <½ nî <½ 12© added.
+
+     4®   Á  buç  haó beeî correcteä iî EVAL1°  whicè  prohibiteä 
+accuratå  processinç  oæ numberó greateò thaî  ¸  bits®   Moduleº  
+SEVAL1.MAC.
+
+     5®  Versioî Numbeò ió no÷ 3.0®  Moduleº  SVERSION.MAC.
+
+     6®  Á  buç haó beeî correcteä iî DIRÆ anä DIRFÓ iî whicè thå 
+propeò  returî  codå  waó  noô  returneä  iî   A/PSW®    Internaì 
+documentatioî waó alsï cleaneä up®  Also¬ thå SDIR.MAÃ modulå waó 
+brokeî uğ intï á seô oæ independenô modules¬ nameä SDIRxx.MAÃ (0° 
+<½ xø <½ 10)¬ SDIR.MAC¬ SDIRHDR.LIB¬ anä SDIRBF.MAC.
+
+     7®   Thå  SUÄ modulå waó brokeî uğ intï SUD1.MAC¬  SUD2.MAC¬ 
+anä SUD3.MAC.
+
+     8®  Thå routineó F$MAKE¬ F$READ¬ anä F$WRITÅ werå changeä tï 
+returî  propeò  PS×  flaç settings®   No÷  returî  codeó  caî  bå 
+examineä  withouô  aî  ORÁ Á afteò thå  routinå  call®   Modulesº  
+SFMAKE.MAC¬ SFREAD.MAC¬ SFWRIT.MAC.
+
+
+     9®   Thå  followinç  SYSLIÂ routineó havå beeî  modifieä  oò 
+improved:
+
+          Routine   Module         Routine   Module
+          -------   ------         -------   ------
+          PADC      SPADC          PA2HC     SPA2HC
+          PHL4HC    SPHL4HC        PHL5DC    SPHL5DC
+          PHLDC     SPHL5DC        LADC      SLADC
+          LA2HC     SLA2HC         LHL4HC    SLHL4HC
+          LHL5DC    SLHL5DC        LHLDC     SLHLDC
+
+
+
+B.  New SYSLIB Routines and Modules
+
+     1.  The following numeric output routines have been added:
+
+     Routine   Module    Function
+     -------   ------    --------
+     LAFDC     SLAFDC    Print A as Floating Decimal to LST:
+     LHLFDC    SLHLFDC   Print HL as Floating Decimal to LST:
+
+     MAFDC     SMAFDC    Print A as Floating Decimal to Memory
+     MHLFDC    SMHLFDC   Print HL as Floating Dec to Memory
+
+     PAFDC     SPAFDC    Print A as Floating Decimal to CON:
+     PHLFDC    SPHLFDC   Print HL as Floating Decimal to CON:
+
+     SA2HC     SSA2HC    Print A as 2 Hex Chars to S Output*
+     SA3DC     SSADC     Print A as 3 Dec Chars to S Output
+     SADC      SSADC     Print A as Decimal Chars to S Output
+     SAFDC     SSAFDC    Print A as Floating Dec to S Output
+     SHL4HC    SSHL4HC   Print HL as 4 Hex Chars to S Output
+     SHL5DC    SSHL5DC   Print HL as 5 Dec Chars to S Output
+     SHLDC     SSHL5DC   Print HL as Dec Chars to S Output
+     SHLFDC    SSHLFDC   Print HL as Floating Dec to S Output
+
+ª  Ó  Outpuô ió thå ne÷ SYSLIÂ  Switcheä  Outpuô  feature¬  wherå 
+outpuô  caî bå selecteä tï gï tï anù onå oæ fouò combinationó  oæ 
+CONº oò LSTº dynamically.
+
+     2.  The following S-Output Routines have been added:
+
+     Routine   Module    Function
+     -------   ------    --------
+     SCOUT     SSCOUT    Print Char A with Ctrl Char Processing
+                              to S Output
+     SCRLF     SSCRLF    Print New Line to S Output
+     SCTLFL    SSCTLFL   Switch Control Flag
+     SOUT      SSOUT     Print Char A to S Output
+     SPRINT    SSPRINT   Print String at Ret Adr to S Output
+     SPSTR     SSPSTR    Print String at HL to S Output
+
+
+B.  New SYSLIB Routines and Modules, Con't
+
+     3®   Thå  followinç Byte-Orienteä Filå I/Ï  routines¬  whicè 
+supporô variable-sizeä bufferó foò blocking/deblocking¬ havå beeî 
+added®  Alì arå iî thå SFXIO.MAÃ Module.
+
+     Routine   Function
+     -------   --------
+     FXI$OPEN  Open File for Input
+     FXI$CLOSE Close Input File
+     FXO$OPEN  Open File for Output
+     FXO$CLOSE Close Output File
+     FX$GET    Get Byte from Input File
+     FX$PUT    Put Byte to Output File
+
+     4®  Aî F$SIZÅ routinå haó beeî addeä whicè computeó thå filå 
+sizå oæ á filå tï thå nearesô K¬ ignorinç groupinç factors®  Jusô 
+thå  firsô  1² byteó oæ thå FCÂ arå passeä  tï  F$SIZE®   Moduleº  
+SFSIZE.MAC.
+
+     5®   Á seô oæ routineó havå beeî addeä foò characteò testinç 
+anä  strinç  parsinç  functions®   Eacè ió containeä iî  itó  owî 
+module¬ whicè ió nameä afteò iô witè aî Ó prefix®  Theså routineó 
+are:
+
+     Routine   Function
+     -------   --------
+     ISALNUM   Is Alphanumeric
+     ISALPHA   Is Alphabetic
+     ISCTRL    Is Control
+     ISDIGIT   Is Digit
+     ISGRAPH   Is Graphic
+     ISHEX     Is Hexadecimal
+     ISPRINT   Is Printable
+     ISPUN     Is Punctuation
+     ISSP      Is Space Char
+
+     SKNPUN    Skip Over Non-Punctuation Chars
+     SKNSP     Skip Over Non-Space Chars
+     SKPUN     Skip Over Punctuation Chars
+     SKSP      Skip Over Space Chars
+
+     6®   Ne÷ dynamiã buffeò allocatioî routineó havå beeî added®  
+Botè arå iî thå SALLOC.MAÃ Module.
+
+     Routine   Function
+     -------   --------
+     ALLOC     Allocate N Bytes from Dynamic Buffer
+     IALLOC    Specify Bounds of Dynamic Buffer
+
+
+B.  New SYSLIB Routines and Modules, Con't
+
+     7.  The following character I/O routines have been added:
+
+     Routine   Module    Function
+     -------   ------    --------
+     BIN       SBIN      Input CON: Char via BDOS
+     BIST      SBIST     Input CON: Char Status via BDOS
+     BOUT      SBOUT     Output Char to CON: via BDOS
+
+     CAPIN     SCAPIN    Input CON: Char and Capitalize
+     CAPINE    SCAPIN    CAPIN and Echo
+
+     8®   Therå arå no÷ eighô SYSTESÔ programs¬  designeä tï tesô 
+thå   variouó  featureó  oæ  SYSLIÂ  3.0®    Theså  programó  arå 
+SYSTEST.MAC and SYSTESTn.MAC (1 <= n <= 7).
+
+     9®   Thå  followinç  FCÂ Filå Namå anä Typå Outpuô  routineó 
+have been added:
+
+CON:   LST:   Switched  Memory    Function
+----   ----   --------  ------    --------
+PFN1   LFN1   SFN1      MFN1      12 Chars, Embedded Spaces
+PFN2   LFN2   SFN2      MFN2      N-Chars, No Spaces
+PFN3   LFN3   SFN3      MFN3      12 Chars, Trailing Spaces
+
+     Eacè routinå ió iî itó owî module¬  whicè ió nameä afteò thå 
+routinå buô ió prefixeä witè aî Ó (ie¬ PFN± ió iî SPFN1.MAC).
+
+
+    10®   Thå followinç Useò Areá Manipulatioî routineó havå beeî 
+added:
+
+Routine   Module         Function
+-------   ------         --------
+GUA       SGUA.MAC       Get Current User Area in A
+SUA       SSUA.MAC       Set User Area in A
+
+    11®   Thå followinç filå attributå manipulatioî routineó havå 
+been added:
+
+Routine   Module         Function
+-------   ------         --------
+GFA       SGFA.MAC       Return File Attributes
+SCFA      SSCFA.MAC      Set and Clear File Attributes
+SFA       SFA.MAC        Set File Attributes
+
+
+
+B.  New SYSLIB Routines and Modules, Con't
+
+    12®   Thå  followinç  randoí filå accesó routineó  havå  beeî 
+added:
+
+Routine   Module         Function
+-------   ------         --------
+R$READ    SRREAD         Random Block Read
+R$WRITE   SRWRITE        Random Block Write
+
+
+
+C.  Documentation
+
+     1®   Alì  oæ thå SYSLIB.HLĞ fileó havå beeî  rewritten¬  anä 
+manù ne÷ fileó havå beeî added®   Theså fileó completelù documenô 
+SYSLIÂ 3.0®  Therå arå 2° SYSLIÂ 3.° HLĞ Files.
+
+     2®   Realizinç  thå investmenô somå peoplå havå iî harä copù 
+oæ thå SYSLIÂ 2.´ documentation¬  É dï noô intenä tï releaså  ne÷ 
+SYSLIÂ 3.° manualó aô thió time®  Thió updatå anä thå fouò Z2SYS-
+n.MOÄ  fileó  wilì servå tï brinç youò documentatioî uğ tï  date®  
+Thå  SYSLIBx.HLĞ fileó shoulä bå useä aó  thå  complete¬  on-linå 
+authoritativå reference.
+
+
+                                        Richard Conn
+
+

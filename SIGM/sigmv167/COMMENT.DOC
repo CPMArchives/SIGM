@@ -1,0 +1,191 @@
+[COMMENTS.DOC]
+[Harold V. McIntosh, 28 January 1984]
+
+Submission of the volume containing the listings of REC80 and of REC86
+provoked the immediate reaction from the Disk Editor that there seemed
+to be a module missing from REC80, and that REC86 would not be accessible
+to many people who had the Digital Research ASM86.CMD which is a part of
+the CP/M86 package rather than Sorcim's ACT86 which is something of a
+necessity for people who have bought Godbout's 8085/8088 board and its
+accompanying software.
+
+-
+
+The "missing module" in REC80 is a package of control subroutines for one
+of the video boards with graphics capabilities which were more common a
+few years ago than they are now. With an external terminal and programs
+which push the limits of memory capacity, the memory mapped 16x64 boards
+of other days seem to have been taken out of their chassis and put away
+on a shelf somewhere.
+
+As it happens REC80 will assemble and run as distributed, although the
+message that there are so many missing subroutines can be disconcerting.
+If RECLIB is omitted from L80's load list, only one single undefined
+symbol will remain, which is easier to ignore; or if the subroutines are
+in one's FORLIB and one's L80 searches FORLIB automatically, all will go
+well. It might have been prudent to suppress the undefined symbol before
+publishing REC, and indeed it was an oversight not to have mentioned it.
+RECLIB was included for the benefit of those students of REC who want to
+include their own package of subroutines defined in some other language
+such as FORTRAN, BASIC, or PL/M. Typical linkages form the substance of
+RECLIB.
+
+Even though memory mapped video boards may be uncommon, there are many
+applications for graphics, and for control and interface programs which
+allow their usage. Using the denser memory chips now available, and some
+PROM's to replace a bit of the discrete circuitry, we have redone Vector
+Graphic's VGR dense graphics board on the STD bus. Thus the programs from
+the "missing module" can still be used, albeit with some attention to the
+equipment available for their use. Consequently, programs are included in
+this volume for four controller boards:
+
+		VGR	Vector Graphics dense graphics board
+		VB1	Solid State Music VB1-B
+		VTI	Polymorphic Video Terminal Interface
+		VTI88	Polymorphic with reversed graphics bit
+
+The difference between these boards is in the mapping of bits into pixels,
+and in the case of VGR, the existence of a grey mode option. The programs
+will drive any other board with the same mapping; however that the line
+length is a power of two is an inalterable assumption that pervades all the
+programs. Two of the programs are written for M80, so that one of them can
+be loaded with RECLIB. The others are stand-alone, as long as they have
+memory mapped video available. All are capable of executing LIFE, which of
+course is more interesting with the greater memory available for VGR.
+
+The commands are indicated as subroutine headings in each card, but they
+are generally the same for all four versions. The screen as a whole can be
+moved, and a cursor can be imagined as moving across the screen. Thus there
+are commands to illuminate or extinguish the cursor, the same for the screen
+as a whole, and to move either screen or cursor in the compass directions.
+In the gray mode, intensity variations are also available. These are the
+primitive operations, advanced operations draw lines or fill polygons with
+intensity values. Finally, the LIFE cycles are quite complex subroutines.
+
+Additionally, we have included the program CARD.REC to show how REC may be
+used to generate output for video boards. We have used several variants of
+CARD - using the library associated with RECLIB, generating direct output
+to a port to which a CalComp or Houston Instruments plotter is connected,
+or generating an ASCII character string for plotters which use an RS232-C
+interface.
+
+We make these programs available for the sake of completeness; someone who
+plans to use them will have to have the equipment to run them, and the
+knowledge of how to use the equipment and to adapt the programs which are
+offered; they do not form a ready-to-run package. Finally, note that RECLIB
+and any library functions occupy memory space which is wasted if they are
+not going to be used.
+
+-
+
+The selection of an assembler for the Intel 8086 and its affiliates is not
+the clear cut choice that it was for the Intel 8080 and derivatives, and
+for the good reason that the 8086 not only offers a greater diversity of
+instructions, but that the management of segmentation to go beyond the most
+trivial expansion of 64K of memory is a formidable task in itself. This in
+turn is made no easier by the opacity of our proprietary operating systems.
+
+The first reaction to the request to submit an assembly listing for ASM86
+was that it would be an excellent demonstration of the merits of CNVRT.REC
+to write a transformation program to do the job. This was accomplished in
+an evening and checked out over the weekend. Since each REC listing fills
+half a disk, it is tempting to release SORCIM.CNV, which does the job, and
+let each interested person make the transformation or not as desired. But,
+although much smaller than a complete REC listing, this is hardly a general
+purpose program. It incorporates just enough vital information to get about
+the job at hand. Even so it seemed to be preferable to make some changes in
+the source program to facilitate the transformation. For example, there were
+still a few upper case operation codes in a listing that was supposedly lower
+case. If these made the transformation program ugly, the difference in the
+usage of <jmps> between the assemblers made it impossible. ACT86 will put a
+jmps in place of a jmp if such is possible on a backward reference. There
+is no way that the programmer can force a long (middle, that is) jump on
+the assembler. Since it is possible to force ASM86 (as well as ACT86) to
+use a short jump, and the change was needed only in certain places, the
+source code just had to be changed.
+
+But now we have complicated things too much - distribute some minor changes,
+then explain how to run a program to make major changes, and do it all over
+again the next time. Thus it is time to place the problem in a general frame
+and look for a general solution, especially since changes will always be with
+us.
+
+Three CNVRT programs, together with a version of CNVRT.REC which has some
+handier interactive properties, are included in this volume:
+
+		SORCIM.CNV
+		FILCOM.CNV
+		UPDATE.CNV
+
+As indicated, SORCIM is a very particular program, which can be expanded
+or modified as circumstances require, to transform a Sorcim ACT86 assembly
+program to one acceptable to Digital Research's ASM86. Once the transformed
+program exists, we can ask for the differences that actually occurred. For
+this, and to compare ASCII programs for other reasons, a file comparison
+program is useful. In general it must account for insertions and deletions
+as well as simple alterations within a line. For example, ASM86 will not
+accept a repeat prefix on a separate line so that SORCIM must occasionally
+combine two lines.
+
+Programs such as FILCOM are not especially easy to write, particularly in 
+a language like CNVRT which does not deal with large buffers and indexed
+arrays. The reason is that the history of a change is by no means unique,
+and some criterion is necessary to decide when to reestablish synchronism
+after encountering a region in which the two files are quite distinct. Our
+program is quite large, using all of memory without looking ahead more than
+four lines to reestablish synchronism with a single line. Longer insertions,
+deletions, or changes must be marked off explicitly in the "new" file. As
+it is written, FILCOM will accomodate an arbitrarily long series of changes
+as long as they do not unbalance the line count by more than four. To run
+FILCOM on a machine with less memory, this number would have to be reduced.
+
+Nevertheless, if a difference file is available, a program like UPDATE can
+delete and insert the necessary lines for an arbitrarily large file, giving
+its new version. Sometimes a file is short enough that the changes can be
+incorporated more rapidly with an editor working manually. Automatic update
+has the advantage of being less error prone. If human inspection of the
+difference file were not contemplated, it could be cut in half, because it
+is only necessary to know the line at which a deletion is to be made but not
+the actual text to be deleted. It is our present intention to support only
+the ACT86 version of REC, so that further updates to the ASM86 version will
+need to be generated using SORCIM.
+
+With the joint use of FILCOM and UPDATE, it will be possible to circulate
+corrections or revisions to programs without having to distribute a com-
+plete new listing, for which the process will furthermore be completely
+automatic if the necessary editorial marks are included as the programs
+are revised.
+
+In this spirit, a series of .DIF files is included
+
+		PDL80.DIF
+		MKV80.DIF
+		FXT80.DIF
+		REC86.DIF
+		PDL86.DIF
+		FXT86.DIF
+		
+which will bring the REC listings up to date. A few errors were detected,
+and the changes which allow SORCIM to operate are included. The assignment
+of a default of .REC to REC files is the result of popular demand. Some
+of these files are quite small, and waste a lot of their record group.
+Even so, they should not be combined; UPDATE will use them individually.
+Modifying UPDATE to update a chain of files on the basis of a composite
+difference file would not be a difficult exercise.
+
+If REC86 is updated, SORCIM can be applied to the resultant file to get the
+xxx86.A86 version of REC, which is nevertheless included on this disk for
+convenience (and checking). Those concerned with individualizing REC86 with
+their own memory distribution should start by taking note that ASM86 has
+generated far too many segment override prefixes - about 1/2K too many - 
+which can be reduced by declaring the segments explicitly and not relying
+on CP/M86's 8080 mode too completely.
+
+SORCIM has default extensions with which to work, while FILCOM and UPDATE
+make use of the generic extensions .ONE and .TWO. These can be changed by
+editing the source listings for an application in which the extansions are
+fixed and known, otherwise the files must be renamed to comply with these
+choices.
+
+[end]
+

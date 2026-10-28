@@ -1,0 +1,260 @@
+;NewCRCK  -  NCRCK v1.00 as of 04/22/84 by S. Kluger
+;
+; NCRCK satisfies both worlds by providing simultaneous display
+; of CRCs computer by two polynomials:
+;
+; X^16 + X^12 + X^5 +1				(the one used in CHEK, LU)
+; X^16 + X^15 + X^13 + X^7 + X^4 + X^2 + X + 1	(the one used in CRCK)
+;
+; The primary purpose is to display CRCK values on RCPM systems.
+; Therefore, no provisions for file output have been made.
+;
+cr	equ	0dh
+lf	equ	0ah
+tab	equ	9
+;
+dfcb	equ	5ch
+dbuf	equ	80h
+;
+	extrn	wildex		;wildcard table builder
+	extrn	print,pa2hc,phldc,cout,cin,crlf
+	extrn	f$open,initfcb,f$read,moveb
+	extrn	codend,bdos
+	extrn	crcclr,crcupd,crcdone
+	extrn	crc2clr,crc2upd,crc2done
+	extrn	divhd
+;
+begin:	jmp	skip
+;
+maxdr:	db	15		;max drive
+syson:	db	0		;non-zero = no $SYS files
+;
+skip:	lxi	h,0
+	dad	sp
+	shld	stksav
+	lxi	sp,stack
+	call	print
+	db	cr,lf
+	db	'NCRCK v1.00 by ESKAY  04/22/84',cr,lf,lf,0
+	lxi	d,dfcb+1
+	ldax	d
+	cpi	' '
+	jz	help
+	dcx	d
+	ldax	d
+	mov	b,a
+	lda	maxdr
+	cmp	b
+	jnc	drvok
+	jmp	bounds		;complain if drive > maxdr
+;
+drvok:	call	codend		;get start of buffer area
+	shld	bufptr		;save as buffer pointer
+	call	wildex		;expand possible wildcards
+	jz	nofile		;quit if no file
+	call	sysck		;check and mark $sys files
+	call	print
+	db	'Matching files:',0
+	lhld	count
+	call	phldc
+	call	print
+	db	cr,lf,lf
+	db	'FILE NAME        CRCK      CHEK      KBYTES    SECTORS',cr,lf
+	db	'------------------------------------------------------'
+	db	cr,lf,lf,0
+loop:	lxi	h,0		;initialize sector count
+	shld	sects
+	lhld	count		;get file count
+	mov	a,h
+	ora	l
+	jz	exit		;no more - exit
+	dcx	h		;decrement file count...
+	shld	count		;...and save it
+;
+; loop here for each file
+;
+loop1:	lhld	bufptr		;move next file name...
+	lxi	d,fcb		;...into fcb
+	mvi	b,16
+	call	moveb
+	lxi	b,16		;point to next table entry
+	dad	b
+	shld	bufptr
+	call	initfcb		;zero the fcb
+	lda	dfcb		;get drive from entry fcb
+	sta	fcb
+	lda	fcb+10		;$sys file?
+	ora	a
+	jm	loop1		;yes, skip this one
+	call	f$open		;open file
+	jnz	loop		;just in case!
+	lxi	h,fcb+1		;now, print the file name
+	call	pfn
+	call	crcclr		;clear both CRC accumulators
+	call	crc2clr
+;
+; continuously read and update CRC, increment sector count
+; and loop until EOF detected
+;
+getlp:	call	f$read
+	ora	a
+	jnz	goteof
+	lxi	b,dbuf		;point to buffer
+	lhld	sects		;increment sector count
+	inx	h
+	shld	sects		; add a sector to count
+clp:	ldax	b		;get byte
+	call	crcupd		;update both accumulators
+	call	crc2upd
+	inr	c		;increment pointer...
+	jnz	clp		;..until end of buffer
+	call	ctlc		;check for abort
+	jmp	getlp
+;
+; got end of file - print stats
+;
+goteof:	call	space		;space to CRCK
+	call	crc2done
+	call	hex5		;output hl as NN NN hex
+	call	space		;space to CHEK
+	call	crcdone
+	call	hex5
+	call	space		;space to KBYTES
+	lhld	sects
+	lxi	d,7		;round to next full k
+	dad	d
+	inx	d
+	call	divhd
+	call	phldc
+	call	space		;space to SECTORS
+	lhld	sects
+	call	phldc
+	call	crlf
+	jmp	loop		;go do next file
+;
+; check for $sys files and remove them
+;
+sysck:	mov	b,h		;save counter for local use
+	mov	c,l
+	shld	count
+	call	codend		;get buffer start
+	lxi	d,10		;$sys flag offset
+	dad	d
+	lxi	d,16		;file-to-file offset
+cksys:	mov	a,b		;check if we still have more files
+	ora	c
+	rz			;all done, quit
+	dcx	b
+	mov	a,m		;get t2 byte
+	ora	a		;$sys?
+	cm	sys		;yes, call processor
+	dad	d		;point to next t2 byte
+	jmp	cksys
+;
+sys:	lda	syson		;check if SYSONly flag set
+	ora	a
+	jz	pass		;not set - strip flag
+	push	h
+	lhld	count		;else decrement file counter...
+	dcx	h		;...so that it doesn't show...
+	shld	count		;...in the total count
+	pop	h
+	ret
+;
+pass:	mov	a,m		;strip $sys bit
+	ani	7fh
+	mov	m,a
+	ret
+;
+ctlc:	push	h
+	push	d
+	push	b
+	mvi	c,6
+	mvi	e,0ffh
+	call	bdos
+	ora	a
+	pop	b
+	pop	d
+	pop	h
+	rz			;nothing typed on con: - return
+	cpi	'C'-40h		;was it ^C?
+	jz	abort		;yes, quit
+	cpi	'S'-40h		;was it ^S?
+	rnz			;no - return
+	jmp	cin		;else wait for keypress
+;
+; print 5 spaces
+;
+space:	call	print
+	db	'     ',0
+	ret
+;
+; output HL as 2 hex char, a space and 2 more hex char
+;
+hex5:	mov	a,h
+	call	pa2hc
+	call	print
+	db	' ',0
+	mov	a,l
+	jmp	pa2hc
+;
+; print file name
+;
+pfn:	mvi	b,8
+	call	pfn2
+	mvi	a,'.'
+	call	cout
+	mvi	b,3
+pfn2:	mov	a,m
+	call	cout
+	inx	h
+	dcr	b
+	jnz	pfn2
+	ret
+;
+bounds:	call	print
+	db	cr,lf
+	db	'*** ILLEGAL DRIVE ***',cr,lf,0
+	jmp	quit
+;
+abort:	call	print
+	db	cr,lf
+	db	'*** ABORTED ***',cr,lf,0
+	jmp	quit
+;
+exit:	call	print
+	db	cr,lf,'*** END ***',cr,lf,0
+	jmp	quit
+;
+nofile:	call	print
+	db	cr,lf
+	db	'FILE NOT FOUND',cr,lf,0
+	jmp	quit
+;
+help:	call	print
+	db	cr,lf
+	db	'NO FILE SPECIFIED.',cr,lf
+	db	'SYNTAX:',cr,lf
+	db	tab,'NCRCK afn',cr,lf,lf
+	db	tab,'If found, CRC values for the selected file(s) are',cr,lf
+	db	tab,'displayed. Both "CHEK" and "CRCK" values shown'
+	db	cr,lf,lf,0
+quit:	lhld	stksav
+	sphl
+	ret
+;
+stksav:	dw	0
+count:	dw	0
+bufptr:	dw	0
+bytes:	dw	0
+sects:	dw	0
+fcb:	ds	36
+	ds	60
+stack	equ	$
+	end
+ces
+;
+space:	call	print
+	db	'     ',0
+	ret
+;

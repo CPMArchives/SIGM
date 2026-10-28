@@ -1,0 +1,458 @@
+TITLE 'MEMORY TEST PROGRAM - BYTE, DECEMBER 1982, pp 414-444'
+;
+CR	EQU	0DH     ;CARRIAGE RETURN
+ESC	EQU	1BH     ;ESCAPE
+HCHAR	EQU	0FH	;MASK FOR REMOVING UPPER NIBBLE
+LF	EQU	0AH     ;LINE FEED
+;LNPAT	EQU	9       ;PATTERN LENGTH - FOR NK*4 MEMORY COMPONENTS
+LNPAT	EQU	17      ;PATTERN LENGTH - FOR NK*1 MEMORY COMPONENTS
+NZERO	EQU	0FH     ;NONZERO VALUE
+PRTYO	EQU	7FH     ;MASK TO CLEAR PARITY FROM CONSOLE INPUT
+CI	EQU	0E003H	;CONSOLE INPUT ROUTINE
+CO	EQU	ANG	;OUTPUT ROUTINE
+CBOOT	EQU	0E000H	;COLD BOOT ROUTINE
+;
+        .z80
+        ld de,0f000h
+        ld hl,begina
+        ld bc,enda-begina
+        ldir
+        jp begin
+        .8080
+begina:
+
+        .PHASE 0F000H
+BEGIN:	
+        DI
+	LXI	SP,SPLOC
+	XRA	A
+	STA	ERFLG
+;
+; SET BANK
+;
+        .Z80
+        LD A,0
+        CALL BANK
+        .8080
+        LXI     H,MESG0
+        MVI     B,MESL0
+        CALL    MSGL
+        .Z80
+        CALL    CI
+        SUB     '0'
+        JP      C,CBOOT
+        LD      (BNK),A
+        CALL CROUT
+        .8080
+;
+; GET START ADDRESS
+;
+MAIN1:	LXI	H,MESG1
+	MVI	B,MESL1
+	CALL	MSGL
+	CALL	GETHX
+	JNC	MAIN1
+	MOV	H,B
+	MOV	L,C
+	SHLD	MEMST
+;
+; GET END ADDRESS
+;
+MAIN2:	LXI	H,MESG2
+	MVI	B,MESL2
+	CALL	MSGL
+	CALL	GETHX
+	JNC	MAIN2
+	MOV	H,B
+	MOV	L,C
+	SHLD	MEMND
+
+        .Z80
+        LD A,(BNK)
+        CALL BANK
+        .8080
+;
+; TEST FOR START ADDRESS > END ADDRESS AND COMPUTE
+; THE NUMBER OF BYTES TO BE TESTED - THE FOLLOWING SUBTRACTION
+; ROUTINE IS TAKEN FROM MILLER'S 'MASTERING CPM' P 125, AS THE 
+; ORIGINAL VERSION FAILS WHEN MEMST = 0.
+;
+	XCHG
+	LHLD	MEMST
+	MOV	A,E
+	SUB	L
+	MOV	L,A
+	MOV	A,D
+	SBB	H
+	MOV	H,A
+	CMC
+	JC	MAIN3
+	LXI	H,MESG3
+	MVI	B,MESL3
+	CALL	MSGL
+	CALL	CROUT
+	JMP	MAIN1
+MAIN3:	INX	H
+	SHLD	NBYTE
+;
+; SET UP REGISTERS TO ESTABLISH THE BARBER-POLE PATTERN
+;
+	MVI	A,LNPAT
+	STA	PATLN
+	STA	NCYCL
+	LXI	B,PATRN
+	PUSH	B
+MAIN4:	LHLD	NBYTE
+	XCHG
+	LHLD	MEMST
+;
+; PUT THE BARBER-POLE PATTERN IN R/W MEMORY
+;
+MAIN5:	LDAX	B
+	MOV	M,A
+	INX	B
+	INX	H
+	DCX	D
+	MOV	A,E
+	ORA	D
+	JZ	MAIN6
+	LDA	PATLN
+	DCR	A
+	STA	PATLN
+	JNZ	MAIN5
+	POP	B
+	PUSH	B
+	MVI	A,LNPAT
+	STA	PATLN
+	JMP	MAIN5
+;
+; SET UP REGISTERS TO TEST BARBER-POLE PATTERN
+;
+MAIN6:	POP	B
+	PUSH	B
+	MVI	A,LNPAT
+	STA	PATLN
+	LHLD	NBYTE
+	XCHG
+	LHLD	MEMST
+;
+; TEST BARBER-POLE PATTERN
+;
+MAIN7:	LDAX	B
+	CMP	M
+	CNZ	ERROR
+	INX	B
+	INX	H
+	DCX	D
+	MOV	A,E
+	ORA	D
+	JZ	MAIN8
+	LDA	PATLN
+	DCR	A
+	STA	PATLN
+	JNZ	MAIN7
+	POP	B
+	PUSH	B
+	MVI	A,LNPAT
+	STA	PATLN
+	JMP	MAIN7
+;
+; SHIFT THE BARBER-POLE PATTERN BY ONE AND TEST FOR LAST SHIFT
+;
+MAIN8:	POP	B
+	INX	B
+	PUSH	B
+	MVI	A,LNPAT
+	STA	PATLN
+	LDA	NCYCL
+	DCR	A
+	STA	NCYCL
+	JNZ	MAIN4
+;
+; TEST COMPLETED - OUTPUT MESSAGE
+;
+	LDA	ERFLG
+	ORA	A
+	JNZ	MAIN9
+	LXI	H,MESG7
+	MVI	B,MESL7
+	CALL	MSGL
+	CALL	CROUT
+	JMP	BEGIN
+MAIN9:	LXI	H,MESG8
+	MVI	B,MESL8
+	CALL	MSGL
+	CALL	CROUT
+	JMP	BEGIN
+
+;
+;......................................................................
+;
+; CONVERT HEXADECIMAL TO BINARY
+;
+CNVBN:	MOV	A,C
+	SUI	'0'
+	CPI	10
+	RM
+	SUI	7
+	RET
+;
+;......................................................................
+;
+; OUTPUT CR/LF
+;
+CROUT:	MVI	C,CR
+	CALL	ECHO
+	RET
+;
+;......................................................................
+;
+; ECHO CHARACTER TO TERMINAL
+;
+ECHO:	MOV	B,C
+	MVI	A,ESC
+	CMP	B
+	JNZ	ECHO5
+	MVI	C,'$'
+ECHO5:	CALL	CO
+	MVI	A,CR
+	CMP	B
+	JNZ	ECH10
+	MVI	C,LF
+	CALL	CO
+ECH10:	MOV	C,B
+	RET
+;
+;......................................................................
+;
+; ERROR MESSAGE AND LOCATION OF BAD CELL
+;
+ERROR:	PUSH	PSW
+	PUSH	D
+	PUSH	H
+	PUSH	B
+	XCHG
+	LXI	H,MESG4
+	MVI	B,MESL4
+	CALL	MSGL
+	MOV	A,D
+	CALL	NMOUT
+	MOV	A,E
+	CALL	NMOUT
+	LXI	H,MESG5
+	MVI	B,MESL5
+	CALL	MSGL
+	POP	B
+	PUSH	B
+	LDAX	B
+	CALL	NMOUT
+	LXI	H,MESG6
+	MVI	B,MESL6
+	CALL	MSGL
+	XCHG
+	MOV	A,M
+	CALL	NMOUT
+	CALL	CROUT
+	MVI	A,NZERO
+	STA	ERFLG
+	POP	B
+	POP	H
+	POP	D
+	POP	PSW
+	RET
+;
+;......................................................................
+;
+; SET CARRY TO FALSE
+;
+FRET:	STC
+	CMC
+	RET
+;
+;......................................................................
+;
+; GET CHARACTER FROM CONSOLE - CLEAR PARITY
+;
+GETCH:	CALL	CI
+	ANI	PRTYO
+	MOV	C,A
+	RET
+;
+;......................................................................
+;
+; READ 16 BIT BINARY DIGIT FROM CONSOLE - ENTERED AS HEX.
+;
+GETHX:	PUSH	H
+	LXI	H,0
+	MVI	E,0
+GHX05:	CALL	GETCH
+	CALL	ECHO
+	MOV	A,C
+	CPI	CR
+	JNZ	GHX10
+	PUSH	H
+	POP	B
+	POP	H
+	MOV	A,E
+	ORA	A
+	JNZ	SRET
+	JZ	FRET
+GHX10:	CALL	VALDG
+	JNC	GHX15
+	CALL	CNVBN
+	MVI	E,0FFH
+	DAD	H
+	DAD	H
+	DAD	H
+	DAD	H
+	MVI	B,0
+	MOV	C,A
+	DAD	B
+	JMP	GHX05
+GHX15:	CALL	CROUT
+	POP	H
+	JMP	FRET
+;
+;......................................................................
+;
+; OUTPUT A MESSAGE
+MSGL:	MOV	C,M
+	CALL	CO
+	INX	H
+	DCR	B
+	JNZ	MSGL
+	RET
+;
+;......................................................................
+;
+; OUTPUT AN 8 BIT INTEGER
+;
+NMOUT:	PUSH	PSW
+	RRC
+	RRC
+	RRC
+	RRC
+	CALL	PRVAL
+	CALL	ECHO
+	POP	PSW
+	CALL	PRVAL
+	CALL	ECHO
+	RET
+;
+;......................................................................
+;
+; CONVERT NIBBLE TO HEX REPRESENTATION
+;
+PRVAL:	ANI	HCHAR
+	ADI	90H
+	DAA
+	ACI	40H
+	DAA
+	MOV	C,A
+	RET
+;
+;......................................................................
+;
+; SET CARRY TO TRUE
+;
+SRET:	STC
+	RET
+;
+;......................................................................
+;
+; CHECK VALIDITY OF ASCII CHAR FOR REPRESENTING HEX.
+;
+VALDG:	MOV	A,C
+	CPI	'0'
+	JM	FRET
+	CPI	'9'
+	JM	SRET
+	JZ	SRET
+	CPI	'A'
+	JM	FRET
+	CPI	'G'
+	JP	FRET
+	JMP	SRET
+;
+;......................................................................
+;
+; CONSOLE OUTPUT ROUTINE - WILL NEED TO BE MODIFIED FOR ANOTHER MACHINE
+;
+ANG:	IN	0E1H
+	ANI	1
+	JNZ	ANG
+	MOV	A,C
+	OUT	0E0H
+	RET
+;
+;......................................................................
+;
+; BANK SELECT
+;
+        .z80
+bank:
+        out (0feh),a    ; switch board
+        and a           ; to get flags
+        ld a,0          ; clear a
+        jr nz,zero       ; disk contr on for bank zero
+        inc a           ; set a to 1
+zero:   out (40h),a     ; switch disk controller
+	ret
+        .8080
+;
+;......................................................................
+;
+;BARBER-POLE REPRESENTATION
+;
+;PATRN:	DB	00H,11H,22H,44H,88H,0EEH,0DDH,0BBH,77H
+;	DB	00H,11H,22H,44H,88H,0EEH,0DDH,0BBH,77H
+PATRN:	DB	00H,01H,02H,04H,08H,10H,20H,40H,80H
+	DB	0FEH,0FDH,0FBH,0F7H,0EFH,0DFH,0BFH,7FH
+	DB	00H,01H,02H,04H,08H,10H,20H,40H,80H
+	DB	0FEH,0FDH,0FBH,0F7H,0EFH,0DFH,0BFH,7FH
+;
+;......................................................................
+;
+; MESSAGES
+;
+MESG0:	DB      'ENTER BANK (0,1,2) '
+MESL0	EQU     $-MESG0
+MESG1:	DB	'ENTER ADDRESS OF MEMORY START IN HEX '
+MESL1	EQU	$-MESG1
+MESG2:	DB	'ENTER ADDRESS OF MEMORY END IN HEX '
+MESL2	EQU	$-MESG2
+MESG3:	DB	'ERROR: MEMORY START ADDRESS > MEMORY END ADDRESS'
+MESL3	EQU	$-MESG3
+MESG4:	DB	'MEMORY ERROR AT '
+MESL4	EQU	$-MESG4
+MESG5:	DB	' HEX EXPECTED '
+MESL5	EQU	$-MESG5
+MESG6:	DB	' FOUND '
+MESL6	EQU	$-MESG6
+MESG7:	DB	'SUCCESSFUL TEST'
+MESL7	EQU	$-MESG7
+MESG8:	DB	'UNSUCCESSFUL TEST'
+MESL8	EQU	$-MESG8
+;
+;......................................................................
+;
+; WORK-SPACE
+;
+ERFLG:	DS	1
+MEMND:	DS	2
+MEMST:	DS	2
+NBYTE:	DS	2
+NCYCL:	DS	1
+PATLN:	DS	1
+BNK:    DS      1
+STACK:	DS	16	;STACK
+SPLOC	EQU	$	;STACK POINTER
+
+        .DEPHASE
+enda:
+
+	END 100H
+
+PATRN:	DB	00H,01H,02H,04H,08H,10H,20H,40H,80H
+	DB	0FEH,0FDH,0FBH,0F7H,0EFH,0DFH,0BFH,7FH
+	DB	00H,01H,02H,04H,08H,10H,20H

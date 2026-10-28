@@ -1,0 +1,372 @@
+
+
+
+
+
+
+
+
+   ***********************************************************
+   *                                                         *
+   *                      USER'S GUIDE                       *
+   *                                                         *
+   *                           for                           *
+   *                                                         *
+   *  ZCPR2 -- Z80 Command Processor Replacement, Version 2  *
+   *                                                         *
+   ***********************************************************
+
+
+                               by
+
+                          Richard Conn
+
+
+
+                        Manual Revision 0
+                         4 February 1983
+
+
+
+
+
+
+                          ZCPR2 Version
+                               2.0
+
+            Copyright (c) 1982, 1983 by Richard Conn
+                       All Rights Reserved
+
+
+
+     ZCPR2¬  itó utilitieó aó distributed¬  anä itó documentatioî 
+fileó aó distributeä arå copyrighted¬  198² anä 1983¬  bù Richarä 
+Conn®   Refeò  tï Appendiø Á foò á completå listinç oæ thå  ZCPR² 
+distributioî files.
+
+
+
+     CP/Í ió á registereä trademarë oæ Digitaì Research.
+
+
+
+
+
+                     User's Guide for ZCPR2
+
+                        Table of Contents
+
+
+          Section                                      Page
+
+          Index to ZCPR2 Utility Programs and Resident
+               Commands                                Index-1
+
+          Foreword                                     Foreword-1
+
+          0.0  Introduction                               1
+               0.1  Overview of the ZCPR2 Help Files      2
+               0.2  A Note on File References             3
+               0.3  Line Editing and Output Control       3
+
+          1.0  Input/Output                               5
+               1.1  Redirectable I/O Under ZCPR2          5
+               1.2  Loading Redirectable I/O Drivers      6
+               1.3  Displaying and Selecting Redirectable
+                         I/O Drivers                      6
+               1.4  Controlling the Disk Output Facility  9
+               1.5  Redirectable I/O and the ZCPR2 Sys   11
+               1.6  On the Programming of Terminals      11
+
+          2.0  Directory Utility                         12
+               2.1  Overview of XDIR3                    12
+               2.2  Basic Use of XDIR3 Under ZCPR2       13
+               2.3  XDIR3 Output Control Options         15
+               2.4  XDIR3 File Selection Options         16
+               2.5  XDIR3 File Name Buffer Facility      18
+               2.6  Use of XDIR3 on Secure Systems       20
+               2.7  Installation of XDIR3                21
+
+          3.0  Disk Utility                              24
+               3.1  Invoking DU2 and DU2 Installation    24
+               3.2  DU2 Command Summary                  25
+               3.3  Commands for Logging and Viewing
+                         Disk Parameters                 26
+               3.4  Commands for Positioning and Reading 29
+               3.5  Commands for Searching for Data      32
+               3.6  Commands for Saving and Restoring    33
+               3.7  Commands for Viewing Data            36
+               3.8  Commands for Altering Data           37
+               3.9  Commands for Manipulating Macros
+                         and the @ Command               40
+               3.10 Miscellanea                          43
+               3.11 Examples                             44
+               3.12 Interpretation of Directory Data
+                         Presented by DU2                46
+           (Table of Contents Continued on Next Page)Š
+                     User's Guide for ZCPR2
+
+                        Table of Contents
+
+
+          Section                                      Page
+
+          4.0  Library Utilities                         47
+               4.1  Author Credits and Introduction      47
+               4.2  Why Use Libraries?                   48
+               4.3  Why Not Use Libraries?               48
+               4.4  How to Use the Library Utility LU    49
+               4.5  Summary of Operators                 50
+               4.6  LU Command Line Forms                53
+               4.7  CAUTIONS                             54
+               4.8  LRUNZ Command                        55
+               4.9  LDIRZ Command                        57
+               4.10 LRUNZ as an Extended Command
+                         Processor Under ZCPR2           57
+
+          5.0  Menu                                      59
+               5.1  Overview of MENU                     59
+               5.2  Summary of MENU Commands             63
+               5.3  Programming MENU.CPR Files           64
+               5.4  MENU.CPR Commands                    67
+               5.5  MENU Programming Command Summary     69
+               5.6  MENU's Relationship to the ZCPR2 Sys 70
+               5.7  MENU Error Messages                  71
+               5.8  MCHECK -- MENU.CPR Syntax Checker    71
+
+          6.0  File Compare Utilities                    74
+               6.1  File Comparision Utilities Under
+                         ZCPR2                           74
+               6.2  CRC Check Utility Under ZCPR2        74
+               6.3  Examples                             75
+
+          7.0  File Copy Utility                         78
+               7.1  MCOPY Overview                       78
+               7.2  MCOPY Command Line Options           79
+               7.3  MCOPY Interactive Mode               80
+               7.4  Sample MCOPY Sessions                81
+
+          8.0  Command Files                             84
+               8.1  Command File Processing              84
+               8.2  Disk-Based Command Files -- SUB2     85
+               8.3  SUB2 Error Messages                  86
+               8.4  SUB2 Command Summary                 87
+               8.5  Memory-Based Command Files -- ZEX    87
+               8.6  ZEX Control Commands                 88
+               8.7  Restrictions on Command Files        93
+               8.8  SUB2 and ZEX as ECPs Under ZCPR2     94
+
+           (Table of Contents Continued on Next Page)
+
+                     User's Guide for ZCPR2
+
+                        Table of Contents
+
+
+          Section                                      Page
+
+          9.0  Named Directories                         95
+               9.1  Overview of the Named Directory
+                         Concept                         95
+               9.2  Creating Named Directory Files with
+                         MKDIR                           96
+               9.3  Disk-Based and Memory-Based Named
+                         Directories                     99
+               9.4  Loading Named Directory Files       101
+               9.5  Printing Named Directory Files      101
+               9.6  Moving About with CD                102
+               9.7  Poor Little ECHO and CD             103
+               9.8  System Directories                  103
+               9.9  Sample Sessions                     104
+
+         10.0  ZCPR2 Resident and Alternate Commands    114
+               10.01 The DIR Command                    114
+               10.02 The ERA Command                    115
+               10.03 The REN Command                    115
+               10.04 The TYPE and LIST Commands         115
+               10.05 The SAVE Command                   116
+               10.06 The GET Command                    116
+               10.07 The GO Command                     116
+               10.08 The JUMP Command                   117
+               10.09 The DU Form for Changing Disk and
+                         User                           117
+               10.10 Alternates to the ZCPR2 Residents  118
+               10.11 The XDIR Command                   119
+               10.12 The ERASE Command                  120
+               10.13 The RENAME Command                 122
+               10.14 The PAGE Command                   123
+               10.15 The PRINT Command                  124
+               10.16 The PROTECT Command                125
+               10.17 The PATH Command                   126
+               10.18 The WHEEL Command                  128
+
+          11.0 Help System                              129
+               11.1 The HELP2 Subsystem for Online
+                         Documentation                  129
+               11.2 Welcome to the HELP Command         129
+               11.3 How to Use the HELP Command         130
+               11.4 Moving Around Within the HELP Cmnd  131
+               11.5 HELP Command Prompts                133
+               11.6 HELP Error Messages                 134
+               11.7 How to Write HELP Files             135
+               11.8 The Tree Structure of HELP          137
+               11.9 Sample HELP Files Illustrating Use
+                         of Tree Structure              137Š.he                ZCPR2 User's Guide -- Program Index
+.fo                                               Page Index-#
+.pn 1
+
+                     User's Guide for ZCPR2
+      Index to ZCPR2 Utility Programs and Resident Commands
+
+Program Name   Version   Built-In Help  References
+
+CD               2.3          Yes       70, 96, 102
+COMPARE          1.4          Yes       74
+CONFIG           1.2          Yes       11
+CRC              2.0          Yes       74
+
+DEVICE           1.3          Yes       6
+DIFF             1.6          Yes       74
+DIR*             ---          No        114
+DU2              1.0          Yes       24
+
+ECHO             1.1          Yes       115
+ERA*             ---          No        115
+ERASE            4.0          Yes       118, 120
+
+GO*              ---          No        116
+GENINS           2.2          No        6, 11, 19, 21, 70
+GET*             ---          No        116
+
+HELP or HELP2    4.0          Yes(1)    129
+
+IOLOADER         1.3          Yes       6
+
+JUMP*            ---          No        117
+
+LD               1.1          Yes       96, 101
+LDIRZ            2.0          Yes       47, 57
+LIST*            ---          No        115
+LRUNZ            1.0          Yes(2)    47, 55
+LU               1.10         No        47
+
+MCHECK           1.1          Yes       71
+MCOPY            3.0          Yes       78
+MENU             1.4          No        59
+MKDIR            1.2          Yes       96
+
+PAGE             1.0          Yes       118, 123
+PATH             1.0          Yes       118, 126
+PRINT or PRINT3  1.0          Yes       118, 124
+PROTECT          2.0          Yes       118, 125
+PWD              1.1          Yes       96, 101
+
+RECORD           1.4          No        6, 9
+REN*             ---          No        115
+RENAME           2.0          Yes       118, 122
+
+* Denotes a ZCPR2 Resident Command
+(1) HELP, HELP HELP, or HELP HELP2 invokes Help on HELP
+(2) LRUNZ without any arguments invokes a Help Message
+
+
+                     User's Guide for ZCPR2
+      Index to ZCPR2 Utility Programs and Resident Commands
+                      Continuation of Index
+
+Program Name   Version   Built-In Help  References
+
+SAVE*            ---          No        116
+ST or STARTUP    1.4          Yes       6, 70, 102
+SUB or SUB2      2.3          Yes       84, 85
+SYSIO            N/A          No        5
+
+TINIT            2.0          Yes       11
+TYPE*            ---          No        115
+
+WHEEL            1.1          Yes       118, 128
+
+XDIR3            1.5          Yes       12, 118, 119
+
+ZEX              1.3          Yes       84, 87
+
+* Denotes a ZCPR2 Resident Command
+
+
+Other Notes:
+
+     1®   Theså arå thå versioî numberó oæ thå ZCPR² Utilitieó aô 
+distribution time.
+
+     2®  Bù Built-Iî Help¬ É refeò tï thå "standard¢ É adopteä iî 
+thaô  á  commanä oæ thå forí "CMNÄ //¢ causeó á helğ  messagå  oî 
+thaô commanä tï bå displayed®   Aó yoõ caî see¬  thaô  "standard¢ 
+applieó iî manù cases¬ buô noô alì cases.
+
+     3®   Documentatioî  oî theså ZCPR² commandó caî bå founä  iî 
+three places:
+          A.  The command itself (CMND // form)
+          B.  The User's Guide for ZCPR2
+          C®  Thå Onlinå Documentatioî Systeí (HELP/HLĞ Files)
+
+     4®   Thå exampleó iî thå manualó werå createä oveò á  perioä 
+oæ  time¬  and¬  aó  á consequence¬  thå versioî numberó  oæ  thå 
+programó  maù noô bå thå samå aó thå versioî numberó oæ thå fileó 
+iî thå distribution®   Dï noô bå alarmeä aô this®   Thå  exampleó 
+arå stilì correcô anä stilì geô thå ideá acrosó (É hope)¬ anä thå 
+versioî  numberó referenceä iî thió lisô anä iî thå  distributioî 
+files themselves are what count.
+
+.he                  ZCPR2 User's Guide -- Foreword
+.fo                                               Page Foreword-#
+.pn 1
+
+                            Foreword
+
+     Welcomå  tï thå worlä oæ ZCPR2®   Thió ió onå oæ fouò  ZCPR² 
+manuals¬ namelù thå User'ó Guide®  Itó purposå ió tï telì yoõ ho÷ 
+tï uså ZCPR² anä itó utilities¬  anä iô ió mainlù á tutoriaì  anä 
+referencå  oî  thå utilitieó distributeä aó á parô oæ  thå  ZCPR² 
+System®   Therå  arå  threå  otheò manualó iî  thå  ZCPR²  manuaì 
+series:
+
+          o the Concepts Manual
+          o the Installation Manual
+          o the Rationale
+
+     Thå  Conceptó Manuaì ió á gooä manuaì tï reaä  first®   Oncå 
+completed¬  thå  intermediatå oò advanceä useò shoulä bå readù tï 
+instalì ZCPR² oî hió microcomputer®  Tï perforí thå installation¬ 
+thå Installatioî Manuaì ió provided®   Thió ió verù technicaì anä 
+assumeó  intimatå  knowledgå oæ 808° anä  Z8°  assemblù  languagå 
+programming®   Foò  readeró withouô sucè knowledge¬  É  recommenä 
+thaô  yoõ finä youò nearesô computeò cluâ (anä therå arå TONÓ  oæ 
+them© anä seeë help®   Computeò Clubó arå verù nicå foò thaô sorô 
+oæ thing®   É myselæ aí á membeò oæ thå Amateuò Computeò Grouğ oæ 
+Ne÷ Jerseù (ACG-NJ)¬  whicè ió oveò 110° memberó strong®  Gettinç 
+involveä  iî á computeò cluâ caî reallù bå lotó oæ fuî anä educa
+tional¬ anä informatioî anä programs¬ likå ZCPR2¬ caî bå shared.
+
+     Thå  purposå  oæ thå Conceptó Manuaì ió tï introducå yoõ  tï 
+thå basic¬  underlyinç principleó behinä ZCPR² anä tï givå yoõ  á 
+workinç knowledgå oæ thå followinç things:
+
+          o What ZCPR2 Is
+          o What ZCPR2 is Capable of Doing
+          o How to Use ZCPR2
+          o How to Adapt ZCPR2 to Your Particular Desires
+
+     Finally¬  thå lasô manuaì ió thå Rationale®   Thió manuaì ió 
+aî  expose§ oæ whù É diä thingó likå É diä witè ZCPR2¬  whaô  thå 
+tradå  offó were¬  whaô directionó werå takeî iî thå  desigî  anä 
+why¬  anä  otheò  sucè technicaì ditties®   Thió manuaì ió  quitå 
+technicaì  anä ió provideä tï givå thå intermediatå anä  advanceä 
+CP/Í  useò á betteò feelinç anä understandinç oæ ZCPR²  internaló 
+anä concepts.
+
+     É  sincerelù  hopå yoõ enjoù usinç ZCPR2®   Iô  haó  beeî  á 
+pleasurå creatinç it¬  anä iô ió alsï á loô oæ fuî tï uså it®  Mù 
+opinion¬ oæ course®  Takå care¬ anä gooä luck.
+
+                                        Richard Conn
+

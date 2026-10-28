@@ -1,0 +1,335 @@
+; LCRCK.MAC v1.10
+;
+; 01-24-84 - by S. Kluger
+;
+;NOTE:
+;=====
+;	If you feel the urge to "improve" this program,
+;	PLEASE, call the El Paso RCPM first to see if there
+;	is a later version. THEN send me your update.
+;	(915) 598-1668 300/1200
+;
+; Created from the LTYPE code in LTYPE15 and SYSLIB routines.
+; This code is compatible with CRCK by Keith Petersen.
+;
+; Assembly language is great, especially with SYSLIB...
+;
+; Revision history:
+;
+; 01/24/84	Rewritten for M80/L80. Fixed bug in DU: routine.
+; 01/07/84	Initially written.
+;
+;	Don't forget: if in doubt read the DQC file...
+;
+; NOTE: To change this file to become LCHEK, simply replace
+;	all references to CRC2xxx with CRCxxx, i.e. instead
+;	of EXTRN CRC2CLR, use EXTRN CRCCLR etc.
+;
+	EXTRN	COUT	;SYSLIB character out (convert ctl chars)
+	EXTRN	CIN	;SYSLIB character in
+	EXTRN	CRLF	;SYSLIB newline
+	EXTRN	F$OPEN	;SYSLIB open file
+	EXTRN	F$READ	;SYSLIB file read
+	EXTRN	BDOS	;SYSLIB BDOS call
+	EXTRN	FNAME	;SYSLIB file name parser
+	EXTRN	PHL4HC	;SYSLIB print HL in hex
+	EXTRN	PUTUD	;SYSLIB save current DU
+	EXTRN	GETUD	;SYSLIB restore default DU
+	EXTRN	LOGUD	;SYSLIB log drive/user
+	EXTRN	PRINT	;SYSLIB print routine
+	EXTRN	RETUD	;SYSLIB return drive/user
+	EXTRN	CRC2CLR	;SYSLIB clear crc2 acc
+	EXTRN	CRC2UPD	;SYSLIB update CRC
+	EXTRN	CRC2DONE ;SYSLIB finish CRC
+;
+cr	equ	0dh
+lf	equ	0ah
+;
+dbuf	equ	80h	;default buffer
+dfcb	equ	5ch	;default fcb
+;
+begin:	jmp	skipc		;skip config parameters
+;
+maxdrv:	db	1+'P'-40H	;highest accessible drive + 1 (A=2)
+maxusr:	db	1+15		;highest accessible user + 1
+;
+skipc:	lxi	h,0		;save CP/M stack pointer
+	dad	sp
+	shld	stack
+	lxi	sp,stack	;set up local stack
+	call	print
+	db	'LCRCK v1.10 by S. Kluger 01-24-84',cr,lf,0
+	call	putud		;save default DU
+	lda	dfcb+1		;check if no file name specified
+	cpi	' '
+	jz	what		;give help if no argument
+	call	retud		;get current drive/user
+	mov	h,b
+	mov	l,c
+	shld	userno		;save current DU
+	lxi	h,dbuf+2	;point to argument
+	lxi	d,fcb		;hopefully .lbr file
+	call	fname		;parse file name
+	jz	what		;not a valid file name
+	mov	a,m		;get delimiter
+	cpi	' '		;more to come
+	jnz	nomem		;nope, complain
+	inx	h		;get next char
+	lxi	d,memfcb	;point to member fcb
+	push	b		;save drive/user
+	call	fname		;parse member name
+	lxi	h,fcb+1
+	call	ckamb		;check ambiguity
+	lxi	h,memfcb+1
+	call	ckamb
+	pop	b		;get drive/user back
+	inx	b		;check if current DU:
+	mov	a,b
+	ora	c
+	dcx	b		;restore DU: value
+	jz	currdu		;skip this if current
+	mov	a,b		;get specified drive
+	dcr	b		;get into range 0..f
+	cpi	0ffh		;ff means current drive
+	lxi	h,maxdrv
+	jnz	newdsk		;skip if different
+	lda	driveno
+	mov	b,a
+	jmp	curdsk
+;
+newdsk:	cmp	m
+	jnc	illdu		;yes - complain
+curdsk:	mov	a,c		;get specified user area
+	cpi	'?'		;all user areas???
+	jz	illdu		;yes - complain
+	cpi	0ffh		;current user area?
+	jnz	newusr
+	lda	userno
+	mov	c,a
+	jmp	curusr
+;
+newusr:	inx	h		;illegal user specified?
+	cmp	m
+	jnc	illdu		;yes - complain
+curusr:	call	logud		;log into specified DU:
+currdu:	lxi	h,FCB+9		;default to .LBR
+	mvi	m,'L'
+	inx	h
+	mvi	m,'B'
+	inx	h
+	mvi	m,'R'
+	lxi	d,fcb
+	call	f$open		;attempt to open file
+	inr	a
+	jz	nofile		;barf if not found
+	call	f$read		;read directory into default buffer
+	lxi	h,dbuf		;point to dbuf
+	lxi	d,dirname	;point to 8 blanks
+	call	cpfn		;compare
+	jnz	nolbr		;not equal
+	lxi	d,14
+	dad	d
+	mov	a,m
+	sta	dirsiz		;directory size
+	xra	a
+	sta	memfcb
+	jmp	c00		;skip into directory check
+;
+dirlp:	lxi	d,fcb
+	call	f$read
+c00:	lxi	b,20h
+	lxi	h,dbuf
+	lxi	d,memfcb
+	call	cpfn
+	jz	found
+	dad	b
+	call	cpfn
+	jz	found
+	dad	b
+	call	cpfn
+	jz	found
+	dad	b
+	call	cpfn
+	jz	found
+	lda	dirs
+	inr	a
+	sta	dirs
+	mov	b,a
+	lda	dirsiz
+	cmp	b
+	jnz	dirlp
+	call	print
+	db	cr,lf
+	db	'Member file not found in LBR directory',cr,lf,0
+	jmp	quit
+;
+; Found the member file name in the LDIR
+;
+found:	lxi	d,12
+	dad	d
+	push	h		;save pointer for now,
+	inx	h		;point to size
+	inx	h
+	push	d
+	mov	e,m		;get low byte
+	inx	h
+	mov	d,m		;if a=0 then file is 0k
+	xchg
+	shld	msize		;save member size
+	pop	d
+	mov	a,h
+	ora	l
+	jz	nullen		;go complain
+	pop	h		;get pointer back
+	mov	a,m		;get file address
+	inx	h
+	mov	h,m
+	mov	l,a
+	shld	fcb+33
+	lxi	d,fcb
+	call	rndread		;read first buffer full
+	call	crc2clr		;now clear the crc accumulator
+	call	print
+	db	'CRC value for ',0
+	lxi	h,memfcb+1
+	mvi	b,8
+fnlp:	mov	a,m
+	call	cout
+	inx	h
+	dcr	b
+	jnz	fnlp
+	mvi	a,'.'
+	call	cout
+	mvi	b,3
+ftlp:	mov	a,m
+	call	cout
+	inx	h
+	dcr	b
+	jnz	ftlp
+	call	print
+	db	'  =  ',0
+slp:	call	f$read		;else read next sector (de still FCB)
+	call	ccrc		;compute crc for sector
+	lhld	msize
+	dcx	h
+	shld	msize
+	mov	a,h
+	ora	l
+	jnz	slp
+;
+; all sectors have been read and computed
+;
+	call	crc2done		;finish up, return crc
+	call	phl4hc		;print hl in hex
+	call	crlf
+	jmp	quit
+;
+; compute crc for sector
+;
+ccrc:	lxi	h,dbuf
+ccrc1:	mov	a,m
+	call	crc2upd
+	inr	l
+	jnz	ccrc1
+	ret
+;
+; Read random record, save all regs
+;
+rndread:push	psw
+	push	b
+	push	d
+	push	h
+	mvi	c,33
+	call	bdos
+	pop	h
+	pop	d
+	pop	b
+	pop	psw
+	ret
+;
+; Here are the messages
+;
+illdu:	call	print
+	db	cr,lf
+	db	'Drive/user out of bounds',cr,lf,0
+	jmp	what
+;
+nofile:	call	print
+	db	cr,lf
+	db	'No such file on disk',cr,lf,0
+	jmp	what
+;
+cpfn:	push	h
+	push	d
+	push	b
+	mvi	b,12	;12 characters
+clpcp:	ldax	d
+	cmp	m	;check file name
+	jnz	qcpfn	;no match - quit
+	inx	d
+	inx	h
+	dcr	b
+	jnz	clpcp
+qcpfn:	pop	b
+	pop	d
+	pop	h
+	ret
+;
+ckamb:	mvi	a,'?'		;see if there is any...
+	mvi	e,11		;...ambiguity in the file spec
+ckamlp:	cmp	m
+	jz	noamb		;complain if ambiguous fn
+	inx	h
+	dcr	e
+	jnz	ckamlp
+	ret
+;
+nolbr:	call	print
+	db	cr,lf
+	db	'LBR directory may be damaged - aborting',cr,lf,0
+	jmp	quit
+;
+nomem:	call	print
+	db	cr,lf
+	db	'No member file name specified.',cr,lf,0
+	jmp	what
+;
+nullen:	call	print
+	db	cr,lf
+	db	'Member file is 0k - CRC is 00 00.',cr,lf,0
+	jmp	quit
+;
+noamb:	call	print
+	db	cr,lf
+	db	'No ambiguous file names allowed',cr,lf,0
+what:	call	print
+	db	cr,lf
+	db	'LCRCK - check CRC of member file in a LBR',cr,lf
+	db	'USAGE: LCRCK [du:]lbrname[.LBR] memname',cr,lf
+	db	'Where: du: = drive and user.'
+	db	cr,lf
+	db	'Examples:',cr,lf
+	db	'A0>LCRCK C3:TEST TEST.DOC',cr,lf
+	db	'B2>LCRCK 0:TEST1 TEST.AQM',cr,lf
+	db	cr,lf,lf,0
+quit:	call	getud		;restore default DU
+	lhld	stack
+	sphl
+	ret
+;
+dirs:	db	0		;# of dir sectors processed
+dirsiz:	db	0		;# of total dir sectors
+msize:	dw	0		;member size in sectors
+userno:	db	0		;current user #
+driveno:db	0		;current drive
+fcb:	ds	36		;out fcb
+memfcb:	ds	12
+	ds	40		;20 level stack
+stack:	dw	0		;save CP/M stack pointer here
+dirname:db	0,'           '
+	end
+ut fcb
+memfcb:	ds	12
+	ds	40		;20 level stack
+stack:	dw	0		;save CP/M stack pointer here
+dirname:db	0,

@@ -1,0 +1,212 @@
+
+
+
+
+                    ROFF4, version 1.60
+
+                             by
+                     Ernest E. Bergmann
+                     Physics, Bldg #16
+                     Lehigh University
+                    Bethlehem, Pa. 18015
+                      (215-) 861-3932
+
+
+        ROFF4,  v1.60  is  being provided essentially in the
+public domain, not because it isn't good, but to  provide  a
+means   to  create  and  transport  technical  documentation
+between users  with  different  hardware.    This   is   not
+possible  with  commercial formatters because they are often
+not powerful enough to handle  special  symbols,  equations,
+and the  like.    Equally  importantly,  there  is  not much
+standardization and commercial formatters cannot  be  "given
+away";   the  sender  and  receiver are not as likely to own
+the same commercial formatters.
+
+        I am a practicing scientist and  I  need  to  format
+manuscripts  which  are  sometimes  long, contain equations,
+special symbols, footnotes, and illustrations.  I  needed  a
+formatter  that  was easy to use, flexible, and available to
+others.  It takes me less time  to  type  a  manuscript  for
+this  formatter and rework it, including special characters,
+than to have it typed and retyped by a typist only  to  have
+me proof read it ad nauseum.
+
+        ROFF4 is  table  driven;    it is relatively easy to
+configure for different output devices.    I  have  used  it
+with the  MX-80  and  Graftrax  printer  combination;  It is
+able to create special symbols where needed.    I  Also  can
+get  special symbols on my CRT screen because of my computer
+hardware   (the   Exidy   Sorcerer   has   user    definable
+characters).   However, the characteristics of my CRT device
+and of my printer are very different.  My design  philosophy
+was  to be able to drive either from the same input files so
+that I could "preview" my output before going  to  hardcopy.
+You may  have  a  variety  of  output  devices;    use  your
+imagination.
+
+        Your comments, criticisms, and possible bug  reports
+will be most useful.
+
+        I  hope  to  extend ROFF4 so that it will be able to
+better utilize  specialty  printers  (it  presently  assumes
+that  the  printer  does  NOT  know  how  to  backspace, nor
+reverse scroll).  I  will  have  to  learn  how  to  support
+printers that do proportional spacing and variable pitch.
+
+        I  would  also  like  to  write  a  translater  that
+automatically   converts   WORDSTAR(tm   MicroPro)    files,
+including  control-P  and  dot commands into input files for
+ROFF4.  ROFF4 ignores the parity bit on  input  files.    It
+may  get confused by inputting control-codes (it should only
+get the <CR><LF> and <TAB> of standard CP/M text files).
+
+
+
+
+MAR 10, 1984 LIST OF ALL KNOWN BUGS OF ROFF4 V1.5:
+
+1) .ne sometimes premature (first line of page?)
+2) .ic doesn't work
+3) boldface can effect headers and footers (need 
+	separate environment for headers and footers)
+4).ou not all there
+5) .so command not in documentation table
+6) .ju out of alphabetic order in doc table
+7) default width of 80 characters too wide; should default to
+	60 characters which will work with 64 character
+	displays and is 6" wide for PICA printers (1" margins).
+8) roff47.c sends diagnostic to output device instead of to
+   STDERR.
+9) some of debug lines refer to LINENO instead of VLINENO.
+10)defining strings "on the run" inside of .ou or .tr
+   definitions caused problems because the two definitions
+   would be in contention of the TRTBL.
+11)Margins aren't always settable.
+12) \#\ sometime has previous page number when near start of
+    page.
+13) .rg # 5 would create a register, '#', which would not be
+    accessible because of the special overriding use of \#\
+    to insert the current page number.
+
+FIXES in ROFF4 v1.60:
+
+1) need() was fixed
+2) added "case IC:" to fix
+3) implemented separated environement for phead, pfoot using
+   exchange() and reinitializing UF,XF,MCNT
+4) added OU decoding in ROFF41.C
+5) fixed, created files: ONE, TWO, THREE
+6) fixed
+7) changed default for .rm and .ow to 60
+8) fixed
+9) fixed
+10) ROFF4 v1.60 now tests for contention between definitions
+    so that a diagnostic is issued and the program aborts.
+    The subroutines, start() and complete() are added for this
+    purpose.  The documentation, ROFF4.DOC, has been modified
+    to describe what not to do and how to achieve the same
+    goals legally.
+11) fixed ROFF4.C to permit setting M1, M4 to zero, also to
+    update BOTTOM when M3,M4 are changed.  It was necessary
+    to modify phead(), pfoot() by reinitializing variables
+    such as OLDLN and OUTBOT.  VLINENO is redefined to be
+    negative initially (zero might be ambiguous if the top
+    margins,M1+M2, are zero).  The file, MARGINS is good to
+    test for problems.
+12) Never possible to do perfectly, but the MARGINS test is
+    now doing well.  fgets2() modified for more careful
+    assignment of \#\.
+13) dovar() was modified to handle .rg # .. as an enhancement
+    (see below)
+
+ENHANCEMENTS:
+
+1) In addition to the above fixes. I have added a selective
+   Print option.  By typing:
+
+A> roff4 -o[page or range] ...
+
+One can have only one page output or only a range of pages
+output.  This was added at the urging of Chris Terry and of
+Henry Harpending.  The clincher was Henry Harpending suggesting
+how easy it would be to do.
+	Three global variables have been added: FIRSTPAGE,
+LASTPAGE, and SUPPRESS.  With the use of the -o option, the
+first two variables are modified from their initial values of
+1 and 30000 to a suitably narrower, selected range.  At the
+start of each page, SUPPRESS is set to TRUE if the page is
+outide the selected range (and FALSE otherwise).  The
+putchar() function supplied here is checking SUPPRESS to see
+if it should return without doing any output.  It was fun
+adding this!
+
+	Also due to Henry Harpending's suggestions, it is now
+possible to make skips in the normal pagination without having
+a fixed break in the text so that full-page illustrations, etc.
+may be placed later in the manuscript.  This is accomplished
+by adding a "feature" to the .rg command:
+
+.rg # +2
+
+would, for example, cause the page numbering of pages FOLLOWING
+the current page be incremented by 2 (leaving two page numbers
+unused following the current page).  The sample file, MARGINS,
+demonstrates (tests) this feature.
+
+
+WISH LIST:
+
+1) traps to implement running footnotes, multi-line headers
+	and footers, etc.
+2) conditional macro capability
+3) parameterized macros
+4) the ability to use the .SO command from the keyboard
+5) a special "filter" program that would automatically convert
+   WordStar document files into ROFF4 compatible source files.
+
+
+
+
+                                        March 10, 1984
+
+                                        Ernest E. Bergmann
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

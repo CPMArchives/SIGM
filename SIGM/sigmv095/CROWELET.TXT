@@ -1,0 +1,61 @@
+						5826 Southwest Ave.
+						St.Louis, MO 63139
+						April 18, 1982
+
+FILES
+--------------------------------------------------------------------
+CROWLINK:  These  are the linkages between CP/M and the  Crowe  Z-80 
+assembler.   I bought this assembler two years ago from Byte Nybbles 
+for  $4!   It  was available only as an assembly listing  and  so  I 
+entered  it  manually in machine language.   The assembler is  quite 
+good  providing  all the features of Zilog's  assembler  except  for 
+macros,  conditional assembly and lower case.   It was written to be 
+used  with  cassette  or paper tape,  with the desired  pass  number 
+entered from the console.   For each pass, the source is re-read and 
+the  appropriate output generated.   Pass 1 builds the symbol  table 
+and is required.  Pass 2 outputs the assembly listing, pass 3 writes 
+Intel  format  hex object and pass 4 gives an  assembly  listing  of 
+those lines containing errors on the console.
+     The  linkage routines are written so that the assembler can  be 
+run  as a standard CP/M .COM file with the following command format. 
+CROWEASM  FILENAME.YY   The characters in the normal file  extension 
+position are Y/N selects (default is Y),  the first for listing file 
+and the second for the hex object file.  The source must have a file 
+extension of .Z80 while the listing is created with an extension  of 
+ .PRN and the object with an extension of .HEX.   Only minimal error 
+checking and reporting is done.   If no source file with the correct 
+name is found a message is displayed.   If any other disk error on a 
+BDOS  call occurs,  that is reported.   In either case,  the routine 
+waits for a keystroke before exiting to CP/M.
+___________________________________________________________________
+
+	An additional note about the assembler the way it stands:  there
+is a limit of 32 characters for a quoted string as operand of a DEFM
+statement.  If this limit is exceeded NO error message is generated, the
+string is truncated.  If you're not careful, the terminating '$' for
+a CP/M output string could be lost and the results would be unpredictable.
+
+___________________________________________________________________
+
+
+	The CROWE.Z80 file has the linkages incorporated into it, near the
+end.  As it now stands, the symbol table is limited only by the amount of
+available memory since the assembler reads the start address of BDOS from
+locations 6&7 and sets that as the top of available symbol space.  
+	There has been one minor improvement to the assembler: you can now
+specify that the .LST or .HEX files should be sent to drive B rather than
+the current default drive by putting a B in the proper position in the 
+normal filename extension.  E.g. CROWE2 CROWE.NB would assemble the file
+CROWE.Z80, skip the .LST file and send the .HEX file to drive B.  The 
+source file must still reside on the same drive as the assembler.
+       When you try to assemble CROWE.Z80 with
+CROWE2 the six EX AF,AF' instructions are flagged as syntax errors for
+no apparent reason.  If you assemble the file EXAF.Z80 it assembles those
+instructions as expected.  Very strange!  In addition, it flags as un-
+defined the symbol LBFSZ in the instruction LD	B,LBFSZ-1.  Again, cause 
+unknown. The assembler will assemble itself if you change the six
+EX AF,AF'  commands to  DEFB  8    commands.
+	The source is currently set up for the CROWE2 assembler.  To 
+assemble it with M80 you will need to add ASEG and .Z80 commands to it.
+
+John P Jones

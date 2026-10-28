@@ -1,0 +1,146 @@
+;  . . . . . . . . . . . . . . . . . . . . . . . . . . .
+;
+;	DCLS MACRO	CLEAR SCREEN ON A SOROC 120
+;
+;
+DCLS	MACRO
+;;		*** SOROC 120 ***
+	IF	SOROC$120
+	DB	5
+	DB	01BH,02AH,000H,000H,000H
+	ENDIF
+;;		*** ADM 3A ***
+	IF	ADM3A
+	DB	1
+	DB	01AH
+	ENDIF
+	ENDM
+
+;	. . . . . . . . . . . . . . . . . . . . . . . . . . . .
+;
+;	DDB MACRO	DEFINE DATA STRING
+;
+;
+DDB	MACRO	STRING
+	LOCAL	BGNLIT,ENDLIT
+	IF	NUL STRING
+	STRING PARAMETER MUST BE GIVEN.
+	ENDIF
+	DB	ENDLIT-BGNLIT
+BGNLIT:
+	DB	STRING
+ENDLIT:
+	ENDM
+
+;	. . . . . . . . . . . . . . . . . . . . . . . . . . . .
+;
+;	DDRK MACRO	DEFINE BRIGHT AREA BEGINNING.
+;
+;
+DDRK	MACRO
+;;		*** SOROC 120 ***
+	IF	SOROC$120
+	DB	2
+	DB	01BH,')'
+	ENDIF
+;;		*** ADM 3A ***
+	IF	ADM3A
+	NOT IMPLEMENTED
+	ENDIF
+	ENDM
+
+;	. . . . . . . . . . . . . . . . . . . . . . . . . . . .
+;
+;	DDRKEND MACRO	DEFINE BRIGHT AREA ENDING.
+;
+;
+DDRKEND	MACRO
+;;		*** SOROC 120 ***
+	IF	SOROC$120
+	DB	2
+	DB	01BH,'('
+	ENDIF
+;;		*** ADM 3A ***
+	IF	ADM3A
+	NOT IMPLEMENTED
+	ENDIF
+	ENDM
+
+;	. . . . . . . . . . . . . . . . . . . . . . . . . . . .
+;
+;	DEOL MACRO	ERASE LINE ON CONSOLE.
+;
+;	DEOL	LINE
+;
+;		A	CONTAINS LINE
+;
+DEOL	MACRO	LINE
+	LOCAL	ADM3ALP
+;;
+	IF	NUL LINE
+	LINE # MUST BE ENTERED.
+	ENDIF
+;;
+	DGOTOXY LINE,1		;;SET CURSOR TO LINE.
+;;
+;;		*** SOROC 120 ***
+	IF	SOROC$120
+	DB	2
+	DB	01BH,054H
+	ENDIF
+;;
+;;		*** ADM 3A ***
+	IF	ADM3A
+	NOT IMPLEMENTED
+	ENDIF
+;;
+	ENDM
+
+
+;	. . . . . . . . . . . . . . . . . . . . . . . . . . . .
+;
+;	DGOTOXY MACRO	SET CURSOR ON CONSOLE TO AN (X,Y) COORDINATE.
+;
+;	DGOTOXY	X,Y
+;
+;		B	CONTAINS X
+;		C	CONTAINS Y
+;
+DGOTOXY	MACRO	X,Y
+	IF	NUL X
+	X PARAMETER MUST BE GIVEN.
+	ENDIF
+;;
+	IF	NUL Y
+	Y PARAMETER MUST BE GIVEN.
+	ENDIF
+;;
+	DB	4
+	DB	01BH,'=',X+31,Y+31
+;;
+	ENDM
+
+
+;	. . . . . . . . . . . . . . . . . . . . . . . . . . . .
+;
+;	TRMDFN MACRO	DEFINE TERMINAL TYPE FOR ASSEMBLIES
+;
+;
+TRMDFN	MACRO
+FALSE	SET	0000H		;;TRUE/FALSE EQUATES
+TRUE	SET	NOT FALSE
+;;
+SOROC$120 SET	TRUE 		;;SOROC 120
+ADM3A	SET	FALSE		;;ADM 3A
+;;
+;;		*** TERMINAL CHARACTERISTICS ***
+	IF	SOROC$120
+TRMLIN	SET	24		;;LINES PER PAGE
+TRMCOL	SET	80		;;COLUMNS PER LINE
+	ENDIF
+	IF	ADM3A
+TRMLIN	SET	24		;;LINES PER PAGE
+TRMCOL	SET	80		;;COLUMNS PER LINE
+	ENDIF
+	ENDM
+

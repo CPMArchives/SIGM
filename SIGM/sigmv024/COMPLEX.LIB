@@ -1,0 +1,188 @@
+(***************************************************************
+*
+*	HERE ARE SOME MORE ITEMS FOR YOUR LIBRARY, FOR THOSE
+*  WHO USE THESE OR ANY OTHER PORTIONS OF OUR LIBRARY ROUTINES
+*  IT WOULD BE GREATLY APPRECIATED IF YOU WOULD SEND US YOUR 
+*  UPDATES OR MOD'S. IN FACT, SINCE WE OFFERED OURS WHY NOT SEND
+*  US YOURS.--editor
+{++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++}
+{+		COMPLEX LIBRARY					+}
+{++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++}
+{
+Routines in this library:
+
+CREAD		-Enter a complex number
+CWRITE		-Write a complex number
+MAG		-Computes the modulus of a complex number
+ADD		-Adds two complex numbers
+SUB		-Subtracts two complex numbers
+MULT		-Multiplies a real with a complex
+PRODUCT		-Product of two complex numbers
+QUOTIENT	-Quotient of two complex numbers
+CCOS		-Cosine of a complex
+POLAR		-Writing a complex into polar form
+CLN		-Natural logarithm of a complex
+SIGN		-Changes the sign of a complex
+CHECK		-Checks to see if the function argument is outside range
+
+}
+{++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++}
+
+type
+  complex = record
+	      re, im : real
+	    end;
+  S$255 = string 255;
+
+PROCEDURE HALT(message: S$255);EXTERNAL;
+
+
+{++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++}
+
+procedure cread(var z: complex);
+begin
+  read(z.re, z.im);
+end;
+
+procedure cwrite(var z: complex);
+begin
+  writeln('(', z.re, ',', z.im, ')');
+end;
+
+function mag(var z: complex): real;
+{ computes the modulus of a complex number }
+begin
+  mag := sqrt( sqr(z.re) + sqr(z.im) );
+end;
+
+procedure add( u, v: complex;
+	      var w: complex);
+begin
+  w.re := u.re + v.re;
+  w.im := u.im + v.im;
+end { add };
+
+procedure sub(u, v: complex;
+	     var w: complex);
+begin
+  w.re := u.re - v.re;
+  w.im := u.im - v.im;
+end { sub };
+
+procedure mult(    a: real;
+		   z: complex;
+	       var w: complex);
+{ Multiplies a real with a complex }
+begin
+  w.re := a * z.re;
+  w.im := a * z.im;
+end { mult };
+
+procedure product( u, v: complex;
+		  var w: complex);
+begin
+  w.re := (u.re * v.re) - (u.im * v.im);
+  w.im := (u.re * v.im) + (u.im * v.re);
+end { product };
+
+procedure quotient( u, v: complex;
+		   var w: complex);
+const
+  sqrtwo = 1.414213562373095; { square root of 2 }
+var
+  vr, vi,
+  a, b,
+  x1, x2,
+  y1, y2,
+  root   : real;
+begin
+  vr := abs(v.re);
+  vi := abs(v.im);
+  root := sqrtwo * sqrt(vr) * sqrt(vi);
+  a := vr + vi + root;
+  b := vr + vi - root;
+  if (a = 0.0) or (b = 0.0) then
+     HALT('W: dividing by 0 in procedure quotient');
+  x1 := u.re / a;
+  x2 := v.re / b;
+  y1 := u.im / a;
+  y2 := v.im / b;
+  w.re := x1 * x2 + y1 * y2;
+  w.im := x2 * y1 - x1 * y2;
+end { quotient };
+
+procedure ccos(     z: complex;
+		var c: complex);
+{ Cosine of a complex }
+var
+  ep, em, p, m: real;
+begin
+  ep := exp(z.im);
+  em := 1.0 / ep;
+  p := ep + em;
+  m := em - ep;
+  c.re := 0.5 * p * cos(z.re);
+  c.im := 0.5 * m * sin(z.re);
+end { ccos };
+
+procedure polar(    u: complex;
+		var v: complex);
+{ Writing a complex into polar form }
+const
+  halfpi = 1.570796326795; { pi / 2.0 }
+begin
+  if (u.re = 0.0) and (u.im = 0.0) then
+     HALT('W: conversion of 0 in procedure polar');
+
+  if (u.re = 0.0) and (u.im <> 0) then
+    begin
+      v.re := mag(u);
+      v.im := halfpi; {pi / 2.0}
+    end
+  else
+    begin
+      v.re := mag(u);
+      v.im := arctan(u.im / u.re);
+    end;
+end { polar };
+
+procedure cln(    z: complex;
+	      var c: complex);
+{ Natural logarithm of a complex }
+var
+  p: complex;
+begin
+  polar(z,p);
+  c.re := ln(p.re);
+  c.im := p.im;
+end { cln };
+
+procedure sign(u: complex; var v: complex);
+{ Changes the sign of a complex }
+begin
+  v.re := -u.re;
+  v.im := -u.im;
+end { sign };
+
+procedure check(z: complex);
+{ Checks to see if the function argument is outside range }
+var
+  a, b: real;
+begin
+  a := abs(z.re);
+  b := abs(z.im);
+  if   ((a < 1.0E-5) and (b < 1.0E-5))
+    or ((b <> 0.0) and (b < 1.0E-5)) then
+    begin
+      write('W: small argument which causes exponent error = ');
+      cwrite(z);
+      HALT(' ');
+    end;
+  if b > 50.0 then
+    begin
+      write('W: argument with imaginary part outside range = ');
+      cwrite(z);
+      HALT(' ');
+    end;
+end { check };
+

@@ -1,0 +1,57 @@
+File 1, Line 59: ;	14 January 1984 - <QIN ds 0>, <QOU ds 0> for sorcim.cnv
+File 1, Line 60: ;	14 January 1984 - default extension .REC for 1st file
+
+File 1, Line 122: QIN:	ds	0		;space holder
+File 1, Line 123: 	DB	0ECH		;8-bit 8086 static IN instruction
+File 2, Line 120: QIN:	DB	0ECH		;8-bit static IN instruction
+
+File 1, Line 127: QOU:	ds	0		;space holder
+File 1, Line 128: 	DB	0E6H		;8-bit 8086 static OUT instruction
+File 2, Line 124: QOU:	DB	0E6H		;8-bit static OUT instruction
+
+File 1, Line 213: 	db	'        January 23, 1984',0DH,0AH,'$'
+File 2, Line 209: 	db	'         July 20, 1983',0DH,0AH,'$'
+
+File 1, Line 265: 	mov	dl,al
+File 2, Line 261: 	MOV	dl,al
+
+File 1, Line 359: 	mov	al,CH		;output must be from accumulator
+File 2, Line 355: 	MOV	al,CH		;output must be from accumulator
+
+File 1, Line 433: 	stob	#00,[bx+1]	;make high byte a zero
+File 2, Line 429: 	stob	#ZE,[bx+1]	;make high byte a zero
+
+File 1, Line 471: 	sub	al,#'@'		;normalize to uppercase letters
+File 2, Line 467: 	SUB	al,#'@'		;normalize to uppercase letters
+
+File 1, Line 518: ;[change]
+File 1, Line 519: MAIN:	cli
+File 1, Line 520: 	mov	ax,cs
+File 1, Line 521: 	mov	ss,ax
+File 1, Line 522: 	ld	sp,#STAK
+File 1, Line 523: 	sti
+File 1, Line 524: 	sto	#ZE,PD		;mark bottom of pushdown list
+File 1, Line 525: 	ld	bx,#TFCB
+File 1, Line 526: 	cmpb	[bx+1],#' '
+File 1, Line 527: 	jz	tylo
+File 1, Line 528: 	cmpb	[bx+9],#' '
+File 1, Line 529: 	jnz	yext
+File 1, Line 530: 	stob	#'R',[bx+9]
+File 1, Line 531: 	stob	#'E',[bx+10]
+File 1, Line 532: 	stob	#'C',[bx+11]
+File 1, Line 533: yext:	ld	cx,#HSIZ
+File 1, Line 534: ;[endchange]
+
+File 2, Line 514: MAIN:	mov	ax,cs
+File 2, Line 515: 	mov	ss,ax
+File 2, Line 516: 	ld	sp,#STAK
+File 2, Line 517: 	ld	bx,#ZE		;
+File 2, Line 518: 	sto	bx,PD		;mark bottom of pushdown list
+File 2, Line 519: 	ld	al,TFCB+1
+File 2, Line 520: 	cmp	al,#' '
+File 2, Line 521: 	jz	tylo
+File 2, Line 522: 	ld	cx,#HSIZ
+
+File 2, Line 519: 	ld	al,TFCB+1
+File 2, Line 520: 	cmp	al,#' '
+File 2, Line 521:

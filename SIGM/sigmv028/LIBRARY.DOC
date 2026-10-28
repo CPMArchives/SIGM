@@ -1,0 +1,117 @@
+          LIBRARY MAINTENANCE
+
+by Ray Penley
+
+
+     Wå  havå founä thaô somå oæ thå memberó arå havinç  problemó 
+creatinç  theiò owî librarieó oæ commonlù useä routines®   Aó yoõ 
+kno÷  iô ió oæ primarù importancå tï havå á librarù  oæ  routineó 
+thaô  yoõ don'ô havå tï keeğ writinç oveò anä oveò  again®   Wheî 
+yoõ  writå youò prograí yoõ onlù havå tï referencå thå routinå aó 
+an external and then use the routine freely in your program.
+
+     Wå  arå  goinç  tï  creatå á librarù  oæ  commonlù  routineó 
+presentlù  founä  iî thå "Ú Useró Group¢ librarù  anä  calì  thió 
+new library ASL.REL (A Small Library).
+
+     Tï makå á librarù yoõ musô firsô havå á subroutinå assembleä 
+intï á .REÌ file®  Iæ yoõ neeä helğ witè thió procedure¬ thå texô 
+filå  MAKEREL.DOÃ founä oî volumå #± shoulä be most helpful.
+
+     Ruî  thå  linkeò  buô enteò thå  librariaî  modå  bù  typinç 
+/L:filename®  Sincå wå wanô tï calì ouò librarù ASÌ letó starô bù 
+typing:
+
+     A>LINK /L:ASL
+
+
+     No÷  yoõ  specifù thå fileó tï bå includeä iî  thå  library®  
+                                    *** REMARKS ***
+*KEYIN                        found on volumes #3 and #4
+*CHAIN                        found on Pascal/Z library disk
+*INPORT                       found on volume #3
+*OUTPORT                      found on volume #3
+*DELAY                        found on volume #3
+*RANDOM                       found on volume #3
+*HALT                         found on this volume
+*/E                           Typing /E closes the output file
+
+NOTES:
+     Iæ  yoõ makå á mistakå yoõ caî alwayó restarô thå linkeò  bù 
+typing /R.
+     Iæ  á filå witè thå samå namå alreadù existó oî thå disë  iô 
+wilì bå deleteä anä theî á ne÷ filå wilì bå created¬  sï bå  verù 
+carefuì aô thió step.
+     Thå  ordeò  oæ  entrù  intï  thå  librarù  maù  bå  oæ  somå 
+importance®   Sincå  thå librarù ió loadeä iî onå pass¬  á modulå 
+shoulä appeaò afteò iô haó beeî referenceä bù aî externaì  symboì 
+iî otheò modules.
+.paŠ     No÷ iô ió á simplå matteò tï uså ouò ne÷ library®   Letó uså 
+the routine KEYIN in a sample program.
+
+Program DRead;
+{ A program to directly read a char from the keyboard.}
+
+LABEL 1;
+VAR  CH: CHAR;
+
+Procedure KEYIN(VAR C:CHAR); EXTERNAL;
+
+BEGIN
+  WHILE TRUE DO
+    BEGIN
+      WRITE('ENTER A CHARACTER ');
+      KEYIN(CH);
+      IF ( ORD(CH)=3 ) THEN GOTO 1;
+      WRITELN('YOU ENTERED A ',CH);
+    END;
+1: {EXIT HERE ON CONTROL-C}
+END.{ of DREAD }
+
+
+     Now compile the program:
+
+A>PASCAL DREAD.BBB
+A>ASMBL MAIN,DREAD.BB/REL
+A>LINK /N:B:DREAD B:DREAD ASL/S /E
+
+
+     That'ó alì therå ió tï it¡   Noticå thaô thå ne÷ librarù  ió 
+oî thå samå disë aó PASCAL.COM¬ ASMBL.COM¬ LIB.REÌ ANÄ LINK.COM® 
+
+
+     É  havå writteî á submiô filå thaô wilì allo÷ yoõ tï compilå 
+á  prograí  anä uğ tï ³ additionaì librarù  files®   Executå  thå 
+submiô filå likå so:
+
+     A>SUBMIT COMPILE PROGRAM DRIVE LIBRARY/S
+     A>SUBMIT COMPILE my PROGRAM on DRIVE using LIBRARY/S
+
+
+     We can compile and link our sample program in one step:
+
+     A>SUBMIT COMPILE DREAD B ASL/S
+
+     Isn'ô  thaô easy¡  Thå .COÍ filå wilì bå placeä oî thå  samå 
+drivå aó thå Pascaì sourcå program®   Notå thaô yoõ musô calì foò 
+thå  librarù  filå witè thå /Ó optioî elså yoõ loaä iî thå  wholå 
+library.
+.paŠCall this file COMPILE.SUB
+
+Pascal $1.$2$2$2
+asmbl main,$1.$2$2/rel
+ERA $2:$1.SRC
+link /n:$2:$1 $2:$1 $3 $4 $5 lib/s/E
+ERA $2:$1.REL
+:
+FILES $2:$1.*
+
+
+That'ó alì foò now®   Iæ yoõ havå anù questionó feeì freå tï calì 
+må oò droğ á note®
+
+RAYMOND E. PENLEY
+1263 ALLEN COURT
+WALDORF, MD 20601
+(301) 645-9632  (evenings or weekends only)
+.paŠ

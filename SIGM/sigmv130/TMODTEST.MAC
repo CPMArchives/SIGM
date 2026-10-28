@@ -1,0 +1,226 @@
+title	TMODTEST.MAC	
+version	equ	10	;1/23/82
+;	part of the SIGNON Subsystem by Dick Lieber
+;	refer to SIGNON.DOC for details on how to use this.
+;
+;	This module is used to test the TMOD.MAC module
+;	Allows selective call to:
+;		DATEMD	- returns date (mm/dd/yy$)
+;		DAYMD	- returns day as (dayofweek$)	
+;		TIMEMD	- returns time as (hh:mm:ss$)
+;	Also tests that TMOD.REL doesn't change string past what 
+;	it should.
+;
+;	If your TMOD.REL works with this test driver, it should
+;	work just fine with the various SIGNON modules.
+;
+	.z80	;several Z80 instructions are used
+
+rdcon	equ	1
+wrcon	equ	2
+print	equ	9
+
+bdos	equ	5
+cr	equ	0dh
+lf	equ	0ah
+tab	equ	9
+filler	equ	0e6h		;used to test for corrupted strings
+
+extrn	timemd,datemd,daymd	;these are entry points into TMOD.REL
+
+	ld	(oldstack),sp
+	ld	sp,newstack
+mainloop:
+	ld	de,menu		;everything's menu driven
+	ld	c,print
+	call	bdos
+	call	fillbuff	;put know chrarcter into buffer for 
+				;length test
+	call	selector	;get command number
+	cp	maxcmd
+	jp	nc,mainloop	;check for legal command
+	ld	hl,cmdtable	;point to start of table
+	ld	d,0
+	ld	e,a		;command number
+	add	hl,de		;index into table
+	add	hl,de		;each entry is two bytes long
+	ld	e,(hl)		;get address of routine - low
+	inc	hl
+	ld	d,(hl)		;now get high byte
+	ex	de,hl		;hl point to routine	
+	ld	de,mainloop	
+	push	de		;address to return to
+	jp	(hl)		;just like a call
+;
+;	main menu
+;
+menu:	defm	cr,lf
+	defm	"SIGNON Subsystem TMOD.REL tester  - version "
+	defb	version/10 + '0', '.', version mod 10 + '0', cr,lf
+	defm	cr,lf
+	defm	tab,	"a	time", 	cr,lf
+	defm	tab,	"b	date",	cr,lf
+	defm	tab,	"c	day",	cr,lf
+	defm	tab,	"d	quit",	cr,lf
+	defm	lf
+	defm	tab,	"Press letter of your choice > $"
+;
+;	command table
+;
+cmdtable:
+	defw	proctime
+	defw	prdate
+	defw	prday
+	defw	quit
+maxcmd	equ	($ - cmdtable) / 2
+;
+;	fill buffer with fill character
+;	note to 8080 fans (Sorry 'bout that!)
+;
+fillbuff:
+	ld	hl,timebuffer
+	ld	(hl),filler	;stick the first character in
+	ld	de,timebuffer+1	;just copies from last address
+	ld	bc,bufflength	
+	ldir			;do it
+	ret
+;
+;	process single letter choice
+;	convert letter pressed to number
+;	only allows 0 - 15
+;
+selector:
+	ld	c,rdcon
+	call	bdos
+	and	0fh	;convert to number
+	dec	a	;cause 'A' is 1 not 0
+	ret
+;
+;	process error in string length
+;
+lerror:	ld	de,lerrmess
+	ld	c,print
+	call	bdos
+;
+;	now we display the entire string
+;
+	ld	hl,timebuffer
+	ld	bc,bufflength
+lerrloop:
+	ld	e,(hl)
+	push	bc
+	push	hl
+	ld	c,wrcon
+	call	bdos
+	pop	hl
+	pop	bc
+	inc	hl
+	dec	bc
+	ld	a,b
+	or	c
+	jr	nz,lerrloop
+	ret
+lerrmess:
+	defm	cr,lf,"*** Error! ***",cr,lf
+	defm	cr,lf
+	defm	"Your TMOD.REL changed too much of the passed string."
+	defm	cr,lf
+	defm	"This could corrupt basic's string space!"
+	defm	cr,lf
+	defm	"This is the string:",cr,lf,"$"
+;
+;	done - return to ccp without re-booting
+;
+quit:	ld	de,donemess
+	ld	c,print
+	call	bdos
+	ld	sp,(oldstack)
+	ret			; to ccp
+donemess:
+	defm	cr,lf,"back to ccp...$"
+;
+;	display the time
+;
+proctime:
+	ld	de,timemess
+	ld	c,print
+	call	bdos
+;
+;	make a microsoft compatable call
+;
+	ld	hl, tmbuffptr
+	call	timemd
+;
+;	print time
+;	
+	ld	de, timebuffer
+	ld	c,print
+	call	bdos
+	ld	a,(timebuffer+10)	;check that 10th character wastn't
+					;altered by TMOD.REL
+	cp	filler
+	call	nz,lerror
+	ret
+timemess:
+	defm	cr,lf,"Time: $"
+
+;
+;	display the day of week
+;
+prday:
+	ld	de,daymess
+	ld	c,print
+	call	bdos
+	ld	hl, tmbuffptr
+	call	daymd
+;
+;	print day
+;	
+	ld	de, timebuffer
+	ld	c,9
+	call	bdos
+	ld	a,(timebuffer+10)	;check that 10th character wastn't
+					;altered by TMOD.REL
+	cp	filler
+	call	nz,lerror
+	ret
+daymess:
+	defm	cr,lf,"Day of week: $"
+
+;
+;	display date
+;
+prdate:
+	ld	de,datemess
+	ld	c,print
+	call	bdos
+	ld	hl, tmbuffptr
+	call	datemd
+;
+;	print date
+;	
+	ld	de, timebuffer
+	ld	c,print
+	call	bdos
+	ld	a,(timebuffer+10)	;check that 10th character wastn't
+					;altered by TMOD.REL
+	cp	filler
+	call	nz,lerror
+	ret			; to ccp
+datemess:
+	defm	cr,lf,"Date: $"
+;
+;	ram area
+;
+tmbuffptr:
+	defb	9		;length of buffer
+	defw	timebuffer	;to conform to microsoft calling parms
+timebuffer:
+	defs	20		;lots of space for tests
+bufflength	equ	$ - timebuffer
+	defs	30		;more space for stack
+newstack:
+oldstack:
+	defs	2	
+	end
+

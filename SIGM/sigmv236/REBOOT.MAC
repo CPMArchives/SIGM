@@ -1,0 +1,36 @@
+; routine to reboot cpm by jumping to dj cold boot routine
+; ok for banked cpm3
+
+      .z80
+reboot:
+        ld de,msg
+        ld c,9
+        call 5
+st:     ld c,0bh
+        call 5
+        and a
+        jr z,st
+        ld bc,l3-l2
+        ld de,l2
+        ld hl,l1
+        ldir
+        jp l2
+
+msg:    10,13,'load system disk <ret>$'
+
+l1:
+        .phase 0f000h
+l2:
+        xor a
+        out (0feh),a            ; switch to bank 0
+        inc a
+        out (40h),a             ; switch on disk controller
+        jp 0e000h
+l3:
+        .dephase
+
+        end reboot
+           ; switch disk controller
+	ret
+
+ 

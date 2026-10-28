@@ -1,0 +1,117 @@
+* DATE 08/27/84  12:34
+* initialization program
+ERAS
+TEXT
+  ***************************************************************************  
+   This is a first time initialization program. It sets the defaults for all  
+   operations. However, you can change any of the defaults on the building or  
+   accounting maintenance menus.                                               
+  *************************************************************************** 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ENDT
+IF .NOT. file ("MAIL.DAT")
+ STOR 'A' TO dr
+ STOR 'Y' TO bells
+ STOR 'I' TO bright
+ STOR 'Y' TO escap
+ STOR 'N' TO I
+ STOR 'N' TO C
+ STOR 'N' TO pass
+ STOR '        ' TO passp
+ELSE
+ REST from mail.dat
+ENDI .NOT. file
+@ 08,00 SAY "On what drive will you store the data files ?"
+@ 08,50 GET dr PICTURE '!'
+READ
+@ 09,00 SAY'Do you wish to use signal beep ? '
+@ 09,38 GET bells PICTURE '!'
+READ
+DO WHIL @(bells,'YN')=0
+ @ 09,38 GET bells PICTURE '!'
+ READ
+ENDD WHILE @(bells)
+@ 11,00 SAY "You can have bright and dim intensity at <A>ll points in the program"
+@ 12,00 SAY "or just on the <I>nput screens. Answer 'A' or 'I' "
+@ 12,50 GET bright PICTURE '!'
+READ
+DO WHIL @(bright,'AI')=0
+ @ 12,50 GET bright PICTURE '!'
+ READ
+ENDD WHILE @(bright)
+@ 14,00 SAY "If you leave the escape key on it is possible to break out of the program"
+@ 15,00 SAY "at any time. Some people prefer to not allow this. Shall we leave it on ?"
+@ 15,75 GET escap PICTURE '!'
+READ
+DO WHIL @(escap,'YN')=0
+ @ 15,75 GET escap PICTURE '!'
+ READ
+ENDD WHILE @(escap)
+@ 17,00 SAY "Are you using an IBM PC or compatable with a clock board ?"
+@ 17,70 GET I picture '!'
+READ
+@ 18,00 SAY "Are you using a Compupro Systems Support Board with clock ?"
+@ 18,70 GET C PICTURE '!'
+READ
+@ 20,00 SAY "Do you want password protection ? "
+@ 20,45 GET pass PICTURE '!'
+READ
+DO WHIL @(pass,'YN')=0
+ @ 20,45 GET pass PICTURE '!'
+ READ
+ENDD WHILE @(pass)
+IF pass = 'Y'
+ @ 21,00 SAY "What is the password ?"
+ @ 21,45 GET passp
+ READ
+ DO WHIL passp = ' '
+  @ 21,45 GET passp
+  READ
+ ENDD WHILE passp
+ENDI pass = 'Y'
+STOR 'Y' TO goagain
+@ 22,30 SAY "IS THE ABOVE CORRECT ? "
+@ 22,55 GET goagain PICTURE '!'
+READ
+IF goagain = 'N'
+ @ 22,00
+ @ 08,50 GET dr PICTURE '!'
+ @ 09,38 GET bells PICTURE '!'
+ @ 12,50 GET bright PICTURE '!'
+ @ 15,75 GET escap PICTURE '!'
+ @ 17,70 GET I picture '!'
+ @ 18,70 GET C PICTURE '!'
+ @ 20,45 GET pass PICTURE '!'
+ READ
+ IF pass = 'Y'
+  @ 21,00 SAY "What is the password ?"
+  @ 21,45 GET passp
+  READ
+  DO WHIL passp = ' '
+   @ 21,45 GET passp
+   READ
+  ENDD WHILE passp
+ ENDI pass = 'Y'
+ READ
+ENDI goagain
+RELE goagain
+CLEA GETS
+SAVE TO mail.dat
+RELE bright, dr, escap, bells, pass, passp, I, C
+RETU
+

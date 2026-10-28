@@ -1,0 +1,114 @@
+* DATE 08/27/84  12:52
+* wsfile.cmd
+ERAS
+? 'This Module will make a special MailMerge file for WordStar'
+?
+? ' Do you wish to continue (Y/N) ? '
+SET CONSOLE OFF
+WAIT TO command
+SET CONSOLE ON
+IF command = 'Y' .OR. command = 'y'
+ STOR t TO continue
+ELSE
+ STOR f TO continue
+ENDI
+DO WHIL continue
+ STOR 1 TO counter
+ ERAS
+ ACCE 'Enter Name of the WordStar-MailMerge file  ' TO file:dat
+ STOR !(file:dat) TO file:dat
+ STOR $(file:dat,1,8) TO file:dat
+ STOR file:dat+'.DOC'  TO file:doc
+ STOR file:dat+'.DAT'  TO file:dat
+ @ 03,10 SAY  'Creating WordStar-MailMerge Document file:  '+file:doc
+ SET CONSOLE OFF
+ SET ALTERNATE TO &file:doc
+ SET ALTERNATE ON
+ ? '.OP'
+ ? '.DF '+file:dat
+ ? '.RV '+' last-name, first-name, mr, dear, title, company1, company2, street, suite-apt, city, state, zip'
+ ? '.. for title, company1, company2  use &title/O&, &company1/O&, &company2/O&'
+ ? '.. to automatically omit empty data fields'
+ SET ALTERNATE OFF
+ SET CONSOLE ON
+ @ 05,10 SAY  ' Creating WordStar-MailMerge Data file:  '+file:dat
+ ?
+ ?
+ ?? 'Writing record #     '
+ SET CONSOLE OFF
+ SET ALTERNATE TO &file:dat
+ SET ALTERNATE ON
+ GO TOP
+ DO WHIL .NOT. EOF
+  IF send <> 'Y'
+   STOR ' ' TO titleline
+   STOR ' ' TO coname1
+   STOR ' ' TO coname2
+   STOR CHR(34)+TRIM(address)+CHR(34) TO street
+   STOR CHR(34)+TRIM(city)+CHR(34) TO cityto
+   STOR st TO stto
+   STOR zip TO zipto
+   IF apt = ' '
+    STOR ' ' TO room
+   ELSE
+    STOR CHR(34)+TRIM(apt)+CHR(34) TO room
+   ENDI
+  ELSE
+   STOR CHR(34)+TRIM(caddress)+CHR(34) TO street
+   STOR CHR(34)+TRIM(ccity)+CHR(34) TO cityto
+   STOR cst TO stto
+   STOR czip TO zipto
+   IF title = ' '
+    STOR ' ' TO titleline
+   ELSE
+    STOR CHR(34)+TRIM(title)+CHR(34) TO titleline
+   ENDI
+   IF company1 = ' '
+    STOR ' ' TO coname1
+   ELSE
+    STOR CHR(34)+TRIM(company1)+CHR(34) TO coname1
+   ENDI
+   IF company2 = ' '
+    STOR ' ' TO coname2
+   ELSE
+    STOR CHR(34)+TRIM(company2)+CHR(34) TO coname2
+   ENDI
+   IF suite = ' '
+    STOR ' ' TO room
+   ELSE
+    STOR CHR(34)+TRIM(suite)+CHR(34) TO room
+   ENDI
+  ENDI send letter to office
+  ?
+  ?? CHR(34)+TRIM(lastname)+CHR(34) +','
+  ?? CHR(34)+TRIM(fname)+CHR(34) +','
+  ?? CHR(34)+TRIM(mr)+CHR(34) +','
+  ?? CHR(34)+TRIM(dear)+CHR(34) +','
+  ?? titleline +','
+  ?? coname1 +','
+  ?? coname2 +','
+  ?? street +','
+  ?? room +','
+  ?? cityto +','
+  ?? stto +','
+  ?? zipto +','
+  SKIP
+  SET CONSOLE ON
+  SET ALTERNATE OFF
+  SET CONSOLE ON
+  ?? CHR(8) + CHR(8)+CHR(8)+CHR(8)+CHR(8)+CHR(8)+STR(COUNTER,5)
+  SET CONSOLE OFF
+  SET ALTERNATE ON
+  STOR COUNTER + 1 TO COUNTER
+ ENDD while not EOF
+ STOR f TO continue
+ENDD continue
+SET ALTERNATE OFF
+SET CONSOLE ON
+RELE file:dat,file:doc,continue,length,counter
+STOR '?' TO command
+STOR ' ' TO printer
+STOR ' ' TO disk
+STOR '            ' TO filename
+STOR t TO more
+

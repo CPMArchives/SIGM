@@ -1,0 +1,139 @@
+* DATE 07/20/84  17:56
+* search.cmd
+IF moveit
+ REST from move additive
+ FIND &linker
+ RELE linker
+ STOR f TO moveit
+ENDI
+STOR t TO first
+STOR t TO more
+DO WHIL more
+ IF first
+* set up screen and prompts
+  ERAS
+  STOR 'Building Search Menu' TO mode
+  @ 0,26 SAY mode
+  @ 1, 0 SAY " -------------------------------------------------"
+  @ 1,50 SAY "-----------------------------"
+  @ 3, 1 SAY "Address:"
+  @ 3,55 SAY "Code:"
+  @ 4, 4 SAY "City:"
+  @ 4,37 SAY "State:"
+  @ 4,56 SAY "Zip:"
+  @ 6, 1 SAY "Manager:"
+  @ 6,54 SAY "Phone:"
+  @ 7, 4 SAY "Type:"
+  @ 7,44 SAY "Number of Units:"
+  @ 9, 0 SAY "Acquired:"
+  @ 9,45 SAY "Purchase Price:"
+  @ 11,28 SAY "Send Rental Payments To:"
+  @ 12,00 SAY "Company:"
+  @ 12,54 SAY "Phone:"
+  @ 13,01 SAY "Street:"
+  @ 14,03 SAY "City:"
+  @ 15,00 SAY "Chks To:"
+  @ 17,02 SAY "Notes:"
+  @ 18,52 SAY "Updated:"
+  @ 19, 0 SAY " -------------------------------------------------"
+  @ 19,50 SAY "-----------------------------"
+ ENDI first
+ STOR f TO first
+ STOR '  ' TO name
+ STOR 'Search by <C>ode number or <A>ny part of building database' TO prompt1
+ STOR '<B>ackward, <F>orward, <D>elete/recall, <E>dit or <P>rint' TO prompt2
+ STOR '<G>o to tenant search menu  or <Q>uit  searching' TO prompt3
+ STOR '?' TO command
+* find out if the current record is marked for deletion
+ IF *
+  STOR 'Deleted' TO deleted
+ ELSE
+  STOR '       ' TO deleted
+ ENDI *
+* show the current record, and find out what to do next
+ @ 0, 0 SAY deleted
+ @ 3,10 SAY baddr
+ @ 3,61 SAY bcode
+ @ 4,10 SAY $(bcity,1,20)
+ @ 4,44 SAY $(bcity,21,2)
+ @ 4,61 SAY $(bcity,23,5)
+ @ 6,10 SAY $(bdata,1,25)
+ @ 6,61 SAY $(bdata,26,13)
+ @ 7,10 SAY $(bdata,39,2)
+ @ 7,61 SAY $(bdata,41,3)
+ @ 9,10 SAY $(bdata,44,8)
+ @ 9,61 SAY bprice USING '$99,999,999.99'
+ @ 12,10 SAY remit
+ @ 12,61 SAY phone
+ @ 13,10 SAY remitad
+ @ 14,10 SAY remitc
+ @ 15,10 SAY checks
+ @ 17,10 SAY bnotes
+ @ 18,61 SAY bupdate
+ @ 20, 4 SAY prompt1
+ @ 21, 4 SAY prompt2
+ @ 22, 4 SAY prompt3
+ @ 22,56 SAY "WHAT NEXT ?"
+ @ 22,70 GET command PICTURE '!'
+ READ
+* perform selected functions
+ DO CASE
+ CASE (command = 'B' .OR. command = ',' )
+* move backwards one record
+  SKIP -1
+ CASE command = 'D'
+  IF *
+   RECA
+  ELSE
+   DELE
+  ENDI *
+ CASE (command = 'F' .OR. command = '.' )
+* move forward one record
+  SKIP
+ CASE command = 'C'
+  STOR # TO rec:number
+  @ 20,00
+  @ 21,00
+  @ 22,00
+  @ 20,12 SAY "Please enter Code number"
+  @ 20,38 GET name PICTURE '99'
+  READ
+* look for matching record
+  STOR CHR(PEEK(063)) to dr
+  SET INDEX TO &dr.:code
+  FIND &name
+* if it isn ' t in the files
+  IF # = 0
+* say that name can ' t be found
+   @ 20,00
+   @ 20,12 SAY name+ ' is not in the file'
+   @ 22,12 SAY 'Press ENTER to Continue'
+   SET console OFF
+   WAIT
+   SET console ON
+   GO rec:number
+  ENDI # = 0
+ CASE COMMAND = 'P'
+  DO PRINT.bld
+ CASE command = 'E'
+  DO EDIT.bld
+ CASE command = 'A'
+  DO search1.bld
+ CASE command = 'G'
+  RELE all
+  STOR bcode TO linker
+  SAVE TO move
+  STOR t TO first
+  STOR 6 TO box
+  STOR t TO keepitup
+  RETU
+ CASE command = 'Q'
+  STOR t TO keepitup
+  STOR t TO first
+  STOR 1 TO box
+  RETU
+ ENDC
+ RELE name
+* loop back again
+ENDD WHILE more
+

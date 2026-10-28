@@ -1,0 +1,37 @@
+******************************************************************
+
+*                        CMPTXT                                  *
+
+*******************************************************************
+
+                  NAME CMPTXT
+                  ENTRY CMPTXT
+
+;FUNCTION: Compares 2 ASCII strings of any length.
+;The no. of bytes in the tested string must be 
+;transmitted in B.
+;The address of the 1st byte of the teststring in Y.
+; "     "     "  "   "    "   "   " standard in X.
+;Returns w carry=1 if match,else carry=0.
+
+CMPTXT:         mov a,0(x)   ;i'th byte of
+                             ;standard -->A
+                cmp 0(y)     ;= i'th byte
+                             ;of teststring?
+                jrz OK      
+                xra a        ;ifnot,
+                ral          ;0 --> carry
+                ret
+OK:             dcr b        ;ifso,bump counter.
+                xra a        ;counter=0?
+                jrz MATCH
+                inx x        ;ifnot
+                inx y        ;bump pointers
+                jmp cmptxt   ;& loop!
+MATCH:          stc          ;ifso set carry
+                ret
+
+                END CMPTXT
+
+******************************************************************
+

@@ -1,0 +1,12 @@
+; create or update an index named $1.INX
+;   recover existing index data, if any
+ren indexer.tre=$1.tre
+; call the indexer
+indexer
+;   save output and make backup
+era $1.bak
+ren $1.bak=$1.inx
+ren $1.inx=indexer.out
+ren $1.tre=indexer.tre
+exer
+i

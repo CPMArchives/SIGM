@@ -1,0 +1,135 @@
+
+
+                  DOCUMENTATION FOR FIXDIR.COM
+
+Introduction
+------------
+
+     FIXDIR  is  program to allow renaming or erasing of  illegal 
+filenames from CP/M directories.
+
+Usage
+-----
+
+     FIXDIR [d:]
+
+Where
+
+     [d:]           is an optional drive identifier or ?
+
+Examples
+--------
+
+     FIXDIR
+
+          This  will check the directory of the currently  logged 
+          drive.
+
+     FIXDIR B:
+
+          This will check the directory of drive B:.
+
+     FIXDIR ?
+
+          This  will display a short "usage" message and  return 
+          to CP/M without doing any directory checking.
+
+Error Messages
+--------------
+
+     If more than one argument is given on the command line,  the 
+command  line error is displayed and the "usage" message is  dis
+played.
+
+A>FIXDIR A: B:
+	FIXDIR version 0.95 (Preliminary evaluation release)
+	(C) 1981, Software Tools - Sydney, Australia.
+	Corrects illegal file names in a CP/M disk directory.
+
+Command line error : B:
+
+USAGE :
+	FIXDIR
+	FIXDIR B:
+
+	Exiting to CP/M
+
+Internal Prompts
+----------------
+
+     If  an illegal filename is located in the directory the user 
+is  prompted to erase or rename the file.  If rename is chosen  a 
+new  filename is prompted.  The entered filename is also  checked 
+for legality:-
+
+	Illegal CP/M file name : bad     .fil
+
+        Press 'E' to erase  file:  
+		Or
+	Press 'R' to rename file : 
+
+	Enter new file name : goo,d.one
+
+	BAD FILENAME entered as new name !
+
+	Enter new file name :good.one
+
+	RENAMING bad     .fil to GOOD    .ONE
+	
+Performing another pass.
+
+
+	No illegal file names in directory on this pass.
+
+	There were 2 passes performed.
+
+
+
+Tutorial on FIXDIR
+------------------
+
+     There  are  certain  characters which are  illegal  in  CP/M 
+filenames  as  far as a CP/M disk directory is  concerned.  These 
+are:
+
+        <>.,;:=?*[] and all lower case alphabetical characters
+
+     Note  that  some  of the characters are legal in  CP/M  file 
+specifiers which may be given to utility programs or used in BDOS 
+calls but the should NEVER appear in a directory display. 
+
+     Also note that the Digital Research documentation  specified 
+the  comma "," as illegal but that the CCP will accept  filenames 
+with  embedded commas.  FIXDIR follows the printed  specification 
+and considers commas illegal in directory enteries.
+
+     In  general  the CCP (console command  processor)  will  not 
+accept  illegal file names so it is not possible to put them into 
+to the directory with the "SAVE" command.  There is no protection 
+built  into the BDOS to stop illegal filenames being  created  in 
+the  disk  directory  as a result of BDOS file create  or  rename 
+commands. The most common way that illegal filenames get into the 
+disk directory is as a result of a save operation from  Microsoft 
+BASIC.  If  the  filename is typed in lower case characters  from 
+within  Microsoft  BASIC  it  will  be  saved  that  way  in  the 
+directory.  The  next  most common way is as a result of  a  high 
+level language program going wild and creating spurious files.
+
+     Directory  enteries which contain illegal file names  cannot 
+be  erased with ERA command as they will never be matched by  the 
+CCP  (Except if you specify *.*).  The CCP converts  all  command 
+lines  to  UPPER  CASE before processing them,  so  even  if  you 
+specify  a lower case file name it will be upper case by the time 
+the BDOS tries to match the filename with a directory entry.
+
+     FIXDIR  is written in the "C" language and directly  examins 
+directory  enteries  without relying on the BDOS individual  file 
+name  matching  function.  The illegal name finding  function  is 
+renterent  and is called repeatedly until no more  illegal  file
+names  can  be located.  The total number of passes  through  the 
+renterent  function is reported at the end of the program if  any 
+illegal file names were found.
+
+END OF FIXDIR.DOC
+
+

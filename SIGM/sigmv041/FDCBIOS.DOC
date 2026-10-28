@@ -1,0 +1,134 @@
+    CBIOS for Cromemco 4FDC/16FDC or CCS 2422 disk controller
+
+FDCBIOS.Z8° anä FDCBOOT.Z8° arå modificationó oæ 4FDCBIOS.Z8° anä 
+4FDCBOOT.Z8° respectivelù froí thå CPMUÇ Useò Grouğ Library® Theù 
+havå  beeî  modifieä tï correcô problemó iî thå originaì  versioî 
+witè  respecô  tï uså oæ thå Perscé singlå arí  voicå  coiì  disë 
+drives® Thå nameó werå alsï changeä tï indicatå thaô thå programó 
+havå  beeî  additionallù checkeä ouô witè thå  16FDC®  Thå  majoò 
+changeó tï thå originaì codå werå aó follows:
+
+     a) corrected PIP A:=B:filename.ext
+        the original code improperly accessed the Persci 277/299 
+        single arm voice coil drives
+     b) corrected current drive assignment on a warm boot
+        the original code always reference drive A: after a
+        warm boot
+
+FDCBIOS.Z8°   anä   FDCBOOT.Z8° arå thå bootstrağ anä  Cbioó  foò 
+runninç CP/Í 2.ø witè á Cromemcï 4FDC/16FDÃ controlleò  board¬  á 
+Z8°  CPU¬   anä  minimuí  20Ë  oæ  RAM®    CP/Í  1.´  caî alsï bå 
+supporteä  iæ somå oæ thå 2.x-onlù codå ió removed®  Thió codå ió 
+alsï applicablå to¬   anä testeä upon¬   thå Californiá  Computeò 
+Systemó  disë controlleò boarä modeì 2422¬  iæ á seriaì porô aô ° 
+compatiblå witè CDOÓ ió useä (á 3Ğ « S¬  oò á Cromemcï TUART¬  oò 
+thå seriaì porô oî á Cromemcï Singlå Carä Computer.)
+
+Thió  sourcå ió capablå oæ supportinç threå typeó  oæ   disksº  µ  
+incè   (sucè   aó  Wangco)¬   ¸  incè  (sucè  aó   Shugart)¬  anä 
+single-arí voice-coiì ¸ incè (sucè aó Persci)®   Betweeî onå  anä 
+fouò  driveó  arå supportable¬  buô nï intermixing®   Therå ió nï 
+currenô  supporô foò  double-sideä  drives¬   buô  iô  shoulä  bå 
+easilù addable®  Therå ió nï supporô foò thå doublå densitù  modå 
+iî thå Cromemcï 16FDC¬  oò thå CCÓ 2422®  Thió bioó ió limiteä tï 
+12¸ bytå sectors.
+
+Thå   ¸   incè   formaô  ió  compatablå witè alì  CP/Í  anä  CDOÓ 
+versionó  currentlù known®   Thå µ incè formaô  (ske÷  oæ  5©  ió 
+compatablå witè alì µ incè CDOÓ formató currentlù used.
+
+Iô   ió   assumeä  thaô  thå  maiî  console¬  aô  porô  zero¬  ió 
+alreadù initializeä bù RDOÓ oò somå otheò program®   Iæ not¬  yoõ 
+caî  inserô thå necessarù codå intï  FDCBOOT.Z80®  Aó  additionaì 
+features¬  thå  routinå  containó  aî  optionaì reader-puncè  anä  
+printeò  supporô  routine¬ viá TUARÔ anä PRÉ boards®   Also¬ iî á 
+commenteä  sectioî ió á smalì modificatioî sï thå DEÌ keù  (07FH© 
+ió  changeä  tï á Control-Õ bù thå  CBIOS¬   foò thoså  whï  havå 
+Backspacå oî thå terminal®  É dï noô likå tï uså twï  handó  jusô 
+tï bå ablå tï eraså á mistake®     Thå sourcå ió foò Cromemcï Z8°  
+assembler¬  anä  therå  arå fivå  constantó  iî  thå  fronô tï bå 
+changeä tï selecô variouó options.
+
+    First¬  selecô thå typå oæ driveº  Iæ  µ  inch¬  LARGES×  anä 
+PERSCIS×  shoulä bå 0®   Iæ ¸ incè Shugart¬  LARGES× shoulä bå 1¬ 
+PERSCIS× 0®   Iæ Persci¬  PERSCIS× shoulä bå 1®   LARGES×  shoulä 
+alsï bå altereä iî FDCBOOT.Z80.Š
+    Next¬  NUMDRIVEÓ shoulä bå ± tï ´ foò 5¢ anä 8¢ drives¬ anä ² 
+oò ´ foò Perscé double-disë drives.
+
+    Then¬  tï havå supporô foò printeò anä TUART¬  BIGIOS× shoulä 
+bå  1¬   otherwiså 0®   Yoõ mighô alsï wisè tï changå BAUDRATÅ tï 
+thå  desireä valuå foò thå reader-puncè (11° bauä  ió  supplied)® 
+Noteº  iæ thå CCÓ 242² ió used¬  iô maù bå necessarù tï supplù aî 
+initializatioî  anä  bootstrağ routinå foò thå consolå  port¬  iæ 
+thaô ió oî á TUARÔ addresseä aô zero®  Thå currenô codå doeó  noô 
+initializå  thå porô aô zero¬  assuminç thaô haó beeî donå beforå 
+thå disë waó booted®  Thå codå foò thå TUARÔ referreä tï herå  ió 
+foò  aî additionaì TUARÔ port¬  noô thå consolå port¬  buô iô  ió 
+easù  tï  adä thå necessarù codå tï initializå thå  consolå  porô 
+also.
+
+    Finally¬  seô BEGINADÒ tï thå starô oæ  thå  CBIOS®    Iô  ió 
+supplieä aó 0E400¬  whicè ió foò á 64Ë system®   Thió shoulä alsï 
+bå altereä iî FDCBOOT.Z80.
+
+    Thå    switcheó   oî   thå  4FDC/16FDÃ  arå  seô  exactlù  aó 
+describeä  iî thå boarä manual®   Foò á systeí  oveò   48K¬   thå  
+ROÍ   musô   bå disableä  upoî  bootstrapping®    Foò  á  smalleò 
+system¬  thå RDOÓ caî staù in¬  oò not¬ aó yoõ desire®  Foò á CCÓ 
+242² controller¬  thå samå statemenô applies¬ excepô thå 242² ROÍ 
+neeä noô bå disableä unlesó thå systeí memorù exceedó 60K.
+
+    FDCBOOT.HEØ anä FDCBIOS.HEØ arå supplied¬  assembleä froí thå 
+sourcå files® Theù arå seô foò á 64Ë versioî oæ CP/M® Yoõ caî uså 
+theí  iî anotheò systeí iæ yoõ caî puô abouô 8Ë aô thå uppeò  enä 
+oæ  memorù (E000© anä maybå 16Ë aô thå lo÷ enä (0000© tï bå  ablå 
+tï re-assemblå thå files.
+
+    Thå  followinç  instructionó  shoulä assisô  iî  thå  initiaì 
+start-up for a 64K CP/M system:
+
+          1) modify FDCBIOS.Z80 where appropriate
+          2) create a copy of CPM64.COM from MOVCPM
+          3) reboot with CDOS generated at 48K
+          4) ASMB FDCBIOS HEX=F200
+             do not continue past this point if there are errors
+          5) DEBUG CPM64.COM
+          6© Æ FDCBIOS.HEX
+          7) R 4000
+          8) M 3200 34xx 1F80
+          9) M 980 2500 DC00
+         10) G F200
+         11) SYSGEN
+
+     subsequent updates
+
+          1) modify FDCBIOS.Z80 where appropriate
+          2) reboot CDOS
+          3) ASMB FDCBIOS HEX=F200
+          4) reboot CP/MŠ          5) MOVCPM 64 *
+          6) SAVE 36 CPM64.COM
+          7) DDT CPM64.COM
+          8) IFDCBIOS.HEX
+          9) R4000
+          10© M320° 34xø 1F80
+               pls note the value 34xx will vary
+          11) IFDCBOOT.HEX
+          12) R4000
+          13) M4000 404F 900
+	       control ^C 
+          14) SAVE 36 CP/M64.COM
+          15) DDT CP/M64.COM
+          16) control ^C 
+          17) SYSGEN
+
+     for other memory size systems
+
+          1) ED FDCBIOS.Z80
+          2) modify MEMSIZE
+          3) ED FDCBOOT.Z80
+               	modify MEMSIZE
+          4) reboot CDOS
+          5) ASMB FDCBIOS HEX=(top of memory-E00)
+          6) ASMB FDCBOOT HEX=0
+

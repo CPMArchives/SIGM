@@ -1,0 +1,78 @@
+;FREESP - return free space on current disk
+;
+; updated: 09/18/84 (fixed bug that kept it from working with
+;		     anything but 2k allocation block size)
+;
+; entry:  none
+; return: hl= k free
+;
+cr	equ	0dh
+lf	equ	0ah
+;
+galv	equ	27
+gdpb	equ	31
+;
+	extrn	bdos,print,phldc
+	public	freesp
+;
+freesp:	mvi	c,gdpb
+	call	bdos
+	inx	h
+	inx	h
+	mov	a,m		;get bsh
+	push	psw
+	inx	h
+	inx	h
+	inx	h
+	mov	e,m
+	inx	h
+	mov	d,m		;de = total # blocks
+	push	d		;save it
+	mvi	c,galv
+	call	bdos
+	pop	d
+	xchg			;de=alv, hl=count
+	inx	h
+	lxi	b,0		;bc=usage count
+loopo:	ldax	d		;get byte
+	inx	d
+	push	d
+	mvi	d,8
+loopi:	rlc
+	jc	used
+	inx	b
+used:	dcx	h
+	push	psw
+	mov	a,h
+	ora	l
+	jz	done
+	pop	psw
+	dcr	d
+	jnz	loopi
+	pop	d
+	jmp	loopo
+;
+done:	pop	psw		;clean stack
+	pop	d
+	mov	h,b		;bc=# of blocks
+	mov	l,c
+	pop	psw		;get bsh
+	dcr	a
+	dcr	a		;1=1k, 2=2k, 3=4k, 4=8k, 5=16k
+dlp:	dcr	a
+	jz	dxit
+	dad	h
+	jmp	dlp
+;
+dxit:	call	print
+	db	cr,lf
+	db	'Free upload space :',0
+	call	phldc
+	call	print
+	db	'k',cr,lf,0
+	ret
+	end
+rrent disk
+;
+; updated: 09/18/84 (fixed bug that kept it from working with
+;		     anything 

@@ -1,0 +1,59 @@
+nz      equ     20h
+z       equ     28h
+nc      equ     30h
+k       equ     38h
+bc      equ     0
+de      equ     1
+hl      equ     2
+sptr    equ     3
+ 
+djnz    macro   lab
+        db      010h
+        db      lab-$-1
+        endm
+jr      macro   cond,lab
+        if      not nul cond
+        db      cond
+        endif
+        if      nul cond
+        db      18h
+        endif
+        db      lab-$-1
+        endm
+ldiy    macro   reg,offset
+        db      0fdh
+        db      (046h) or (reg shl 3)
+        db      offset
+        endm
+stiy    macro   reg,offset
+        db      0fdh
+        db      (070h) or (reg)
+        db      offset
+        endm
+stiyi   macro   val,offset
+        db      0fdh
+        db      036h
+        db      offset
+        db      val
+        endm
+sla     macro   reg
+        db      0cbh
+        db      (020h) or (reg)
+        endm
+rl      macro   reg
+        db      0cbh
+        db      (010h) or (reg)
+        endm
+inputr  macro   reg
+        db      0edh
+        db      (040h) or (reg shl 3)
+        endm
+sbchl   macro   reg
+        db      0edh
+        db      (042h) or (reg shl 4)
+        endm
+ or (reg shl 3)
+        endm
+sbchl   macro   reg
+        db      0edh
+        db     

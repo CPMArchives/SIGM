@@ -1,0 +1,283 @@
+;
+; VLIB Module Name:  VID7
+; Author:  Richard Conn
+; VLIB  Version Number:  1.0
+; Module Version Number:  1.0
+; Module Entry Points:
+;	GOTOXY
+; Module External References:
+;	VIDPTR	VIDSKP	VIDELAY	COUT
+;
+	ext	vidptr,vidskp,videlay,cout
+;
+; GOTO XY
+;	HL = Row/Col, with Home=1/1
+;	Return with A=0 and Zero Flag Set if not done
+;
+gotoxy::
+	push	b	;save regs
+	push	d
+	push	h
+	lhld	vidptr	;pt to environment
+	mov	a,m	;no terminal?
+	cpi	' '+1
+	jc	err
+	lxi	d,15h	;pt to CM delay
+	dad	d
+	mov	a,m	;get it
+	sta	cmdelay	;save it
+	inx	h	;pt to CL string
+	inx	h
+	call	vidskp	;skip CL string
+	mov	a,m	;get first char of CM string
+	ora	a	;if no string, error
+	jz	err
+	xchg		;DE=address of CM string
+	pop	h	;get coordinates in HL
+	push	h
+	call	gxy	;output xy string with delay
+	lda	cmdelay	;pause
+	call	videlay
+	pop	h	;done
+	pop	d
+	pop	b
+	xra	a	;return NZ
+	dcr	a
+	ret
+err:
+	pop	h	;done
+	pop	d
+	pop	b
+	xra	a	;return Z
+	ret
+
+;
+; GOTOXY
+;   On input, H=Row and L=Column to Position To (1,1 is Home)
+;   On input, DE=address of CM string
+;
+gxy:
+	dcr	h	;adjust to 0,0 for home
+	dcr	l
+	xra	a	;set row/column
+	sta	rcorder	;row before column
+	sta	rcbase	;add 0 to base
+;
+; Cycle thru string
+;
+gxyloop:
+	ldax	d	;get next char
+	inx	d	;pt to next
+	ora	a	;done?
+	rz
+	cpi	'%'	;command?
+	jz	gxycmd
+	cpi	'\'	;escape?
+	jz	gxyesc
+	call	cout	;send char
+	jmp	gxyloop
+
+;
+; Escape - output following byte literally
+;
+gxyesc:
+	ldax	d	;get next char
+	call	cout	;output literally
+	inx	d	;pt to next
+	jmp	gxyloop
+;
+; Interpret next character as a command character
+;
+gxycmd:
+	ldax	d	;get command char
+	inx	d	;pt to next
+	cpi	'd'	;%d
+	jz	gxyout1
+	cpi	'2'	;%2
+	jz	gxyout2
+	cpi	'3'	;%3
+	jz	gxyout3
+	cpi	'.'	;%.
+	jz	gxyout4
+	cpi	'+'	;%+v
+	jz	gxyout5
+	cpi	'>'	;%>xy
+	jz	gxygt
+	cpi	'r'	;%r
+	jz	gxyrev
+	cpi	'i'	;%i
+	jz	gxyinc
+	call	cout	;output char if nothing else
+	jmp	gxyloop
+;
+; Set row/col home to 1,1 rather than 0,0
+;
+gxyinc:
+	mvi	a,1	;set rcbase to 1
+	sta	rcbase
+	jmp	gxyloop
+;
+; Reverse order of output to column then row (default is row then column)
+;
+gxyrev:
+	mvi	a,1	;set column and row order
+	sta	rcorder
+	jmp	gxyloop
+;
+; Command: >xy
+;   If value of row/col is greater than x, add y to it
+;
+gxygt:
+	call	getval	;get value
+	mov	c,a	;save value
+	ldax	d	;get value to test
+	inx	d	;pt to next
+	cmp	c	;if carry, value>x
+	jnc	gxygt1
+	ldax	d	;get value to add
+	add	c
+	call	putval	;put value back
+gxygt1:
+	inx	d	;pt to next
+	jmp	gxyloop	;resume
+;
+; Command: +n
+;   Add n to next value and output
+;
+gxyout5:
+	ldax	d	;get value to add
+	inx	d	;pt to next
+	mov	b,a	;save in B
+	call	getval	;get value
+	add	b	;add in B
+	call	cout	;output value
+rcmark:
+	lda	rcorder	;mark output
+	ori	80h
+	sta	rcorder
+	jmp	gxyloop
+;
+; Command: .
+;   Output next value
+;
+gxyout4:
+	call	getval	;get value
+	call	cout	;output value
+	jmp	rcmark
+;
+; Command: 3
+;   Output next value as 3 decimal digits
+;
+gxyout3:
+	call	getval	;get value
+	mvi	b,100	;output 100's
+	mvi	c,1	;leading zeroes
+	call	digout
+gxyot3:
+	mvi	b,10	;output 10's
+	mvi	c,1	;leading zeroes
+gxyot2:
+	call	digout
+	adi	'0'	;output 1's
+	call	cout
+	jmp	rcmark
+;
+; Command: 2
+;   Output next value as 2 decimal digits
+;
+gxyout2:
+	call	getval	;get value
+	jmp	gxyot3
+;
+; Command: d
+;   Output next value as n decimal digits with no leading zeroes
+;
+gxyout1:
+	call	getval	;get value
+	mvi	b,100	;output 100's
+	mvi	c,0	;no leading zeroes
+	call	digout
+	mvi	b,10	;output 10's
+	mvi	c,0	;no leading zeroes
+	jmp	gxyot2
+;
+; Return next value in A
+;
+getval:
+	lda	rcorder	;get order flag
+	ora	a	;already output the first value?
+	jm	getval2
+	ani	1	;look at lsb
+	jz	getvalr	;if 0, row first
+getvalc:
+	lda	rcbase	;get base offset
+	add	l	;get column
+	ret
+getvalr:
+	lda	rcbase	;get base offset
+	add	h	;get row
+	ret
+getval2:
+	ani	1	;look at lsb
+	jz	getvalc
+	jmp	getvalr
+;
+; Store A as next value
+;
+putval:
+	mov	c,a	;save value
+	lda	rcorder	;get order flag
+	ora	a	;already output the first value?
+	jm	putval2
+	ani	1	;look at lsb
+	jz	putvalr	;if 0, row first
+putvalc:
+	mov	l,c	;set column
+	ret
+putvalr:
+	mov	h,c	;set row
+	ret
+putval2:
+	ani	1	;look at lsb
+	jz	putvalc
+	jmp	putvalr
+;
+; Output A as decimal digit char
+;   B=Quantity to Subtract from A, C=0 if no leading zero
+;
+digout:
+	push	d	;save DE
+	mvi	d,'0'	;char
+decot1:
+	sub	b	;subtract
+	jc	decot2
+	inr	d	;increment char
+	jmp	decot1
+decot2:
+	add	b	;add back in
+	push	psw	;save result
+	mov	a,d	;get digit
+	cpi	'0'	;zero?
+	jnz	decot3
+	mov	a,c	;get zero flag
+	ora	a	;0=no zero
+	jz	decot4
+decot3:
+	mov	a,d	;get digit
+	call	cout	;print it
+decot4:
+	pop	psw	;get A
+	pop	d	;restore DE
+	ret
+;
+; GXY Buffers
+;
+rcorder:
+	ds	1	;0=row/col, else col/row
+rcbase:
+	ds	1	;0=org is 0,0, else org is 1,1
+cmdelay:
+	ds	1	;number of milliseconds to delay for CM
+
+	end
+

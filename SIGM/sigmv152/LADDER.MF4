@@ -1,0 +1,171 @@
+	PROGRAM LADDER
+	INTEGER CHAR
+	DIMENSION R(100)
+	PI=3.14159
+	WRITE (3,1)
+1	FORMAT (' LADDER NETWORK ANALYSIS PROGRAM')
+	WRITE (3,222)
+222	FORMAT (
+     &' This program analyses a full ladder network for gain and phase'
+     &/'  starting at the load and working towards the voltage source.'
+     &/' Any null or infinite branches must be declared as such.'
+     &/' ...report problems to Trevor Marshall,'
+     &/'               SYSOP, Thousand Oaks Tech RBBS (805) 492 3693'/)
+	WRITE (3,16)
+16	FORMAT (' NUMBER OF BRANCHES (including the load) ? ')
+	READ (3,2) A
+2	FORMAT (F2.0)
+	N=2*A+9
+	DO 100 I=0,N
+	R(I)=0.
+100	CONTINUE
+	NN=1
+150	FLAG3=0
+	WRITE (3,17)
+17	FORMAT (' R, L or C ? ')
+	READ (3,3) CHAR
+3	FORMAT (A1)
+	IF (CHAR.EQ.'R ' .OR. CHAR.EQ.'r ') R(3)=1.
+	IF (CHAR.EQ.'L ' .OR. CHAR.EQ.'l ') R(3)=2.
+	IF (CHAR.EQ.'C ' .OR. CHAR.EQ.'c ') R(3)=3.
+	IF (R(3).EQ.3) FLAG3=1
+	WRITE (3,18)
+18	FORMAT (' VALUE ? ')
+	READ (3,4) R(4)
+4	FORMAT (E12.5)
+	IF (R(3).NE.1) GO TO 200
+C	IF (.NOT. CHAR.EQ.'R ' .OR. CHAR.EQ.'r ') GOTO 200
+	R(NN+10)=R(4)
+	GO TO 300
+200	R(NN+11)=PWR1(FLAG3)*R(4)
+300	NN=NN+2
+	IF (NN.LE.(2.*A-1.)) GO TO 150
+	WRITE (3,5)
+5	FORMAT ('0      OUTPUT')
+	IF (R(11).GT.1E-30) WRITE (3,6)
+6	FORMAT ('0OHMS 0----R----O'/'      !         !')
+	IF (R(11).GT.1E-30)GO TO 400
+	IF (R(12).GT.1E-30) WRITE (3,7)
+7	FORMAT (' HY   O----L----O'/'      !         !')
+	IF (R(12).GT.1E-30) GO TO 400
+	WRITE (3,8)
+8	FORMAT (' FD   O----C----O'/'      !         !')
+400	NN=3
+450	R(0)=((NN-1.0)/4.0-INT((NN-1.0)/4.0))
+	IF (R(0).GT.1E-30) GO TO 500
+	IF (R(NN+10).GT.1E-30) WRITE (3,9)
+9	FORMAT (' OHMS !----R----!'/'      !         !')
+	IF (R(NN+10).GT.1E-30) GO TO 600
+	IF (R(NN+11).GT.1E-30) WRITE (3,10)
+10	FORMAT (' HY   !----L----!'/'      !         !')
+	IF (R(NN+11).GT.1E-30) GO TO 600
+	WRITE (3,11)
+11	FORMAT (' FD   !----C----!'/'      !         !')
+	GO TO 600
+500	IF (R(NN+10).GT.1E-30) WRITE (3,12)
+12	FORMAT (' OHMS R         !'/'      !         !')
+	IF (R(NN+10).GT.1E-30) GO TO 600
+	IF (R(NN+11).GT.1E-30) WRITE (3,13)
+13	FORMAT (' HY   L         !'/'      !         !')
+	IF (R(NN+11).GT.1E-30) GO TO 600
+	WRITE (3,14)
+14	FORMAT (' FD   C         !'/'      !         !')
+600	NN=NN+2
+	IF (NN.LE.(2*A-1)) GO TO 450
+700	WRITE (3,15)
+15	FORMAT ('      O  INPUT  O')
+C
+750	WRITE(3,28)
+28	FORMAT('0FREQUENCY SWEEP STARTS AT ? ')
+	READ (3,19) R(0)
+19	FORMAT(E12.5)
+C	R(0)=R(0)/(2*PI)						  omega
+	WRITE(3,20)
+20	FORMAT('+              AND ENDS AT ? ')
+	READ (3,21)R(1)
+21	FORMAT(F5.0)
+C	R(1)=R(1)/(2*PI)						  omega
+	WRITE(3,22)
+22	FORMAT(' NUMBER OF INTERVALS ')
+	READ(3,23)R(2)
+23	FORMAT(F3.0)
+	WRITE(3,24)
+24	FORMAT('0FREQ.(HZ),MAGNITUDE (DB),PHASE (DEGREES)'/' ')
+	C=R(0)
+	R(4)=(R(1)/R(0))**(1./R(2))
+C	CALL PLOT S/R 'P'
+900	R(7)=1.
+	X=1
+	Y=0
+	R(5)=0
+	R(6)=0
+	R(8)=0
+	NN=1
+1300	FLAG1=0
+	FLAG2=0
+	FLAG3=0
+	FLAG4=0
+	IF(R(NN+10).GT.1E-30)FLAG1=1
+	IF(R(NN+10).GT.1E-30)GO TO 1000
+	R(10)=R(NN+11)*2.*PI*C
+	IF(R(10).GT.1E-30)Z=FLAG2
+	IF(R(10).GT.1E-30)GO TO 1100
+	FLAG3=1
+	R(10)=-1./(R(NN+11)*2.*PI*C)
+1000	R(3)=R(NN+10)
+1100	ZZ=((NN+1.0)/4.0-INT((NN+1.0)/4.0))
+	IF(ZZ)1115,1115,1120
+1120	IF(FLAG1.EQ.1)R(3)=1./R(3)
+	FLAG4=1.
+	IF(FLAG1.EQ.1)GO TO 1115
+	R(10)=1./R(10)
+1115	IF(FLAG1.EQ.1)X=R(3)*X
+	IF(FLAG1.EQ.0)X=R(10)*X
+	IF(FLAG1.EQ.0)ZZ=FLAG4*FLAG2+(1-FLAG4)*FLAG3
+	IF(FLAG1.EQ.0)Y=Y+PWR1(ZZ)*PI/2.0
+	Z=X*COS(Y)
+	Y=X*SIN(Y)
+	X=Z
+	IF(FLAG4.EQ.0)X=R(7)+X
+	IF(FLAG4.EQ.0)Y=R(8)+Y
+	IF(FLAG4.EQ.1)X=R(5)+X
+	IF(FLAG4.EQ.1)Y=R(6)+Y
+	IF(FLAG4.EQ.1)R(5)=X
+	IF(FLAG4.EQ.1)R(6)=Y
+	IF(FLAG4.EQ.1)GO TO 1200
+	R(7)=X
+	R(8)=Y
+1200	Z=SQRT(X*X+Y*Y)
+	IF(Y.GT.0)R(2)=PI/2.0
+	IF(Y.LE.0)R(2)=-PI/2.0
+	IF(X)2220,2250,2220
+2220	R(2)=ATAN(Y/X)
+	IF(X.LT.0)R(2)=R(2)+PI
+	IF(Y.LT.0)R(2)=R(2)-2*PI
+2250	Y=R(2)
+	X=Z
+	NN=NN+2
+	IF(NN.LE.IFIX(2.0*A))GO TO 1300
+	X=1.0/X
+	ZZ=20*ALOG10(X)
+	ZZZ=-Y*180./PI
+C	CC=C*2.0*PI							  omega
+	CC=C
+	WRITE(3,25)CC,ZZ,ZZZ
+25	FORMAT(F8.2,2(' ',F12.2))
+	IF (R(0).EQ.R(1))GO TO 1550
+	C=C*R(4)
+	IF(C.LE.R(1))GO TO 900
+1550	WRITE (3,26)
+26	FORMAT('0NEW SWEEP (Y/N) ? ')
+	READ(3,27)ISTRG
+27	FORMAT(A1)
+	IF(ISTRG.EQ.'Y ')GO TO 750
+	END
+	FUNCTION PWR1(Z)
+	IF(Z.EQ.0)PWR1=1
+	IF(Z.EQ.1)PWR1=-1
+	IF(Z.EQ.2)PWR1=1
+	RETURN
+	END
+

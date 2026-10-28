@@ -1,0 +1,54 @@
+El Paso TX  04/22/84
+
+
+NCRCK (NewCRCK) is designed to replace the CRCK and CHEK programs found on
+RCPM systems by combining both features.
+
+HOW TO USE NCRCK:
+
+Simply type the command
+
+A>NCRCK [d:]afn
+
+As you can see, while the drive letter is optional, a single ambiguous
+(or unambiguous) filename must be supplied. You can only check files in the
+current user area.
+
+NCRCK will identify itself, print a header line and then process all matching
+files. the output looks something like this:
+
+A>CRCK *.COM
+
+NCRCK v1.00 by ESKAY  04/22/84
+
+FILE NAME        CRCK      CHEK      KBYTES    SECTORS
+------------------------------------------------------
+
+DIR     .COM     E0 AA     BC 47         3        22
+HELP    .COM     AF FE     E0 66        17       133
+GO      .COM     00 00     00 00         0         0
+
+*** END ***
+
+A>
+
+The display should be self-explanatory.
+
+
+PATCH LOCATIONS:
+
+There are only two patch points in NCRCK:
+
+0103	DB	15	;highest allowed drive (A=1)
+0104	DB	00	;$SYS flag (default off)
+
+Change location 103 to the highest drive allwed in NCRCK.
+Change location 104 to NON-ZERO if you want $SYS files to be SUPPRESSED.
+
+
+Enjoy!
+y type the command
+
+A>NCRCK [d:]afn
+
+As you can see, while the drive letter is o

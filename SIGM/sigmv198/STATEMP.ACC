@@ -1,0 +1,602 @@
+* DATE 09/12/84  18:38
+* statement printing program
+SAVE TO TEMP
+CLEA
+REST FROM TEMP
+STOR CHR(PEEK(063)) TO dr
+SELE PRIMARY
+USE &dr.:statemnt
+RELE dr
+STOR 0 TO totalit
+STOR 0 TO totalit1
+STOR 0 TO netin
+GO top
+IF nowprint = 'Y'
+ GO bottom
+ELSE
+ STOR '        ' to daya
+ @ 15,00
+ @ 15,00
+ @ 16,00 SAY " *                                                                           *"
+ @ 15,00 SAY ' *        What is the date of the statement you want to print                *'
+ @ 15,65 GET daya picture '99/99/99'
+ READ
+ GO TOP
+ LOCA for daya = date
+ DO WHIL .NOT. EOF
+  IF .NOT. EOF
+   STOR # TO rec:no
+  ENDI .NOT. EOF
+  CONT
+ ENDD WHILE .NOT. EOF
+ IF rec:no = 0
+  DO WHIL rec:no = 0
+   GO TOP
+   @ 15,65 GET daya picture '99/99/99'
+   READ
+   LOCA for daya = date
+   DO WHIL .NOT. EOF
+    IF .NOT. EOF
+     STOR # TO rec:no
+    ENDI .NOT. EOF
+    CONT
+   ENDD WHILE .NOT. EOF
+  ENDD WHILE rec:no = 0
+ ENDI rec:no = 0
+ IF rec:no <> 0
+  GO rec:no
+ ENDI rec:no
+ENDI nowprint = 'Y'
+RELE nowprint
+IF stubs
+ STOR t TO stub
+ELSE
+ STOR f TO stub
+ENDI stubs
+@ 16,00 SAY " *                                                                           *"
+@ 15,00 SAY " *                   Send Statements to the Printer (Y/N)                    *"
+@ 15,60 GET printer PICTURE '!'
+READ
+@ 16,00 SAY " *                   Send Statements to a Disk File (Y/N)                    *"
+@ 16,60 GET disk PICTURE '!'
+READ
+STOR LEN(coname)/2  TO L
+STOR 40-L TO L
+STOR '                                        ' TO bl
+STOR $(bl,1,L) + coname TO coname1
+RELE coname
+IF disk ='Y'
+ @ 18,00 SAY " *                   Enter Disk File Name                                    *"
+ @ 18,44 GET filename PICTURE '!!!!!!!!'
+ @ 18,54 SAY "(.TXT will be added )"
+ READ
+ STOR 'A' to dr
+ @ 19,00 SAY ' *                   Select drive to put Files on                            *'
+ @ 19,54 GET dr PICTURE '!'
+ READ
+ DO WHIL @(dr,'AB') = 0
+  @ 19,54 GET dr PICTURE '!'
+  READ
+ ENDD while @
+ENDI disk = Y
+@ 15,00 SAY " *                                                                           *"
+@ 16,00 SAY " *                                                                           *"
+@ 17,00 SAY " *                                                                           *"
+@ 18,00 SAY " *                                                                           *"
+@ 19,00 SAY " *                                                                           *"
+IF printer = 'Y'
+ @ 16,00 SAY " *                        MAKE PRINTER READY AND HIT ANY KEY                 *"
+ SET CONSOLE OFF
+ WAIT
+ SET CONSOLE ON
+ ERAS
+ @ 10,20 SAY 'Calculating........................................'
+ @ 12,00 SAY ' '
+ SET print ON
+ELSE
+ ERAS
+ @ 10,20 SAY 'Calculating........................................'
+ @ 12,00 SAY ' '
+ENDI printer = Y
+IF disk = 'Y' .AND. filename <> ' '
+* make a proper REPORT file name that is of type TXT
+ STOR @('.',filename) TO length
+ IF length = 0 .OR. length > 8
+  STOR 9 TO length
+ ENDI length
+ STOR $(filename,1,length-1) TO filename
+ STOR '&dr.:'+filename+'.TXT' TO filename
+ RELE dr
+ SET ALTERNATE TO &filename
+ SET ALTERNATE ON
+ELSE
+ RELE filename
+ENDI disk = Y and filename <> ''
+IF $(daya,4,1) = '0'
+ STOR $(daya,5,1) TO date2
+ELSE
+ STOR $(daya,4,2) TO date2
+ENDI
+STOR fyr TO mfyr
+IF mfyr < $(daya,1,2)
+ STOR VAL(fyr)+12 TO mfyr1
+ELSE
+ STOR VAL(mfyr) TO mfyr1
+ENDI mfyr
+STOR mfyr1 - VAL($(daya,1,2)) TO mfyr1
+STOR mfyr1 + 100 TO mfyr1
+STOR STR(mfyr1,3) TO mfyr2
+STOR $(mfyr2,2,2) TO mfyr
+DO CASE
+CASE mfyr = '01'
+ STOR 'One month ending ' TO date3
+CASE mfyr = '02'
+ STOR 'Two months ending ' TO date3
+CASE mfyr = '03'
+ STOR 'Three months ending ' TO date3
+CASE mfyr = '04'
+ STOR 'Four months ending ' TO date3
+CASE mfyr = '05'
+ STOR 'Five months ending ' TO date3
+CASE mfyr = '06'
+ STOR 'Six months ending ' TO date3
+CASE mfyr = '07'
+ STOR 'Seven months ending ' TO date3
+CASE mfyr = '08'
+ STOR 'Eight months ending ' TO date3
+CASE mfyr = '09'
+ STOR 'Nine months ending ' TO date3
+CASE mfyr = '10'
+ STOR 'Ten months ending ' TO date3
+CASE mfyr = '11'
+ STOR 'Eleven months ending ' TO date3
+CASE mfyr = '12'
+ STOR 'Twelve months ending ' TO date3
+ENDC
+DO CASE
+CASE $(daya,1,2) = '01'
+ STOR 'January ' + date2 + ', 19' + $(daya,7,2) TO date1
+CASE $(daya,1,2) = '02'
+ STOR 'February ' + date2 + ', 19' + $(daya,7,2) TO date1
+CASE $(daya,1,2) = '03'
+ STOR 'March ' + date2 + ', 19' + $(daya,7,2) TO date1
+CASE $(daya,1,2) = '04'
+ STOR 'April ' + date2 + ', 19' + $(daya,7,2) TO date1
+CASE $(daya,1,2) = '05'
+ STOR 'May ' + date2 + ', 19' + $(daya,7,2) TO date1
+CASE $(daya,1,2) = '06'
+ STOR 'June ' + date2 + ', 19' + $(daya,7,2) TO date1
+CASE $(daya,1,2) = '07'
+ STOR 'July ' + date2 + ', 19' + $(daya,7,2) TO date1
+CASE $(daya,1,2) = '08'
+ STOR 'August ' + date2 + ', 19' + $(daya,7,2) TO date1
+CASE $(daya,1,2) = '09'
+ STOR 'September ' + date2 + ', 19' + $(daya,7,2) TO date1
+CASE $(daya,1,2) = '10'
+ STOR 'October ' + date2 + ', 19' + $(daya,7,2) TO date1
+CASE $(daya,1,2) = '11'
+ STOR 'November ' + date2 + ', 19' + $(daya,7,2) TO date1
+CASE $(daya,1,2) = '12'
+ STOR 'December ' + date2 + ', 19' + $(daya,7,2) TO date1
+ENDC
+STOR TRIM(date1) TO date1
+STOR TRIM(date3+date1) TO date3
+STOR LEN(date3)/2  TO L
+STOR 40-L TO L
+STOR '                                        ' TO bl
+STOR $(bl,1,L) + date3 TO date3
+STOR LEN(date1)/2  TO L
+STOR 40-L TO L
+STOR '                                        ' TO bl
+STOR $(bl,1,L) + date1 TO date1
+RELE L, bl, daya, date2, printer, disk,mfyr, mcyr, mfyr1, mfyr2
+STOR t TO wholelist
+STOR 1 to count
+IF com1 = 'C'
+ STOR 'BCDEFGHIJKL' TO plan
+ STOR t TO trial
+ELSE
+ STOR '6789A012345' TO plan
+ STOR f TO trial
+ENDI com1
+STOR 0 TO plus
+STOR 0 TO minus
+DO WHIL WHOLELIST
+ STOR $(plan,(count),1) TO chart
+ DO CASE
+ CASE chart = '1'.OR. chart = 'B'
+  STOR code1 TO mcode
+  STOR count + 1 TO count
+ CASE chart = '2' .OR. chart = 'C'
+  STOR code2 TO mcode
+  STOR count + 1 TO count
+ CASE chart = '3'.OR. chart = 'D'
+  STOR code3 TO mcode
+  STOR count + 1 TO count
+ CASE chart = '4' .OR. chart = 'E'
+  STOR code4 TO mcode
+  STOR count + 1 TO count
+ CASE chart = '5'
+  STOR code5 TO mcode
+  IF .NOT. stub
+   STOR f TO wholelist
+  ELSE
+   STOR 'M789A0X' TO plan
+   STOR 1 TO count
+  ENDI
+ CASE chart = 'X'
+  STOR f TO wholelist
+ CASE chart = 'F'
+  STOR code5 TO mcode
+  STOR count+1  TO count
+ CASE CHART = '6' .OR. chart = 'G' .OR. chart = 'M'
+  STOR code6 TO mcode
+  STOR count + 1 TO count
+ CASE CHART = '7' .OR. chart = 'H'
+  STOR code7 TO mcode
+  STOR count + 1 TO count
+ CASE CHART = '8' .OR. chart = 'I'
+  STOR code8 TO mcode
+  STOR count + 1 TO count
+ CASE CHART = '9' .OR. chart = 'J'
+  STOR code9 TO mcode
+  STOR count + 1 TO count
+ CASE CHART = '0' .OR. chart = 'K'
+  STOR code0 TO mcode
+  STOR count + 1 TO count
+ CASE CHART = 'A'
+  STOR codea TO mcode
+  STOR count + 1 TO count
+ CASE CHART = 'L'
+  STOR codea TO mcode
+  STOR f TO wholelist
+ ENDC
+ STOR ',' TO C
+ STOR 1 TO X
+ STOR 1 TO Y
+ STOR @(C,$(mcode,x)) TO y
+ STOR t TO more
+ STOR 0 TO countup
+ STOR '0' TO nu
+ DO WHIL more
+  IF Y > 0
+   IF VAL(nu) <9
+    STOR STR(VAL($(nu,1,1))+1,1) TO nu
+   ELSE
+    STOR STR(VAL($(nu,1,2))+1,2) TO nu
+   ENDI VAL(nu)
+   STOR X + Y TO X
+   STOR @(C,$(mcode,x)) TO y
+   STOR $(mcode,x,y-1) TO N&nu
+   STOR X + Y TO X
+   STOR @(C,$(mcode,x)) TO y
+   STOR (VAL($(mcode,x,y-1))*1.00) TO NM&nu
+   STOR countup + 1 TO countup
+  ELSE
+   STOR f TO more
+  ENDI Y > 0
+ ENDD WHILE more
+ STOR nu TO last
+ STOR 0 TO sumup
+ STOR countup-1 to countup
+ STOR countup to countup1
+ STOR CHR(PEEK(063)) TO dr
+ SELE SECONDARY
+ USE &dr.:chart
+ RELE dr
+ STOR '0' TO nu
+ DO WHIL &nu  < &last-1
+  IF countup > 0
+   IF VAL(nu) <9
+    STOR STR(VAL($(nu,1,1))+1,1) TO nu
+   ELSE
+    STOR STR(VAL($(nu,1,2))+1,2) TO nu
+   ENDI VAL(nu)
+   LOCA FOR N&nu= acctno
+   IF comm = 'A' .OR. comm = 'C'
+    STOR N&nu + '  ' + desc TO mdesc&nu
+   ELSE
+    STOR desc TO mdesc&nu
+   ENDI comm
+   RELE N&nu
+   STOR sumup + NM&nu TO sumup
+   STOR countup -1 TO countup
+  ENDI countup
+ ENDD WHILE &nu
+ DO CASE
+  ERAS
+ CASE chart = 'B'
+  ? ' '
+  ? coname1
+  ? '                                 TRIAL BALANCE'
+  ? date1
+  ? ' '
+  ? '----------------------------------------------------------------------------'
+  ? 'Acct #    Description                                        Debit     Credit'
+  ? '----------------------------------------------------------------------------'
+ CASE chart = '1'
+  EJEC
+  ? ' '
+  ? coname1
+  ? '                                 BALANCE SHEET'
+  ? date1
+  ? ' '
+  ? ' '
+  ? 'ASSETS '
+  ? ' '
+ CASE chart = '3'
+  ? ' '
+  ? 'LIABILITIES AND CAPITAL'
+  ? ' '
+ CASE chart = '5'
+  ? ' '
+  ? 'CAPITAL'
+  ? ' '
+ CASE chart = '6' .OR. chart = 'M'
+  ? ' '
+  ? coname1
+  ? '                           PROFIT AND LOSS STATEMENT'
+  IF chart = '6'
+   ? date3
+   RELE date3
+  ELSE
+   ? '                                ONE MONTH ENDING '
+   ? date1
+  ENDI chart = '6'
+  ? ' '
+  ? 'INCOME'
+  ? ' '
+ ENDC
+ STOR '0' TO nu
+ IF trial
+  IF chart='B'.OR.chart='C'.OR.chart='D'.OR.chart='E'.OR.chart='F';
+  .OR.chart='G'.OR.chart='H'.OR.chart='I'.OR.chart='J'.OR.;
+  chart='K'.OR.chart='L'
+   DO WHIL &nu < &last-1
+    IF countup1 > 0
+     IF VAL(nu) <9
+      STOR STR(VAL($(nu,1,1))+1,1) TO nu
+     ELSE
+      STOR STR(VAL($(nu,1,2))+1,2) TO nu
+     ENDI VAL(nu)
+     IF NM&nu< 0
+      STOR '            ' TO sp
+      STOR minus + NM&nu TO minus
+     ELSE
+      STOR '  ' TO sp
+      STOR plus + NM&nu TO plus
+     ENDI NM
+     ? '  ' + mdesc&nu + sp+ STR(NM&nu,12,2)
+     RELE N&nu, mdesc&nu, NM&nu, sp
+     STOR countup1 -1 TO countup1
+    ENDI countup1
+   ENDD WHILE &nu
+  ENDI chart
+ ELSE
+  STOR t TO full   
+  DO WHIL &nu  < &last-1
+   IF countup1 > 0
+    IF VAL(nu) <9
+     STOR STR(VAL($(nu,1,1))+1,1) TO nu
+    ELSE
+     STOR STR(VAL($(nu,1,2))+1,2) TO nu
+    ENDI VAL(nu)
+    IF NM&nu < 0 .AND. chart <> '1'
+     STOR (NM&nu*-1) TO NM&nu
+    ENDI NM
+    IF full .AND. NM&nu <> 0
+     DO CASE
+     CASE chart = '1'
+      ? 'CURRENT ASSETS '
+      ? ' '
+     CASE chart = '2'
+      ? ' '
+      ? 'FIXED ASSETS'
+      ? ' '
+     CASE chart = '3'
+      ? ' '
+      ? 'CURRENT LIABILITIES'
+      ? ' '
+     CASE chart = '4'
+      ? ' '
+      ? 'LONG TERM LIABILITIES'
+      ? ' '
+     CASE chart = '7'
+      ? ' '
+      ? 'OPERATING EXPENSES'
+      ? ' '
+     CASE chart = '8'
+      ? ' '
+      ? 'GENERAL & ADMINISTRATIVE EXPENSES'
+      ? ' '
+     CASE chart = '9'
+      ? ' '
+      ? 'FINANCIAL EXPENSES'
+      ? ' '
+     CASE chart = '0'
+      ? ' '
+      ? 'TAX EXPENSES'
+      ? ' '
+     ENDC
+    ENDI NM&nu
+    ? '      ' + mdesc&nu + STR(NM&nu,12,2)
+    STOR f TO full   
+    RELE mdesc&nu, MN&nu, N&nu
+    STOR countup1 -1 TO countup1
+   ENDI countup1
+  ENDD while &nu
+ ENDI trial
+ DO CASE
+ CASE chart = '1'
+  STOR 0 TO totalit
+  STOR sumup + totalit TO totalit
+  STOR 0 TO sumup
+ CASE chart = '2'
+ ? '                                                     ----------  '
+  STOR sumup + totalit TO totalit
+  IF totalit < 0
+   STOR totalit*-1 TO totalit
+ ? '         TOTAL ASSETS                                           (' + STR(totalit,12,2)+')'
+  ELSE
+ ? '         TOTAL ASSETS                                            ' + STR(totalit,12,2)
+  ENDI totalit
+   ? '                                                                  ============'
+   ? ' '
+  STOR 0 TO sumup
+ CASE chart = '3'
+  STOR 0 TO totalit
+  STOR sumup + totalit TO totalit
+ CASE chart = '4'
+  STOR sumup + totalit TO totalit
+ ? '                                                     ----------  '
+  IF TOTALIT < 0
+   STOR totalit*-1 TO total1
+  ELSE
+   STOR totalit TO total1
+  ENDI
+  ? '        TOTAL LIABIlITIES                                        ' + STR(total1,12,2)
+  ? ' '
+  STOR 0 TO sumup
+  RELE total1
+ CASE chart = '5'
+  STOR sumup + totalit + netin TO totalit
+  IF netin >= 0
+   STOR netin*-1 TO net
+   ? '      Earnings this period                         ' + STR(NET,12,2)
+  ELSE
+   ? '      Earnings this period                        (' + STR(NETIN,12,2)+')'
+  ENDI netin
+ ? '                                                     ----------  '
+  IF totalit > 0
+   ? '        TOTAL LIABILITIES & CAPITAL                             (' + STR(totalit,12,2)+')'
+  ELSE
+   ? '        TOTAL LIABILITIES & CAPITAL                              ' + STR(totalit,12,2)
+  ENDI totalit
+   ? '                                                                  ============'
+  EJEC
+  ? ' '
+ CASE chart = 'B'.OR.chart='C'.OR.chart='D'.OR.chart='E'.OR.chart='F'
+  STOR 0 TO sumup
+ CASE chart = 'G'
+  STOR 0 TO netin
+  STOR sumup + netin TO netin
+  STOR 0 TO sumup
+ CASE chart = 'H'.OR.chart='I'.OR.chart='J'
+  STOR sumup + netin TO netin
+  STOR 0 TO sumup
+ CASE chart = 'K'
+  STOR 0 TO sumup
+ CASE chart = 'L'
+  STOR sumup + netin TO netin
+  IF netin < 0
+   STOR '            ' TO sp
+  ELSE
+   STOR '  ' TO sp
+  ENDI netin
+  STOR minus*-1 TO minus
+  ? '----------------------------------------------------------------------------'
+  ? '   VALIDATION   Debits = '+ STR(plus,12,2)+ ' Credits = '+STR(minus,12,2)
+  ? '----------------------------------------------------------------------------'
+  IF netin <=0
+  ? '        NET INCOME FOR PERIOD                        ' +sp+ STR(netin,12,2)
+  ELSE
+  ? '        NET LOSS FOR PERIOD                          ' +sp+ STR(netin,12,2)
+  ENDIF netin
+  ? '----------------------------------------------------------------------------'
+  ? ' '
+  EJEC
+  ? ' '
+ CASE chart = '6' .OR. chart = 'M'
+  STOR 0 TO netin
+  STOR sumup + netin TO netin
+  STOR (sumup*-1) TO sumup
+  IF sumup <> 0
+   ? '                                                     ----------  ' + STR(SUMUP,12,2)
+  ENDI sumup
+  ? ' '
+  STOR 0 TO sumup
+ CASE chart = '7'
+  STOR sumup + netin TO netin
+  STOR 0 TO exp
+  STOR sumup + exp to exp
+  IF sumup <> 0
+   ? '                                                     ----------  ' + STR(SUMUP,12,2)
+  ENDI sumup
+  ? ' '
+  STOR 0 TO sumup
+ CASE chart = '8'
+  STOR sumup + netin TO netin
+  STOR sumup + exp TO exp
+  IF sumup <> 0
+   ? '                                                     ----------  ' + STR(SUMUP,12,2)
+  ENDI sumup
+  ? ' '
+  STOR 0 TO sumup
+ CASE chart = '9'
+  STOR sumup + netin TO netin
+  STOR sumup + exp TO exp
+  STOR sumup TO adjust
+  IF sumup <> 0
+   ? '                                                     ----------  ' + STR(SUMUP,12,2)
+  ENDI sumup
+  ? ' '
+  STOR 0 TO sumup
+ CASE chart = '0'
+  STOR sumup + netin TO netin
+  STOR sumup + exp TO exp
+  IF sumup <> 0
+   ? '                                                     ----------  ' + STR(SUMUP,12,2)
+  ENDI sumup
+  ? '                                                                --------------'
+  ? '               TOTAL ALL EXPENSES                                ' + STR(exp,12,2)
+  ? '                                                                  ------------'
+  IF netin < 0
+   STOR netin*-1 TO net
+   ? '               NET INCOME FOR PERIOD                             ' + STR(net,12,2)
+   ? '                                                                  ============'
+  ELSE
+   ? "               NET INCOME FOR PERIOD                           $(" + STR(netin,12,2) + ")"
+   ? '                                                                  ============'
+  ENDI netin
+  STOR (sumup+netin-adjust) TO adjust
+  IF adjust <> netin
+   IF adjust < 0
+    STOR adjust*-1 TO adjust
+    ? ' '
+    ? '               CASH GENERATED FROM OPERATIONS                   $' + STR(adjust,12,2)
+    ? '  '
+    ? '  '
+   ELSE
+    ? ' '
+    ? '               CASH GENERATED FROM OPERATIONS                  $(' + STR(adjust,12,2)+ ')'
+    ? '  '
+    ? '  '
+    STOR 0 TO sumup
+   ENDI
+  ENDI adjust
+  IF stub
+   SKIP -1
+  ENDI stub
+ CASE chart = 'X'
+  EJEC
+  ? ' '
+  STOR f TO wholelist
+ ENDC
+ RELE N1, N2, N3, N4, N5, N6, N7, N8, N9, N10, N11, N12,N13,N14,N15,N16,N17,N18
+ RELE NM1, NM2, NM3, NM4, NM5, NM6, NM7, NM8, NM9, NM10, NM11, NM12,NM13,NM14
+ RELE NM15,NM16,NM17,NM18,mdesc1, mdesc2, mdesc3, mdesc4, mdesc5, mdesc6, mdesc7, mdesc8
+ RELE mdesc9, mdesc10, mdesc11, mdesc12,mdesc13,mdesc14,mdesc15,mdesc16,mdesc17,mdesc18, countup, countup1, full
+ STOR 0 TO countup
+ENDD while wholelist
+SET PRINT OFF
+SET ALTERNATE OFF
+ERAS
+CLEA
+STOR CHR(PEEK(063)) TO dr
+SELE PRIMARY
+USE &dr.:account
+SET INDEX TO &dr.:account
+REST from coname additive
+STOR t TO more2
+RETU
+

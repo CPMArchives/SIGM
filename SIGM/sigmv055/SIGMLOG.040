@@ -1,0 +1,244 @@
+Sig/M	volume 40	Miscellaneous System Support Utilities
+
+	-CATALOG.040	Contents of Sig/M volume 40
+	ACKLIST.040	Acknowledgement File
+	CRCKLIST.040	Checksum File
+
+40.01	ISIS/CPM.ASM	25K	Prom Resident ISIS System Emulator
+40.02	ISIS/CPM.DOC	 6K	/
+40.03	VMAP.BAS	 6K	MBasic Variable Mapper
+40.04	VMAP.DOC	 2K	 /
+40.05	VMAP-SUB.DOC	 2K	/
+40.06	QUMEDRV.ASM	 4K	Prom Resident Qume Driver
+40.07	QUMEINST.ASM	 4K	/
+40.08	CHARFREQ.BAS	 2K	Character Frequency Analysis
+40.09	XFERTIME.BAS	 2K	File Transfer Time Program for RCPM
+40.10	PAUSWAIT.ASM	 8K	Pause Option for SUBMIT
+40.11	COMP2.ASM	 8K	Text Compression Routine
+40.12	COMP2.COM	 1K	/
+40.13	EXP2.ASM	10K	Text Expansion of COMP2
+40.14	EXP2.COM	 1K	/
+40.15	MENU-V2.ASM	18K	Menu Driver
+40.16	MENU-V2.COM	 1K	/
+40.17	RUN80-V2.ASM	40K	Text Formatter
+40.18	RUN80-V2.COM	 4K	  /
+40.19	RUN80.MEM	10K	 /
+40.20	RUN80.RNO	 9K	/
+40.21	HOST.Z80	10K	File Load Between CP/M and Z8000
+40.22	HOST.DOC	 2K	 /
+40.23	HOST.COM	 1K	/
+40.24	MDS.Z80		14K	MDS FDC Emulator
+40.25	MDS.PRN		16K	/
+
+HOST.Z8°  ió á HOSÔ utilitù tï enablå á CP/Í systeí tï bå  useä 
+tï downloaä /uploaä fileó froí á Z800° developmenô systeí usinç 
+thå AMÄ 96-401¶ Monitor.
+HOST.COÍ ió thå executablå file.
+.cğ 7
+.pï 67
+
+
+Author:
+Trevoò Marshall,
+2¶ Mirreliá Way¬ Ferndale¬ Westerî Australiá 6155
+phonå Internationaì (619© 45· 605¹     Nationaì (09)4576059
+
+
+Submitteä byº 
+author
+
+Theså programó arå publiã domaiî becauseº 
+Theô werå writteî bù thå author.
+
+Tï whoí woulä thió prograí bå usefulº 
+Alì CP/Í owneró whï werå interesteä iî thå Z8000
+
+Brieflù describå thå prograí functionº 
+HOSÔ  enableó á CP/Í systeí tï communicatå witè thå AMÄ 96-401¶ 
+Z800° monitoò viá á seriaì datá line®  Thå CP/Í systeí caî LOAÄ 
+oò SAVÅ fileó froí thå Z8000¬  anä thå Z800° haó availablå  alì 
+thå storagå facilitieó oæ thå CP/Í host.
+Thå  AMÃ 96-401¶ monitoò useó ² 271¶ EPROMÓ anä caî communicatå 
+viá á paralleì porô (useä iî thå SYÓ 8-8© oò á seriaì USART.
+
+Wherå ió furtheò documentatioî availableº 
+Aî  articlå  describinç á Z800° S10° baseä  developmenô  systeí 
+designeä bù thå authoò haó beeî submitteä tï IEEÅ COMPUTEÒ  foò 
+publication® Copieó arå availablå froí thå authoò oî request.
+Á  lisô  oæ  thå revisionó tï thå AMÃ monitoò  deviseä  bù  thå 
+authoò ió availablå oî request.
+Thå authoò wilì supplù additionaì infï oî individuaì request.
+
+
+Hardwarå dependenciesº 
+Needó á Z800° developmenô systeí usinç thå AMÃ monitor
+
+Softwarå dependenciesº 
+requireó CP/Í 1.´ oò 2.1
+
+Sourcå processorº 
+Haó onlù beeî testeä oî á Z8° buô shoulä bå OË oî 8080
+
+Doeó thå softwarå "droğ in"º ŠYes
+
+
+Ho÷ easù ió thå codå tï modifyº 
+.Z8° filå ió fairlù welì documented
+
+
+   ISIS/CPM Prom Resident Intel ISIS System Emulator for CP/M
+
+                Version 1.0 as of August 9, 1981
+
+            By: Mike Karas, Harold Scott, Kelly Smith
+
+     No,  this  is NOT another ISIS to CP/M or CP/M to ISIS  file 
+transfer utility...this is a system emulator to allow utilization 
+of  the ISIS Operating System (and subsequent utilities)  WITHOUT 
+the  exorbitant expense of an Intel development system BOOTED  by 
+a CP/M system!
+
+     However,  not without some penalty...first of all,  you need 
+Intel ISIS Version 4.0,  then 60 kilobytes of contiguous RAM, the 
+ISIS  System  Emulator  PROM (org'ed at  address  F800  hex,  and 
+assembled  from  ISIS/CPM.ASM)  on some sort  of  PROM  board,  a 
+'standard'  Tarbell floppy disk controller (single density),  and 
+finally the installation of the following 'patch' information  to 
+the ISIS diskette.  Accomodation of other controller types should 
+be  rather  easy by incorporating the changes you  require,  from 
+your present CP/M disk BIOS.
+
+     As set-up,  the 'standard' Tarbell disk controller is  used, 
+with  a DynaByte video board,  and the usual stuff for a  printer 
+interface...change accordingly, to fit your system parameters.
+
+     Please  send any 'bug' reports or comments via modem to  the 
+CP/M-Net System,  (805) 527-9321 (60 to 710 Baud).  It is not the 
+intent of the authors to "rip-off" Intel Corporation...purchase a 
+legitimate  ISIS Version 4.0 diskette and any other programs  you 
+may  require  (PL/M,  etc.) from your Intel distributor...as  for 
+their hardware...
+
+     These  are  the  patches (direct to Intel ISIS  Version  4.0 
+diskette,   ISIS  files:   ISIS.BIN  and  ISIS.T0)  required  for 
+utilization of the ISIS-CP/M PROM based boot loader,  and may  be 
+installed  easily with DU.COM from the SIG/M User's Group  Volume 
+21, File: 21.44.
+
+     Note:  'Track'  and 'Sector' are absolute decimal track  and 
+sector numbers, 'Offset' is that absolute sector offset (128 byte 
+sector)  from  a sector base address of 00h,  'Load Addr' is  the 
+absolute  (memory  image)  of the data  to  be  patched...and  of 
+course, change 'Old Data' to 'New Data'.
+
+                  --- Patches to ISIS.BIN ---
+
+Track:    Sector:   Offset:   Load Addr:     Old Data: New Data:
+
+2         21        09h       0834h          db fc     3e ff
+2         21        10h       083bh          d3 fc     00 00
+2         23        43h       096eh          d3 fc     00 00
+2         24        04h       09afh          d3 f3     00 00
+2         24        0eh       09b9h          d3 f3     00 00
+4         23        58h       2303h          d3 fc     00 00
+5         08        57h       2822h          db 88     3e 0b
+5         08        5ah       2885h          db 78     3e 0b
+5         08        5dh       2888h          db 68     3e 00
+5         08        74h       289fh          db 89     3e 00
+5         08        77h       28a2h          db 79     3e 00
+5         08        7ah       28a5h          db 69     3e 00
+5         09        15h       28c0h          db 8b c9  c3 5c f8
+5         09        18h       28c3h          db 7b c9  c3 59 f8
+5         09        1bh       28c6h          db 6b     3e 00
+5         09        34h       28dfh          79 d3 89  69 60 c3
+5         09        37h       28e2h          78 d3 8a  50 f8
+5         09        3dh       28e8h          79 d3 79  69 60 c3
+5         09        40h       28ebh          78 d3 7a  4d f8
+5         09        47h       28f2h          d3 69     00 00
+5         09        4ah       28f5h          d3 6a     00 00
+5         09        74h       291fh          db c1     3e 00
+5         09        7dh       2928h          db c0     3e 00
+5         10        0bh       2936h          d3 ff     00 00
+5         10        3dh       2968h          d3 c0     00 00
+5         10        46h       2971h          d3 c0     00 00
+5         10        54h       297fh          d3 ff     00 00
+5         10        5bh       298bh          db c1     3e 00
+
+                  --- Patches to ISIS.T0 ---
+
+Track:    Sector:   Offset:   Load Addr:     Old Data: New Data:
+
+0         01        71h       3071h          db 79     3e 00
+0         01        76h       3076h          db 7b     3e 00
+0         02        04h       3084h          db ff     3e 00
+0         05        23h       3223h          db 78     3e 0b
+0         05        72h       3272h          db 88     3e ob
+0         07        3eh       333eh          db 68     3e 00
+0         07        54h       3354h          db 69     3e 00
+0         13        01h       3601h          db fc     3e ff
+0         13        08h       3608h          d3 fc     00 00
+0         13        69h       3669h          d3 fc     00 00
+0         14        21h       36a1h          db 68     3e 00
+0         14        24h       36a4h          db 78     3e 0b
+0         14        3bh       36bbh          db 69     3e 00
+0         14        3eh       36beh          db 79     3e 00
+0         14        58h       36d8h          db 6b     3e 00
+0         14        5bh       36dbh          db 79 c9  c3 59 f8
+0         15        1ch       371ch          d3 ff     00 00
+0         15        2ch       372ch          d3 c1     00 00
+0         15        1eh       371eh          db c1     3e 00
+0         15        3ch       373ch          db c1     3e 00
+0         15        48h       3748h          db c0     3e 00
+0         15        5eh       375eh          d3 ff     00 00
+0         16        6dh       37edh          d3 69     00 00
+0         16        70h       37f0h          d3 6a     00 00
+0         16        79h       37f9h          d3 79     c3 4d f8
+0         16        7ch       37fch          d3 7a     00 00
+
+     
+
+
+     VMAĞ mapó variableó useä iî Basiã sourcå filå anä printó thå 
+outpuô  listinç eitheò oî thå CRÔ terminaì oò tï thå linå printeò 
+dependinç  oî thå terminatoò selected®   Variableó arå listeä  iî 
+alphabeticaì  ordeò  witè associatå statemenô numbeò  wherå  theù 
+appear®   Multi-sourcå  fileó  oò segmenteä singlå  filå  oò  anù 
+combinatioî  oæ  botè  caî bå processeä iî  á  batcè  (unattendeä 
+mode)®  .....iæ yoõ thinë yoõ caî trusô thå systeí you'rå runninç 
+on®  
+     Thå pre-requisiteó tï uså VMAĞ ió tï savå alì fileó yoõ  arå 
+mappinç  iî ascié (i.e.¬  SAVE"filename.BAS",drivå number,A<cr>)®  
+Onlù  ascié Basiã sourcå filå caî bå used¬  sincå alì  sourcå  ió 
+saved in machine code.
+     Oncå  thå file(s© ió saveä iî ascii¬  ruî VMAP®   Supplù thå 
+answeò tï thå prompô foò filå name¬  terminatoò (seå appendiø A)¬ 
+loweò bounä oæ thå statemenô numbeò tï map¬  anä thå uppeò  bounä 
+oæ  thå statemenô numbeò tï map®   Wheî thå terminatoò ió suppieä 
+aó  "END"¬  thå  prograí  beginó tï mağ  alì  variableó  foò  alì 
+programó  untiì completeä (oò wheî thå prograí runó ouô oæ memorù 
+space).
+     Thió  prograí  ió verù easilù modifiablå dependinç  oî  whaô 
+elså  yoõ wanô iô tï procesó logginç differeneô propertieó  oæ  á 
+Basiã   sourcå   file®    Tï  modifù  á  Basiã  prograí   withouô 
+documentation¬  you'lì finä thió prograí woulä helğ yoõ morå thaî 
+anythinç else!
+
+.paŠ
+
+     Files included : VMAP.BAS & VMAP.DOC
+                      Version 1.0, Revision 1.0
+
+
+ 
+                           APPENDIX A
+
+     Terminators used in this program are:
+
+     ENÄ - enä variablå mağ  prograí afteò processinç thå currenô 
+           file.
+     C   - continue with the next line of specifications.
+     Ë   - kilì thå sourcå  filå afteò processing¬  anä  continuå 
+           with the next file specification.
+
+
+

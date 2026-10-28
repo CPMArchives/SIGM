@@ -1,0 +1,553 @@
+* DATE 09/12/84  10:25
+* program to print out or display journals
+STOR CHR(PEEK(063)) TO dr
+SELE PRIMARY
+USE &dr.:account
+SET index TO &dr.:account
+ERAS
+STOR '99' TO build1
+STOR t TO maybe
+STOR 'N' TO answer
+REST from coname additive
+STOR 'Y' TO printer
+STOR 'N' TO disk
+STOR '        ' TO filename
+STOR '?' TO select
+STOR t TO more
+DO WHIL more
+TEXT
+ >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+ *   Please select one of the above options. You may also leave this menu    *
+ *   by typing 'Q' and get on-line HELP by typing '?'.                       *
+ >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+ENDT
+ @ 3,04 SAY coname + '  -  ACCOUNTING REPORT MENU'
+ @ 3,65 SAY DATE()
+ @ 7,27 SAY "A. Cash Receipts Journal"
+ @ 8,27 SAY "B. Cash Disbursements Journal"
+ @ 9,27 SAY "C. General Journal"
+ @ 10,27 SAY "D. General Ledger"
+ @ 11,27 SAY "E. Display records on screen"
+ @ 12,27 SAY "F. Reindex"
+ @ 13,27 SAY "G. Return to Main Menu"
+ @ 17,23 SAY "PLEASE SELECT ONE OF THE OPTIONS"
+ @ 17,58 GET select PICTURE '!'
+ READ
+ DO WHIL @(select, 'ABCDEFG?Q') = 0
+  STOR '?' TO select
+  @ 17,58 GET select PICTURE '!'
+  READ
+ ENDD
+ CLEA GETS
+ IF select >='A' .AND. select <  'E'
+* select building
+  @ 17,00
+  @ 17,00 SAY " *          What building shall we do ('99' for all) ?                       *"
+  @ 17,60 GET build1 PICTURE '99'
+  READ
+* get a starting  point
+  STOR '00/00/00' TO stdat
+  @ 17,00
+  @ 17,00 SAY ' *          What is the starting date (MM/DD/YY) ?                           *'
+  @ 17,57 GET stdat PICTURE '99/99/99'
+  READ
+  STOR $(stdat,7,2)+$(stdat,1,2)+$(stdat,4,2) TO stday 
+  STOR VAL(stday) TO stdate
+  RELE stday
+  STOR date() TO enddat
+  @ 18,00 SAY ' *          What is the cutoff date for entries?                             *'
+  @ 18,57 GET enddat PICTURE '99/99/99'
+  READ
+  STOR $(enddat,7,2)+$(enddat,1,2)+$(enddat,4,2) TO endday 
+  STOR VAL(endday) TO enddate
+  RELE endday
+  @ 17,00
+  @ 18,00
+  STOR LEN(coname)/2  TO L
+  STOR 40-L TO L
+  STOR '                                        ' TO bl
+  STOR $(bl,1,L) + coname TO coname1
+  RELE L, bl
+  @ 17,00 SAY " *          Send Report to the Printer (Y/N)                                 *"
+  @ 18,00 SAY ' *                                                                           *'
+  @ 17,55 GET printer PICTURE '!'
+  READ
+  @ 18,00 SAY " *          Send Report to a Disk File (Y/N)                                 *"
+  @ 18,55 GET disk PICTURE '!'
+  READ
+  IF disk ='Y'
+   @ 17,00
+   @ 18,00
+   @ 17,00 SAY " *                    Enter Disk File Name                                   *"
+   @ 18,00 SAY " *                                                                           *"
+   @ 17,44 GET filename PICTURE '!!!!!!!!'
+   @ 17,54 SAY "(.TXT will be added )"
+   READ
+   @ 18,00 SAY ' *                    Select drive to put Files on                           *'
+   @ 18,55 GET dr PICTURE '!'
+   READ
+   DO WHIL @(dr,'AB') = 0
+    @ 18,00
+    @ 18,00 SAY ' *                    Select drive to put Files on                           *'
+    @ 18,55 GET dr PICTURE '!'
+    READ
+   ENDD while @
+  ENDI disk = Y
+  IF printer = 'Y'
+   @ 17,00
+   @ 18,00
+   @ 17,00 SAY ' *        MAKE PRINTER READY AND THEN HIT ANY KEY                            *'
+   @ 18,00 SAY " *                                                                           *"
+   SET CONSOLE OFF
+   WAIT
+   SET CONSOLE ON
+   SET print ON
+  ENDI printer = Y
+  IF disk = 'Y' .AND. filename <> ' '
+* make a proper REPORT file name that is of type TXT
+   STOR @('.',filename) TO length
+   IF length = 0 .OR. length > 8
+    STOR 9 TO length
+   ENDI length
+   STOR $(filename,1,length-1) TO filename
+   STOR '&dr.:'+filename+'.TXT' TO filename
+   SET ALTERNATE TO &filename
+   SET ALTERNATE ON
+  ENDI disk = Y and filename <> ''
+ ENDI select
+ ERAS
+ CLEA GETS
+ DO CASE
+ CASE select = 'A'
+  SET INDEX TO
+  GO TOP
+* initialize variables
+  STOR 0 TO pageno
+  STOR 0 TO counter
+  STOR 0 TO mamount
+  STOR 0 TO amt
+  STOR t TO more1
+  SET MARGIN TO 3
+  DO WHIL more1
+* do page counter etc
+   STOR pageno + 1 TO pageno
+   STOR 4 TO lineno
+   ERAS
+   ? '  '
+* and write TITLE
+   IF pageno = 1
+    ? coname1
+    ? '                              CASH RECEIPTS JOURNAL'
+    ? ' '
+    ? 'Report of ' +date() + '.                  ' + 'Covering period ' +stdat  + ' to   ' + enddat
+    STOR lineno + 4 TO lineno
+   ENDI pageno = 1
+   ? '                                                                    ' + 'PAGE ' + STR(pageno,2)
+   ? '  Date    Check #'+'  Payor/Description '+ '     Account  Prop   ' + '  ' + 'Amount'
+   ? "----------------------------------------------------------------------------"
+   ? ' '
+* now fill up rest of page to 50 lines with entries
+   DO WHIL lineno < 50
+* now do a page if not end of file
+    IF .NOT. EOF
+     STOR VAL(date) TO stdate1
+     IF (build1 = '99' .OR. build1 = $(data,5,2)).AND.((stdate1 >= stdate .AND. stdate1 <= enddate) .AND. $(data,40,1) = 'R')
+      STOR $(date,3,2)+'/'+$(date,5,2)+'/'+$(date,1,2)+'     ' TO m1
+      IF $(data,5,2) = '00'
+       STOR '  ' TO prop
+      ELSE
+       STORE $(data,5,2) TO prop
+      ENDIF
+      ? m1+$(data,1,4)+'  '+$(data,12,20)+'     '+$(data,7,4) + '     ' + prop+'   ' + STR(amount,12,2)
+      STOR mamount + amount TO mamount
+      SKIP
+      IF amount < 0
+         STOR amount*-1 TO amt
+      ELSE
+         STOR amount TO amt
+      ENDI amount
+      ? '                   '+$(data,12,20)+'     '+$(data,7,4) + '                 ' + STR(amt,12,2)
+      ? ' '
+      STOR lineno +3 TO lineno
+      SKIP
+     ELSE
+      SKIP
+     ENDI (stdate1)
+    ELSE
+     ? ' '
+     ? '                       TOTAL RECEIPTS FOR THIS PERIOD:  '  + STR(mamount,12,2)
+     ? ' '
+     STOR f TO more1
+     STOR 60 TO lineno
+    ENDI not EOF
+   ENDD while lineno < 50
+  ENDD more1
+* if it was on turn it off
+  EJEC
+  SET PRINT OFF
+  SET ALTERNATE OFF
+  ? '                                           Hit any key to continue'
+  SET CONSOLE OFF
+  WAIT
+  SET CONSOLE ON
+  ERAS
+  STOR 'Y' TO printer
+  STOR 'N' TO disk
+  STOR '99' TO build1
+  STOR '        ' TO filename
+  STOR '?' TO select
+ CASE select = 'B'
+  SET INDEX TO
+  GO TOP
+* initialize variables
+  STOR 0 TO pageno
+  STOR 0 TO counter
+  STOR 0 TO mamount
+  STOR 0 TO amt
+  STOR t TO more1
+  SET MARGIN TO 3
+  DO WHIL more1
+* do page counter etc
+   STOR pageno + 1 TO pageno
+   STOR 4 TO lineno
+   ERAS
+   ? '  '
+* and write TITLE
+   IF pageno = 1
+    ? coname1
+    ? '                           CASH DISBURSEMENTS JOURNAL'
+    ? ' '
+    ? 'Report of ' +date() + '.                  ' + 'Covering period ' +stdat  + ' to   ' + enddat
+    STOR lineno + 4 TO lineno
+   ENDI pageno = 1
+   ? '                                                                    ' + 'PAGE ' + STR(pageno,2)
+   ? '  Date    Check #'+'  Payee/Description '+ '     Account    Prop   ' + '  ' + 'Amount'
+   ? "----------------------------------------------------------------------------"
+   ? ' '
+* now fill up rest of page to 50 lines with entries
+   DO WHIL lineno < 50
+* now do a page if not end of file
+    IF .NOT. EOF
+     STOR VAL(date) TO stdate1
+     IF (build1 = '99' .OR. build1 = $(data,5,2)).AND.((stdate1 >= stdate .AND. stdate1 <= enddate) .AND. $(data,40,1) = 'D')
+      STOR $(date,3,2)+'/'+$(date,5,2)+'/'+$(date,1,2)+'     ' TO m1
+      IF $(data,5,2) = '00'
+       STOR '  ' TO prop
+      ELSE
+       STOR $(data,5,2) TO prop
+      ENDIF $(data)
+      ? m1+$(data,1,4)+'  '+$(data,12,20)+'     '+$(data,7,4)+'     '+prop+'  ' + STR(amount,12,2)
+      STOR mamount + amount TO mamount
+      SKIP
+      IF amount < 0
+        STOR amount*-1 TO amt
+      ELSE
+        STOR amount to amt
+      ENDI amount
+      ? '                   '+$(data,12,20)+'     '+$(data,7,4)+ '               ' + STR(amt,12,2)
+      ? ' '
+      STOR lineno +3 TO lineno
+      SKIP
+     ELSE
+      SKIP
+     ENDI stdate
+    ELSE
+     ? ' '
+     ? '                         TOTAL DISBURSEMENTS LISTED FOR PERIOD:  ' + STR(mamount,12,2)
+     ? ' '
+     STOR f TO more1
+     STOR 60 TO lineno
+    ENDI not EOF
+   ENDD while lineno < 50
+  ENDD more1
+* if it was on turn it off
+  EJEC
+  SET PRINT OFF
+  SET ALTERNATE OFF
+  ? '                                           Hit any key to continue'
+  SET CONSOLE OFF
+  WAIT
+  SET CONSOLE ON
+  ERAS
+  STOR 'Y' TO printer
+  STOR 'N' TO disk
+  STOR '99' TO build1
+  STOR '        ' TO filename
+  STOR '?' TO select
+ CASE select = 'C'
+  SET INDEX TO
+  GO TOP
+* initialize variables
+  STOR 0 TO pageno
+  STOR 0 TO counter
+  STOR 0 TO amt
+  STOR t TO more1
+  SET MARGIN TO 3
+  DO WHIL more1
+* do page counter etc
+   STOR pageno + 1 TO pageno
+   STOR 4 TO lineno
+   ERAS
+   ? '  '
+* and write TITLE
+   IF pageno = 1
+    ? coname1
+    ? '                                 GENERAL JOURNAL'
+    ? ' '
+    ? 'Report of ' +date() + '.                  ' + 'Covering period ' +stdat  + ' to   ' + enddat
+    STOR lineno + 4 TO lineno
+   ENDI pageno = 1
+   ? '                                                                    ' + 'PAGE ' + STR(pageno,2)
+   ? '  Date   ' +  ' Journal   '+' Description ' + '   '+ '      Account Prop   ' + '  ' + '     Amount'
+   ? "----------------------------------------------------------------------------"
+   ? ' '
+* now fill up rest of page to 50 lines with entries
+   DO WHIL lineno < 50
+* now do a page if not end of file
+    IF .NOT. EOF
+     STOR VAL(date) TO stdate1
+     IF (build1 = '99' .OR. build1 = $(data,5,2)).AND.((stdate1 >= stdate .AND. stdate1 <= enddate) .AND. $(data,40,1) = 'J')
+      STOR $(date,3,2)+'/'+$(date,5,2)+'/'+$(date,1,2)+'     ' TO m1
+      IF $(data,5,2) = '00'
+       STOR '  ' TO prop
+      ELSE
+       STOR $(data,5,2) TO prop
+      ENDIF $(data)
+      IF amount >= 0
+       STOR ' ' TO sp
+       STOR amount TO amt
+    ELSE
+       STOR '           ' TO sp
+       STOR amount*-1 TO amt
+      ENDI amount
+      ? m1+$(data,1,4)+'    '+$(data,12,20)+' '+$(data,7,4)+'     '+prop+ sp + STR(amt,12,2)
+      STOR lineno +1 TO lineno
+      SKIP
+     ELSE
+      SKIP
+     ENDI stdate
+    ELSE
+     STOR f TO more1
+     STOR 60 TO lineno
+    ENDI not EOF
+   ENDD while lineno < 50
+  ENDD more1
+* if it was on turn it off
+  EJEC
+  SET PRINT OFF
+  SET ALTERNATE OFF
+  ? '                                           Hit any key to continue'
+  SET CONSOLE OFF
+  WAIT
+  SET CONSOLE ON
+  ERAS
+  STOR 'Y' TO printer
+  STOR 'N' TO disk
+  STOR '        ' TO filename
+  STOR '99' TO build1
+  STOR '?' TO select
+ CASE select = 'D'
+  SET INDEX TO &dr.:account
+  GO TOP
+* initialize variables
+  STOR 0 TO pageno
+  STOR 0 TO counter
+  STOR t TO more1
+  STOR $(data,7,4) TO account
+  STOR 0 TO amtacct
+  STOR 0 TO amt
+  SET MARGIN TO 3
+  DO WHIL more1
+* do page counter etc
+   STOR pageno + 1 TO pageno
+   STOR 4 TO lineno
+   ERAS
+   ? '  '
+* and write TITLE
+   IF pageno = 1
+    ? coname1
+    ? '                                 GENERAL LEDGER'
+    ? ' '
+    ? 'Report of ' +date() + '.                  ' + 'Covering period ' +stdat  + ' to   ' + enddat
+    STOR lineno + 4 TO lineno
+   ENDI pageno = 1
+   ? '                                                                    ' + 'PAGE ' + STR(pageno,2)
+   ? '  Date   ' + ' ' + '  Journal  '+'             ' + ' Account      Prop   ' + '  ' + '     Amount'
+   ? "----------------------------------------------------------------------------"
+   ? ' '
+* now fill up rest of page to 50 lines with entries
+   DO WHIL lineno < 50
+* now do a page if not end of file
+    IF .NOT. EOF
+     STOR VAL(date) TO stdate1
+   IF stdate1 >= stdate .AND. stdate1 <= enddate                           
+     IF $(data,40,1) = 'D'
+      STOR 'Cash Disburse Jnrl' TO book
+     ENDI $(data,40)
+     IF $(data,40,1) = 'R'
+      STOR 'Cash Receipt Jnrl ' TO book
+     ENDI $(data,40)
+     IF $(data,40,1) = 'J'
+      STOR 'General Journal   ' TO book
+     ENDI $(data,40)
+     IF build1 = '99' .OR. build1 = $(data,5,2)
+      STOR $(date,3,2)+'/'+$(date,5,2)+'/'+$(date,1,2)+'    ' TO m1
+      IF $(data,5,2) = '00'
+       STOR '  ' TO prop
+      ELSE
+       STOR $(data,5,2) TO prop
+      ENDIF $(data)
+      IF amount >= 0
+       STOR ' ' TO sp
+       STOR amount TO amt
+      ELSE
+       STOR '           ' TO sp
+       STOR amount*-1 TO amt
+      ENDI amount
+      STOR $(data,7,4) TO account1
+      IF account1 = account
+       STOR amtacct + amount TO amtacct
+       ? m1+book+'      '+$(data,7,4)+ '         '+prop+sp+STR(amt,12,2)
+      ELSE
+       ? '                            Balance account ' + account + ' =  ' + STR(amtacct,12,2)
+       ? '  '
+       ? m1+book+'      '+$(data,7,4)+ '         '+prop+sp+STR(amt,12,2)
+       STOR amount TO amtacct
+       STOR account1 TO account
+       STOR lineno + 3 TO lineno
+      ENDI account1
+      SKIP
+      STOR lineno +1 TO lineno
+     ELSE
+      SKIP
+     ENDI build1
+   ELSE
+    SKIP
+   ENDI stdate1
+    ELSE
+     ? '                            Balance account ' + account + ' =  ' + STR(amtacct,12,2)
+     ? ' '
+     STOR f TO more1
+     STOR 60 TO lineno
+  ENDI not EOF
+   ENDD while lineno < 50
+  ENDD more1
+* if it was on turn it off
+  EJEC
+  SET PRINT OFF
+  SET ALTERNATE OFF
+  ? '                                           Hit any key to continue'
+  SET CONSOLE OFF
+  WAIT
+  SET CONSOLE ON
+  ERAS
+  STOR 'Y' TO printer
+  STOR 'N' TO disk
+  STOR '        ' TO filename
+  STOR '99' TO build1
+  STOR '?' TO select
+ CASE select = 'E'
+  ERAS
+TEXT
+
+         Accounting entries can be displayed either in the order 
+         they were entered (showing both the debit and credit) or
+         in date order further sorted by building and account.
+
+         When WAITING hit space bar to continue or ESCape to quit.
+
+ENDT
+* get a starting point in file
+  STOR 'E' TO sttype
+  @ 10,12 SAY 'Shall we display by <E)ntry order or <S)ort order'
+  @ 10,63 Get sttype PICTURE '!'
+  READ
+  DO WHIL @(sttype,'ES')=0
+   @ 10,12 SAY 'Shall we display by <E)ntry order or <S)ort order'
+   @ 10,63 Get sttype PICTURE '!'
+   READ
+  ENDD WHILE @(sttype)
+  IF sttype = 'S'
+   SET INDEX TO &dr.:account
+  ELSE
+   SET INDEX TO
+   GO TOP
+  ENDI sttype
+* display selected list
+  ERAS
+  SET ESCAPE OFF
+  DISP NEXT 65000 $(date,5,2)+'/'+$(date,3,2)+'/'+$(date,1,2), $(data,1,4), $(data,5,2),$(data,12,20),$(data,7,4),$(data,40,1),amount,$(data,32,8)
+  IF eof
+   WAIT
+  ENDI
+  SET ESCAPE ON
+  ERAS
+  STOR '?' TO select
+  STOR '?' TO select
+ CASE select = '?'
+  ERAS
+TEXT
+
+
+     A C C O U N T I N G   R E P O R T   M E N U   H E L P   S C R E E N
+
+
+     This is a very powerful little module that allows you to print out
+     or view the various journals. You also can examine any or all of 
+     the original entries via the Display command.  (If you must change
+     these entries - the only way to do this in the program is via the  
+     Browse command on the Main Accounting menu.)                     
+
+     Before you run any of these journal programs - make sure you index.
+
+     Financial statements are prepared and printed from the main accounting
+     menu.
+
+                        ......hit any key to continue
+
+
+
+
+
+
+ENDT
+  SET CONSOLE OFF
+  WAIT
+  SET CONSOLE ON
+  ERAS
+ CASE select = 'F'
+  ERAS
+  SET TALK ON
+  SET ECHO ON
+  INDE on $(data,7,4) +date+ $(data,5,2) to &dr.:account
+  SET ECHO OFF
+  SET TALK OFF
+  ERAS
+ CASE select = 'Q' .OR. select = 'G'
+  STOR f TO more
+ ENDC
+ENDD WHILE more
+STOR CHR(PEEK(063)) TO dr
+SET INDEX TO &dr.:account
+RELE ALL
+STOR t TO account
+

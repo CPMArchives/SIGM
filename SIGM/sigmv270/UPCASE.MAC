@@ -1,0 +1,37 @@
+        .Z80
+        public upcase,lowcase
+        external strg
+
+upcase: LD HL,(strg)
+        LD B,(HL)
+        INC B
+U1:     DEC B
+        JP Z,U2
+        INC HL
+        LD A,(HL)
+        CP 'a'
+        JP C,U1
+        CP 'z'+1
+        JP NC,U1
+        SUB 20H
+        LD (HL),A
+        JP U1
+U2:
+
+lowcase:LD HL,(strg)
+        LD B,(HL)
+        INC B
+L1:     DEC B
+        JP Z,L2
+        INC HL
+        LD A,(HL)
+        CP 'A'
+        JP C,L1
+        CP 'Z'+1
+        JP NC,L1
+        ADD A,20H
+        LD (HL),A
+        JP L1
+L2:
+        end
+

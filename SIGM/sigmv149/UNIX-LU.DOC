@@ -1,0 +1,97 @@
+           LAR     1  LAR     C  u           .TH LAR linus
+.SH NAME
+LAR \- CP/M lu compatible file archiver
+.SH SYNOPSIS
+.B lar
+key library [ file ... ]
+.SH DESCRIPTION
+Lar is a Unix program to manipulate CP/M LU format libraries.
+The primary use of lar is to combine several
+files together for upload/download to a personal computer.
+Its actions are controlled by the
+.I key\^
+argument.
+The
+.I key\^
+is a string of characters containing
+at most one function letter and possibly
+one or more function modifiers.
+Other arguments to the command are
+.I files\^
+specifying which files are to be dumped or restored.
+.PP
+The function portion of
+the key is specified by one of the following letters:
+.PP
+.PD 0
+.TP 8
+.B u
+The named
+.I files\^
+are added to the library.
+.TP
+.B e
+The named
+.I files\^
+are extracted from the tape.
+.TP
+.B p
+Print files in library.
+.TP
+.B d
+Delete files in library.
+.TP
+.B r
+Reorganize library.
+.TP
+.B t
+The names of the specified files are listed each time that they occur
+on the library.
+If no
+.I files\^
+argument is given,
+all the names
+on the tape are listed.
+.PD
+.PP
+The following characters may be used in addition to the letter
+that selects the desired function:
+.PP
+.PD 0
+.TP 8
+.TP
+.B v
+Normally,
+.I Lar\^
+does its work silently.
+The
+.B v
+(verbose)
+option causes it to type the name of each file it treats,
+preceded by the function letter.
+With the
+.B t
+function,
+.B v
+gives more information about the
+library entries than just the name.
+.SH DIAGNOSTICS
+Invoking lar without arguments prints a help message.
+.SH AUTHOR
+The original CP/M library program LU is the product of Gary P. Novosielski.
+Unix version by Stephen Hemminger,  Mitre Corp. Bedford MA.
+.SH BUGS
+Pathnames are stored in CP/M format (XXXXXXXX.XXX).
+.br
+Lar tries to detect
+text files vs. binaries by checking for non-Ascii (8th bit set) chars.
+If the file is text lar will throw away Control-Z chars which
+CP/M puts on the end.
+All files in the library are padded with Control-Z
+up to the end to the CP/M sector size if necessary.
+No effort is made to handle the difference between CP/M and Unix
+end of line chars.
+CP/M uses Cr/Lf and Unix just uses Lf.
+.SH SEE ALSO
+comhex(1), chek(1), cpmcat(1), crck(1), mkbin(1), sum(1), wc(1).
+

@@ -1,0 +1,84 @@
+* DATE 07/15/84  12:41
+* dBOX is a program to switch between data bases in dBASE 2.4
+* set up forever loop for program
+STOR t TO keepitup
+DO WHIL keepitup
+* set up alternateive routes
+ DO CASE
+ CASE box = 0
+  STOR f TO moveit
+  STOR t TO first
+  STOR chr(peek (063)) TO dr
+  DO menu.spm
+ CASE box = 1
+  RELE ALL
+  STOR t TO keepitup
+  STOR chr(peek (063)) TO dr
+  SELE PRIMARY
+  USE &dr.:build INDEX &dr.:code
+  STOR f TO moveit
+  STOR t TO first
+  DO main.bld
+ CASE box = 2
+  RELE ALL
+  STOR t TO keepitup
+  STOR chr(peek (063)) TO dr
+  SELE SECONDARY
+  USE &dr.:tenant INDEX &dr.:codea
+  STOR f TO moveit
+  STOR t TO first
+  DO main.tnt
+ CASE box = 3
+  RELE ALL
+  STOR t TO keepitup
+  STOR chr(peek (063)) TO dr
+  SELE PRIMARY
+  USE &dr.:build INDEX &dr.:code
+  STOR t TO moveit
+  STOR t TO first
+  DO main.bld
+ CASE box = 4
+  RELE ALL
+  STOR t TO keepitup
+  STOR chr(peek (063)) TO dr
+  SELE SECONDARY
+  USE &dr.:tenant INDEX &dr.:codea
+  STOR t TO moveit
+  STOR t TO first
+  DO main.tnt
+ CASE box = 5
+  RELE ALL
+  STOR t TO keepitup
+  STOR chr(peek (063)) TO dr
+  SELE PRIMARY
+  USE &dr.:build INDEX &dr.:code
+  STOR t TO moveit
+  STOR t TO first
+  DO search.bld
+ CASE box = 6
+  RELE ALL
+  STOR t TO keepitup
+  STOR chr(peek (063)) TO dr
+  SELE SECONDARY
+  USE &dr.:tenant INDEX &dr.:codea
+  STOR t TO moveit
+  STOR t TO first
+  DO search.tnt
+ CASE box = 7
+  RELE ALL
+  DO maintain.bld
+ CASE box = 8
+  RELE ALL
+  DO report.bld
+ CASE box = 9
+  RELE ALL
+  STOR CHR(PEEK(063)) TO dr
+  SELE PRIMARY
+  USE &dr.:account
+  DO main.acc
+ ENDC
+ENDD
+ERAS
+SET CONSOLE OFF
+QUIT
+

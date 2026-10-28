@@ -1,0 +1,67 @@
+
+{	DASTRSHORT
+
+	This takes an integer date value and returns a string with
+	month and day of week abbreviated.
+
+	If WITHDAY is passed as true then the returned string will
+	include the day of the week, otherwise only month, day and
+	year will be returned.
+
+	The following global types must be declared:
+		TYPE	string255 = string 255;
+			byte = 0..255;
+
+	The following additional procedures must be declared:
+		PROCEDURE breakdate;
+		PROCEDURE setlength; external;
+}
+
+FUNCTION dastrshort (days : integer; withday : boolean) : string255;
+
+CONST	zero = 48;
+
+VAR	day, mo, date, yr : byte;
+	str, str2 : string255;
+
+begin
+	brkdate (days,mo,date,yr,day);
+	if withday then
+		begin
+			case day of
+				0 : str := 'Sun';
+				1 : str := 'Mon';
+				2 : str := 'Tues';
+				3 : str := 'Wed';
+				4 : str := 'Thurs';
+				5 : str := 'Fri';
+				6 : str := 'Sat'
+				end;
+			append (str,', ')
+		end
+		else setlength (str,0);
+	case mo of
+		1 : str2 := 'Jan';
+		2 : str2 := 'Feb';
+		3 : str2 := 'Mar';
+		4 : str2 := 'Apr';
+		5 : str2 := 'May';
+		6 : str2 := 'June';
+		7 : str2 := 'July';
+		8 : str2 := 'Aug';
+		9 : str2 := 'Sept';
+		10 : str2 := 'Oct';
+		11 : str2 := 'Nov';
+		12 : str2 := 'Dec'
+	end;
+	append (str,str2);
+	append (str,' ');
+	if (date > 9) then append (str,chr((date div 10) + zero));
+	append (str,chr((date mod 10) + zero));
+	append (str,', 19');
+	append (str,chr((yr div 10) + zero));
+	append (str,chr((yr mod 10) + zero));
+	dastrshort := str
+end;
+
+

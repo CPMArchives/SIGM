@@ -1,0 +1,24 @@
+
+{	PADSTRING
+
+	Pads a string out to the indicated blanks using spaces,
+	since Pascal/Z now justifies string to the right.
+	If length(str) equals or exceeds the requested size no
+	action is taken.
+
+	Requires the following gobal declarations:
+		TYPE	string255 = string 255;
+			byte = 0..255;
+}
+
+PROCEDURE padstr (VAR str : string255; size : byte);
+
+VAR	count : byte;
+
+begin
+	if (length(str) < size) then
+		for count := succ(length(str)) to size do
+			append (str,' ')
+end;
+
+

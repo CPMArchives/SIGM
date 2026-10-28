@@ -1,0 +1,57 @@
+
+[REVE.REC]
+[reverse a binary string]
+
+[a catalytic * appears in front of the string]
+[it turns zeroes into a's, ones into b's]
+[a's and b's have high priority to drift right across 0's and 1's]
+[when there are no more 0's or 1's to turn into a's and b's, the
+ * drifts right, restoring a's and b's to their binary equivalents]
+[when there are no more a's and b's to restore, * vanishes, process stops]
+
+[In a Markov algorithm, only consecutive symbols can be transformed. Thus
+ it is very common to find a catalyst, or escort symbol being created at
+ the very lowest level of priority. It seeks out certain configurations
+ to which it is attuned, often casting them into an alternative alphabet.
+ The activated symbols then have a high priority mobility, which allows
+ them to pair themselves up with selected counterparts. Once the proper
+ pairs or other groupings are in contact, another set of rules can carry
+ out the real computation which is the objective of the rule set.]
+
+[When a Markov algorithm gets to be quite complicated, several catalysts,
+ or cursors, can be active. Alternative alphabets provide the equivalent
+ of subroutines, since a group of rules will only respond to letters from
+ its own alphabet. Likewise the ordering of the rules, by giving each of
+ them its own relative priority, has an important bearing on the way in
+ which the algorithm is executed.]
+
+[[]]
+
+{
+  [cr,lf]			(2573TL;)&
+  [read phrase] 		(R13%='';T08%(=2080[sp,bs]TL)(@J|;L@J;);)J
+  [sign-on line]		('This algorithm will reverse a binary string. Type a
+sequence of 0`s or 1`s, followed by a carriage return.
+
+            111000110010
+
+With each successive keystroke, an additional step in
+the execution of the algorithm will be shown.
+'TL@&'Initial Axiom:'TL@&@JI;:)R
+  [write workspace]		(JZqt;)W
+  [final statement]		(@&'Production:'TL@&JZqt;)X
+				(@R(@&@WRL
+
+[a passes 0]			'a0'FD'0a'I:
+[a passes 1]			'a1'FD'1a'I:
+[b passes 0]			'b0'FD'0b'I:
+[b passes 1]			'b1'FD'1b'I:
+[* turns 0 into a]		'*0'FD'*a'I:
+[* turns 1 into b]		'*1'FD'*b'I:
+[* crosses a, leaves 0]		'*a'FD'0*'I:
+[* crosses b, leaves 1]		'*b'FD'1*'I:
+[* finally disappears]		'*'FD''I;
+[create * as catalyzer]		''FD'*'I:;;)@X;;)}
+
+[end]
+

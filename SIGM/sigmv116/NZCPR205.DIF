@@ -1,0 +1,178 @@
+1d 0
+3c 17200
+*  N Z C P R 205- Z80-Based Command Processor Replacement, Version 2.05	*
+.
+16,17c 24427
+*									*
+*  This is DIF file Mod 0.4 to be combined with mod 0.1 VERS of ZCPR2.  *
+*  To obtain the full file do: 					        *
+*  SSED ZCPR2.ASM <NZCPR203.DIF >NZCPR203.ASM			        *
+*									*
+*  18 FEB 1983  = VERS 2.02 ; BY PETER PINCHIS, TORONTO, ONT.		*
+* 		- DIR routine has been changed to provide user select-  *
+*		  able number of columns for DIR and ERA display.	*
+*		  DIR and ERA shall now page at each full screen.	*
+*		- CONOUT routine modified to ignore Form feeds.		*
+*               - ERAV has a new meaning : when FALSE the user is always*
+*		  prompted except when ERDFLG is present in the command *
+*		  line.							*
+*		- The module ZCPRHDR.LIB has been changed and renamed   *
+*		  NZCPRHDR.LIB.					        *
+*		  Only this module shall be used to compile NZCPR202    *
+*									*
+*  23 FEB 1983  = VERS 2.03 ; BY PETER PINCHIS, TORONTO, ONT.		*
+*		 Included in vers 2.05					*
+*  25 FEB 1983   = VERS 2.04 ; BY PETER PINCHIS, TORONTO, ONT.		*
+*		  Included in vers 2.05					*
+*  28 FEB 1983   = VERS 2.05 ; BY PETER [INCHIS, TORONTO, ONT.		*
+*		- Major bug fixed: in the original ZCPR2 mod 0.1 every  *
+*		  time when a wrong command is issued in the multiple   *
+*		  command line ( i.e : a file not found or a wild card  *
+*		  in the save or ren cmd ) ,the ZCPR stops and the rest *
+*		  of the command line is ignored.			*
+*		    Example of cmd line before the change:		*
+*			      B1>type xxxxx.xxx;pip a:=b:yy.zz;dir      *
+*			      ; xxxxx.xxx not found.....		*
+*		              B1>XXXXX.XXX;PIP A:=B:YY.ZZ;DIR?	        *
+*			      B1>				        *
+*		  The present fix solves this problem : in the above    *
+*		  example the execution continues with PIP and DIR...	*
+*		   ERROR routine modified as follows:			*
+*		  If a file is not found by the load,TYPE,REN,DIR,GET or*
+*		  ERA command then the file name is printed after 	*
+*		  "No File" prompt.					*
+*		  If other commands follow the ofending one, then an    *
+* 		  other prompt "Abort?" is displayed.			*
+*		  The user could abort or not the execution of the rest *
+*		  of command line.				        *
+*		  Example of cmd line after the change:			* 
+*			      B1>asmbl myprog a;type yyy;dir b5:xxx.com	*
+*			      ;...asmbl and yyy not present 		*
+*			      ;...b5: empty				*
+*			      B1>No File ASMBL MYPROG A			*
+*			      B1>Abort?n				*
+*			      B1>No file YYY				*
+*			      B1>Abort?n				*
+*			      B1>No File B5:XXX.COM			*
+*			      B1>					*
+*		  Other example:					*
+*			      B1>era qqq.com;ren pp.txt=rr.txt		*
+*			      ;..qqq.com not present; pp.txt exist'g    *
+*			      B1>No File QQQ.COM			*
+*			      B1>Abort?n				*
+*			      B1>Erase PP      .TXT?y			*
+*			      B1>No File RR.TXT				*
+*			      B1>					*
+*		  Use module NZCPRHDR.LIB ver 2.02 to compile this file.*
+*                                                                       *
+.
+80,81c 27640
+;  NZCPR205 -- CP/M Z80 Command Processor Replacement (ZCPR) Version 2.05
+.
+149c 30426
+	MACLIB	NZCPRHDR
+.
+153a 43203
+ff	equ	0ch			;form feed
+.
+642c 60121
+	call	prnnf		;no file message
+.
+647,648c 32816
+
+	if	multcmd
+	
+	cpi	cmdsep		;is a cmd separator ?
+	jrnz	err1a		;no
+	call	printc
+	db	'Abort','?'+80H
+	call	conin		;get reply
+	cpi	'Y'		;yes?
+	jz	restrt		;abort and restart ccp
+	jr	err2		;continue with next cmd
+
+	endif		;multcmd
+err1a:
+ 	cpi	' '		;ret if less than <sp>
+ 	JRC	ERR2
+.
+667,668c 32607
+	shld	nxtchr
+.
+672,674c 21845
+	CALL	SUBKIL		;TERMINATE ACTIVE $$$.SUB IF ANY
+.
+675,676c 36387
+	if	multcmd
+	jr	rcprnl		;go to next cmd
+	else
+	JMP	RESTRT		;RESTART CPR
+	endif
+.
+685c 12872
+	DB	'No File',' '+80H
+.
+707a 10001
+	cpi	ff	;is a form feed ?
+	jrz	skipff  ;skip char
+.
+715a 11629
+skipff:
+.
+1470,1473d 55606
+1521,1522c 37847
+	MVI	E,nrcol-1	;SET COLUMN COUNTER TO ZERO
+	PUSH	D		;SAVE COLUMN COUNTER (E)
+	mvi	a,nlines
+	sta	pagcnt
+.
+1527,1530c 30709
+;	CALL	PRNNF		;PRINT NO FILE MSG; REG A NOT CHANGED
+;	XRA	A		;SET ZERO FLAG
+	POP	D		;RESTORE DE
+	jmp	error
+
+;	RET
+.
+1541,1543c 56915
+	INR	a
+	cpi	nrcol
+	jrnz	dir3a
+	xra	a
+dir3a:
+	mov	e,a
+	PUSH	D		;SAVE IT
+;	ANI	03H		;OUTPUT <CRLF> IF all  ENTRIES PRINTED IN LINE
+.
+1550a 5198
+	push	b
+	call	pager
+	pop	b
+.
+1661,1663c 6685
+;		If ERAV is FALSE, verification is always requested, except when
+;			V flag is present in the command line ,in wich case
+;		        the user will not be prompted.
+.
+1677c 8202
+	IF	ERAOK		;OK? ENABLED?
+.
+1686,1688d 16379
+1688,1692c 5137
+;	RZ			;ABORT IF NO FILES
+.
+1693,1694c 43877
+
+	IF	ERAV		;if ERAV is true then
+	JRNZ	ERA2		;do not skip prompt if ERDFLG prezent 
+	else			;if ERAV is false then
+	jrz	era2		;skip prompt if ERDFLG prezent 
+.
+2005,2006c 14007
+;REN3:
+;	CALL	PRNNF		;PRINT NO FILE MSG
+.
+$a 63210
+.
+1,1522c 37847
+	MVI	E,nrcol-1	;SET COLUMN COUNTE

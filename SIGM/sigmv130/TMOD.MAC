@@ -1,0 +1,193 @@
+title	tmod.mac version 2.1
+	name	('tmod')
+;	version 2.1	
+;	for CompuPro System Support One
+;	(a good starting point for any 5832 based clock)
+;	by dick lieber
+
+base	equ	50h
+clkcmd	equ	base + 0ah
+clkdata	equ	base + 0bh
+hold	equ	40h
+write	equ	20h
+read	equ	10h
+
+bdos	equ	5
+wrcon	equ	2
+wrbuf	equ	9
+
+entry	timemd,datemd,daymd
+
+timemd:	jmp	gettime
+datemd:	jmp	getdate
+daymd:	jmp	getdow
+
+gettime:
+	push	h
+	call	getclock
+	pop	h
+	call	findstring	;hl points to string
+	lxi	d,hours
+	call	stashit
+	call	stashit
+	mvi	m,':'
+	inx	h
+	call	stashit
+	call	stashit
+	mvi	m,':'
+	inx	h
+	call	stashit
+	call	stashit
+	mvi	m,'$'
+	ret
+
+getdate:
+	push	h
+	call	getclock
+	pop	h
+	call	findstring	;hl points to string
+	lxi	d,months
+	call	stashit
+	call	stashit
+	mvi	m,'/'
+	inx	h
+	call	stashit
+	call	stashit
+	mvi	m,'/'
+	inx	h
+	lxi	d,years
+	call	stashit
+	call	stashit
+	mvi	m,'$'
+	ret
+;
+;	get day of week
+;
+getdow:
+	push	h
+	call	getclock
+	lda	dow
+	ani	7	;strip ascii bias
+	lxi	h,dowtable	;point to index to day text
+	mvi	b,0		;
+	mov	c,a		; zero bc
+	dad	b
+	dad	b		;2 bytes per table entry
+	mov	e,m
+	inx	h
+	mov	d,m		;de point to text string
+	pop	h
+	push	d
+	call	findstring	;hl points to output string
+	pop	d
+dowloop:
+	ldax	d
+	mov	m,a
+	cpi	'$'
+	rz
+	inx	h
+	inx	d
+	jmp	dowloop
+;
+;	get time/date/dow into table
+;
+getclock:
+	call	read5832
+;
+;	clear leap year flag
+;	(leap year flag is in tens of days bit 2)
+;
+	lxi	h,days	
+	mov	a,m
+	sta	leapflag	;save for later
+	mvi	a,0f3h
+	ana	m
+	mov	m,a	
+;
+;	clear 24 hour flag
+;	(kept in tens of hours bit 3)
+;
+	lxi	h,hours
+	mvi	a,0f3h
+	ana	m
+	mov	m,a
+	ret
+;
+;	process passed parameter 
+;	makes hl point to passed string
+;
+findstring:
+	inx	h	;past length - assumed to be 9
+	mov	e,m
+	inx	h	;get address of passed string into de
+	mov	d,m
+	xchg
+	ret
+;
+;	move byte from (de) to (hl)
+;
+stashit:
+	ldax	d
+	mov	m,a
+	inx	h
+	inx	d
+	ret
+;
+;	read all of clock - put into table
+;
+read5832:
+	mvi	b,read + hold + 13
+ 	mvi	c,14	;# of byte to read
+	lxi	h,table
+readloop:
+	dcr	b
+	mov	a,b
+	out	clkcmd
+	in	clkdata
+	ori	'0'
+	mov	m,a
+	inx	h
+	mvi	a,0fh
+	ana	b
+	jnz	readloop
+	xra	a
+	out	clkcmd
+	ret;
+;
+;	ram area
+;
+leapflag:
+	ds	1
+;
+;	table of data as read from 5832
+;	don't change order
+;
+table: 	
+years:	ds	2
+months:	ds	2
+days:	ds	2
+dow:	ds	1
+hours:	ds	2
+minutes: ds	2
+seconds: ds	2
+
+;
+;	day of week table
+;
+dowtable:
+	dw	mon
+	dw	tues
+	dw	wed
+	dw	thurs
+	dw	fri
+	dw	sat
+	dw	sun
+mon:	db	'Monday$'
+tues:	db	'Tuesday$'
+wed:	db	'Wedesday$'
+thurs:	db	'Thursday$'
+fri:	db	'Friday$'
+sat:	db	'Saturday$'
+sun:	db	'Sunday$'
+	end
+

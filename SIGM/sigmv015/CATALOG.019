@@ -1,0 +1,143 @@
+VOLUME 19
+
+VARIOUS UTILITIES
+
+NUMBER	SIZE	NAME		COMMENTS
+
+		CATALOG.19	CONTENTS OF CP/M GROUP VOL 19
+		VOLUME19.DOC	COMMENTS ON VOLUME CONTENTS
+19.1	17K	ADE.ASM		ABSOLUTE DISK EDITOR. SEE VOL.DOC
+19.2	6K	COPY.ASM	DISK COPY PROGRAM. SEE VOL.DOC
+19.3	9K	CPM.DOC		IMSAI'S DESCRIPTION OF CP/M
+19.4	21K	LINK.ASM	REMOTE COMPUTER CONTROL VIA D C HAYES
+				MODEM BOARD. SEE VOL.DOC
+19.5	17K	LINK73.ASM	EARLIER VERSION OF 19.4 FOR STANDARD MODEM
+19.6	60K	RM80.ASM	RESIDENT PROM MONITOR. SEE VOL.DOC AND
+				RM80.DOC 19.7
+19.7	8K	RM80.DOC	COMMENTS ON RM80 19.6
+19.8	4K	SAP.ASM		SORTS AND PACKS DIRECTORY. SEE VOL.DOC AND
+				XFER 19.12
+19.9	8K	SCOPY.ASM	DISKETTE COPY PROGRAM FOR SINGLE DISK SYSTEM
+				SEE VOL.DOC
+19.10	16K	TREAD.ASM	RM80 TAPE BACKUP UTILITY WITH 19.11
+19.11	10K	TSAVE.ASM	RM80 TAPE SAVE UTILITY WITH 19.10
+19.12	9K	XFER.ASM	FILE COPY PROGRAM FOR SINGLE DISK SYSTEM
+				SEE VOL.DOC AND SAP 19.8
+
+
+
+Documentation for LEH Diskette
+ 
+ADE - Absolute Disk Editor
+ 
+   Allows user to view contents of absolute sectors or tracks, either
+   in absolute sector order, or CP/M 6:1 interlace order. Very useful
+   when debugging disk i/o programs. Also useful for exploring an
+   unknown diskette. For details on ADE commands, see source file.
+ 
+COPY - Absolute Disk Copy Utility
+ 
+   Yet another disk to disk copy program. This one runs in about 1.5 min.
+   It uses a 5:1 interlace. It also entertains the user while running.
+ 
+SCOPY - Absolute Disk Copy Utility for single drive systems
+ 
+   Version of COPY which runs on a single drive CP/M system. On a
+   32K system, 9 passes are required, for a total of 18 diskette
+   swaps. Not terribly cool, but if all you got is one drive.....
+ 
+LINK - Communications Link Executive (for D C Hayes Modem Board)
+ 
+   Allows user to link into remote processor via D C Hayes 80-103A
+   modem board. Much more elaborate versions of this little jewel
+   are in the works. All god's chillun ought to have a modem board.
+   This program allows transfer of text files to and from disk. It
+   appears to the remote system as a rather bright teletype. To use:
+ 
+        LINK xxx-xxxx      Dial and await answer, then link
+        LINK               Jump to link immediately if carrier present
+
+   For further details on operation of LINK, see source file.
+ 
+LINK73 - Communications Link Executive (for outboard modem)
+ 
+   Older version of LINK for you folks without Hayes modem boards,
+   who do have outboard modems (or direct lines) to remote computers.
+ 
+ 
+RM80 - Resident Monitor for an 8080 or Z80 System
+ 
+   3K PROM monitor for a tape system. Currently set up for a Tarbell
+   tape interface with motor control relays. Allows user to dump or
+   enter memory in HEX or ASCII, read or write standard tarbell tapes,
+   read, write, or scan its very own physical record format tapes (as
+   used by TREAD and TSAVE). It also has a communications link facility
+   with on-line loaders for object files or text files. Currently set
+   up for outboard modem - version for D C Hayes board is planned.
+   Lots of other goodies are detailed in the file RM80.DOC. This is a
+   good way to help bring up your less fortunate friends who haven't
+   yet figured out that disk is the only way to live. Also useful if
+   you are responsible for other 8080 systems which don't have disks.
+ 
+SAP - Sort And Pack CP/M Directory
+ 
+   Sorts CP/M directory, discards zero length files, and performs a
+   pack on seperated chunks of a multi-extent file (see XFER).
+ 
+TREAD - Read RM80 Physical record format tapes to disk
+ 
+   Useful for backing up disk files on (cheaper) cassettes. Also very
+   useful for transferring files to a standalone tape system which is
+   running RM80.
+ 
+TSAVE - Write CP/M disk files onto RM80 physical record format tapes
+ 
+   Complementary program to TREAD. My first CP/M code - don't laugh.
+ 
+XFER - Diskette to Diskette File Transfer Utility
+ 
+   Allows user to transfer any size file from one diskette to another
+   with a minimum of hassle. A copy of this should be kept on every
+   diskette (if you have a single drive system), as it comes in quite
+   useful is case of diskette crash. This little gem makes a single 
+   drive CP/M system livable. Multi-extent files may be transferred 
+   one extent at a time and rejoined at the other end via SAP.
+ 
+                *** I M P O R T A N T ***
+ 
+   Please note that many of these programs require a more intimate
+   interaction with the hardware than CP/M provides, hence must be
+   edited and re-assembled for different memory and i/o configurations
+   All versions supplied are for a 32K system with a PTC 3P+S at 0.
+   When possible, CP/M standard I/O (via BDOS) was used. All other
+   I/O is described fairly well in the internal documentation. 
+ 
+   I welcome helpful comments on any of the above code, but make no
+   claims as to its perfection or applicability. (That means I will
+   NOT fix or change things for free). All of the above code is 
+   hereby released into the public domain, for use in personal 8080
+   or Z80 computer systems. If you wish to obtain rights to use any
+   of it for commercial purposes, please contact me. If you make
+   lots of money from it without sending me a cut, your ears just
+   might rot off (old family curse). Fairly elaborate extensions
+   to CP/M are in the works, and will be announced via this club,
+   and/or Dr. Dobbs. For further information, please contact me at
+  
+            Lawrence E. Hughes
+            8080 Software Development Center
+            1506 Myrick Road
+            Tallahassee, Florida 32303
+  
+            Phone (904) 385-4573  or  (904) 576-7866
+ 
+77/12/20
+
+
+A.R.G. - Note that Larry's sytem has his BIOS jump table 300H
+below the nominal MEMSIZE, not normal 200H.  These references
+should be changed before assembly if you decide to run with
+the fixed memory size versions offered here.  Also notice in
+ADE some fancy (and non-standard) footwork with the IOBYTE
+in order to get a listing and console output from the same
+subroutine.  Suggest a revision here.
+

@@ -1,0 +1,195 @@
+Small editor  Ver. 1.13
+  by K. Nakazato     14 Junly, 1984
+
+  SED (Small EDitor) is a screen-oriented, CP/M (Z80 only) compatible,
+editor written by TURBO PASCAL of BORLAND INTERNATIONAL.
+  The program is customized to NEC PC8001/PC8801.  Installation procedure
+is needed for other computer systems.
+
+-- cursol movement commands --
+
+basic movement commands
+
+^S :character left
+    Moves the cursor one character to the left non-destructively, i.e.
+    without affecting the character there.  <BACKSPACE> has the same
+    effect.  This command does not work across line breaks, i.e. when
+    the cursol reaches the left edge of the screen, it stops.
+^D :character right
+    Moves the cursor one character to the right non-destructively, i.e.
+    without affecting the character there.  This command does not work
+    across line breaks, i.e. when the cursol reaches the right edge of
+    the screen, it stops.
+^A :word left
+    Moves the cursor to the begining of the word to the left.  A word
+    is defined as a sequence of alphabets and numbers.  This command
+    works across line breaks.
+^F :word right
+    Moves the cursor to the begining of the word to the right. A word
+    is defined as a sequence of alphabets and numbers.  This command
+    works across line breaks.
+^E :line up
+    Moves the cursor to the line above.  If the cursor is on the top
+    line, the screen scrolls down one line.
+^X :line down
+    Moves the cursor to the line below.  If the cursor is on the last
+    line, the screen scrolls up one line.
+^W :scroll down
+    Scrolls the entire screen downwards one line at a time. The cursor
+    remains on its line until it reaches the bottom of the screen.
+^Z :scroll up
+    Scrolls the entire screen upwards one line at a time. The cursor
+    remains on its line until it reaches the top of the screen.
+^R :page up
+    Moves the cursor one page up, i.e. the cursor moves one screenfull
+    backwards in the text.
+^C :page down
+    Moves the cursor one page down, i.e. the cursor moves one screenfull
+    forward in the text.
+<RETURN>:to left of next line
+    Moves the cursor to the first character on the next line.
+    If the cursor is on the last line, the screen scrolls up one line.
+
+extended movement commands
+
+^Q^S :to left on line
+    Moves the cursor to the left edge of the screen.
+^Q^D :to right on line
+    Moves the cursor to the end of the line, i.e. to the position
+    following the last character on the line.
+^Q^E :to top of screen
+    Moves the cursor to the first character on the screen.
+^Q^X :to end of screen
+    Moves the cursor to the end character on the screen.
+^Q^R :to top of file
+    Moves to the first character of the text.
+^Q^C :to end of file
+    Moves to the last character of the text.
+^Q^B :to beginning of block
+    Moves the cursor to the beginning of a marked block,
+    i.e. to the position of the block begin marker set with ^K^B.
+^Q^K :to end of block
+    Moves the cursor to the end of a marked block, i.e. to the
+    position of the block end marker set with ^K^K.
+
+-- insert and delete commands --
+
+^V :insert mode on/off
+    When you enter text, you may choose between two entry modes:
+    Insert and Overwrite.  Insert mode is the default value
+    when the editor is invoked, and it lets you insert new text
+    into an existing text.  The existing text to the right of
+    the cursor simply moves to the right while you enter the new
+    text.
+      Overwrite mode may be chosen if you wish to replace old
+    text with new text.  Chracters entered then replace existing
+    characters under the cursor.
+      You switch between these modes with the insert mode on/off
+    commands ^V, and the current mode is displayed in the command
+    line at the top of the screen.
+<RUBOUT>:delete left character
+    Moves one character to the left and deletes the character there.
+    Any characters to the right of the cursor move one position
+    to the left.  This command does not work across line breaks,
+    i.e. when the cursor reaches the left edge of the screen,
+    it stops.
+^G :delete character under cursor
+    Deletes the character under the cursor and moves any characters
+    to the right of the cursor one position to the left.  This
+    command does not work across line breaks.
+^T :delete right word
+    Deletes the word to the right of the cursor.  A word is defined
+    as a sequence of alphabets and number. This command works
+    across line breaks, i.e. it may be used to remove line breaks.
+^B :insert empty line above
+    Insert an empty line above the cursor.
+^N :insert line
+    Insert a line break at the cursor position.  The cursor dose not
+    move.
+^Y :delete line
+    Delete the line containing the cursor and moves any lines below
+    one line up.
+^Q^Y :delete to the end of line
+    Deletes all text from the cursor position to the end of the line.
+
+-- block commands --
+
+^K^B :mark block begin
+    This command marks the begining of a block.  The marker is
+    visible on the screen as ç.
+^K^K :mark block end
+    This command marks the end of a block.  The marker is visible
+    on the screen as æ.
+^K^X :delete marks
+    Deletes the begin and end marks.
+^K^C :copy block
+    This command places a copy of the previously marked block
+    starting at the cursor position.  The original block is left
+    unchanged, and the markers are placed around the new copy of
+    the block.
+^K^V :move block
+    This command moves the previously marked block from its
+    original position to the cursor position.  The block disappears
+    from its original position and the marker remain around the
+    block at its new position.
+^K^Y :delete block
+    This command deletes the previously marked block.
+^K^R :read block from file
+    This command is used to read a file into the current text at
+    the cursor position, exactly as if it was a block that was moved
+    or copied.  The block read in is marked as a block.  When this
+    command is issued, you are prompted for the name of the file to
+    read.  The file specified may be any legal filename.
+^K^W :write block to file
+    This command is used to write a previously marked block to a file.
+    The block is left unchanged, and markers remain in place.  When
+    this command is issued, you are prompted for the name of the
+    file to write to.  The file specified may be any legal filename.
+
+-- miscellaneous editting --
+
+^K^D :end edit
+    This command ends the edit. When you enter this command,
+    you are asked the question: Save, Write, Return, New or Quit.
+    Press the associated upper case letter, and the command is executed
+    immediately. If you press <s>, the text is overwrited on the
+    same file specified before.  If you press <w>, you are prompted
+    for file name and the text is written on the file.  If you press <r>,
+    you return to the last position of the cursor.  If you press <n>,
+    new file is loaded on the memory for edit.
+    If you want to exit from the editor, press <q>.
+^I   :tab
+    Moves the cursor to the next tab stop.  Tab stops are assumed
+    to be set every eight columns (i.e., 1,9,17,..).
+^Q^F :find
+    The find command lets you search for any string of up to 30
+    characters.  When you enter this command, you are prompted
+    for serach string.  Enter the string you are looking for
+    and terminate with <RETURN>.  If you just press <RETURN>,
+    the operation may be aborted.
+^Q^A :find and replace
+    The find and replace command lets you search for any string of
+    up to 30 characters and replace it with any other string up to
+    30 characters.  When you enter this command, you are prompted
+    for serach string.  Enter the string you are looking for
+    and terminate with <RETURN>.  If you just press <RETURN>, the
+    operation may be aborted.  When search string is specified,
+    you are asked to enter the string to replace the serach string.
+    Enter up to 30 characters. Terminate with <RETURN>, and the
+    search and replace starts.  When found, the cursor is positioned
+    at the begining of the target, and you are asked the question:
+    replace -space-. If you want to replace, press space key.
+    If not, press any key except space.
+^L   :repeat last find
+    This command repeats the latest find or find and replace operation
+    exactly as if all information had been re-entered.
+^P   :control character prefix
+    The SED allows you to enter control characters except $0,$A,$D,$1A
+    into the file by prefixing the desired control character with a ^P.
+    If you e.g. want to enter a ^G into a text string to ring the bell,
+    you must first press ^P and then ^G.  Control characters are
+    displayed as follows;
+      ^A: ^B: ^C: ^D: ^E: ^F: ^G: ^H: ^I:	 ^J:  ^K: ^L: ^M:
+      ^N: ^O: ^P: ^Q: ^R: ^S: ^T: ^U: ^V: ^W: ^X: ^Y: ^Z:
+      ^[: ^\: ^]: ^^: ^_:
+

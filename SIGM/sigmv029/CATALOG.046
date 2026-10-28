@@ -1,0 +1,495 @@
+VOLUME 46	 10/24/80
+
+DESCRIPTION: CP/M utilities.
+
+NUMBER	SIZE	NAME		COMMENTS
+
+	 2K	CATALOG.46	CONTENTS OF CP/M VOL. 46
+46.1	11K	ABSTRACT.046	Volume abstracts
+46.2	11K	CPM-FDOS.ASM	CPM to ICOM FDOS II transfer
+46.3	17K	CPMLABEL.BAS	Make CPMUG disk labels
+46.4	 0K	DELETED	
+46.5	 5K	CPMLABEL.DOC	DOC on above
+46.6	 8K	CRCK3.ASM	Full 16 bit CRC a file
+46.7	 1K	CRCK3.COM	COM of above
+46.8	16K	DU-8/12.ASM	Disk dump/patch, supports
+				many controllers.
+46.9	29K	DU-V61.ASM	Later version of CPMUG 40.20,
+				single density only
+46.10	 2K	DU/MAP.DOC	Doc. on CP/M directory format
+46.11	 6K	FDOS-CPM.ASM	ICOM FDOS II to CP/M transfer
+46.12	10K	MDIR8/17.ASM	Fancy directory list program,
+46.13	 1K	MDIR8/17.COM	CP/M 1.4 (or 2.X, all users)
+46.14	 6K	MLIST3.ASM	Type multiple files with lots
+				of disk buffering
+46.15	20K	PLINK823.ASM	Send/Rcv to memory via modem
+46.16	22K	PMMIBYE5.ASM	Remote console program,
+46.17	 3K	PMMIBYE5.DOC		update of 40.34
+46.18	 2K	PTSRCNVT.COM	Convert Proc. Tech to CP/M ASM
+46.19	 2K	PTSRCNVT.DOC	DOC on above
+46.20	 7K	RETDL.COM	Disassembler to TDL mnemonics,
+				modification of 42.18
+46.21	13K	SURVEY3.ASM	Maps system memory/port usage
+				as well as disk stat.
+46.22	 1K	SURVEY3.COM	COM of above
+46.23	20K	XD-7/4.ASM	Fancy directory list program
+46.24	 2K	XD-7/4.COM	COM of above
+
+		U-G-FORM.LIB	CPMUG submission form
+This is file ABSTRACT.046, and contains abstracts on:
+
+	CPM-FDOS.ASM
+	CPMLABEL.BAS + DOC
+	CRCK3.ASM + COM
+	DU-8/12.ASM
+	DU-V61.ASM
+	DU/MAP.DOC
+	FDOS-CPM.ASM
+	MDIR8/17.ASM + COM
+	MLIST3.ASM
+	PLINK823.ASM
+	PMMIBYE5.ASM
+	PTSRCNVT.ASM + COM + DOC
+	REDTL.COM
+	SURVEY3.ASM + COM
+	XD-7/4.ASM + COM
+All abstracts by Ward Christensen unless otherwise noted.
+		    10/24/80
+		----------------
+====> CPM-FDOS.ASM is P.P.H. Lee's (Royal Melbourne Institute
+of Technology, Applied Physics Department, 124 Latrobe Street,
+Melbourne, Victoria 3000, Australia) program to transfer a CP/M
+file in drive a: to an ICOM FDOS II disk on drive b:. 
+    The program is hardware/software dependent, in that it
+makes references to the ICOM routines in the 0C000H block
+of memory.  FDOS-CPM.ASM handles the opposite direction
+transfer
+    The programs are well commented.
+		----------------
+====> CPMLABEL.BAS is Bill Bolton's (P.O. Box 80,
+Newport Beach, N.S.W., 2106, AUSTRALIA) program to print disk
+labels individually or in batches for CP/M User's Group Disks. 
+    It is slightly hardware dependent, using a CRT that can
+clear screen, (but doesn't need random cursor positioning).
+Has well identified hardware dependent routine for reverse
+video display of error messages, presently set up to suit
+ADM-31 or Soroc terminal.  Uses 80 x 24 display area but only
+needs minor message reformatting to suit 64 x 16 display.
+Batch label printing assumes continuous form fed labels,
+individual printing can be done on any label.   
+    CPMLABEL.BAS is written in MICROSOFT BASIC version 5.1.
+It is suitable for the compiler.  
+    Further documentation is available in CPMLABEL.DOC. 
+    This program was supplied courtesy of "80AT Australia".
+(I believe stands for "80 Application Transfer"). 
+    Abstract by Ward Christensen (very easy to do thanks to
+a very complete CP/MUG submission form by Bill) (hint hint)
+		----------------
+====> CRCK3.ASM is K.B.Petersen's (W8SDZ) file checksum
+routine.  It is a significant improvement over earlier
+checksum-only programs, in that it does a full 16 bit CRC,
+rather than just an 8 bit sum.  Also, it handles ambiguous
+file references.  
+    Use the program to keep a list of the CRC of various
+of your programs and files, then use this later if you
+question that a file has changed.  It is particularly useful
+for comparing a file you have, with a file someone else has,
+since you can both just run CRCK against them, then compare
+checksums.  Chances of two checksums being the same, but the
+files being different, is "remote".
+    The program includes the option of being assembled
+for 4200H base CP/M systems (Heath, R.S.).
+    The program drops in, and has no hardware or software
+dependencies.
+		----------------
+====> DU-8/12.ASM is an early version of Ward Christensen's DU
+program (CP/M U.G. volume 40), and as such lacks a few of the
+features of the volume 40 version.  It was modified by Keith
+Petersen W8SDZ, Bruce Ratoff ACGNJ, Jeff Hammersley, and
+Charles Strom.
+    It would be useful to anyone wanting to work directly
+with a CP/M disk, such as to patch it.
+    The program is used to dump and patch a CP/M disk directly.
+    Further documentation may be found in the .ASM file.
+    This version supports single density CP/M, and via
+conditional assembly switches, the following:
+*	Micropolis
+*	Digital Microsystems double density FDC3 controller
+*	Northstar double density
+*	Thinker toys DJ2D controller and 1024 byte sectors
+*	Micromation single-sided double density.
+    This program does direct I/O for the disk thru BIOS. The
+program is hardware dependent, and may require modification for
+your system if it is not one of the above.
+		----------------
+====> DU-V61.ASM by Ward Christensen is his latest version
+(6.1) of the program distributed as CPMUG file 40.20.  Changes:
+*	Now supports Heath 4200 base CP/M
+*	L command (login) rewritten to NOT actually do
+	CP/M login
+*	Track and sector, both as keyed in, and as displayed,
+	are now decimal, not hex.
+*	Q (Quiet option) commmand added - causes functions to
+	not display, so they run faster.
+*	P command fixed to send linefeeds to the printer.
+    See previous abstract for further comments on this program.
+		----------------
+====> DU/MAP.DOC is a brief explanation of the CP/M directory
+format as produced by DU.COM.  The origin of this document
+is unknown.  I replaced the "XXXX..." type example it used,
+with a real data example.
+		----------------
+====> FDOS-CPM.ASM is P.P.H. Lee's program to transfer an
+ICOM FDOS II file to a CP/M file. 
+    See CPM-FDOS.ASM for abstract.
+		----------------
+====> MDIR8/17.ASM is Jeff Hammersley's program to produce a
+sorted directory listing, including all "users", for CP/M 2.x.
+    It runs under CP/M 1.4 or 2.x.  Note you MUST supply "*.*"
+to see all files, i.e. you can't just type: mdir
+    The software drops in.  It has no software dependencies.
+		----------------
+====> MLIST3.ASM by Keith Petersen is a program to type a CP/M
+file, by highly buffering it in memory.  This lessens disk
+activity.  Also, for remote access CP/M systems, it doesn't
+stop "with the first line glitch" like CP/M's TYPE command
+would.  It does respond to ^S and ^C, however.
+    Unlike TYPE, it is able to process ambiguous files (such as
+*.ASM). 
+    There are no hardware dependencies for this program. How-
+ever, it does require MAC and the SEQIO macro library.
+		----------------
+====> PLINK823.ASM is L.E. Hughes's program, with the
+following "mods":
+	L.E. Hughes     EDCAM	JULY, 1977 (Original)
+	This version by Keith Petersen, W8SDZ.
+	Heath equates added by Tom Jorgenson
+	TRS-80 MODEL 1 mods by Steve Vinokuroff, Vanc CBBS
+	TRS-80 mods by Dennis Breckenridge, Burnaby CBBS
+This program can send or receive files via modem to such
+systems as the SOURCE, MICRONET, CBBS, etc.  No protocol used.
+    Your computer can act as a computer terminal, with optional
+capturing of data in memory, and the ability to write it out
+to disk.  A file on disk may also be sent to the remote system,
+with no protocol.
+    The program operates with any of the following modems:
+PMMI;  ANY serial I/O board (TUART included);  TRS-80 model 1;
+TRS-80 model 2; HEATH H8 with 8251 UART at port 330Q; 
+		----------------
+====> PMMIBYE5.ASM is a remote console program by Dave Jaffe,
+rewritten for PMMI modem by Ward Christensen, and highly
+modified since CPMUG volume 40 version, by:
+	Keith Petersen, W8SDZ
+	Dave Hardy
+	Bruce Levison
+    This program allows remote access into CP/M as the console
+operator, to run any CP/M program.  This version of the program
+may work for people who had trouble with it before, due to
+added register saves, and larger stack space.
+    Further documentation may be found in PMMIBYE5.DOC
+    The program requires a PMMI modem, and includes  options
+for Morrow's Discus 2D board  with memory mapped I/O. Optional-
+ly, the # of callers may be output to port FF, the front
+panel of an IMSAI.
+    The program requires as much as 1070 bytes of memory
+ABOVE your CP/M system.  Thus may require generating a
+smaller CP/M to allow it to fit.  The program must be
+assembled for your particular configuration.
+		----------------
+====> PTSRCNVT.COM is Tom DiGate's program to convert assembler
+programs from Processor Technology Package I or ALS-8 format,
+to CP/M format.
+    The P.T. format file is loaded into memory (by whatever
+means you have) at 100H, and saved with CP/M SAVE command.
+PTSRCNVT then converts the file to CP/M format, inserting
+tabs, and comment semicolons, and deleting the line numbers.
+    Only a .COM file and .DOC file are distributed.
+		----------------
+====> RETDL.COM is Ward Christensen's RESOURCE.COM from User's
+Group Volume 42, modified (by person unknown) to disassemble
+Z80(*) code into TDL mnemonics.  See RESOURCE.DOC on volume 42,
+for operational details.
+    I found this version to not be totally debugged.  Some of
+the more obscure Z80(*) op codes don't work.  Some examples:
+	If memory contains:	DB	0FDH,0FEH,0FFH
+	it is mis-disassembled as:	.BYTE	0FEH
+	when it should be		.BYTE	0FDH
+					CPI	0FFH
+    Also, opcodes SPIX (DD F9) and SPIY (FD F9) improperly
+increment the disassembly PC by 3 bytes, not 2, thus the
+assembly "loses" a byte for each SPIX or SPIY.
+    I recommend that you reassemble your disassembly and
+compare it to the original .COM file to catch such errors.
+Unfortunately, it is not known who the author of this modifi-
+cation is.  Hopefully they will see this and make appropriate
+changes.This routine came to the Users Group as various names -
+REZOURCE, or REZ80.  Since there will likely some day be
+versions for both TDL and Zilog, I thought it appropriate to
+rename this .COM file RETDL, and reserve REZOURCE for the
+Zilog-format one (which doesn't yet exist; or at least if
+someone has it, they have not shared it; several people
+are working on such a version).
+
+* Please note that Z80 is a trademark of Zilog, Inc.
+Use of the term Z80 in this application is in no way
+meant to infer that this is a program was written by Zilog.
+		----------------
+====> SURVEY3.ASM is Michael Friese's progam to, as named,
+"survey" your system.  It reports disk, port, and memory
+utilization.  Specifically, it:
+*	Lists Kbytes used and remaining plus number of files
+	on all logged disks (up to 8)
+*	Prints Memory map and synopsis of all machine memory
+*	Lists all active I/O Ports
+*	Uses disk allocation block for all disk calculations
+    Since is tests all ports on the system, be careful it
+doesn't hang up or cause errors.  The .ASM file included
+conditional assembly instructions for Tarbell, and IMS400
+disk controllers, to prevent hanging up.
+    SURVEY3 requires Digital Research's MAC to assemble.
+The program "drops in" and need be changed only if you have
+ports which might hang up.  It is well commented.
+		----------------
+====> XD-7/4.ASM is S.J.Singer's extended sorted directory
+list program, as modified by:	H.R.Moran Jr, R.M.Glueck,
+K.B.Petersen W8SDZ, and	John C. Rossmann.
+    It produces a sorted directory listing, across the
+page, including file sizes.
+    It has no hardware or software dependencies.  Included
+is the ability to be assembled for 4200H base CP/M systems
+(Heath, R.S.).
+    The code is well commented and quite easy to modify.  It
+would have to be modified for short (e.g. VDM) screens.
+		----------------
+	Documentation for PTSRCNVT.COM
+	Written by: Tom Digate
+	Version 1.0 - Nov., 1979
+
+    This program is used to convert files that were used
+with Processor Technology Software Package 1 and ALS8
+assemblers to a format that is CP/M assembler compatible.
+This includes adding tabs and semicolons in place of spaces
+and asterisks. The program reads the PT file from disk on
+a byte by byte basis and checks for label,opcode,operand,
+and comment fields. If a character replacement or deletion
+is required, it is performed and then the character is
+written to a new output file.
+    The PT file can be saved on disk by first loading it
+into memory starting at location 100H and then saving
+it using the CP/M save command.
+
+    The command format is as follows:
+	PTSRCNVT ifilename ofilename <cr>
+The program checks for proper parameters and will abort
+if any are missing or the input file does not exist.
+The old ofilename will be erased and then a new file
+is created. This is done so that you do not have
+to erase it manually.  If a disk error occurs, a message
+will be printed and the program will abort.
+
+	This file was assembled using a MACRO library from
+a previous Users Group Volume and the Digital Research
+MACro Assembler. The COM file is a ready-to-run version
+of this file in case you do not have the above software tools.
+	This program will not handle files that do not have
+line numbers or lines that have only a line number and nothing
+else. If a label is found, an opcode must be present.
+Opcodes that have no operand and use a period for formatting
+purposes will still have the period in the
+new file. This can be edited out by replacing all occurrences
+of a <tab>. with a <tab><tab>
+There are no other known peculiarities of this program.
+Hope that you enjoy using this program. It has saved me
+hours in upgrading my cassette system to CP/M. I hope that it
+can do the same for you.
+INTERPRETATION OF DIRECTORY DATA PRESENTED BY THE DU PROGRAM
+
+
+The following explains the format of a CP/M directory entry
+as shown by DU, using either the "F" (find file) command,
+or just doing "D" (dump) of the directory sectors, which
+are located in groups 0 and 1 on a single density disk.
+		----------------
+Sample result of "FSID.COM" command:
+
+40  00534944 20202020  20434F4D 0000003A  *.SID     COM...:*
+50  33343536 3738393A  00000000 00000000  *3456789:........*
+
+First line -
+
+40  00534944 20202020  20434F4D 0000003A  *.SID     COM...:*
+||  |||                      |  ||    ||    |         |
+||  ||^----hex file name-----^  ||    ||    ^file name^
+||  ||                          ||    ||     in ASCII
+||  ||                   extent-^^    ||
+||  ||                                ||
+||  ||           file size in sectors-^^
+||  ||
+||  ^^-00 = file active
+||     E5 = file erased
+^^-displacement of line in directory sector
+
+Second line -
+
+50  33343536 3738393A  00000000 00000000  *3456789:........*
+    |				       |
+    |				       |
+    ^---allocation group numbers-------^
+
+       80AT (Series 80 Applications Transfer - Australia)
+
+              CP/M User's Group Disk Lable Program
+
+                         By Bill Bolton
+      
+     This  program is written in Microsoft BASIC release 5.1 and 
+will run under both the compiler and interpreter.  As I intended 
+the program to be complied,  generous use has been made of  long 
+lables  which impose no speed penalty with the compiled version. 
+There is a small speed penalty as a result when running with the 
+interpreter but it is minimal.
+
+     There  is  extensive  operator prompting for  all  possible 
+program   options  with  defaults  set  for   maximum   operator 
+convenience.  I suggest that you run the program and see what it 
+does.
+
+     As presented the program is ready to run on a Lear  Seigler 
+ADM 31 or a SOROC terminal. The only hardware dependant features 
+are a clear screen routine (you can simulate it with line feeds) 
+and  a reverse video routine (only used to highlight heading and 
+error messages).  Both routines are located in the block  labled 
+"VIDEO  ATTRIBUTES".  The  program assumes an 80 character  wide 
+display,  if you have a narrow display you will probably have to 
+change  the  format  of some of  the  INPUT  statement  prompts, 
+otherwise the thing should display OK.
+
+     The program will generate lables for CP/M User's Group disk 
+volumes  1 to 42 (as of June 1980) including 23B.  Volume 39 has 
+been withdrawn and no lable can be generated for it,  an warning 
+message is displayed if volume 39 is selected.  Provsion is made 
+for printing a lable for a "Total Catalogue" disk.
+
+     A typical lable appears as follows:
+
+    ********************************************************
+    *                                                      *
+    *    CP/M User's Group Disk, Volume : 1                *
+    *                                                      *
+    *    Various CP/M Utilities                            *
+    *                                                      *
+    *    From the 80AT Public Domain Software Library      *
+    *                                                      *
+    *    IBM 3740 Single Density, 128 Byte Sectors         *
+    *                                                      *
+    ********************************************************
+
+
+     The  Density/Bytes per Sector line selection routine is set 
+up for all the formats that 80AT has occasion to use. It is easy 
+to  add or delete selections,  you simply need to add/delete the 
+selection string and adjust the DIM of SUB$.
+Š     The  batch  print mode assumes that you are using form  fed 
+lables.  My  form fed lables (from Avery) are spaced  exactly  9 
+lines  apart from the top of one to the top of the next,  so the 
+program  assumes this spacing.  To change it just  insert/delete 
+LPRINT statements in the "PRINT THE LABLE" block as  appropriate 
+for your form fed lables.
+
+     In the individual lable mode you should be able to use just 
+about any type of lable.
+
+     When  further  volumes  are  added  to  the  User's   Group 
+collection  it will be easy to adjust the program.  Just add the 
+new  volume numbers and descriptions into the volume check  area 
+and  change  the  variable MAX% to the  number  of  the  highest 
+volume.  The  volume numbers are input as strings so it would be 
+possible  to add other "extra" volumes such as I have done  with 
+"CAT".  If  you  want to do this then just add  the  new  volume 
+"string"  to  the  volume  check area  and  add  another  option 
+question to the "ALL" routine.
+
+     The program will take up to 200 entries in one batch,  this 
+seemed  a  reasonable number to me as I rarely do more than  two 
+complete  sets of lables in one batch.  If you really must  have 
+more lables in a batch then change the DIM ENTRY$(200) statement 
+at  the front of the program to whatever number of  entries  you 
+want.   BE  WARNED!  If you choose to compile it and exceed  the 
+number of entries dimensioned for,  unpredicatable  (but  nasty) 
+things  will happen  as  the variable   storage  is  below   the  
+program   in   the  TPA.    The interpreter  will   detect   the 
+problem and  give  you  an  error message.
+
+     Note  - Programs compiled with the Microsoft Basic Compiler 
+cannot be distributed without the payment of a royalty to Micro-
+soft for the use of their runtime library.
+
+     Copyright  (C)  of this program is retained by  W.  Bolton. 
+Non-commercial  use is permitted as an aid for the  disemination 
+of  knowledge/information  but commercial  exploitation  is  not 
+permitted  and  "I'll come round and rip your bloody  arms  off" 
+(ancient Australian curse) if I catch you !
+            PMMIBYE5.DOC    (as of 7/20/80)
+
+    The PMMIBYE5.ASM program is out for distribution,
+but it has not been thoroughly tested in all of the
+possible modes of operation.  
+    (Please note that version 5.4 is substantially longer
+than previous PMMIBYE versions.  Because of the great
+number of conditional switches, the program could require
+as many as 1060 bytes of RAM, or it could be smaller than
+the 900 bytes used by the original PMMIBYE.  It all
+depends on the way you set it up.)
+
+   Basically, several new conditional assembly routines
+have been added to allow user selection at time of
+assembly of the following:
+     1. Password access
+     2. User log (counts number of system callers)
+     3. Memory-mapped console I/O
+   Also added to V5.4:
+     1. 710 Baud option for PMMI modem
+     2. Modifications to AUTO-ANSWER routines
+     3. "/R" option to allow reset of user log counters
+
+   Password access was made conditional to allow
+use with systems that offer unrestricted access.
+   The user log was added to allow the system operators
+to keep track of the number of people who called the
+system.  In addition, it can also count the number of
+unsuccessful log-ons (i.e. didn't know password) and
+the number of voice calls, and conditionally
+display both numbers on the system console when the
+program is exited with a control-C from the system
+console.  The counters can be initialized with
+the "/R" option to all zeroes, or preset by using
+DDT, or SID.  The number of successful log-ons is also
+conditionally output to port 255 (0FFH) for display on the
+computer's front panel.
+   The memory-mapped I/O conditionals have been added
+to allow use of the serial I/O port on the Morrow's 2D
+controller board as the system console; however, the
+routines can be used with any memory-mapped system.
+   The 710 Baud option was added for "short-haul"
+callers, and because operation at 710 Baud with
+the PMMI modem is "iffy" at best, it will probably
+be of very little use.
+   The AUTO-ANSWER routines were modified to allow
+more dependable ringback operation.  Unfortuneately,
+the ringing signal at the caller's end of the phone line
+does not always correspond exactly with the ringing
+signal at the system's end.  Although a system-end ring
+does occur sometime during the caller's ring cycle (ring-
+no ring), it is possible for the system to receive no
+or 2 rings in the time that the caller thinks just
+one ring has occurred (The DIAL program is notorious for 
+this).  The solution chosen for this problem was to
+check for one or two rings before call-back.  This
+would allow for the "phase" difference of the caller-
+system ring signals.  This solution also means that
+the phone must ring at least three times before the
+system will assume that the call is voice, and is not
+to be answered.  The advantage of this arrangement is
+that it is virtually impossible for the computer to
+"miss" a call that is intended for it.
+

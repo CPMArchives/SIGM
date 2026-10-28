@@ -1,0 +1,413 @@
+;
+;  Program:  CD
+;  Version:  2.3
+;  Author:  Richard Conn
+;  Date:  6 Jan 83
+;  Previous Versions:  2.2 (19 Dec 82), 2.1 (7 Dec 82)
+;  Derivation:  CD.MAC was derived in concept from CD.C, Version 1.2
+;
+vers	equ	23
+
+;
+;	This program is Copyright (c) 1982, 1983 by Richard Conn
+;	All Rights Reserved
+;
+;	ZCPR2 and its utilities, including this one, are released
+; to the public domain.  Anyone who wishes to USE them may do so with
+; no strings attached.  The author assumes no responsibility or
+; liability for the use of ZCPR2 and its utilities.
+;
+;	The author, Richard Conn, has sole rights to this program.
+; ZCPR2 and its utilities may not be sold without the express,
+; written permission of the author.
+;
+
+;
+;	CD is designed to allow the user to quickly change to another
+; working directory (CD=Change Directory).
+; 	Intended to be small in size, CD accepts a command of the
+; following forms:
+;
+;		CD //			<-- Print Help Message
+;		CD dir or CD dir:	<-- Log Into Directory
+;
+
+;
+;  CP/M Constants
+;
+cpm	equ	0	; Warm Boot Address
+entry	equ	cpm+5	; BDOS Entry Point
+fcb	equ	5ch	; Location of Default FCB
+tbuff	equ	80h	; Temporary Input Line Buffer
+cr	equ	0dh
+lf	equ	0ah
+
+;
+;  Externals
+;
+	ext	zgpins	; init ZCPR2 buffers
+	ext	zdnfind	; used to determine directory user/disk
+	ext	zmcptr	; MC buffer ptr
+	ext	logud	; log in user/disk
+	ext	retud	; return current user/disk
+	ext	initfcb	; init FCB
+	ext	f$exist	; file exist test
+	ext	print	; print routine
+	ext	cout	; char output
+	ext	crlf	; new line
+	ext	inline	; input line editor, external buffer
+	ext	cin	; char input
+	ext	codend	; end of code
+
+;
+;  Branch to Start of Program
+;
+	jmp	start
+
+;
+;******************************************************************
+;
+;  SINSFORM -- ZCPR2 Utility Standard General Purpose Initialization Format
+;
+;	This data block precisely defines the data format for
+; initial features of a ZCPR2 system which are required for proper
+; initialization of the ZCPR2-Specific Routines in SYSLIB.
+;
+
+;
+;  EXTERNAL PATH DATA
+;
+EPAVAIL:
+	DB	0FFH	; IS EXTERNAL PATH AVAILABLE? (0=NO, 0FFH=YES)
+EPADR:
+	DW	40H	; ADDRESS OF EXTERNAL PATH IF AVAILABLE
+
+;
+;  INTERNAL PATH DATA
+;
+INTPATH:
+	DB	0,0	; DISK, USER FOR FIRST PATH ELEMENT
+			; DISK = 1 FOR A, '$' FOR CURRENT
+			; USER = NUMBER, '$' FOR CURRENT
+	DB	0,0
+	DB	0,0
+	DB	0,0
+	DB	0,0
+	DB	0,0
+	DB	0,0
+	DB	0,0	; DISK, USER FOR 8TH PATH ELEMENT
+	DB	0	; END OF PATH
+
+;
+;  MULTIPLE COMMAND LINE BUFFER DATA
+;
+MCAVAIL:
+	DB	0FFH	; IS MULTIPLE COMMAND LINE BUFFER AVAILABLE?
+MCADR:
+	DW	0FF00H	; ADDRESS OF MULTIPLE COMMAND LINE BUFFER IF AVAILABLE
+
+;
+;  DISK/USER LIMITS
+;
+MDISK:
+	DB	4	; MAXIMUM NUMBER OF DISKS
+MUSER:
+	DB	31	; MAXIMUM USER NUMBER
+
+;
+;  FLAGS TO PERMIT LOG IN FOR DIFFERENT USER AREA OR DISK
+;
+DOK:
+	DB	0FFH	; ALLOW DISK CHANGE? (0=NO, 0FFH=YES)
+UOK:
+	DB	0FFH	; ALLOW USER CHANGE? (0=NO, 0FFH=YES)
+
+;
+;  PRIVILEGED USER DATA
+;
+PUSER:
+	DB	10	; BEGINNING OF PRIVILEGED USER AREAS
+PPASS:
+	DB	'chdir',0	; PASSWORD FOR MOVING INTO PRIV USER AREAS
+	DS	41-($-PPASS)	; 40 CHARS MAX IN BUFFER + 1 for ending NULL
+
+;
+;  CURRENT USER/DISK INDICATOR
+;
+CINDIC:
+	DB	'$'	; USUAL VALUE (FOR PATH EXPRESSIONS)
+
+;
+;  DMA ADDRESS FOR DISK TRANSFERS
+;
+DMADR:
+	DW	80H	; TBUFF AREA
+
+;
+;  NAMED DIRECTORY INFORMATION
+;
+NDRADR:
+	DW	00000H	; ADDRESS OF MEMORY-RESIDENT NAMED DIRECTORY
+NDNAMES:
+	DB	64	; MAX NUMBER OF DIRECTORY NAMES
+DNFILE:
+	DB	'NAMES   '	; NAME OF DISK NAME FILE
+	DB	'DIR'		; TYPE OF DISK NAME FILE
+
+;
+;  REQUIREMENTS FLAGS
+;
+EPREQD:
+	DB	0FFH	; EXTERNAL PATH?
+MCREQD:
+	DB	0FFH	; MULTIPLE COMMAND LINE?
+MXREQD:
+	DB	0FFH	; MAX USER/DISK?
+UDREQD:
+	DB	0FFH	; ALLOW USER/DISK CHANGE?
+PUREQD:
+	DB	0FFH	; PRIVILEGED USER?
+CDREQD:
+	DB	0FFH	; CURRENT INDIC AND DMA?
+NDREQD:
+	DB	0FFH	; NAMED DIRECTORIES?
+Z2CLASS:
+	DB	0	; CLASS 0
+	DB	'ZCPR2'
+	DS	10	; RESERVED
+
+;
+;  END OF SINSFORM -- STANDARD DEFAULT PARAMETER DATA
+;
+;******************************************************************
+;
+stfile:
+	db	0
+	db	'ST      '	; file name
+	db	'COM'		; file type
+	ds	4
+	ds	16
+	ds	4		; 36 bytes total
+;
+;  Start of Program
+;
+start:
+	call	zgpins	; install ZCPR2 variables
+
+	call	print	; print banner
+	db	'CD, Version '
+	db	vers/10+'0','.',(vers mod 10)+'0',0
+
+	lxi	h,tbuff	; pt to input line
+	mov	a,m	; get input line size
+	inx	h	; pt to first char
+	push	h	; save ptr to first char
+	add	l	; pt to after last char
+	mov	l,a
+	mov	a,h
+	aci	0
+	mov	h,a	; hl pts to after last char
+	mvi	m,0	; store ending zero
+	pop	h	; pt to first char
+	lxi	d,cbuff	; temp storage for line
+
+;
+;  Copy input line into temporary buffer
+;
+start0:
+	mov	a,m	; get byte
+	stax	d	; put byte
+	inx	h	; pt to next
+	inx	d
+	ora	a	; end of line?
+	jnz	start0
+
+;
+;  Skip to first non-blank and process if Help requested
+;
+	lxi	h,cbuff	; pt to first char
+sblank:
+	mov	a,m	; pt to char
+	inx	h	; pt to next
+	cpi	' '	; <sp>?
+	jz	sblank
+	dcx	h	; pt to first non-blank
+	ora	a	; print directory info?
+	jz	help
+	cpi	'/'	; help option?
+	jnz	cd	; change dir processing if not help
+
+;
+;  Print Help Message
+;
+help:
+	call	print
+	db	cr,lf,'	CD is a ZCPR2 named directory move utility'
+	db	cr,lf,'(CD=Change Directory).  Command Forms are:'
+	db	cr,lf,'		CD or CD //		<-- Print Help Message'
+	db	cr,lf,'		CD dir or CD dir:	<-- Log Into Dir'
+	db	cr,lf,0
+	ret
+
+;
+;  Scan Line for Colon and append Colon if none present
+;
+cd:
+	push	h	; save ptr to first char for later
+scolon:
+	mov	a,m	; get char
+	ora	a	; eol?
+	jz	pcolon	; append colon
+	cpi	' '	; <sp>?
+	jz	pcolon	; append colon
+	cpi	':'	; colon?
+	jz	cd2	; continue processing
+	inx	h	; pt to next char
+	jmp	scolon
+pcolon:
+	mvi	m,':'	; place colon at end of token
+	inx	h	; pt to next char
+	mvi	m,0	; place ending zero
+
+;
+;  Extract User/Disk Numbers
+;
+cd2:
+	call	retud	; get current user/disk
+	mov	a,b	; store disk
+	sta	cdisk
+	mov	a,c	; store user
+	sta	cuser
+	pop	h	; get ptr to first char
+	xra	a	; do not allow du: form
+	call	zdnfind	; extract user/disk info
+	jnz	cd3
+	call	print
+	db	cr,lf,'Dir Name Not Found',0
+	ret
+
+;
+;  Set Current User/Disk
+;
+cd3:
+	mov	a,b	; get disk number
+	cpi	0ffh	; current?
+	jnz	setd	; set disk if not
+	lda	cdisk	; get current disk
+	inr	a	; increment because of ZDNFIND offset
+setd:
+	mov	b,a	; disk in B
+	lda	mdisk	; max disk number
+	cmp	b	; must be less
+	jnc	setd1	; error if selected > max
+uderr:
+	call	print
+	db	cr,lf,'Dir Range Error -- Abort',0
+	ret
+setd1:
+	mov	a,c	; get user number
+	cpi	0ffh	; current?
+	jnz	setu	; set user if not
+	lda	cuser	; get current user
+setu:
+	mov	c,a	; user in C
+	lda	muser	; max user number
+	cmp	c	; must be less
+	jc	uderr	; error if selected > max
+	call	pass	; ask for password if not priv cding into priv
+	dcr	b	; adjust disk to 0 to n-1
+	lda	mcavail	; multiple commands available?
+	ora	a	; 0=no
+	jz	login
+	call	logud	; log into new directory
+	lxi	d,stfile	; check for presence of startup file
+	call	initfcb	; init FCB
+	call	f$exist	; does it exist?
+	jz	login
+	call	zmcptr	; get ptr to next char in MC line
+	dcx	h	; back up two chars
+	lda	stfile+2
+	mov	m,a
+	dcx	h
+	lda	stfile+1	; store new file name
+	mov	m,a
+	lhld	mcadr	; get address of line
+	mov	a,m	; get low-order byte
+	dcr	a	; back up 2 chars
+	dcr	a
+	mov	m,a	; set new count
+login:
+	mov	a,c	; user in A
+	ora	a	; clear carry
+	rlc		; move user into high nybble
+	rlc
+	rlc
+	rlc
+	ora	b	; mask in new disk
+	mov	c,a	; user/disk flag in C
+	lhld	entry+1	; get address of BDOS
+	lxi	d,-800h	; pt to base of ZCPR2
+	mvi	l,0
+	dad	d
+	inx	h	; pt to restart entry point
+	inx	h
+	inx	h
+	pchl		; enter ZCPR2 with proper flag in C
+
+;
+;  Ask for password if non-priveleged user (cuser) is trying to CD into
+;  a priveleged user area (=>puser)
+;
+pass:
+	push	b	; save desired user/disk
+	lda	puser	; get priv user number
+	mov	b,a	; ... in B
+	lda	cuser	; get current user
+	cmp	b	; is current user priveleged?
+	pop	b
+	rnc		; done if so
+	lda	puser	; see if desired to move into priveleged user area
+	dcr	a	; just under priveleged user area
+	cmp	c	; is C >= puser?
+	rnc		; done if PUSER-1 >= desired user
+;
+;  Non-priv wants to CD into Priv ... ask password
+;
+	push	b	; save desired user/disk
+	call	print
+	db	cr,lf,'Access Password? ',0
+	call	codend	; pt to scratch area
+	xra	a	; no echo
+	call	inline	; input line editor
+	lxi	d,ppass	; pt to password stored
+scomp:
+	ldax	d	; get byte
+	cmp	m	; compare
+	jnz	nomatch
+	inx	h	; pt to next
+	inx	d
+	ora	a	; end of strings?
+	jnz	scomp
+	call	print
+	db	cr,lf,'** Access Granted **',0
+	pop	b	; match -- return normally
+	ret
+nomatch:
+	pop	b	; clear BC
+	pop	h	; clear stack
+	call	print
+	db	cr,lf,'** Invalid Password -- Access Denied **',0
+	ret
+
+;
+;  Buffers
+;
+cuser:
+	ds	1	; current user
+cdisk:
+	ds	1	; current disk
+cbuff:
+	ds	250	; command line buffer
+
+	end
+

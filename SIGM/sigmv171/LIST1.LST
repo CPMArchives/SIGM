@@ -1,0 +1,715 @@
+	   ;
+	   ;  This file contains the assembler language code for all of the 
+	   ;  operations in the M68K compiler.
+	   ;
+	   ;  Register usage....
+	   ;       A7 - Hardware and return stack pointer
+	   ;       A6 - Data stack pointer
+	   ;       A5 - Pointer to variable pool
+	   ;       A4 - Reserved for future use
+	   ;
+	   ;       All other registers are free to be used by any word that needs them
+	   ;       and are to be considered as altered across word boundaries.
+	   ;
+	   ;******************************************************************************
+	   ;
+	   ;  Arithmetic operations
+	   ;
+	   ;******************************************************************************
+	   ;
+	   ;  +            ( n1 n2 -- sum )
+	   ;
+301E            MOVE.W  (A6)+,D0                ;Get n2
+D156            ADD.W   D0,(A6)                 ;n1 + n2
+	   ;
+	   ;  -            ( n1 n2 -- dif )        n1-n2
+	   ;
+301E            MOVE.W  (A6)+,D0                ;Get n2
+9156            SUB.W   D0,(A6)                 ;n1 - n2
+	   ;
+	   ;  *            ( n1 n2 -- prod )
+	   ;
+301E            MOVE.W  (A6)+,D0                ;Get n2
+C1D6            MULS    (A6),D0                 ;n2 * n1
+3C80            MOVE.W  D0,(A6)
+	   ;
+	   ;  /            ( n1 n2 -- quot )       n1/n2
+	   ;
+4C9E 0003       MOVEM.W (A6)+,D0/D1             ;Get operands sign extended
+83C0            DIVS    D0,D1                   ;n1/n2
+3D01            MOVE.W  D1,-(A6)
+	   ;
+	   ;  */           ( n1 n2 n3 -- n-result )  n1*n2/n3
+	   ;
+321E            MOVE.W  (A6)+,D1                ;Get n3
+301E            MOVE.W  (A6)+,D0                ;Get n2
+C1D6            MULS    (A6),D0                 ;n2*n1 -> D0
+81C1            DIVS    D1,D0                   ;n2*n1/n3 -> D0
+3C80            MOVE.W  D0,(A6)
+	   ;
+	   ;  /MOD         ( u1 u2 -- u-rem u-quot )
+	   ;
+4280            CLR.L   D0
+321E            MOVE.W  (A6)+,D1                ;Get u2
+301E            MOVE.W  (A6)+,D0                ;Get u1
+80C1            DIVU    D1,D0                   ;u1/u2
+4840            SWAP    D0                      ;Interchange remainder and quotient
+2D00            MOVE.L  D0,-(A6)                ;Return both on stack
+	   ;
+	   ;  MOD         ( u1 u2 -- u-rem )
+	   ;
+4280            CLR.L   D0
+321E            MOVE.W  (A6)+,D1                ;Get u2
+301E            MOVE.W  (A6)+,D0                ;Get u1
+80C1            DIVU    D1,D0                   ;u1/u2
+4840            SWAP    D0                      ;Interchange remainder and quotient
+3D00            MOVE.W  D0,-(A6)                ;Return remainder on stack
+	   ;
+	   ;  */MOD        ( u1 u2 u3 -- u-rem u-result )  u1*u2/u3
+	   ;
+321E            MOVE.W  (A6)+,D1                ;Get u3
+301E            MOVE.W  (A6)+,D0                ;Get u2
+C0DE            MULU    (A6)+,D0                ;u2*u1 -> D0
+80C1            DIVU    D1,D0                   ;u2*u1/u3 -> D0
+4840            SWAP    D0
+2D00            MOVE.L  D0,-(A6)
+	   ;
+	   ;  U*           ( u1 u2 -- ud )
+	   ;
+301E            MOVE.W  (A6)+,D0
+C0DE            MULU    (A6)+,D0
+2D00            MOVE.L  D0,-(A6)
+	   ;
+	   ;  U/MOD        ( ud u1 -- u-rem u-quot )
+	   ;
+321E            MOVE.W  (A6)+,D1                ;Get u1
+201E            MOVE.L  (A6)+,D0                ;Get ud
+80C1            DIVU    D1,D0                   ;ud/u1
+4840            SWAP    D0
+2D00            MOVE.L  D0,-(A6)
+	   ;
+	   ;  1+           ( n -- n+1 )
+	   ;
+5256            ADDQ.W  #1,(A6)
+	   ;
+	   ;  1-           ( n -- n-1 )
+	   ;
+5356            SUBQ.W  #1,(A6)
+	   ;
+	   ;  2+           ( n -- n+2 )
+	   ;
+5456            ADDQ.W  #2,(A6)
+	   ;
+	   ;  2-           ( n -- n-2 )
+	   ;
+5556            SUBQ.W  #2,(A6)
+	   ;
+	   ;  2*           ( n -- n*2 )
+	   ;
+E1D6            ASL     (A6)
+	   ;
+	   ;  2/           ( n -- n/2 )
+	   ;
+E0D6            ASR     (A6)
+	   ;
+	   ;  ABS          ( n -- abs(n) )
+	   ;
+4A56            TST.W   (A6)                    ;Test for negative
+6C02            BGE.S   ABS                     ;Skip next instruction if not
+4456            NEG.W   (A6)
+	   ABS
+	   ;
+	   ;  DABS         ( d -- abs(d) )
+	   ;
+4A96            TST.L   (A6)                    ;Test for negative
+6C02            BGE.S   DABS                    ;Skip next instruction if not
+4496            NEG.L   (A6)
+	   DABS
+	   ;
+	   ;  NEGATE       ( n -- -n )
+	   ;
+4456            NEG.W   (A6)
+	   ;
+	   ;  DNEGATE      ( d -- -d )
+	   ;
+4496            NEG.L   (A6)
+	   ;
+	   ;  D+           ( d1 d2 -- d-sum )
+	   ;
+201E            MOVE.L  (A6)+,D0
+D196            ADD.L   D0,(A6)
+	   ;
+	   ;  D-           ( d1 d2 -- d-diff )     d1-d2
+	   ;
+201E            MOVE.L  (A6)+,D0
+9196            SUB.L   D0,(A6)
+	   ;
+	   ;
+	   ;******************************************************************************
+	   ;
+	   ;  Stack manipulation
+	   ;
+	   ;******************************************************************************
+	   ;
+	   ;  DROP         ( n -- )
+	   ;
+548E            ADDQ.L  #2,A6
+	   ;
+	   ;  2DROP        ( d -- )
+	   ;
+588E            ADDQ.L  #4,A6
+	   ;
+	   ;  SWAP
+	   ;
+2016            MOVE.L  (A6),D0
+4840            SWAP    D0
+2C80            MOVE.L  D0,(A6)
+	   ;
+	   ;  2SWAP        ( d1 d2 -- d2 d1 )
+	   ;
+2016            MOVE.L  (A6),D0
+2CAE 0004       MOVE.L  4(A6),(A6)
+2D40 0004       MOVE.L  D0,4(A6)
+	   ;
+	   ;  DUP          ( n -- n n )
+	   ;
+3D16            MOVE.W  (A6),-(A6)
+	   ;
+	   ;  2DUP         ( d -- d d )
+	   ;
+2D16            MOVE.L  (A6),-(A6)
+	   ;
+	   ;  OVER         ( n1 n2 -- n1 n2 n1 )
+	   ;
+3D2E 0002       MOVE.W  2(A6),-(A6)
+	   ;
+	   ;  2OVER        ( d1 d2 -- d1 d2 d1 )
+	   ;
+2D2E 0004       MOVE.L  4(A6),-(A6)
+	   ;
+	   ;  >R           ( n -- )        Store on return stack
+	   ;
+3F1E            MOVE.W  (A6)+,-(A7)
+	   ;
+	   ;  R>           ( -- n )        Remove from return stack
+	   ;
+3D1F            MOVE.W  (A7)+,-(A6)
+	   ;
+	   ;  I            ( -- n )        Copies top of return stack
+	   ;
+3D17            MOVE.W  (A7),-(A6)
+	   ;
+	   ;  I'           ( -- n )        Copies second item on return stack
+	   ;
+3D2F 0002       MOVE.W  2(A7),-(A6)
+	   ;
+	   ;  J            ( -- n )        Copies third item on return stack
+	   ;
+3D2F 0004       MOVE.W  4(A7),-(A6)
+	   ;
+	   ;  Push a constant onto the stack       ( -- n )
+	   ;
+3D3C 0000       MOVE.W  #0,-(A6)
+	   ;
+	   ;  Push a double constant onto the stack        ( -- d )
+	   ;
+2D3C 0000       MOVE.L  #0,-(A6)
+     0000
+	   ;
+	   ;
+	   ;******************************************************************************
+	   ;
+	   ;  Memory and I/O operations
+	   ;
+	   ;******************************************************************************
+	   ;
+	   ;  Note.. all references to memory are relative to A5 unless otherwise
+	   ;         specified.
+	   ;
+	   ;
+	   ;  !            ( n adr -- )
+	   ;               Store in variable
+	   ;
+301E            MOVE.W  (A6)+,D0
+3B9E 0000       MOVE.W  (A6)+,0(A5,D0.W)
+	   ;
+	   ;  @            ( adr -- n )
+	   ;               Get from variable
+	   ;
+3016            MOVE.W  (A6),D0
+3CB5 0000       MOVE.W  0(A5,D0.W),(A6)
+	   ;
+	   ;  C!           ( c adr -- )
+	   ;               Store in variable
+	   ;
+301E            MOVE.W  (A6)+,D0
+321E            MOVE.W  (A6)+,D1
+1B81 0000       MOVE.B  D1,0(A5,D0.W)
+	   ;
+	   ;  C@           ( adr -- c )
+	   ;               Get from variable
+	   ;
+3016            MOVE.W  (A6),D0
+4241            CLR.W   D1
+1235 0000       MOVE.B  0(A5,D0.W),D1
+3C81            MOVE.W  D1,(A6)
+	   ;
+	   ;  2!           ( d adr -- )
+	   ;               Store in variable
+	   ;
+301E            MOVE.W  (A6)+,D0
+2B9E 0000       MOVE.L  (A6)+,0(A5,D0.W)
+	   ;
+	   ;  2@           ( adr -- d )
+	   ;               Get from variable
+	   ;
+301E            MOVE.W  (A6)+,D0
+2D35 0000       MOVE.L  0(A5,D0.W),-(A6)
+	   ;
+	   ;  +!           ( n adr -- )
+	   ;               Add n to the loaction pointed to by adr
+	   ;
+301E            MOVE.W  (A6)+,D0
+321E            MOVE.W  (A6)+,D1
+D375 0000       ADD.W   D1,0(A5,D0.W)
+	   ;
+	   ;  M68ARY xxxx  ( n -- )        defines an array xxxx n words long
+	   ;
+	   ;
+	   ;  xxxx         ( n -- adr )    returns the address of the n-th element of xxxx
+	   ;
+303C 0000       MOVE.W  #0,D0           ;Array base address
+D056            ADD.W   (A6),D0         ;n + address
+D156            ADD.W   D0,(A6)         ;2*n + address
+	   ;
+	   ;  M68CARY xxxx ( n -- )        defines an array xxxx n bytes long
+	   ;
+	   ;
+	   ;  xxxx         ( n -- adr )    returns the address of the n-th element of xxxx
+	   ;
+303C 0000       MOVE.W  #0,D0           ;Array base address
+D156            ADD.W   D0,(A6)         ;n + address
+	   ;
+	   ;  M68DARY xxxx ( n -- )        defines an array xxxx n double words long
+	   ;
+	   ;
+	   ;  xxxx         ( n -- adr )    returns the address of the n-th element of xxxx
+	   ;
+303C 0000       MOVE.W  #0,D0           ;Array base address
+3216            MOVE.W  (A6),D1         ;n
+E541            ASL.W   #2,D1           ;4*n
+D041            ADD.W   D1,D0           ;4*n + address
+3C80            MOVE.W  D0,(A6)
+	   ;
+	   ;  FILL         ( adr n b -- )
+	   ;               Fills n bytes of memory beginning at the variable pool
+	   ;               relative address with the value b.
+	   ;
+301E               MOVE.W  (A6)+,D0        ;Get b
+321E               MOVE.W  (A6)+,D1        ;Get n
+305E               MOVEA.W (A6)+,A0        ;Get variable pool relative address
+D1CD               ADDA.L  A5,A0           ;Compute actual address
+6002               BRA.S   $02             ;Enter loop at proper point
+10C0       $01     MOVE.B  D0,(A0)+        ;Store b and increment address
+51C9 FFFC  $02     DBF     D1,$01          ;Repeat n times
+	   ;
+	   ;*******************************************************************************
+	   ;
+	   ; Note.. the following words reference absoute memory addresses.  They should
+	   ;        only be used to reference data and I/O devices that are fixed and
+	   ;        outside the environment of the compiler.  Under NO conditions should
+	   ;        these operations be used to reference data structures created by the
+	   ;        compiler.  The compiler data structures are relocatable and there is
+	   ;        no easy way to find the current location of these data structures.
+	   ;        The other operators provided above are much more convenient and
+	   ;        preserve the relocatability.
+	   ;
+	   ;
+	   ;  AW!          ( n short -- )
+	   ;               Store n at the location specified by the short address.
+	   ;
+305E            MOVEA.W (A6)+,A0        ;Get address
+309E            MOVE.W  (A6)+,(A0)      ;Store n
+	   ;
+	   ;  AW@          ( short -- n )
+	   ;               Get n from the location specified by the short address.
+	   ;
+3056            MOVEA.W (A6),A0         ;Get address
+3C90            MOVE.W  (A0),(A6)       ;Get n
+	   ;
+	   ;  AL!          ( n long -- )
+	   ;               Store n at the location specified by the long address.
+	   ;
+205E            MOVEA.L (A6)+,A0        ;Get address
+309E            MOVE.W  (A6)+,(A0)      ;Store n
+	   ;
+	   ;  AL@          ( long -- n )
+	   ;               Get n from the location specified by the long address.
+	   ;
+205E            MOVEA.L (A6)+,A0        ;Get address
+3D10            MOVE.W  (A0),-(A6)      ;Get n
+	   ;
+	   ;  CAW!         ( c short -- )
+	   ;               Store c at the location specified by the short address.
+	   ;
+305E            MOVEA.W (A6)+,A0        ;Get address
+301E            MOVE.W  (A6)+,D0        ;Get c
+1080            MOVE.B  D0,(A0)         ;Store c
+	   ;
+	   ;  CAW@         ( short -- c )
+	   ;               Get c from the location specified by the short address.
+	   ;
+3056            MOVEA.W (A6),A0         ;Get address
+4240            CLR.W   D0
+1010            MOVE.B  (A0),D0         ;Get c
+3C80            MOVE.W  D0,(A6)
+	   ;
+	   ;  CAL!         ( c long -- )
+	   ;               Store c at the location specified by the long address.
+	   ;
+205E            MOVEA.L (A6)+,A0        ;Get address
+301E            MOVE.W  (A6)+,D0        ;Get c
+1080            MOVE.B  D0,(A0)         ;Store c
+	   ;
+	   ;  CAL@         ( long -- c )
+	   ;               Get c from the location specified by the long address.
+	   ;
+205E            MOVEA.L (A6)+,A0        ;Get address
+4240            CLR.W   D0
+1010            MOVE.B  (A0),D0         ;Get c
+3D00            MOVE.W  D0,-(A6)
+	   ;
+	   ;  2AW!         ( d short -- )
+	   ;               Store d at the location specified by the short address.
+	   ;
+305E            MOVEA.W (A6)+,A0        ;Get address
+209E            MOVE.L  (A6)+,(A0)      ;Store d
+	   ;
+	   ;  2AW@         ( short -- d )
+	   ;               Get d from the location specified by the short address.
+	   ;
+305E            MOVEA.W (A6)+,A0        ;Get address
+2D10            MOVE.L  (A0),-(A6)      ;Get d
+	   ;
+	   ;  2AL!         ( d long -- )
+	   ;               Store d at the location specified by the long address.
+	   ;
+205E            MOVEA.L (A6)+,A0        ;Get address
+209E            MOVE.L  (A6)+,(A0)      ;Store d
+	   ;
+	   ;  2AL@         ( long -- d )
+	   ;               Get d from the location specified by the long address.
+	   ;
+2056            MOVEA.L (A6),A0         ;Get address
+2C90            MOVE.L  (A0),(A6)       ;Get d
+	   ;
+	   ;  AFILL        ( long_adr n b -- )
+	   ;               Fills n bytes of memory beginning at the long absolute
+	   ;               address with the value b.
+	   ;
+301E               MOVE.W  (A6)+,D0        ;Get b
+321E               MOVE.W  (A6)+,D1        ;Get n
+205E               MOVEA.L (A6)+,A0        ;Get absolute address
+6002               BRA.S   $02             ;Enter loop at proper point
+10C0       $01     MOVE.B  D0,(A0)+        ;Store b and increment address
+51C9 FFFC  $02     DBF     D1,$01          ;Repeat n times
+	   ;
+	   ;
+	   ;******************************************************************************
+	   ;
+	   ;  Comparison operations
+	   ;
+	   ;******************************************************************************
+	   ;
+	   ;  MIN          ( n1 n2 -- n-min )
+	   ;
+301E            MOVE.W  (A6)+,D0                ;n2
+3216            MOVE.W  (A6),D1                 ;n1
+B041            CMP.W   D1,D0                   ;n2-n1
+6F02            BLE.S   MIN
+C141            EXG     D0,D1                   ;Swap if D1 < D0
+3C80       MIN  MOVE.W  D0,(A6)
+	   ;
+	   ;  MAX          ( n1 n2 -- n-max )
+	   ;
+301E            MOVE.W  (A6)+,D0                ;n2
+3216            MOVE.W  (A6),D1                 ;n1
+B041            CMP.W   D1,D0                   ;n2-n1
+6C02            BGE.S   MAX
+C141            EXG     D0,D1                   ;Swap if D1 > D0
+3C80       MAX  MOVE.W  D0,(A6)
+	   ;
+	   ;  =            ( n1 n2 -- f )          if n1 = n2 then f is true
+	   ;
+301E            MOVE.W  (A6)+,D0                ;n2
+321E            MOVE.W  (A6)+,D1                ;n1
+B240            CMP.W   D0,D1                   ;n1-n2
+57C0            SEQ     D0
+0240 0001       ANDI.W  #1,D0
+3D00            MOVE.W  D0,-(A6)
+	   ;
+	   ;  <            ( n1 n2 -- f )          if n1 < n2 then f is true
+	   ;
+301E            MOVE.W  (A6)+,D0                ;n2
+321E            MOVE.W  (A6)+,D1                ;n1
+B240            CMP.W   D0,D1                   ;n1-n2
+5DC0            SLT     D0
+0240 0001       ANDI.W  #1,D0
+3D00            MOVE.W  D0,-(A6)
+	   ;
+	   ;  >            ( n1 n2 -- f )          if n1 > n2 then f is true
+	   ;
+301E            MOVE.W  (A6)+,D0                ;n2
+321E            MOVE.W  (A6)+,D1                ;n1
+B240            CMP.W   D0,D1                   ;n1-n2
+5EC0            SGT     D0
+0240 0001       ANDI.W  #1,D0
+3D00            MOVE.W  D0,-(A6)
+	   ;
+	   ;  D=           ( d1 d2 -- f )          if d1 = d2 then f is true
+	   ;
+201E            MOVE.L  (A6)+,D0                ;d2
+221E            MOVE.L  (A6)+,D1                ;d1
+B280            CMP.L   D0,D1                   ;d1-d2
+57C0            SEQ     D0
+0240 0001       ANDI.W  #1,D0
+3D00            MOVE.W  D0,-(A6)
+	   ;
+	   ;  D<           ( d1 d2 -- f )          if d1 < d2 then f is true
+	   ;
+201E            MOVE.L  (A6)+,D0                ;d2
+221E            MOVE.L  (A6)+,D1                ;d1
+B280            CMP.L   D0,D1                   ;d1-d2
+5DC0            SLT     D0
+0240 0001       ANDI.W  #1,D0
+3D00            MOVE.W  D0,-(A6)
+	   ;
+	   ;  D>           ( d1 d2 -- f )          if d1 > d2 then f is true
+	   ;
+201E            MOVE.L  (A6)+,D0                ;d2
+221E            MOVE.L  (A6)+,D1                ;d1
+B280            CMP.L   D0,D1                   ;d1-d2
+5EC0            SGT     D0
+0240 0001       ANDI.W  #1,D0
+3D00            MOVE.W  D0,-(A6)
+	   ;
+	   ;  0=           ( n -- f )              if n = 0 then f is true
+	   ;  Alternate name is NOT
+	   ;
+4A5E            TST.W   (A6)+
+57C0            SEQ     D0
+0240 0001       ANDI.W  #1,D0
+3D00            MOVE.W  D0,-(A6)
+	   ;
+	   ;  0<           ( n -- f )              if n < 0 then f is true
+	   ;
+4A5E            TST.W   (A6)+
+5DC0            SLT     D0
+0240 0001       ANDI.W  #1,D0
+3D00            MOVE.W  D0,-(A6)
+	   ;
+	   ;  0>           ( n -- f )              if n > 0 then f is true
+	   ;
+4A5E            TST.W   (A6)+
+5EC0            SGT     D0
+0240 0001       ANDI.W  #1,D0
+3D00            MOVE.W  D0,-(A6)
+	   ;
+	   ;  D0=          ( d -- f )              if d = 0 then f is true
+	   ;
+4A9E            TST.L   (A6)+
+57C0            SEQ     D0
+0240 0001       ANDI.W  #1,D0
+3D00            MOVE.W  D0,-(A6)
+	   ;
+	   ;  D0<          ( d -- f )              if d < 0 then f is true
+	   ;
+4A9E            TST.L   (A6)+
+5DC0            SLT     D0
+0240 0001       ANDI.W  #1,D0
+3D00            MOVE.W  D0,-(A6)
+	   ;
+	   ;  D0>          ( d -- f )              if d > 0 then f is true
+	   ;
+4A9E            TST.L   (A6)+
+5EC0            SGT     D0
+0240 0001       ANDI.W  #1,D0
+3D00            MOVE.W  D0,-(A6)
+	   ;
+	   ;  AND          ( u1 u2 -- and )
+	   ;
+301E            MOVE.W  (A6)+,D0
+C156            AND.W   D0,(A6)
+	   ;
+	   ;  OR           ( u1 u2 -- or )
+	   ;
+301E            MOVE.W  (A6)+,D0
+8156            OR.W    D0,(A6)
+	   ;
+	   ;  XOR          ( u1 u2 -- xor )        Exclusive OR
+	   ;
+301E            MOVE.W  (A6)+,D0
+B156            EOR.W   D0,(A6)
+	   ;
+	   ;  1'S          ( u -- compl )          One's compliment
+	   ;
+4656            NOT.W   (A6)
+	   ;
+	   ;
+	   ;******************************************************************************
+	   ;
+	   ;  Control operations
+	   ;
+	   ;******************************************************************************
+	   ;
+	   ;  Note.. all control structures use the PC relative addressing mode
+	   ;         this makes the code position independent.
+	   ;
+	   ;
+	   ;  IF           ( f -- )
+	   ;               Takes an entry off the stack and branches if the value
+	   ;               is FALSE (0).
+	   ;
+4A5E            TST.W   (A6)+                   ;Remove and test flag
+6700 ****       BEQ     ELSE
+	   ;
+	   ;  ELSE         ( -- )
+	   ;               Branches around the else part and provides a target for the
+	   ;               false branch of the if part.
+	   ;
+6000 ****       BRA     ENDIF
+	   ELSE
+	   ;
+	   ;  ENDIF        ( -- )
+	   ;               Provides a target for the branch around the else part, and if
+	   ;               the else is missing provides a target for the false branch of
+	   ;               the if part.
+	   ;
+	   ENDIF
+	   ;
+	   ;  BEGIN        ( -- )
+	   ;               Provides a target for a branch back from UNTIL, AGAIN, REPEAT.
+	   ;
+	   BEGIN
+	   ;
+	   ;  UNTIL        ( f -- )
+	   ;               Takes an entry off the stack and branches to BEGIN if the
+	   ;               value is FALSE (0).
+	   ;
+4A5E            TST.W   (A6)+                   ;Remove and test flag
+6700 ****       BEQ     BEGIN
+	   ;
+	   ;  AGAIN        ( -- )
+	   ;               Always branches to BEGIN
+	   ;
+6000 ****       BRA     BEGIN
+	   ;
+	   ;  WHILE        ( f -- )
+	   ;               Takes an entry off the stack and branches to REPEAT if the
+	   ;               value is FALSE (0).
+	   ;
+4A5E            TST.W   (A6)+                   ;Remove and test flag
+6700 ****       BEQ     REPEAT
+	   ;
+	   ;  REPEAT       ( -- )
+	   ;               Always jumps back to begin and provides a target for WHILE.
+	   ;
+6000 ****       BRA     BEGIN
+	   REPEAT
+	   ;
+	   ;  DO           ( limit index -- )
+	   ;               Remove the index and limit from the data stack and put on
+	   ;               the return stack.  Provides a target for LOOP and +LOOP
+	   ;
+2F1E            MOVE.L  (A6)+,-(A7)
+	   DO
+	   ;
+	   ;  LOOP         ( -- )
+	   ;               Increment the index and test for end of the loop.
+	   ;
+5257            ADDQ.W  #1,(A7)                 ;Increment index
+4C97 0003       MOVEM.W (A7),D0/D1              ;Get index (D0) and limit (D1)
+B041            CMP.W   D1,D0
+6D00 ****       BLT     DO                      ;Continue if (index - limit) < 0
+588F            ADDQ.L  #4,A7                   ;Drop index and limit
+	   ;
+	   ;  +LOOP        ( n -- )
+	   ;               Add n to the index then
+	   ;                  IF n > 0 then continue if (index - limit) < 0
+	   ;                  ELSE continue if (index - limit) >= 0.
+	   ;
+301E            MOVE.W  (A6)+,D0                ;Get increment
+D157            ADD.W   D0,(A7)                 ;Update index
+4C97 0006       MOVEM.W (A7),D1/D2              ;Get index (D1) and limit (D2)
+4A40            TST.W   D0                      ;Test for negative
+6E04            BGT.S   $01
+B441            CMP.W   D1,D2                   ;Test (limit - index)
+6002            BRA.S   $02
+B242       $01  CMP.W   D2,D1                   ;Test (index - limit)
+6D00 ****  $02  BLT     DO                      ;Continue if (condition tested) < 0
+588F            ADDQ.L  #4,A7                   ;Drop index and limit
+	   ;
+	   ;  LEAVE        ( -- )
+	   ;               Terminate loop by seting limit equal to index
+	   ;
+3F57 0002       MOVE.W  (A7),2(A7)
+	   ;
+	   ;  Routines for accessing external programs and subroutines.
+	   ;
+	   ;
+	   ;  JSR.W        ( short address -- )
+	   ;               Jump to subroutine using short address from tos
+	   ;
+305E            MOVEA.W (A6)+,A0
+4E90            JSR     (A0)
+	   ;
+	   ;  JSR.L        ( long address -- )
+	   ;               Jump to subroutine using long address from tos
+	   ;
+205E            MOVEA.L (A6)+,A0
+4E90            JSR     (A0)
+	   ;
+	   ;  JMP.W        ( short address -- )
+	   ;               Jump to location pointed to by short address on stack
+	   ;
+305E            MOVEA.W (A6)+,A0
+4ED0            JMP     (A0)
+	   ;
+	   ;  JMP.L        ( long address -- )
+	   ;               Jump to location pointed to by long address on stack
+	   ;
+205E            MOVEA.L (A6)+,A0
+4ED0            JMP     (A0)
+	   ;
+	   ;
+	   ;******************************************************************************
+	   ;
+	   ;  Initialization operations
+	   ;
+	   ;******************************************************************************
+	   ;
+	   ;  Note.. the following words initialize the registers of the M68000
+	   ;
+	   ;
+	   ;  A5LD         Load the variable pool pointer
+	   ;
+2A7C 0000       MOVEA.L #0,A5
+     0000
+	   ;
+	   ;  A6LD         Load the data stack pointer
+	   ;
+2C7C 0000       MOVEA.L #0,A6
+     0000
+	   ;
+	   ;  A7LD         Load the return stack pointer
+	   ;
+2E7C 0000       MOVEA.L #0,A7
+     0000
+	   ;
+	   ;
+		END
+   ;
+	   ;  A7LD         Load the return stack pointer
+	   ;
+2E7C 0000       MOVEA.L #0,A7
+     00

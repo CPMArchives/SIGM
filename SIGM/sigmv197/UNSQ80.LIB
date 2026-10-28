@@ -1,0 +1,378 @@
+
+;	-------------------------------------------------------------
+;	UNSQ.LIB is a library file to be used with Digital Research's
+;	ED.COM to insert the set of subroutines which it contains
+;	into another program. The purpose of these subroutines is to
+;	read text from a file which has been squeezed by a program
+;	such as SQ.COM (SIG/M 58.26).
+;
+;	UNSQ.LIB is divided into several sections, which can be left
+;	as they are, or integrated into the host program, according
+;	to your sense of orderliness. There are two subroutines that
+;	will be most likely to be called upon - unii and onsq. The
+;	first should be called for initialization, because it reads
+;	in the code directory and sets it up. It also separates out
+;	the file's checksum and the unsqueezed file name. The second
+;	is to be called each time that a character is to be taken out
+;	of the squeezed file.
+;
+;	UNSQ.LIB assumes that the host program contains the following
+;	three subroutines:
+;
+;		ibyt - which will deliver one character from an
+;		       external input stream each time it is called.
+;		       the external stream can be taken from memory,
+;		       from a buffer that is periodically replenished
+;		       from disk, or whatever.
+;
+;		ufil - which will dispose of the characters forming
+;		       the unsqueezed file name one by one. It might
+;		       ignore them, store them in some file control
+;		       block, or make some other use of them.
+;
+;		ferm - which will type a fatal error message on the
+;		       console and then return to CP/M - or take any
+;		       other action which is desired.
+;
+;		     UNSQ.LIB  Copyright (C) 1984
+;		    Universidad Autonoma de Puebla
+;			    July 14, 1984
+;
+;	[Harold V. McIntosh, 14 July 1984]
+;	-------------------------------------------------------------
+
+;	-------------------------------------------------------------
+;	Section 1.  Equivalences defining constants.
+;
+;			CR, LF are used in the messages, and are
+;			traditionally defined in each program. 
+;
+;			csiz is the expected maximum number of
+;			characters which have been coded; 256
+;			is appropriate if all possible bytes may
+;			have been encoded.
+;
+;			<idhi,idlo> = <FF76> but some other pair
+;			might sometimes be used to mark a squeezed
+;			file
+
+CR	equ	0DH
+LF	equ	0AH
+
+csiz	equ	256
+idhi	equ	0FFH
+idlo	equ	076H
+
+;	-----------------------------------------------------------
+;	Section 2.  Initialization.
+;
+;		<call unii> will initialize two necessary variables
+;		(rcnt, roco), then start reading the squeezed file.
+;		This file must previously have been opened, and its
+;		suitability checked - eg that it has extension ?Q?.
+;		It may even have already been loaded into memory.
+;		All interaction with it is through <call ibyt>, and
+;		the only requirement is that ibyt start reading the
+;		file from the beginning.
+;
+;		unii goes through the following sequence:
+;
+;			check squeezed marker <FF76>
+;			read and store checksum
+;			read, make available name for original file
+;			check the length of the code dictionary
+;			load and store the code dictionary
+;
+;		unii will offer a fatal error message if
+;
+;			the marker <idhi,idlo> is not present
+;			space will not accomodate the code table
+;
+;		unii requires two host subroutines:
+;
+;			ibyt returns the next byte from the source
+;			ufil disposes of the original file name
+;
+;		No assumptions should be made concerning conservation
+;		of the 8080 registers by unii.
+;
+;		unii will alter the following memory registers:
+;
+;			rcnt - repeated character - set to 0
+;			roco - count bits/byte - set to 1
+;			cksm - checksum - set to file's checksum
+;			dode - code table - loaded with dictionary
+
+;	Initializations.
+
+unii:	mvi	a,0
+	sta	rcnt		;repetition count
+	mvi	a,1
+	sta	roco		;bit rotation counter
+
+;	Set up code table. Squeezed files seem to begin with the
+;	hexadecimal word (FF76) stored in Intel byte order, which
+;	would not be likely to start an unsqueezed file.
+
+cota:	call	ibyt		;fetch one byte from input stream
+	cpi	idlo
+	jnz	cote		;mssg: 'not squeezed file'
+	call	ibyt		;fetch one byte from input stream
+	cpi	idhi
+	jz	rchk		;read checksum
+cote:	lxi	d,nsqz		;'not a squeezed file'
+	jmp	ferm		;fatal error message
+
+;	The "squeezed" marker is followed by a two-byte checksum,
+;	which is the simple sum of all the one-byte characters in
+;	the source file, carried as a two byte sum modulo 2**16.
+
+rchk:	call	iwor		;fetch two bytes from input stream
+	shld	cksm		;checksum
+
+;	Unsqueezed file name. It is an ASCII sequence, may be lower
+;	case if SQ.COM received it in response to a prompt, ending
+;	with a zero byte. Some trash may be present if SQ.COM wasn't
+;	used correctly. If the file name is to be used for something,
+;	such as defining an output file or checking the file type,
+;	this is the place to insert the appropriate code.
+
+luup:	call	ibyt		;fetch one byte from input stream
+	push	psw
+	call	ufil		;process unsqueezed filename
+	pop	psw
+	ora	a
+	jnz	luup
+
+;	Load code dictionary. It is preceded by its two-byte length,
+;	and consists of a series of pairs of two-byte addresses. For
+;	each bit in the code, select the first element (0) or the
+;	second (1) element of the pair. If the pair is positive, it
+;	is the table entry (code + 4*index) at which to continue with
+;	the next bit. If the pair is negative, it is the complement
+;	of the coded ASCII character (low order byte except for [end]).
+
+ldic:	call	iwor		;fetch two bytes from input stream
+	dad	h
+	dad	h
+	mov	c,l
+	mov	b,h
+	lxi	h,csiz
+	mov	a,l
+	sub	c
+	mov	a,h
+	sbb	b
+	jnc	ldii
+	lxi	d,ntab		;'insufficient dictionary'
+	jmp	ferm		;fatal error message
+
+ldii:	lxi	h,code		;decoding table
+ldij:	push	b
+	push	h
+	call	ibyt		;fetch one byte from input stream
+	pop	h
+	pop	b
+	mov	m,a
+	inx	h
+	dcx	b
+	mov	a,c
+	ora	b
+	jnz	ldij
+	ret
+
+;	----------------------------------------------------------
+;	Section 3.  Read next unsqueezed byte.
+;
+;			<call onby> will withdraw a sufficient
+;			number of bits from the source file to
+;			generate one byte, returning it in the
+;			accumulator. The end of the source file
+;			will be signified by c = 1; otherwise
+;			c = 0 will prevail. Reading of the source
+;			file may terminate before this condition
+;			is reached, for example if the source
+;			was an ASCII file terminating with ^Z,
+;			or a HEX file terminated by a final line.
+;
+;			The preservation of registers cannot be
+;			guaranteed; surround <call onby> with
+;			pushes and pops is such continuity is
+;			required.
+;
+;			onby will solicit the fatal error message
+;			subroutine if the [eof] marker signified
+;			by c = 1 has been reached without the
+;			checksum having balanced. This protection
+;			can be secured for files that were not
+;			read in their entirity by reading out the
+;			remaining bytes in a dummy loop.
+;
+;			onby alters the following memory registers:
+;
+;				lach - last character deposited
+;				rcnt - repetition count
+;				roco - rotating bit counter
+;				roby - rotating byte
+;				cksm - checksum
+
+;	Type unsqueezed code. Beware of the [end] marker,
+;	and also the repeat marker 90H which occurs in the
+;	combination <char><90H><count>. When count is zero,
+;	90H itself is intended; otherwise <char> is to be
+;	repeated <count> times, including the occurrence just
+;	before 90H was seen.
+
+onsq:	lda	rcnt		;repetition count
+	ora	a
+	jnz	onsr
+	call	dnch		;decode next character
+	jc	vchk		;verify the checksum
+	cpi	090H		;repeat last character
+	jnz	onsu		;normal character
+	call	dnch		;decode next character
+	ora	a
+	jz	onss
+	dcr	a
+onsr:	dcr	a
+	sta	rcnt		;repetition count
+	lda	lach
+	jmp	achk
+
+onss:	mvi	a,090H
+	jmp	achk
+
+onsu:	sta	lach		;last character typed
+	jmp	achk
+
+;	Decode next character.
+
+dnch:	lxi	h,code		;decoding table
+dncr:	call	ibit		;read next bit
+	jnc	dncs		;skip for 1, stay for 0
+	inx	h
+	inx	h
+dncs:	mov	e,m		;get next offset
+	inx	h
+	mov	d,m
+	mov	a,d
+	cpi	0FEH		;FEFF means [end]
+	jz	dnct
+	ora	a
+	jp	dncu		;p means new offset
+	mov	a,e		;m means complemented char
+	cma
+	stc
+	cmc
+	ret
+
+dnct:	stc			;flag [end] with carry bit
+	ret
+
+;	Calculate <code>+4*<offset>.
+
+dncu:	lxi	h,code		;decoding table
+	dad	d
+	dad	d
+	dad	d
+	dad	d
+	jmp	dncr
+
+;	Read one bit at a time.
+
+ibit:	push	h
+	lxi	h,roco		;bit rotation counter
+	dcr	m
+	jnz	ibiu
+	mvi	m,8
+	call	ibyt		;fetch one byte from input stream
+	sta	roby		;rotating byte
+ibiu:	lda	roby		;rotating byte
+	rar
+	sta	roby		;rotating byte
+	pop	h
+	ret
+
+;	Read one word.
+
+iwor:	call	ibyt		;fetch one byte from input stream
+	mov	l,a
+	push	h
+	call	ibyt		;fetch one byte from input stream
+	pop	h
+	mov	h,a
+	ret
+
+;	Accumulate checksum.
+
+achk:	lxi	h,cksm
+	mov	b,a
+	mov	a,m
+	sub	b
+	mov	m,a
+	inx	h
+	mov	a,m
+	sbi	0
+	mov	m,a
+	mov	a,b
+	stc
+	cmc
+	ret
+
+;	Verify the checksum.
+
+vchk:	lhld	cksm		;checksum
+	mov	a,l
+	ora	h
+	stc
+	rz			;return to CP/M
+	lxi	d,chno		;'Checksum failure.'
+	jmp	ferm		;fatal error message
+
+;	-----------------------------------------------------------
+;	Section 4.  Host subroutines.
+;
+;			The following subroutines must be provided
+;			by the host program:
+;
+;				ibyt - deliver the next byte from
+;				the source program, in register A,
+;				on each call. Need not preserve any
+;				8080 registers.
+;
+;				ufil - must absorb one byte from
+;				register A on each call. These bytes
+;				will be the information that is
+;				nominally the name of the source
+;				file, SOURCE.EXT, including the dot.
+;				ufil should be prepared for possible
+;				variants, however. ufil will be given
+;				final zero byte to signal the end of
+;				the bytestream it will receive. Of
+;				course, ufil could be imbedded in
+;				place of a call to it.
+;
+;				ferm - send a fatal error message to
+;				the console. Normally control would
+;				return to CP/M, but some other action
+;				may be taken.
+
+ibyt:	ret			;fetch byte from the input stream
+ufil:	ret			;process unsqueezed filename
+ferm:	ret			;fatal error message
+
+;	-------------------------------------------------------------
+;	Section 5.  Messages and memory locations used by the program.
+
+ntab:	db	CR,LF,'Insufficient dictionary space.$'
+nsqz:	db	CR,LF,'Not a squeezed file.$'
+chno:	db	CR,LF,'Checksum failure.$'
+
+lach:	ds	1		;last character typed
+rcnt:	ds	1		;repetition count
+roco:	ds	1		;rotating bit counter
+roby:	ds	1		;rotating byte
+cksm:	ds	2		;checksum
+code:	ds	4*csiz		;decoding table
+
+	end
+

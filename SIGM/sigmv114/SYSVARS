@@ -1,0 +1,224 @@
+SYSTEM VARIABLES (Pointers to memory locations)
+copyright (C) 1983 by E. E. Bergmann
+definitions in alphabetical(ASCII) order
+:
+::
+*********************************************************
+*							*
+* PISTOL-Portably Implemented Stack Oriented Language	*
+*			Version 2.0			*
+* (C) 1983 by	Ernest E. Bergmann			*
+*		Physics, Building #16			*
+*		Lehigh Univerisity			*
+*		Bethlehem, Pa. 18015			*
+*							*
+* Permission is hereby granted for all reproduction and *
+* distribution of this material provided this notice is *
+* included.						*
+*							*
+*********************************************************
+:
+::
+{unless specified otherwise, pointers are to RAM locations}
+
+#GET-ADDR	Assigned the address of #GETLINE (which is
+		later UNLINKed) which is defined in PISTOL to
+		take the line number that is on top of stack,
+		locate the line (in the edit buffer) and copy
+		it into LINEBUF where it can be accessed
+		subsequently by the PISTOL compiler.
+
+#LINES		After PISTOL accepts input for compilation, the
+		variable is reset to 0. As each line is output
+		this variable is incremented and compared with
+		the current value of TERMINAL-PAGE; if equal
+		input from the user (typically a carriage
+		return) is used to cause a pause in the output
+		scrolling.  At this point, any input character
+		will cause #LINES to be reset to 0.  If the
+		input character is a 'Q', the current activity
+		is ABORTed.
+
+(PISTOL<)	Variable that contains pointer to most recent
+		definition in the PISTOL< vocabulary branch;
+		see PISTOL<, below.
+
+(UNLINKED<)	Variable that contains pointer to most recent
+		definition in the UNLINKED< vocabulary branch;
+		see UNLINKED<, below.
+
+
+
+.C		Used during compilation to point to where the
+		next word token will be placed in the compile
+		buffer.
+
+.D		The "dictionary pointer";  Its value points to
+		the next available word address at the end of
+		the dictionary in RAM.  It advances as a result
+		of each new definition.
+
+.V		--> (pointer to top of vocabulary stack)
+		It is the vocabulary stack pointer.
+
+ABORT-PATCH	Normally contains FALSE, but may be assigned
+		the address of a routine that should be
+		performed after a standard ABORT.
+
+BRANCH-LIST	Each time a BRANCH definition is created it is
+		added to the head of a threaded list of
+		vocabulary branches.  BRANCH-LIST points to the
+		most recently defined branch.
+
+COLUMN		Variable that contains the column number that
+		the console is at during output.  It is reset
+		to 0 whenever a NEWLINE character is output.
+		During output to the console if the value of
+		COLUMN becomes equal to the value of
+		TERMINAL-WIDTH then a new line is begun.
+
+COMPILE-END-PATCH
+		Normally has the value of FALSE.  It may be
+		assigned the address of a proceedure to be
+		invoked after every compilation, prior to
+		the normal execution of the compile buffer.
+		It is used, for example, in SHOWCODE, to cause
+		the contents of the compile buffer to be
+		displayed prior to execution.
+
+CONSOLE		Boolean variable that will prevent output
+		to the user's terminal if it is set to FALSE.
+		Probably would be used in connection with
+		writing lengthy output to the listfile when
+		there is no desire to have this information
+		presented to the user's console as well.
+
+CONVERT-PATCH	Normally holds FALSE but may be patched with
+		the address of a routine that would be invoked
+		in the event the compiler cannot decipher the
+		input token (cannot FIND it, cannot convert it
+		into a numerical value, nor be able to
+		recognize it as a quoted string).  It has
+		potential application to providing floating
+		point number recognition and/or special number
+		bases, e.g.: 0A000H or 0xA000.
+
+CURRENT		Variable containing pointer to vocabulary
+		branch into which the next word definition
+		will be placed.  Normally, this pointer points
+		at the last definition.
+
+CURRENT-EOSTRINGS
+		"current end of strings" points to the end of
+		strings that have been created during the most
+		recent compilation, which, generally have
+		pointers to them on stack.  The area in strings
+		between OLD-EOSTRINGS and CURRENT-EOSTRINGS
+		will be recycled during the next compilation
+		because compilation starts by resetting the
+		CURRENT-EOSTRINGS to the OLD-EOSTRINGS.
+		Strings are made "permanent" by advancing the
+		OLD-EOSTRINGS to the CURRENT-EOSTRINGS.
+
+ECHO		Boolean variable which, when set TRUE, causes
+		whatever PISTOL code that is being LOADed to be
+		listed as it is being compiled.
+
+INPUTFILE-STATUS
+		Contains the status of the file being input by
+		the editor (opened by OPENR).  If its value is
+		0, the file has just been opened. If positive,
+		it is a count of the number of lines read so
+		far.  If -1, no file has been opened or: if
+		negative, the number of lines read (magnetude)
+		and the file is in an eof condition.
+
+INFILE		Does not contain 0 when LOADing from a file
+		or from the edit buffer.  Contains pointer to
+		original (temporary) filename string if
+		inputing from a file.  If input is from the
+		edit buffer, its contents is the current line
+		number.  INFILE contains 0 [false] when
+		interpreting from the console keyboard.
+
+LIST		Boolean variable when true causes the system
+		to output everything that would go to the
+		user's console to the listfile as well.  (see
+		LISTFILE in i/o).
+
+NEXTCH^		Pointer to the next character in LINEBUF (in
+		the strings area) that is to be compiled.
+		This variable is used by the compiler but is
+		potentially useful for routines that might be
+		written in PISTOL to extend the compiler.
+
+OLD-EOSTRINGS	Pointer-to-character variable that points to
+		the first character location beyond the last
+		"permanent" string.  See the above discussion
+		for CURRENT-EOSTRINGS.
+
+OLDLINE#	Holds the number of the numbered line last
+		located.  Although primarily used to speed
+		searching for successively numbered lines,
+		it may prove useful to find out which numbered
+		line was last found prior to the compiler
+		quitting.
+
+OUTPUT-STATUS	Indicates status of file for editor's output
+		(file opened by OPENW).  If value is +1, no
+		file has been opened yet, or it has been
+		logically closed.  If the value is 0, the file
+		has just been opened, but not yet used.  If
+		negative, it's magnetude is the count of the
+		number of lines written to the file so far.
+
+PREVIOUS	Variable that contains the address of the
+		previous link to the definition last found
+		by FIND or VFIND.  It is used by UNLINK and
+		RELINK to obtain the link to the item searched
+		for.
+
+PROMPT-PATCH	Patch location to place address of replacement
+		procedure for standard prompt.
+
+RADIX		Contains currentt number base used for i/o
+		number conversions.  For example, it is set to
+		ten for DECIMAL mode.
+
+RADIX-INDICATOR	Points to character that should indicate
+		(during prompt) the current numerical
+		conversion mode: 'H' for hexadecimal; 'X' for
+		decimal; 'Q' for octal; and 'B' for binary.
+
+RAISE		Boolean variable which causes system to convert
+		all word tokens and single-quote strings to
+		upper case.
+
+SYNTAXBASE	Points to character count of character string
+		that serves as the syntax check stack.  The
+		syntax stack can be displayed in the same
+		manner as the prompt with:
+		SYNTAXBASE MSG
+
+TAB-SIZE	Normally set to 8. It determines the space
+		between tab stops.
+
+TERMINAL-PAGE	Determines number of lines output between
+		scrolling pauses.  See #LINES .
+
+TERMINAL-WIDTH	Determines number of characters per line before
+		automatic newlines.  See COLUMN .
+
+TRACE-ADDR	Patched with the address of the (TRACE) routine
+		that is used during TRACE.
+
+TRACE-LEVEL	If FALSE no TRACE action is performed.  If
+		positive, determines, level (depth of return
+		stack) at which TRACE diagnostic information
+		is displayed.  This variable is manipulated by
+		TRACE and by (TRACE).  It should not be
+		modified by the user directly.
+
+:
+or
+		decim

@@ -1,0 +1,433 @@
+
+                             LINPACK
+
+                           Version 1.1
+                        February 22, 1985
+
+                           Adam Fritz
+                         133 Main Street
+                      Afton, New York 13730
+
+
+INTRODUCTION
+============
+
+     Thió  writeuğ  discusseó Pascaì anä Ã conversioî anä  micro
+computeò performancå measuremenô oî representativå routineó  froí 
+thå LINPACË (1© library.
+
+     Referencå ± discusseó anä listó thå routineó called;
+
+   LINPACË - LINeaò systemó PACKage,
+
+along with supporting routines  called;
+
+   BLAS - Basic Linear Algebra Subprograms.
+
+Theså  routineó compriså FORTRAÎ prograí encodingó oæ  algorithmó 
+intendeä  tï  solvå problemó connecteä witè  simultaneouó  lineaò 
+equations.
+
+     Referencå ² presentó tabulationó oæ runtimå performancå  foò 
+applicatioî oæ twï LINPACË algorithms¬  viz.;
+
+   SGEFA - Single precision/GEneral matrix/FActor
+
+and
+
+   SGESL - Single precision/GEneral matrix/SoLve,
+
+for different precisions and different computers.
+
+     The  routines  that accompany this writeup are listed  below 
+witè brieæ discussions®    Pascal¬  C¬  anä correspondinç FORTRAÎ 
+routineó  arå  presenteä iî  librarieó  LPAK11/T¬  LPAK11/C¬  anä 
+LPAK10/F, respectively.
+
+   CODR - Driver for SGECO and SGEFA.
+   SLDR - Driver for SGEFA and SGESL.
+   DIDR - Driver for SGECO, SGEFA, and SGEDI.
+
+      These are test driver programs.   They prompt the user  for 
+      test   system order and printout code.    They call  SYSGEN  
+      to  compose   a  coefficient matrix and a right  hand  side 
+
+Copyright (C) 1985 Adam Fritz, 133 Main Street, Afton, NY  13730Š      vector,  then call SGECO or  SGEFA as appropriate, and then 
+      call SGESL or SGEDI with intermediate printout  conditioned 
+      on a user prompted print flag.
+
+   SYSGEN - Generate Test Matrix and Object Vector.
+
+      Test system generator.   This program is taken from a  SICE 
+      test program by the author.   It generates a Hilbert matrix 
+      and a right hand side vector comprised of the matrix diago
+      nal.   The  test  matrix is arbitrary because  Reference  2 
+      compareó  runtimå anä noô precision®  Thió tesô  matriø  ió 
+      symmetriã  ratheò thaî generaì anä ió á poorlù  conditioneä 
+      system.
+
+   SGECO - Single Precision General Matrix Condition.
+   SGEFA - Single Precision General Matrix Factorization.
+   SGESL - Single Ptrecison General System Solution.
+   SGEDI - Single Precision General Determinant and Inverse.
+
+      Translated from Reference 1.
+
+   OUT - Show Intermediate Results Conditioned on Print Code.
+
+      Adapted from Reference 3.
+
+   ISAMAX - Integer Valued Single Precision Real Array Maximum.
+   SASUM - Sum of Absolute Values.
+   SAXPY - Single  Precision Real Vector Times a Constant Plus  a 
+           Vector.
+   SCOPY - Copies Vector to Vector.
+   SDOT - Single Precison Real Vector Dot Product of Two Vectors.
+   SSCAL - Single Precision Real Vector Times a Constant.
+   SSWAP - Swap Two Vectors.
+
+      Translated from Reference 1 onto BLAS.
+
+
+CONVERSION
+==========
+
+Pascal
+------
+
+     There  are  two important conversion  issues;  FORTRAN  vrs. 
+Pascaì  subprograí  arguments¬  anä FORTRAÎ vrs®  Pascaì  storagå 
+allocatioî  tï multidimensionaì arrays®  Therå arå  manù  changeó 
+thaô arå syntactical¬  somå thaô arå matteró oæ programinç style¬  
+anä  á fe÷ baseä oî expedienô conformitù tï microcomputeò runtimå 
+environments.
+
+     Pascal  is a so-called strongly typed language.   If a vari
+able is declared to be an array and is used as an actual argument 
+
+
+Copyright (C) 1985 Adam Fritz, 133 Main Street, Afton, NY  13730Što  a subprogram with a formal argument that is  scalar,  then  a 
+compiler error message notes the inconsistent usage.  FORTRAN has 
+no such qualms.   Part of the terseness and ingenuity of BLAS and 
+LINPACK  in  FORTRAN is the way arrays and parts  of  arrays  are
+communicated.   FORTRAN uses call by name so that when an element 
+of  an  array is used as an actual argument the address  of  that 
+elemenô  ió presenteä tï thå subprogram®   Iæ thå subprograí  de
+clareó the corresponding formal argument to be a vector then  the 
+corresponding components of the actual array can be accessed.  In 
+Pascal  such  usage is that associated with pointers.   The  BLAS 
+routines have been modified to make explicit use of pointers. The 
+changes do not materially affect the routines.
+
+     LINPACK and BLAS,  in particular,  are written to conform to 
+FORTRAN usage in allocating storage to multidimensional arrays by 
+column or with first subscript changing fastest.   Pascal,  TURBO 
+Pascaì anä MÓ Pascaì anyway¬  storeó bù row®  Thå foresighô showî 
+iî  desigî  oæ BLAÓ allowó thió probleí tï bå  solveä  simplù  bù 
+changinç  thå incremenô specifieä oî calló tï BLAÓ froí  LINPACK® 
+Thå  LINPACË changeó arå simplå anä thå BLAÓ routineó arå altereä 
+tï removå thå partiallù unrolleä loopó foò no÷ unlikelù caseó  oæ  
+unitù increment.
+
+     Therå arå syntacticaì differenceó betweeî Pascaì versionó iî 
+handlinç  pointers®   TURBÏ  useó '^Object§ tï denotå  á  pointeò 
+whilå  MÓ  Pascaì useó 'ADÓ OÆ Object§ witè  similaò  differenceó 
+betweeî usagå oæ Ptr¬ anä Addò oò Seg/Ofó witè TURBÏ anä ADÓ witè 
+MS®   Thå  routineó distributeä witè thió releaså arå  compatiblå 
+with TURBO.
+
+C
+-
+     Iî  additioî  tï thå chieæ Pascaì conversioî  issues¬  viz.¬ 
+argumenô conventionó anä ro÷ majoò arraù storage¬  Ã alsï  raiseó 
+thå  zerï  origiî  indexinç issue®   Thió probleí ió  avoideä  iî 
+Pascaì bù declarinç dimensionó [1..n]®   Iî C¬ declarinç á dimen
+sioî  [nİ meanó indiceó froí ° tï n-1®   Thió createó  á  probleí 
+becauså  iô forceó distinctioî betweeî variableó useä aó  indiceó 
+anä thoså useä aó counters.
+
+     Iî additioî tï thå routineó distributeä foò Pascaì therå  ió 
+á  routinå  iî Ã nameä Abs(© whicè returnó floaô absolutå oæ  itó 
+argument.
+
+
+
+PERFORMANCE
+===========
+
+     The  table below is excerpted from Reference 2 showing  per
+formancå  usinç singlå precisioî arithmetiã foò á 100x10°  lineaò 
+
+
+
+Copyright (C) 1985 Adam Fritz, 133 Main Street, Afton, NY  13730Šsysteí   witè  variouó  equipmenô anä  softwarå   configurations®  
+Entrieó  foò SBC-200¬  CO16¬  anä Heath/Zenith-10° microcomputeró 
+arå interpolated.
+
+     Thå  micrï  computeò softwarå whoså performancå ió  reporteä 
+herå  doeó noô convenientlù supporô 100x10° arrays®  Thå  100x10° 
+resultó arå extrapolateä froí nxî caseó iî accorä witè  Ref. ±;
+
+                      3                    2
+   Time(100) = (100/n) * SGEFA(n) + (100/n) * SGESL(n)    
+
+wherå  î  waó eitheò 7µ oò 5° dependinç, generallù, upoî  whetheò 
+singlå oò fulì precisioî waó employed;
+
+   --------------------------------------------------------------
+  |                                                             |
+  |          Solving a System of Linear Equations               |
+  |             with LINPACK in Half Precision                  |
+  |                                                             |
+  |  computer           os/compiler        ratio  mflops  time  |
+  |                                                       secs  |
+  |                                                             |
+  |  Fujitsu vp-200     f77 (c dir)         0.62   20     .035  |
+  |  Fujitsu vp-200     f77 (r blas)        0.69   18     .039  |
+  |  Hitachi s-810/20   f77/hap (r blas)    0.78   16     .044  |
+  |  NAS 9060 w/vpf     vs opt=2 (c blas)   1.5    8.4    .082  |
+  |  Fujitsu m-380      f77 opt=3           1.7    7.0    .098  |
+  |  Amdahl 5860 hsfpf  h enh opt=3         2.2    5.5    .125  |
+  |  NAS 9060           vs opt=2            2.4    5.2    .133  |
+  |  Amdahl 5860 hsppf  vs opt=3            2.4    5.1    .135  |
+  |  Amdahl 470 v/8     h enh opt=3         4.4    2.8    .246  |
+  |  Amdahl 470 v/8     vs opt=3            4.5    2.7    .254  |
+  |  IBM 3081 k         h enh opt=3         5.1    2.4    .283  |
+  |  IBM 3081 k         vs opt=3            5.6    2.2    .311  |
+  |  IBM 3033           vs fortran          6.3    1.9    .353  |
+  |  IBM 3081 d         vs opt=3            6.7    1.8    .376  |
+  |  IBM 4381           vs opt=3            14     .86    .353  |
+  |  Harris 1000        vos 3.3 (c blas)    15     .83    .825  |
+  |  Harris 1000        vos 3.3 opt g       22     .57    1.21  |
+  |  Concept 32/8750    utx/32              23     .54    1.27  |
+  |  VAX 11/785 fpa     vms (c blas)        23     .53    1.30  |
+  |  Univac 1100/81     ascii opt=zeo       24     .52    1.32  |
+  |  IBM 4361           vs opt=3            29     .42    1.65  |
+  |  DG mv/10000        f77 opt level 2     31     .39    1.75  |
+  |  VAX 11/785 fpa     vms                 36     .34    2.01  |
+  |  VAX 11/780 fpa     vms (c blas)        37     .33    2.08  |
+  |  IBM 370/158        h opt=3             42     .29    2.35  |
+  |  ND-500             fortran-500-e       43     .27    2.58  |
+  |  DEC kl-20          f20                 46     .27    2.59  |
+  |  IBM 370/158        vs opt=3            46     .26    2.60  |
+  |  Univac 1100/62     ascii opt=zeo       49     .25    2.77  |
+  |  ICL 2988           f77 opt=2           50     .25    2.79  |
+
+
+Copyright (C) 1985 Adam Fritz, 133 Main Street, Afton, NY  13730Š  |  Harris 800         f77                 53     .23    2.99  |
+  |  VAX 11/750 fpa     vms (c blas)        56     .22    3.14  |
+  |  IBM 4341 mg10      cs opt=3            57     .22    3.18  |
+  |  VAX 11/780 fpa     bsd unix 4.2 f77    58     .21    3.25  |
+  |  VAX 11/780 fpa     vms v4.2            58     .21    3.27  |
+  |  Honeywell 6080     y                   62     .20    3.46  |
+  |  Concept 32/6750    utx/32              65     .19    3.63  |
+  |  DG mv/8000         f77 opt level 2     69     .18    3.84  |
+  |  VAX 11/780         vms                 74     .17    4.13  |
+  |  VAX 11/750 fpa     vms v3.4            88     .14    4.90  |
+  |  Ridge 32           f77                 88     .14    4.90  |
+  |  Prime 750          primos f77 v19.1    89     .14    5.00  |
+  |  VAX 11/750 fpa     bsd unix 4.2 f77    91     .13    5.12  |
+  |  Prime 850          primos              97     .13    5.41  |
+  |  HP 9000 series 500 fortran 1.7        125    .098    7.00  |
+  |  VAX 11/750         vms v3.4           138    .089    7.71  |
+  |  IBM 4331           h opt=3            140    .088    7.84  |
+  |  Apollo dn 460      ftn opt            145    .085    8.11  |
+  |  Pyramid w/o fpa    f77                151    .081    8.47  |
+  |  Apollo peb         4.1 (c blas)       177    .069    9.92  |
+  |  VAX 11/750         bsd unix 4.1 f77   204    .060    11.4  |
+  |  VAX 11/730 fpa     vms (c blas)       205    .060    11.5  |
+  |  VAX 11/725 fpa     vms (c clas)       205    .060    11.5  |
+  |  Masscomp 500 w/fp  unix f77 opt       227    .054    12.7  |
+  |  Burroughs 6700     h                  234    .052    13.1  |
+  |  Prime 2250         f77                258    .048    14.5  |
+  |  VAX 11/730 fpa     vms                259    .047    14.5  |
+  |  VAX 11/725 fpa     vms                259    .047    14.5  |
+  |  CRDS 6835+sky      svs f77            284    .043    15.9  |
+  |  IBM pc-xt/370      h opt=3            303    .040    17.0  |
+  |  DEC ka-10          f40                305    .040    17.1  |
+  |  Canaan             vs                 306    .040    17.1  |
+  |  SUN 2+sky          unix f77 opt       314    .039    17.6  |
+  |  Apollo peb         4.1                334    .037    18.7  |
+  |  Compaq pc/8087     ms3.13(c blas)     591    .021    33.1  |
+  |  CRDS 6835          svs f77            770    .016    43.1  |
+  *  CO16 8mhz 8087     ms3.2              846    .0145   47.4  *
+  |  Cadtrak ds1/8087   intel f77          893    .013    50    |
+  |  SUN 2              unix f77 opt       966    .013    54.1  |
+  |  Masscomp 500       unix f77 opt      1015    .012    56.8  |
+  |  IBM pc/8087        ms3.1             1071    .011    60    |
+  |  HP 9000 series 200 hp-ux             1196    .010    67    |
+  |  SUN                unix f77 no opt   1298   .0094    72.7  |
+  |  Tandy 2000         ms3.13            3763   .0033    211   |
+  *  CO16 8mhz 8086     tp3.01a           4911   .0025    275   *
+  *  SBC-200 4mhz z80   cp/m2.2/ms3.2    10946   .00112   613   *
+  *  SBC-200 4mhz z80   cp/m2.2/tp2.0    15301   .00080   857   *
+  *  CO16 8MHz 8086     tp2.00b          16250   .00075   910   *
+  |  IBM pc             ms3.1            21875   .00056  1225   |
+  *  SBC-200 4mhz z80   cp/m2.2/eco-c3.1 36071   .00034  2020   *
+  |  APPLE iii          pascal           50232   .00024  2813   |
+  *  SBC-200 4mhz z80   cp/m.2./cii1.06b 84677   .00014  4742   *
+  |_____________________________________________________________|
+
+Copyright (C) 1985 Adam Fritz, 133 Main Street, Afton, NY  13730Šwhere;
+ 
+   ratio  - is to a Cray-1 S using FORTRAN coded BLAS. (Ref. 2)
+            See file LINPACK.ADD for FULL precision listing.
+   c blas & r blas - denote coded and rolled versions of BLAS.
+   mflops - millions  of floating point operations per second and 
+            there   are (2/3 n**3 + 2  n**2)   operations.   Each 
+            operation  comprises a multiplication,  an  addition, 
+            and the associated indexing and load and store  func
+            tions.  For n = 100 there are 686667 such operations.
+   time   - one call to SGEFA and one call to SGESL.
+
+     TURBO  Pascal performs floating point arithmetic with  about 
+11 decimal digits precision.   This is more than single precision 
+and less than double or extended precision.   This  difference is 
+important for applicability of numerical results.  
+
+     Thå  routineó CODR.ª arå driveró foò LINPACK'ó  SGECO®   Thå 
+tablå belo÷ showó thå ra÷ anä foldeä valuå oæ  RCOND¬  reciprocaì 
+condition¬ oæ thå matriø foò differenô orderó oæ thå samå Hilberô 
+tesô matrix® Thå foldeä valuå ió thaô computeä (1.0+RCOND)-1.0® 
+
+=================================================================
+               TURBO               |          MS Fortran
+-----------------------------------------------------------------
+         RCond           RCond     |     RCond          RCond
+order                   folded     |                   folded
+-----------------------------------------------------------------
+3 | 1.46884015E-03  1.46884014E-03 | .14688422E-02  .14688969E-02
+4 | 4.64608613E-05  4.64608602E-05 | .46460722E-04  .46491623E-04
+5 | 1.44074255E-06  1.44074147E-06 | .14412633E-05  .14305115E-05
+6 | 4.42113838E-08  4.42105375E-08 | .44548891E-07  .00000000E+01
+7 | 1.34783286E-09  1.34605216E-09 |
+8 | 4.08837011E-11  4.00177669E-11 |
+9 | 1.21641596E-12  0.00000000E+00 |
+=================================================================
+
+     The  test matrix is singular to working precision at order 6 
+foò FORTRAÎ anä aô ordeò ¹ foò TURBO®  Thió difficultù ió furtheò 
+illustrateä bù considerinç RConä foò Azteã Ã IÉ anä Eco-C;
+
+=================================================================
+             Aztec C II            |           Eco-C    
+-----------------------------------------------------------------
+         RCond           RCond     |     RCond          RCond
+order                   folded     |                   folded
+-----------------------------------------------------------------
+3 | 1.468846E-03    1.464844E-03   | 1.468843E-3    1.468897E-3 
+4 | 4.649139E-05    4.577637E-05   | 4.646098E-5    4.649162E-5  
+5 | 1.464302E-06    0.000000E+00   | 1.441097E-6    1.430511E-6  
+6 |                                | 4.475317E-8    0.000000E0   
+=================================================================
+
+
+Copyright (C) 1985 Adam Fritz, 133 Main Street, Afton, NY  13730Š     Foò  botè  theså caseó á 3² biô singlå precisioî  formaô  ió 
+used®  However¬  Azteã Ã IÉ useó á baså 25¶ exponenô whilå  Eco-Ã 
+useó  á  baså ² exponenô anä hiddeî biô  normalization®   Similaò 
+differenceó ariså oî miné anä mainframå computeró usinç variouslù 
+32¬  36¬  etc®  singlå precisioî encodingó witè baså 2¬  16¬ etc® 
+exponents®   Azteã Ã IÉ simplù dramatizeó thå probleí becauså  iô 
+allowó  aî encodinç witè aó fe÷ aó 1· significanô bitó anä  failó 
+tï providå meaningfuì resultó foò á 5xµ tesô matrix.
+
+
+COMMENT
+=======
+
+     It  is  fatuous to suggest that timing benchmarks  have  any 
+meaning  for  application to this test matrix for  orders  beyond 
+those at which working precision vanishes.
+
+     Thå runtimå anä precisioî benchmarkó presenteä herå contrasô 
+favorablù witè publisheä microcomputeò benchmarks®  LINPACK  rou
+tineó arå iî dailù applicatioî arounä thå worlä solvinç  meaning
+fuì problems.
+
+
+NOTES
+=====
+
+   1. CODR, SLDR, and DIDR use a leading dimension that is speci
+      fied in LINPACK.CON or LINPACK.H, as appropriate.
+
+   2. SGECO,  SGEFA,  SGESL,  and  SGEDI  are  just one  part  of 
+      LINPACK.   Other routines are offfered  by Reference 1 that 
+      deal  with  COMPLEX  variables  for  symmetric  and  banded 
+      systems   and   other  linear   systems   problems.   Their 
+      translations are not presented here.
+
+   3. In  FORTRAN it is a simple matter to edit the source  files 
+      to  declare DOUBLE rather than REAL to get extended  preci
+      sion results. There is no corresponding facility in PASCAL.
+      C admits float and double.
+
+   4. FORTRAN has a COMPLEX data type. Adaptation of the routines 
+      to COMPLEX variables using Pascal or C requires more work.
+
+   5. ISAMAX,  SASUM,  SAXPY,  SCOPY,  SDOT, SSCAL, and SSWAP are 
+      those  components of BLAS required to support the  routines 
+      used  here.   Translations  of the other  BLAS  routines  - 
+      SNRM2, SROT, and SROTG are not presented here.
+
+
+
+
+
+
+
+Copyright (C) 1985 Adam Fritz, 133 Main Street, Afton, NY  13730ŠREFERENCE
+=========
+
+   1. LINPACK Users' Guide
+      J.J. Dongarra, C.B. Moler, J.R. Bunch, and G.W. Stewart
+      Society for Industrial and Applied Mathematics
+      1979
+
+   2. Performance of Various Computers Using Standard Linear
+         Equations Software in a Fortran Environment
+      Technical Memorandum No. 23
+      J.J. Dongarra
+      Mathematics and Computer Science Division
+      Argonne National Laboratory
+      August 1984, Revision 2
+
+   3. Algorithm 589
+      Collected Algorithms of the ACM
+      ACM Transactions on Mathematical Software
+      Volume 8, Number 4
+      December, 1982
+
+
+NOTICES
+=======
+
+CO16 (tm) Hallock Systems Company
+SBC-200 (tm) SD Systems
+H/Z-100 (tm) Zenith Data Syatems
+
+CP/M (tm) Digital Research
+MS-DOS (tm) Microsoft
+
+TURBO Pascal (tm) Borland International
+Aztec C II (C) Manx Software Systems
+Eco-C (C) Ecosoft
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Copyright (C) 1985 Adam Fritz, 133 Main Street, Afton, NY  13730Š

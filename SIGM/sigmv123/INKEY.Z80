@@ -1,0 +1,129 @@
+;Revised INKEY and LINA module for BASCOM
+; (C) Copyright Trevor Marshall 1981
+	EXT	$TTYST,$TTYIN,$STP,$$TOUT,$$TCR,$TYPTX,$$PLNM,$$TRFL
+	ENTRY	$TRF,$TRN,$LINA
+	ENTRY	$INK,INK2
+;
+	NAME	LINA
+$LINA:	
+;
+	LD	A,1	;Non- zero
+	LD	(RAM0),A ;Indicate that this routine has been entered
+;
+;	CALL	$TTYST	;Do a control-c abort
+;	JP	Z,NXT1
+;If the keyboard is ready get and store the char for inkey
+;	CALL	$TTYIN	;This uses a BIOS vector
+	CALL	BDOS.CHAR ;But we will use the BDOS call
+	LD	(CHAR),A ;A null if no char ready
+	PUSH	AF
+	LD	A,30	;After 30 lines of code discard char
+	LD	(COUNT),A
+	POP	AF
+NXT1:	CP	3
+	JP	Z,$STP
+;Now check the line count to see if char is fresh
+	LD	A,(COUNT)
+	OR	A	;Is it already zero?
+	JP	Z,NXT2	;Yes, dont decr
+	DEC	A
+	LD	(COUNT),A
+NXT2:
+	LD	A,($$TRFL)
+	AND	A
+	RET	Z
+	EX	(SP),HL
+	PUSH	BC
+	PUSH	DE
+	PUSH	HL
+	LD	A,($$TOUT)
+	DEC	A
+	CALL	NZ,$$TCR
+	CALL	$TYPTX
+	LD	D,H
+	LD	D,D
+	LD	B,C
+	LD	B,E
+	PUSH	BC
+	CALL	$$PLNM
+	POP	HL
+	POP	DE
+	POP	BC
+	EX	(SP),HL
+	RET	
+;
+$TRN:	LD	A,1
+	LD	($$TRFL),A
+	RET	
+$TRF:	XOR	A
+	LD	($$TRFL),A
+	RET	
+;
+COUNT:	DB	0	;Storage for count
+CHAR:	DB	0	;and char
+;
+; Trevor Marshall's attempt at in INKEY fn for BASCOM
+;We see if /D routine has ever been entered and branch accordingly
+$INK:
+	LD	HL,RAM0
+	LD	A,(HL)
+	OR	A	;Is it still zero
+	JR	Z,INK2	;Yes, execute INK2
+;
+	INC	HL
+	XOR	A
+	LD	(HL),A	;put null length
+	LD	(RAM3),A ;Clear char
+	LD	A,(COUNT)
+	OR	A
+	PUSH	AF	;Even if count was not 0
+	LD	A,0	;it is now (lockout further calls)
+	LD	(COUNT),A ;while repriming COUNT
+	POP	AF
+	RET	Z	;count is zero
+	LD	A,(CHAR) ;Get char
+	OR	A
+	RET	Z	;Null  character
+	LD	(HL),1	;Otherwise set length=1
+	LD	(RAM3),A ;store char
+	RET
+
+INK2:	INC	HL
+;	XOR	A
+	LD	(HL),A	;zero length
+;	CALL	$TTYST	
+;	JP	Z,NXT11
+;If the keyboard is ready get and store the char for inkey
+;	CALL	$TTYIN
+	CALL	BDOS.CHAR
+NXT11:	LD	(CHAR),A
+	OR	A
+	RET	Z	;Null  character
+	LD	(HL),1	;Otherwise set length=1
+	LD	(RAM3),A ;store char
+	RET
+;
+BDOS.CHAR:
+	PUSH	HL	;Do a BDOS call in case char is caughtin O/P
+	PUSH	BC
+	PUSH	DE
+	LD	C,0BH
+	CALL	5
+	OR	A
+	JR	Z,NXT9	;No char ready yet
+	LD	E,0FFH	;else read it
+	LD	C,6
+	CALL	5	;Read no echo CP/M 2
+NXT9:
+	POP	DE	;returns a null for no char
+	POP	BC
+	POP	HL
+	RET	
+;
+RAM0:	DB	0	;Changed to 1 by DEBUG code
+RAM1:	DB	0	;length of string
+RAM2:	DW	RAM3	;Pointer at input char
+RAM3:	DB	0	;Where the char is kept
+
+	END
+

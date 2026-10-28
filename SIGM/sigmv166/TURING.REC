@@ -1,0 +1,169 @@
+
+{ [TURING.REC]
+[compile a set of Turing quintuples into a REC program]
+[format: (state, symbol, new symbol, new state, direction)]
+[Harold V. McIntosh, 1 December 1980]
+[Harold V. McIntosh, 22 February 1981]
+
+[A Turing machine is a fundamental concept in the theory of computation.
+ Although of little practical use, it forms a model of computation which
+ is so simple and definite that theorems can be proven about its operation
+ allowing rigorous conclusions to be drawn about what is computable and
+ what is not. It is Church's thesis that anything which is computable is
+ computable by a Turing machine; a statement which cannot be proven but
+ which has not been refuted after very extensive analyses of what might
+ be meant by computation and ways of performing it. According to Minsky,
+ the thesis, in terms of his machine model, is Turing's; Church was
+ interested in the general character of an effective computation.]
+
+[A Turing machine emulator is of great practical utility for courses in
+ Computer Science, because of the concrete experience which it affords
+ in understanding the underlying theoretical concepts. Such a program is
+ never meant to be efficient; rather the emphasis is upon its pedagogical
+ value, in being readily programmable and modifiable, and it the ease and
+ clarity of its presentation of the working of a Turing machine.]
+
+[One of the best references to Turing machines and their operation is:
+
+		Marvin Minsky
+		Finite and Infinite Machines
+		Prentice-Hall Inc.
+		Englewood Cliffs, New Jersey
+		(C) 1967.]
+
+[The orignal article, which is often cited for the definition of a
+ Turing machine, is
+
+		Alan M. Turing
+		"On computable numbers, with an application
+		    to the Entscheidungsproblem,"
+		Proc. London Math. Soc. (2) 42 230-265 (1936)]
+
+[30$ - input FCB]
+[31$ - output FCB]
+
+[display w/cursor]		(248%I26%TLJZqt248%FD;;) D
+
+[erase cursors] 		(J(248%FD:JZ;);) E
+
+[zero file control block]	($m33cmpw0%(f:;)wnnS;) F
+
+[create input, output FCB's]	('5C'H12wA' 'Ew;B
+  [generate file names]		 9aQpG'REC'|m (Z3b' 'E'TNG';Q;)|m w
+  [open input file]		 n30$rS 30@f
+  [open output file]		 n31$rS 31@g31@e
+				;) G
+
+[close file]			(
+  [clear wkspace, inp file]	 @p:L@y:(@p:0=;e26%(f:;)@p;;)
+  [close fil.REC]		 31$r16k
+				 ;) H
+
+[initialize]			(J@Wj@!;@!;) I
+
+[insert text as read]		(R26%='';T127%(=)(@J|;L@J;);) J
+
+[WS up to cursor to disk]	(jJ<(@p:L;)Zz>;) P
+
+[read, place in workspace]	(@$@::;)R
+
+[17-line window]		(AB(10%EA:;)qL
+				  17(d(10%FA;L(26%Fj;Z;)):;)Y<;<) W
+
+[open file or create it]	(@h$r15K(255=22K;;)LL;) e
+
+[open file or report absence]	(@h$r15K(255='new file 'T;;)LL;) f
+
+[delete file if present]	(@h$r19k;) g
+
+[CP/M's DMA address]		('80'H26k;) h
+
+[write one record]		(@Ej((26%EZD0;128(a);))qL26k31$r21kD'.'TL;) p
+
+[Turing subroutines]		("{
+  [head right]			(AAB;'.'I;;)+
+  [head left]			(B;j'.'I;;)-
+  [head stationary]		(;)0
+  [test equality]		(pGm=n;nL)=
+  [cr.lf]			(2573TL;)&
+  [read phrase]			(R13%='';08%(=)(T@J|;08%T' 'TLTLL@J;);)J
+  [sign-on message]		('[[]]'TL@&'Initial Tape:'TL@&@JJZDI'#'FD;:)R
+  [write tape segment]		(j(20b;J;)qtz' 'TABqtTLz(20a;LZ;)qtB;) W
+				"I;) s
+
+[Turing quintuple]		('('F39%I
+				 ','FD39%I'@='I39%I
+				 ','FD39%I'E;)D'I39%I
+				 ','FD39%I'IL'I39%I
+				 ','FD39%I'@'I
+				 ')'FD':'I
+				;;) t
+
+[Turing preface]		("(@R'Q0'(@&@WRLT"I2573I;;) u
+
+[Turing postscript]		(2573I"'H'=;);)}"I;) v
+
+[compile a TURING file]		(Jj
+  [change file extension]	  ('.TNG]'FD'.REC]'Iz;;)
+  [find display message]	  ('[['F']]'UQD;'';)
+  [look for code gap]		  ('('Ej;2573Ez2573Ez2573Ez2573Ej2bD;A:;)
+  [insert preface; to disk]	  's'TL@s<'[[]]'FDIZ>@uz@P
+  [compile each function]	  ('t'TL@tz@P'('Fj:;)
+  [insert postscript]		  'u'TL@vz@P
+				;) w
+
+[append a record]		(128(e)L;qL26k30$r20K0=L;DLL@h) y
+
+[back to line feed]		(10%Ez;B:j;) 0
+
+[bracket a line]		(@010%V;Z;) 1
+
+[back to preceding line]	(@0BB@0;;) 2
+
+[cr,lf]				(2573TL;) &
+
+[read w/error correction]	(RT08%=127%;13%=2573;26%(=);) $
+
+[clear screen]			(26%TL;) !
+
+[erase on ro, insert others]	(127%=z(B;;)D;I;) :
+
+[form next window]		(Zz>@W@!;) >
+
+[cancel line]			(24%TL;) ^
+
+(	'd' [delete] =		(ABD;;);
+	'i' [insert] =		@J@!;
+	'j' [beginning] =	Jj;
+	'x' [exchange] =	(ABD;;)RTI;
+	'z' [to end] =		Z;
+	127%[delete] =		@1D@!;
+	124%[ver bar: next] =	(10%FA;J>(10%FA;;)@Wz@!;;);
+	13% [carr ret] =	@0;
+	11% [up arrow] =	(BA@2;J>@2@Wj@!;;);
+	95% [undrscore: back] =	(Bj;;);
+	'n' [next record] =	>(@p;L;)(@y;;)J(@W;;);
+	'p' [write 1 record] =	>(@p;L;)J(@W;;);
+	'y' [read 1 record] =	>(@y;'eof:'TL;)J(@W;;);
+	' ' [advance] =		(A;;);
+	'>' [next window] =	(@>j;>@I;);
+	'<' [beg window] =	>@I;
+	'.' [refresh screen] =	@!;
+	's'			= @s;
+	't'			= @t;
+	'u'			= @u;
+	'v'			= @v;
+	) ?
+
+[main program]			(
+  [create FCB's, open file] 	30@F 31@F @G
+  [sign-on]			 'turing.rec> 'TL
+  [automatic compilation]	 ('5C'H12wAqt@&3b' 'E(w(@y:;)@w@H;);w);
+  [wait, initialize, loop]	 RTL @I (@DR
+    [exit at once]		     ';'=@!>;
+    [close,exit]		     'e'=>@H;
+    [read menu] 		     @?:
+    [ignore unknown]		     L:);)}
+
+[end]
+

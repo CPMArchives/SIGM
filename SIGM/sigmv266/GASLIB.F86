@@ -1,0 +1,1074 @@
+C	[GASLIB.F86 of JUGPDS Vol.8]
+C
+        SUBROUTINE      GASP(NSET)
+C////////////////////////////////////////////////////////////////
+C/                                                              /
+C/      Program-id.     GASP                                    /
+C/      Date-written.   Jan. 16th 1984                          /
+C/      File-name.      GASP.FOR                                /
+C/      Remarks.        Subroutine GASP page 34                 /
+C/                      GASP is the master control routine and  /
+C/                      is referred to as the GASP executive.   /
+C/      Source.         Original GASP developed at U.S.Steel    /
+C/                      GASP II has developed at Arizona        /
+C/                      State University with FORTRAN IV        /
+C/                      on IBM 1130 8K words(16bit one word)    /
+C/                      The present vesion is based on the book /
+C/			"Simulation with GASP II " by A. Alan,  /
+C/			B. Pritsker &  P.J. Kiviat (1969)       /
+C/                                                              /
+C////////////////////////////////////////////////////////////////
+C
+        INTEGER*4       NSET(6,1)
+C
+      COMMON /C1/ID,IM,INIT,JEVNT,JMNIT,MFA,MSTOP,MX,MXC,NCLCT,NHIST,
+     1           NOQ,NORPT,NOT,NPRMS,NRUN,NRUNS,NSTAT,OUT,SCALE,ISEED,
+     2           TNOW,TBEG,TFIN,MXX,NPRNT,NCRDR,NEP,VNQ(4)
+C
+      COMMON /C2/ATRIB(4),ENQ(4),INN(4),JCELS(5,22),KRANK(4),MAXNQ(4),
+     1           MFE(4),MLC(4),MLE(4),NCELS(5),NQ(4),PARAM(20,4),
+     2           QTIME(4),SSUMA(10,5),SUMA(10,5),NAME(6),NPROJ,MON,
+     3		 NDAY,NYR,JCLR
+C
+        NOT = 0
+1       CALL    DATAN(NSET)
+C
+C       --- Print out filing array.
+C
+        JEVNT = 101
+        CALL    MONTR(NSET)
+        WRITE(NPRNT,403)
+  403     FORMAT(1H0,28X,'** Intermediate Results **'//)
+C
+C       --- Obtain next event which is first entry in file 1.
+C           ATRIB(1) is event time, ATRIB(2) is event code.
+C
+   10   CALL    RMOVE(MFE(1),1,NSET)
+        TNOW = ATRIB(1)
+        JEVNT = ATRIB(2)
+C
+C       --- Test to see if this event is a moitor event.
+C
+        IF (JEVNT - 100)13,12,6
+   13   I = JEVNT
+C
+C       --- Call programmers event routines.
+C
+        CALL    EVNTS(I, NSET)
+C
+C       --- Test methode for stopping
+C
+        IF (MSTOP) 40,8,20
+   40   MSTOP = 0
+C
+C       --- Test for no summary report.
+C
+        IF (NORPT) 14,22,42
+   20   IF (TNOW - TFIN) 8,22,22
+   22   CALL    SUMRY(NSET)
+        CALL    OTPUT(NSET)
+C
+C       --- Test number of runs remaining
+C
+   42   IF (NRUNS - 1) 14,9,23
+   23   NRUNS = NRUNS - 1
+        NRUN = NRUN + 1
+        				GO TO 1
+   14   CALL    ERROR(93,NSET)
+    6   CALL    MONTR(NSET)
+        				GO TO 10
+C
+C       --- Reset JMNIT
+C
+   12   IF (JMNIT) 14,30,31
+   30   JMNIT = 1
+        				GO TO 10
+   31   JMNIT = 0
+        				GO TO 10
+C
+C       --- Test to see if event information is to be printed.
+C
+    8   IF (JMNIT) 14,10,32
+   32   ATRIB(2) = JEVNT
+        JEVNT = 100
+        CALL    MONTR(NSET)
+        				GO TO 10
+C
+C       --- If all runs are completed return to main program 
+C           for instructions.
+C
+    9   RETURN
+        END
+C
+        SUBROUTINE      COLCT(X,N,NSET)
+C////////////////////////////////////////////////////////////////
+C/                                                              /
+C/      Program-id.     COLCT                                   /
+C/      Date-written.   Jan. 16th 1984                          /
+C/      File-name.      COLCT.FOR                               /
+C/      Remarks.        Subroutine COLCT.FOR page 74.           /
+C/                      This subroutine collects sample data on /
+C/                      the value of a variable.                /
+C/                                                              /
+C////////////////////////////////////////////////////////////////
+C	* Default size of INTEGER = 2 bytes in F80
+C       
+        INTEGER*4       NSET(6,1)
+C
+      COMMON /C1/ID,IM,INIT,JEVNT,JMNIT,MFA,MSTOP,MX,MXC,NCLCT,NHIST,
+     1           NOQ,NORPT,NOT,NPRMS,NRUN,NRUNS,NSTAT,OUT,SCALE,ISEED,
+     2           TNOW,TBEG,TFIN,MXX,NPRNT,NCRDR,NEP,VNQ(4)
+C
+      COMMON /C2/ATRIB(4),ENQ(4),INN(4),JCELS(5,22),KRANK(4),MAXNQ(4),
+     1           MFE(4),MLC(4),MLE(4),NCELS(5),NQ(4),PARAM(20,4),
+     2           QTIME(4),SSUMA(10,5),SUMA(10,5),NAME(6),NPROJ,MON,
+     3		 NDAY,NYR,JCLR
+C
+C
+        IF (N.GT.0) GO TO 20
+   10   CALL    ERROR(90,NSET)
+   20   IF (N .GT. NCLCT) GO TO 10
+        SUMA(N,1) = SUMA(N,1) + X
+        SUMA(N,2) = SUMA(N,2) + X*X
+        SUMA(N,3) = SUMA(N,3) + 1.0
+        SUMA(N,4) = AMIN1(SUMA(N,4),X)
+        SUMA(N,5) = AMAX1(SUMA(N,5),X)
+        RETURN
+        END
+C
+        SUBROUTINE      DATAN(NSET)
+C////////////////////////////////////////////////////////////////
+C/                                                              /
+C/      Program-id.     DATAN                                   /
+C/      Date-written.   Jan. 16th 1984                          /
+C/      File-name.      DATAN.FOR                               /
+C/      Remarks.        Subroutine DATAN.FOR page 44.           /
+C/                      Initialize GASP variables to permit the /
+C/                      starting of the Simulation.             /
+C/                                                              /
+C////////////////////////////////////////////////////////////////
+C
+        INTEGER*4       NSET(6,1)
+C
+      COMMON /C1/ID,IM,INIT,JEVNT,JMNIT,MFA,MSTOP,MX,MXC,NCLCT,NHIST,
+     1           NOQ,NORPT,NOT,NPRMS,NRUN,NRUNS,NSTAT,OUT,SCALE,ISEED,
+     2           TNOW,TBEG,TFIN,MXX,NPRNT,NCRDR,NEP,VNQ(4)
+C
+      COMMON /C2/ATRIB(4),ENQ(4),INN(4),JCELS(5,22),KRANK(4),MAXNQ(4),
+     1           MFE(4),MLC(4),MLE(4),NCELS(5),NQ(4),PARAM(20,4),
+     2           QTIME(4),SSUMA(10,5),SUMA(10,5),NAME(6),NPROJ,MON,
+     3		 NDAY,NYR,JCLR
+C
+C
+        IF (NOT) 23,1,2
+C
+C       --- NEP is a control variable for determining the starting
+C           card type for multiple run problems.        
+C           the value of NEP specifies the starting card type.
+C
+    2   NT = NEP
+        GO TO (1,5,6,41,42,8,43,299,15,20),NT
+   23   CALL    ERROR(95,NSET)
+    1   NOT = 1
+        NRUN = 1
+C
+C       --- Data card type one
+C
+        WRITE(1,200)
+  200     FORMAT(1H0,9X,'1',9X,'2',9X,'3',9X,'4',9X,'5',9X,'6',9X,'7' /
+     1  1H ,'123456789',1H0,'123456789',1H0,'123456789',1H0,'123456789'
+     2  ,1H0,'123456789',1H0,'123456789',1H0,'1234567890')
+        READ(NCRDR,101) NAME,NPROJ,MON,NDAY,NYR,NRUNS
+  101     FORMAT(6A2,I4,I2,I2,I4,I4)
+        WRITE(1,201) NAME,NPROJ,MON,NDAY,NYR,NRUNS
+  201     FORMAT(1H ,6A2,I4,I2,I2,I4,I4)
+        IF (NRUNS) 30,30,5
+   30   CALL    EXIT
+C
+C       --- Data card type two
+C
+    5   READ(NCRDR,803) NPRMS,NHIST,NCLCT,NSTAT,ID,IM,NOQ,MXC,SCALE
+  803     FORMAT(8I5,F10.2)
+        WRITE(1,804) NPRMS,NHIST,NCLCT,NSTAT,ID,IM,NOQ,MXC,SCALE
+  804     FORMAT(1H ,8I5,F10.2)
+        IF (NHIST) 41,41,6
+C
+C       --- Data card type three is used only if NHIST is greater
+C           than zero. Specify number of cells in histograms not
+C           including end cells.
+C
+    6   READ(NCRDR,103) (NCELS(I),I=1,NHIST)
+  103     FORMAT(10I5)
+        WRITE(1,203) (NCELS(I),I=1,NHIST)
+  203     FORMAT(1H ,10I5)
+C
+C       --- Data card type four
+C           Specify KRANK = Ranking row.
+C
+   41   READ(NCRDR,103) (KRANK(I),I=1,NOQ)
+        WRITE(1,203) (KRANK(I),I=1,NOQ)
+C
+C       --- Data card type five
+C           Specify INN=1 for LVF, INN=2 for HVF
+C
+   42   READ(NCRDR,103) (INN(I),I=1,NOQ)
+        WRITE(1,203) (INN(I),I=1,NOQ)
+        IF (NPRMS) 23,43,8
+    8 DO 9 I=1,NPRMS
+C       
+C       --- Data card type six used only if NPRMS is greater than
+C           zero.
+C
+        READ(NCRDR,106) (PARAM(I,J),J =1,4)
+  106     FORMAT(4F10.4)
+        WRITE(1,206) (PARAM(I,J),J=1,4)
+  206     FORMAT(1H ,4F10.4)
+    9 CONTINUE
+C
+C       ---Data card type seven.
+C          The NEP value is for the next run.
+C          Set JSEED greater than zero to set tnow equal to TBEG
+C
+   43      READ(NCRDR,104) MSTOP,JCLR,NORPT,NEP,TBEG,TFIN,JSEED
+        WRITE(1,204) MSTOP,JCLR,NORPT,NEP,TBEG,TFIN,JSEED
+  104     FORMAT(4I5,2F10.3,I4)
+  204     FORMAT(1H ,4I5,2F10.3,I4)
+        IF (JSEED) 27,26,27
+   27      ISEED = JSEED
+        CALL    DRAND(ISEED,RNUM)
+        TNOW = TBEG
+        DO 142 J=1,NOQ
+  142     QTIME(J) = TNOW
+   2¶   JMNIÔ ½ 0
+C
+Ã       --- Initializå nset
+C           Specify inputs for next run
+C           Read in initial events
+C
+  299  DO 300 JS = 1,ID
+C
+C       --- Data card type 8
+C           Initialize NSET by JQ equal to a negative value on
+C           first event card.
+C           Read in intial vents. End initial events and entities
+C           with JQ equal to zero.
+C
+        READ(NCRDR,1110) JQ
+ 1110    FORMAT(I10)
+        WRITE(1,2110) JQ
+ 2110    FORMAT(1H ,I10)
+        IF (JQ) 44,15,320
+   44   INIT = 1
+        CALL    SET(1,NSET)
+        				GO TO 300
+  320   READ(NCRDR,1120) (ATRIB(JK),JK=1,IM)
+ 1120    FORMAT(7F10.4)
+        WRITE(1,2120) (ATRIB(JK),JK=1,IM)
+ 2120    FORMAT(1H ,7F10.4)
+        CALL    FILEM(JQ,NSET)
+  300   CONTINUE
+C
+C       --- JCLR be positive for initialization of storage arrays.
+C
+   15      IF (JCLR) 20,20,10
+   10      IF (NCLCT) 23,110,116
+  116     DO 18 I = 1,NCLCT
+        DO 17 J = 1,3
+   17      SUMA(I,J) = 0.
+        SUMA(I,4) = 1.0E20
+   18      SUMA(I,5) = -1.0E20
+  110     IF (NSTAT) 23,111,117
+  117     DO 360 I=1,NSTAT
+        SSUMA(I,1) = TNOW
+        DO 370 J =2,3
+  370     SSUMA(I,J) = 0.
+        SSUMA(I,4) = 1.0E20
+  360   SSUMA(I,5) = -1.0E20
+  111   IF (NHIST) 23,20,118
+  118 DO 380 K = 1,NHIST
+        DO 380 L = 1,MXC
+          JCELS(K,L) = 0
+  380 CONTINUE
+C
+C       --- Print out program identification information.
+C
+   20   WRITE(1,102) NPROJ,NAME,MON,NDAY,NYR,NRUN
+  102     FORMAT(1H1,19X,'Simulation Project No.',I4,2X,'on',2X,
+     1    6A2//,20X,'Date',I3,'/',I3,'/',I5,12X,'Run number',I5//)
+C
+C       --- Print parameter values and scale.
+C
+        IF (NPRMS) 60,60,62
+   62 DO 64 I=1,NPRMS
+   64   WRITE(1,107) I,(PARAM(I,J),J=1,4)
+  107     FORMAT(10X,' Parameter No.',I5,4F12.4)
+   60   WRITE(1,1107) SCALE
+ 1107     FORMAT(//37X,' Scale =',F10.4)
+        RETURN
+        END
+C
+        SUBROUTINE      DRAND(ISEED,RNUM)
+C////////////////////////////////////////////////////////////////
+C/                                                              /
+C/      Program-id.     DRAND                                   /
+C/      Date-written.   Jan. 16th 1984                          /
+C/      File-name.      DRAND.FOR                               /
+C/      Remarks.        Subroutine DRAND.FOR page 96.           /
+C/                      Generates a uniformly distributed 	/
+C/                      random variable between 0.0 and 1.0.    /
+C/                      This is a pseudo-random number and was  /
+C/                      modified for IBM 1130 subroutine 	/
+C/                                                              /
+C////////////////////////////////////////////////////////////////
+C
+C	* This is a dummy; real work is done by RANDU.
+C
+        CALL    RANDU(ISEED,RNUM)
+        RETURN
+        END
+C
+        SUBROUTINE      ERROR(J,NSET)
+C////////////////////////////////////////////////////////////////
+C/                                                              /
+C/      Program-id.     ERROR                                   /
+C/      Date-written.   Jan. 16th 1984                          /
+C/      File-name.      ERROR.FOR ver2.0                        /
+C/      Remarks.        Subroutine ERROR.FOR page 93.           /
+C/                      Subroutine ERROR is called when an e    /
+C/                      error is detected in any GASP subroutine/
+C/                      except PRNTQ,SUMRY, and MONTR, all of   /
+C/                      which print their own message.          /
+C/                                                              /
+C////////////////////////////////////////////////////////////////
+C	* Default size of INTEGER = 2 bytes in F80
+C       
+        INTEGER*4       NSET(6,1)
+C
+      COMMON /C1/ID,IM,INIT,JEVNT,JMNIT,MFA,MSTOP,MX,MXC,NCLCT,NHIST,
+     1           NOQ,NORPT,NOT,NPRMS,NRUN,NRUNS,NSTAT,OUT,SCALE,ISEED,
+     2           TNOW,TBEG,TFIN,MXX,NPRNT,NCRDR,NEP,VNQ(4)
+C
+      COMMON /C2/ATRIB(4),ENQ(4),INN(4),JCELS(5,22),KRANK(4),MAXNQ(4),
+     1           MFE(4),MLC(4),MLE(4),NCELS(5),NQ(4),PARAM(20,4),
+     2           QTIME(4),SSUMA(10,5),SUMA(10,5),NAME(6),NPROJ,MON,
+     3		 NDAY,NYR,JCLR
+C
+C
+        WRITE(NPRNT,100) J
+  100     FORMAT(///26X,'Error exit, Type',I3,' Error.')
+        JEVNT = 101
+C
+C       --- Print filing array NSET
+C
+        CALL    MONTR(NSET)
+        WRITE(NPRNT,101)
+  101     FORMAT(1H0,31X,'Sceduled events'//)
+C
+C       --- Print next event file
+C
+        CALL    PRNTQ(1,NSET)
+C
+C       --- Print summary report up to present
+C
+        CALL    SUMRY(NSET)
+        IF (JEVNT - 101) 5,6,5
+    5   RETURN
+    6   CALL    EXIT
+        END
+C
+        SUBROUTINE      FILEM(JQ,NSET)
+C////////////////////////////////////////////////////////////////
+C/                                                              /
+C/      Program-id.     FILEM                                   /
+C/      Date-written.   Jan. 16th 1984                          /
+C/      File-name.      FILEM.FOR                               /
+C/      Remarks.        Subroutine FILEM.FOR page 68.           /
+C/                      FILEM is called to file an entry in     /
+C/                      file JQ of the array NSET.              /
+C/                                                              /
+C////////////////////////////////////////////////////////////////
+C	* Default size of INTEGER = 2 bytes in F80
+C       
+        INTEGER*4       NSET(6,1)
+C
+      COMMON /C1/ID,IM,INIT,JEVNT,JMNIT,MFA,MSTOP,MX,MXC,NCLCT,NHIST,
+     1           NOQ,NORPT,NOT,NPRMS,NRUN,NRUNS,NSTAT,OUT,SCALE,ISEED,
+     2           TNOW,TBEG,TFIN,MXX,NPRNT,NCRDR,NEP,VNQ(4)
+C
+      COMMON /C2/ATRIB(4),ENQ(4),INN(4),JCELS(5,22),KRANK(4),MAXNQ(4),
+     1           MFE(4),MLC(4),MLE(4),NCELS(5),NQ(4),PARAM(20,4),
+     2           QTIME(4),SSUMA(10,5),SUMA(10,5),NAME(6),NPROJ,MON,
+     3		 NDAY,NYR,JCLR
+C
+C
+C       --- Test to see if there is an avilable column for storage.
+C
+        IF (MFA - ID) 2,2,3
+   3    WRITE(NPRNT,4)
+   4      FORMAT(//24H Overlap Set Given Below/)
+        CALL    ERROR(87,NSET)
+C
+C       --- Put attribute value in file
+C
+    2 DO 1 I=1,IM
+        DEL = 0.000001
+        IF (ATRIB(I)) 5,1,1
+    5       DEL = -0.000001
+        NSET(I,MFA) = SCALE * (ATRIB(I) + DEL)
+    1 CONTINUE
+C
+C       --- Call SET to put new entry in proper place in NSET
+C
+        CALL SET (JQ,NSET)
+        RETURN
+        END
+C
+        SUBROUTINE      HISTO(X1,A,W,N)
+C////////////////////////////////////////////////////////////////
+C/                                                              /
+C/      Program-id.     HISTO                                   /
+C/      Date-written.   Jan. 16th 1984                          /
+C/      File-name.      HISTO.FOR                               /
+C/      Remarks.        Subroutine HISTO.FOR page 79.           /
+C/                      HISTO tabulates the number of times X1  /
+C/                      is within the specified cell limits.    /
+C/                                                              /
+C////////////////////////////////////////////////////////////////
+C	* Default size of INTEGER = 2 bytes in F80
+C       
+        INTEGER*4       NSET(6,1)
+C
+      COMMON /C1/ID,IM,INIT,JEVNT,JMNIT,MFA,MSTOP,MX,MXC,NCLCT,NHIST,
+     1           NOQ,NORPT,NOT,NPRMS,NRUN,NRUNS,NSTAT,OUT,SCALE,ISEED,
+     2           TNOW,TBEG,TFIN,MXX,NPRNT,NCRDR,NEP,VNQ(4)
+C
+      COMMON /C2/ATRIB(4),ENQ(4),INN(4),JCELS(5,22),KRANK(4),MAXNQ(4),
+     1           MFE(4),MLC(4),MLE(4),NCELS(5),NQ(4),PARAM(20,4),
+     2           QTIME(4),SSUMA(10,5),SUMA(10,5),NAME(6),NPROJ,MON,
+     3		 NDAY,NYR,JCLR
+C
+C
+        IF (N- NHIST) 11,11,2
+    2   WRITE(NPRNT,250) N
+  250     FORMAT(' Error in histogram',I4,//)
+        CALL    EXIT
+   11   IF (N) 2,2,3
+C
+C       --- Translate X1 by subtracing A if X.LE.A
+C
+    3   X = X1 - A
+        IF (X) 6,7,7
+    6   IC = 1
+        				GO TO 8
+C
+C       --- Determine cell number IC.
+C
+    7   IC = X / W + 2.0
+        IF (IC - NCELS(N) - 1) 8,8,9
+    9   IC = NCELS(N) + 2
+    8   JCELS(N,IC) = JCELS(N,IC) + 1
+        RETURN
+        END
+C
+        SUBROUTINE      MONTR(NSET)
+C////////////////////////////////////////////////////////////////
+C/                                                              /
+C/      Program-id.     MONTR                                   /
+C/      Date-written.   Jan. 16th 1984                          /
+C/      File-name.      MONTR.FOR                               /
+C/      Remarks.        Subroutine MONTR.FOR page 87.           /
+C/                      The monitoring of events as they        /
+C/                      occur.                                  /
+C/                                                              /
+C////////////////////////////////////////////////////////////////
+C	* Default size of INTEGER = 2 bytes in F80
+C       
+        INTEGER*4       NSET(6,1)
+C
+      COMMON /C1/ID,IM,INIT,JEVNT,JMNIT,MFA,MSTOP,MX,MXC,NCLCT,NHIST,
+     1           NOQ,NORPT,NOT,NPRMS,NRUN,NRUNS,NSTAT,OUT,SCALE,ISEED,
+     2           TNOW,TBEG,TFIN,MXX,NPRNT,NCRDR,NEP,VNQ(4)
+C
+      COMMON /C2/ATRIB(4),ENQ(4),INN(4),JCELS(5,22),KRANK(4),MAXNQ(4),
+     1           MFE(4),MLC(4),MLE(4),NCELS(5),NQ(4),PARAM(20,4),
+     2           QTIME(4),SSUMA(10,5),SUMA(10,5),NAME(6),NPROJ,MON,
+     3		 NDAY,NYR,JCLR
+C
+C       --- IF JEVNT .GE. 101   Print NSET
+C
+        IF (JEVNT - 101) 9,7,9
+    7   WRITE(NPRNT,100) TNOW
+  100     FORMAT(1H0,10X,'** GASP Job Storage area dump at',F10.4,
+     1           2X,'Time units **'//)
+      DO 1000 I=1,ID
+        WRITE(NPRNT,101) I,(NSET(J,I),J=1,MXX)
+  101     FORMAT(I5,12I9)
+ 1000 CONTINUE
+        RETURN
+    9   IF (MFE(1)) 3,6,1
+C
+C       --- IF JMNIT = 1 Print TNOQ, Current event code, and all
+C           attributes of the next event.
+C
+    1   IF (JMNIT - 1) 5,4,3
+    3   WRITE(NPRNT,199)
+  199     FORMAT(///26X,' Error Exit, type 99 error.')
+        CALL    EXIT
+    4   MMFE = MFE(1)
+        WRITE(NPRNT,103) TNOW,ATRIB(2),(NSET(I,MMFE),I=1,MXX)
+  103     FORMAT(/10X,'Current event.... Time =',F8.2,5X,'Event =',
+     1           F7.2/10X,'Next event.......',/(10X,12I9)//)
+    5   RETURN
+    6   WRITE(NPRNT,104) TNOW
+  104     FORMAT(10X,' File 1 is empty at',F10.2)
+        				GO TO 5
+        END
+        SUBROUTINE      PRNTQ(JQ,NSET)
+C////////////////////////////////////////////////////////////////
+C/                                                              /
+C/      Program-id.     PRNTQ                                   /
+C/      Date-written.   Jan. 16th 1984                          /
+C/      File-name.      PRNTQ.FOR                               /
+C/      Remarks.        Subroutine PRNTQ.FOR page 81.           /
+C/                      PRNTQ computes and prints the time-     /
+C/                      integrated average and standard of the  /
+C/                      number of entries in particular file    /
+C/                      file and the maximum number of entries  /
+C/                      that  were in the file since the file   /
+C/                      was last initialized.                   /
+C/                                                              /
+C////////////////////////////////////////////////////////////////
+C	* Default size of INTEGER = 2 bytes in F80
+C       
+        INTEGER*4       NSET(6,1)
+C
+      COMMON /C1/ID,IM,INIT,JEVNT,JMNIT,MFA,MSTOP,MX,MXC,NCLCT,NHIST,
+     1           NOQ,NORPT,NOT,NPRMS,NRUN,NRUNS,NSTAT,OUT,SCALE,ISEED,
+     2           TNOW,TBEG,TFIN,MXX,NPRNT,NCRDR,NEP,VNQ(4)
+C
+      COMMON /C2/ATRIB(4),ENQ(4),INN(4),JCELS(5,22),KRANK(4),MAXNQ(4),
+     1           MFE(4),MLC(4),MLE(4),NCELS(5),NQ(4),PARAM(20,4),
+     2           QTIME(4),SSUMA(10,5),SUMA(10,5),NAME(6),NPROJ,MON,
+     3		 NDAY,NYR,JCLR
+C
+        WRITE(NPRNT,100) JQ
+        IF (TNOW - TBEG) 12,12,13
+   12   WRITE(NPRNT,105)
+  105     FORMAT(/25X,'No Printout TNOW = TBEG '//)
+        				GO TO 2
+C
+C       --- Compute expect no.
+C
+   13   XNQ = NQ(JQ)
+        X = (ENQ(JQ) + XNQ * (TNOW - QTIME(JQ)))/(TNOW - TBEG)
+        STD = (VNQ(JQ)+XNQ*XNQ*(TNOW-QTIME(JQ)))/(TNOW-TBEG)-X*X
+        IF (STD.GT.0.0) GO TO 14
+        STD = 0.0
+        				GO TO 15
+   14   STD = STD ** 0.5
+   15   WRITE(NPRNT,104) X,STD,MAXNQ(JQ)
+C
+C       --- Print file in proper order requires tracing through the
+C           pointers of the file
+C
+        LINE = MFE(JQ)
+        IF (LINE - 1) 4,1,1
+    4   WRITE(NPRNT,102)
+    2   RETURN
+    1   WRITE(NPRNT,101)
+    6 DO 77 I=1,IM
+        ATRIB(I) = NSET(I,LINE)
+        ATRIB(I) = ATRIB(I) / SCALE
+   77 CONTINUE
+        WRITE(NPRNT,103) (ATRIB(I),I=1,IM)
+        LINE = NSET(MX,LINE)
+        IF (LINE - 7777) 6,2,5
+    5       WRITE(NPRNT,199)
+  199     FORMAT(///26X,'Error Exit, Type 94 Error.')
+  100     FORMAT(//29X,' File Printout, File  No.',I3)
+  101     FORMAT(/35X,' File Contents'/)
+  102     FORMAT(/33X,'The File is empty')
+  103     FORMAT(10X,10F10.4)
+  104     FORMAT(/25X,'Average Number in file  was',F10.4,/25X,
+     1           'STD. DEV.',18X,F10.4,/25X,'Maximum',24X,I4)
+        CALL    EXIT
+        END
+C
+        SUBROUTINE      RANDU(IY,YFL)
+C////////////////////////////////////////////////////////////////
+C/                                                              /
+C/      Program-id.     RANDU                                   /
+C/      Date-written.   Jan. 16th 1984                          /
+C/      File-name.      RANDU.FOR                               /
+C/      Remarks.        Subroutine RANDU.FOR page 96.           /
+C/                      RANDU is a modefied IBM 1130 subroutine /
+C/                                                              /
+C////////////////////////////////////////////////////////////////
+C
+        IY = IY * 899
+        IF (IY.GE.0) GPO TO 10
+        IY = IY + 32767 + 1
+   10   YFL = IY
+        YFL = YFL / 32767.0
+        RETURN
+        END
+C
+        SUBROUTINE      RMOVE(KCOL,JQ,NSET)
+C////////////////////////////////////////////////////////////////
+C/                                                              /
+C/      Program-id.     RMOVE                                   /
+C/      Date-written.   Jan. 16th 1984                          /
+C/      File-name.      RMOVE.FOR                               /
+C/      Remarks.        Subroutine RMOVE.FOR page 69.           /
+C/                      Subroutine RMOVE is called to remove    /
+C/                      an entry from file JQ of the array      /
+C/                      NSET.                                   /
+C/                                                              /
+C////////////////////////////////////////////////////////////////
+C	* Default size of INTEGER = 2 bytes in F80
+C       
+        INTEGER*4       NSET(6,1)
+C
+      COMMON /C1/ID,IM,INIT,JEVNT,JMNIT,MFA,MSTOP,MX,MXC,NCLCT,NHIST,
+     1           NOQ,NORPT,NOT,NPRMS,NRUN,NRUNS,NSTAT,OUT,SCALE,ISEED,
+     2           TNOW,TBEG,TFIN,MXX,NPRNT,NCRDR,NEP,VNQ(4)
+C
+      COMMON /C2/ATRIB(4),ENQ(4),INN(4),JCELS(5,22),KRANK(4),MAXNQ(4),
+     1           MFE(4),MLC(4),MLE(4),NCELS(5),NQ(4),PARAM(20,4),
+     2           QTIME(4),SSUMA(10,5),SUMA(10,5),NAME(6),NPROJ,MON,
+     3		 NDAY,NYR,JCLR
+C
+        IF (KCOL) 16,16,2
+   16   CALL    ERROR(97,NSET)
+    2   MLC(JQ) = KCOL
+C
+C       --- Put values of KCOL in attrib
+C
+      DO 3 I=1,IM
+        ATRIB(I) = NSET(I,KCOL)
+        ATRIB(I) = ATRIB(I)/SCALE
+    3 CONTINUE
+C
+C       --- Set OUT=1 and call set to remove entry from NSET
+C
+        OUT = 1.0
+        CALL    SET(JQ,NSET)
+        RETURN
+        END
+C
+      	SUBROUTINE      SET(JQ,NSET)
+C////////////////////////////////////////////////////////////////
+C/                                                              /
+C/      Program-id.     SET                                     /
+C/      Date-written.   Jan. 16th 1984                          /
+C/      File-name.      SET  .FOR ver2.0                        /
+C/      Remarks.        Subroutine SET.FOR page 62.             /
+C/                      Subroutine SET is the heart of the      /
+C/                      information storage and retrieval       /
+C/                      system. SET performs three functions:   /
+C/                      1. Initialize the filing array NSET     /
+C/                      2. Updates the pointer system.          /
+C/                      3. Maintain statistics on the number    /
+C/                         of entries in each file.             /
+C/                                                              /
+C////////////////////////////////////////////////////////////////
+C	* Default size of INTEGER = 2 bytes in F80
+C       
+        INTEGER*4       NSET(6,1)
+C
+      COMMON /C1/ID,IM,INIT,JEVNT,JMNIT,MFA,MSTOP,MX,MXC,NCLCT,NHIST,
+     1           NOQ,NORPT,NOT,NPRMS,NRUN,NRUNS,NSTAT,OUT,SCALE,ISEED,
+     2           TNOW,TBEG,TFIN,MXX,NPRNT,NCRDR,NEP,VNQ(4)
+C
+      COMMON /C2/ATRIB(4),ENQ(4),INN(4),JCELS(5,22),KRANK(4),MAXNQ(4),
+     1           MFE(4),MLC(4),MLE(4),NCELS(5),NQ(4),PARAM(20,4),
+     2           QTIME(4),SSUMA(10,5),SUMA(10,5),NAME(6),NPROJ,MON,
+     3		 NDAY,NYR,JCLR
+C
+C       --- INIT should be one for initialization of file
+C
+        IF (INIT - 1) 27,28,27
+C
+C       --- Initialize file to zero. Set up pointers
+C           must initialize KRANK(JQ)
+C           must initialize INN(JQ)
+C
+   28   KOL = 7777
+        KOF = 8888
+        KLE = 9999
+        MX = IM + 1
+        MXX = IM + 2
+C
+C       --- Inirtialize pointing cells of NSET and zero other cells
+C           of NSET
+C
+        DO 1 I=1,ID
+        DO 2 J=1,IM
+    2   NSET(J,I) = 0
+        NSET(MXX,I) = I - 1
+    1   NSET(MX,I) = I + 1
+        NSET(MX,ID) = KOF
+        DO 3 K=1,NOQ
+        NQ(K) = 0
+        MLC(K) = 0
+        MFE(K) = 0
+        MAXNQ(K) = 0
+        MLE(K) = 0
+        ENQ(K) = 0.0
+        VNQ(K) = 0.0
+    3   QTIME(K) = TNOW
+C
+C       --- First available column = 1
+C
+        MFA = 1
+        INIT = 0
+        OUT = 0.0
+        RETURN
+C
+C       --- MFEX is first entry in file which has not been compared 
+C           with ITEM to be inserted.
+C
+   27   MFEX = MFE(JQ)
+C
+C       --- KNT is a check code to indicate that no comparisons have
+C           been made.
+C
+        KNT = 2
+C
+C       --- KS is the row on which items of file JQ are ranked.
+C
+        KS = KRANK(JQ)
+C
+C       --- Test for putting value in or out
+C           if out equals one an item is to be removed from file JQ
+C           If OUT is less than ONE an item is to be inserted in
+C           file JQ
+C
+        IF (OUT-1.0) 8,5,100
+C
+C       --- Putting an entry in file JQ
+C
+    8   NXFA = NSET(MX,MFA)
+C
+C       --- If INN(JQ) equals two the file is a HVF file. If INN(JQ)
+C           is one the file is a LVF file. For LVF files try to insert
+C           Stating at end of file. MLEX is last entry in file which
+C           has not been compared with items to be inserted.
+C
+        IF (INN(JQ) - 1) 100,7,6
+    7   MLEX = MLE(JQ)
+C
+C       --- If MLEX is zero file is empty. item to be inserted will be
+C           only item in file.
+C
+        IF (MLEX) 100,10,11
+  10    NSET(MXX,MFA) = KLE
+        MFE(JQ) = MFA
+C
+C       --- There is no successor of item inserted. Since item was 
+C           inserted in column MFA the last entry of file JQ is in
+C           column MFA.
+C
+   17   NSET(MX,MFA) = KOL
+        MLE(JQ) = MFA
+C
+C       --- Set new MFA equal to successor of old MFA. that is NXFA
+C
+   14   MFA = NXFA
+        IF (MFA - KOF) 237,238,238
+  237   NSET(MXX,MFA) = KLE
+C
+C       ---Update statistics of file JQ
+C
+  238   XNQ = NQ(JQ)
+        ENQ(JQ) = ENQ(JQ) + XNQ * (TNOW - QTIME(JQ))
+        VNQ(JQ) = VNQ(JQ) + XNQ * XNQ * (TNOW - QTIME(JQ))
+        QTIME(JQ) = TNOW
+        NQ(JQ) = NQ(JQ) + 1
+        MAXNQ(JQ) = MAX0(MAXNQ(JQ),NQ(JQ))
+        MLC(JQ) = MFE(JQ)
+        RETURN
+C
+C       --- Test ranking value of new item against value of item
+C           in column
+C
+   11   IF (NSET(KS,MFA)-NSET(KS,MLEX)) 12,13,13
+C
+C       --- Insert item after column MLEX.
+C
+   13   MSU = NSET(MX,MLEX)
+        NSET(MX,MLEX) = MFA
+        NSET(MXX,MFA) = MLEX
+        GO TO (18,17),KNT
+C
+C       --- Since KNT equals one a comparison was made and there
+C           is A.
+C
+   18   NSET(MX,MFA) = MSU
+        NSET(MXX,MSU) = MFA
+        				GO TO 14
+C
+C       --- Set KNT to one since a comparison was made.
+C
+   12   KNT = 1
+C
+C       --- Test MFA against predecessor of MLEX by letting
+C           MLEX equal predecessor of MLEX.
+C
+        MLEX = NSET(MXX,MLEX)
+        IF (MLEX-KLE) 11,16,11
+C
+C       --- If MLEX had no predecessor MFA is first in file
+C
+   16   NSET(MXX,MFA) = KLE
+        MFE(JQ) = MFA
+C
+C
+C
+   26   NSET(MX,MFA) = MFEX
+        NSET(MXX,MFEX) = MFA
+        				GO TO 14
+C
+C       --- FOR HVF OPERATION TRY TO INSERT ITEM STARTING AT BEGINNING
+C           OF FILE JQ.
+C
+6       IF (MFEX) 100,10,19
+C
+C       --- Test ranking value of new item against value of
+C           item in column MFEX.
+C
+   19   IF (NSET(KS,MFA)-NSET(KS,MFEX)) 20,21,21
+C
+C       --- If new value if lower. MFA must be compared against 
+C           successor of MFEX.
+C
+   20   KNT = 1
+C
+C       --- Let MPRE = MFEX and let MFEX be the successor of MFEX.
+C
+        MPRE = MFEX
+        MFEX = NSET(MX,MFEX)
+        IF (MFEX-KOL) 19,24,19
+C
+C       --- If new value is higher, it should be inserted between
+C           MFEX and ITS.
+C
+   21   GO TO (22,16),KNT
+   22   KNT = 2
+C
+C       --- MFA is to be inserted after MPRE. Make MPRE the prdece
+C           ssor of MFA and MFA the successor of MPRE.
+C
+   24   NSET(MXX,MFA) = MPRE
+        NSET(MX,MPRE) = MFA
+C
+C       --- If KNT was not reset to 2, thre is no successor of MFA
+C           pointers are updated at statement 17.
+C
+        GO TO (17,26), KNT
+C
+C       --- Removal of an item from file JQ.
+C
+    5   OUT = 0.0
+C
+C       --- Update pointing system to account for removal of MLC(JQ)
+C
+        MMLC = MLC(JQ)
+C
+C       --- Reset out to 0 and clear column removed.
+C
+        DO 32 I=1,IM
+   32   NSET(I,MMLC) = 0
+        JL = NSET(MX,MMLC)
+        JK = NSET(MXX,MMLC)
+        IF (JL - KOL) 33,34,33
+   33   IF (JK - KLE) 35,36,35
+   35   NSET(MX,JK) = JL
+        NSET(MXX,JL) = JK
+C
+C       --- Update pointers.
+C
+   37   NSET(MX,MMLC) = MFA
+        NSET(MXX,MMLC) = KLE
+        IF (MFA - KOF) 234,235,235
+  234   NSET(MXX,MFA) = MMLC
+  235   MFA = MLC(JQ)
+        MLC(JQ) = MFE(JQ)
+C
+C       --- Update file statistaics
+C
+        XNQ = NQ(JQ)
+        ENQ(JQ) = ENQ(JQ) + XNQ * (TNOW - QTIME(JQ))
+        VNQ(JQ) = VNQ(JQ) + XNQ * XNQ * (TNOW - QTIME(JQ))
+        QTIME(JQ) = TNOW
+        NQ(JQ) = NQ(JQ) - 1
+        RETURN
+C
+C       --- MLC was first entry but not last entry. update pointers.
+C
+   36   NSET(MXX,JL) = KLE
+        MFE(JQ) = JL
+        				GO TO 37
+   34   IF (JK - KLE) 38,39,38
+C
+C       --- MLC was last entry but not first entry. Update pointers.
+C
+   38   NSET(MX,JK) = KOL
+        MLE(JQ) = JK
+        				GO TO 37
+C
+C       --- MLC was both the last and first entry, therefore, it is
+C           the only entry.
+C
+   39   MFE(JQ) = 0
+        MLE(JQ) = 0
+        				GO TO 37
+  100   CALL    ERROR(88,NSET)
+        CALL    EXIT
+        END
+C
+        SUBROUTINE      SUMRY(NSET)
+C////////////////////////////////////////////////////////////////
+C/                                                              /
+C/      Program-id.     SUMRY                                   /
+C/      Date-written.   Jan. 16th 1984                          /
+C/      File-name.      SUMRY.FOR                               /
+C/      Remarks.        Subroutine SUMRY.FOR page 84.           /
+C/                      Subroutine SUMRY is the basic output    /
+C/                      routine of GASP II. It processes the    /
+C/                      the data collected in subroutine COLCT  /
+C/                      TMST, and HISTO and prints out a data   /
+C/                      summary.                                /
+C/                                                              /
+C////////////////////////////////////////////////////////////////
+C	* Default size of INTEGER = 2 bytes in F80
+C       
+        INTEGER*4       NSET(6,1)
+C
+      COMMON /C1/ID,IM,INIT,JEVNT,JMNIT,MFA,MSTOP,MX,MXC,NCLCT,NHIST,
+     1           NOQ,NORPT,NOT,NPRMS,NRUN,NRUNS,NSTAT,OUT,SCALE,ISEED,
+     2           TNOW,TBEG,TFIN,MXX,NPRNT,NCRDR,NEP,VNQ(4)
+C
+      COMMON /C2/ATRIB(4),ENQ(4),INN(4),JCELS(5,22),KRANK(4),MAXNQ(4),
+     1           MFE(4),MLC(4),MLE(4),NCELS(5),NQ(4),PARAM(20,4),
+     2           QTIME(4),SSUMA(10,5),SUMA(10,5),NAME(6),NPROJ,MON,
+     3		 NDAY,NYR,JCLR
+C
+        WRITE(NPRNT,21)
+   21     FORMAT(1H1,29X,'** GASP Summary Report ** '/)
+        WRITE(NPRNT,102) NPROJ,NAME,MON,NDAY,NYR,NRUN
+  102     FORMAT(20X,'Simulation Project No.',I4,2X,'on',2X,
+     1    6A2//,20X,'Date',I3,'/',I3,'/',I5,12X,'Run number',I5/)
+        IF (NPRMS) 147,147,146
+  146 DO  64  I=1,NPRMS
+        WRITE(NPRNT,107) I,(PARAM(I,J),J=1,4)
+  107     FORMAT(10X,' Parameter No.',I5,4F12.4)
+   64 CONTINUE
+  147   IF (NCLCT) 5,60,66
+    5   WRITE(NPRNT,199)
+  199     FORMAT(///26X,'Error Exit, Type 98 Error.')
+        CALL    EXIT
+   66   WRITE(NPRNT,23)
+   23     FORMAT(//34X,'** Generated Data ** ',/17X,'Code',4X,'Mean',6X,
+     $  'STD.DEV.',5X,'Min.',7X,'Max.',5X,'OBS.'/)
+C
+C       --- Compute and print statistics gathered by CLCT
+C
+      DO 2 I=1,NCLCT
+        IF (SUMA(I,3)) 5,62,61
+   62   WRITE(NPRNT,63) I
+   63      FORMAT(17X,I3,10X,'No Values Recorded ')
+        				GO TO 2
+   61      XS = SUMA(I,1)
+        XSS = SUMA(I,2)
+        XN = SUMA(I,3)
+        AVG = XS / XN
+        STD = (((XN * XSS) - (XS * XS))/(XN * (XN - 1.0)))**0.5
+        N = XN
+        WRITE(NPRNT,24) I,AVG,STD,SUMA(I,4),SUMA(I,5),N
+24      FORMAT(17X,I3,4F11.4,I7)
+    2 CONTINUE
+   60   IF (NSTAT) 5,67,4
+    4   WRITE(NPRNT,29)
+   29   FORMAT(/34X,'** Time Generated Data **'/,17X,'Code',4X,'Mean',
+     1  6X,'STD.DEV.',5X,'Min.',7X,'Max.',3X,'Total Time '/)
+C
+C       --- Compute and print statistics gathered by TMST
+C
+      DO 6 I=1,NSTAT
+        IF (SSUMA(I,1)) 5,71,72
+   71   WRITE(NPRNT,63) I
+        				GO TO 6
+   72   XT = SSUMA(I,1)
+        XS = SSUMA(I,2)
+        XSS = SSUMA(I,3)
+        AVG = XS / XT
+        STD = (XSS/XT - AVG*AVG) ** 0.5
+        WRITE(NPRNT,30) I,AVG,STD,SSUMA(I,4),SSUMA(I,5),XT
+   30      FORMAT(17X,I3,5F11.4)
+    6 CONTINUE
+   67   IF (NHIST) 5,75,9
+    9   WRITE(NPRNT,25)
+   25      FORMAT(/27X,'** Generated Frequency Distributions **',/17X,
+     $  'Code',20X,'Histograms')
+C
+C       --- Print histograms
+C
+        DO  12  I=1,NHIST
+        NCL = NCELS(I) + 2
+   12   WRITE(NPRNT,26) I,(JCELS(I,J),J=1,NCL)
+   26      FORMAT(/17X,I3,5X,11I4,/(25X,11I4))
+C
+C       --- Print files and file statistics
+C
+   75   DO  15  I=1,NOQ
+   15   CALL    PRNTQ(I,NSET)
+        RETURN
+        END
+C
+        SUBROUTINE      TMST(X,T,N,NSET)
+C////////////////////////////////////////////////////////////////
+C/                                                              /
+C/      Program-id.     TMST                                    /
+C/      Date-written.   Jan. 16th 1984                          /
+C/      File-name.      TMST.FOR                                /
+C/      Remarks.        Subroutine TMST.FOR page 76.            /
+C/                      This subroutine collects sample data    /
+C/                      on observations of a variable made over /
+C/                      a period of time.                       /
+C/                                                              /
+C////////////////////////////////////////////////////////////////
+C	* Default size of INTEGER = 2 bytes in F80
+C       
+        INTEGER*4       NSET(6,1)
+C
+      COMMON /C1/ID,IM,INIT,JEVNT,JMNIT,MFA,MSTOP,MX,MXC,NCLCT,NHIST,
+     1           NOQ,NORPT,NOT,NPRMS,NRUN,NRUNS,NSTAT,OUT,SCALE,ISEED,
+     2           TNOW,TBEG,TFIN,MXX,NPRNT,NCRDR,NEP,VNQ(4)
+C
+      COMMON /C2/ATRIB(4),ENQ(4),INN(4),JCELS(5,22),KRANK(4),MAXNQ(4),
+     1           MFE(4),MLC(4),MLE(4),NCELS(5),NQ(4),PARAM(20,4),
+     2           QTIME(4),SSUMA(10,5),SUMA(10,5),NAME(6),NPROJ,MON,
+     3		 NDAY,NYR,JCLR
+C
+        IF (N.GT.0) GO TO 20
+   10   CALL    ERROR(91,NSET)
+   20   IF (N .GT.G- NSTAT) GO TO 10
+    3   TT = T - SSUMA(N,1)
+        SSUMA(N,1) = SSUMA(N,1) + TT
+        SSUMA(N,2) = SSUMA(N,2) + X*TT
+        SSUMA(N,3) = SSUMA(N,3) + X*X*TT
+        SSUMA(N,4) = AMIN1(SSUMA(N,4),X)
+        SSUMA(N,5) = AMAX1(SSUMA(N,5),X)
+        RETURN
+        END
+C
+        SUBROUTINE      EXIT
+C
+        WRITE(1,100)
+100     FORMAT(1H0,'FORTRAN-86 Exit ')
+        STOP
+        RETURN
+        END
+
+

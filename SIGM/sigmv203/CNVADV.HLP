@@ -1,0 +1,898 @@
+Introduction.
+Patterns.
+Subroutine Groups.
+Conditional Skeletons.
+Iterative Skeletons.
+The "Same" Skeleton <=>.
+Data Transfer and I/O.
+Pattern-directed read.
+Memory buffer operations.
+Disk system, display and return to CP/M functions.
+Null pseudofile.
+Arithmetic Skeletons.
+Character "Arithmetic".
+Overlays.
+"Exclude" feature.
+Miscellaneous features.
+:Introduction.
+
+This Help file describes advanced CNVRT features as well as additions and 
+changes made to CNVRT after CNVPRG.HLP was prepared.  Among the most
+noteworthy changes the following may be mentioned:
+
+	- the patterns (OR,...) and (AND,...) are now fully functional 
+	  [refer to the discussion in Section G (Boolean Patterns) of file 
+	  CNVRT.HLP].
+
+	- The conditional and iterative skeletons if, nf, while and until
+	  may contain more than one triple ([s,p,st] in the case of if and
+	  nf; [p,sl,sr] in the case of while and until).
+
+	- Evaluation of general arithmetic expressions whose operands are
+	  constants (including floating point) is now possible.
+
+	- A function reference or a conditional or iterative skeleton 
+	  may appear as a pattern; it gives a match if the skeleton's
+	  value matches the text under examination.
+
+:Patterns
+
+	The Boolean patterns (OR,...) and (AND,...) now have the full
+functionality expected of them, so that programs of the kind illustrated by
+the following example are now possible:
+
+	[Exclude ALL]
+	((	((OR,[<:e:>],<(><:e:><)>,[<0>],<(><0><)>)) e
+	)()(0)(	(<>,);
+		(<:e:><0>,(%t, yes)(%R)):
+		(,(%t, no)(%R)):
+	))
+	[end]
+
+	This programs answers yes if it finds the same string inside and to 
+the right of a nest of possibly alternated parentheses and brackets and types
+no otherwise.  For example, ([[([(ab)])]])ab produces "yes", (b)c gives "no".
+
+	Making this program work requires that the defined pattern e "know" 
+what follows it at the place where it is referenced; this issue has been 
+resolved, so that if pattern <0> in the second rule fails, the next 
+alternative in the OR is tried out.
+-
+	The effect of having defined patterns check the patterns that follow
+references to them on compiled programs is a slightly inflated object file
+(about 10%), so that two compilers are now provided: CNVRT and CNVSM.
+CNVRT provides the full generality of the language, whereas CNVSM produces
+less code at the price of less generality in the use of defined patterns.
+CNVSM should be used only when the program doesn't require that defined
+patterns check patterns to the right of references to them; our experience
+is that this covers a fairly large class of programs, so that maintaining
+the two compilers is justified.
+
+	Another issue that has now been resolved is that of unbinding 
+variables when backtracking is required.  Consider the pattern in the rule
+		(<0>(and,<[3]>,<1>)<--><1><2>, ... )
+This should match a string that contains two instances of the same triplet
+of characters anywhere, such as abcdefbcdgh.  In the previous version 
+however, this didn't work because variable 1 became bound after the first 
+trial string (the null string) was assigned to variable 0.  If the match 
+didn't succeed in the very first trial, <1> would stay bound during each
+subsequent trial for variable 0.  With the above example, <1> would bind
+the string abc initially and would then fail to match for each new trial
+string assigned to <0>: a, ab, abc, abcd, abcde, etc.
+
+-
+	This difficulty is now resolved by having each variable unbind other 
+variables whenever a new trial string is required for it; unbinding occurs
+only for those variables which became bound AFTER the previous trial string 
+was assigned to the variable doing the unbinding.  For example, in the 
+pattern
+		<2>:<0>(and,<[3]>,<1>)<--><1><3>
+
+if variables 2, 0 and 1 have been bound but a mismatch occurs when the 
+second instance of <1> is sought, in assigning a new trial value for <0>
+variable 1 will become unbound, but variable 2 will not.
+
+	The patterns (AND,...) and (and,...) differ in that "AND" unbinds,
+upon failure, any variables it may have bound, whereas "and" doesn't.  "and"
+suffices in any application in which it is the very first pattern or when 
+there is a variable anywhere to its left (even if hidden away within a 
+defined pattern).  "AND" is called for when it is preceded by an (OR,...) 
+or a defined pattern containing an (OR,...), but is not preceded by any 
+variables.  (AND,...) should only be used where strictly necessary, as it
+produces more code and consumes more time during execution.
+
+
+
+-
+	The length pattern <[n]> admits in place of n any skeleton.  The
+pattern will fail to match if the skeleton doesn't evaluate to a string of 
+ASCII decimal digits, or if the skeleton does evaluate to such a string but
+there aren't that many characters in the text under scrutiny.  Some 
+posibilities now allowed by this pattern are:
+
+	<[128]>		A constant skeleton: its original definition.
+	<[<0>]>		A variable, which should be already bound to a 
+			string of ASCII digits.
+	<[(&!,<0>)]>	The length of the value of a variable.
+	<[(#f,2*<0>+1)]>	Twice the value of a variable plus one 
+				(the value of the variable here could be
+				a string of ASCII digits or an arithmetic
+				expression whose operands are integer
+				constants).
+
+	Assuming <0> is bound to the two-digit string "32", the second 
+pattern will match a 32-byte string, the third pattern will match a 2-byte
+string and the last pattern will match a string of 65 characters.  If the
+value of <0> is abc, of the three examples involving <0> the first and the
+third will fail, while the second one will match a 3-byte string.
+
+-
+	Any functional, conditional or iterative skeleton may appear wherever
+a pattern is allowed.  A skeleton such as (a,<0>:k), (%R), (if,<0>,(^Z),<1>)
+or (until,(%R),(^Z),<=>,(%R),), when appearing on the pattern side of a rule
+or within a defined pattern, will have the same effect as if a constant 
+pattern equal to the value of the skeleton were present in its place.  
+Variables used within such skeletons must have been previously bound.
+
+:Subroutine Groups.
+
+	Since CNVRT inherits REC's features as regards the grouping of 
+subroutines, groups of defined patterns, defined skeletons and whole programs
+may be built.
+
+	The following example shows a defined pattern group:
+
+	{ ((IVL,0,9)) d  (<:d:>(ITR,<:d:>)) i  ((or,+,-,)<:i:>) I
+	  ((or,<:i:>.<:i:>,.<:i:>,<:i:>.)) r
+	  ((or,<:i:>E<:I:>,<:r:>(or,E<:I:>,))) R
+	  (<:@:>) } K
+
+	Notice that the main routine of the group MUST consist only of <:@:>.
+In this example, d matches a decimal digit, i a decimal integer, I an 
+optionally signed integer, r a decimal number with explicit point and R a 
+general real constant in the fashion of FORTRAN.  External references to 
+these patterns are accomplished by writing <:Kd:>, <:Ki:>, <:KI:>, <:Kr:>,
+and <:KR:>, respectively.  A reference to the main routine by itself (e.g.,
+<:K:>) is meaningless and therefore not to be used, and references from
+within the group to definitions in the same group need not have the group
+name, as illustrated in the example.
+-
+	The next example shows a defined skeleton group:
+
+	{ ((%V,MEM:ll,<=>)) G
+	  ((%V,MEM:sy,<=>)) Y
+	  ((@)) } F
+
+	The main routine of the group MUST consist only of a reference to
+the "skeleton" @.  Outside references to G and Y may take any of the
+following forms:  (FG,s), (FG), (FY,s) or (FY), where s is a skeleton whose
+value will be passed as an argument to the corresponding skeleton in group
+F.  (FG) and (FY) deliver a null argument to G and Y, respectively.
+
+	Finally, program groups may also be formed:
+
+	{ (()()()()) a       (()()()()) b      (()()()()) } A
+
+In this case, subroutines a and b are not directly available from outside
+the braces, but can only be called by each other and by A; any CNVRT
+subroutine may be included in a braced group in the fashion shown, and
+each braced group MUST be a subroutine, the final main program of a CNVRT
+program file may not be a part of a braced group.
+
+:Conditional skeletons.
+
+	Four conditional skeletons are provided: IF, NF, if and nf.  IF and 
+NF require a variable list to be given, if and nf do not.  Their general
+forms are the following:
+
+	(IF,(v),s1,p1,s1t,s2,p2,s2t,...,sk,pk,skt,sf)
+	(if,s1,p1,s1t,s2,p2,s2t,...,sk,pk,skt,sf)
+	(NF,(v),s1,p1,s1t,s2,p2,s2t,...,sk,pk,skt,sf)
+	(nf,s1,p1,s1t,s2,p2,s2t,...,sk,pk,skt,sf)
+
+	In skeletons IF and NF, v is list of variables (zero or more 
+integers between 0 and 30 with one space between each pair of variables).  
+Variables appearing in v supersede variables of the same names defined 
+outside the IF or NF during the execution of the conditional skeleton;
+otherwise, IF and NF operate the same as if and nf, respectively.  
+Each s represents a skeleton and each p represents a pattern.  One or more 
+triplets [si,pi,sit] may appear; the last skeleton sf may be omitted 
+(together with the comma which precedes it).
+
+	The next panels describe the operation of if and nf; we repeat 
+the form of the corresponding skeleton for ease of reference.
+-
+	(if,s1,p1,s1t,s2,p2,s2t,...,sk,pk,skt,sf)
+
+	Skeleton s1 is evaluated and matched to pattern p1.  If the match 
+succeeds, s1t is evaluated and its value becomes the value of the entire
+skeleton; if the match fails s2 is evaluated and matched to p2.  This
+continues until a match obtains or there are no more comparisons to be made,
+in which case the last skeleton sf is left as the result.  If no sf appears 
+(which means that the comma following skt is also absent) and all matches 
+fail, the value of the skeleton will be the last skeleton failing to match 
+the pattern which followed it.  An example follows:
+
+	(if,(%R),(^Z),<=>(%t,End of file encountered),(%T,<=>))
+
+This will read a line from the default file; if it finds and end-of-file 
+marker (control-Z), it leaves it but types the message "End of file 
+encountered" (the value of %t is the null string); otherwise, it leaves
+the line read by (%R) after typing it.
+
+	The use of more than one s,p,s triplet allows constructs of the
+"elseif" type within a single (if,...).
+
+
+-
+	(nf,s1,p1,s1t,s2,p2,s2t,...,sk,pk,skt,sf)
+
+	NF and nf are the negative forms of IF and if, repectively; that is,
+if s1 does NOT match p1, s1t is substituted, else if s2 does not match p2,
+s2t is substituted, etc.  The last skeleton, sf, is substituted only if all
+si match the corresponding pi.
+
+	Alternatively, "nf" may be read as "unless":  Unless s1 matches p1,
+s1t is evaluated and delivered as the result, else unless s2 matches p2,
+s2t is given as the result, etc.
+
+	Sf (and the comma preceding it) may be absent, in which case the
+result will be sk when all si match the corresponding pi.  A useful example 
+follows:
+
+		(nf,(%Or),Not Found,(a,(%R)))
+
+This skeleton will call function a, with argument equal to the first line of 
+the default file only if it is possible to open the default file for reading.
+Variants of this example include giving arguments to the %Or and %R 
+functions.  Notice that if the value of (%Or) is "Not Found", this string
+will be left as the value of the nf skeleton since no "sf" is given.
+
+:Iterative skeletons.
+
+	Four iterative skeletons are provided: WHILE, UNTIL, while and until.
+WHILE and UNTIL require a variable list to be given, while and until do not.
+Their general forms are the following:
+
+	(WHILE,(v),si,p1,s1,s1r,p2,s2,s2r,...,pn,sn,snr,sf)
+	(while,si,p1,s1,s1r,p2,s2,s2r,...,pn,sn,snr,sf)
+	(UNTIL,(v),si,p1,s1,s1r,p2,s2,s2r,...,pn,sn,snr,sf)
+	(until,si,p1,s1,s1r,p2,s2,s2r,...,pn,sn,snr,sf)
+
+	In skeletons WHILE and UNTIL, v is list of variables (zero or more 
+integers between 0 and 30 with one space between each pair of variables).  
+Variables appearing in v supersede variables of the same names defined 
+outside the WHILE or UNTIL during the execution of the conditional skeleton;
+otherwise, WHILE and UNTIL perform as while and until, respectively.  
+Each s represents a skeleton and each p represents a pattern.  One or more 
+triplets [pk,sk,skr] may appear; the last skeleton sf may be omitted 
+(together with the comma which precedes it).
+
+	The next panels describe the operation of while and until; we repeat 
+the form of the skeleton for ease of reference.
+-
+	(while,si,p1,s1,s1r,p2,s2,s2r,...,pn,sn,snr,sf)
+
+1.	The initial skeleton si is placed on the workspace.
+
+2.	If the pattern p1 matches the text, the skeleton s1 replaces it and 
+a new text to match with p1 is given by the repetition skeleton s1r.  This 
+step is repeated until p1 no longer matches the text presented to it.  
+
+3.	The last text s1r from step 2 (or si if p1 did not match on the very
+first try) is used as initial text to match with pattern p2, and a similar 
+iteration to that of step 2 takes place on the triple p2,s2,s2r.
+
+4.	Similar iterations are performed for each triple pk,sk,pkr; when the 
+last pattern pn fails to match its text, its last residue pnr is left on the 
+workspace, unless the optional final skeleton sf is present, in which case 
+it replaces the text which last failed to match pn.  The text produced by 
+"while" will thus be a concatenation of 0 or more instances of s1, s2, ...
+sn and either of the last of snr or sf; the number of instances of sa, sb, 
+..., sn will depend on how many iterations of each triple took place.
+
+	"Until" performs in a similar manner, except that iteration occurs
+as long as the pattern does NOT match.  Examples follow in the next panel.
+-
+	The following WHILE reads the default file, leaving on the workspace 
+its contents up to but not including the end-of-file marker.
+
+	(WHILE,(0),(%R),(and,<[128]>,(NOT,<-->(^Z))),<=>,(%R),<<
+		>><=>,<0>(^Z),<0>,)
+
+	The symbol <=> is the "same" skeleton, whose value is the text used
+in the last matching attempt (regardless of the outcome); this skeleton is
+described in the next section of this file.
+
+	The first triple in the above example leaves on the workspace, one 
+by one,  all full disk sectors of the file which do not contain ^Z.  The 
+iteration ends when either no more sectors remain in the file or a sector 
+is read which contains a control-Z.  The last text (which is either a single 
+^Z or a sector containing it) is given to the next triple, in which the text 
+match the pattern <0>(^Z), so that <0> will be a null string or the rest of 
+the file up to but not including the ^Z.  A null string is given as the 
+repeat text, which will not match <0>(^Z), and the last action of the WHILE
+will be to "append" this null text to the right of the contents of the
+workspace.
+
+	An example of UNTIL follows.
+-
+	(UNTIL,(0),0,(and,<0>,13),(,(%Ow,MEM:<0>)),(#p,<0>),)
+
+	This skeleton creates 13 memory buffers, named MEM:0 through MEM:12.
+Notice that <0> is the first pattern in the "and", so that the variable will
+be bound to the text even if the whole "and" fails (which will happen 13 
+times).  The skeleton (#p,...) increments by one a number expressed as a
+decimal number in ASCII; for instance, (#p,12) yields the string "13".
+
+	The skeleton which would close these buffers and release the memory
+associated with them would be the following:
+
+	(UNTIL,(0),12,(and,<0>,-1),(%C,MEM:<0>),(#m,<0>),)
+
+(#m,...) decrements its argument; notice that closing is performed in the
+order opposite to the one followed when opening: since memory buffers
+are assigned space on the pushdown list, space must be released in order
+opposite to that of arrival.
+
+:The "Same" Skeleton <=>.
+
+	The skeleton <=> may be used wherever a pattern match has taken place
+and the workspace hasn't been disturbed (which includes the start of any of
+the skeletons in ifs, nfs, whiles, untils, etc.); the value of <=> is the 
+whole text in the workspace.  For instance, the rule (,<=><=>) leaves two 
+copies of the text to which it is applied.  Any concatenation of one or more 
+<=>'s may also be included as the argument of a function or nest of 
+functions, as long as it appears where a single <=> would be allowed.  All
+of the following examples of CNVRT rules (where ... denotes the pattern) are
+allowed:
+	(...,<=>);		(...,<=>(a,(b,<=>))):
+	(...,(a,<=>)):		(...,<=><=>(%W,FILE.OUT,<=>));
+	(...,(%W,(x,<=>),(^Z)));
+	(...,(if,<=>,(^Z),,<=><=>));
+	(...,(WHILE,(0),(%R),(and,<[128]>,(NOT,<-->(^Z))),<=>,(%R),<<
+				>><=>,<0>(^Z),<0>,));
+
+On the other hand, (...,(%R)<=>) or (...,(a,<=>)<=>) are not allowed because
+the original text is no longer available at the point where the last <=> is
+found in each example.
+
+:Data Transfer and I/O.
+
+	In this section we describe additions, extensions and changes to
+the data transfer and I/O part of the CNVRT library of functions.  A
+listing of functions and options that have not been previously discussed 
+follows:
+		(%R,s,p,st,sf)		Read with then/else options
+		(%Or,MEM:n,s)		Open memory buffer for reading
+		(%Ow,MEM:n,s)		Open memory buffer for writing
+		(%R,MEM:n,...)		Read from a memory buffer
+		(%W,MEM:n,s)		Write into a memory buffer
+		(%Lr)			Get ID of logged disk
+		(%Lw,x)			Log in disk x
+		(%t,s)			Type and erase argument
+		(%P,s)			Print argument ant leave it
+		(%p,s)			Print and erase argument
+		(%Q)			Type logon message (formerly (%L))
+		(%M)			Return to CP/M
+		NUL:			Null pseudofile
+
+	(%|) no longer exists since (^MJ) performs the same function.  The
+above skeletons are described in detail in the following sections.
+
+:Pattern-directed read.
+
+			(%R,s,p,st,sf)
+
+A read is performed on the file or pseudofile described by skeleton s.
+If the text read matches p, the value of the whole skeleton will be that
+of st, otherwise sf will be evaluated and delivered to the workspace.
+Possible alternatives are as follows:
+
+	(%R,s,,st,sf)	The default pattern provided in the library is used.
+	(%R,s,p,,sf)	The null string is left if p matches the text read.
+	(%R,s,p,st)	st is left if p matches, else the text read is left.
+	(%R,s,p,st,)	The null string is left if p does not match the text.
+
+If the skeleton s starts with the four-character constant CTR:, no code is
+generated for pattern matching and all portions of the %R skeleton following
+s will be ignored if present.  A pattern-directed read from a CTR: pseudofile
+may be accomplished by hiding the CTR: away elsewhere in a defined skeleton,
+e.g.,  (() (  (CTR:x) X ) () ( ... 
+				( ... , (%R,(X),...)...);
+	))
+where ellipses indicate omitted portions of the program.
+
+:Memory buffer operations.
+
+	Open operations on MEM:-type pseudo files may have an additional
+skeleton whose value should be a string of decimal digits indicating the
+size in bytes of the buffer desired.  This number is effective only at the
+time the buffer is actually created; it is ignored if the buffer already
+exists.  If omitted at the time of the initial open, 1024 is assumed.
+
+	Associated with a memory buffer pseudofile there are two pointers:
+a read pointer and a write pointer.  When the buffer is first created, both
+pointers reflect an empty buffer.  Write operations start writing into a
+buffer at the location indicated by the write pointer, update the pointer to
+the next available location when done and remove the written argument from 
+the workspace, however, if the argument doesn't fit in what's left of the 
+buffer, nothing is written, the argument remains in the workspace and the
+write pointer remains unaltered.  Read operations will read all characters
+between the read pointer and the write pointer and the default pattern or
+the pattern given explicitly in the read will be tested on this text.  If
+there is a match, the portion of the text which matched will remain in the
+workspace and the read pointer will be updated to reflect that text has been
+read out.  If no match is possible, the text between the pointers is returned
+with a ^Z at the end, and the read pointer moves up to the write pointer.
+-
+When a read is attempted on a MEM: pseudo file in which both read and write
+pointers have the same value (either because the buffer is empty or it has
+been read out entirely), a single ^Z is returned.  The final text returned
+by %R from a memory buffer will of course depend on the presence or absence
+of the optional skeletons possible in the (%R,...) skeleton.
+
+	Open operations may be performed on an open buffer, with the
+following effects:
+
+	(%Or,MEM:...)	moves the read pointer to the beginning of the
+			buffer, thus making available all of its contents.
+
+	(%Ow,MEM:...)	moves both pointers to the beginning of the buffer,
+			effectively leaving it empty.
+
+	Both open operations on a MEM: pseudofile return the address of the
+buffer as a four-digit ASCII hexadecimal number; this is provided for use
+with the %B direct BIOS call available with CP/M-86.  For most purposes, %O
+skeletons involving MEM: buffers should be nested inside the null skeleton
+(,...) which erases its argument from the workspace.
+
+:Disk system, display and return to CP/M functions.
+
+	(%Lr)	returns a single letter (A, B, ...) corresponding to the
+		identifier of the currently logged-in disk.
+
+	(%Lw,x)	logs in the disk sppecified by the first letter of skeleton
+		x; if x is omitte or is null, A is assumed.
+
+	(%t,s)	types and erases the value of skeleton s; it essentially
+		replaces (,(%T,s)); %T retains its function (type and leave).
+
+	(%P,s)	prints on the list device and leaves on the workspace the 
+		value of skeleton s.
+
+	(%p,s)	prints on the list device and erases from the workspace the
+		value of its argument, it is equivalent to (,(%P,s)).
+
+	(%Q)	displays the logon message; this is a function previously
+		performed by (%L) [refer to the section on "Program file"
+		in CNVRT.HLP].
+
+	(%M)	returns to CP/M after closing all files (panic button).
+
+:Null pseudofile.
+
+	The pseudofile NUL: may appear in skeletons %Or, %Ow, %R, %W and
+%C.  When found by %O and %C, no action is taken; reading from the null
+file always returns a ^Z and writing to the null file has the sole effect
+of erasing the argument.
+
+	This feature is useful in compiler and assembler construction, where 
+for test purposes one may not want, say, an object file to be produced.  One
+could then bind a variable near the beginning of the compiler's execution to
+either of NUL: or an actual file name, and use this variable in all 
+references to the output file.
+
+
+:Arithmetic Skeletons.
+
+	Arithmetic skeletons have the form
+
+			(#x,s)
+
+where x may be a string of one or more of the arithmetic functions and s
+is the argument to which the functions given by x are applied.  In the
+listing of arithmetic functions which follows, the term "constant" means
+a string of ASCII characters representing an integer when the program is 
+run with rec80 or rec86, or an integer, long integer, single precision real 
+or double precision real when the program is run with rec80f or rec86f.
+CNVRT inherits REC8xF's default of promoting smaller-sized arguments to the 
+size and type of the larger argument in operations involving arguments of 
+different sizes.
+
+	f	evaluates a formula.  Its argument must be an arithmetic
+		expression in which the operands are constants.  Parentheses
+		are allowed (and must be balanced if present); the operators
+		recognized are ** or ^ for raising to a power, * for product
+		/ for division, % for remainder, + for addition or unary 
+		plus and - for subtraction or unary minus.
+-
+		The usual rules for operator precedence and association are 
+		followed: ** or ^ precede *, / and %, all of which precede + 
+		and -.  Unary +'s are removed and unary -'s are replaced by 
+		0-.   *, /, %, + and - associate from left to right and ** 
+		or ^ associate from right to left.  Thus, (#f,2^3^2) yields 
+		512, (#f,(QUO\(2^3)^2\)) yields 64, (#f,2/4*6) gives 0 and
+		(#f,6*2/4) gives 3.  Exponents MUST be of integer type; a
+		floating point exponent causes an "Expt err" diagnostic and
+		a return to CP/M.
+		
+	+	Takes an argument of the form a+b, where a and b are 
+		constants and returns their sum.  The argument is unchanged
+		if it doesn't have the required form.
+
+	-	Takes an argument of the form a-b, where a and b are 
+		constants and returns the indicated difference.  No change
+		is made in the argument if its form isn't a-b.
+
+	*	Returns the product if the argument has the form a*b, with
+		a and b constant; otherwise the original argument remains.
+
+
+-
+	/	Returns the quotient given an argument a/b in which a and
+		b are constants; no change is effected if the argument
+		does not have the specified form.
+
+	^	Given an argument of the form a^b, where a is any constant 
+		and b is an integer, returns a raised to the power b.  The
+		argument is returned intact if it does not have the indicated
+		form
+
+	%	Returns the remainder of the division a/b if the argument
+		has the form a%b; otherwise the argument is left unchanged.
+		If either operand is a floating point number, the result
+		returned will be  a-(b*int(a/b)), where int(x) is the 
+		integer part of x. [e.g., int(3.5)=3; int(-4.8)=-4.]
+
+	|	If its argument has the form a|b, where a and b are integer
+		constants, it returns the greatest common divisor of the
+		pair.  No change occurs if the argument lacks the prescribed
+		form and no check is made to ensure that a and b are 
+		integers; results are unpredictable in the latter case.
+		| may not be used as an operand in arithmetic expressions
+		to be evaluated by f.
+-
+	p	Accepts a single constant as argument and returns that
+		constant plus one, in a string of the same numeric type
+		as the original argument.  It will not alter its argument
+		if it isn't a constant.
+
+	m	If its argument is a constant, it returns that constant minus
+		one, in a string of the same type; otherwise it leaves its
+		argument unchanged.
+
+	=
+	>	These three skeletons take arguments in either of two
+	<	forms: a single number or two numbers separated by a comma.
+		In the case of a single number, say a, they return the 
+		letter t if a=0, a>0 or a<0, respectively, and the letter f
+		otherwise.  In the two-argument case of the form "a,b", t
+		is returned if a=b, a>b or a<b, respectively, and f if the
+		relation doesn't hold.  In this case, if a and b are two-byte
+		integers they are compared as unsigned operands, since 
+		two-byte integers are more often used in address 
+		calculations.
+
+
+-
+	l	Requires a single constant as argument; it converts it to
+		a string of the following larger numeric type.  For instance,
+		(#l,-1) yields 065535, (#l,010000000) yields 1.E7 and
+		(#l,3.1415) gives 3.1415D0.  Double precision constants and
+		non-numeric arguments remain unchanged, a null string as
+		argument returns the digit 0.
+
+	s	Converts a single constant argument to next smaller numeric
+		type before rendering it back to ASCII.  Thus
+		(#s,3.141592653589D0) returns 3.14159265, (#s,-45.98) returns
+		-045, (#s,0100000) leaves 34464 (because of truncation modulo
+		2**16) and (#s,2000) leaves 208 (because of truncation modulo
+		256).  Non-numeric arguments remain unchanged; a null string
+		returns the digit 0.
+
+	D	Leaves the binary form of a numeric constant in its place;
+		this will take the form of 2, 4, 5 or 8 bytes arranged in
+		Intel form (least significant byte first); the lengths
+		correspond to short integers, long integers, single precision
+		reals and double precision reals, respectively.  D is more
+		often used together with h to produce the ASCII hexadecimal
+		representation of a number.  
+-
+		No change takes place if the argument is non-numeric. 
+		Examples:	(#Dh,1.5) 	produces 	3FC0000000
+				(#Dh,-1) 	produces 	FFFF
+				(#Dh,01000000) 	produces 	000F4240
+
+	H	Leaves the binary form of a string of ASCII hexadecimal 
+		digits (0-9, A-F).  Given a string of n bytes, it produces
+		a string of flr((n+1)/2) bytes, where flr(x) is the greatest
+		integer not exceeding x.  H is often used together with d
+		to convert from ASCII hexadecimal to ASCII decimal.  No
+		change is effected if the argument contains characters other
+		than hex digits.  Examples:
+		(#H,414243)	 gives	CBA 	(when interpreted as ASCII)
+		(#Hd,3FC0000000) gives	1.5
+		(#Hd,F)		 gives  15
+
+	d	Assumes its argument is the binary representation of a number
+		and converts it to an ASCII decimal string.  If the argument 
+		length is not 0, 1, 2, 4, 5 or 8 no change takes place.  
+		Examples: (#d,(^MJ)) yields 2573 (10*256+13, due to Intel 
+		ordering of bytes in binary operands being assumed); 
+		(#Hd,FFFF) yields 65535.
+-
+	h	Assumes its argument to be binary and converts it to a string
+		of ASCII hex.  An n-byte argument produces a 2n-byte result.
+		Examples: (#Dh,1.) produces 3F80000000;	(#h,jkl) produces 
+		6C6B6A (because Intel ordering of binary operands is assumed)
+
+	As mentioned near the beginning of this section, in a skeleton of
+the form (#x,s), x may be a string.  When x consists of more than one
+character, each of the represented functions is applied to the argument
+from left to right, thus in (#Hd,FFFF), H is applied first to FFFF and
+d is then applied to the result left by H (the two byte binary representation
+of 65535).
+
+	The entire section of the CNVRT library dealing with arithmetic may 
+be excluded from the compiled program file by the presence of INT in the
+[Exclude ...] comment at the beginning of the source program file.  Selected
+portions of the arithmetic section may be excluded by other three-letter
+keywords listed in this Help file under "Exclude feature".
+
+:Character "Arithmetic".
+
+	Character arithmetic skeletons have the form
+
+			(&x,s)
+
+where x may be a string of one or more of the character arithmetic  functions
+and s is the argument to which the functions given by x are applied.  When
+x consists of two or more characters, the function represented by each 
+character is applied in turn from left to right, the first one to the 
+original argument and the rest to the result left by the preceding function
+For instance, (&D!,1.5) applies D to the string 1.5 and ! to the resulting
+string.
+
+	Functions available for character arithmetic are the following:
+
+	D	Converts a string of one or more decimal integer ASCII
+		numbers optionally preceded by minus signs and separated by
+		commas or other nondecimal characters into binary, a pair
+		of bytes for each integer. Examples: (&D,2573<,>-1) yields  
+		4 consecutive bytes whose hex values are 0D, 0A, FF and FF;
+		(&D,ab) yields 6 zero bytes: a and b delimit 3 null strings.
+-
+	H	Converts a string of one or more hexadecimal ASCII numbers
+		into binary (modulo 2**16), a pair of bytes for each number.
+		For instance, (&H,F) yields two bytes whose values are, in
+		hex, 0F and 00; (&H,ABCDEf0123) produces 4 bytes whose
+		values expressed in hex are DE, BC, 23 and 01, in that order.
+		The inversion of high and low order bytes is due to the
+		Intel convention for binary data storage.  Notice also that
+		lowercase f is not considered a hex digit.
+
+	d	Converts a string by pairs of bytes into ASCII decimal 
+		strings separated by commas; if the argument has an odd
+		number of bytes the rightmost byte is converted assuming
+		a zero high order byte.  Examples:
+			(#d,(^MJZ)) produces the string 2573,26
+			(#Hd,FFFE)  produces the string -2
+
+	h	Converts a string by pairs of bytes into strings of 4 ASCII 
+		hexadecimal digits separated by commas; the rightmost byte
+		of a string of odd length gets converted to two hex digits.
+		Examples:
+			(#h,(^ABMJZ)) produces the string 0201,0A0D,1A
+			(#Dh,32767) produces the string 7FFF
+-
+	u	Shifts all lowercase letters (a-z) in its argument to
+		uppercase, e.g., (&u,Hello) yields HELLO.
+
+	l	Shifts all uppercase letters (A-Z) in its argument to
+		lowercase, e.g., (&u,What IS it?) results in what is it?
+
+	a	Turns off the sign bit of each byte in its argument.
+		For instance (&Dah,-1) results in the string 7F7F.
+
+	s	Turns on the sign bit of each byte in its argument.
+		For instance (&sh,(^MJZ)) gives 8A8D,9A
+
+	p	Substitutes a period for each byte in its argument
+		whose value is not a printable ASCII character.
+		Example: (&p,abc(^MJ)de) results in abc..de 
+
+	n	Converts each byte in its argument into two ASCII hexadecimal
+		digits.  For example (&n,ABCDEF) produces 414243444546.
+
+	b	Inverts the effect of n: converts pairs of ASCII hex digits
+		into bytes of the corresponding binary value.  Results are
+		unpredictable for odd-numbered arguments or non-hex digits.
+-
+	i	Converts a string of bytes into 3-digit ASCII octal numbers
+		(one for each byte) separated by commas; a null argument
+		produces 000.  Example:
+				(&i,Zz) produces 132,172
+
+	I	Converts a string of ASCII octal numbers separated by commas
+		to binary, a byte for each ASCII number.  For example,
+		(&I,116<,>117<,>77) yields the 3-byte ASCII string NO?
+
+	8	Converts a string of bytes into 8-bit ASCII binary numbers 
+		(one for each byte) separated by commas; an isolated null
+		string produces 00000000.  Example:
+			(&8,Zz) produces 01011010,01111010
+
+	B	Converts a string of ASCII binary numbers separated by commas
+		to binary, a byte to each ASCII number; a single null string 
+		produces a single zero byte.  For example,
+			(&HB,01011010<,>01111010) yields 7A5A.
+
+	=	Yields the letter f if its argument is the null string or at 
+		least one of its bytes is non-null; leaves the letter t if 
+		all of the argument's bytes are binary 0.
+-
+	>	Yields the letter f if its argument is the null string or if 
+		the sign bit of its rightmost byte is on; t if this byte's 
+		sign bit is off.
+
+	<	Yields the letter f if its argument is the null string or if
+		the sign bit of the rightmost byte is off; the letter t is
+		returned if the rightmost byte's sign bit is on.
+
+	!	Returns the length of its argument as an ASCII decimal 
+		number.  For example, (&!,What<,> me worry?) returns 15.
+
+	#	Returns the hash function of its argument as an ASCII decimal
+		number, always between 0 and 12.  The hash function is 
+		defined here as the remainder modulo 13 of the exclusive or 
+		of all the bytes in the argument.
+
+	The entire section of the CNVRT library dealing with chracter 
+arithmetic may be excluded from the compiled program file by the presence of 
+CHR in the [Exclude ...] comment at the beginning of the source program 
+file.  Selected portions of the character arithmetic section may be excluded 
+by other three-letter keywords listed in this Help file under "Exclude 
+feature".
+
+:Overlays.
+
+	Overlays are an extremely useful feature which allow the running 
+of programs whose overall size is much larger than REC's compilation area.  
+Overlays may be used when a program can be divided into three or more 
+segments such that two or more of them are not needed simultaneously in 
+memory.
+
+	For instance, suppose program A calls subroutines B and C, but
+neither B calls C nor C calls B.  Then program A could constitute a main
+overlay which loads B or C when either of them is required.  Thus B and
+C share the same memory area and the memory requirements for the entire
+program are smaller by the length of the smaller of B and C than the
+requirements for the non-overlaid A-B-C combination.  An overlay may
+load other overlays, and this way a very large program may be organized
+in a tree-like structure of overlays.  Since each overlay is a REC
+program compiled when loaded, no relocatability issue arises so that
+a given overlay may be loaded at different levels of an overlay tree.
+
+	For the purpose of discussion, in what follows the main overlay
+will be called "driver" and the rest of the overlays will be called
+"secondaries".
+-
+	A driver is compiled with either CNVSM or CNVRT and should include
+in its library all functions needed by it and its secondaries.  Secondaries
+may be compiled by CNVSM or CNVRT, in which case they MUST have a directive
+[Exclude LIB] before their first procedure.  Alternatively, CCNVSM and CCNVRT
+may be used to compile secondaries, in which case no "Exclude" is necessary,
+since CCNVRT and CCNVSM are counterparts of CNVRT and CNVSM which have no
+provisions for library insertion; additionally, CCNVRT and CCNVSM may be 
+invoked as overlays by any CNVRT program.
+
+	Overlays may be read from disk files or memory buffers; the latter 
+case essentially extends the compile area into REC's pushdown list, from 
+which space is procured for memory buffers.  Storing overlays in memory 
+buffers also has the advantage that overlay loading from them is 
+substantially faster than loading from a disk file.  The following skeleton 
+fragment shows how an overlay in a file called F77SY.REC is read from disk 
+and written into a MEM: pseudofile whose size is computed from the length
+of the original file itself:
+	>>(IF,(0),(%R,F77SY.REC,<-->(^Z)),<0>,<<
+		>>(%C,F77SY.REC)(,(%Ow,MEM:sy,(&!,<0>)))(%W,MEM:sy,<0>))<<
+Closing F77SY.REC before opening MEM:sy saves memory by releasing table and
+buffer space associated with F77SY.REC; the length of MEM:sy is determined
+by the length of the contents of F77SY.REC; <0> is bound to these contents.
+-
+	An overlay is loaded and executed by the skeleton
+
+			(%V,name,arg)
+
+where 'name' is the name of the disk file or memory buffer containing the
+overlay and 'arg' is a skeleton whose value is the argument received by the
+overlay in the workspace; 'arg' is optional and when omitted, the preceding
+comma may also be omitted.
+
+	The last overlay loaded may be reexecuted any number of times without
+recompiling it (as long as no other overlay is loaded) by calling it with the
+skeleton
+			( ,arg)
+
+in which a single blank space appears between the left parenthesis and the
+comma, and 'arg' is the argument to be passed to the overlay; the skeleton
+( ) (with a single blank) may be used if no argument is to be passed.
+
+	Finally, if a program doesn't need the overlay feature, the library 
+code for %V may be excluded by writing OVR in the Exclude directive.
+
+:"Exclude" feature
+
+	Exclusion was already discussed in Section F of CNVRT.HLP, so this
+section is only an update on the options available, which are the following:
+
+	DSK	Disk system (%Z, %Lr and %Lw)
+	BIO	Direct access to BIOS (%B)
+	DIR	Directory functions (%S, %A, %D, %N)
+	BOO	Return to CP/M (%M)
+	CTR	Counter pseudodevice
+	MEM	Memory buffer pseudodevice
+	NUL	NUL: pseudodevice
+	CLS	Close by name (%C)
+	PVR	"Print variable" debugging aid pattern
+	PRN	Printer skeletons (%P, %p)
+	OVR	Overlay feature (%V)
+	INT	All of the arithmetic skeletons.  Selected portions of this 
+		section of the library may be excluded with the following:
+		Keyword			Excludes
+		  FOR			   #f
+		  FLT		   Floating point in #f
+		  PWR		   ** or ^ in #f and #^
+-
+		Keyword			Excludes
+		  MOD		      % in #f and #%
+		  GCD			   #|
+		  TWO	   #+, #-, #*, #/ #|, #%, #^, #=, #> and #<
+		  NCM		      #=, #> and #<
+		  IDC			#p and #m
+		  NCV			#l and #s
+		  NDH		     #D, #d, #H and #h
+
+	CHR	All of the character arithmetic skeletons.  Selected portions
+		of this section may be excluded as follows:
+		Keyword			Excludes
+		  CDH		     &D, &d, &H and &h
+		  CSE			&u and &l
+		  SBT			&a and &s
+		  DOT			   &p
+		  NIB			&n and &b
+		  233			&i and &I
+		  BIT			&8 and &B
+		  BCM		      &=, &< and &>
+		  LEN			    &!
+		  HSH			    &#	 	
+-
+	All of the above options may be excluded by the directive
+[Exclude ALL]; the entire library must be excluded when compiling 
+secondary overlays, this is accomplished by [Exclude LIB].
+
+
+:Miscellaneous features.
+
+	- PDL space is recovered when files are closed in the order opposite
+to that used when opening them.  This allows a CNVRT program to process an 
+indefinite number of files without leaving a trail of unused FCB's and 
+buffers on REC's pushdown list.
+
+	- 'Dir full' and 'Disk full' diagnostics are issued if the respective
+conditions occur during the compilation of a CNVRT program.
+
+	- All four compilers (CNVRT, CNVSM, CCNVRT and CCNVSM) may be loaded
+and executed by the overlay skeleton %V; the second argument of %V must be 
+the name of a disk file containing the CNVRT program whose compilation is 
+desired, e.g., (%V,CCNVSM.REC,FOO) loads CCNVSM, compiles the program in file
+FOO.CNV, produces the compiled program file FOO.REC and returns to the
+program invoking %V; since CCNVSM inserts no library, FOO.REC may be then
+used as an overlay by the same program.
+
+
+:[CNVADV.HLP]
+[Gerardo Cisneros, 13.8.84]
+[end]
+

@@ -1,0 +1,282 @@
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+;		DIABLO DRIVER
+;
+;  This driver was donated by RICH LERSETH of
+;	LEPAC SERVICES
+;	8245 MEDITERRANEAN WAY
+;	Sacramento,Ca
+;	95826
+;	916-381-1717		August 1980
+;
+;	This DIABLO driver is a 1200 baud buffered package
+;	that allows the host to spool with minimum quequing.
+;	It uses half the diablo buffer (79 bytes) and an
+;	internal buffer (79 bytes) to guarentee no over run.
+;	The driver accepts data from the host and puts it into
+;	its internal buffer. It then checks to see if the diablo
+;	is ready to accept data from the driver's buffer. If not
+;	then it immediately returns to the host. Otherwise, it
+;	sends one byte to the diablo then returns to the host.
+;	When the driver senses that its internal buffer is full
+;	it will take time out and wait until the diablo is ready 
+;	to accept the remainder of the internal buffer (wait for
+;	an ACK to come back) It will then dump the remainder of
+;	the buffer and send a ETX).
+;	At any time the driver encounters a CR or LF it will
+;	also dump the buffer and send a ETX.
+;
+;	DIABLO PRINTER PARAMETERS
+;	(set up for SD SYSTEMS 100)
+	ORG	0DF00H
+;
+SIPORT	EQU	7DH
+SOPORT	EQU	7DH
+DIPORT	EQU	7CH
+DOPORT	EQU	7CH
+SIMASK	EQU	01H
+SOMASK	EQU	02H
+BUFFSZ	EQU	79
+;
+;
+;	DIABLO LIST STATUS
+;
+LISTST:	CALL WAITST
+	JR	Z,LB1		;READY
+	CALL	INSTAT
+	JR	Z,LB2		;NOT READY
+	CALL	INPUT
+	CP	6
+	JR	NZ,LB2		;NOT READY
+	XOR	A
+	LD	(WFLAG),A
+;
+;	READY
+;
+LB1:	LD	A,-1
+	RET
+;
+;	NOT READY
+;
+LB2:	XOR	A
+	RET
+;
+;	LIST DEVICE
+;
+LIST:
+;
+;	INPUT A BYTE INTO THE BUFFER, CHECK IF ESC OR ETX
+;	SEQUENCE IS SENT
+;
+        CALL 	LISTST		;CLEAR WAIT STATE IF TIME OUT.
+    	LD	A,C
+	LD	HL,(NBYTES)
+	INC	HL
+	LD	(NBYTES),HL
+	EX	DE,HL
+	LD	HL,BLOCK-1
+	ADD	HL,DE
+	LD	(HL),A
+	LD	A,(EFLAG2)	;END OF 3 BYTE ESC SEQ?
+	OR	A
+	JR	NZ,IB1
+	LD	A,(EFLAG1)	;SECOND BYTE OF ESC SEQ?
+	OR	A
+	JR	NZ,IB3
+	LD	A,27		;START OF ESC SEQ?
+	CP	(HL)
+	JR	Z,IB4
+	LD	A,3		;START OF ETX SEQ?
+	CP	(HL)
+	JR	NZ,IB6
+	DEC	DE
+	EX	DE,HL
+	LD	(NBYTES),HL
+	JR	OUTBLK
+;
+IB3:	LD	A,9		;CK FOR THE FOUR 3-B ESC
+	CP	(HL)
+	JR	Z,IB5
+	LD	A,11
+	CP	(HL)
+	JR	Z,IB5
+	LD	A,30
+	CP	(HL)
+	JR	Z,IB5
+	LD	A,31
+	CP	(HL)
+	JR	Z,IB5
+	JR	IB1
+;
+IB4:	LD	A,-1
+	LD	(EFLAG1),A
+	RET
+;
+IB5:	LD	A,-1
+	LD	(EFLAG2),A
+	RET
+;
+IB1:	XOR	A
+	LD	(EFLAG1),A
+	LD	(EFLAG2),A
+;
+IB6:	LD	A,0AH		;CK LN FD
+	CP	(HL)
+	JR	NZ,IB6A
+	LD	(LFCK),A
+	JR	OUTBLK
+;
+IB6A:	LD	A,0DH
+	CP	(HL)
+	JR	NZ,IB6B
+	LD	A,(LFCK)	;CK RETURN IF NOT LINE FEED BEFORE
+	OR	A
+	JR	Z,IB6C
+	XOR	A
+	LD	(LFCK),A
+	JR	OUTBLK
+;
+IB6B:	XOR	A
+	LD	(LFCK),A
+IB6C:	LD	A,BUFFSZ-3
+	CP	E
+	JR	C,OUTBLK
+	LD	A,(WFLAG)
+	OR	A
+	RET	NZ
+	CALL	OUSTAT
+	RET	Z
+	LD	HL,(JBYTES)
+	INC	HL
+	LD	(JBYTES),HL
+	EX	DE,HL
+	LD	HL,BLOCK-1
+	ADD	HL,DE
+	LD	C,(HL)
+	CALL	OUTPUT
+	RET
+;
+;	OUTPUT THE BLOCK
+;
+OUTBLK:	LD	A,(WFLAG)
+	OR	A
+	JR	Z,OB1
+	CALL	WAIT
+OB1:	LD	HL,(JBYTES)
+	EX	DE,HL
+	LD	HL,(NBYTES)	;SETUP TO DUMP THE BLOCK
+	XOR	A
+	SBC	HL,DE
+	LD	A,L
+	OR	H
+	JR	Z,DONE
+	PUSH	HL
+	LD	HL,BLOCK
+	ADD 	HL,DE
+	POP	DE
+;
+LOOP1:	CALL	OUSTAT
+	JR	Z,LOOP1
+	LD	C,(HL)
+	CALL	OUTPUT
+	INC	HL
+	DEC	DE
+	LD	A,D
+	OR	E
+	JR	NZ,LOOP1
+;
+DONE:	LD	HL,0
+	LD	(NBYTES),HL
+	LD	(JBYTES),HL
+	DEC	HL
+	LD	(WTIME),HL
+	LD	A,-1
+	LD	(WFLAG),A
+;
+;	SEND OUT THE END OF TEXT CODE
+;
+LOOPC:	CALL	INPUT
+	CALL	OUSTAT
+	JR	Z,LOOPC
+	LD	C,3
+	CALL	OUTPUT
+	RET
+;
+;	WAIT STATUS CHECK
+;
+WAITST:	LD	A,(WFLAG)
+	OR	A
+	RET	Z
+	PUSH	HL
+	LD	HL,(WTIME)
+	LD	A,L
+	OR	H
+	JR	Z,WS1
+	DEC	HL
+	LD	(WTIME),HL
+	XOR	A
+	INC	A
+	RET
+WS1:	LD	(WFLAG),A
+	RET
+;
+;	WAIT UNTIL ACKNOWLEDGE COMES BACK
+;
+WAIT:	LD	HL,0
+LOOP2:	DEC	HL
+	LD	A,L
+	OR	H
+	JR	Z,W1
+        CALL	INSTAT
+	JR	Z,LOOP2
+	CALL	INPUT
+	CP	6
+	JR	NZ,LOOP2
+W1:	XOR	A
+	LD	(WFLAG),A
+	RET
+;
+;	CHECK FOR STATUS OF OUTPUT
+;
+;
+OUSTAT:	IN	A,(SOPORT)
+	NOP			;RES FOR COMPLEMENT
+	AND	SOMASK
+	RET
+;
+;	OUTPUT A CHARACTER
+;
+OUTPUT:	LD	A,C
+	OUT	(DOPORT),A
+	RET
+;
+;	CHECK FOR STATUS OF INPUT
+;
+INSTAT:	IN	A,(SIPORT)
+	NOP			;RES FOR COMPLEMENT
+	AND	SIMASK
+	RET
+;
+;	INPUT A CHAR FROM THE PRINTER
+;
+INPUT:	IN	A,(DIPORT)
+        AND     127
+	RET
+;
+;	DIABLO PRINTER PARAMETERS
+;
+NBYTES:	DEFW	0000
+LFCK:	DEFB	00
+EFLAG1:	DEFB	00
+EFLAG2:	DEFB	00
+WFLAG:	DEFB	00
+WTIME:	DEFW	0000
+JBYTES:	DEFW	0000
+;
+;	PARAMETER AREA EXTERNAL TO CPM BIOS AREA
+;
+;	BUFFER AREA FOR DIABLO PRINTER
+;
+BLOCK:	DS	80
+	END

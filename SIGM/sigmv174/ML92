@@ -1,0 +1,584 @@
+.. JAN 15, 1984 REWORK OF MX FOR OKIDATA 92
+.. July 4, 1983 convenient equation numbering macro:
+..
+.sa Answer 0 for Draft; 1 for Correspondence
+..this comment with \font\ is ignored!
+..
+..setting print style:
+.ou hex
+1b
+3\font\
+.end .ou
+..
+.sc #
+..
+.rg e# 1
+..
+.dm EN
+(\\e#\\)
+.bj
+.rg e# +1
+.em
+..
+..
+.rg i# 1	;illustration number
+.........................
+.di figs		.
+.ce 1			.
+^U^BFIGURE CAPTIONS^u^b
+.sp 1			.
+.ed			.
+.........................
+.................................
+.dm IS	;illustration caption	.
+.di figs			.
+^BFig. \i#\ ^b
+.em				.
+.................................
+.................................
+.dm IE	;illustration end cap.	.
+.br				.
+.sp 1				.
+.ed				.
+.rg i# +1			.
+.em				.
+.................................
+.rg f# 1
+.ds "fn"^+\\f#\\^-"
+........................
+.di fnotes             .
+.sp 2                  .
+.ce 1                  .
+^U^BFOOTNOTES^b^u
+.sp 1                  .
+.ed                    .
+........................
+........................
+.dm FS ;footnote start .
+.di fnotes             .
+\\fn\\\\
+.em                    .
+........................
+.........................
+.dm FE ;footnote end	.
+.br			.
+.sp 1			.
+.ed			.
+.rg f# +1		.
+.em			.
+.........................
+.. JAN 1984; Scientific Symbol definition table
+.. FOR OKIDATA MICROLINE 92 PRINTER
+.WH HEX 1B 36 . ; 6 lines/inch is standard
+.fr 2 hex 1b 25 39 0C . ; 12/144" = halfline spacing
+..
+.TR * HEX ;DOT PRODUCT on ML-92
+1B	;ESC
+32	;'2'
+2A	;'*'
+1B	;ESC
+3\font\	;print style
+.EN
+.OU BINARY ;DOWNLOAD '*'
+00011011 ;ESC
+00100101 ;'%'
+01000001 ;'A'
+00101010 ;'*'
+00000000 ;left bot,top
+00000000
+00000000
+00000000
+00011000
+00000000
+00011000
+00000000
+00000000
+00000000
+00000000 ;right bot,top
+.en
+.TR . binary ;looks like a character to formatter
+		;but is a NOP as far as printer is concerned
+		;on MX-80
+.en
+.TR 6 HEX ;CURLY DERIVATIVE on ML-92
+1B	;ESC
+32	;'2'
+36	;'6'
+1B	;ESC
+3\font\	;style
+.EN
+.OU  binary ;curly derivative DOWNLOAD
+00011011 ;ESC
+00100101 ;'%'
+01000001 ;'A'
+00110110 ;'6'
+0000000 ;left bot,top
+0110000
+1000000
+0001001
+1000000
+0001001
+1000000
+0001001
+1000010
+0111100
+0000000 ;right bot,top
+.en
+.TR 8 HEX ;INFINITY on ML-92
+1B	;ESC
+32	;'2'
+38	;'8'
+1B	;ESC
+3\font\	;style
+.EN
+.OU  binary ;INFINITY DOWNLOAD
+00011011 ;ESC
+00100101 ;'%'
+01000001 ;'A'
+00111000 ;'8'
+0011100 ;left bot,top
+0100010
+0000000
+0100010
+0010100
+0001000
+0010100
+0100010
+0000000
+0100010
+0011100 ;right top,bot
+.en
+.TR = HEX ;"identity"operator (triple equal sign) on ML-92
+1B	;ESC
+32	;'2'
+3D	;'='
+1B	;ESC
+3\font\	;style
+.EN
+.OU  binary ;IDENTITY DOWNLOAD
+0011011 ;ESC
+0100101 ;'%'
+1000001 ;'A'
+0111101 ;'='
+0000000 ;left bot,top
+0101010
+0000000
+0101010
+0000000
+0101010
+0000000
+0101010
+0000000
+0101010
+0000000 ;right top,bot
+.en
+.TR @ HEX ;"DEL"operator (upside-down delta) on ML92
+1B	;ESC
+32	;'2'
+40	;'@'
+1B	;ESC
+3\font\	;style
+.EN
+.OU  binary ;DEL DOWNLOAD
+0011011 ;ESC
+0100101 ;'%'
+1000001 ;'A'
+1000000 ;'@'
+0000000 ;left bot,top
+0000001
+0000010
+0000101
+0001000
+0010001
+0001000
+0000101
+0000010
+0000001
+0000000 ;right bot,top
+.en
+.TR D HEX ;cap DELTA on ML92
+1B	;ESC
+32	;'2'
+44	;'D'
+1B	;ESC
+3\font\	;style
+.EN
+.OU  binary ;DEL DOWNLOAD
+0011011 ;ESC
+0100101 ;'%'
+1000001 ;'A'
+1000100 ;'D'
+0000000 ;left bot,top
+1000000
+0100000
+1010000
+0001000
+1000100
+0001000
+1010000
+0100000
+1000000
+0000000 ;right bot,top
+.en
+.TR I HEX ; ;integral sign on ML92
+1B	;ESC
+32	;'2'
+49	;'I'
+1B	;ESC
+3\font\	;style
+.EN
+.OU  binary ;INTEGRAL DOWNLOAD
+0011011 ;ESC
+0100101 ;'%'
+1000001 ;'A'
+1001001 ;'I'
+0000000 ;left bot,top
+0000000
+0000000
+1000000
+0100000
+0011100
+0000010
+0000001
+0000000
+0000000
+0000000 ;right bot,top
+.en
+.TR S HEX ; SIGMA {"SUM"} on ML92
+1B	;ESC
+32	;'2'
+53	;'S'
+1B	;ESC
+3\font\	;style
+.EN
+.OU  binary ;SIGMA DOWNLOAD
+0011011 ;ESC
+0100101 ;'%'
+1000001 ;'A'
+1010011 ;'S'
+1000001 ;left bot,top
+0100010
+1010101
+0001000
+1000001
+0000000
+1000001
+0000000
+1000001
+0100010
+1000001 ;right bot,top
+.en
+.TR a HEX ;alpha on ML92
+1B	;ESC
+32	;'2'
+61	;'a'
+1B	;ESC
+3\font\	;style
+.EN
+.OU  binary ;alpha DOWNLOAD
+0011011 ;ESC
+0100101 ;'%'
+1000001 ;'A'
+1100001 ;'a'
+0000000 ;left bot,top
+0111000
+1000100
+0000000
+1000100
+0000000
+0101000
+0010000
+0101000
+1000100
+0000000 ;RIGHT BOT,TOP
+.en
+.TR b HEX ;beta on ML92
+1B	;ESC
+32	;'2'
+62	;'b'
+1B	;ESC
+3\font\	;style
+.EN
+.OU  binary ;beta DOWNLOAD
+0011011 ;ESC
+0100101 ;'%'
+1000001 ;'A'
+1100010 ;'b'
+0000000 ;left bot,top
+1111100
+0000010
+0000001
+0100000
+1001001
+0000000
+1001001
+0110110
+0000000
+0000000 ;right bot,top
+.en
+.TR d HEX ;delta on ML92
+1B	;ESC
+32	;'2'
+64	;'d'
+1B	;ESC
+3\font\	;style
+.EN
+.OU  binary ;delta DOWNLOAD
+0011011 ;ESC
+0100101 ;'%'
+1000001 ;'A'
+1100100 ;'d'
+0000000 ;left bot,top
+0110000
+1001010
+0000101
+1001000
+0000001
+1001000
+0000001
+1001000
+0110000
+0000000 ;right bot,top
+.en
+.TR e HEX ;epsilon on ML92
+1B	;ESC
+32	;'2'
+65	;'e'
+1B	;ESC
+3\font\	;style
+.EN
+.OU  binary ;epsilon DOWNLOAD
+0011011 ;ESC
+0100101 ;'%'
+1000001 ;'A'
+1100101 ;'e'
+0000000 ;left bot,top
+0111000
+1000100
+0010000
+1000100
+0010000
+1000100
+0010000
+1000100
+0010000
+0000000 ;right bot,top
+.en
+.TR f HEX ;phi on ML92
+1B	;ESC
+32	;'2'
+66	;'f'
+1B	;ESC
+3\font\	;style
+.EN
+.OU  binary ;phi DOWNLOAD
+0011011 ;ESC
+0100101 ;'%'
+1000001 ;'A'
+1100110 ;'f'
+0000000 ;left bot,top
+0001000
+1010100
+0100010
+0010000
+0101010
+0000100
+0100010
+0010101
+0001000
+0001000 ;right bot,top
+.en
+.TR g HEX ;gamma on ML92
+1B	;ESC
+32	;'2'
+67	;'g'
+1B	;ESC
+3\font\	;style
+.EN
+.OU  binary ;gamma DOWNLOAD
+0011011 ;ESC
+0100101 ;'%'
+1000001 ;'D'
+1100111 ;'g'
+1000010 ;left bot,top
+0100000
+0010010
+0000100
+0001000
+0000100
+0000010
+0000000
+0000001
+0000000
+0000001 ;right bot,top
+.en
+.TR h HEX ;theta on ML92
+1B	;ESC
+32	;'2'
+68	;'h'
+1B	;ESC
+3\font\	;style
+.EN
+.OU  binary ;theta DOWNLOAD
+0011011 ;ESC
+0100101 ;'%'
+1000001 ;'D'
+1101000 ;'h'
+0000000 ;left bot,top
+0111100
+1000010
+0001000
+1000001
+0001000
+1000001
+0001000
+0100001
+0011110
+0000000 ;right bot,top
+.en
+.TR l HEX ;lambda on ML92
+1B	;ESC
+32	;'2'
+6C	;'l'
+1B	;ESC
+3\font\	;style
+.EN
+.OU  binary ;lambda DOWNLOAD
+0011011 ;ESC
+0100101 ;'%'
+1000001 ;'D'
+1101100 ;'l'
+0000000 ;left bot,top
+1000001
+0100000
+0010001
+0001010
+0000100
+0001000
+0010000
+0100000
+1000000
+0000000 ;right bot,top
+.en
+.TR p HEX ;pi on ML92
+1B	;ESC
+32	;'2'
+70	;'p'
+1B	;ESC
+3\font\	;style
+.EN
+.OU  binary ;pi DOWNLOAD
+0011011 ;ESC
+0100101 ;'%'
+1000001 ;'D'
+1110000 ;'p'
+1000100 ;left bot,top
+0100000
+0011100
+0000000
+0000100
+0000000
+0000100
+0000000
+0011100
+0100000
+1000100 ;right bot,top
+.en
+.TR s HEX ;sigma on ML92
+1B	;ESC
+32	;'2'
+73	;'s'
+1B	;ESC
+3\font\	;style
+.EN
+.OU  binary ;sigma DOWNLOAD
+0011011 ;ESC
+0100101 ;'%'
+1000001 ;'A'
+1110011 ;'s'
+0000000 ;left bot,top
+0000000
+0111000
+1000100
+0000000
+1000100
+0000000
+1001100
+0110000
+0000100
+0000000 ;right top,bot
+.en
+.TR u HEX ;mu on ML92
+1B	;ESC
+32	;'2'
+75	;'u'
+1B	;ESC
+3\font\	;style
+.EN
+.OU  binary ;mu DOWNLOAD
+0011011 ;ESC
+0100101 ;'%'
+1000001 ;'A'
+1110101 ;'u'
+0000000 ;left bot,top
+0000000
+1101111
+0010000
+0000000
+0010000
+0000000
+0010000
+0001111
+0000000
+0000000 ;right bot,top
+.en
+.TR v HEX ;nu on ML92
+1B	;ESC
+32	;'2'
+76	;'v'
+1B	;ESC
+3\font\	;style
+.EN
+.OU  binary ;nu DOWNLOAD
+0011011 ;ESC
+0100101 ;'%'
+1000001 ;'A'
+1110110 ;'v'
+0000000 ;left bot,top
+1011100
+0100000
+0000000
+0100000
+0000000
+0010000
+0001000
+0000100
+0000000
+0000000 ;right bot,top
+.en
+.TR w HEX ;omega on ML92
+1B	;ESC
+32	;'2'
+77	;'w'
+1B	;ESC
+3\font\	;style
+.EN
+.OU  binary ;nu DOWNLOAD
+0011011 ;ESC
+0100101 ;'%'
+1000001 ;'A'
+1110111 ;'w'
+0110000 ;left bot,top
+1001000
+0000000
+1000000
+0100000
+0000000
+0100000
+1000000
+0000000
+1001000
+0110000 ;right bot,top
+.en
+
+0000000 ;left bot,top

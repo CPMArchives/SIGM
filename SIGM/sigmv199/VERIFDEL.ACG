@@ -1,0 +1,111 @@
+* DATE 08/27/84  12:48
+* verifdel.cmd
+GO TOP
+LOCA FOR *
+STOR t TO more
+DO WHIL more .AND. (.NOT. EOF)
+ ERAS
+ STOR 'Verify deleted records' TO mode
+ STOR '<C>ontinue, <E>dit, <D>elete/Recall, <P>rint, <Q>uit 'TO prompt1
+ STOR ' ' TO prompt2
+ STOR ' ' TO prompt3
+ STOR '?' TO command
+ IF *
+  STOR 'Deleted' TO deleted
+ ELSE
+  STOR '       ' TO deleted
+ ENDI
+ @ 01,00 SAY deleted
+ @ 01,29 SAY mode
+ @ 02,00 SAY '+-------------------'
+ @ 02,20 SAY '--------------------'
+ @ 02,40 SAY '--------------------'
+ @ 02,60 SAY '-------------------+'
+ @ 03,00 SAY 'Lastname:'
+ @ 03,10 SAY lastname
+ @ 03,40 SAY 'First & MI: '
+ @ 03,54 SAY fname
+ @ 04,00 SAY 'Spouse: '
+ @ 04,10 SAY spouse
+ @ 04,40 SAY 'Address as: '
+ @ 04,53 SAY mr
+ @ 06,00 SAY 'Title: '
+ @ 06,08 SAY title
+ @ 07,00 SAY 'Company (line 1): '
+ @ 07,20 SAY company1
+ @ 08,08 SAY '(line 2): '
+ @ 08,20 SAY company2
+ @ 09,00 SAY 'Company address: '
+ @ 09,20 SAY caddress
+ @ 09,58 SAY 'Suite: '
+ @ 09,65 SAY suite
+ @ 10,00 SAY 'City: '
+ @ 10,08 SAY ccity
+ @ 10,33 SAY 'State: '
+ @ 10,40 SAY cst
+ @ 10,48 SAY 'Zipcode: '
+ @ 10,57 SAY czip
+ @ 12,00 SAY 'Home address: '
+ @ 12,17 SAY address
+ @ 12,60 SAY 'Apt: '
+ @ 12,67 SAY apt
+ @ 13,00 SAY 'City: '
+ @ 13,11 SAY city
+ @ 13,33 SAY 'State: '
+ @ 13,40 SAY st
+ @ 13,48 SAY 'Zipcode: '
+ @ 13,57 SAY zip
+ @ 14,00 SAY 'Phone - office: '
+ @ 14,16 SAY ophone
+ @ 14,38 SAY 'home: '
+ @ 14,44 SAY phone
+ @ 15,00 SAY 'Dear -'
+ @ 15,08 SAY dear
+ @ 15,40 SAY 'Send letters to office (Yes/No): '
+ @ 15,73 SAY send
+ @ 16,00 SAY 'Code: 1.-'
+ @ 16,10 SAY cs1
+ @ 16,15 SAY '2.-'
+ @ 16,20 SAY cs2
+ @ 16,25 SAY '3.-'
+ @ 16,30 SAY cs3
+ @ 16,35 SAY '4.-'
+ @ 16,40 SAY cs4
+ @ 16,45 SAY '5.-'
+ @ 16,50 SAY cs5
+ @ 16,55 SAY '6.-'
+ @ 16,60 SAY cs6
+ @ 17,00 SAY 'Date update: '
+ @ 17,18 SAY update
+ @ 18,00 SAY '+--------------------'
+ @ 18,20 SAY '---------------------'
+ @ 18,40 SAY '---------------------'
+ @ 18,60 SAY '-------------------+'
+ @ 19,08 SAY prompt1
+ @ 20,08 SAY prompt2
+ @ 21,08 SAY prompt3
+ @ 22,41 SAY 'What next?'
+ @ 22,53 GET command picture '!'
+ READ
+ DO CASE
+ CASE command = 'D'
+  IF *
+   RECA
+  ELSE
+   DELE
+  ENDI
+ CASE command = 'E'
+  DO edit.acg
+ CASE command = 'P'
+  DO print.acg
+ CASE command = 'Q'
+  STOR f to more
+ CASE command = 'C'
+  CONT
+ ENDC
+ENDD
+RELE mode, prompt1, prompt2, prompt3
+STOR t TO more
+STOR '?' TO command
+STOR t TO first
+

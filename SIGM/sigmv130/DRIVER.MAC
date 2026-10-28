@@ -1,0 +1,36 @@
+title	driver.mac version 1.0
+;	This driver is used when testing the SIGNON Subsystem
+;	modules.  This works because the interpreter can only 
+;	call by address.  Thus addresses are assigned in the
+;	basic programs to jump to the jump table below.
+
+;	Since the complier calls by module name the various modules
+;	must be linked together.
+
+;	TIMEMD
+;	DAYMD
+;	DATEMD		contained in TMOD
+;
+;	USERMD
+;	SETFMD
+;
+;	load this followed by the above modules
+
+extrn	timemd, daymd, datemd, usermd, setfmd
+
+	jmp	timemd	;get time string
+	jmp	datemd	;get date string
+	jmp	daymd	;get day of week string
+	jmp	usermd	;set user number
+	jmp	setfmd	;set file attribute flags
+	rept	5
+	jmp	notyet
+	endm
+notyet:
+	lxi	d,mess
+	mvi	c,9
+	call	5
+	ret
+mess:	db	' ** illeagal driver call ** $'
+	end
+

@@ -1,0 +1,142 @@
+
+          **     **      *        ***   ****       ***
+           **   **      * *      *   *   *   *    *   *
+           * * * *     *   *    *        *   *   *     *
+           *  *  *    *******   *        ****    *     *
+           *     *    *     *    *   *   *   *    *   *
+          **     ** **       **   ***   **    **   ***
+
+* A LIBRARY OF MACRO'S FOR 'INCLUDE'ING IN ASSEMBLY PROGRAMS
+
+* ENSURE THAT MACRO'S ARE ONLY 'INCLUDE'D ONCE IN A PROGRAM
+*          E.G. WHEN CALLING SUBROUTINES
+
+* ALSO ENSURE THAT THE SUBROUTINES REQUIRED ARE AVAILABLE 
+
+* MACROS = RING_BELL         SUB/R's REQ'D = BEEP
+*          CLEAR_SCREEN                      CLRHOM
+*          PRINT
+*          CURSOR
+*          PASSBYT
+*          PASSWRD
+*          GETBYTE
+*	   DUMP
+*	   invert
+
+RING_BELL:     MACRO
+               CALL BEEP
+               ENDMAC
+
+CLEAR_SCREEN:  MACRO
+               CALL CLRHOM
+               ENDMAC
+
+PRINT:         MACRO ARG1
+               PUSH PSW
+               PUSH H
+               PUSH B
+               PUSH D
+               LXI D,ARG1
+               MVI C,09H
+               CALL 5
+               POP D
+               POP B
+               POP H
+               POP PSW
+               ENDMAC
+
+
+CURSOR:        MACRO ACROSS,DOWN   ;ACROSS=HOR.ROW NO.
+               PUSH P              ;DOWN = VERT.COLUMN NO.
+               PUSH B
+               PUSH D
+               PUSH H
+               MVI E,1BH
+               MVI C,2
+               CALL 5
+               MVI E,3DH
+               MVI C,2
+               CALL 5
+               MVI E,ACROSS+31
+               MVI C,2
+               CALL 5
+               MVI E,DOWN+31
+               MVI C,2
+               CALL 5
+               POP H
+               POP D
+               POP B
+               POP P
+               ENDMAC
+
+
+*    PASSBYT STORES 'VALUE' AT THE MEMORY LOCATION,THE
+* MSB OF WHOSE ADDRESS IS FOUND AT THE MEMORY LOCATION
+* WHOSE ADDRESS = ('ADDRSS'+VALUE OF CONTENT OF IX).
+
+PASSBYT: MACRO ADDRSS,VALUE  ;
+         PUSH H
+         MOV H,ADDRSS(IX)    ;MSB ADDRESS>H
+         MOV L,ADDRSS-1(IX)  ;LSB ADDRESS>L
+         MVI M,VALUE
+         POP H
+         ENDMAC
+
+*     PASSWRD STORES THE 16 BIT NO. IN HL IN MEMORY.THE
+* MSB (IN H) IS STORED AT THE LOCATION,THE MSB OF WHOSE 
+* ADDRESS IS FOUND AT THE LOCATION WHOSE ADDRESS CAN BE
+* CALCULATED AS ('VARMSB'+VALUE OF CONTENTS OF IX).THE
+* LSB (IN L) IS STORED AT THE NEXT LOWEST LOCATION.
+
+PASSWRD: MACRO VARMSB
+         PUSH D
+         PUSH P
+         MOV D,VARMSB(IX)    ;MSB ADDRESS OF MSB>D
+         MOV E,VARMSB-1(IX)  ;LSB    "    "   " >E
+         MOV A,H             ;MSB OF INTEGER>A
+         STAX D              ; "  "      "  >MEMORY
+         DCX D               ;POINT DE TO LSB
+         MOV A,L             ;LSB OF INTEGER>A
+         STAX D              ; "  "      "  >MEMORY
+         POP P
+         POP D
+         ENDMAC
+
+*     GETBYTE GETS A BYTE VARIABLE PASSED BY REFERENCE FROM A
+* PASCAL/Z PROGRAM.THE MSB OF THE ADDRESS WHERE THE BYTE IS TO
+* BE FOUND , IS CALCULATED AS ( "ADDRSS" + VALUE IN IX ) .
+* THE LSB OF THE BYTE'S ADDRESS IS STORED AT THE NEXT LOWEST
+* MEMORY LOCATION.THE BYTE IS THEN PLACED IN REGISTER A.
+
+GETBYTE: MACRO ADDRSS
+         PUSH H
+         MOV H,ADDRSS(IX)
+         MOV L,ADDRSS-1(IX)
+         MOV A,M
+         POP H
+         ENDMAC
+
+
+DUMP:		MACRO arg	: dumps the contents of a 16bit
+		push psw	: register to console
+		push b
+		push arg
+		push arg
+		pop b
+		mov a,b
+		call hexout
+		mov a,c
+		call hexout
+		pop arg
+		pop b
+		pop psw
+		ENDMAC
+
+invert:		MACRO	arg
+		PUSH	P
+		MOV	A,arg
+		NEG
+		MOV	arg,A
+		POP	P
+		ENDMAC
+

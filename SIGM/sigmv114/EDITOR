@@ -1,0 +1,90 @@
+EDITOR:
+copyright (C) 1983 by E. E. Bergmann
+note on line numbers
+alphabetical (ASCII) list of defined words
+:
+::
+*********************************************************
+*							*
+* PISTOL-Portably Implemented Stack Oriented Language   *
+*			Version 2.0			*
+* (C) 1983 by	Ernest E. Bergmann			*
+*		Physics, Building #16			*
+*		Lehigh Univerisity			*
+*		Bethlehem, Pa. 18015			*
+*							*
+* Permission is hereby granted for all reproduction and *
+* distribution of this material provided this notice is *
+* included.						*
+*							*
+*********************************************************
+:
+::	(Line numbers change with the editing process,
+	 the first line in the file is numbered 1,
+	 the next, 2, etc.)
+
+:
+::
+DELETE	takes a single line number and deletes that line from
+	the edit buffer.
+
+DELETES deletes several lines.  How many is specified by the
+	top of stack.  The location by the next to top.
+
+
+FINISH	is used to end the edit session.  It appends both
+	the contents of the editbuffer to the file
+	specified in the last OPENW and the remaining
+	lines of the file specified by the last OPENR.
+
+INPUT	takes the line number on the top of stack and allows
+	the user to enter (insert above the old line specified)
+	as many new lines as desired.  Completion of input is
+	signified by supplying an empty line (an immediate
+	carriage return).
+
+LI	lists portions of the edit buffer; it acts differently
+	depending upon the number of arguments on stack.  If
+	there are no arguments, everthing is listed (LISTALL).
+	If there is a single line number on the stack, that
+	single line is displayed.
+		Listing a sequence of lines within the edit
+	buffer is achieved with two line numbers on the stack.
+	The sequence of displayed lines begins with the line
+	numbered by the bottom of stack.  If the top of stack
+	contains a larger number, that number is the number
+	of the last line in the displayed sequence.  Otherwise,
+	if it is a smaller number, it is used to specify the
+	total number of lines in the sequence.
+
+LISTALL	lists the complete contents in the edit buffer.
+
+NEWF	"Newfile" resets all pointers so that anything that
+	may have been in the editbuffer is lost.  Should be
+	used at the start of editing a new task.
+
+OPENR	takes a string pointed to by the top of stack and
+	opens that named file for reading.  It is the user's
+	responsibility to make sure that the named file
+	exists already.  If another file was opened for reading
+	previously, it is closed by this new OPENR.
+
+OPENW	takes a string pointed to by the top of stack and
+	opens that named file for writing.
+	(*** It will DESTROY any file that already exists
+	with that name!!!****)
+
+READ	takes the number of lines specified by the top of
+	stack from the file specified by the last OPENR and
+	appends them to the end of text in the edit buffer.
+
+REPLACE	Deletes the line specified by the top of stack and
+	begins INPUT at that same line.
+
+WRITE	takes the number of lines specified by the top of
+	stack from the beginning of the text in the edit
+	buffer and places them at the end of the file
+	specified in the last OPENW.
+
+:
+nters so that any

@@ -1,0 +1,1 @@
+LNAM,a~FNAM,a~TITL,a~ORG ,a~ADDR,a~C-ST,a~ZIP ,n~PHON,a~CODE,a~NOTE,a~stop0~ 1~                                                 Dugan~Dan~Proprietor~Dan Dugan Sound Design~833 14th Street~San Francisco, CA~94114~(415) 621-0781~~DIMS~                       

@@ -1,0 +1,978 @@
+Sig/M volume 23		MBasic disassembler
+			Date Routines
+			miscellaneous utilities
+
+	(original materials from Pascal Z User Group volume 5)
+
+	-CATALOG.023		contents of Sig/M volume 23
+	ABSTRACT.023		comments
+	CRCKFILE.023		CRC of Sig/M volume 23
+
+
+23.1    EXPO.PAS    †         demo on the use of exponents
+23.2    EXPO.COM              /
+23.3    COMPARE.DOC           UCSD program Compare documentation
+23.4 †  DISASMB.DO√           disassembler in MICROSOFT Basic
+
+	related modules
+8085      LST            8085      TAB            XREF      BAS
+ZILOG     LST            ZILOG     TAB            XREF      SUB
+INTEL     LST            INTEL     TAB            TDL       LST
+TDL       TAB            LST8085   BAS            LSTINTEL  BAS
+LSTTDL    BAS            LSTZILOG  BAS            TAB8085   BAS
+TABINTEL  BAS            TABTDL    BAS            TABZILOG  BAS
+DISASMB   BAS            
+
+23.5.   DATE.DOC             dates routines 
+
+	related modules
+PROMT     LIB            MAKEDATE  LIB            RMAKEDA  LIB
+BRKDATE   LIB            DASTRLON  LIB            DASTRSH  LIB
+DASTRFIX  LIB            DATE      PAS            DATEFUNC LIBä
+23.6    MISC.DOC	     miscellaneous routines
+
+	related modules
+GETINT    LIB            CAPCHAR   LIB            PADSTR   LIB
+CAPSTR    LIB            DEPAD     LIB            STRVAL   LIB
+
+23.7   HANOI COM/PAS        
+23.8   DIS.ASM/DOC          
+23.9   CONFER.PAS/COM       conference scheduling
+
+               CONTENTS OF VOLUME #5
+
+  …† aÌ startinÁ tÔ geÙ feedbacÎ froÌ thÂ membershi no˜ an‰ thiÛ ç
+disÎ iÛ thÂ beginningÆ†  … aÌ ver˘ happ˘ tÔ pasÛ oÓ mosÙ anythinÁ ç
+thaÙ† anyonÂ writesÆ†  … onl˘ asÎ thaÙ iÙ workÆ†  IÊ youÚ prograÌ ç
+haÛ† speciaÏ requirementÛ bÂ surÂ an‰ includÂ† thaÙ† informationÆ  ç
+AÙ† first¨† … waÛ goinÁ tÔ onl˘ includÂ sourcÂ oÓ thesÂ diskÛ† sÔ ç
+thaÙ† … coul‰ geÙ morÂ itemÛ oÓ themÆ†  But¨† sÔ man˘ peoplÂ† arÂ ç
+eitheÚ jusÙ startinÁ ouÙ an‰ don'Ù havÂ enougË knowledgÂ oÚ can'Ù ç
+affor‰† everythinÁ thaÙ ma˘ bÂ necessaryÆ†  SÔ thaÙ iÛ wh˘ …† puÙ ç
+botË† sourcÂ† an‰ runninÁ programÛ oÓ thesÂ disksÆ† ThaÙ wa˘† thÂ ç
+advance‰† caÓ modif˘ tÔ theiÚ heartÛ contenÙ an‰ yeÙ† thÂ† novicÂ ç
+can use the programs.  
+
+      Kenneth Kuller of Eagan, Maine submitted these programs.
+
+1Æ EXPO.PAS/COÕ†         HÂ† wante‰ · benchmarÎ prograÌ† sÔ† hÂ ç
+                         wrote this. It is a good Demo on the use
+                         of exponents.
+2. COMPARE.DOC           Ken feels, as I do, that credit should
+                         be given when due. On disk#1 there is a
+                         UCSD program called Compare that needed
+                         to be converted to Pascal/Z. I didn't
+                         receive the Doc file with the program
+                         but Ken found it.So here it is and the
+                         proper credits are included.
+
+     This next large group was submitted by Scott Custin of
+Washington,DC.
+
+3Æ†  DISASMB.DO√-----Rea‰ thiÛ firsÙ becausÂ therÂ arÂ · loÙ† oÊ ç
+     small program associated with this disassembler. It is in
+     MICROSOFT Basic,Version 5.1 which I would not normally use
+     but since it does disassemble TDL plus Z80 plus 8080 plus
+     8085 I figured someone, somewhere would be tickled to get
+     this.
+
+8085      LST            8085      TAB            XREF      BAS
+ZILOG     LST            ZILOG     TAB            XREF      SUB
+INTEL     LST            INTEL     TAB            TDL       LST
+TDL       TAB            LST8085   BAS            LSTINTEL  BAS
+LSTTDL    BAS            LSTZILOG  BAS            TAB8085   BAS
+TABINTEL  BAS            TABTDL    BAS            TABZILOG  BAS
+DISASMB   BAS            
+
+4.   DATE.DOC-----Again, read this first since Scott has included
+     several programs, all dealing with dates. These routines 
+     treat a date as one of a series of consecutive integers.
+     The concept is similar to Julian dates, used by a number of
+     "BIG" computer programs, and has a number of advantages over
+     storing the month, day and year separately.
+
+PROMT     LIB            MAKEDATE  LIB            RMAKEDA  LIB
+BRKDATE   LIB            DASTRLON  LIB            DASTRSH  LIB
+DASTRFIX  LIB            DATE      PAS            DATEFUNC LIBä
+5.  MISC.DOC-----Yep, read this first. Scott tossed in some odds
+     and ends. You have to give Scott credit, he sure has been
+     creative. Keep this up folks, and we will have a excellent
+     LIBRARY.
+
+GETINT    LIB            CAPCHAR   LIB            PADSTR   LIB
+CAPSTR    LIB            DEPAD     LIB            STRVAL   LIB
+
+6.  HANOI COM/PAS        I included this not for its game value
+                         but it is an excellent Demo on recursive
+                         procedures. If you can see how this works
+                         (its deep) you'll certainly understand
+                         local versus global variables.
+     
+7.  DIS.ASM/DOC          This was given to me for our TDL use.
+                         However, the three or four assemblers
+                         I had available would not assemble it
+                         without massive errors. So if anyone
+                         does make a COM file that works good
+                         be sure and send me a copy. Let me
+                         know what assembler you used also.
+
+8.  CONFER.PAS/COM       Just to show you how long Ray has been
+                         chipping away at Pascal/Z, I thought
+                         I would include this old one.  It 
+                         does have some useful ideas and can
+                         be used as is. It sets up a schedule
+                         for a conference.
+ COMPARE - Compare Two Textfiles			      03 Jan 79
+
+      Compare - Compare Two Textfiles and Report Their Differences
+
+			    James F.  Miner
+	       Social Science Research Facilities Center
+			      Andy Mickel
+		       University Computer Center
+			University of Minnesota
+		       Minneapolis, MN 55455 USA
+
+		       Copyright (c) 1977, 1978.
+
+ What COMPARE Does
+ -----------------
+
+      COMPARE is used to display the differences  between  two	similar
+ texts	(referred  to as "FILEA" and "FILEB").	Such textfiles could be
+ Pascal source programs, character data, documentation, etc.
+
+      COMPARE is line-oriented, meaning the smallest unit of comparison
+ is  the  text	line  (ignoring  trailing blanks).  COMPARE generates a
+ report of differences (mismatches  or	extra  text)  between  the  two
+ textfiles.   The criterion for determining the locality of differences
+ is the number of consecutive lines on each file which must match after
+ a prior mismatch, and can be selected as a parameter.
+
+      By selecting other parameters, you can direct COMPARE to restrict
+ the comparison to various linewidths, mark column-wise the differences
+ in  pairs  of	mismatched lines, generate text-editor directives to be
+ used to convert FILEA into FILEB, or generate	a  listing  which  will
+ flag  lines on FILEB indicating their addition or deletion as a result
+ of the application of the editor directives.
+
+ How to Use COMPARE
+ ------------------
+
+      COMPARE is available as an operating system control statement  on
+ CDC  6000/Cyber  70,170  computer  systems.   The  general form of the
+ control statement is:
+
+      COMPARE(a,b,list,modfile/options)
+
+      COMPARE.	means  COMPARE(FILEA,FILEB,MODS/C6,D,W120)
+
+      "FILEA" and "FILEB" are the names  of  the  two  textfiles  being
+ compared, "OUTPUT" is the report file, and "MODS" is the file name for
+ the  generation  of  text-editor  directives  if  the	"M"  option  is
+ selected--see below.  The various options are:  C, D, F, M, P, and W.
+
+
+
+				 - 1 -
+
+
+ COMPARE - Compare Two Textfiles			      03 Jan 79
+
+  Cn   Match Criterion (1 <= n <= 100).
+	  C  determines  the  number  of consecutive lines on each file
+	  which  must  match  in  order  that  they  be  considered  as
+	  terminating  a prior mismatch.  C therefore affects COMPARE's
+	  "sensitivity" to the "locality" of differences.  Setting C to
+	  a  large value tends to produce fewer (but longer) mismatches
+	  than does a small value.  C6 appears to give good results  on
+	  Pascal  source  files,  but  may  be	inappropriate for other
+	  applications.
+	  Default:  C6.
+
+  D    Report Differences.
+	  D directs  COMPARE  to  display  mismatches  and  extra  text
+	  between  FILEA and FILEB in a clearly annotated report.  Only
+	  one of D, F, or M can be explicitly selected at one time.
+	  Default:  selected.
+
+  F    Select Flag-form output.
+	  F directs COMPARE to list FILEB annotated with lines prefixed
+	  by  an  "A"  or  "D"	indicating  "additions"  or "deletions"
+	  respectively.  Such modifications could have	been  generated
+	  with	the M option.  Only one of D, F, or M can be explicitly
+	  selected at one time.
+	  Default:  not selected.
+
+  M    Produce MODS file.
+	  M directs COMPARE to produce a file of "INSERT"  or  "DELETE"
+	  directives  ready  for  the CDC MODIFY or UPDATE text editors
+	  (an "IDENT" directive must be  added).   The	insertions  and
+	  deletions  will  convert  FILEA  into FILEB.	FILEA and FILEB
+	  should be files with sequencing appearing in	columns  beyond
+	  the  linewidth  specified  by  the W option.	This is true of
+	  MODIFY and  UPDATE  "COMPILE"  files	(W72  is  recommended).
+	  Sequence numbers are of the form:
+
+	       {Blanks} IdentName {Blanks} UnsignedInteger.
+
+	  Only	one  of  D,  F,  or M can be explicitly selected at one
+	  time.
+	  Default:  not selected.
+
+  P    Mark Pairs of mismatched lines.
+	  P alters the action of the D directive by  marking  differing
+	  columns in pairs of lines which mismatch in sections of equal
+	  length.  This is especially useful for comparing packed  data
+	  files.
+	  Default:  not selected.
+
+  Wn   Specify significant line Width (length) (10 <= n <= 150).
+	  W  determines  the fixed number of columns of each line which
+	  will be compared.  W is ideal to use when  sequence  informa-
+	  tion is present at the right edge of the text file.
+	  Default:  W120.
+
+
+
+				 - 2 -
+
+
+ COMPARE - Compare Two Textfiles			      03 Jan 79
+
+ Example
+ -------
+
+ Suppose FILEA is:
+
+	 PROGRAM L2U(INPUT, OUTPUT);
+	  (* CONVERT CDC 6/12-ASCII LOWER-CASE
+	     LETTERS TO UPPER CASE.  *)
+	 BEGIN
+	  WHILE NOT EOF(INPUT) DO
+	   BEGIN
+	    WHILE NOT EOLN(INPUT) DO
+	     BEGIN
+	      IF INPUT^ <> CHR(76) THEN WRITE(INPUT^);
+	      GET(INPUT)
+	     END;
+	    READLN;
+	    WRITELN
+	   END;
+	  (*ALL DONE.*)
+	 END.
+
+
+
+ and FILEB is:
+
+	 PROGRAM U2L(INPUT, OUTPUT);
+	  (* CONVERT CDC ASCII UPPER-CASE LETTERS
+	     TO 6/12 LOWER CASE.  *)
+	 BEGIN
+	  WHILE NOT EOF(INPUT) DO
+	   BEGIN
+	    WHILE NOT EOLN(INPUT) DO
+	     BEGIN
+	      IF INPUT^ IN ['A'..'Z'] THEN WRITE(CHR(76));
+	      WRITE(INPUT^);
+	      GET(INPUT)
+	     END;
+	    READLN;
+	    WRITELN
+	   END;
+	 END.
+
+
+
+
+
+
+
+				 - 3 -
+
+
+ COMPARE - Compare Two Textfiles			      03 Jan 79
+
+ then a report from COMPARE looks like this:
+
+   COMPARE,L2U,U2L,LIST/C1,D,P. 		    78/12/31. 20.23.25.
+   COMPARE VERSION 3.0 CDC			   (78/12/19)
+
+   OUTPUT OPTION    = DIFFERENCES.
+   INPUT LINE WIDTH = 120 CHARACTERS.
+   MATCH CRITERION  = 1 LINES.
+
+   FILEA: L2U
+   FILEB: U2L
+
+	 ***********************************
+   MISMATCH: L2U LINES 1 THRU 3 <NOT EQUAL TO> U2L LINES 1 THRU 3:
+
+ A    1. PROGRAM L2U(INPUT, OUTPUT);
+ B    1. PROGRAM U2L(INPUT, OUTPUT);
+		 ^ ^
+
+ A    2.  (* CONVERT CDC 6/12-ASCII LOWER-CASE
+ B    2.  (* CONVERT CDC ASCII UPPER-CASE LETTERS
+			 ^^^^^^^^^^^^^^^^^^^^^^^^
+
+ A    3.     LETTERS TO UPPER CASE.  *)
+ B    3.     TO 6/12 LOWER CASE.  *)
+	     ^^^^^^^ ^ ^^^^^^^^^^^^ ^^
+
+	 ***********************************
+   MISMATCH: L2U LINE 9 <NOT EQUAL TO> U2L LINES 9 THRU 10:
+
+ A    9.      IF INPUT^ <> CHR(76) THEN WRITE(INPUT^);
+
+ B    9.      IF INPUT^ IN ['A'..'Z'] THEN WRITE(CHR(76));
+ B   10.      WRITE(INPUT^);
+
+	 ***********************************
+   EXTRA TEXT ON L2U, BETWEEN LINES 15 AND 16 OF U2L
+
+ A   15.  (*ALL DONE.*)
+
+ How COMPARE Works
+ -----------------
+
+      COMPARE employs a simple backtracking-search algorithm to isolate
+ mismatches  from  their  surrounding  matches.  Each mismatch requires
+ dynamic storage roughly  proportional	to  the  size  of  the	largest
+ mismatch,  and  time roughly proportional to the square of the size of
+ the mismatch.	Thus it may not be feasible to	use  COMPARE  on  files
+ with very long mismatches.
+
+
+
+
+				 - 4 -
+
+
+ COMPARE - Compare Two Textfiles			      03 Jan 79
+
+ History
+ -------
+
+      COMPARE was developed as a portable-Pascal software tool by James
+ Miner	of  the  Social  Science  Research  Facilities	Center	at  the
+ University  of  Minnesota,  in early 1977.  It was written in standard
+ Pascal and developed initially under CDC 6000	Pascal.   Although  the
+ original  version  simply  reported differences in a textfile, COMPARE
+ was designed to fit  naturally  into  a  larger  text-editing	system.
+ Plans	for  COMPARE's  accommodating  later  enhancements  to generate
+ text-editor directives were made from the  beginning.	 In  summer  of
+ 1977,	John  Strait  at  the  University  of Minnesota Computer Center
+ adapted COMPARE not only to generate such a  modifications  file,  but
+ also flag-form output and user-selectable options.
+
+      COMPARE has been distributed to several Pascal enthusiasts in the
+ United States who have made it operational on other Pascal implementa-
+ tions.   See  Pascal  News #12, May, 1978, pages 20-23.  In late 1978,
+ Willett Kempton of the Anthropology Department at  the  University  of
+ California  Berkeley,	installed  COMPARE  (with  no  changes required
+ whatsoever) under Berkeley UNIX Pascal on a PDP 11/70 computer system.
+ He  later adapted the program to note column-wise differences in pairs
+ of different lines and made minor changes to the format of the report.
+
+      Rick  Marcus  and  Andy  Mickel  at  the	University of Minnesota
+ Computer Center made minor enhancements to COMPARE and fully  documen-
+ ted it it for Release 3 of Pascal 6000 in December, 1978.
+
+      COMPARE  is  a  model  program  in  many	respects.  It serves to
+ illustrate just how powerful and flexible such  a  comparison	program
+ can be.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+				 - 5 -
+THE DATE LIBRARY
+
+This package of routines :
+-- Allows a date to be entered in the relatively comfortable form of
+   number/separator/number/separator/number -- eg: 10-22-80 or 1/1/77.
+   The full year can also be entered [eg: 12-11-1980], although the
+   leading numbers are stripped, which means that 12-11-1680 equals
+   12-11-1980.
+-- Can insist that the entered year be within a specified range,
+   refusing to continue processing until the restrictions are
+   complied with.
+-- Converts the entered date into a two-byte integer value [in the range
+   1..maxint] which reflects the total number of days between the entered
+   date and Jan 1 of the program's base year. This means that calculations
+   made using this value do not have to take into consideration the
+   number of days in any given month -- or year for that matter.
+-- Breaks the date back into separate values for the month, date, year
+   and day of week [Sun..Sat].
+-- Prepares the broken date into strings with the various names spelled
+   out [eg: Thursday, January 1, 1981] or as a fixed eight place value
+   [11-11-80]. In the former the day-of-week name can be omitted and/or
+   names abbreviated and in the latter spaces can be substituted for
+   leading zeroes for the month and date [ie: 01-01-81 or  1- 1-80].
+
+I have set the beast up in two forms: [1] separate .LIB modules for
+each routine, allowing them to be included in any Pascal program with
+the editor and [2] a complete external subprogram for separate compilation
+with ver 3.2 or later.
+
+The separate routines are:
+
+PROMPT				PROMPT.LIB
+This is actually a general-purpose routine, but it is specifically called
+by GETDATE. PROMPT is passed a string, pads it to a specified length,
+and writes it to the console. It allows pretty data entry.
+
+MAKEDATE with GETDATE		MAKEDATE.LIB
+RMAKEDATE with RGETDATE		RMAKEDA.LIB
+Prompts the console to enter a date and returns the calculated integer
+value. RMAKEDATE is passed the minimum and maximum year values and
+checks to ensure that the entered value falls within the range.
+	GETDATE and RGETDATE perform the actual data entry. When compiled
+separately they are not accessible to the main program but if included
+within the program text these names obviously cannot be used for other
+routines.
+
+BRKDATE				BRKDATE.LIB
+Breaks the integer date value into the month, day, year and weekday.
+Note that the latter is in the range 0..6 rather than 1..7. Breakdate
+fully corrects for leap years.
+
+DASTRLONG			DASTRLON.LIB
+DASTRSHORT			DASTRSH.LIB
+DASTRFIXED			DASTRFIX.LIB
+The names are admittedly crunched a bit, but that's to fit within the
+six-character name limit for separate compilation.
+	Each function is passed a date value and returns a string in
+the appropriate format. They all use BRKDATE. DASTRLONG spells out all
+words while DASTRSHORT abbreviates the month and day name [but not with
+periods -- I think they're ugly]. In addition a boolean value WITHDAY
+is passed to indicate whether the day name is to be included [true] or
+omitted [false].
+	DASTRFIXED returns the date in an eight-place fixed length
+format. The separator character is specified as a constant and can
+be changed if desired. The function includes a boolean parameter WITHSPACE
+which determines whether leading zeroes are converted into spaces or
+left as numeric characters.
+
+STRBYTE
+This routine is contained within DASTRFIX.LIB. It is passed a byte value
+and WITHSPACE and returns a two-place string equivalent. It is broken out
+in case it proves useful elsewhere in the program.
+
+----------
+
+DATE.PAS has all of the date library routines plus PROMPT set up as an
+external module for separate compilation. Note, however, that it is
+necessary to change "progname" in the first line of the program to
+the name of the main program before it will properly compile. It also
+appears that the program names cannot exceed six characters [rather than
+just having only the first six be significant].
+
+DATE.LIB can then be inserted in the main program to provide the relevant
+external declarations. DATE.LIB includes declarations for LENGTH and
+SETLENGTH.
+
+Generally, the date routines require the following global type declarations:
+	TYPE	string255 = string 255;
+		byte = 0..255;
+There are two important constants used in MAKEDATE, RMAKEDATE and BRKDATE.
+YRBASE is the base year, which equals 10 in the package as written.
+YRSPAN is the total number of years which constitute the acceptable
+maximum range of entries. This number is dicated by maxint and thus cannot
+exceed 89.
+
+This means that as written the routines can handle dates in the range
+1910..1999. Since 1900 was not a leap year and there is no provision
+for dealing with that occurrence, 1901 [yrbase = 1] is the lowest possible
+base year. Since 2000 will be a leap year [wouldn't life be easier if
+the sun rose and set only 360 times a year and pi equalled three?] the
+routines could be extended beyond 1999, but the yr mod 100 statement
+within GETDATE and RGETDATE -- which permits dates to be entered
+1-11-1980, if you're so moved -- would have to be modified to permit
+00 to be higher than 99. I just didn't see any reason to clutter the
+program up with this business for a few more years.
+
+As long as two integer date values share a common base year they are
+directly comparable. This is an argument for sticking with just one
+base year for all purposes. Thus the difference between any two date
+values is the number of days between them. More importantly, your
+programs should have a much easier time of scanning through data to
+determine whether the records fall within a designate range -- and
+are thus eligible for further processing -- when that range is specified
+as a number of days -- 10, 30, 90, etc.
+
+It should also be noted that the string returned by DASTRFIXED with
+spaces passed as false can be used to create a CP/M file name if you have
+a series of data files which you want to keep broken down by date.
+Thus one set of files could be 01-11-80.ORD, 01-12-80.ORD, etc. if you
+wanted to keep, say, orders as a set of separate files.
+
+Please note that DATEFUNC.LIB includes declarations for LENGTH and
+SETLENGTH, since they are used within DATE.PAS, so these should not
+be declared elsewhere in the main module.
+
+The following global types are generally required:
+	TYPE	string255 = string 255;
+		byte = 0..255;
+
+The datestring routines are all functions returning strings, which means
+that Pascal/Z ver 3.2 or later is required for proper compilation.
+
+----------
+
+Scott Custin
+2410 20th St NW #10
+Washington DC 20009
+
+
+Z-80/8080 TDL BASED DISASSEMBLER
+
+The program will disassemble any Z-80 or 8080 object program
+and reconstruct a TDL assembly format compatible source file
+on the console or disk. The object file resides in memory at
+any location up to the starting address of the disassembler.
+Binary files may  be loaded  at any time and  utilities are
+provided to manipulate and examine loaded files. Disassembly
+may be effected  in multi-segment passes,  with each segment
+starting at any location  and ending at  any location within
+the range  0000-ORIGIN.  The latter  may or  may not  be the
+execution locations   of   the  object   program.  For  each
+segment/pass, run-time options may be specified as follows:
+
+	[a] Use the  symbol table  for the label
+	field and address field (see option g)
+
+	[b] Do not  initialize the  symbol table
+	nor the disk  source file  (see option i
+	for  exception).  Use   this  option  to
+	append entries to  the symbol  table and
+	new lines to the disk file.
+
+	[c] Build symbol  table using  the Lxxxx
+	format    for     extended     reference
+	instructions. (see options  a and  g for
+	execptions)
+
+	[d] Generate labels Lxxxx instead of the
+	default HEX values xxxxH.
+
+	[e] Generate ASCII  characters in quotes
+	depending on option  f.  If option f  is
+	true,  all  printable  ASCII  characters
+	will be placed  in quotes  following the
+	.Byte pseudo  opcode.  If  option  f  is
+	false, all two operand instructions with
+	data will  be followed  as a  comment by
+	the quoted ASCII character corresponding
+	to the data.
+
+	[f] Generate .BYTE pseudo opcode instead
+	of  default  assembly   code.  Use  this
+	option   for   proper   disassembly   of
+	segments consisting of  tables and ASCII
+	strings.
+
+	[g] Normally the operands  of LXI instr.
+	are treated as  2 byte  data rather than
+	as an address.  Use this  option to over
+	ride this  default.  If  this  option is
+	selected, the  2  byte  operand  of  LXI
+	instructions will be  used to  build the
+	symbol table and  if already  there, the
+	symbol entries will be  used in place of
+	the default HEX format.
+
+	[h] Write/Build  a  reconstructed SOURCE
+	FILE in disk and  in a compatible format
+	ready for re-assembly  by the  TDL MACRO
+	RELOCATING ASSEMBLER. If the source file
+	is new, you  will  be  prompted  for the
+	filename.
+
+	[i] Restart the disk  file regardless of
+	option b. Use  this option  to over ride
+	the APPEND mode  without  affect  on the
+	specified action on the symbol table.
+
+	[j] Close the source  file at the normal
+	termination of this segment/pass.
+
+	[k] Suppress  console  output.  Use this
+	option  during  symbol   table  building
+	pasess to expedite disassembly.
+
+ALL OPTION ARE SELECTED  WITH THE 'O'   COMMAND. ALL OPTIONS
+ARE INITIALIZED OFF. EACH TIME THE 'O'  COMMAND IS USED, ALL
+DESIRED OPTIONS MUST  BE SELECTED  SINCE THE  COMMAND RESETS
+EACH OPTION.
+
+The  following   describes   the   command   mode   of   the
+disassembler.  All line   editing   features   of   CPM  are
+available in the command  mode except Control-C.  DO NOT USE
+CONTROL-C TO RETURN TO CPM.
+
+RUBOUT		delete and echo the last character typed
+
+ctl-U		delete entire line
+
+ctl-X		(same as ctl-U)
+
+ctl-R		retype current line
+
+ctl-E		physical end of line
+
+ctl-S		stop the console output temporalily
+
+D aaaa,bbbb	Disassemble memory from start address aaaa to
+		end address bbbb
+
+R drive:file	Read a binary file into memory. All files must
+		have a 'COM' extension. Files are loaded at
+		start address 100H and the length of the file
+		will be displayed at the console.
+
+O a,b,c,...	Set runtime options. All options are reset
+		with this command and selectively set.
+
+Q		Quit session and return to CPM. The number of
+		current symbol table entries is displayed.
+
+M aaaa,bbbb,cccc	Move memory starting at aaaa and 
+			ending at bbbb address cccc.
+
+H aaaa,bbbb	Hex math. The sum and difference will be
+		displayed.
+
+S aaaa,bbbb	Show memory in HEX.
+
+T aaaa,bbbb	Type memory in ASCII.
+
+C		Close source file. Use this command when write
+		errors occur or end of medium.
+
+	---ALL PARAMETERS ARE IN HEX ---
+
+AUTHOR: Timothy Mark Burke
+DATE:   October, 1979
+
+DISASMB -- A TABLE DRIVEN DISASSEMBLER WRITTEN IN MICROSOFT BASIC
+
+This package consists of two main programs and a set of support programs
+and files.
+
+Among its features:
+
+-- By loading assembler mnenomics tables at run-time, the program can
+   disassemble into any assembly language for which tables are available.
+
+-- Output can be sent to the console, printer and/or a disk file.
+
+-- A cross-reference file can be created as part of disassembly,
+   sorted, and listed on the printer and/or console.
+
+-- Source code can be either a disk file or located in memory.
+
+-- All 16-bit values are converted to labels, which permit relocation.
+
+-- Every byte of code is disassembled. The program treats secondary code
+   as a comment.
+
+-- In addition to its mnenomic value, the hex value and ASCII equivalent
+   of each byte is listed. This facilitates location of data and text
+   blocks.
+
+-- The program runs reasonably fast under the Basic interpreter and can
+   presumably be compiled with the Microsoft Basic compiler, although
+   this does require a few modifications of the program.
+
+----------
+
+RUNNING DISASMB.BAS
+
+To begin with, you have to have Microsoft Basic-80 ver 5.1 or later,
+since this program makes use of the long variable names facilitated
+as part of ver 5.
+
+The disassembler first requests the name of the assembly language to
+be used. A .LST file, which contains the opcode and operand mnenomics,
+and a .TAB file, which contains a table to define the names of each
+byte, must be available under that name. Thus, if INTEL is specified,
+the files INTEL.LST and INTEL.TAB must be found. Otherwise, an error
+message will be printed and a new name will be requested.
+
+Once the tables have been loaded, a menu is displayed and the user is
+allowed to specify actions to be taken. The options available are:
+
+-- END
+   Self explanatory.
+
+-- CONSOLE toggle
+   PRINTER toggle
+   Switching these will determine where generated listings will be
+   displayed. If the printer is enabled, hitting "P" disables it,
+   hitting "P" again re-enables it.
+
+-- TABLE LOAD
+   If you want to switch assembly languges you can do so. If the
+   .LST file is not found an error message is issued and the old files
+   remain loaded.
+
+-- LIST OPCODES
+   This generates a table showing the mnenomic equivalent for each
+   opcode under the currently loaded assembly language tables. Note
+   that since Zilog index codes are disassembled by testing for
+   reference to the HL register, these codes are not listed in this
+   table.
+
+-- WRITE LISTING TO DISK
+   The dissembled code is written to disk. The standard source file
+   extension is provided as part of the .LST file, and this is used
+   as a default value. If a cross-reference file has been specifed,
+   this file name is used as a default as well. A new name and/or
+   extension can, of course, be provided.
+
+-- X-REF FILE GENERATION
+   A cross-reference file is generated, listing each 16-bit value loaded,
+   the current address and whether it is appears to be a primary or
+   secondary [ie: not necessarily valid] value.
+
+-- MEMORY DISASSEMBLE
+   The first value requested is the starting address in memory for the
+   program to be disassembled. A second program starting address is then
+   required. The memory starting address is assumed, but if a different
+   value is entered the diassembler assumes the program has been
+   relocated in memory and acts accordingly. The final value to be
+   entered is the program end address, relative to the program starting
+   address, NOT the memory start.
+
+-- DISK DISASSEMBLE
+   This disassembles from a disk file. If a write or x-ref file has been
+   specified that file name is assumed, as is the extension .COM. The
+   program start is assumed to be at 100H, but a different value can
+   be entered.
+
+Miscellaneous notes:
+
+To begin with, the disassembler has no real way of knowing what is
+machine instruction and what is data. Similarly, it can not know
+if a 16-bit value loaded into a register is an absolute value or a
+memory reference. Thus, for a file to be re-assembled it will first
+have to be edited. Some of this is easy -- blocks of text will stick
+out in the ASCII column -- but determining whether a 16-bit value
+should be be converted from a label to an absolute value, by removing the
+the prefix "x", can prove a bit tricky, although the x-ref listings
+should help.
+
+It is also important to keep in mind that every byte of source code
+generates 30-40 bytes of disassembled disk file. Which means that
+even rather small source files can generate rather large output files.
+
+Commands issued from the menu are entered via the INPUT$(1) command,
+which means that simply hitting a key serves to enter the command.
+By the time you hit a return it's too late.
+
+When an assumed value is given, hitting a return means that it will
+be used.
+
+The menu is updated to show the status of each function, including the
+names of any designated output disk files.
+
+Output disk files are disabled at the end of any disassembly cycle
+but console and printer status are not changed.
+
+The program includes a convert-to-caps routine, so that data can be entered
+as lower case if desired.
+
+----------
+
+USING XREF.BAS
+
+Since this program is not table-dependent, the menu is displayed
+immediately. The options available are:
+
+-- CONSOLE TOGGLE
+   PRINTER TOGGLE
+   These work the same as with DISASMB.BAS.
+
+-- SORT FILE
+   This sorts an .XRF file generated by DISASMB and then prints it.
+
+-- LIST FILE
+   This takes a sorted file and simply lists it.
+
+The sort program is a heap sort but under the interpreter this still
+takes time. So a submit file, XREF.SUB, is provided to permit MicroPro's
+SuperSort to do the deed with great dispatch.
+
+The first column of the listing is the destination address, the second
+column contains primary source addresses, the third column contains
+secondary source addresses.
+
+The listing is paginated and normally displays two columns to a page.
+Both of these values can be changed by modifying indicated constants at
+the start of the program.
+
+----------
+
+CREATING .LST AND .TAB FILES
+
+This package contains four sets of files:
+
+-- INTEL -- standard Intel mnenomics for the 8080 and CP/M assembler.
+
+-- 8085 -- adds the SIM and RIM instructions to INTEL.
+
+-- ZILOG -- standard Zilog mnenomics with extension .MAC for Macro-80.
+
+-- TDL -- TDL's Intel-extended-to-Zilog mnenomics with extension .SRC
+   for the InterSystems assembler.
+
+I have included the TAB<name>.BAS and LST<name>.BAS programs which
+generated these files in order to facilitate changes.
+
+The .LST file contains the mnenomic names and miscellaneous values
+for the disassemblers. The order is:
+	ALEN -- The number of columns in the .TAB file. Standard
+		Intel has 3, Zilog has 9.
+	ZCOM -- The comment character/string, generally ";".
+	ZLAB -- The label terminator string. This is optional but
+		permissible to most assemblers, but Macro-80 apparently
+		requires it.
+	ZBYTE -- The byte pseudo-op.
+	ZEXT -- The extension assumed by the assembler.
+	AZIL -- Since the index register codes can be easily
+		disassembled by testing for use of the HL registers,
+		this approach was used. However, this requires
+		language-dependent code, so this value tells the
+		disassembler what, if any, procedures to use.
+		The provided values are:
+			0 - no index-register codes
+			1 - standard Zilog mnenomics
+			2 - TDL mnenomics
+	Number of operands
+	null operand
+	1..n operands
+	Number of opcodes
+	null operand
+	"N" operand
+	"NN" operand
+	"(NN)" operand
+	relative displacement operand
+	5..n non-reserved operands
+
+The reserved operands must be allowed for, whether or not the language
+provides for that instruction. Other than that, opcodes and operands
+may be listed in any order.
+
+The .TAB file contains the .LST position of the opcode and the first
+and second operands for each byte. The values are stored as bytes.
+New .LST and .TAB files can be checked using the list opcodes procedure
+in DISASMB.
+
+----------
+
+FINAL BITS OF INFORMATION
+
+[1] MBasic allows strings to be of an arbitrary length. There is a price,
+however: When a string is created or changed it is simply tossed on top
+of the string stack. From time to time this process exhausts available
+memory and the intepreter has to stop to purge the stack of extraneous
+strings. Thus, during the generation of a disassembler listing the
+process will stall for a number of seconds to permit the purge.
+
+[2] In order to conserve memory, the opcode, operand and table arrays
+are dynamically redimensioned in DISASMB. If this program is to be
+compiled using BASCOM, these have to be changed to absolute values.
+The maximum values for the various tables are:
+	
+	name		opcodes		operands	table
+	INTEL		 80		22		2,255
+	8085		 80		22		2,255
+	ZILOG		 67		48		8,255
+	TDL		136		22		8,255
+
+[3] There are two ways which MBasic can tell whether it has reached
+the end of an input file: (a) It is told by CP/M that it is on the
+last sector of the current extent and that there are no further
+last sector of the current extent and taht there are no further extents
+or (b) it encounters a control-z code at the start of a logical block
+(a line in a sequential file or a sector in a random file).
+
+There are some problems with this approach. Since DISASMB reads source
+files as a series of sector-long records it has been instructed to
+continue reading if both EOF is true and the first byte on the sector
+is a 1AH (control-z). This may cause the program to read past the end
+of a file, but ultimately it will be forced to initialize a sector
+which will result in a proper stop.
+
+For .XRF files the end of file is indicated by two 0FFH bytes followed
+by 1AH's. This is the FFZZ end flag for SuperSort.
+
+[4] Disassembled disk files use horizontal tabs to separate columns in
+order to compress the length of the files at least a little.
+
+[5] MBasic clears the input buffer for normal data input but not for
+INPUT$. With interrupt-based input, however, this means that it is
+possible to accidently enter commands in response to the menu's prompt.
+
+[6] XREF.BAS creates and then erases two files named XREFWORK.### and
+XREFWORK.$$$. XREF.SUB creates and then erates XREFWORK.###.
+
+----------
+
+Scott Custin
+2410 20th St NW #10
+Washington DC 20009
+
+
+SOME MISCELLANEOUS LIBRARY ROUTINES I'VE TOSSED IN
+
+GETINT.LIB
+You pass a message and the minimum and maximum values and this function
+asks for a value to be entered. It will not proceed until the value
+falls within the designated limits. This avoids unpleasant surprises
+when someone enters bad data. I'm afraid compilers aren't quite as
+unforgiving of this problem as are interpreters. Often, a lot of data
+is lost through a little foul-up.
+
+CAPCHAR.LIB
+CAPSTR.LIB
+The former makes lower case letters into cap ones, the latter passes
+through a string capitalizing where necessary. Numbers and symbols
+are unaffected.
+	I'm not sure, but I suspect that the boolean comparison used
+here is more efficient than the set-inclusion test used in Z-UG's
+STRLIB.
+
+PADSTR.LIB
+DEPAD.LIB
+PADSTRr sticks spaces at the end of a string until is hits the length
+passed as part of the function call. I implemented this as a function
+so that the original string can be left intact if desired.
+	This serves two purposes:
+	[1] Pretty printouts, since ver 3.2 pads strings to the left, just
+like numbers, rather than to the right, which means that simply going
+str:20 isn't satisfactory.
+	[2] Microsoft stores strings in random access records padded with
+blanks rather than with a length byte [used in Pascal/Z]. Personally,
+InterSystem's approach has its advantages, since you get back exactly
+what you stored, rather than a fixed-length string. But I also have
+SuperSort, which does not support the length byte [although it can
+always be passed over in setting up the keys], which means that padding
+the stored records prevents unpleasant surprises during the sort.
+	DEPAD starts dropping spaces off the right side of a string until
+it hits the first non-space character. Again, this is a function rather
+than a procedure, in case the original string needs to be left intact.
+

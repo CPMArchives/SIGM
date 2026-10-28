@@ -1,0 +1,843 @@
+
+
+;	----------------------------------------------------------
+;	Reassembly of FIND.COM, which was originally extracted
+;	from the CBBS(R) package available from Ward Christensen
+;	and Randy Suess. However, considerable rearrangement has
+;	taken place, most notably the following:
+;	 -  <no file name> results in a screen of information
+;	 -  the search pattern may be a regular expression
+;	 -  instance count reported, both per file and globally
+;	To achieve compatibility with MicroShell the vertical bar
+;	was replaced by exclamation point; all syntactic elements
+;	are defined by equ's and may be redefined. PATTERN!SKELETON
+;	is checked for balanced parentheses and non-null arguments
+;	to forestall the most common failure modes. Had MicroShell
+;	not been available, an option to direct the output to some
+;	disk file would probably have been included. STUTE.ASN was
+;	derived from STUTE.ASM by applying Sorcim's TRANS86, then
+;	cleaning up the resulting code by hand. The code can be
+;	assembled by Sorcim's ACT86, which uses a different style
+;	than the Intel assembler. STUTE differs from FIND in that
+;	the patterns found are replaced by a constant rather than
+;	just being locatse, and that a new disk file is created
+;	to hold the modified text. The extension of each original
+;	file is changed to .BAK.
+;
+;		    STUTE.ASN   Copyright (C) 1983
+;		    Universidad Autonoma de Puebla
+;
+;	[Harold V. McIntosh, 16 November 1983]
+;	----------------------------------------------------------
+
+HT	equ	09H		;horizontal tab
+LF	equ	0AH		;line feed
+CR	equ	0DH		;carriage return
+KZ	equ	1AH		;^Z
+
+;	Delimiters for the command line
+
+LSQ	equ	'['		;begin alternative list
+RSQ	equ	']'		;end alternative list
+LBR	equ	'{'		;begin iterated expression
+RBR	equ	'}'		;end iterated expression
+ORR	equ	'!'		;separate alternatives
+
+;	Representatives of characters or classes.
+
+TAB	equ	'_'		;substitute for tab
+QUE	equ	'?'		;represent any byte
+ALF	equ	'@'		;represent any alphanumeric
+
+;	CPM locations and parameters
+
+BDOS:	equ	224		;CP/M interrupt to BDOS
+
+TFCB	equ	005CH		;CP/M's file control block
+CBLK	equ	007CH		;CP/M's block counter
+TSIZ	equ	0080H		;CP/M's record size
+TBUF	equ	0080H		;CP/M's record buffer
+KSIZ	equ	26		;sector capacity of IN buffer
+ISIZ	equ	KSIZ*128
+OSIZ	equ	128
+
+;	-------------
+	org	0100H
+;	-------------
+
+BEGN:	cmpb	TFCB+1,#' '	;file name
+	jnz	X0143
+	ld	bx,#TUTO	;tutorial message
+	jmp	GBYE
+
+X0143:	ld	bx,#LOGO	;identification line
+	call	MSSG
+
+	ld	ah,#12
+	ld	dx,#TFCB	;CP/M's FCB
+	ld	bx,#FILE	;generic filename
+	call	MIUC
+
+	ld	al,FILE		;generic filename
+	sto	al,KFIL		;backup file (.BAK)
+	sto	al,IFIL		;input file  (.EXT)
+	sto	al,OFIL		;output file (.$$$)
+	sto	al,UFIL		;active output (.$$$)
+	stob	#0,ENTH
+
+	ld	bx,#TBUF	;CP/M's record buffer
+	ld	dl,[bx]
+	mov	cl,dl
+	ld	dh,#0
+	xchg	bx,dx
+	inc	dx
+	add	bx,dx
+	stob	#0,[bx]		;mark end of console line
+	xchg	bx,dx		;take up beginning of line
+X0152:	inc	bx
+	dec	cl
+	cmpb	[bx],#0
+	jnz	GPAT
+	jmp	BADP		;message: 'Bad Pattern'
+GPAT:	cmpb	[bx],#' '
+	jnz	X0152		;pass over file name
+	inc	bx
+	call	BALA		;check balance of [], {}.
+	call	NULA		;check for null alternatives
+	ld	dx,#PATT	;command line pattern
+	call	MUVE
+	xchg	bx,dx
+	dec	bx
+	sto	bx,SKND		;skeleton end
+
+	ld	ah,#4
+	ld	dx,#LZER	;counter initializer
+	ld	bx,#DTOT	;'Disk Total'
+	call	MIUC
+
+	ld	bx,#PATT	;command line pattern
+	sto	bx,PAPO		;pattern pointer
+	call	NEXT
+	sto	bx,SKPO		;skeleton pointer
+
+;	Scan the directory for file names. A list is made of files
+;	which will be scanned, both because of a quirk in CP/M's
+;	"search again" and to avoid a future encounter with a file
+;	which has already been processed and given the old name.
+;	Likewise, .BAK and .$$$ files are excluded from analysis.
+
+PREP:	sto	#1,DCTR		;directory counter
+	sto	#DIRY,DPTR	;#directory extract,directory pointer
+
+	ld	cl,#26		;(1A) set DMA address
+	ld	dx,#TBUF	;CP/M's record buffer
+	int	BDOS		; - B D O S -
+
+	ld	cl,#17		;(11) search once
+	ld	dx,#FILE	;generic filename
+	int	BDOS		; - B D O S -
+
+;	Find the Nth file which fits the file description.
+
+FNTH:	cmp	al,#0FFH	;FF=search failed
+	jz	SCAN		;all relevant files located
+	and	al,#03		;isolate quad
+	ld	ah,#32
+	mulb	ah
+	ld	bx,#0081H
+	add	bx,ax
+	cmpb	[bx+8],#'B'
+	jnz	NBAK
+	cmpb	[bx+9],#'A'
+	jnz	NBAK
+	cmpb	[bx+10],#'K'
+	jz	OMIT
+NBAK:	cmpb	[bx+8],#'$'
+	jnz	NDOL
+	cmpb	[bx+9],#'$'
+	jnz	NDOL
+	cmpb	[bx+10],#'$'
+	jz	OMIT
+NDOL:	ld	ah,#12
+	mov	dx,bx
+	ld	bx,DPTR		;directory pointer
+	call	MIUC
+	sto	bx,DPTR		;directory pointer
+	incb	DCTR		;directory counter
+
+OMIT:	ld	cl,#18		;(12) search again
+	ld	dx,#FILE	;generic filename
+	int	BDOS		; - B D O S -
+
+	jmp	FNTH
+
+;	We're all done.
+
+DONE:	ld	bx,#DTOT	;'Disk Total'
+GBYE:	call	MSSG
+EXIT:	ld	dl,#00
+	ld	cl,#00
+	int	BDOS
+
+;	Now we are ready to scan the prospective files.
+
+SCAN:	sto	#DIRY,DPTR
+SCAM:	decb	DCTR
+	jz	DONE
+	push	DPTR
+	add	DPTR,#12
+
+	ld	ah,#8
+	pop	dx
+	push	dx
+	ld	bx,#KFIL+1	;backup file (.BAK)
+	call	MIUC
+
+	ld	ah,#11
+	pop	dx
+	push	dx
+	ld	bx,#IFIL+1	;input file  (.EXT)
+	call	MIUC
+
+	ld	ah,#8
+	pop	dx
+	push	dx
+	ld	bx,#OFIL+1	;output file (.$$$)
+	call	MIUC
+
+	ld	ah,#8
+	pop	dx
+	push	dx
+	ld	bx,#UFIL+1	;active output (.$$$)
+	call	MIUC
+
+	ld	ah,#12
+	pop	dx
+	ld	bx,#TFCB+1	;CP/M's file control block
+	call	MIUC
+
+	ld	cl,#19		;(13) delete file
+	ld	dx,#KFIL	;backup file (.BAK)
+	int	BDOS		; - B D O S -
+
+	ld	cl,#19		;(13) delete file
+	ld	dx,#OFIL	;output file (.$$$)
+	int	BDOS		; - B D O S -
+
+	ld	cl,#22		;(16) create file
+	ld	dx,#UFIL	;active output (.$$$)
+	int	BDOS		; - B D O S -
+	stob	#0,UREC
+
+	ld	cl,#15		;(0F) open file
+	ld	dx,#TFCB	;CP/M's FCB
+	int	BDOS		; - B D O S -
+	inc	al
+	jnz	STAY
+	jmp	EXIT		;quit [without message]
+STAY:	stob	#0,CBLK		;block pointer
+
+	ld	ah,#4
+	ld	dx,#LZER	;counter initializer
+	ld	bx,#LNUM	;'line number'
+	call	MIUC
+
+	ld	ah,#4
+	ld	dx,#LZER	;counter initializer
+	ld	bx,#FTOT	;'file total'
+	call	MIUC
+
+	ld	ah,#8
+	ld	dx,#TFCB+1	;file name
+	ld	bx,#FNAM	;'file name'
+	call	MIUC
+
+	ld	ah,#3
+	ld	dx,#0065H	;extension
+	ld	bx,#FEXT	;'file extension'
+	call	MIUC
+
+	ld	bx,#FHED	;"File" header
+	call	MSSG		;message to console
+
+X01C2:	sto	#0000,ICTR	;input file counter
+	sto	#TSIZ,OCTR
+	sto	#UBUF,OPTR
+LOOP:	ld	bx,#LNUM+3	;increment l.c.
+	call	INCO		;increment line counter
+	ld	bx,#LBUF	;line buffer
+	ld	ch,#0FFH
+MORL:	inc	ch
+	js	CRLF		;force a line after 80H columns
+	push	cx
+	push	bx
+	call	INCH		;char from big bffr to line bffr
+	pop	bx
+	pop	cx
+	sto	al,[bx]
+	inc	bx
+	cmp	al,#KZ
+	jnz	X01E8
+	ld	bx,#FTOT
+	call	MSSG
+
+;	Close out last, incomplete record.
+
+LARE:	cmp	OCTR,#0000
+	jz	CLOF
+	ld	al,#KZ
+	call	OUCH
+	jmp	LARE
+
+CLOF:	ld	cl,#21		;(15) write one record
+	ld	dx,#UFIL	;active output (.$$$)
+	int	BDOS		; - B D O S -
+
+	ld	cl,#16		;(10) close file
+	ld	dx,#UFIL	;active output (.$$$)
+	int	BDOS		; - B D O S -
+
+	ld	cl,#23		;(17) rename file
+	ld	dx,#IFIL	;input file  (.EXT)
+	int	BDOS		; - B D O S -
+
+	ld	cl,#23		;(17) rename file
+	ld	dx,#OFIL	;output file (.$$$)
+	int	BDOS		; - B D O S -
+
+	jmp	SCAM
+
+X01E8:	cmp	al,#LF
+	jnz	MORL		;line not finished
+	jmp	IRRQ
+
+CRLF:	stob	#CR,[bx]
+	inc	bx
+	stob	#LF,[bx]
+	inc	bx
+
+;	Check console for termination request. If one
+;	is present, clear it out before leaving.
+
+IRRQ:	stob	#00,[bx]	;guarantee right hand fence
+	ld	cl,#11		;(0B) console status
+	int	BDOS		; - B D O S -
+	or	al,al
+	jz	CULI
+	ld	cl,#1		;(01) read console
+	int	BDOS		; - B D O S -
+	ld	bx,#M4		;"search terminated"
+	jmp	GBYE
+
+;	Scan the current line.
+
+CULI:	ld	bx,#LBUF	;line buffer
+	sto	bx,ALFA		;begin good segment
+	sto	bx,BETA		;end good segment
+NEXB:	ld	dx,PAPO		;pattern pointer
+	ld	bx,BETA		;end good segment
+	cmpb	[bx],#CR
+	jz	NULI
+	call	CHEK
+	jnz	FAIL
+	push	dx
+	push	bx
+	ld	bx,#LNUM	;'line number'
+	call	MSSG
+	ld	bx,#LBUF
+	call	MSSG
+	ld	bx,#FTOT+3
+	call	INCO
+	ld	bx,#DTOT+3	;'Disk Total'
+	call	INCO
+	ld	dx,BETA		;end good segment
+	ld	bx,ALFA		;begin good segment
+	call	OULI
+	ld	dx,SKND		;skeleton end
+	ld	bx,SKPO		;skeleton pointer
+	call	OULI
+	pop	bx
+	sto	bx,ALFA		;begin good segment
+	dec	bx
+	sto	bx,BETA		;end good segment
+	pop	dx
+FAIL:	inc	BETA		;end good segment
+	jmp	NEXB		;move scan up one byte
+
+NULI:	ld	dx,BETA		;end good segment
+	inc	dx
+	inc	dx
+	ld	bx,ALFA		;begin good segment
+	call	OULI
+	jmp	LOOP		;go for another line
+
+;	Increment ASCII counter at (HL-3).
+
+INCC:	stob	#'0',[bx]
+	dec	bx
+	orb	[bx],#30H
+INCO:	incb	[bx]
+	cmpb	[bx],#':'
+	jz	INCC
+	ret
+
+;	Memory to console
+
+MSSG:	ld	dl,[bx]
+	inc	bx
+	push	bx
+	ld	cl,#2		;(02) write console
+	int	BDOS		; - B D O S -
+	pop	bx
+	cmpb	[bx],#0
+	jnz	MSSG
+	ret
+
+;	Read a character from the input buffer; if and when
+;	the buffer is empty, more sectors are brought in from
+;	the disk until an end-of-file is reached.
+
+INCH:	cmp	ICTR,#0000	;input file counter
+	jnz	INCI
+	call	INDI		;disk to IN area
+INCI:	dec	ICTR		;input file counter
+	ld	bx,IPTR		;input file pointer
+	ld	al,[bx]
+	cmp	al,#KZ
+	jz	INCR
+	inc	IPTR		;input file pointer
+INCR:	ret
+
+;	Bring in reinforcements from the disk.
+
+INDI:	ld	ch,#KSIZ
+	sto	#ISIZ,ICTR	;input file counter
+	ld	bx,#IBUF	;input file buffer
+	sto	bx,IPTR		;input file pointer
+INDD:	stob	#KZ,[bx]
+	push	bx
+	push	cx
+
+	xchg	bx,dx
+	ld	cl,#26		;(1A) set DMA address
+	int	BDOS		; - B D O S -
+
+	ld	dx,#TFCB	;CP/M's file control block
+	ld	cl,#20		;(14) read one record
+	int	BDOS		; - B D O S -
+
+	pop	cx
+	pop	bx
+	or	al,al
+	jnz	INDR
+	dec	ch
+	jz	INDR
+	add	bx,#TSIZ	;CP/M's record size
+	jmp	INDD
+INDR:	ret
+
+;	Send a "line" [(HL) to (DE)] to out file
+
+OULJ:	ld	al,[bx]
+	call	OUCH
+	inc	bx
+OULI:	cmp	bx,dx
+	jnz	OULJ
+	ret
+
+;	Send one character to the output file, conserve BC, HL
+
+OUCH:	push	dx
+	push	bx
+	push	ax
+	cmp	OCTR,#0000
+	jnz	OUCI
+	call	OUDI		;OUT area to disk
+OUCI:	dec	OCTR
+	pop	ax
+	ld	bx,OPTR
+	sto	al,[bx]
+	inc	OPTR
+	pop	bx
+	pop	dx
+	ret
+
+;	Flush the buffer when it is full, make ready for next.
+
+OUDI:	sto	#OSIZ,OCTR
+	sto	#UBUF,OPTR
+
+	ld	cl,#26		;(1A) set DMA address
+	ld	dx,#UBUF
+	int	BDOS		; - B D O S -
+
+	ld	cl,#21		;(15) write one record
+	ld	dx,#UFIL	;active output (.$$$)
+	int	BDOS		; - B D O S -
+
+	cmp	al,#0
+	jz	OUDR
+	ld	bx,#M5
+	jmp	GBYE
+OUDR:	ret
+
+;	Advance to next alternative
+
+NEXX:	ld	bx,[bx]
+NEXT:	ld	al,[bx]
+	or	al,al
+	jz	NEXR
+	inc	bx
+	call	ENDA
+	jz	NEXR
+	call	BEGB
+	jz	NEXX
+	jmp	NEXT
+NEXR:	ret
+
+;	Move by Increment Until Count.
+
+MIUC:	xchg	bx,dx
+	ld	al,[bx]
+	xchg	bx,dx
+	sto	al,[bx]
+	inc	dx
+	inc	bx
+	dec	ah
+	jnz	MIUC
+	ret
+
+;	Move and semi-compile the command line.
+
+MUVE:	ld	al,[bx]
+	cmp	al,#TAB
+	jnz	MUNT
+	ld	al,#HT
+MUNT:	xchg	bx,dx
+	sto	al,[bx]
+	xchg	bx,dx
+	inc	bx
+	inc	dx
+	cmp	al,#RBR
+	jz	MURB
+	cmp	al,#RSQ
+	jz	MURB
+	cmp	al,#LBR
+	jz	MULB
+	cmp	al,#LSQ
+	jz	MULB
+MUST:	dec	cl
+	jnz	MUVE
+	ret
+
+MURB:	mov	ax,bx
+	pop	bx
+	sto	dx,[bx]
+	mov	bx,ax
+	jmp	MUST
+
+MULB:	push	dx
+	inc	dx
+	inc	dx
+	jmp	MUST
+
+;	Check balance of []'s and {}'s.
+
+BALA:	push	bx
+	push	cx
+	ld	cx,#0101H
+BALB:	ld	al,[bx]
+	inc	bx
+	cmp	al,#LSQ
+	jnz	BALC
+	inc	ch
+	jmp	BALB
+BALC:	cmp	al,#RSQ
+	jnz	BALD
+	dec	ch
+	jz	BADP
+	jmp	BALB
+BALD:	cmp	al,#LBR
+	jnz	BALE
+	inc	cl
+	jmp	BALB
+BALE:	cmp	al,#RBR
+	jnz	BALF
+	dec	cl
+	jz	BADP
+	jmp	BALB
+BALF:	or	al,al
+	jnz	BALB
+	cmp	cl,#01
+	jnz	BADP
+	cmp	ch,#01
+	pop	cx
+	pop	bx
+	jnz	BADP
+	ret
+
+BADP:	ld	bx,#M3		;"bad pattern"
+	jmp	GBYE
+
+
+;	Check for termination of alternative.
+
+ENDA:	cmp	al,#ORR
+	jz	ENDC
+	cmp	al,#RSQ
+	jz	ENDC
+	cmp	al,#RBR
+	jz	ENDC
+	or	al,al
+ENDC:	ret
+
+;	Check for beginning of alternative.
+
+BEGA:	cmp	al,#ORR
+	jz	BEGC
+BEGB:	cmp	al,#LSQ
+	jz	BEGC
+	cmp	al,#LBR
+BEGC:	ret
+
+;	Check for null alternative.
+
+NULA:	push	bx
+	call	NULC
+	pop	bx
+NULB:	ret
+NULC:	ld	al,[bx]
+	inc	bx
+	or	al,al
+	jz	NULB
+	call	BEGA
+	jnz	NULC
+	ld	al,[bx]
+	call	ENDA
+	jnz	NULC
+	jmp	BADP
+
+;	Check for given expression.
+
+CHEK:	ld	ah,[bx]
+	xchg	bx,dx
+	ld	al,[bx]
+	xchg	bx,dx
+	inc	dx
+	call	ENDA
+	jz	CHNR
+	cmp	ah,#CR
+	jz	CHNO
+	cmp	al,#LBR
+	jnz	CHEL
+	jmp	CHLB
+CHEL:	cmp	al,#LSQ
+	jz	CHSQ
+	ld	cl,[bx]
+	inc	bx
+	cmp	al,#QUE
+	jz	CHEK
+	cmp	al,#ALF
+	jz	CHAL
+	cmp	al,ah
+	jz	CHEK
+	cmp	ah,#'a'
+	jc	CHNO
+	cmp	ah,#'{'
+	jnc	CHNO
+	and	ah,#05FH
+	cmp	al,ah
+	jz	CHEK
+CHNO:	or	al,#0FFH
+CHNR:	ret
+
+;	Check alphanumeric.
+
+CHAL:	mov	al,cl
+	cmp	al,#'0'
+	jc	CHNO
+	cmp	al,#':'
+	jc	CHEK
+	cmp	al,#'A'
+	jc	CHNO
+	cmp	al,#'['
+	jc	CHEK
+	cmp	al,#'a'
+	jc	CHNO
+	cmp	al,#'{'
+	jc	CHEK
+	jmp	CHNO
+
+;	Check list of alternatives.
+
+CHSQ:	push	SQXX
+	push	SQAA
+	push	SQZZ
+	sto	bx,SQXX
+	xchg	bx,dx
+	ld	dx,[bx]
+	inc	bx
+	inc	bx
+	sto	bx,SQAA
+	sto	dx,SQZZ
+CHAA:	ld	bx,SQXX
+	call	CHEK
+	jz	CHFF
+CHBB:	ld	bx,SQAA		;fail so find next alternative
+CHCC:	call	NEXT
+	cmp	al,#RSQ
+	jz	CHDD		;no more alternatives, so fail
+	cmp	al,#ORR
+	jnz	CHCC
+	sto	bx,SQAA
+	xchg	bx,dx
+	jmp	CHAA		;try next alternative
+CHDD:	ld	bx,SQXX
+	or	al,#0FFH
+CHEE:	pop	SQZZ
+	pop	SQAA
+	pop	SQXX
+	ret
+CHFF:	ld	dx,SQZZ		;good alternative, try rest
+	call	CHEK
+	jz	CHEE
+	jmp	CHBB
+
+;	Check iterative pattern.
+
+CHLB:	push	TEXT
+	push	TEXX
+	push	REST
+	push	REPT
+	push	REPP
+	sto	bx,TEXT
+	sto	bx,TEXX
+	xchg	bx,dx
+	ld	dx,[bx]
+	inc	bx
+	inc	bx
+	sto	bx,REPT
+	sto	bx,REPP
+	sto	dx,REST
+CHLC:	ld	dx,REST
+	ld	bx,TEXT
+	call	CHEK		;check rest
+	jz	CHZZ
+CHII:	ld	dx,REPT		;rest failed
+	ld	bx,TEXT		;keep same text
+	call	CHEK		;try out the repeater
+	jnz	CHOO
+	sto	bx,TEXT		;repeater worked, record progress
+	ld	bx,REPP		;start alternatives over again
+	sto	bx,REPT
+	jmp	CHLC
+CHOO:	ld	bx,REPT		;repeater failed, try next
+CHXX:	call	NEXT
+	cmp	al,#RBR
+	jz	CHYY		;this was the last, quit
+	cmp	al,#ORR
+	jnz	CHXX
+	sto	bx,REPT
+	jmp	CHII
+CHYY:	ld	bx,TEXX
+	or	al,#00		;emphasize the RBR
+CHZZ:	pop	REPP
+	pop	REPT
+	pop	REST
+	pop	TEXX
+	pop	TEXT
+	ret
+
+TUTO:	db	'The command line',CR,LF
+	db	'     STUTE D:FILE.EXT PATTERN!SKELETON',CR,LF
+	db	'will search through all instances of FILE.EXT',CR,LF
+	db	'(which may be an ambiguous reference) on disk D',CR,LF
+	db	'to find lines containing PATTERN. Such lines will',CR,LF
+	db	'be shown on the console preceded by a line number,',CR,LF
+	db	'classified by file. Whenever the regular expression',CR,LF
+	db	'PATTERN is found, it will be replaced by the constant',CR,LF
+	db	'SKELETON. The PATTERN may contain:',CR,LF
+	db	'     [p1!p2!...!pn]  alternative strings',CR,LF
+	db	'     {p1!p2!...!pn}  repeated alternatives',CR,LF
+	db	'     ? any single character',CR,LF
+	db	'     @ for any alphanumeric: a-z, A-Z, 0-9',CR,LF
+	db	'     _ in place of horizontal tab',CR,LF
+	db	'A general PATTERN must be used with extreme caution',CR,LF
+	db	'because the same constant will replace it, whatever',CR,LF
+	db	'its form. The PATTERN may not involve more than one',CR,LF
+	db	'single line, but more than one instance of the PATTERN',CR,LF
+	db	'may occupy the same line.',CR,LF
+	db	00
+
+LOGO:	db	'STUTE.CMD 16/NOV/83 ICUAP',CR,LF,00
+
+M3:	db	'-- Bad Pattern --',00
+
+M4:	db	CR,LF,'-- Substitution Terminated --',00
+
+M5:	db	CR,LF,'-- Disk or Directory Full --',00
+
+;	The following file control segments are arranged in just
+;	the form shown so that they will be properly paired for
+;	the renaming which has to be done after closing each file.
+
+ENTH:	ds	1
+FILE:	db	'DFilenameEXT',00,00,00,00	;generic filename
+	ds	16
+OFIL:	db	'DFilename$$$',00,00,00,00	;output file (.$$$)
+IFIL:	db	'DFilenameEXT',00,00,00,00	;input file  (.EXT)
+KFIL:	db	'DFilenameBAK',00,00,00,00	;backup file (.BAK)
+UFIL:	db	'Dfilename$$$',00,00,00,00	;active output (.$$$)
+	ds	16
+UREC:	ds	1
+UBUF:	ds	80H
+OPTR:	ds	2
+OCTR:	ds	2
+
+;	All the relevant files are located and noted before any
+;	substitutions are made, to avoid a newly created file
+;	being placed in the dictionary, being encountered again
+;	later on and then being processed a second time. The worst
+;	case would be to have to use all 64 files (minus one, for
+;	elbow room) in the directory, but that's not likely.
+
+DCTR:	ds	1		;directory counter
+DPTR:	ds	2		;directory pointer
+DIRY:	ds	1024		;directory of file names, if needed
+
+;	Temporary storage for the regular expression parser.
+
+SQXX:	ds	2
+SQAA:	ds	2
+SQZZ:	ds	2
+TEXT:	ds	2
+TEXX:	ds	2
+REST:	ds	2
+REPT:	ds	2
+REPP:	ds	2
+
+;	Scan pointers, buffers, headings and labels.
+
+ALFA:	ds	2		;begin good segment
+BETA:	ds	2		;end good segment
+
+PATT:	ds	256		;command line pattern
+PAPO:	ds	2		;pattern pointer
+SKPO:	ds	2		;skeleton pointer
+SKND:	ds	2		;skeleton end
+FHED:	db	'----> File '	;"File" header
+FNAM:	db	'xxxxxxxx.'	;filename
+FEXT:	db	'xxx',CR,LF,00	;file extension
+LNUM:	db	'   0     ',00	;'line number'
+LZER:	db	'   0'		;counter initializer
+FTOT:	db	'   0  substitutions made',CR,LF,00
+DTOT:	db	'   0  instances in the entire disk',CR,LF,00
+	db	00		;fence for line buffer
+LBUF:	ds	85H		;line buffer
+ICTR:	ds	2		;input file counter
+IPTR:	ds	2		;input file pointer
+IBUF:	ds	ISIZ		;input file buffer
+FINI:	ds	0
+
+	end
+

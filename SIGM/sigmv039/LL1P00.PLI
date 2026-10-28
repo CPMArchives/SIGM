@@ -1,0 +1,75 @@
+LL1P00: PROC;
+/****************************************************************
+*              LL(1) GRAMMAR ANALYZER - PHASE 00		*
+*PURPOSE:                                                       *
+*    THIS PROGRAM IS RESPONSIBLE FOR INITIALIZING THE LANGUAGE  *
+*    ANALYZER COMMON AREAS.               			*
+*INPUT:                                                         *
+*OUTPUT:                                                        *
+*OUTLINE:                                                       *
+*REMARKS:                                                       *
+****************************************************************/
+
+/****************************************************************
+* * * * * * * * * * * COMMON DATA DEFINITIONS * * * * * * * * * *
+****************************************************************/
+
+/*	* * *  COMMON REPLACEMENTS  * * *	*/
+%REPLACE TRUE BY '1'B;
+%REPLACE FALSE BY '0'B;
+
+%INCLUDE 'LL1CMN.DCL';	/* GET COMMON AREAS. */
+	DCL I FIXED;
+
+/****************************************************************
+* * * * * * * * * * * COMMON PROCUDURES * * * * * * * * * * * * *
+****************************************************************/
+
+%INCLUDE 'LL1PRC.DCL';  /* GET COMMON PROCEDURES. */
+
+
+/****************************************************************
+* * * * * * * * * * * MAIN LINE PROCEDURE * * * * * * * * * * * *
+****************************************************************/
+
+/* DO INITIALIZATION. */
+      PUT SKIP LIST('BEGINNING PHASE 00 PROCESSING.');
+
+/*	INITIALIZE COMMON AREAS. */
+	PUT SKIP LIST('INITIALIZING COMMON AREAS...');
+	NUMVOC=0;		/* NUMBER OF VOCABULARY ELEMENTS */
+	TRM='';			/* TERMINAL TOKEN INDEX */
+	NTRM='';		/* NON-TERMINAL TOKEN INDEX */
+	ALIVE='';		/* ALIVE NON-TERMINAL INDEX */
+	DEAD='';		/* DEAD NON-TERMINAL INDEX */
+	NLNTRM='';		/* NULL NON-TERMINAL INDEX */
+	STRSYM=ASCII(0);
+	NUMPRD=0;		/* NUMBER OF PRODUCTIONS IN GRAMMAR */
+	DO I=1 TO 254;		/* VOCABULARY */
+	   VOC(I)='';
+	END;
+	DO I=1 TO MAX_PROD;	/* PRODUCATIONS */
+	   LHS(I)='';
+	   RHS(I)='';
+	   NULPRD(I)=0;
+	END;
+
+/*	OPEN LIST FILE. */
+	PUT SKIP LIST('OPENING LIST FILE...');
+	OPEN FILE(LSTFIL) STREAM OUTPUT PRINT LINESIZE(132) 
+		PAGESIZE(60) TITLE('$1.PRN');
+	LSTOPN=TRUE;		/* SET FOR OPEN.*/
+	PUT FILE(LSTFIL) PAGE;
+
+/*	ESTABLISH DEFAULTS FOR FLAGS. */
+	PUT SKIP LIST('INITIALIZING FLAGS...');
+	FLAGS1(1)=TRUE;		/* SET FOR LIST INPUT IN PHASE 1.*/
+	FLAGS1(2)=FALSE;	/* SET FOR LIST TABLES AT END OF
+				   PHASE 1. */
+	TRACE1(1)=FALSE;	/* SET FOR TRACE PHASE 1 - GETTOK. */
+	TRACE1(2)=FALSE;	/* SET FOR TRACE PHASE 1 - PROD. */
+
+/* RETURN TO CALLER. */
+     PUT SKIP LIST('PHASE 00 PROCESSING COMPLETE.');
+     END LL1P00;
+

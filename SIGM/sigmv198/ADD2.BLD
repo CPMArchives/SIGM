@@ -1,0 +1,325 @@
+* DATE 07/31/84  17:22
+* ADD2.PRG
+* this program will add tenant records to the current files
+SET INDEX TO
+SET COLON OFF
+SET INTENSITY ON
+STOR ' ' TO choice
+STOR '                                                  ' TO blnks
+* set up screen for data entry
+*loop until finished adding records
+STOR baddr TO mbaddr
+STOR bcode TO mbcode
+STOR bupdate TO mbupdate
+SELE SECONDARY
+USE &dr.:tenant
+STOR t TO more
+STOR t TO first
+ERAS
+DO WHIL more
+ IF first
+  STOR 'Add Tenant Records' TO mode
+  STOR 'Enter as many tenants as you want. When done, enter a blank for tenant' TO prompt1
+  STOR "name and unit or control 'Q' to end session." TO prompt2
+  @ 0,26 SAY mode
+  @ 1, 0 SAY " -------------------------------------------------"
+  @ 1,50 SAY "----------------------------"
+  @ 3, 2 SAY "Tenant:"
+  @ 3,53 SAY "Code:"
+  @ 4, 4 SAY "Unit:"
+  @ 4,26 SAY "Building:"
+  @ 5, 1 SAY "Contact:"
+  @ 5,52 SAY "Phone:"
+  @ 6,09 SAY "Alternate mailing address:"
+  @ 7,01 SAY "Address:"
+  @ 8,01 SAY "City:"
+  @ 10, 4 SAY "Type:"
+  @ 10,19 SAY "Addl Percentage:"
+  @ 10,48 SAY "1st Lease:"
+  @ 11,04 SAY "Base:"
+  @ 11,47 SAY "Expiration:"
+  @ 12, 0 SAY "Security:"
+  @ 12,30 SAY "Bank:"
+  @ 12,48 SAY "Late Date:"
+  @ 13, 4 SAY "Rent:"
+  @ 13,25 SAY "Late Chgs:"
+  @ 13,48 SAY "Addl Rent:"
+  @ 14, 3 SAY "G & E:"
+  @ 14,24 SAY "Other Chgs:"
+  @ 15, 0 SAY "Rent Due:"
+  @ 15,22 SAY "Last Payment:"
+  @ 15,49 SAY "Amt Paid:"
+  @ 16,00 SAY "Total Yr:"
+  @ 16,30 SAY "Flag:"
+  @ 16,52 SAY "Total:"
+  @ 18, 3 SAY "Notes:"
+  @ 18,51 SAY "Update:"
+  @ 19, 0 SAY " -------------------------------------------------"
+  @ 19,50 SAY "-----------------------------"
+ ENDI first
+ STOR f TO first
+ STOR $(blnks,1,35) TO mtenant
+ STOR $(blnks,1,3) TO mtcode
+ STOR $(blnks,1,5) to mtunit
+ STOR 'R' TO mttype
+ STOR $(blnks,1,25) TO mtcontac
+ STOR $(blnks,1,13) TO mtphone
+ STOR 'N' TO malt
+ STOR $(blnks,1,35) TO maltad
+ STOR $(blnks,1,35) TO maltcty
+ STOR $(blnks,1,8) TO mtexpir
+ STOR $(blnks,1,8) TO mtfirst
+ STOR 0 TO mtsec
+ STOR $(blnks,1,4) TO mtsecb
+ STOR $(blnks,1,2) TO mtlate
+ STOR 0 TO mtrent
+ STOR 0.0000 TO mtrentpc
+ STOR 0 TO mtrenpcr
+ STOR 0 TO mtlatec
+ STOR 0 TO mtaddl
+ STOR 0 TO mtrente
+ STOR 0 TO mtrentm
+ STOR 0 TO mtrentd
+ STOR $(blnks,1,8) TO mtrentpd
+ STOR 0 TO mtrentp
+ STOR 0 TO mtrenty
+ STOR 0 TO mtrentt
+ STOR $(blnks,1,8) TO mtflag
+ STOR $(blnks,1,35) TO mtnotes
+ STOR mbupdate TO mtupdate
+* setup gets to read data
+ @ 3,10 GET mtenant
+ @ 3,59 SAY mbcode
+ @ 3,61 GET mtcode PICTURE '999'
+ @ 4,10 GET mtunit
+ @ 4,36 SAY mbaddr
+ @ 5,10 GET mtcontac
+ @ 5,59 GET mtphone PICTURE '(999)999-9999'
+ @ 6,36 GET malt PICTURE '!'
+ @ 7,10 GET maltad
+ @ 8,10 GET maltcty
+ @ 10,10 GET mttype PICTURE '!'
+ @ 10,36 GET mtrentpc
+ @ 10,59 GET mtfirst PICTURE '99/99/99'
+ @ 11,10 GET mtrenpcr
+ @ 11,59 GET mtexpir PICTURE '99/99/99'
+ @ 12,10 GET mtsec
+ @ 12,36 GET mtsecb
+ @ 12,59 GET mtlate PICTURE '99'
+ @ 13,10 GET mtrent
+ @ 13,36 GET mtlatec
+ @ 13,59 GET mtaddl
+ @ 14,10 GET mtrente
+ @ 14,36 GET mtrentm
+ @ 15,10 GET mtrentd
+ @ 15,36 GET mtrentp PICTURE '99/99/99'
+ @ 15,59 GET mtrentp
+ @ 16,10 GET mtrenty
+ @ 16,36 GET mtflag PICTURE '99/99/99'
+ @ 16,59 GET mtrentt
+ @ 18,10 GET mtnotes
+ @ 18,61 GET mtupdate PICTURE '99/99/99'
+ @ 20,00
+ @ 21,00
+ @ 22,00
+ @ 20, 7 SAY prompt1
+ @ 21, 7 SAY prompt2
+ READ
+ CLEA GETS
+* test if there is a bad field validation
+ IF mtenant <> ' '
+* validation
+  DO CASE
+  CASE mtcode = ' '
+   STOR t TO error
+  CASE .NOT.(malt = 'Y' .OR. malt = 'N')
+   STOR t TO error
+  CASE .NOT.(mttype = 'R'.OR.mttype='P'.OR. mttype='O')
+   STOR t TO error
+  CASE (mttype = 'P'.OR. mttype = 'O') .AND.(.NOT.(mtrentpc >0.AND. mtrenpcr >0))
+   STOR t TO error
+  OTHE
+   STOR f TO error
+  ENDC
+* if test for error was true then fix the fields that need fixing
+  IF error
+* erase the lines to be used for prompts
+   @ 00,00
+   @ 20,00
+   @ 21,00
+   @ 22,00
+* tell them to correct it
+   @ 0,18 SAY 'Please Correct the Indicated Data'
+* keep looping until all fields are fixed
+   STOR t to an:error
+   DO WHIL an:error
+    DO CASE
+    CASE mtcode = ' '
+     @ 20,00
+     @ 20,15 SAY 'Must have a tenant code                              '
+     @ 03,61 GET mtcode PICTURE '999'
+     READ
+    CASE .NOT.(malt = 'Y' .OR. malt = 'N')
+     @ 20,00
+     @ 20,15 SAY "Must answer 'Y' or 'N' to alternate address"
+     @ 06,36 GET malt PICTURE '!'
+     READ
+    CASE .NOT.(mttype = 'R'.OR.mttype='P'.OR. mttype='O')
+     @ 20,00
+     @ 21,00
+     @ 20,05 SAY "Type must be 'R' for Regular, 'P' for Percentage which uses the higher of"
+     @ 21,05 SAY "the percentage or the base rent or 'O' for Overage plus base rent"
+     @ 10,10 GET mttype PICTURE '!'
+     READ
+    CASE (mttype = 'P'.OR. mttype = 'O').AND.(.NOT.(mtrentpc>0.AND. mtrenpcr> 0))
+     @ 20,00
+     @ 21,00
+     @ 20,05 SAY 'If a percentage or overage lease, you must state the percentage'
+     @ 21,05 SAY 'AND the base for calculating the percentage rent'
+     @ 10,36 GET mtrentpc
+     @ 11,10 GET mtrenpcr
+     READ
+    OTHE
+     STOR f TO an:error
+    ENDC
+   ENDD while an:error
+  ENDI error
+* give them another chance
+  SET COLON ON
+  STOR 'N' TO command
+  @ 20,00
+  @ 21,00
+  @ 22,00
+  @ 20,15 SAY 'Are there any more changes ?                        '
+  @ 20,48 GET command picture '!'
+  READ
+  SET COLON OFF
+  IF command = 'Y'
+   @ 0,00
+   @ 0,26 SAY mode
+   @ 3,10 GET mtenant
+   @ 3,59 SAY mbcode
+   @ 3,61 GET mtcode PICTURE '999'
+   @ 4,10 GET mtunit
+   @ 4,36 SAY mbaddr
+   @ 5,10 GET mtcontac
+   @ 5,59 GET mtphone PICTURE '(999)999-9999'
+   @ 6,36 GET malt PICTURE '!'
+   @ 7,10 GET maltad
+   @ 8,10 GET maltcty
+   @ 10,10 GET mttype PICTURE '!'
+   @ 10,36 GET mtrentpc
+   @ 10,59 GET mtfirst PICTURE '99/99/99'
+   @ 11,10 GET mtrenpcr
+   @ 11,59 GET mtexpir PICTURE '99/99/99'
+   @ 12,10 GET mtsec
+   @ 12,36 GET mtsecb
+   @ 12,59 GET mtlate PICTURE '99'
+   @ 13,10 GET mtrent
+   @ 13,36 GET mtlatec
+   @ 13,59 GET mtaddl
+   @ 14,10 GET mtrente
+   @ 14,36 GET mtrentm
+   @ 15,10 GET mtrentd
+   @ 15,36 GET mtrentp PICTURE '99/99/99'
+   @ 15,59 GET mtrentp
+   @ 16,10 GET mtrenty
+   @ 16,36 GET mtflag PICTURE '99/99/99'
+   @ 16,59 GET mtrentt
+   @ 18,10 GET mtnotes
+   @ 18,61 GET mtupdate PICTURE '99/99/99'
+   @ 20,00
+   @ 21,00
+   @ 22,00
+* let user enter data
+   READ
+   CLEA GETS
+  ENDI command = 'Y'
+* put data in file
+  APPE BLANK
+  STOR mbcode + mtcode TO mbcod1
+  REPL tenant WITH mtenant, bcode WITH mbcod1, tunit WITH mtunit
+  REPL baddr WITH mbaddr, tcontac WITH mtcontac, tphone WITH mtphone
+  REPL alt WITH malt, altad WITH maltad, altcty WITH maltcty
+  REPL ttype WITH mttype, texpir WITH mtexpir
+  REPL trentpc WITH mtrentpc, trentpcr WITH mtrenpcr
+  REPL tfirst WITH mtfirst, tsec WITH mtsec, tsecb WITH mtsecb
+  REPL tlate WITH mtlate, trent WITH mtrent, tlatec WITH mtlatec
+  REPL taddl WITH mtaddl, trente WITH mtrente, trentm WITH mtrentm
+  REPL trentd WITH mtrentd, trentpd WITH mtrentpd, trentp WITH mtrentp
+  REPL trenty WITH mtrenty, trentt WITH mtrentt, tflag WITH mtflag
+  REPL tnotes WITH mtnotes,tupdate WITH mtupdate
+  STOR t TO more
+ ELSE
+* get ready to stop the loop
+  STOR f TO more
+ ENDI mtenant <> ' '
+ STOR t TO first
+ENDD WHILE more
+SET COLON ON
+STOR 'Y' TO command
+ERAS
+TEXT
+ 
+      The newly added information is in the database - but will not
+      show up on screen until the records are reindexed............
+      and reindexing may take a few minutes.
+
+      Moreover, if you want to add tenants to another building, you
+      should not index until that is done.
+
+      In any event, you can reindex at any time.  There is an option
+      to reindex on the Maintenance menu.
+
+
+
+
+
+
+
+
+
+
+
+ENDT
+@ 15,10 SAY "Do you wish to REINDEX now (Y/N) ?"
+@ 15,44 GET command PICTURE '!'
+READ
+CLEA GETS
+DO WHIL @(command, 'NY') = 0
+ @ 15,10 SAY "Do you wish to REINDEX now ?"
+ @ 15,44 GET command PICTURE '!'
+ READ
+ CLEA GETS
+ENDD
+DO CASE
+CASE command = 'Y'
+* restore original index and reindex
+* since it takes time, tell them
+ ERAS
+ @ 02,00 SAY 'Files are now being reindexed. '
+ @ 03,00 SAY 'Please be patient as this will take a few minutes.'
+ @ 04,00 SAY 'I will keep you posted as I go along'
+ @ 05,00 SAY ' '
+*index transitional part in secondary database
+ STOR chr(peek(063)) to dr
+ SET ECHO ON
+ SET TALK ON
+ SELE SECONDARY
+ USE &dr.:TENANT INDEX &dr.:codea
+ INDE on bcode to &dr.:codea
+ SET ECHO OFF
+ SET TALK OFF
+ STOR f TO more
+ STOR t TO first
+ STOR ' ' TO choice
+CASE command = 'N'
+ STOR f TO more
+ENDC
+STOR chr(peek(063)) to dr
+SELE PRIMARY
+USE &dr.:build INDEX &dr.:code
+SET INTENSITY OFF
+STOR ' ' TO choice
+STOR t TO first
+

@@ -1,0 +1,395 @@
+
+{ [CNVRT.REC]
+[Compile a set of CNVRT rules into a REC program]
+[format: ((p)(s)(v) (
+	 (pattern, skeleton):	[repeating]
+  [or]	 (pattern, skeleton);	[terminal]
+	 )) x]
+[(p) is a list of pattern definitions ((P1) p1 (P2) p2 ...)]
+[(s) is a list of skeleton definitions ((S1) s1 (S2) s2 ...)]
+[(v) is a list of variables (v1 v2 ...): digits separated by spaces]
+[Patterns may have one of the forms
+	all patterns P1,..Pn		(AND,P1,P2,...,Pn)
+	first of P1,...Pn to match	(OR,P1,P2,...,Pn)
+	pattern does not start w/P	(NOT,P)
+	P using P1 as p1 etc		(DEF,P1,p1,...,PN,pn,P)
+	Repeat P as much as possible	(ITR,P)
+	Repeat P as little as possible	(itr,P)
+	... with delimiters /		(QUO/.../)
+	the decimal number n		(DEC,n)
+	the hexadecimal number n	(HEX,n)
+	control characters xxx		(^xxx)
+	lexicographic interval m,n	(IVL,m,n,)
+	print remaining workspace	(PWS)
+	print value of variable n	(PVR,n)
+	wait for keystroke		(HLT)
+	print mssg, wait		(HLT,mssg)
+	nothing - edit to PWS or HLT	(NOP)
+	left angle bracket		(<)
+	right angle bracket		(>)
+	left parenthesis		<(>
+	right parenthesis		<)>
+	single quote			<'>
+	double quote			<">
+	comma				<,>
+	balanced parentheses		<()>
+	defined pattern a		<:a:>
+	interval of length n		<[n]>
+	indefinite interval		<-->
+	variable n			<n>
+	no free space left		<>
+	]
+[Skeletons may take any one of the following forms
+	left parenthesis		<(>
+	right parenthesis		<)>
+	comma [not necessary]		<,>
+	single quote			<'>
+	double quote			<">
+	left bracket			(<)
+	right bracket			(>)
+	variable n			<n>
+	function f, no argument		(f)
+	function f, argument xxx	(f,xxx)
+	control characters		(^xxx)
+	]
+[Since all spaces, tabs, and similar characters are taken literally
+  in patterns and skeletons, the pair <<...>> may be used to format
+  programs into lines and columns. It is preferable to enclose all
+  comments in square brackets at the appropriate place, so that they
+  can appear in the compiled program; text between angular brackets,
+  on the other hand, will be ignored.]
+[Skeletons exploiting CP/M's input-output mechanisms:
+	open file			(%O[r|w],D:FILENAME.EXT)
+	read file			(%R,D:FILENAME.EXT)
+	write file			(%W,D:FILENAME.EXT,xxx)
+	close file			(%C,D:FILENAME.EXT)
+	close all files			(%E)
+	read				(%R)
+	type, preserve			(%T,xxx)
+	type CR,LF			(%&)
+	insert CR,LF			(%|)
+	]
+[CNVRT is a chain oriented adaptation of the LISP based CONVERT in
+
+	    Adolfo Guzman and Harold V. McIntosh
+	    CONVERT
+	    Communications of the ACM 9 604-615 (1966).]
+
+[Harold V. McIntosh, 25 December 1980]
+[Harold V. McIntosh, 22 February 1981]
+[Harold V. McIntosh and Gerardo Cisneros, 28 December 1983]
+[10 January 1984 - automatic mode reads single function - GC]
+[10 January 1984 - (^K) is a skeleton for ^K - HVM]
+[14 January 1984 - shorten pattern (CTL,xxx) to (^xxx) - HVM]
+[14 January 1984 - (,xxx) evaluates, discards xxx - HVM]
+[16 January 1984 - initial workspace is "command line" - HVM]
+[17 Jan 1984 - %C closes explicit file or default - GC]
+[17 Jan 1984 - 3-state FCBs: not open, open-R, open-W.  GC]
+[19 Jan 1984 - # supports negative results - GC]
+[23 Jan 1984 - CTR: pseudodevice included - GC]
+
+[30$ - input FCB]
+[31$ - output FCB]
+
+[display w/cursor]		(248%I26%TLJZqt248%FD;;) D
+
+[erase cursors]			(J(248%FD:JZ;);) E
+
+[zero file control block]	($m33cmpw0%(f:;)wnnS;) F
+
+[create input, output FCB's]	('5C'H12wA' 'Ew;B
+  [generate file name]		 9aQpG'REC'|m (Z3b' 'E'CNV';Q;)|m w
+  [open input file]		 n30$rS 30@f
+  [open output file]		 n31$rS 31@g31@e
+				;) G
+
+[close file]			(
+  [clear wkspace, inp file]	 @p:L@y:(@p:0=;e26%(f:;)@p;;)
+  [close fil.REC]		 31$r16k
+				;) H
+
+[initialize]			(J@Wj@!;@!;) I
+
+[read, with rubout]		(R26%='';T127%(=)(@J|;L@J;);) J
+
+[WS up to cursor to disk]	(jJ<(@p:L;)Zz>;) P
+
+[15-line window]		(AB(10%Fz;Zz;)qL
+				  15(d(10%FA;L(26%Fj;Z;)):;)Y<;<) W
+
+[compile one rule]		{
+  [insert single quote]	  	(39%I;) q
+  [find comma, pass parens]	(zZ<(','E;'<(>'Ez:'<)>'Ez:'<,>'Ez:
+				 '(QUO'EzABQzFzA:'('Ez@d:A:)jJ>;J>) r
+  [advance to (, <, or end]	('('E;'<'E;','E;A:) h
+
+    [(..., holds pattern]	 ('('F'J'Iz@r<(
+    [compile pattern, skeleton]	  @bZ>zZ','FDZ<@dBjJ><j'JZD'I@c ';'I>z')'Fz;)
+				 ;) a
+
+[Duplicate and test for null]	(pG''=;L) s
+[CNVRT rule set]		('('FD'{'I  
+  [defined patterns]		  '('FDZ<@dBDJ><(@hzZ<@dBj';'IjJ<@b>>:;)>
+  [defined skeletons]		  '('FDZ<@dBDJ><(@hzZ<@dBj';'IjJ<j@c>>:;)>
+  [variable list - save & init]	  '('FzZ<@dBDJ><Qj(A'@( 'Iz' 'ED:;)>
+  [variable list - reinitialize]  '('F(@s;D'{('I;)zpG(''=;I<' 'IJj
+				(' 'FD'@: 'Iz:;)>;) (@s;';); ('Iz;)
+  [one single rule]		  ('('Ej(@s;'@;'Iz;)Z<A@dJ><@aZz>:
+					')'ED';)'Iz;A:;)
+  [variable list - undefine]	  (@s;'} 'Iz;) pG(''=;I<' 'IJ
+					(' 'FD'@) 'Iz:;)>;)
+  [variable list - restore]	  ' 'II<j(ABD' nn$S'Iz' 'ED:;)>
+				  ')'FD';)}'I 13%Fj
+				 ;) } t
+
+[parse pattern]			{
+				 (1b39%ED;39%I'Ez'Iz;) E
+				 (1b39%ED;39%I'(Fz;Zz<)'Iz;) F
+				(z
+  [suppress extraneous intvl]	 '<<'E'>>'VD:
+  [variable is interval]	 '<['ED @E']>'FD'(a;L)z'I@q :
+  [defined pattern]		 '<:'ED @E '@'I':>'FD@q :
+  [skip]			 '<-->'ED @E '(('I@qzZ
+				    <(@hj;;)>@F 'Z<'Iz
+				    @b '>;J>);A:)'I ;
+  [left paren]			 '<(>'ED '('I :
+  [right paren]			 '<)>'ED ')'I :
+  [comma]			 '<,>'ED ','I :
+  [balanced parentheses]	 '<()>'ED @E
+				   '"("E{(A")"Ez;"("E@*::)*(@*;)}'I
+				   @q :
+  [single quote]		 10044[<']ED'>'ED@E'39%Ez'I@q :
+  [double quote]		 8764[<"] ED'>'ED@E'34%Ez'I@q :
+  [physical end]		 '<>'ED @E'(A)'I ;
+  [variable follows]		 '<'ED @E
+				    '>'UQD'>'ED Z<((@hjJ>Qj)J>Qj
+				    ''=I'@]'I;
+				    ' {[vbl] ('Iz @b ';) = ('I
+				    (''=I'@<'I;@qI@qI'@>'I;)
+				    ';)}[vbl] 'I ;) ;
+  [DEF follows]			 '(DEF,'ED @E
+				    zZ<@dBDJQD>' {[def] ('Iz
+				    (I<j@rzABDZQDJ<@b>';) 'I>
+					I<j@rzABDZQDJ>' ('I:
+				        <@b>';)}[def] 'Iz>;)@q :
+  [ITR follows]			 '(ITR,'ED @E '([ITR] Z<'I
+				    zZ<@dBDJ><@b>'>:J>;)[ITR] 'I@q :
+  [itr follows]			 '(itr,'ED @E
+				    zZ<@dBDJQD>' ([itr] Z<'IzZ <@b>
+				    '>; J>'II <@b> ':) [itr] 'I ;
+  [AND follows]			 '(AND,'ED @E
+				    zZ<@dBDZQDJj@rz','EDZQDJj
+				    ' {[AND] ('IzZ<j';) ` (Z<'Iz
+				    Z<@b>'@`>;>)}[AND] 'I
+				    (Jj>' {('IzZ<j';) ` (jJ><'II
+				    <(j@rz','EDZQD;)
+				    J<@b>'(A)@`;)} 'I>:
+				    J<@b>'(A)@`;)} 'I>;)
+				    Jj'>('II<@b>'<;<)'I>>Zz ;
+  [OR follows]			 '(OR)'ED @E '()'I@q:
+				 '(OR,'ED @E  zZ<@dBDJQD>
+				    ' {[OR] ('IzZ <@b> ';) \ (Z<('I
+				    (I<j@rzABD'<:\:>'IzZQDJ<@b>'; J'I>:
+				    <'<:\:>'IJ@b>';)>;>)} [OR] 'Iz>;) ;
+  [and follows]			 '(and)'ED @E @q:
+				 '(and,'ED @E  zZ<@dBDJQD>
+				    ' [and] Z<('I
+				    I<j@rzABDZQDJ<@b>' jJ><'I>
+				    (I<j@rzABDZQDJ<@b>' (A)J><'I>:
+				    <@b>'(A);>)> [and] 'Iz>;) @q:
+  [or follows]			 '(or)'ED @E '()'I@q:
+				 '(or,'ED @E  zZ<@dBDJQD>
+				    ' [or] Z<('I
+				    (I<j@rzABDZQDJ<@b>'; J'I>:
+				    <@b>';>)> [or] 'Iz>;) @q:
+  [NOT follows]			 '(NOT,'ED @E'[not] (Z< 'I
+				    zZ<@dBDJ><@b>
+				    'J>)J>[not] 'I(zABj;'Zz'I;)@q :
+  [nor follows]			 '(nor,'ED Z<j'(NOT,(or,'Iz@d')'IJj> :
+  [QUO follows]			 '(QUO'ED @E zABQD@qFD')'ED@E@q :
+  [DEC follows]			 '(DEC,'ED @E ')'FD'%Ez'I@q :
+  [HEX follows]			 '(HEX,'ED @E ')'UQD')'EDHI'%Ez'I@q :
+  [^ follows]			 '(^)'ED @E'0%31%Mz'I@q :
+				 '(^'ED @E ')'UQD')'ED
+				    I<j(ABQD\64['@']-#'%Ez'|Iz:;)>@q :
+  [IVL follows]			 '(IVL'ED @E ABQQD@qFD@q
+				    @qFD')'ED@q'Mz'I@q :
+  [PWS follows]			 '(PWS)'ED @E'2573TLZqtj'I@q :
+				 '(PWS,'ED @E'2573TL'I@q')'FD@q'TLZqtj'I@q :
+  [HLT follows]			 '(HLT)'ED @E'RL'I@q :
+				 '(HLT,'ED @E'2573TL'I@q')'FD@q'TLRL'I@q :
+  [NOP follows]			 '(NOP)'ED :
+				 '(NOP,'E ')'VD :
+  [PVR follows]			 '(PVR,'ED @E ')'FD"'_'@%"I@q:
+  [left angle bracket]		 '(<)'ED '<'I :
+  [right angle bracket]		 '(>)'ED '>'I :
+				 A:@E;) B (j@q@Bz;)} b
+
+[parse skeleton]		{(1b39%ED;39%I'I'I;) Q
+				 (z@q3bjA@qZQ|D:DJj'@'IZQ|D'Z>'|I;) h
+				 (z
+				  '<<'E'>>'VD:
+				  '<(>'ED'('I:
+				  '<)>'ED')'I:
+				  '<,>'ED','I:
+				  10044[<']ED'>'ED@Q'39%I'I@q:
+				   8764[<"]ED'>'ED@Q'34%I'I@q:
+  [variable]			  '<'ED@Q'>'FD'@['I@q:
+  [left angle]			  '(<)'ED'<'I:
+  [right angle]			  '(>)'ED'>'I:
+  [control char]		  '(^'ED')'UQD')'ED@QI
+				    <j(ABQD\64['@']-#'%I'|Iz:;)>@q:
+  [function]			  '('ED@Qz')'V
+    [insert argument]		     (<j','UQD','ED>'z<'I@c
+    [function name]		     (''='JZD>'I;I<''@h>;);
+    [if no argument]		     j'z<'Iz')'U<''@h>')'FD>;)@q:
+				  ')'ED;
+				  A:;) C (@q@C@Q;)} c
+
+[rparen, pass pairs, (QUO's]	(')'Ez;'<(>'Ez:'<)>'Ez:
+				 '(QUO'EzABQzFzA:'('Ez@d:A:)d
+[rbracket, pass pairs]		(']'Ez;'['Ez@j:A:)j
+[open file or create it]	(@h$r15K(255=22K;;)LL;)e
+[open file or report absence]	(@h$r15K(255='new file 'T;;)LL;)f
+[delete file if present]	(@h$r19k;)g
+[CP/M's DMA address]		('80'H26k;)h
+[write one record]		(@Ej26%EZD0;128aqL26k31$r21kD'.'TL;) p
+
+[CNVRT subroutines]		("{
+   				{
+    [find/make FCB]		(Jj'TTY:'EQZD;('CTR:'Ez(8azZD;@b;)JZ;
+				 (':'UQD':'ED\64-%;0%;)
+				 ('.'U<(8a;@b;)Q|D>;Z'.DAT'IJj:)
+				  '.'FJDZ(3a;@b;)Q|JZDI;)
+				 32(dpGm$r0=npGpGd0&$Sm('CTR:'EZ
+				 $m16@`nS;@z;)npGQ&$rrS0;
+				 r12wQmwnEn;n:)D;) f
+    [form CTR and TTY block]	(@0n0|0|pL;) `
+    [blank fill by count]	(Zz(d' 'I:;)JZ;) b
+    [zero fill]			(cmpw0%(f:;)w;) 0
+    [zero FCB & buffer]		($m33@0130@0nn&0||pLnS;) z
+    [set default input file]	(0,30$S'5C'H12GIA' 'E4@`
+				 31$S'TTY:'31$rrS; B9aQz(3a'   'E
+				 'DAT';Q;)|m31@zn31$rrS;) i
+    [open for read]		($rpGr32+0&SpG^^pGr0&S^^-1&Sr15K
+				 (255='No File'I;L;)L;) r
+    [open for write]		($rpGpG4+1&SrpG19k22k^^r128&S;) w
+    [open]			(pG('r'=-1mm;L1mm;)@q
+				 ('CTR:'=@f(0=;;)@!0&S;);L;) O
+    [get name]			('CTR:'pGEnLnL;L''(AL@f(0=;'TTY:'(='T');))
+				 ('T'='';L31pG$rr12w'TTY:'Ew;w)nLnL;
+				 (pG$r4+r0=pGn@@nL;nLn=;L'R/W err'T_)) q
+    [counter default]		($rr14+pGm1nSdd;) !
+    [signed # string]		(pG(32767N'';0&-'-';)&#|I;) n
+    [read]			(-1m'r'm@q('CTR:'=(@f0=@!0pGm1;$rr14+pGr
+				 mddpGrpGn&m;)+&Sn@n;L@&'> 'TL(@#I;:););
+				 $r(pG^^rpGmr(0=(npGpGm128&S^^26kpGr
+				 20K0=L;LL1npGpGm129+26%&SS;)npGmr;;)
+				 pG130&-n+&dm(u13%=;10%(=)pGI(26%=;
+				 L);ndm:)L^^rn&S;LpG^^r0&S:);) R
+    [write]			(Jj','U<1m'w'm@q('CTR:'=@f@j(0=;;)$rr
+				 12+pGj(','U<@l;Z','IJj:)@j&S^^@l
+				 (0=1;;)&S;L@jqtD;);@j<@g;) W
+    [get CTR const]		(('-'EQD;'';)(ZQDO;L0;)(&'-'=~;L;);) l
+    [comma in write]		(>','EDZ;) j
+    [write to disk]		($r(pG^^rpGpGmrpGm- 130+n&maQD>Z<nSn^^
+				 26kpGr21kpG^^r128&S:JZQD>nSnSL;);) g
+    [close by number]		(pGm$rpG4+pGrm0&Sn(0=LnL;-1=nLr16k;LJj
+				 26%I<npGm@gpG^^rpGr127(N^^26kpGr21k;L;)
+				 r16k;);) c
+    [close all files]		(31pGm(pG$r0=L;L@cndpGm:)nL;;) E
+    [close by name]		((A)31@c;@f'TTY:'=;0=L;@c;) C
+    [PVR]			(pG@&#'= '|TL$r(0='undef';yG;)TL;) _
+    [cr, lf]			(2573TL;)&
+    [insert cr, lf]		(2573I;)|
+    [read console]		(R13%='';08%(=)(T@#|;08%T' 'TLTLL@#;);)#
+    [display at logon]		('[[]]'TL@&;)D
+    [write workspace]		(@&JZqt;)T
+				(@@;) }%
+    [integer arithmetic]	{(+;)+ (-;)- (*;)* (/&L;)/
+				(pGm/L1=nL1;0=n;n&:)|
+				 ((pGmJj(U);QD(O)I;npGmEDZQD(O)IjnpGmI;
+				 n@@'n'@%)nLJZ;;) } #
+    [save & init variables]	(pGpGm$rm0&$S;) (
+    [reinitialize variable]	(pG$r0=L;LnL0&$S;) :
+    [undefine variable]		($r0=;LnL;) )
+    [compare/define variable]	(pG$r0=ZQzml&$S;&LyGEz;) ]
+    [body of variable search]	(pG$r(0=)yG(E;&L)z&L@=L;pG$r(0=;LL)
+				  Z<((&pGm&n(F;''mZz<)jJQmpGl&$S
+				  zZ<@=>;J>);nLA:0&$SL>)>LL;) >
+    [body of variable search]	(pG$r(0=)yGEz@=L;pG$r(0=;LL)
+				  Z<((jJQmpGl&$S
+				  zZ<@=>;J>);nLA:0&$S>)>L;) <
+    [insert variable]		($ryGI;) [
+				"I;) s
+
+[CNVRT postscript]		(' ~'I 2573I
+				  "('i'@%'D'@%"I
+				  "(JA' 'EJZD 'R'@%;8a'.'IJj"I
+				  "1aQD0%=Z;\64+%I':'IJZ;)"I
+				  "@~JZqt'E'@%;)  }"I
+				;) u
+
+[compile a CNVRT file]		(
+  [read max 1K from disk]	  8(d(@y;;):;)
+  [change file extension]	  J('.CNV]'FD'.REC]'Iz;;)
+  [find display message]	  ('[['F']]'UQD;'cnvrt/icuap/1983';)
+  [look for code gap]		  ('('Ej;2573pG|pG|E4b2aD;'['Ej;A:;)
+  [insert preface; to disk]	  's'TL@s<'[[]]'FDIZ>z@P
+  [print comments, skip]	  ('['E@&qtzZ<(@jJqtz;@kJ:)>:
+  [find prog, compile]		   '('EzZ<(@d;@kJ:)J>B't'TL@t@P:
+				   A:@y:;)
+  [insert postscript]		  J(26%Fj;Zz;)((B);'}'Ez;:)'u'TL@u@P
+  [close file]		  	  @H
+				;) w
+
+[append a record]		(128(e)L;qL26k30$r20K0=L;DLL@h) y
+[append, stop on eof]		(@y;'Stx err'TL_;) k
+[back to line feed]		(10%Ez;B:j;) 0
+[bracket a line]		(@010%V;Z;) 1
+[back to preceding line]	(@0BB@0;;) 2
+[cr,lf]				(2573TL;) &
+[read w/error correction]	(RT95%=127%;13%=2573;26%(=);) $
+[clear screen]			(26%TL;) !
+[erase on ro, insert others]	(127%=z(B;;)D;I;) :
+[form next window]		(Zz>@W@!;) >
+[cancel line]			(24%TL;) ^
+
+(	'd' [delete] =		(ABD;;);
+	'i' [insert] =		(@D@$@::;)@!;
+	'j' [beginning] =	Jj;
+	'x' [exchange] =	(ABD;;)RTI;
+	'z' [to end] =		Z;
+	127%[delete] =		@1D@!;
+	10% [down arrow] =	(10%FA;J>(10%FA;;)@Wz@!;;)@!;
+	13% [carr ret] =	@0;
+	11% [up arrow] =	(BA@2;J>@2@Wj@!;;);
+	08% [left arrow] =	(Bj;;);
+	'n' [next record] =	>(@p;L;)(@y;;)J(@W;;);
+	'p' [write 1 record] =	>(@p;L;)J(@W;;);
+	'P' [dump to cursor] =	>@P248%I@2(@W;;)J248%FD;
+	'y' [read 1 record] =	>(@y;'eof:'TL;)J(@W;;);
+	'Y' [read file] =	>(@y:;)J(@W;;)Jj;
+	' ' [advance] =		(A;;);
+	'>' [next window] =	(@>j;>@I;);
+	'<' [beg window] =	>@I;
+	',' [end of line] =	(2573Fj;Zz;)@!;
+	'.' [refresh screen] =	@!;
+	's'			= @s;
+	't'			= >@t@!(@W;;)Jj;
+	'u'			= @u;
+	'w'			= >@wJ<(26%Fj;Z;)J><;
+	) ?
+
+[main program]			(
+    [create FCB's, open files]	 30@F 31@F @G
+    [sign-on message]		 'cnvrt.rec> 'TL
+    [automatic compilation]	 ('5C'H12wAqt@&3b' 'Ew@w;w);
+    [wait, initialize, loop]	 RTL @I (@DR
+	[exit at once]		     ';'=;
+	[close, exit]		     'e'=>@H;
+	[read menu]		     @?:
+	[ignore unknown]	     L:);)}
+
+[end]
+

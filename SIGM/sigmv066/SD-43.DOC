@@ -1,0 +1,23 @@
+                 SD-4.3 - 06 feb 1982
+                  R.B. Strand
+
+SD-4.x  uses the questionable method of modifying the trap  table 
+in BDOS to disable the normal BDOS error messages.   This  allows 
+the  identification  of  invalid  drives and  bad  disks  by  SD.  
+However,  earlier  versions  did this modifying  without  testing 
+whether  or not the vector pointer at BASE+5 was virgin,  or  had 
+been  changed by DDT,  UNSPOOL or the like.   This created  great 
+confusion (and system crashes).  To alleviate the problem, SD now 
+checks  whether the pointer is valid (L-reg = 6) before  swapping 
+the BDOS trap vectors, and also only swaps them when the all-disk 
+search option is requested ($D).
+
+Additional  changes  include the addition of  dim  (vs.  reverse) 
+characters  for  the ADM-31 and similar CRTs.   These are  merely 
+substituted for the reverse characters.   Also,  when using RMAC, 
+there is no requirement for external defs of BASE, etc.  Instead, 
+merely  add an ASEG statement and compile as if  with  MAC.   MAC 
+users  should  ignore  the  "B" error flag  for  this  statement.  
+Flipping  on  the  RMAC  flag  now  still  requires  linking  the 
+externals.
+

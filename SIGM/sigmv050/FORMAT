@@ -1,0 +1,1047 @@
+;Format - Data Technology Corporation CP/M 2.2 Format.
+;
+;	+-----------------------+
+;	|			|
+;	|      F O R M A T 	|
+;	|			|
+;	+-----------------------+
+;
+;
+;	Version number:	2.2B
+;	Version date:	October 24, 1980
+;
+;	UPDATE	JANUARY 6,1981
+;	ADD MRX101D DISK SIZE CONDITIONALS
+;
+;	Update March 31, 1981
+;		Modified for assembly with ASM.
+;		Parameterized for hard disk.
+;
+;	Update April 27, 1981
+;		Modified for controller timeout.
+;
+;	Update date:	June 15, 1981
+;		Modified for new configuration parameters.
+;		Formats full hard disk only.
+
+;	The following code is supplied to customers who
+;	purchase a hard/floppy disk system from DTC.
+;	The following code formats floppy disks and the
+;	hard disk contained within the DTC hard disk unit.
+
+
+
+
+
+VERS:	EQU	22
+
+CR:	EQU	0Dh		;ASCII carrriage return
+LF:	EQU	0Ah		;ASCII line feed
+EOS:	EQU	'$'		;BDOS End of string
+TAB:	EQU	9		;ASCII horizontal tab
+ERRCD:	EQU	0FFh		;BDOS error code
+
+
+
+
+
+;	BDOS function equates.
+
+PRTSTR:	EQU	09	;Print String    DE = buffer address.
+RDCB:	EQU	10	;Read console buffer   DE = buffer address.
+OPEN:	EQU	15	;Open file   DE = FCB address.
+READS:	EQU	20	;Read sequential file    DE = FCB.
+SETDMA:	EQU	26	;Set DMA address    DE = DMA address.
+
+;	Page zero locations.
+
+BDOSV:	EQU	5	;BDOS JUMP ADDRESS.
+DFCB:	EQU	005Ch	;Default FCB address.
+DBUF:	EQU	0080h	;Default DMA buffer.
+
+
+
+
+
+
+
+	ORG	100h
+
+
+FORMAT:
+	PUSH	PSW
+	PUSH	B
+	PUSH	D
+	PUSH	H
+	LXI	H,0
+	DAD	SP
+	SHLD	SYSTK		;save system stack
+
+
+	LXI	SP,STACK
+	LXI	D,SMESSG	;Output sign-on message
+	MVI	C,PRTSTR
+	CALL	BDOSV
+
+	CALL	INITBF		;intialize data buffer
+FORM1:	CALL	INITL		;Intialize for formatting
+	LDA	DTYPE
+	MOV	B,A
+	ANI	TYPEDRV
+	JZ	FORM2		;If floppy disk
+	MOV	A,B
+	ANI	TYPEN48+TYPEN96
+	JNZ	FORM2
+	CALL	FORMH		;Format hard disk
+	JNZ	FORM1		;If new disk requested
+	JMP	SYSRET
+
+FORM2:	CALL	FORMF		;Format floppy disk
+	JNZ	FORM1		;If new disk requested
+	JMP	SYSRET
+
+
+;	Return to system gracefully.
+
+SYSRET:	LHLD	SYSTK
+	SPHL
+	POP	H
+	POP	D
+	POP	B
+	POP	PSW
+	RET			;return to system
+
+SMESSG:	DB	CR,LF,LF,LF
+	DB	'Data Technology Disk Format Program'
+	DB	' Version ',VERS/10+'0','.',VERS mod 10 + '0'
+	DB	CR,LF,EOS
+
+
+
+
+;	INITBF - Intialize data buffer with constant pettern.
+
+INITBF:
+	MVI	C,0E5h
+	LHLD	BDOSV+1		;Get buffer end address
+	XCHG
+	LXI	H,BUFFER
+IBF1:	MOV	M,C		;Set a byte
+	INX	H
+	MOV	A,D
+	CMP	H
+	JNZ	IBF1
+	MOV	A,E
+	CMP	L
+	JNZ	IBF1		;If entire buffer not set
+
+	RET
+
+
+
+;	INITL - Get parameters from operator.
+
+INITL:
+	XRA	A		;Reset E5FLAG
+	STA	E5FLAG
+INIL1:	LXI	D,DMESSG	;Output disk selection message
+	CALL	INFCRT
+	STA	LETTER
+	SUI	'0'
+	JM	INIL1		;If invalid entry
+	CPI	4
+	JP	INIL1		;If invalid entry
+	RRC
+	RRC
+	RRC
+	STA	DRVNO
+
+	CALL	DDTYPE		;Determine Disk type
+	JNZ	INIL4
+	LDA	DTYPE
+	MOV	B,A
+	ANI	TYPEDRV
+	JZ	INILf		;If floppy disk unit
+	MOV	A,B		; or mini floppy
+	ANI	18h
+	JNZ	INILf
+
+	XRA	A
+INIL2:	LXI	D,HDMESG
+	CALL	INFCRT		;Get hard disk response
+	CPI	'Y'
+	RNZ
+
+INIL3:	LXI	D,INTMSG	;Get interleave code
+	CALL	INFCRT
+	SUI	'1'
+	JM	INIL3		;If invalid interleave code
+	CPI	16
+	JP	INIL3		;If invlaid interleave code
+	INR	A
+	STA	HDILC		;Save interleave code
+
+	RET
+
+INIL4:
+	LXI	D,ADTMSG
+	MVI	C,PRTSTR
+	CALL	BDOSV
+	JMP	INITL
+
+
+INILf:	LXI	D,DENMSG	;Output density seclection
+	CALL	INFCRT
+	SUI	'1'
+	JM	INILf		;If invalid density
+	CPI	2
+	JP	INILf		;If invalid density
+	STA	FPDEN
+
+INILg:	LXI	D,SIDMSG	;Get number of sides
+	CALL	INFCRT
+	SUI	'1'
+	JM	INILg		;If invalid number of sides
+	CPI	2
+	JP	INILg		;If invalid number of sides
+	MOV	C,A
+	LDA	FPDEN
+	ADD	A
+	ADD	C
+	STA	FPSLV		;Save format selection value
+	RET
+
+DMESSG:	DB	CR,LF
+	DB	'Select Drive (0, 1, 2, 3): ',EOS
+
+DENMSG:	DB	CR,LF
+	DB	'Select a sector size:'
+	DB	CR,LF
+	DB	'     1) 128 Byte Single density.'
+	DB	CR,LF
+	DB	'     2) 256 Byte Double density.'
+	DB	CR,LF
+	DB	'Sector Size: ',EOS
+
+HDMESG:	DB	CR,LF
+	DB	'This program will format the entire hard disk.',CR,LF
+	DB	'Do you wish to continue (Y or N)? ',EOS
+
+ADTMSG:	DB	CR,LF,'Assign Drive Type error.',EOS
+
+INTMSG:	DB	CR,LF
+	DB	'Enter interleave value (1--16): '
+	DB	EOS
+
+SIDMSG:	DB	CR,LF
+	DB	'Enter number of sides (1 or 2): '
+	DB	EOS
+
+
+
+
+
+;	FORMH - Format a hard disk unit.
+
+FORMH:
+	CALL	SCMND		;Set command buffers
+	LDA	HDILC		;Set interleave code
+	STA	CIOFDC+4
+	LXI	H,CIOSTC
+	CALL	EXEC		;Output command buffer
+	CZ	WAITF		;Wait completion
+	MOV	A,C
+	ANI	FERR
+	JZ	FRMH1		;If unit is ready
+	LXI	D,UNDMSG	;Unit not available
+	MVI	C,PRTSTR
+	CALL	BDOSV
+	ORI	0FFh
+	RET
+
+FRMH1:
+
+	LXI	D,BFDMSG		;Output message
+	MVI	C,PRTSTR
+	CALL	BDOSV
+
+	LXI	H,CIOFDC
+	CALL	EXEC		;Output Command
+	CZ	WAITF		;Wait for completion
+	MOV	A,C
+	ANI	FERR
+	JZ	FRMH2		;If no errors
+	LXI	H,CIOFDC
+	CALL	ERROR		;Print error message
+	JMP	FORMH
+
+FRMH2:
+	CALL	FRME5		;Fill disk with E5s
+	JC	FORMH		;Error
+	RET
+
+
+FRME5:
+	LDA	E5FLAG		;Is data E5?
+	CPI	0E5h
+	JZ	FRMH7
+	ORA	A		;No.  Has data been checked?
+	JNZ	FRMH12
+	LXI	H,0
+	SHLD	CIORED+2
+	LXI	H,CIORED	;No.  Read a sector.
+	LXI	D,BUFFER
+	CALL	RDISK
+	MOV	A,C
+	ANI	FERR
+	JZ	FRMH3
+	LXI	H,CIORED
+	CALL	ERROR
+	STC
+	RET
+FRMH3:
+	LDA	BUFFER		;Set E5FLAG
+	ORA	A
+	JNZ	FRMH4
+	INR	A
+FRMH4:
+	STA	E5FLAG
+	CPI	0E5h		;Is data E5?
+	JZ	FRMH12
+	CALL	INITBF		;No.  Set buffer to E5s
+	LHLD	BDOSV+1		;Compute # sectors in buffer
+	LXI	D,-BUFFER
+	DAD	D
+	LDA	DTYPE
+	ANI	TYPESEC
+	RRC
+	MOV	B,A
+	MVI	D,3
+	CALL	DBLSHR
+FRMH5:
+	DCR	B
+	JM	FRMH6
+	MVI	D,1
+	CALL	DBLSHR
+	JMP	FRMH5
+FRMH6:
+	MOV	A,L
+	STA	CIOWRT+4	;# SECTORS
+	XCHG
+	LXI	H,0
+	SHLD	CIOWRT+2
+FRMH7:
+	PUSH	D
+	LXI	H,CIOWRT
+	LXI	D,BUFFER
+	CALL	WDISK		;Output  buffer
+	POP	D
+	MOV	A,C
+	ANI	FERR
+	JZ	FRMH8		;If no errors
+	LXI	H,CIOWRT
+	CALL	ERROR
+	STC
+	RET
+
+FRMH8:
+	PUSH	D		;Increment logical address
+	LXI	H,CIOWRT+2
+	MOV	D,M		;It's in reverse order
+	INX	H
+	MOV	E,M
+	POP	H
+	XCHG
+	DAD	D
+	PUSH	D
+	XCHG
+	LXI	H,CIOWRT+1
+	JNC	FRMH9
+	INR	M
+FRMH9:
+	INX	H
+	MOV	M,D
+	INX	H
+	MOV	M,E
+	LXI	D,ESECTOR	;Done?
+	LXI	H,CIOWRT+1
+	MOV	A,M
+	ANI	1Fh
+	XCHG
+FRMH10:
+	CMP	M
+	JZ	FRMH11
+	POP	D
+	JMP	FRMH8
+FRMH11:
+	INX	D
+	INX	H
+	DCR	B
+	LDAX	D
+	JNZ	FRMH10
+
+FRMH12:
+	LXI	D,FCMSG
+	CALL	INFCRT
+	CPI	CR
+	RET
+
+UNDMSG:	DB	CR,LF,'Unit is not present.',CR,LF,EOS
+
+BFDMSG:	DB	CR,LF,'Begin formatting hard disk.'
+	DB	CR,LF,EOS
+
+FNAMSG:	DB	CR,LF,'Function is not presently available.'
+	DB	CR,LF,EOS
+
+
+
+
+;	FORMF - Format a floppy disk unit.
+
+FORMF:
+	CALL	SCMND		;Set command buffers
+	MVI	A,1		;Set interleave code
+	STA	CIOFDC+4
+	LXI	H,CIOSTC
+	CALL	EXEC		;Output command buffer
+	CZ	WAITF		;Wait completion
+	MOV	A,C
+	ANI	FERR
+	JZ	FRMF1		;If unit is ready
+	LXI	D,NRYMSG	;Output not ready message
+	CALL	INFCRT
+	JMP	FORMF		;retry on any character
+
+FRMF1:
+	LDA	FPSLV		;Get selection value
+	MOV	E,A
+	MVI	D,0
+	LXI	H,FPYTFC
+	LDA	DTYPE
+	MOV	B,A
+	ANI	TYPEDRV
+	JZ	FRMF2
+	LXI	H,M48TFC
+	MOV	A,B
+	ANI	TYPEN48
+	JNZ	FRMF2
+	LXI	H,M96TFC
+FRMF2:
+	DAD	D
+	MOV	A,M
+	STA	CIOFSC+5
+	LXI	H,CIOFSC
+	CALL	EXEC		;Output Command
+	CZ	WAITF		;Wait function complete
+
+	LXI	D,FDKMSG
+	MVI	C,PRTSTR
+	CALL	BDOSV		;Output format disk
+	LXI	H,CIOFDC
+	CALL	EXEC		;Output Command
+	CZ	WAITF		;Wait for completion
+	MOV	A,C
+	ANI	FERR
+	JZ	FRMF3		;If no errors
+	LXI	H,CIOFDC
+	CALL	ERROR		;PRINT ERROR MESSAGE
+	JMP	FORMF
+
+FRMF3:
+	LHLD	ESECTOR		;Fill 1/4th of disk with E5s
+	MVI	D,2
+	CALL	DBLSHR
+	SHLD	ESECTOR
+	CALL	FRME5
+	JC	FORMF
+	RZ			;If request to return to CP/M
+	CPI	'F'
+	JZ	FORMF		;If request for another
+	RET
+;	Track format code tables (indexed by density*2+# sides)
+;
+FPYTFC:	DB	0,1,6,7
+M48TFC:	DB	0,1,4,5
+M96TFC:	DB	2,3,6,7
+;
+
+FCMSG:
+	DB	CR,LF,'Function Complete.'
+	DB	CR,LF,LF
+	DB	'Type RETURN to return to CP/M, '
+	DB	'or F to Format another: '
+	DB	EOS
+
+NRYMSG:	DB	CR,LF
+	DB	'Disk unit is not ready. ',CR,LF
+	DB	'Please ready unit and hit RETURN. '
+	DB	EOS
+
+FDKMSG:	DB	CR,LF,'Formatting the entire disk.'
+	DB	CR,LF,EOS
+
+
+
+
+;	INFCRT - Output message and input from console.
+;
+;	ENTRY	DE = message address.
+;
+;	EXIT	A = First character entered (upper case).
+
+INFCRT:
+	MVI	C,PRTSTR
+	CALL	BDOSV		;Output message
+	LXI	D,INBUFX
+	MVI	C,RDCB
+	CALL	BDOSV
+	LDA	INBUFX+1
+	ANA	A
+	MVI	A,CR
+	RZ
+	LDA	INBUF
+	CPI	'A'+20h
+	RC			;If upper case
+	CPI	'Z'+20h+1
+	RNC			;If upper case
+	SUI	20h		;Fold to uppercase
+	RET
+
+INBUFX	DB	10,0
+INBUF	DB	0,0,0,0,0,0,0,0,0,0
+
+
+
+
+;	DDTYPE - determine disk type (hard or floppy).
+
+DDTYPE:
+	XRA	A
+	STA	CIOFSC+5
+	LDA	DRVNO
+	STA	CIOFSC+1
+	STA	CIOADT+1
+	LXI	H,DT
+	LXI	D,6
+	MVI	B,NLUN
+DDTYP1:
+	CMP	M
+	JZ	DDTYP2
+	DAD	D
+	DCR	B
+	JNZ	DDTYP1
+	ORI	0FFH		;Configuration error.
+	RET
+DDTYP2:
+	INX	H
+	MOV	A,M
+	STA	DTYPE
+	INX	H
+	MOV	A,M
+	STA	CIOADT+4	;ASSIGN DRIVE TYPE
+	INX	H		;Compute end sector
+	MOV	C,M
+	INX	H
+	MOV	E,M
+	INX	H
+	MOV	D,M
+	CALL	MUL
+	XCHG
+	LXI	H,ESECTOR
+	MOV	M,B
+	INX	H
+	MOV	M,D
+	INX	H
+	MOV	M,E
+	LDA	CIOADT+4	;Does controller have Class 6,
+	CPI	0FFh		;  op code 1?
+	RZ
+	LXI	H,CIOADT
+	CALL	EXEC		;Output Command
+	CZ	WAITF		;Wait function complete
+	MOV	A,C
+	ANI	FERR		;Mask for errors
+	RET
+;
+;	Drive Type table (indexed by LUN)
+;
+DT:
+	IF	LUN0
+	DB	0 SHL 5
+	DB	LUN0TYPE+TYPEN48*N48M0+TYPEN96*N96M0
+	DB	LUN0DAT,LUN0NLD
+	DW	LUN0SEC
+	ENDIF
+	IF	LUN1
+	DB	1 SHL 5
+	DB	LUN1TYPE+TYPEN48*N48M1+TYPEN96*N96M1
+	DB	LUN1DAT,LUN1NLD
+	DW	LUN1SEC
+	ENDIF
+	IF	LUN2
+	DB	2 SHL 5
+	DB	LUN2TYPE+TYPEN48*N48M2+TYPEN96*N96M2 
+	DB	LUN2DAT,LUN2NLD
+	DW	LUN2SEC
+	ENDIF
+	IF	LUN3
+	DB	3 SHL 5
+	DB	LUN3TYPE+TYPEN48*N48M3+TYPEN96*N96M3
+	DB	LUN3DAT,LUN3NLD
+	DW	LUN3SEC
+	ENDIF
+;
+
+
+
+
+;	SCMND - Set drive into command buffers.
+
+SCMND:
+	LDA	DRVNO
+	LXI	H,CIOFSC+1
+	LXI	D,6
+	MVI	B,CIONUM
+SCMD1:	MOV	M,A
+	DAD	D
+	DCR	B
+	JNZ	SCMD1		;If not all buffer set
+	RET
+
+
+
+
+
+;	MOVDTA - Move data utility program.
+;
+;	ENTRY	H = Source field.
+;		DE = Destination field.
+;		BC = number of bytes.
+
+MOVDTA:
+	MOV	A,M
+	STAX	D
+	INX	H
+	INX	D
+	DCX	B
+	MOV	A,B
+	ANA	C
+	CPI	0FFh		;-1
+	JNZ	MOVDTA
+	RET
+
+
+
+;MULTIPLY SINGLE X DOUBLE
+;
+;	ENTRY:	DE = MULTIPLICAND
+;		 C = MULTIPLIER
+;	EXIT:	HL = PRODUCT (LEAST SIGNIFICANT)
+;		 B = PRODUCT (MOST SIGNIFICANT)
+;
+MUL:	LXI	H,0
+	MOV	A,C
+	ORA	A
+	RZ
+	MVI	B,0
+MUL1:	DAD	D
+	JNC	MUL2
+	INR	B
+MUL2:
+	DCR	A
+	JNZ	MUL1
+	RET
+;
+;
+;Shift HL right by (D)
+;
+DBLSHR:
+	XRA	A
+	MOV	A,H
+	RAR
+	MOV	H,A
+	MOV	A,L
+	RAR
+	MOV	L,A
+	DCR	D
+	JNZ	DBLSHR
+	RET
+;
+;
+;
+CIOBGN:
+CIOFSC:	DB	FSCMD,0,0,0,0,0
+CIOWRT:	DB	WTCMD,0,0,0,1,0C0h
+CIORED:	DB	RDCMD,0,0,0,1,0
+CIOESC:	DB	ESCMD,0,0,0,0,0
+CIOSTC:	DB	STCMD,0,0,0,0,0
+CIOFDC:	DB	FDCMD,0,0,0,0,0
+CIOADT:	DB	ADCMD,0,0,0,0,0
+CIONUM:	EQU	($-CIOBGN)/6	;Number of entries above
+
+
+
+
+SYSTK:	DW	0		;Hold stack
+
+
+
+	DS	50
+STACK:	DS	1
+
+
+
+
+
+LETTER:	DB	0,EOS
+
+STRACK:	DW	0		;Starting track number
+CTRACK:	DW	0		;Current track number
+ETRACK:	DW	0		;Ending track number
+ESECTOR: DS	3		;Ending sector
+
+
+
+DRVNO:	DB	0
+DTYPE:	DB	0
+HDFTP:	DB	0		;Hard disk format type
+HDILC:	DB	0		;Hard disk interleave code
+FPDEN:	DB	0		;floppy Density selection
+FPSLV:	DB	0		;floppy format selection value
+
+E5FLAG:	DB	0		;Format data value
+
+
+
+;	Disk I/O Routines
+;
+;
+	IF	I696
+;	E X E C
+
+EXEC:	MVI	B,BUSY		;Wait for not busy.
+	MVI	C,BUSY and (not BUSY)
+	CALL	WAITM
+	RNZ
+	
+
+	MVI	A,SLCT		;Alert controller
+	OUT	DIO+1
+EXEC1:
+	MOV	C,B		;Wait for controller busy
+	CALL	WAITM
+	RNZ
+
+	MVI	A,DODTA		;Enable data in
+	OUT	DIO+1
+
+EXEC2:	IN	DIO+2		;Get status
+	XRI	0FFh
+	JM	EXEC2		;If not requesting next byte
+	ANI	CMND+DIROUT
+	JNZ	EXEC3		;If CMND or DIROUT false
+	MOV	A,M
+	INX	H
+	OUT	DIO		;Send byte from command buffer
+	JMP	EXEC2
+
+EXEC3:	CMP	A		;Z:=1
+	RET
+;
+;
+;
+;
+;	WDISK - Output from memory buffer.
+;	ENTRY:	HL = COMMAND BUFFER ADDRESS
+;		DE = DATA BUFFER ADDRESS
+;
+
+WDISK:	CALL	EXEC		;Output command
+	RNZ			;Return if timeout
+WDISK1:	IN	DIO+2		;Read status
+	ORA	A
+	JP	WDISK1		;If request is present
+	ANI	CMND
+	JNZ	GCMPS		;If done with transfer
+	LDAX	D		;Get the data byte
+	OUT	DIO
+	INX	D		;Advance buffer address
+	JMP	WDISK1
+;
+;
+;
+;
+;	RDISK - Input to memory buffer.
+;
+;	Entry:	HL = command buffer address
+;		DE = data buffer address
+
+RDISK:	CALL	EXEC
+	RNZ			;Return if timeout
+RDISK1:	IN	DIO+2		;Read status
+	ORA	A
+	JP	RDISK1		;If request is present
+	ANI	CMND
+	JNZ	GCMPS
+	IN	DIO
+	STAX	D
+	INX	D
+	JMP	RDISK1
+;
+;
+;
+;
+;	WAITF - Wait for function to complete.
+
+WAITF:	MVI	B,REQ+CMND	;Wait for both REQ and CMND
+	MOV	C,B
+	CALL	WAITM
+	RNZ
+;
+;	Get completion status.
+
+GCMPS:	IN	DIO		;Get completion status
+	MOV	C,A
+
+GCMP1:	IN	DIO+2
+	ORA	A
+	JP	GCMP1		;If REQ not set
+
+	MOV	B,A
+	IN	DIO		;Get message byte
+	RET
+	ENDIF
+;
+
+;
+;
+;
+	IF	I796
+;	EXEC - Output the command
+;
+;	Enter:	HL is the command buffer address
+;		DE - data transfer address.
+
+EXEC:
+	MOV	A,E		;Output DMA address
+	OUT	DIO+2
+	MOV	A,D
+	OUT	DIO+3
+	MOV	A,L
+	OUT	DIO+4
+	MOV	A,H
+	OUT	DIO+5
+	MVI	A,0
+	OUT	DIO+6
+	OUT	DIO+7
+	OUT	DIO
+	CMP	A		;Z:=1
+	RET
+
+
+;	Disk read/write
+;
+;	Entry:	same as EXEC
+;
+RDISK:
+WDISK:	CALL	EXEC
+	RNZ			;Return if timeout
+
+;	WAITF - Wait until transfer done
+;
+;	Enter:	none
+;	Exit:	when transfer completed
+
+WAITF:	MVI	B,CMDDON	;Wait for CMDDON
+	MOV	C,B
+	CALL	WAITM
+	RNZ			;Return if timeout
+;
+
+;	GCMPS - Get completion status
+;
+;	Enter:	none
+;	Exit:	Status in C
+GCMPS:	IN	DIO+1
+	MOV	C,A
+	RET
+	ENDIF
+
+;	WAITM - Wait for controller with timeout
+;
+;	Entry:	B=Status mask
+;		C=Status value
+;	Exit:	Z=1 if OK, else timeout with A=C=TERR
+;
+WAITM:
+	PUSH	D		;Save D
+	PUSH	H
+	LXI	H,138		;Two minute timeout
+	LXI	D,0		;Max wait @4MHZ is 868 ms
+WAITML:
+	IF	I696
+	IN	DIO+2
+	ENDIF
+	IF	I796
+	IN	DIO
+	ENDIF
+	ANA	B		;Mask wait bits
+	CMP	C		;Check value
+	JZ	WAITM1
+	DCX	D		;Not ready.  Decrement time
+	MOV	A,D
+	ORA	E
+	JNZ	WAITML
+	DCX	H
+	MOV	A,H
+	ORA	L
+	JNZ	WAITML
+	MVI	B,0		;Timeout
+	MVI	A,TERR
+	ORA	A
+WAITM1:
+	POP	H
+	POP	D		;Restore D
+	MOV	C,A		;Return status in C
+	RET
+;	DTC Error Print Routine
+;
+;Called at completion of disk command when error status is returned.
+;
+;	Entry:	HL = Address of Command Descriptor Block
+;		C = Status byte
+;
+ERROR:
+	PUSH	B		;Save status
+	PUSH	H		;SAVE ADDRESS OF CDB
+	MOV	A,M		;GET CLASS CODE
+	ANI	0E0H
+	RAL			;MAKE CDB LENGTH INDEX
+	RAL
+	RAL
+	MOV	E,A		;GET CDB LENGTH
+	MVI	D,0
+	LXI	H,CDBLEN
+	DAD	D
+	MOV	C,M
+	POP	H		;RESTORE CDB ADDRESS
+	PUSH	H
+	LXI	D,ERRCDB
+	CALL	PUTHEX		;BUILD CDB FOR PRINT
+	LXI	D,EHEAD		;Print header
+	MVI	C,PRTSTR
+	CALL	BDOSV
+	POP	H		;Get status
+	POP	B
+	PUSH	H
+	MOV	A,C		;Timeout?
+	ANI	TERR
+	LXI	D,TOMSG
+	JNZ	ERROR1
+	LXI	H,CIOESC	;No. READ ERROR SENSE
+	LXI	D,SENSE
+	CALL	RDISK
+	LXI	D,ESENSE
+	MVI	C,PRTSTR
+	CALL	BDOSV
+	LXI	D,ESENS1
+	LXI	H,SENSE
+	MOV	A,M
+	MVI	C,PRTSTR
+	ORA	A
+	CM	BDOSV
+	LXI	D,ETYPE
+	LXI	H,SENSE		;BUILD ERROR SENSE MESSAGE
+	MOV	A,M
+	RAR
+	RAR
+	RAR
+	RAR
+	ANI	3
+	CALL	HEXASC
+	LXI	D,ECODE
+	MOV	A,M
+	CALL	HEXASC
+	LXI	D,ELUN
+	INX	H
+	MOV	A,M
+	RLC
+	RLC
+	RLC
+	ANI	7
+	CALL	HEXASC
+	MOV	A,M
+	ANI	01FH
+	MOV	M,A
+	LXI	D,ELAD
+	MVI	C,3
+	CALL	PUTHEX
+	LXI	D,ESENS2	;PRINT MESSAGE
+ERROR1:
+	MVI	C,PRTSTR
+	CALL	BDOSV
+	POP	H		;RESTORE CDB ADDRESS
+	RET
+;
+;
+
+;	PUT HEXADECIMAL STRING
+;
+;	ENTRY:	HL = ADDRESS OF HEX NUMBER STRING
+;		DE = ADDRESS OF HEX ASCII STRING
+;		 C = NUMBER OF BYTES TO CONVERT
+;
+PUTHEX:	CALL	HEXBYT
+	MVI	A,' '
+	STAX	D
+	INX	D
+	DCR	C
+	JNZ	PUTHEX
+	MVI	A,EOS
+	STAX	D
+	RET
+;
+;
+HEXBYT:	MOV	A,M
+	RAR
+	RAR
+	RAR
+	RAR
+	CALL	HEXASC
+	MOV	A,M
+	INX	H
+HEXASC:	ANI	0FH
+	ADI	090H
+	DAA
+	ACI	040H
+	DAA
+	STAX	D
+	INX	D
+	RET
+;
+;
+;	CDB length table (indexed by class)
+CDBLEN:	DB	6,10,0,0,0,0,6,6
+;
+EHEAD:	DB	CR,LF,LF,'Disk error:'
+	DB	CR,LF,'Command Descriptor:',TAB,TAB
+ERRCDB:	DS	31
+;
+TOMSG:	DB	CR,LF,TAB,TAB,TAB,TAB,'Timeout',EOS
+ESENSE:	DB	CR,LF,'Error Sense:',EOS
+ESENS1:	DB	CR,LF,TAB,TAB,TAB,TAB,'Block address valid.',EOS
+ESENS2:	DB	CR,LF,TAB,'Error type:',TAB,TAB
+ETYPE:	DS	1
+	DB	CR,LF,TAB,'Error code:',TAB,TAB
+ECODE:	DS	1
+	DB	CR,LF,TAB,'Logical unit:',TAB,TAB
+ELUN:	DS	1
+	DB	CR,LF,TAB,'Logical address:',TAB
+ELAD:	DS	4
+SENSE:	DS	4
+;
+BUFFER:	EQU	$
+;
+	END
+

@@ -1,0 +1,606 @@
+;
+;	    inf.mac  Ver 1.3   rev  23/Jan/1983
+;	    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+;
+;	 cp/m 2.+ disk information display program
+;	 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+;
+;This program displays all the information that CP/M has hidden
+;away in the bios and other places. This is very useful if
+;testing a new drive or CP/M implementation (which is why i
+;wrote it. It displays all the information that the CP/M bdos
+;uses and thus you can determine that 'DPH' for that drive is
+;functioning correctly.
+;
+;Command structure.....
+;
+;inf	for the logged drive or....
+;inf d: to look at the info for drive 'd'
+;
+;
+;	Copyright (c) 1982,83 by Steven Engel
+;
+;
+;Version list, most recent first
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+;
+;version 1.3, fixed the printout of the translate table so it
+;	      uses the bios call 'sectran' to find the physical
+;	      sectors. This should make it more universal.
+;
+;version 1.2 & earlier, initial releases.
+;
+;
+;if your cp/m system is non-standard in any of the start
+;address offsets from the bios or if your ccp is
+;a non-standard length change the ccplen, ccpo, bdoso equates.
+;
+bdos	equ	5		;bdos call location
+bios	equ	1		;bios warm boot jump location
+ccplen	equ	0800h		;STANDARD ccp length
+ccpo	equ	01600h		;STANDARD ccp offset from bios
+bdoso	equ	0e00h		;STANDARD bdos offset from bios
+tpa	equ	0100h		;tpa (standard one)
+cr	equ	0dh
+lf	equ	0ah
+base	equ	0
+defstf	equ	base+4		;user level+default drive
+fcb	equ	base+05ch	;file control block
+line	equ	30		;number of chars on one line
+				;for the allocation map display
+
+	aseg			;absolutely
+	.z80			;the only way to go
+	org	tpa
+
+	jp	start
+
+signon: defm	cr,lf,'CP/M 2.2 disk informer'
+	defm	' version 1.3 for drive '
+drvnum: defm	'A:, user level '
+usrlev: defm	'00',cr,lf
+	defm	'CCP is at  $'
+bdos@:	defm	cr,lf,'BDOS is at $'
+bios@:	defm	cr,lf,'BIOS is at $'
+space:	defm	cr,lf,'TPA space with ccp intact is $'
+space2: defm	cr,lf,'Space with ccp overlayed is $'
+sorry:	defm	cr,lf,lf,'Sorry this program requires'
+	defm	' CP/M 2.0 or later to run',cr,lf,'$'
+ntabl:	defm	cr,lf,'This drive uses 1:1 physical to'
+	defm	' sector translation',cr,lf,'$'
+ttabl:	defm	cr,lf,'Translate table for this drive is:'
+	defm	cr,lf,'$'
+csv@:	defm	cr,lf,'Software check vector (csv) is at $'
+alv@:	defm	cr,lf,'Allocation storage scratchpad (alv)'
+	defm	' is at $'
+dchar:	defm	' sectors per track and a max. of $'
+dent:	defm	' directory entries'
+pnta:	defm	cr,lf,'Directory block allocation:-',cr,lf
+	defm	9,'   AL0     AL1   ',cr,lf,9,'$'
+dirblk: defm	' dir block(s) on a $'
+tdisk:	defm	'k disk with $'
+kused:	defm	'k used and $'
+sfree:	defm	'k free$'
+
+nres:	defm	' system tracks '
+bksiz:	defm	'with $'
+kpblk:	defm	'k per block and skew factor of $'
+
+baddpb: defm	cr,lf,lf,'This dpb is stuffed, check your'
+	defm	' bios',cr,lf,lf,'$'
+
+dmap:	defm	cr,lf,'Disk storage allocation map:-'
+	defm	cr,lf,9,9,'$'
+tblk:	defm	cr,lf,9,'Total blocks: $'
+used:	defm	'  blocks used: $'
+left:	defm	'  blocks free: $'
+
+	defs	40		;our stack
+ccpsp:	defs	2		;ccp stack pointer
+block:	defs	2		;# of blocks used
+free:	defs	2		;# of blocks free
+bsize:	defs	1		;our k/block
+ddisk:	defs	1		;default disk
+
+;dph & dpb storage area
+
+xltadr: defs	2		;disk trans table address
+	defs	2		;bdos scratch area
+	defs	2		; "      "     "
+	defs	2		; "      "     "
+	defs	2		;address of dir buffer
+dpb:	defs	2		;dpb for logged drive
+csv:	defs	2		;csv for this drive
+alv:	defs	2		;alv for this drive
+
+spt:	defs	2		;sectors per track
+bsh:	defs	1		;block shift factor
+blm:	defs	1
+exm:	defs	1		;extent mask
+dsm:	defs	2		;total # of blocks
+drm:	defs	2		;total # of dir entries
+al0:	defs	1		;alloc0
+al1:	defs	1		;alloc1
+cks:	defs	2		;size of the dir check vector
+off:	defs	2		;# of reserved tracks
+
+bls:	defb	10,19,36,69,134 ;bsh+blm
+
+start:	ld	hl,0
+	add	hl,sp
+	ld	(ccpsp),hl
+	ld	sp,ccpsp	;make our stack here
+	ld	hl,0		;init
+	ld	(block),hl	;init block
+	ld	(free),hl	; and block free
+	call	verify		;ensure cpm 2.0 or later
+	ld	hl,(bios)	;install address for seldsk
+	ld	l,01bh		;l=lsb of bios jmp table seldsk
+	ld	(disk+1),hl	;save in our jump
+	ld	l,030h		;l=lsb of jmp table sectran
+	ld	(sectran+1),hl	;save in our space
+
+;get the drive # and xfer some info
+;note: the user level display stuff assumes a 0-15 user level
+;ccp, so if you are running a non-standard ccp it won't work.
+
+	ld	a,(fcb)		;get currently logged disk
+	or	a		;0 ?
+	jr	nz,gotdrv
+	ld	a,(defstf)	;get default drive
+	push	af		;save it
+	and	0f0h		;mask off drive stuff
+	rrca			;get user level
+	rrca			;into first 4 bits
+	rrca
+	rrca
+	cp	10		;is it > 9 ?
+	jr	c,notgrt
+	push	af		;save the number
+	ld	a,'1'		;Ok, save the 1 then
+	ld	(usrlev),a
+	pop	af		;restore original
+	sub	10		;make it now 0-5
+notgrt: add	a,'0'		;make it ascii 0-15
+	ld	(usrlev+1),a	;save for the message
+	pop	af		;restore user+drive stuff
+	and	0fh		;mask off user stuff
+	jr	drv
+
+gotdrv: dec	a		;make it 0-15
+drv:	ld	c,a		;put it in c
+	add	a,'A'		;make it ascii 'A'-'P'
+	ld	(drvnum),a	;save it for the message
+	push	bc		;save it
+	call	seldsk		;for the bdos
+	pop	bc
+	call	disk		;go and select it, hl will=dph
+				;address filled in above
+	ld	de,xltadr	;address pointer
+	ld	bc,16		;number to move
+	ldir			;move 'em
+
+	ld	de,signon
+	call	msgout
+	ld	hl,(bios)	;get bios location
+	ld	l,0		;make it cold boot address
+	push	hl		;save for later
+	ld	de,-ccpo	;ccp offset
+	add	hl,de		;hl now points to the ccp
+	pop	de		;get bios pointer in de
+	push	hl		;save ccp pointer
+	push	de		;save bios pointer
+	call	hexout		;print hex out of hl
+	ld	de,bdos@	;print bdos message
+	call	msgout
+	pop	hl		;get bios pointer back
+	push	hl		;save it again
+	ld	de,-bdoso	;bdos offset
+	add	hl,de
+	call	hexout		;print it in hex
+	ld	de,bios@	;print bios message
+	call	msgout
+	pop	hl		;get bios pointer back
+	call	hexout
+	ld	de,space	;print tpa space
+	call	msgout
+	pop	hl		;get ccp pointer
+	ld	de,-tpa		;tpa
+	add	hl,de
+	push	hl		;save this address pointer
+	call	decout		;print it in decimal
+	ld	de,space2	;print space w/out tpa
+	call	msgout
+	pop	hl
+	ld	de,ccplen	;STANDARD ccp length
+	add	hl,de		;add it on to last count
+	call	decout		;and print it decimally
+	call	crlf
+
+;Now determine some information about the disk system
+
+	ld	de,csv@		;tell user where csv is
+	call	msgout
+	ld	hl,(csv)
+	call	hexout
+	ld	de,alv@		;and where the alv is too
+	call	msgout
+	ld	hl,(alv)
+	call	hexout
+
+	ld	a,(xltadr)	;get lsb of xlt address
+	or	a		;is it 0
+	jr	nz,okxlt
+	ld	a,(xltadr+1)	;get msb
+	or	a
+	jr	nz,okxlt
+	ld	de,ntabl	;tell user no sector trans
+	call	msgout
+	jr	tdpb
+
+okxlt:	call	crlf
+	ld	hl,(dpb)	;first we have to get # of secs
+	ld	de,spt		;save in our internal one
+	ld	bc,15
+	ldir			;move 'em
+
+	ld	de,ttabl	;trans table message
+	call	msgout
+	ld	hl,(spt)	;get # of sects/track
+	ld	bc,0		;the sector counter
+
+pntsec: push	bc
+	push	de		;save these
+	push	hl
+	ld	de,(xltadr)	;point to the trans table
+	call	sectran		;get the first sector
+	call	decout		;hl has #, print it decimally
+	ld	a,','		;a delimiter
+	call	chrout
+	pop	hl
+	pop	de		;restore these
+	pop	bc
+	inc	bc		;inc for next sector
+	dec	hl
+	ld	a,h		;get sector count
+	or	l		;check for 0
+	jr	nz,pntsec	;loop until so
+
+tdpb:	ld	hl,(alv)	;point to allocation info
+	ld	de,(dsm)	;get total block count-1
+	inc	de		;make it total block count
+	call	pntmap		;go and print a disk map
+
+	ld	hl,(spt)	;get sectors count
+	call	decout		;print it
+	ld	de,dchar	;point to message
+	call	msgout
+	ld	hl,(drm)	;total # of dir entries
+	inc	hl
+	call	decout
+	ld	de,dent
+	call	msgout
+	ld	a,(al0)		;get al0
+	call	binout		;print it in binary
+	ld	a,' '		;and a space
+	call	chrout
+	ld	a,(al1)		;get al1
+	call	binout		;print it in binary
+	call	crlf
+	call	crlf
+	ld	hl,(off)	;get reserved track count
+	call	decout
+	ld	de,nres
+	call	msgout
+
+	ld	a,(bsh)		;get bsh
+	ld	b,a
+	ld	a,(blm)
+	add	a,b		;get this value
+	ld	hl,bls		;point to bls table (blm+bsh)
+	ld	c,a		;put bsh+blm here for compare
+	ld	d,1		;k block count
+	ld	b,5		;# to check
+check:	ld	a,(hl)		;get first one
+	cp	c		;OK ?
+	jr	z,blok		;yes-it's ok
+	ld	a,d
+	add	a,a		;*2
+	ld	d,a
+	inc	hl
+	djnz	check		;loop for all
+	ld	de,baddpb
+	call	msgout
+	jp	exit
+
+blok:	ld	a,d
+	ld	(bsize),a	;save block k size
+	ld	h,0
+	ld	l,a
+	call	decout		;print it decimally
+
+	ld	de,kpblk	;print k/block
+	call	msgout
+
+	ld	a,(bsh)		;get the block shift factor
+	ld	l,a
+	ld	h,0
+	call	decout
+	call	crlf
+
+	call	fndblk		;check allocated dir blocks
+	push	de
+	ex	de,hl
+	call	decout
+	ld	de,dirblk	;directory blocks
+	call	msgout
+
+	pop	de		;get dir blocks back
+	ld	hl,(dsm)	;get total # of blocks-1
+	inc	hl		;make it proper
+	or	a
+	sbc	hl,de		;sub # of allocated dir blocks
+	ld	a,(bsize)	;get # of k/block
+	dec	a		;make it -1
+	ld	b,a
+	push	bc		;save this
+	push	hl		;save block count
+	call	add		;add 'em up
+	ld	de,tdisk	;disk size message
+	call	msgout
+
+	pop	hl		;restore total block count
+	ld	de,(free)	;get free blocks
+	or	a
+	sbc	hl,de		;get # blocks used
+	pop	bc
+	push	bc
+	push	de		;total block count
+	call	add		;add 'em up and print it
+	ld	de,kused
+	call	msgout
+
+	pop	hl		;get free # of blocks (pntmap)
+	pop	bc		;get block size back
+	call	add		;add 'em up
+	ld	de,sfree
+	call	msgout
+
+exit:	ld	a,(ddisk)	;get disk drive back
+	ld	c,a
+	push	bc
+	call	disk		;install it as before
+	pop	bc
+	call	seldsk		;for the bdos
+	ld	hl,(ccpsp)	;get ccp stack pointer back
+	ld	sp,hl		;remake it
+	ret			;and return
+
+pntmap: push	de		;save bit count
+	push	hl		;save byte pointer
+	ld	de,dmap		;tell user what's happening
+	call	msgout
+	pop	hl
+	pop	de
+	ld	c,line		;# on one line
+map:	ld	a,(hl)		;get a byte
+	push	hl		;save this
+	ld	b,8		;8 bits/byte
+bpnt1:	rla			;rotate bit into carry
+	push	af		;save this
+	jr	c,one		;was it a one ?
+	ld	hl,(free)	;get free block count
+	inc	hl		;inc it
+	ld	(free),hl	;save it again
+	ld	a,'0'		;make a 0
+	jr	pnt
+
+one:	ld	hl,(block)	;get used block count
+	inc	hl		;inc it
+	ld	(block),hl	;save it again
+	ld	a,'1'		;make a one
+pnt:	call	chrout		;print it
+	dec	c		;dec line count
+	call	z,newl
+	dec	de		;dec bit counter
+	ld	a,d		;check for end of bits
+	or	e
+	jr	z,leave		;end ?? yes-finished
+	pop	af		;restore char
+	djnz	bpnt1		;loop for 8 bits of the byte
+	pop	hl		;restore byte pointer
+	inc	hl		;inc to next byte
+	jr	map		;loop for next byte fetch
+
+leave:	pop	hl		;relieve stack
+	pop	af
+
+	ld	de,tblk
+	call	msgout
+	ld	hl,(dsm)	;get total block count-1
+	inc	hl		;make it correct
+	call	decout
+
+	ld	de,used
+	call	msgout
+	ld	hl,(block)	;get used block count
+	call	decout
+
+	ld	de,left
+	call	msgout
+	ld	hl,(free)	;get # of free blocks
+	call	decout
+
+crlf:	ld	a,0dh
+	call	chrout
+	ld	a,0ah
+	call	chrout
+
+chrout: push	hl
+	push	bc
+	push	de
+	ld	e,a
+	ld	c,2		;send char to console
+	call	bdos
+	pop	de
+	pop	bc
+	pop	hl
+	ret
+
+;check al0 & al1 for directory block allocation and return # of
+;allocated blocks in de
+
+fndblk: ld	de,0		;init counter
+	ld	b,8		;bit counter
+	ld	a,(al0)		;first this one
+	call	incblk		;count some bits
+	ld	b,8		;bit counter
+	ld	a,(al1)		;and next this one
+
+incblk: rla			;rotate thru cy, set if block
+	jr	nc,inc		;no-don't inc bit counter
+	inc	de		;inc block counter
+inc:	djnz	incblk		;loop for all bits
+	ret
+
+;add up (*2) the number in HL, B times and print it decimally
+
+add:	add	hl,hl
+	djnz	add		;add 'em all up
+	push	hl
+	call	decout
+	pop	hl
+	ret
+
+newl:	call	crlf
+	ld	a,9
+	call	chrout
+	ld	a,9
+	call	chrout
+	ld	c,line
+	ret
+
+msgout: ld	c,9		;print $ terminated string
+bcall:	jp	bdos
+
+seldsk: ld	e,c		;select disk in 'C'
+	ld	c,14
+	jr	bcall
+
+disk:	jp	0000		;jump to select disk
+				;filled in at init time
+sectran:jp	0000		;jump to sectran
+				;filled in at init time
+
+;print 16 bit value in HL in decimal
+
+decout: push	hl
+	call	bdc
+	call	prtx
+	pop	hl
+	ret
+
+bdc:	push	de
+	push	bc
+	ld	de,string
+loop:	call	div10
+	add	a,'0'
+	dec	de
+	ld	(de),a
+	ld	a,h
+	or	l
+	jr	nz,loop
+	ex	de,hl
+	pop	bc
+	pop	de
+	ret
+
+div10:	ld	c,16
+	xor	a
+loop1:	adc	hl,hl
+	rla
+	dec	c
+	jr	z,term
+	cp	10
+	ccf
+	jr	nc,loop1
+	sub	10
+	scf
+	jr	loop1
+
+term:	cp	10
+	ccf
+	jr	nc,bot
+	sub	10
+	scf
+bot:	adc	hl,hl
+	ret
+
+prtx:	ld	a,(hl)
+	cp	'$'
+	ret	z
+	push	hl
+	call	chrout
+	pop	hl
+	inc	hl
+	jr	prtx
+
+	defs	5
+string: defm	'$'
+
+hexout: push	hl		;save hex value
+	ld	a,'0'		;a 0 first
+	call	chrout		;print it
+	pop	hl		;restore it
+	ld	a,h		;get msb
+	call	hexout2		;print it
+	ld	a,l		;get lsb
+	call	hexout2		;print it
+	ld	a,'h'		;tack a 'h' on the end
+	jp	chrout		;print it
+
+hexout2:push	af
+	and	0f0h		;mask right off
+	rrca			;move
+	rrca			;  it
+	rrca			;   to
+	rrca			;     the right
+	call	hexout3		;print it
+	pop	af		;get char back
+	and	0fh		;mask left half off
+hexout3:cp	10		;need letter
+	jr	c,hexout4	;no
+	add	a,7		;adjust for a-f
+hexout4:add	a,'0'		;make it ascii
+	push	hl
+	call	chrout		;print it and return
+	pop	hl
+	ret
+
+;output in binary the value in A
+
+binout: ld	b,8		;number to move
+bino1:	rla			;move it left
+	push	af		;save rotated value
+	jr	c,p1
+	ld	a,'0'
+	jr	pnt1
+
+p1:	ld	a,'1'
+pnt1:	call	chrout
+	pop	af
+	djnz	bino1
+	ret
+
+;verify that we are running on a CP/M 2.0 or later
+
+verify: ld	c,12
+	call	bdos
+	cp	20h		;cp/m 2.0 or later
+	ret	nc		;yes !!!!
+	ld	de,sorry	;tell user
+	call	msgout
+	jp	exit		;and exit
+
+	end
+

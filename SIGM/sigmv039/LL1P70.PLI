@@ -1,0 +1,88 @@
+LL1P70: PROC;
+/****************************************************************
+*               LL(1) GRAMMAR ANALYZER - PHASE 7		*
+*PURPOSE:                                                       *
+*    THIS PROGRAM ANALYZES A LL(1) GRAMMAR GIVEN IN MODIFIED    *
+*    BNF FORMAT AND FINDS THE SELECTION SET.			*
+*INPUT:                                                         *
+*    1) BASIC GRAMMAR TABLES					*
+*    2) NULLABLE NON-TERMINALS AND PRODUCTIONS TABLES		*
+*    3) ARRAY1 = THE FOLLOW RELATION				*
+*    4) $1.T02 = THE FIRST RELATION				*
+*OUTPUT:                                                        *
+*    1) ARRAY1 = THE SELECTION SET FOR ALL PRODUCTIONS		*
+*    2) $1.T05 = THE SELECTION SET FOR ALL PRODUCTIONS		*
+*OUTLINE:                                                       *
+*REMARKS:                                                       *
+****************************************************************/
+
+/****************************************************************
+* * * * * * * * * * * COMMON DATA DEFINITIONS * * * * * * * * * *
+****************************************************************/
+
+/*	* * *  COMMON REPLACEMENTS  * * *	*/
+%REPLACE TRUE BY '1'B;
+%REPLACE FALSE BY '0'B;
+
+%INCLUDE 'LL1CMN.DCL';	/* GET COMMON AREAS. */
+
+
+/****************************************************************
+* * * * * * * * * * * COMMON PROCUDURES * * * * * * * * * * * * *
+****************************************************************/
+
+%INCLUDE 'LL1PRC.DCL';
+
+
+/****************************************************************
+* * * * * * * * * * GRAMMAR ANALYSIS PROCEDURES * * * * * * * * *
+****************************************************************/
+
+
+CALC_SS: PROC;
+/*THIS ROUTINE IS RESPONSIBLE FOR CALCULATING THE ACTUAL  */
+/*SELECTION SET FOR EACH PRODUCTION.  THE SELECTION SET IS*/
+/*DEFINED AS THE SET FIRST FOR THE PRODUCTION UNION WITH  */
+/*THE FOLLOW SET OF THE LEFT-HAND-SIDE IF IT IS A NULLABLE*/
+/*PRODUCTION. */
+	DCL I FIXED;		/* INDICES */
+	DCL J FIXED;
+	DCL K FIXED;
+
+/* MERGE THE FOLLOW SET FOR ALL NULLIBLE PRODUCTIONS. */
+	IF NNLPRD=0 THEN	/*NO NULLABLE PRODUCTIONS*/
+	   ;
+	ELSE
+	   DO I=1 TO NNLPRD;	/*LOOP FOR ALL NULLABLE PRODS.*/
+	      K=CHRNUM(LHS(NULPRD(I)));
+	      DO J=1 TO NUMVOC+1; /*LOOP FOR ALL SYMBOLS AND ENDMARKER.*/
+		 IF TSTBIT(K,J,ADDR(ARRAY1)) THEN
+		    CALL SETBIT(NULPRD(I),J,ADDR(ARRAY2));
+	      END;
+	   END;
+
+/* RETURN TO CALLER. */
+	END CALC_SS;
+
+
+/****************************************************************
+* * * * * * * * * * * MAIN LINE PROCEDURE * * * * * * * * * * * *
+****************************************************************/
+
+
+/* ANALYZE THE GRAMMAR. */
+	PUT SKIP LIST('BEGINNING PHASE 7 PROCESSING.');
+
+/* CALCULATE THE SELECTION SET. */
+	PUT SKIP LIST('CALCULATING THE SELECTION SET...');
+	CALL RSTARY(ADDR(ARRAY2),'T02');
+	CALL CALC_SS;		/*CALCULATE THE RELATION.*/
+	CALL PRTARY('*** SELECTION SET ***',FALSE,
+			 NUMPRD,NUMVOC+1,ADDR(ARRAY2));
+	PUT SKIP LIST('SAVE THE SET...');
+	CALL SAVARY(ADDR(ARRAY2),'T05');
+
+/* RETURN TO CALLER. */
+	PUT SKIP LIST('PHASE 7 PROCESSING COMPLETE.');
+	END LL1P70;
+

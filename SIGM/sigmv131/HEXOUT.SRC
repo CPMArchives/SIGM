@@ -1,0 +1,41 @@
+********************************************************************
+
+*                           HEXOUT                                 *
+
+********************************************************************
+
+                       name hexout
+                       entry hexout
+                       ext chrout
+
+;FUNCTION:Prints on console ,in HEX,the no.whose binary value
+;is transmitted ,in A,by the calling program.
+
+;CALLS:CHROUT
+
+hexout:               push psw
+		      push psw
+                      srlr a    ;shift A right
+                      srlr a    ;4 times,to
+                      srlr a    ;get hi-nibble
+                      srlr a
+                      adi 30H   ;add 30h
+                      cpi 3AH   ;if < 3A,=ASCII
+                      jm OK1    ;for 1st hex-digit
+                                ;if >3A,must add
+                      adi 7     ;7 to get ASCII
+OK1:                  call CHROUT;output hi-digit
+                      pop psw   ;now get 
+                      ani 0FH   ;lo-nibble
+                      adi 30H   ;& do the
+                      cpi 3AH   ;same again
+                      jm OK2
+                      adi 7
+OK2:                  call CHROUT
+		      pop psw
+                      ret
+
+                      end hexout
+
+********************************************************************
+

@@ -1,0 +1,171 @@
+		EXTENDED PRECISION FLOATING POINT PACKAGE
+			    UTILISATION NOTES
+
+
+1. Introduction
+
+	The Extended Precision Floating Point Package deals with extended
+   precision reals represented by the following type :
+	
+			newreal = record
+				  s  :  signtype;
+				  f  :  fraction;
+			  	  e  :  byte
+				  end;
+
+   in which s is the sign, f is the fraction or mantissa and e is the
+   characteristic or biased exponent of the real.
+
+	In the above :
+			signtype = (plus, minus);
+			fraction = array[0..n] of byte;
+			byte     = 0..255.
+
+	It is further assumed that :
+
+	     the byte of index 0 of the array representing the fraction
+	     has always value zero;
+	     the "point" always preceeds the byte of index 1 of the array
+	     representing the fraction.
+
+   	The above representation is quite efficient in terms of memory
+    utilisation and speed but it must be converted to a more suitable
+    notation.
+
+	For this reason the Extended Precision Floating Point Package
+    includes conversion procedures allowing the extended precision reals
+    to be represented in the customary scientific notation.  Thus they
+    are displayed as  a  signed string  of  decimal digits followed by
+    'E' and by an exponent as in the PASCAL/Z representation of the type
+    real.
+    Similarly, extended precision reals are inputted as signed or unsigned
+    strings of consecutive decimal digits optionally followed by an 'E'
+    or 'e' and an exponent following the customary scientific notation.
+
+	The value of n, that is the number of significant "digits" available
+    in the internal representation of the extended precision reals, has
+    been presently set equal to 6. This value can however be modified at
+    will by altering the constants in FLPTCONS.PAS (see later). Most of
+    the presently available procedures and functions maintain their
+    validity for any value of n.
+    As a warning against possible erroneous results, specific comments
+    have been provided whenever a procedure or a function is valid only
+    for specified values of n.
+
+	Presently the Extended Precision Floating Point Package consists
+    of only one module designated as BASICOPS (for BASIC OPERATIONS) 
+    allowing the following calls from a main program :
+
+		function absol(u : newreal) : newreal;
+		function isequal(u, v : newreal) : boolean;
+		function isgreater(u, v : newreal) : boolean;
+		function islower(u, v : newreal) : boolean;
+		function iseqgreat(u, v : newreal) : boolean;
+		function iseqlower(u, v : newreal) : boolean;
+		function add(u, v : newreal) : newreal;
+		function sub(u, v : newreal) : newreal;
+		function multp(u, v : newreal) : newreal;
+		function divde(u, v : newreal) : newreal;
+		function modu(u,v : newreal) : newreal;
+		procedure do_read(var u : extdatum; var v : newreal);
+		procedure do_write(u : newreal).
+
+    The function absol generates the absolute value of the argument.
+
+    The five boolean functions which follow are the equivalent of the
+    standard comparison operators.
+
+    The next five functions are respectively the sum, the difference,
+    the product, the quotient and the modulo of two extended precision
+    reals.
+
+    The procedure do_read reads an extended precision real expressed in
+    standard scientific notation and converts it to the internal represen-
+    tation.
+
+    The procedure do_write converts an extended precision real from the
+    internal representation to scientific notation and displays it.
+
+	The Extended Precision Floating Point Package will be expanded
+    to include additional modules covering all standard operations and
+    functions with reals.
+
+
+
+2. RUNNING A PROGRAM WITH EXTENDED PRECISION REALS
+
+	To utilize the function and procedures of the Extended Precision
+    Floating Point Package the main program must include :
+
+		the constants in the file FLPTCONS.PAS;
+		the types in the file FLPTTYPE.PAS;
+		the variables in the file FLPTVAR.PAS;
+		the external procedures and functions in FLPTEXT.PAS
+
+    in addition to the declarations which are specific to the main
+    program.
+
+	The file BASICOPS.PAS is conceived as a module to be compiled
+    and assembled separately and then linked to the main program.
+
+	The file FLPTEXT.PAS comprises the list of all functions and
+    procedures in BASICOPS.PAS which may be called from the main
+    program and, in addition, the external routines (in assembler)
+    called by BASICOPS.PAS. Such routines are contained in the files
+    BYTEOPS.SRC and BYTEOPS.REL and need to be linked to the main 
+    program as well.
+
+	In summary the following command sequence would be required :
+
+			PASCAL48 <MAINPROGRAM>.AAAA
+			ASMBL MAIN,<MAINPROGRAM>/REL
+			PASCAL48 BASICOPS.AAAA
+			ASMBL EMAIN,BASICOPS/REL
+			ASMBL EMAIN,BYTEOPS/REL
+	LINK /N:<MAINPROGRAM> <MAINPROGRAM> BASICOPS BYTEOPS /E.
+
+	It should be further noted that each operation performed by
+    the Extended Precision Floating Point Package can be executed in one
+    of two modes : the TRUNCATED mode or the ROUNDED mode. The required
+    mode must be set by the main program with one of the following
+    statements :
+
+			mode := rounded;
+			mode := truncated;
+	
+	The variable mode is contained in FLPTVAR.PAS.
+
+
+3. DEMONSTRATION PROGRAM
+
+	The files FLPTDEMO.PAS and FLPTDEMO.COM allow a program using
+    the Extended Precision Floating Point Package to be run for the purpose
+    of demonstration and familiarisation.
+	
+	TO RUN THE PROGRAM IT IS SUFFICIENT TO INPUT FLPTDEMO AND THEN
+    follow the step-by-step instructions.
+
+        One should exerce a certain care in inputting data as the program
+    is not entirely protected against misleading inputs. For this reason
+    all input data are echoed to the terminal as they are actually read 
+    by the program and should be checked for consistency with respect to
+    the intended inputs.
+
+	It should be emphasized that a significant proportion of the time
+    required to run the program is absorbed by the relatively slow input
+    and output conversion routines.
+
+
+
+
+
+4. ..... AND LASTLY
+	Any suggestions for improvement and/or requests for clarification
+    will be welcomed.
+					
+					Lanfranco EMILIANI
+					Maurits de Brauwweg 11
+					2597-KD Den Haag
+					The Netherlands
+
+

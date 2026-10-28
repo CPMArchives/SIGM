@@ -1,0 +1,84 @@
+access:
+	proc(p);
+	/* root module for update and sale */
+	dcl
+		p fixed;
+	%replace
+		true  by '1'b,
+		false by '0'b;
+
+	%include 'attrib.dcl';
+
+	%include 'key.dcl';
+
+	dcl
+		update entry,
+		sale   entry;
+	dcl
+		data file;
+
+	open_data:
+		proc ext;
+		open file(data) direct update env(f(max_siz));
+		end open_data;
+
+	close_data:
+		proc ext;
+		close file(data);
+		end close_data;
+
+	input_key:
+		proc(rec) ext;
+		/* read access key from keyboard */
+		dcl
+			rec     char(max_siz),
+			hdr_out entry(fixed),
+			att_in  entry(fixed,char(max_siz))
+				returns(bit),
+			att_err entry;
+
+			do while(true);
+			rec = '';
+			call hdr_out(1);
+			if att_in(1,rec) then
+				return;
+			call att_err();
+			end;
+		end input_key;
+
+	locate_key:
+		proc(rec) returns(bit) ext;
+		/* locate access key in key list, read record */
+		dcl
+			rec char(max_siz);
+
+			do key_adr = key_hdr repeat(key_lst)
+				while(key_adr ^= null());
+			if key_val = rec then
+				do;
+				read file(data) into(rec)
+					key(key_loc);
+				return(true);
+				end;
+			end;
+		put edit('Not Found: ',substr(rec,1,max_chr),'')
+			(column(4),2a,skip,a);
+		return(false);
+		end locate_key;
+
+	alter_rec:
+		proc(rec) ext;
+		/* alter current record */
+		dcl
+			rec char(max_siz);
+		write file(data) from(rec) keyfrom(key_loc);
+		end alter_rec;
+
+
+	/* dispatch to update or sale */
+	if p = 0 then
+		call update();
+	if p = 1 then
+		call sale();
+	end access;
+

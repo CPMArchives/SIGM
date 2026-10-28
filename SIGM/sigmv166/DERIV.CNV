@@ -1,0 +1,133 @@
+
+[DERIV.CNV]
+[Calculate symbolic derivatives]
+[Harold V. McIntosh, 26 July 1983]
+
+[[
+Symbolic differentiation is a symbol manipulation process, in
+which the known rules for derivatives, such as: the derivative
+of a sum is a sum of derivatives, the derivative of a product
+is a sum in which one factor is differentiated at a time, or
+the chain rule for the derivative of a function of a function,
+are applied recursively until finally the derivative of a constant
+is zero or the derivative of the variable iself is one.
+
+Enter an algebraic expression - only sums, differences, products,
+and quotients are considered, and only integer constants. Terms
+may be enclosed in parentheses.  Terminate your expression with a
+carriage return. The expression will be parsed and differentiated,
+finally the result shown; the result may be surprising because very
+little simplification and no rearrangement is made. Exit with a
+single carriage return. The message "other" indicates an error.
+]]
+
+
+
+[individual cases]
+(()()(0 1)(
+		((PWS,intermediate )(or),);
+  [sum]		((and,(itr,<:j:>)+,<0>+<>)<1>,(s,(x,<0>)<,>(x,<1>)));
+  [difference]	((and,(ITR,<:l:>-),<0>-<>)<1>,(m,(x,<0>)<,>(x,<1>)));
+  [product]	((and,(itr,<:j:>)*,<0>*<>)<1>,<<
+			>>(s,(p,<0><,>(x,<1>))<<
+			>><,>(p,(x,<0>)<,><1>)));
+  [quotient]	((and,(itr,<:j:>)/,<0>/<>)<1>,<<
+			>>(q,<(>(u,(m,(p,(x,<0>)<,><1>)<<
+			>><,>(p,<0><,>(x,<1>))))<)><<
+			>><,>(p,<1><,><1>)));
+  [paren]	((and,<:i:><>,<(><0><)><>),<0>):
+  [unary -]	(-<0>,(n,(x,<0>)));
+  [variable]	(x<>,1);
+  [constant]	(<:j:><>,0);
+  [other]	(<0>,(%C,other: <0>));
+  )) x
+
+[simplify difference]
+(()()(0 1)(
+		(<0><,><0>,0);
+		(<0><,>0<>,<0>);
+		(0<,><0>,(n,<0>));
+		((and,<:U:><,><:U:><>,<0><,><1>),(#-,<0>-<1>));
+		(<0><,><1>,<0>-<1>);
+  )) m
+
+[simplify negative]
+(()()(0)(
+		(0<>,0);
+		(<(>(and,(or,-,)<:k:>,<0>)<)><>,<0>):
+		(-(and,<:k:><>,<0>),<0>);
+		((and,<:k:><>,<0>),-<0>);
+		(<0>,-<(><0><)>);
+  )) n
+
+[parenthesize composite]
+(()()(0)(
+		((and,<:k:><>,<0>),<0>);
+		(<0>,<(><0><)>);
+  )) o
+
+[simplify product]
+(()()(0 1)(
+		(0<,><-->,0);
+		(<--><,>0<>,0);
+		(1<,><0>,<0>);
+		(<0><,>1<>,<0>);
+		((and,<:U:><,><:U:><>,<0><,><1>),(#*,<0>*<1>)) ;
+		(<0><,><1>,(o,<0>)*(o,<1>));
+  )) p
+
+[simplify quotient]
+(()()(0 1)(
+		(0<,><-->,0);
+		(<(>(and,<:k:>,<0>)<)><,><1>,<0><,><1>):
+		(<(>-(and,<:k:>,<0>)<)><,><1>,-<0><,><1>):
+		(<0><,>1<>,<0>);
+		(<0><,><1>,(o,<0>)/(o,<1>));
+  )) q
+
+[simplify sum]
+(()()(0 1)(
+		(0<,><0>,<0>);
+		(<0><,>0<>,<0>);
+		((and,<:U:><,><:U:><>,<0><,><1>),(#+,<0>+<1>));
+		(<0><,><0>,2*<0>);
+		(<0><,><1>,<0>+<1>);
+  )) s
+
+[negate expression]
+(()()(0 1)(
+	((and,<:l:>,<0>)+<1>,<0>-(t,<1>));
+	((and,<:l:>,<0>)-<1>,<0>+(t,<1>));
+  )) t
+
+[common level for sum or difference]
+(()()(0 1)(
+	((and,<:i:>,<(><0><)>)+(and,<:i:>,<(><1><)>),<0>+<1>);
+	((and,<:i:>,<(><0><)>)-(and,<:i:>,<(><1><)>),<0>-(t,<1>));
+  )) u
+
+[collect]
+(()()(0 1 2)(
+  )) v
+
+[main program]
+((
+  [alfanum]  ((and,<[1]>,(IVL, ,~,))) a
+  [numeric]  ((and,<[1]>,(IVL,0,9,))) b
+  [uconst]   (<:b:>(ITR,<:b:>)) U
+  [number]   ((or,-,)<:U:>) c
+  [pelem]    ((and,<[1]>,(nor,<(>,<)>))) e
+  [telem]    ((and,<[1]>,(nor,<(>,<)>,+,-,*,/))) f
+  [token]    (<:f:>(ITR,<:f:>)) g
+  [paren]    (<(>(ITR,<:j:>)<)>) i
+  [term]     ((or,<:i:>,<:e:>)) j
+  [t or p]   ((or,<:g:>,<:i:>)) k
+  [prqu]     (<:k:>(ITR,(or,*,/)<:k:>)) l
+
+  )()(0)(
+	((or,;,<>),goodbye);
+	(<0>,(%C,(x,<0>))(%R)):
+  ))
+
+[end]
+

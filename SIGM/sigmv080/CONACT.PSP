@@ -1,0 +1,29 @@
+PROCEDURE Conact (Action : Integer) ;
+
+  { Procedure to clear screen, erase line, move cursor, etc., for Micro-Term
+    ACT-IV terminal; duplicates functions of "Conact" in Pascal/M & UCSD.
+    Change codes as necessary for your terminal functions.		     }
+
+BEGIN
+
+  CASE Action OF
+    0 : BEGIN		    { Clear screen and go to "home" position }
+	  Write (Chr (12)) ;
+	  Write (Chr (0)) ;
+	  Write (Chr (0)) ;
+	END ;
+    1 : Write (Chr (30)) ;  { Erase to end of current line }
+    2 : Write (Chr (26)) ;  { Move cursor up one line }
+    3 : Write (Chr (11)) ;  { Move cursor down one line }
+    4 : Write (Chr (25)) ;  { Move cursor left one character }
+    5 : Write (Chr (24)) ;  { Move cursor right one character }
+    6 : Write (Chr (127)) ; { Delete character at cursor position }
+    7 : Write (Chr (0)) ;   { Insert character -- N/A on ACT-IV }
+  END { CASE } ;
+
+END { Conact } ;
+at cursor position }
+    7 : Write (Chr (0)) ;   { Insert character -- N/A on ACT-IV }
+  END { CASE } ;
+
+END 

@@ -1,0 +1,59 @@
+07-28-84
+
+This is version 2.2 of LDIR.MAC.
+
+LATEST NEW FEATURES:
+
+1. SYSLIB3 now required for reassembly, as well as a new MATCHF module.
+2. Syntax change - optional second argument used as match filename to
+   allow searching for members. This allows use like normal DIR:
+   A>ldir m7-ovl m7hz*.*	only displays members matching M7HZ????.???
+   A>ldir m7-ovl		same as:
+   A>ldir m7-ovl *.*
+3. New total line - total line now displays match filename, number of members
+   displayed, number of active members and the size of the displayed members
+   both in sectors and in k. Note: if the match filename is blank or *.*, then
+   # of members and # of active members will be the same. Example:
+
+A>ldir test
+LDIR v2.2 .....
+
+LBR directory for TEST.LBR:
+
+FOO     .ASM   1k | TEST    .MQC  23k | ZOT     .ASM  11k
+
+Members ????????.??? displayed 3 of 3 total: 360 sectors (45k)
+
+A>ldir test *.asm
+LDIR v2.2 .....
+
+LBR directory for TEST.LBR:
+
+FOO     .ASM   1k | ZOT     .ASM  11k
+
+Members ????????.ASM displayed 2 of 3 total: 96 sectors (12k)
+
+
+
+New procedure to assemble/link:
+
+A>m80 =ldir22
+
+A>l80 /p:100,ldir22,matchf/s,mysort,syslib/s,ldir22/n/e
+  OR
+A>link ldir22,matchf,mysort,syslib[s]
+
+MYSORT.REL, MATCHF.REL and SYSLIB.REL must be on the default drive!
+(Frequent users of SYSLIB should incorporate MATCHF into SYSLIB (name
+ the module SMATCHF). Be sure not to APPEND it to the library!
+
+
+CUSTOMIZATION:
+
+3 variables can be changed:
+
+0103	COLUMNS		set to number of columns desired (default 4)
+0104	MAXDR		highest drive +1 (A=2, B=3...)
+0105	MAXUSR		highest user area +1
+filename is blank or *.*, then
+ 

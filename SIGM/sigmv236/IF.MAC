@@ -1,0 +1,101 @@
+        title 'if'
+
+        .z80
+
+bdos    equ 5
+wboot   equ 0
+
+ifx:    ld sp,stack        ; local stack
+        ld a,(80h)         ; number of characters
+        ld hl,81h          ; address of first character
+        and a
+        jp z,err1          ; error if no input string
+        ld b,a             ; for djnz counter
+lp0:    ld a,(hl)
+        cp ' '             ; scan spaces
+        jr nz,ex0          ; jump on non-space
+        inc hl
+        djnz lp0
+        jp err1
+ex0:    ld d,h             ; keep start location
+        ld e,l
+        ld c,0             ; to count characters
+lp1:    ld a,(hl)          ; get char from input string
+        cp '0'
+        jr c,ex1           ; exit if below '0'
+        cp '9'+1
+        jr c,cn1           ; accept if below '9'+1
+        cp 'A'
+        jr c,ex1           ; exit if below 'A'
+        cp 'Z'+1
+        jr nc,ex1          ; exit if below 'Z'
+cn1:    inc hl             ; location in string
+        inc c              ; character count
+        djnz lp1
+        jp err1
+ex1:
+lp2:    ld a,(hl)          ; get char from input string
+        cp ' '
+        jr nz,ex2          ; non-space
+        inc hl
+        djnz lp2           ; scan thru spaces
+        jp err1
+ex2:    cp '='
+        jr z,cn2
+        cp '#'
+        jp nz,err1
+cn2:    ld (op),a          ; keep operator
+        inc hl
+        dec b
+        jp z,ex4           ; second string blank
+lp3:    ld a,(hl)
+        cp ' '
+        jr nz,ex3          ; jump on non-space
+        inc hl
+        djnz lp3
+        jr ex4             ; second string blank
+ex3:    ex de,hl
+lp4:    ld a,(de)          ; char from second string
+        cp ' '             ; allow space
+        jr z,ex4
+        cp (hl)            ; compare with first string
+        jp nz,diff
+        inc hl
+        inc de
+        dec c
+        djnz lp4
+ex4:    ld a,c
+        and a
+        jp nz,diff         ; strings different length
+
+                           ; strings equal
+        ld a,(op)          ; recover operator
+        cp '='
+        jr z,succ
+        jr unsu
+diff:   ld a,(op)          ; strings different
+        cp '='
+        jr z,unsu
+        jr succ
+succ:   ld de,0
+        jr ex5
+unsu:   ld de,0ff00h
+        jr ex5
+ex5:    ld c,108
+        call bdos
+        jp wboot
+
+err1:   ld de,errm
+        ld c,9
+        call bdos
+        jr unsu
+errm:   db 13,10,'error in IF statement - treat as false',13,10,'$'
+op:     ds 1
+        ds 32              ; stack
+stack:
+
+        end ifx
+EEDED.
+                          --- - --- ------- -- ------
+
+CP/M, version 2.0, was released in 1979. At tha

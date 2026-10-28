@@ -1,0 +1,448 @@
+; HOST Program for AMD 96-4016 Z8000 Monitor
+;
+; Sourced March '80 by 	Trevor Marshall
+;			Elec Eng Dept
+;			Uni W.A.
+;
+; This program was written for a Z80 CPU
+; running a CDOS 2.17 Disk Operating System.
+;
+; It has been modified for 8080 CPU 
+; but not fully tested with that CPU
+;
+; Most code is compatible with other CP/M
+; systems, but will have to be tailored
+; to the individual's hardware environment
+;
+; Although the AMD SYS 8/8 uses parallel
+;  ports for handshaking the 96-4016 will also
+;  support serial I/O and this method is
+;  usually preferable.
+; The AMD Monitor uses an 8 bit data word with
+;  parity generated in software.
+; If you cannot configure your HOST USART
+;  to that format then you must null the 
+;  parity generation with NOPs and the parity
+;  checking may be defeated with a prior RET
+; Note that the AMD SYS 8/8 appears to have a
+;  CP/M compatible operating system
+;
+BDOS:	EQU	5	;CDOS system call addr
+RNEXT:	EQU	14H	;Read next record
+WNEXT:	EQU	15H	;Write next record
+FCREATE: EQU	16H	;Create a file
+RESET:	EQU	0DH	;Reset CDOS
+FOPEN:	EQU	0FH	;Open a file
+FCLOSE:	EQU	10H	;Close a file
+DMA:	EQU	1AH	;Set disk buffer address
+FORMAT: EQU	86H	;Format name to FCB
+NAK:	EQU	15H	;CTL-U
+ENQ:	EQU	5	;CTL-E
+ACK:	EQU	6	;CTL-F
+SOH	EQU	1	;CTL-A
+STX:	EQU	2	;CTL-B	
+EOT:	EQU	4	;CTL-D
+EOF:	EQU	1AH	;End of file marker byte
+;
+;THE FOLLOWING EQUATES ARE HARDWARE DEPENDENT
+;
+CSTATP: EQU	0F7H	;Console driver status port
+CDATA:	EQU	0F6H	;Console data port
+CRDA:	EQU	2	;RDA bit
+CTBE:	EQU	1	;TBE bit
+;
+	ORG	100H
+;
+START:	LD	SP,80H
+	LD	A,0
+	LD	(FLAG),A ;Clear the file opened flag
+; Now output system prompt to console
+	LD	DE,MSG
+	LD	C,9	;Print Buffered Line
+	CALL	BDOS
+;
+MORE:	LD	SP,80H	;Reset Stack Pointer
+	LD	A,0
+	LD	(CODE),A ;Clear the error code
+	CALL	DIALOG	;Wait for an instruction
+	LD	A,(NEWCODE) ;2 locs to ease debugging
+	LD	(CURCODE),A	;Save it
+; Now decode the Function request type
+	CP	A,4
+	JP	Z,OPEN
+	CP	A,5
+	JP	Z,CLOSE
+	CP	A,6
+	JP  	Z,CREATE
+	CP	A,7
+	JP	Z,READ
+	CP	A,8
+	JP	Z,WRITE
+;
+	JP	N7	;If not one of the above instrs
+;
+; S/R to set up FCB name in FCB block from BFFR data
+;
+SETUP	LD	A,(REQBFFR) ;Fetch the drive (A - C)
+	SUB	A,40H	;A = 01 IN FCB
+	LD	(REQBFFR+1),A ;Put drive # in FCB
+	LD	HL,REQBFFR+1 ;Point at start of legal code
+	LD	DE,FCB	;Point at FCB area
+	LD	BC,12	;# of bytes in name & drive
+;	LDIR		;Shift name to FCB
+; implement the LDIR in 8080 code:
+L1:	LD	A,(HL)	;***** THIS CODE HAS NOT
+	LD	(DE),A	;   BEEN CHECKED******
+	INC	HL
+	INC	DE
+	DEC	BC
+	LD	A,C	;Is BC = 0
+	OR	A,B
+	JP	NZ,L1
+;
+	RET
+;
+;Now try to open file
+OPEN:	LD	C,RESET
+	CALL	BDOS	;First log off all disks
+	CALL	SETUP   ;Set up FCB
+	LD	DE,FCB
+	LD	C,FOPEN
+	CALL	BDOS	;Open file
+; Any errors?
+	ADD	A,1	;Is a = -1 ?
+	JP	Z,N7
+; Opened successfully, now can process read or write
+	LD	A,0FFH
+	LD	(FLAG),A ;Set opened flag
+	CALL	TRNS	;Acknowledge
+	JP	MORE	;Get next instruction
+;
+WRITE:	LD	A,(FLAG) ;Check file is created or open
+	CP	A,0
+	JP	Z,N5 ;no, send error code 3
+; Now set the DMA address to BFFR
+	LD	C,DMA
+	LD	DE,BFFR
+	CALL	BDOS
+;
+	LD	DE,FCB
+	LD	C,WNEXT
+	CALL	BDOS	;Write the record
+	CP	A,1	;entry error
+	JP	Z,N5	; send code 3
+	CP	A,2
+	JP	Z,N7	;Send code 1 if out of space
+	CP	0	;OK
+	JP	NZ,N8	;Send code 2 for other errors
+; Must be OK,wait for next instruction
+	CALL	TRNS
+	JP	MORE
+;
+CLOSE:	LD	A,(FLAG) ;Dont close an unopened file
+	CP	0
+	JP	Z,N5	;not open
+	LD	C,FCLOSE
+	LD	DE,FCB
+	CALL	BDOS
+	CP	A,0FFH
+	JP	Z,N7	;A=FF means not found
+	LD	A,0
+	LD	(FLAG),A ;Clear the open file flag
+	LD	(CODE),A ;Clr error flag
+	JP	N10
+N7:	LD	A,1	;Send error code 1
+	JP	N6
+N8:	LD	A,2	;Send error code 2
+	JP	N6
+N5:	LD	A,3	;Send error code 3
+N6:	LD	(CODE),A ;File not open or created
+N10:	CALL	TRNS
+; Omit the following for 8080 CP/M
+;	LD	C,96H	;Call to CDOS 2.17 to turn
+;	CALL	BDOS	; drive motors off
+	JP	MORE
+;
+READ:	LD	A,(FLAG) ;Is file open ?
+	CP	0
+	JP	NZ,N2 ;Yes
+	LD	C,RESET	;No,open it
+	CALL	BDOS
+	CALL	SETUP
+	LD	DE,FCB
+	LD	C,FOPEN
+	CALL	BDOS
+	ADD	A,1
+	JP	Z,N5   ;type 3 error, not found
+	LD	A,0FFH
+	LD	(FLAG),A ;Set open flag
+; File opened now read record
+N2:	LD	C,DMA	;set CDOS DMA addr to bffr
+	LD	DE,BFFR
+	CALL	BDOS
+	LD	C,RNEXT	;read next record
+	LD	DE,FCB
+	CALL	BDOS
+; Now process error codes
+	CP	0	;1 = <EOF>
+	JP	Z,M1  
+; Must be 1, End Of File
+; Note that this error is only returned AFTER an
+; abortive attempt to fetch the next sector, and
+; <EOF> within data is transferred normally, so
+; ASM will give errors unless a QUIT instruction
+; is used to end the source file.
+	LD	A,1
+	LD	(CODE),A
+	CALL	TRNS	;Dont send any data
+	JP	MORE
+M1:	CALL	SEND	;Transmit normal data
+	JP	MORE
+;
+CREATE:	LD	A,(FLAG) ;Is file open?
+	CP	0
+	JP	NZ,N5	;Yes send error code 3
+	LD	C,RESET	;Log off all disks
+	CALL	BDOS	;Prior to directory operations
+	CALL	SETUP
+; First check if a file already exists with this name
+; Dont delete it,as it may be a mistaken command
+	LD	DE,FCB
+	LD	C,11H	;Search Directory cmd
+	CALL	BDOS
+	CP	A,0FFH	
+	JP	Z,MI3	;Entry was not found
+	LD	A,(HL)	;Fetch the first directory byte
+	CP	A,0E5H	;Is it erased
+	JP	NZ,N5	;No, send error
+MI3:	LD	C,FCREATE
+	LD	DE,FCB
+	CALL	BDOS
+	CP	A,0FFH
+	JP	Z,N7	;Send error code 1
+	CALL	TRNS
+	LD	A,0FFH
+	LD	(FLAG),A ;Set the open flag
+	JP	MORE
+;
+;
+; S/R to accomplish I/O
+; N.B. THESE WILL BE HARDWARE DEPENDENT
+CSTAT:	IN	A,CSTATP
+	AND	CRDA
+	RET	Z
+	LD	A,-1
+	RET
+;
+CHIN:	CALL	CSTAT
+	JP	Z,CHIN
+	IN	A,CDATA
+	AND	7FH	;Strip off parity bit
+	RET
+;
+CRDY:	IN	A,CSTATP
+	AND	CTBE
+	RET	Z
+	LD	A,-1
+	RET
+;
+COUT:	PUSH	AF
+C1:	CALL	CRDY
+	JP	Z,C1
+	POP	AF
+	OUT	CDATA,A
+	RET
+;
+;
+; S/R DIALOG to talk to Z8000
+DIALOG: LD	HL,0FFFFH ;Load a delay value to HL
+; We will decrement HL until 0, then switch the
+; disk drive motors off
+DI1:	CALL	CSTAT
+	JP	NZ,DIA2 ;Have input,exit motor loop
+	DEC	HL
+	LD	A,L	;No flag setting after DEC HL
+	OR	H
+	JP	NZ,DI1	;Try the loop again
+; Have now waited long enough, assume Z8000 done
+;	LD	C,96H	;Call to CDOS 2.17 to turn
+;	CALL	BDOS	; drive motors off
+	JP	DIA2
+KNACK:	LD	A,NAK
+	CALL	COUT
+	JP	DIALOG ;Service motors
+DIA2:	CALL	CHIN
+	CP	ENQ
+	JP	NZ,KNACK ;Only <ENQ> is valid
+ACKNL:	LD	A,ACK
+	CALL	COUT
+RECVE:	LD	HL,REQBFFR
+	CALL	CHIN
+	CP	SOH	;Answer should be <SOH>
+	JP	NZ,FLUSH
+	CALL	CHIN	;FUNCTION REQUEST CODE 
+	SUB	A,30H
+	LD	(NEWCODE),A
+; We will just receive chars and store them in req bffr
+RECVA:	CALL	CHIN
+	CP	A,EOT
+	JP	Z,RECVB	;Message ends with <EOT>
+	CP	A,STX
+	JP	Z,RECVA	;Discard it
+; Now process two hex bytes
+	SUB	30H	;Pseudo-Hex format is used
+; Cabt SLA C in 8080, so rewrite
+	SCF
+	CCF
+	RLA
+	SCF
+	CCF
+	RLA
+	SCF
+	CCF
+	RLA
+	SCF
+	CCF
+	RLA
+	LD	C,A	;Save first hex digit
+	CALL	CHIN
+;	SLA	C
+;	SLA	C
+;	SLA	C
+;	SLA	C
+	SUB	A,30H
+	AND	A,0FH	;Mask off upper nibble
+	ADD	A,C	;Now have Hex digit
+	LD	(HL),A
+	INC	HL
+	LD	A,L
+	CP	REQBUFFEND AND 0FFH
+	JP	NZ,RECVA
+	LD	A,H
+	CP	REQBUFFEND SHR 8
+	JP	NZ,RECVA
+	LD	HL,BFFR	;Now point at data buffer
+	JP	RECVA
+;
+RECVB:	LD	A,ACK
+	CALL	COUT
+	RET
+;
+;FLUSH routine to discard all input characters
+; up to the next <EOT> after an input error
+;
+FLUSHB:	LD	A,NAK
+	CALL	COUT	;Send a <NAK>
+FLUSH:	CALL	CHIN 
+	CP	EOT	;EOT means end of input
+	JP	NZ,FLUSHB ;Continue to flush
+	JP	DIALOG	;Try to fetch the data again
+;
+; S/R to transmit code,response & data in 96-4016 format
+;
+SEND:   LD	A,ENQ	
+	CALL	COUT	;Ask permission to send
+SENDA: 	CALL	CHIN
+	CP	A,ACK	;Must reply with <ACK>
+	JP	NZ,SEND  
+SENDB: 	LD	A,SOH
+	CALL	COUT
+	LD	A,(CURCODE)
+	ADD	A,30H
+	CALL	COUT	;Transmit the Function Code
+	LD	A,STX
+	CALL	COUT
+	LD	A,'0'	;Error codes, first is zero
+	CALL	COUT
+	LD	A,(CODE) ;Second code byte
+	ADD	'0'
+	CALL	COUT
+; Now transmit text
+	LD	HL,BFFR
+LP4:	LD	A,(HL)
+	LD	C,A	;Save it
+	AND	A,0F0H
+; Cant SRA A in 8080,
+;	SRA	A
+;	SRA	A
+;	SRA	A
+;	SRA	A
+	SCF
+	CCF
+	RRA
+	SCF
+	CCF
+	RRA
+	SCF
+	CCF
+	RRA
+	SCF
+	CCF
+	RRA
+	ADD	A,'0'	;Get in Pseudo-Hex 
+	CALL	COUT
+	LD	A,C
+	AND	A,0FH
+	ADD	'0'
+	CALL	COUT
+	INC	HL
+	LD	A,L
+	CP	[BUFFEND AND 0FFH]
+	JP	NZ,LP4
+	LD	A,H	;L was equal,test H
+	CP	A,[BUFFEND SHR 8]
+	JP	NZ,LP4
+;Now have finished buffer
+J4:	LD	A,EOT
+	CALL	COUT
+; Now wait for <ACK>
+	CALL	CHIN
+	CP	ACK
+	RET	Z
+	JP	SEND  
+;
+;
+; S/R to transmit code and response only to 96-4016
+;
+TRNS:	LD	A,ENQ	
+	CALL	COUT	;Ask permission to send
+TRNSA:	CALL	CHIN
+	CP	A,ACK	;Must reply with <ACK>
+	JP	NZ,TRNS
+TRNSB:	LD	A,SOH
+	CALL	COUT
+	LD	A,(CURCODE)
+	ADD	A,30H
+	CALL	COUT	;Transmit the Function Code
+	LD	A,STX
+	CALL	COUT
+	LD	A,'0'	;Error codes, first is zero
+	CALL	COUT
+	LD	A,(CODE) ;Second code byte
+	ADD	'0'
+	CALL	COUT
+	LD	A,EOT
+	CALL	COUT
+; Now wait for <ACK>
+	CALL	CHIN
+	CP	ACK
+	RET	Z
+	JP	TRNS
+;
+MSG:	DB	0DH,0AH,'Z8000 HOST Communication Program'
+	DB	' between CDOS and AMD 96-4016',0DH,0AH
+	DB	0DH,0AH,'       '
+	DB	'Contact Trevor Marshall for operating'
+	DB	' proceedures.',0DH,0AH,'$'
+REQBFFR DS	13
+REQBUFFEND EQU	$
+BFFR:	DS	128
+BUFFEND EQU 	$
+CURCODE DS	1	;Current operation code
+NEWCODE DS	1	;New operation code
+FCB:	DS	33	;FCB area
+CODE    DS	1	;Operation status code
+FLAG	DS	1	;0 means file is NOT OPEN
+	NOP
+	END 	START
+

@@ -1,0 +1,228 @@
+VOLUME 48	National CP/M Users Group
+		(CP/M is a trademark of Digital Research, Inc)
+
+DESCRIPTION:	The BDS C Sampler Disk
+		November 29, 1980
+
+	Compiled by Leor Zolman, BD Software
+
+-  Manual for BDS-C to give you a "flavor" of the compiler
+-  Good programming examples in C
+-  Interesting games to play
+-  Good use of H19-H89 (Programs with <H> are H19-H89 only)
+
+Most files are included in .COM form to allow you to execute
+them without having BDS-C.  Be careful of RALLY.COM as it needs
+to do hard-coded I/O to detect console OUT status.
+
+NUMBER	SIZE	NAME		COMMENTS
+
+	 3K	-CATALOG.048	CONTENTS OF CP/M VOL. 48
+	 6K	ABSTRACT.048	Abstracts of the programs
+48.1	17K	BDS-C.DOC	BDS-C users manual (*)
+48.2	 7K	BDSCIO.H	The standard library used to
+					compile the programs
+48.3	 8K	BUGS.C		<H> makes things crawl
+48.4	11K	BUGS.COM		around on your screen
+48.5	 9K	HLIFE.C		<H> H19/H89 version of 48.9
+48.6	 8K	HLIFE.COM	<H> 	"	"	".10
+48.7	13K	HSTONE.C	<H> "Awari" game program -
+48.8	12K	HSTONE.COM	"	"
+48.9	 9K	LIFE.C		Good implementation of Conway's
+48.10	 8K	LIFE.COM		LIFE algorithm
+48.11	 5K	MM.C		Mastermind interesting guessing
+48.12	 7K	MM.COM			game.  Try it and see
+48.13	11K	OTHELLO.C	Game program
+48.14	12K	OTHELLO.COM	  "
+48.15	 7K	PPONG.C		<H> "Polish Pong" bounce the
+48.16	 7K	PPONG.COM		ball off "/" and "\"
+48.17	 8K	PRESSUP.C	Game program
+48.18	 8K	PRESSUP.COM	"	"
+48.19	 1K	R2.MAP		<H> map for rally game
+48.20	10K	RALLY.C		<H> road rally arcade game
+48.21	10K	RALLY.COM	<H> .COM of 48.20, but...
+		========= --->	Caution!! Hard-coded I/O req'd
+48.22	 2K	RALLY.MAP	<H> another map for 48.21
+48.23	10K	STONE.C		"Awari" game with "very smart
+48.24	 9K	STONE.COM		computer" opponent
+48.25	 2K	TABIFY.C	Turn multiple spaces into
+48.26	 6K	TABIFY.COM		proper CP/M tabs
+48.27	 7K	TTT.C		Tic-Tac-Toe that "exhaustively"
+48.28	 6K	TTT.COM			tests for best move
+48.29	 3K	VOLUME48.DOC	Leor's own comments
+
+(*) The original was 22K, but "TABIFY" deleted 5K of spaces!!
+
+
+	The BDS C Sampler Disk		For the CPMUG	   November 29, 1980
+	----------------------		------------------------------------
+					Compiled by Leor Zolman, BD Software
+
+
+This disk contains a collection of programs written in BDS C, both in source
+and compiled forms, along with a short document describing the BDS C package
+for those who've never seen it. Some of the programs have been distributed
+with the BDS C package in the past, but currently there are so many assembler
+sources provided with the package that there isn't much room for games; thus,
+if you have purchased v1.4 or a later version of the compiler, many of these
+programs will be new to you. 
+
+Since H19 terminals and H89 computers are pretty popular among the company I
+keep, there are a lot of game programs here that require the H19 hardware. If
+you don't have either an H19 or access to one, non-H19 versions of some of
+the games are also provided for use on any kind of terminal.
+
+-------------------------------------------------------------------------------
+Here are descriptions of the programs on this disk:
+
+TABIFY.C:	utility to turn sequences of spaces into tabs where possible
+
+PRESSUP.C:	"Pressups" board game, uses alpha-beta searching
+
+STONE.C:	"Awari" board game (pits and stones); [HSTONE.C for H19/H89]
+
+LIFE.C:		What can one say about this? [HLIFE.C for H19/H89]
+
+MM.C:		Single-player mastermind, you guess and computer kibitzes.
+
+TTT.C:		Invincible tic-tac-toe game.
+
+OTHELLO.C:	The game of dramatic reversals.
+
+RALLY.C:	Arcade game, for H19/H89 only. NOTE: this program uses the
+		console serial port parameters defined in BDSCIO.H, and so
+		will probably NOT run on your system until those parameters
+		are customized and the program recompiled (this is necessary
+		because the program must be able to poll the console OUTPUT,
+		to see if it is ready to send, and there is no way to do this
+		using CP/M bdos or bios calls...thus the bit numbers must be
+		built right into the program...)
+
+BUGS.C:		Make bizzare thingies crawl around on your H19/H89 screen.
+
+PPONG.C:	Polish Pong for H19/H89 only.
+
+-------------------------------------------------------------------------------
+National CP/M Users Group disk 48 abstracts.
+
+Leor Zolman's BDS-C is rapidly becoming one of the most popular
+non-BASIC high-level languages under CP/M, for both the
+hobbyist and the professional.  A nice structured language at
+a reasonable cost, with good documentation, and good execution
+speed.  ...AND totally integrated into CP/M.
+
+"C" itself it a highly structured language, implementing the
+"classic" requirements for structured programming: It can
+either directly or indirectly perform DO WHILE, REPEAT UNTIL,
+DO CASE, as well as a rich "FOR"-type capability.
+
+With a few exceptions, BDS-C implements "C" as covered in the
+Kernighan and Ritchie "The C Programming Language" book, which
+comes with BDS-C.  I quote the Lifeboat Ad:
+
+	Supports structures, unions, 2 dimensional
+	arrays, pointers, recursion and overlays.
+	Features optimized code generator, variable	
+	sized buffers for file I/O, and capability
+	to produce ROMable code.  Includes macro
+	package to enable user to produce linkable
+	modules with MAC.  Floating point functions,
+	full run-time package and machine code
+	library sources provided.  Linker, library
+	manager, and textbook provided.  Compiler
+	lacks initializers, statics, floats, and longs.
+
+For the convenience of "experienced" C programmers, BDS-C
+allows, for example, "register specification" for a variable,
+which, while not implemented, is syntactically accepted.  The
+most obvious thing missing is a data type of "float", but a
+floating point subroutine package is included, and a modified
+"printf" to support it.
+		----------------
+Due to the more recent versions having very complete source
+code for run-time packages and the system libraries, many
+excellent programs have been "squeezed" off of the single
+density distribution disk.
+
+This volume, in part, represents a source for these very good
+source programs, while offering several interesting .COM files
+for those who do not have the BDS-C compiler. 
+
+The Users Group solicits additional BDS-C programs, and hopes
+to regularly come out with disks containing BDS-C programs.
+
+The programs on the disk are primarily intelligent game pro-
+grams, with some H19/H89 programs which take advantage of this
+CRT's capabilities, such as graphics.  A good utility, TABIFY,
+is also included.  See Leor's own "VOLUME48.DOC" on the disk,
+for comments.
+		----------------
+Here's some additional comments about the programs on the disk:
+
+LIFE.COM: Nice implementation.  Enjoyable code to read,
+as are most of the programs.  An interesting touch when
+you decide the configuration is no longer interesting - 
+press your "del" key, and if you don't smile, you're made
+of stone.
+
+MM.COM: So you want to play a simple game of letter guessing,
+eh?  Try this one.  But watch your ego: it can be deflated.
+MasterMind is a "simple" game, that makes you think.  The
+computer generates a random "word" consisting of 4 letters
+from A-F.  You simply "guess" 4 letters at a time, and MM tells
+you how many are "hits" i.e. the right letter in the right
+spot, and how many are misses.  Thus you deduce the missing
+pattern.  The game goes a bit slow, however (at least at 2MHz).
+Why?  MM is computing how many possible words exist based
+on the clues it has given you.  When this number reaches "1",
+it says: 
+	"You should have it by now".
+It becomes a real challenge to see how few times you can keep
+that message from coming out, and is a "real thrill" to "beat
+it" - especially a couple times in a row.  However, having it
+"know" YOU should "know", but you "missed" catching on for, say
+5 turns, makes you feel like a real dummy.  I finally made a MM
+"worksheet" to try to be more efficient.  It looks like:
+
+		AB | AB | AB | AB
+		CD | CD | CD | CD
+		EF | EF | EF | EF
+
+Thus I guess:	A    B	  C    D
+and hear:				0 hits, 2 misses.
+
+I cross off A in the first column, B in the second, etc.  You
+can ONLY do this if there were 0 hits. Still you'll be amused.
+
+OTHELLO.COM: Have you the patience to beat this one? 
+
+PPONG.COM: fun H19/H89 game.  Deflect the ball with "/" and
+"\".  I was amazed how fast it was on a 9600 baud terminal!
+
+PRESSUP.COM: A challenging game, not quite as bad as Othello.
+
+RALLY: This sounds so interesting I almost bought an H19.  If
+I had actually seen it in operation, I bet I might.  Randy
+Suess ran it and said it was excellent, except that the screen
+flickered a bit due to lots of reverse video "...but I have an
+older H19 and the new ones may be better".
+
+STONE.COM: You get to specify how "hard" the computer works to
+beat you, and if you let it work a while, it's nearly un-
+beatable.
+
+TABIFY.COM: A nice utility to delete spaces from a file, in-
+serting tabs where appropriate, based on the CP/M convention.
+
+TTT.COM:  Hmmm, what could be new in a Tic Tac Toe game?  Well,
+brains, and wit for two things.  Ex: it puts its "X", you put
+your "o", it thinks a while, and says "I've got ya".  If it
+thinks for a while, and after several pieces are on the board,
+doesn't say "I've got ya", then you MAY be on your way to a
+rare win, or more likely a "cat" game.  Play it and see.
+
+VOLUME48.DOC: Leor's own comments.
+
+				Abstracts by
+				Ward Christensen
+

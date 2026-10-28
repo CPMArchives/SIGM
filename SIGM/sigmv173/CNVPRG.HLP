@@ -1,0 +1,1117 @@
+Introduction.
+Index of Demonstration Programs.
+A Bare Minimum Program.
+Establishing Communication.
+Reading and Writing Files.
+Families of Files.
+Further Examples.
+Postscript.
+:Introduction.
+
+ The purpose of CNVPRG.HLP is to introduce the programming language CNVRT,
+which is a pattern-directed language, whose commands are written as examples,
+in a style typified by: "if you see this, then do that..." Nevertheless, this
+is not a HELP file from first principles, but slightly more advanced. Another
+file, CNVRT.HLP, which outlines the language should be consulted first. This
+file shows how how to construct programs, beginning with a totally trivial
+example showing how to organize a file containing a CNVRT program. However,
+an editor can elaborate even this program into something more useful. It, and
+some of the other programs to be taken up are good seed programs.
+
+The first step is to consider input and output. Although CNVRT has a default
+exchange between the console and the program, most programs will work with
+disk files, and it is necessary to know what facilities are available to
+use the disk. But first, we show a program which interacts exclusively with
+the console. Even when disk files are involved, console interaction can always
+play a part in the program.
+
+The next step is simple reading and writing involving just a single file in
+each of these two activities.
+
+-
+Going on from individual files, there is frequent occasion to work with
+families of files, using CP/M's wildcard conventions. This gives us an
+opportunity to use some of the function skeletons which communicate with
+CP/M to execute advanced directory operations. It is also an opportunity to
+show how a list of tasks can be built up, which will be attended to one by one.
+
+Finally, a few moderately complicated examples are shown, which are quite
+convenient utilities in their own right.
+
+These programs are all relatively straightforward, in that they do not
+involve any but the simplest pattern matching and searching. In one of
+the sample programs, SENTEN.CNV, there is an exception when the definition
+of a "sentence" in terms of CNVRT is undertaken. Typesetters and writers
+use constructions just slightly beyond the definitions given; but we do not
+pursue the matter in any detail.
+
+
+
+
+
+
+
+-
+:Index of Demonstration Programs.
+
+	Program		Section		Panel
+	-------		-------		-----
+
+	SAMPLE.CNV	C		4
+	VOWEL.CNV	D		10
+	COPY.CNV	E		1
+	SENTEN.CNV	E		4
+	PYP.CNV		E		9
+	PAK.CNV		F		3,4
+	UPAK.CNV	F		7
+	BORRA.CNV	F		9
+	FIND.CNV	G		2,3,4
+	KWIK.CNV	G		6
+	BINCOM.CNV	G		8,9
+
+
+
+
+
+
+-
+:A Bare Minimum Program.
+
+The simplest possible CNVRT program is:
+
+		(()()()())
+
+It defines no patterns.
+It defines no skeletons.
+It uses no variables.
+It does nothing.
+
+In spite of the fact that it does nothing, it IS a program, and gives us
+a way to get started. We could also write it in the form:
+
+		((
+		)(
+		)()(
+		))
+
+In the second form it is easy to insert more lines, since its structure as a
+quadruple is already established. The null list of variables can't contain any
+spaces, carriage returns, or line feeds, so it is sandwiched on the third line.
+-
+To compile and execute a program we must place it in a disk file. From the
+the very beginning we should follow good programming habits and document our
+program. Its file needs a name, which could be the name of the program itself.
+Since we are all forgetful, especially after we have dozens of disks laying
+around, it is a good idea to place the name of the file at the very beginning
+of the file. That way, it will always show up on listings; we can also peek at
+the file with a TYPE in CP/M, and if names, dates, revision numbers, comments
+and the like are at the front of the file they can be scanned rapidly.
+
+If a program ends with the word "end" it will be evident that something has
+happened to the file if this final remark turns up missing.
+
+Without being very original, SAMPLE.CNV could be the name of a practice file,
+containing the following text:
+
+		[SAMPLE.CNV]
+		[A. Programmer, 15 March 1984]
+		[A sample of CNVRT programming]
+		(()()()())
+		[end]
+
+The square brackets make the text they enclose into comments for REC.
+-
+We do not always remember just what a program is for, the exact form of its
+paramenters, or the options that we may exercise during its execution. Startup
+messages can provide this information, although we ought to be careful about
+the optimal form and presentation of the message. If it is too long, people
+will rapidly tire of seeing it; furthermore it takes up memory space.
+
+CNVRT uses a run-time library of REC subroutines. The library subroutines which
+search for variables, define, store, and retrieve them are essential. Had they
+been included in the CNVRT program as macros, the resulting code would have
+been very much longer. Other subroutines correspond to input-output to disk or
+console via CP/M. Conversions and arithmetic operations are required by all but
+the simplest programs. One of the subroutines in the runtime library displays
+the startup message. A programmer can use this subroutine to show the message
+at any time. Either way, the message has to be gotten into the library program.
+
+The CNVRT compiler is programmed to place the runtime library in a particular
+place in the compiled program, and to look through the source program for the
+startup message. To simplify the compiler, these two locations should not be
+too hard to find. The solution is to enclose the message in DOUBLE square
+brackets and to put the library where THREE blank lines are provided.
+
+The next panel shows the sample program, incorporating all these features.
+-
+
+[SAMPLE.CNV]
+[A. Programmer, 15 March 1984]
+
+[This panel shows a complete program. Comments, such as this one, can be
+ used liberally to explain and document a program. Although defaults are
+ provided, CNVRT.REC expects to find the following four components of the
+ program, in order:
+	1. file name
+	2. startup message
+	3. three consecutive blank lines
+	4. the first subroutine (or the main program)
+ More blank lines may be present, and any number of additional comments.]
+
+[[This is the startup message.]]
+
+
+
+[main program]
+(()()()())
+
+[end]
+-
+:Establishing Communication.
+
+There might be programs that do not require input or produce output; think of a
+program that tests memory, which simply runs until it fails. Otherwise, sources
+and destinations must be established; then the program can receive information
+and record the results of its computation. If disk files are going to be used,
+CP/M places the names of such disk files on the command line. If no files are
+specified, it is a natural assumption that the console is to be used.
+
+A CNVRT program will be executed by typing a command line similar to
+
+		REC80 SAMPLE D:FILE.EXT
+
+because REC allows a secondary file name to be passed along to the program
+which it is going to load and execute. The information D:FILE.EXT will be
+forwarded to the workspace during the initialization which accompanies every
+CNVRT program. If no file is given we do not want to leave the program without
+any communication, so a prompt!is issued to the console. Whatever response then
+results is placed in the workspace for the main program to use.
+
+To complete the exchange between the program and its envoironment, once the
+program has finished, anything left in the workspace is typed at the console.
+-
+To see how this works, suppose that we use the file SAMPLE.CNV containing the
+null main program (()()()()). Since it does nothing, it will end up by typing
+whatever it finds in its workspace. We can try it with various command lines,
+to see what happens.
+
+1)		A>rec80 sample file.ext
+		This is the startup message.
+
+		FILE    .EXT
+		A>
+
+2)		A>rec80 sample
+		This is the startup message.
+
+		> file.ext
+		file.ext
+		A>
+
+Note in the first trial that CCP has parsed the command line, and the workspace
+reflects eleven bytes of the file control block, all in upper case. The second
+trial shows CNVRT's prompt, our reply, and the unparsed echo, still in lower
+case. Both show the startup message, which could have been an instruction line.
+-
+If the program is to use the file which has been designated, that file has to
+be opened, used, and closed; this means that we are going to have to include
+some substance in the program. First, the disk and filename can be bound to
+variables while ignoring the extension. A suitable program would be:
+
+		[main program]
+		(()()(8 9)(
+			(<8>:<9>(or, ,.),<<
+				>>(%Or,<8>:<9>.OLD)<<
+				>>(%Ow,<8>:<9>.NEW)<<
+				>>(a)<<
+				>>(%E)<<
+				>>);
+			(<9>,@:<9>):
+		))
+
+This program uses only one filename, but the input file will be distinguished
+from the output file because the former has the extension OLD, the latter the
+extension NEW. The as yet undefined function "a" will do the processing of the
+file. A detail which should be noted is the way in which we make sure that the
+variable <8> has a value to which to bind. Note further that the filename can
+terminate with either space or dot.
+-
+A slightly more elaborate main program is desirable. Since it is likely that
+the input file will be read by many different rules throughout the program,
+the single skeleton (R) can be defined once and for all in the main program
+to do this reading. We can also prime the function "a" with an initial line.
+
+		[main program]
+		(()(
+			((%R,<8>:<9>.OLD)) R
+		  )(8 9)(
+			(<8>:<9>(or, ,.),<<
+				>>(%Or,<8>:<9>.OLD)<<
+				>>(%Ow,<8>:<9>.NEW)<<
+				>>(a,(R))<<
+				>>(%E));
+			(<9>,@:<9>):
+		))
+
+Were it be possible to contrive to always have the variable <0> contain the
+text to be sent to the output file, a companion skeleton (W) could be set up,
+and used as an additional contribution to a shorter program.
+
+			((%W,<8>:<9>.NEW,<0>(^MJ))) W
+-
+Most programs will make automatic use of disk files whose names are derived
+from the command line, so the main program in each case will be similar to
+the one shown in the last panel. Typically, it will open the files to be used,
+execute an auxiliary program, and then close the files that it opened. Some
+general purpose reading and writing skeletons may be defined at this level,
+which is also the level at which disk assignments and generic file names can
+be bound. The choice of high numbers like 8 and 9 for these variables is simply
+a personal choice which leaves the low numbers free for use in other programs
+which will occupy the same file.
+
+If the program being prepared is to work with a family of files, supposing that
+an ambiguous file name were given on the command line, additional programming
+will be required to trace down all files in the directory which correspond to
+the ambiguous name and save references to them for later use in the program.
+
+Occasionally a program will be written which will not use disk files at all,
+but this simply means that the initial workspace derived from CP/M's command
+line should be ignored. Alternatively, some initial parameters could be passed
+to the program in the guise of a file name. If the program is to be interactive
+and the initial workspace is blank, the console is already established as the
+device which will be used by (%R) and (%W,,...); if the presence of a parameter
+were interpreted as a default disk, (%R,TTY:) and (%W,TTY:,...) will serve.
+-
+To explore the uses of the console as a default "disk" consider the following:
+
+		[VOWEL.CNV]
+		(()()()(
+			(stop,goodbye!);
+			((or,A,E,I,O,U),(, (%T,VOWEL) )(%R)):
+			(,(, (%T,other) )(%R)):
+		))
+
+This program types out a comment according to the initial letter of whatever
+is typed in response to the prompt at the console. It requires a lower case
+"stop" to terminate the program. The combination (, (%T,....) )(%R) is used to
+get a clean workspace into which is inserted the response following the next
+prompt. Since the null function erases its entire argument, we can waste a
+couple of spaces to improve the legibility of its argument. %W would have left
+a null string in the workspace, but we have to remove the text after using %T.
+
+This program requires no variables because it does not use any portion of the
+workspace, as dissected by a variable-containing pattern, in creating the new
+contents of the workspace. Generally, variables are not required when all the
+rules of a set are of the form (recognition, response). A program which made
+substitutions from a table, or classified intervals, would not use variables.
+-
+Let us try this same program again, using %W instead of %T. For the sake of
+variety, let us also mention the console specifically using (%R,TTY:) for (%R).
+
+		[VOWEL.CNV]
+		(()()()(
+			(stop,goodbye!);
+			((or,a,e,i,o,u),(%W,,vowel)(%R,TTY:)):
+			((or,A,E,I,O,U),(, (%T,VOWEL) )(%R)):
+			(,(%W,,other)(%R,)):
+		))
+
+Note the following details:
+
+	1) "goodbye!" does not need %T because it is the last thing placed
+		in the workspace, to be typed as the program exits to CP/M.
+
+	2)  %W is followed by TWO commas because we have to distinguish the
+		message it will type from the default; by definition the 
+		latter is not spelled out by name, but we have to show up
+		its absence somehow.
+
+	3)  (%R,) works; but is redundant, the same as (%R).
+-
+Suppose that we make a hasty copy of this program - omitting the startup
+message and everything - and give it a trial run. The following transcript
+might result:
+
+		A>rec80 cnvrt vowel	;first compile VOWEL.CNV
+		...			;CNVRT.REC will output some lines here
+		A>rec80 vowel		;now execute VOWEL.REC
+		cnvrt/icuap/1983	;default message
+					;blank line
+		> a<CR>vowel		;<CR> won't show, reply on same line
+		> A<CR>			;<CR> won't ever show
+		VOWEL			;reply on new line
+		> b<CR>other		;different response
+		> stop<CR>		;time to quit
+		goodbye!		;acknowledgement
+		A>			;back to CP/M
+
+The treatment of a and A was different - %W types what it sees, and if you
+want a CR,LF you have to put one in, say as (^MJ). The prompt showed up on a
+new line because %R always prefaces the prompt with a CR,LF. %T does the same
+because it is intended for debugging or for message transmission direct to the
+console, where it is a good idea to start everything off on a new line.
+-
+When a program is running, one often forgets how to stop it, or even what
+kind of data it is expecting. The purpose of the startup message is to supply
+this kind of information. At the risk of becoming irritating, it could be
+repeated with every %R to make sure that it was always available.
+
+A good startup message for this example would be:
+
+		[[
+		To identify upper and lower case vowels...
+		type any character, either shifted or regular.
+		type stop to quit
+		]]
+
+With practice one begins to pick up little formatting details. For example,
+when a reply falls on the same line as a prompt, and knowing that the carriage
+return which terminates console input will not be echoed, we might program a
+carriage return, line feed; or at least a separating space.
+
+The next panel shows a finished version of VOWEL.CNV.
+
+
+
+-
+[VOWEL.CNV]
+[Harold V. McIntosh, 16 March 1984]
+
+[[
+To identify upper and lower case vowels...
+type any character, either shifted or regular.
+type stop to quit
+]]
+
+
+
+[main program]
+(()()()(
+	(stop,goodbye!);
+	((or,a,e,i,o,u),(%W,, vowel)(%R,TTY:)):
+	((or,A,E,I,O,U),(, (%T, VOWEL) )(%R)):
+	(,(%W,, other)(%R,)):
+  ))
+
+[end]
+
+
+-
+:Reading and Writing Files.
+
+Once the basics of transmitting the CP/M command line to a CNVRT program have
+been mastered, and one has prepared a seed program it can  be copied via PIP
+to start a new program. A good place to begin is with a copying program, which
+is not all that useful, but which IS simple.
+
+		[COPY.CNV]
+		(()()(0)( ((^Z),); (<0>,(W)(R)): )) a
+
+		[main program]
+		(()(
+			((%R,<8>:<9>.OLD)) R
+			((%W,<8>:<9>.NEW,<0>(^MJ))) W
+		  )(8 9)(
+			(<8>:<9>(or, ,.),<<
+				>>(%Or,<8>:<9>.OLD)<<
+				>>(%Ow,<8>:<9>.NEW)<<
+				>>(a,(R))<<
+				>>(%E));
+			(<9>,@:<9>):
+		))
+-
+There are fine points to be perceived in the program of the preceding panel.
+
+	1) The program "a" is written on one line; it is harder to read but
+		since it is quite short, it is nicer to save the space.
+
+	2) %R will read the block of information which corresponds to it, one
+		single line - delimited by but not including its CR,LF - unless
+		formatted reading has been requested. %R will NEVER deliver
+		a ^Z unless it is the first character delivered. (Well, almost
+		NEVER. A formatted read could include a ^Z, but that could also
+		be considered poor programming practice.)
+	    There are error conditions which are signalled by a double ^Z, but
+		they do not change the suitability of testing for a single ^Z
+		to ascertain the end of a file or other input stream.
+
+	3) The terminal rule in "a" leaves a null workspace, not one containing
+		^Z. For users of certain brands of terminals, this avoids a
+		disconcerting flash on the screen as the final workspace is
+		typed on the console prior to returning to CP/M.
+
+	4) The pair (W)(R) in "a" could be (R)(W) instead since each function
+		has its private workspace. (W)(R) uses less total space.
+-
+Since simple copying of a file is easy enough to do with PIP, it might be a
+bit more interesting to look at programs which are capable of fancier maneuvers
+than that. First of all, when working with written text, the sentence is a much
+more natural unit than a line; indeed the discrepancy between the two accounts
+for much of the complexity involved in "word processors."
+
+What is a sentence? Traditionally, it begins with a capital letter and ends
+with a period; the period is the more important of the two. However, there
+are a few exceptions - quoted periods, triple dots sometimes used to express
+continuation, the period that goes inside the quoted expression which lies at
+the end of a sentence. Starting with its beginning, a sentence is recognized by
+
+		<-->.
+
+but we can incorporate the exceptions by making a series of definitions:
+
+  [non-terminal]	((or,(and,<[1]>,(nor,.,<'>,<">)),..(ITR,.))) q
+  [balanced quote]	((ITR,(or,<:q:>,<"><:r:><">,<'><:r:><'>))) r
+  [sentence]		(<:r:>(or,.,<"><:r:>.<">,<'><:r:>.<'>)) s
+
+We still have to filter out things like captions and section numbers, but <:s:>
+is a certain approximation to a sentence recognizer.
+-
+The following program ought to read the file named on the command line, and
+type it out sentence by sentence on the console.
+
+		[SENTENCE.CNV]
+		(()()(0 1)(
+			((^Z),);
+			( <0>,<0>):
+			(<0> (ITR, )<1>,<0> <1>):
+			(<0>(^MJ)<1>,<0> <1>):
+			(<0>,(, (%T,<0>) )(R)):
+		)) a
+
+		[main program]
+		((
+			((or,(and,<[1]>,(nor,.,<'>,<">)),..(ITR,.))) q
+			((ITR,(or,<:q:>,<"><:r:><">,<'><:r:><'>))) r
+			(<:r:>(or,.,<"><:r:>.<">,<'><:r:>.<'>)) s
+		)(
+			((%R,<9>,<:s:>)) R
+		  )(9)(
+			(<9>,(%Or,<9>)(a,(R))(%E));
+		))
+-
+When a file is prepared containing the program of the last panel, several
+surprises await the unwary user, beginning with the fact that the program
+simply doesn't work. The reason is nothing that would be obvious to anyone
+who had not had previous experience with similar difficulties.
+
+In trying to use a "pattern directed read" we have given the function %R
+the name of a pattern, <:s:>, as an argument. The definition of a "sentence"
+is complicated enough to have been broken down into three separately defined
+patterns, so it is reasonable enough to give %R a defined pattern rather than
+its whole detailed definition. HOWEVER, %R is also a quite complicated function
+defined in REC; just that the programmer never sees the definition because it
+is automatically incorporated in his program as part of the runtime library. %R
+uses q and r, whose definitions supersede those made in the main program during
+the execution of %R. In particular r, which supersedes <:r:>, tries to open
+some arbitrary file, provoking a mysterious error message from BDOS. This
+difficulty is fundamental, and will be encountered in all programming languages
+given the appropriate combination of circumstances:
+
+	IF A FUNCTION IS PASSED AS AN ARGUMENT TO ANOTHER FUNCTION,
+	THE DEFINITIONS WHICH WILL BE USED WILL BE THOSE PREVAILING
+	AT THE TIME OF EXECUTION, NOT AT THE TIME OF CALLING!
+
+-
+The solution, although not elegant, is to choose other names for the patterns
+p, q, and r which do not conflict with internal definitions of the function %.
+It is not reasonable to expect the programmer to have to do this, but until a
+more systematic solution is incorporated into CNVRT, it will have to suffice.
+Having done so, the program will execute according to specification, revealing
+some further oversights.
+
+	1) Not all sentences end with a period - exclamation and question
+	   mark, sometimes three dashes, are also terminators.
+
+	2) As written, the provision for singly or doubly quoted expressions
+	   does not foresee their nesting with alternate parity.
+
+	3) What programmers take for a single quote is an ASCII accent; ASCII
+	   doesn't have an apostrophe, so the accent is used for that too!
+
+	4) Abbreviations, especially initials in proper names, are followed
+	   by periods. Beware the division FILE.EXT in CP/M file names.
+
+	5) Tabular material, formulas, and program examples don't show periods.
+	   Inserts may have periods of their own - decimal points for example.
+	   Paragraph numbers, captions, and headers are all non-sentences.
+-
+The foregoing sequence, containing an attempt at a sentence recognizer, siows
+two contradictory aspects of CNVRT programming. On the one hand, CNVRT has the
+power to give a quick description of natural characteristics of text. On the
+other hand, we see that natural language is subtly beyond any short and simple
+analysis. If we strive for perfection, it will elude us; but if we settle for
+a cursory solution of a casual problem we will fare much better.
+
+In the case of a sentence recognizer, we will do pretty well just picking out
+periods, and slightly better with periods followed by spaces or CR,LF's.
+
+To continue surveying simple copying programs, consider some frequent tasks
+which PIP can perform, and how even more general movements could be achieved.
+CNVRT contains some "character arithmetic" functions which were placed there
+to allow certain kinds of copying.
+
+		&u - make uppercase
+		&l - make lowercase
+		&a - zero parity bit (CP/M's convention for ASCII)
+		&s - set parity bit  (used by some editors)
+
+The functions in the & family process a character string of arbitrary length;
+the easiest way to use them is line by line until the end-of-file comes up.
+-
+There are further functions in the & family; &h would be useful for generating
+hexadecimal dumps from binary progam files because it replaces each byte in
+its argument string by a two-byte printable ASCII equivalent using hexadecimal
+"digits." Individual functions of the & family could be incorporated in the
+COPY.CNV example of a previous panel just by modifying the definition of the
+skeleton W:
+
+		((%W,<8>:<9>.NEW,(&u,<0>)(^MJ))) U
+		((%W,<8>:<9>.NEW,(&l,<0>)(^MJ))) L
+		((%W,<8>:<9>.NEW,(&a,<0>)(^MJ))) A
+		((%W,<8>:<9>.NEW,(&u,<0>)(^MJ))) H
+
+Rather than having five special purpose programs, let us think of how to
+incorporate all five options into a single program. The CNVRT command line
+is still restricted by its REC substrate to passing a single file name, so
+there are two evident choices:
+
+		1. Incorporate the option in the filename.
+		2. Solicit the option from the console.
+
+The latter is likely to be the more instructive; it also leaves open the
+possibility that the command line file would be a sort of SUBMIT file.
+-
+
+[PYP.CNV]
+[Harold V. McIntosh, 16 March 1984]
+[A CNVRT program exhibiting some of the characteristics of PIP.COM]
+[[
+c/copy, u/upper, l/lower, a/zero parity, h/hex dump]]
+
+
+
+[option]      (()()(0)((X,(^Z)); (<0>,(, (%T,In file  ) )(b,(Q))); )) a
+[input file]  (()()(1)((<1>,(, (%T,Out file ) )(c,(Q))); )) b
+[output file] (()()(2)((<1>,); (<2>,(%Or,<1>)(%Ow,<2>)(d,<0>)); )) c
+[choose]      (()( ((%R,<1>)) R)()( (C,(e,(R))); (U,(f,(R))); (L,(g,(R)));
+	      (A,(h,(%R,<1>,<[128]>))); (H,(i,(%R,<1>,<[16]>))); )) d
+[copy]	(()()(0)( ((^Z),); (<0>,(%W,<2>,<0>(^MJ))(R)): )) e
+[upper]	(()()(0)( ((^Z),); (<0>,(%W,<2>,(&u,<0>)(^MJ))(R)): )) f
+[lower]	(()()(0)( ((^Z),); (<0>,(%W,<2>,(&l,<0>)(^MJ))(R)): )) g
+[ascii]	(()()(0)( ((^ZZ),); (<0>,(%W,<2>,(&a,<0>))(%R,<1>,<[128]>)): )) h
+[dump]	(()()(0)( ((^ZZ),); (<0>,(%W,<2>,(&h,<0>)(^MJ))(%R,<1>,<[16]>)): )) i
+[loop]  (()()()( ((^Z),); (,(%Q)(, (%T,option?  ) )(a,(Q))): )) x
+[main]  (()( ((&u,(%R,(&u,<9>)))) Q)(9)( (<9>,(%Or,(&u,<9>))(x)(%E)); ))
+
+[end]
+-
+This program is rather densely packed to make it fit in a single panel, but
+its structure is quite straightforward.
+
+	main	place SUBMIT file or TTY: in <9>, open if necessary, call x
+
+	x	loop: solicit option, call a, quit for ^Z
+
+	a	bind option to <0>, solicit input file, call b
+		but return immediately for option X
+
+	b	bind input file to <1>, solicit output file, call c
+
+	c	bind output file to <2>, open input and output, call d
+
+	d	call e, f, g, h, i according to option selected
+
+	others	repeat the appropriate action until ^Z or ^Z^Z
+		e - option C - simple copy
+		f - option U - make uppercase
+		g - option L - make lowercase
+		h - option A - remove parity bit
+		i - option H - hexadecimal dump
+-
+Commentary regarding the program PYP.CNV:
+
+	1. A null file command line will give us the opportunity to define
+	   a "SUBMIT" file, or to interact through the keyboard if we give a
+	   null response. A file given on the command line defines a "SUBMIT"
+	   file, whose lines should contain the expected keyboard response.
+
+	2. The program is illustrative, not fool proof; little is done about
+	   possible error reports from BDOS unless BDOS itself takes over.
+
+	3. &u is applied to all input, guaranteeing a uniform case shift.
+
+	4. ASCII oriented processing terminates on a ^Z, but block processing
+	   waits for the double ^Z following the last block.
+
+	5. The startup line contains the option menu, and is repeated by %Q
+	   for each file processed. A more elegant program would use the
+	   startup line to explain the "SUBMIT" options, and generate the
+	   menu listing by a %T before requesting new input.
+
+	6. If TTY: is designated as the output device, we can watch the results
+	   on the console screen.
+-
+:Families of Files.
+
+Programming with a single input file and a single output file requires only the
+CNVRT functions %O, %R, %W, %C, and %E. They open and close files, read and
+write data to the files. Based on the analogous CP/M function, their operation
+is only slightly different. For example, file opening will create a previously
+nonexistent file, or else erase a previously existing file if the intention is
+to write into it. When reading, the nonexistence of the file produces an error
+indication - the placement of the phrase "Not Found" in the workspace.
+
+The read function reads one single line unless directed to read another format
+by including a pattern in its parameter list. In writing, only the contents of
+the workspace is sent to the output file. Naturally, some buffering is needed
+by these functions to make them compatible with CP/M.
+
+Other file handling functions are available in CP/M, notably those which treat
+ambiguous file names, and allow the renaming and deleting of files. The two
+search functions, %S for "search" and %A for "search again" may be used to
+track down all the instances of an ambiguous file name at the beginning of a
+program. Then they may be read out one by one as the files they represent are
+processed. It is a good idea to save everything at once at the beginning of a
+program; this avoids the inadvertent reprocessing of a file just created.
+-
+There is a fairly straightforward main program, which is shown in the HELP
+file CNVRT.HLP, which can be used to gather up all the files corresponding
+to an ambiguous file reference.
+
+The following example is slightly more complex, because it derives the name of
+an output file from the first reasonable instance of the ambiguous reference
+which it encounters. It is another variant on PIP; which has the capacity to
+join several files into a single file, as would be done by the command line:
+
+		PIP UNION=A,B,C,D
+
+The variation consists in joining the files in a way that will preserve their
+individuality so that they can later be separated from one another. For binary
+files this is hard without prefacing the union with some sort of directory,
+but for ASCII files some kind of mark can be used to separate them.
+
+If the mark is ASCII text, we have to have some assurance that it will not
+occur naturally in the texts that we are going to join. For example it is
+risky to use the word end because it is a segment of render, trend, endeavour,
+and many others. Quoting it is safer, but to say that "end" was a terminator
+wouldn't work in this very file. Non-text, such as ^Z, would be safer but would
+confuse PIP or TYPE. ASCII claims that ^\ is a "file separator"; it might do. 
+-
+[PAK.CNV]
+[Harold V. McIntosh, 18 March 1984]
+[[Make composite file from many individual files.]]
+
+
+
+[transcribe file]
+(()()(2)( ((^Z),(%W,(P),(^\MJ))); <2>,(%W,(P),2>(^MJ))(R)): )) a
+
+[main loop - run through files]
+(()(
+((%R,<7>:<8>.<9>)) R
+  )(0 8 9)(
+  [avoid selfreference]	(<[9]>PAK<[20]><0>,<0>):
+  [backup files too]	(<[9]>BAK<[20]><0>,<0>):
+  [parse filename]	(<[1]>(and,<[8]>,<8>)(and,<[3]>,<9>)<[20]><0>,<<
+    [open file]			>>(%Or,<7>:<8>.<9>)<<
+    [insert its name]		>>(%W,(P),[<8>.<9>](^MJ))<<
+    [copy file]			>>(a,(R))<<
+    [close file]		>>(%C,<7>:<8>.<9>)<<
+    [go to next]		>><0>):
+  )) x
+[-]
+
+[form file list]
+(()()(0)( (Not Found<0>,<0>); (<0>,(%A,(&u,<7>:<1>))<0>): )) y
+
+[choose and open output file]
+(()(
+  (<7>:<6>.PAK) P
+  )(6)(
+  [no more files]	(Not Found,);
+  [avoid .BAK, .PAK]	(<[9]>(or,BAK,PAK),(%A,(&u,<7>:<1>))):
+  [parse filename]	(<[1]>(and,<[8]>,<6>)<[23]>,<<
+    [open .PAK file]		>>(%Ow,(%T,(P)))<<
+    [now process list]		>>(x,(y,(%S,(&u,<7>:<1>))))<<
+    [close .PAK file]		>>(%C,(%T,(P)))<<
+				>>);
+  )) z
+
+[main program]
+(()()(1 7)( (<7>:<1>,(z,(%S,(&u,<7>:<1>)))); (<1>,@:<1>): ))
+
+[end]
+
+-
+PAK.CNV is cluttered, but still long enough to require two panels. Even so,
+it is a simple succession of nested programs:
+
+	main	bind disk unit, file name (which is probably ambiguous)
+		locate first instance of the file
+
+	z	search for first plausible family name, which with the
+		extension .PAK, will become the output file. Set up a loop
+		which will open the output file, run through the files to
+		be loaded into it, and finally close it.
+
+	y	form the list of candidate files to be packed
+
+	x	the main loop, which opens each acceptable file (.BAK, and
+		.PAK files are rejected), reads it and writes it into the
+		.PAK file, then closes it (not necessary for CP/M, but will
+		release its FCB and buffer space for CNVRT).
+
+	a	responsible for copying each individual file
+
+The packed files are separated by a line containing ^\ (1CH); it is easier
+for unpacking if this mark occupies a whole line.
+-
+There is, of course, a complementary program which restores the original
+programs form the packed file. It is somewhat simpler to write because the
+file names to be used are predetermined and only have to be read out of the
+text, taking advantage of the fact that they follow the separator ^\. About
+the only new technique to be found in this example is the cycle of opening,
+writing, and closing the files embedded in the master file.
+
+The complementary program is shown in the next panel.
+
+There are some details concerning file acquisition which are common to all
+the programs we are showing. One: we have set up a pattern which requires a
+disk unit because of the colon. Were only recognition involved, the pattern
+(or,<8>:,) would accept the lack of a unit specification; but then <8> would
+not get bound, which would cause trouble later. Since a pattern can only bind
+by matching, we have to use a separate rule to get a workspace of acceptable
+structure. A conditional skeleton could have been used instead:
+
+		((and,(or,<-->:,),<8>),(if,<8>,,@,<8>))
+
+Two: A null command line could result in having the family name input from
+the console, but we have taken no precaution to force it into upper case.
+
+-
+[UPAK.CNV]
+[Harold V. McIntosh, 18 March 1984]
+[[make individual files from packed file]]
+
+
+
+[locate file name]
+(()( (<8>:<0>.<1>) V ((%W,(V),<2>(^MJ))) W )(0 1)(
+	((^Z),);
+	([<0>.<1>],(%Ow,(%T,(V)))(b,(P))(%C,(V))(P)):
+	(,(P)):
+  )) a
+
+[transcribe file]
+(()()(2)( (<2>(^\),(W)); (<2>,(W)(P)): )) b
+
+[main program]
+(()( ((%R,<8>:<9>.PAK)) P )(8 9)(
+	(<8>:<9>(or, ,.),(%Or,<8>:<9>.PAK)(a,(P))(%E));
+	(<9>,@:<9>): ))
+
+[end]
+-
+As a final example of a program which can scan a series of files, let us
+consider one which makes selective erasures from the directory. Service
+programs with this capability are not rare; let us make this one more
+instresting by giving it the capability of scanning the file to be erased
+to facilitate the decision whether to erase it or not. To do this it employs
+the function &p which replaces each non-printable ASCII character by a dot.
+It is the function used in DDT.COM and some other programs to permit lisiting
+general binary files without risking the untoward action of some of the ASCII
+control characters.
+
+To check whether a file is null - that is, a directory entry possessing zero
+sectors - or just to refresh your memory for a file you have forgotten about,
+type slash to have the first 64 bytes of the file placed on the screen, but
+filtered by the "dot" function.
+
+This program shows the dual use of the startup message - using the function
+(%Q) it is repeated after every query keeping the options always visible. This
+is an economy for cramped space, albeit an effective one. A useful interactive
+program should be as liberal with messages, supplementary advice, and comments
+as necessary to make it helpful to the user. There is also an art to tastefully
+concealing all the additional information and handholding from the experienced
+user who does not want to endure lengthy explanations during every session.
+-
+[BORRA.CNV]
+[G. Cisneros, 2Jan84; HVM, 21Mar84]
+[[
+y/erase, q/quit, //examine, other/keep.]]
+
+
+
+[Get next name]
+(()( (<8>:<1>.<2>) F )(1 2 3)(
+     (<>,); (q:,(%W,TTY:,: Kept; End.));
+     (<[1]>(and,<[8]>,<1>)(and,<[3]>,<2>)<[20]><3>,<<
+	      >>(, (%T,Erase (F)?)(%Q) )<<
+	      >>(d,(&l,(%R,TTY:)))<3>): )) a
+[Delete, Quit, or Keep]
+(()()()( (y,(%D,(F))); (q,q:);
+     (/,(%Or,(F))(, (%T,(&p,(%R,(F),<[64]>))) )(%C,(F))(%R,TTY:)):
+     (,(%W,TTY:,: Kept));)) d
+[Assemble directory entries in WS]
+(()()(0)( (Not Found<0>,<0>); (<0>,(%A,<8>:<9>)<0>): )) b
+[Main program: search for first]
+(()()(8 9)( (<8>:<9>,(a,(b,(%S,<8>:<9>)))); (<9>,@:<9>): ))
+[end]
+-
+:Further Examples.
+
+To round out our presentation of input-output and file handling programs,
+we show some service routines. They are presented here in a very abbreviated
+form to confine them to a single panel, but having followed the discussion
+of how to run through families of disk files, how to add more interactive
+console messages to the programs, and so on, anyone could adapt them.
+
+One of the useful utility functions which were included in Ward Christensen
+and Randy Seuss' CBBS (R) programs which were available from them at one time
+was a function FIND.COM, which scanned a family of disk files to locate one
+or the other of a series of phrases which one could place on the command line.
+The evident purpose of this utility was finding lost messages when some mishap
+befell the disk which was in the system.
+
+This program was generalized to FYNDE.COM, included as number 165.12 in SIG/M
+disk #165. For the purpose of comparison, we have used CNVRT to reproduce the
+original FIND.COM. As a binary program it is much longer, much slower; but it
+was written and tested during an afternoon and can readily be modified in
+several directions as fast as the program can be modified with an editor and
+recompiled. To get the full generality of FYNDE.COM, CNVRT ought to be able to
+compile and execute CNVRT programs, a facility which will be forthcoming.
+-
+[FIND.CNV]
+[Harold V. McIntosh, 22 March 1984]
+
+[A program wilch will scan a family of files looking for a keyword.
+
+ The control line
+
+		REC80 FIND FAMILY.*
+
+ will prompt for a key phrase,
+
+		> Search phrase?
+
+ and  then report all the lines in the search family which contain that
+ word or phrase. Tabs may be included in the phrase. The exact case shift
+ shown will be used, as well the exact number of spaces. Totals per file
+ and a grand total will also be reported.]
+
+[[look through files for a reference]]
+
+
+
+[-]
+[scan file]
+(()()(0 1)(
+  [separator at end]	((^Z),);
+  [write, read line]	((and,<--><6>,<0>)<1>,(%W,TTY:,(C)(K)(T): <0><1>(|))(R)):
+			(,(, (K) )(R)):
+  )) a
+
+[main loop - run through files]
+(()( ((%R,<7>:<8>.<9>)) R ((%R,CTR:LINE)) K ((^MJ)) |
+	((, (%R,CTR:CASE) )) C ((, (%R,CTR:TOTL) )) T )(0 8 9)(
+  [avoid .COM files]	(<[9]>COM<[20]><0>,<0>):
+  [parse filename]	(<[1]>(and,<[8]>,<8>)(and,<[3]>,<9>)<[20]><0>,<<
+    [initialize counter]	>>(%W,CTR:LINE,1,1)<<
+    [initialize instance]	>>(%Or,CTR:CASE)<<
+    [open file]			>>(%Or,<7>:<8>.<9>)<<
+    [type filename]		>>(%W,TTY:,(|)-----> File: <7>:<8>.<9>(|))<<
+    [scan file]			>>(a,(R))<<
+    [close file]		>>(%C,<7>:<8>.<9>)<<
+    [report instances]		>>(, (%T,Lines Found: (%R,CTR:CASE)) )<<
+    [go to next]		>><0>):
+  )) x
+
+[-]
+[form file list]
+(()()(0)( (Not Found<0>,<0>); (<0>,(%A,<7>:<8>)<0>): )) y
+
+
+[bind search phrase, look for file]
+(()()(6)( (<6>,(x,(y,(%S,<7>:<8>)))); )) z
+
+
+[main program]
+(()()(7 8)(
+	(<7>:<8>,<<
+		>>(%Or,CTR;LINE)<<
+		>>(%Or,CTR:TOTL)<<
+		>>(, (%T,Search phrase?) )<<
+		>>(z,(%R,TTY:))<<
+		>>(, (%T,Total Lines Found: (%R,CTR:TOTL)) )<<
+		>>);
+	(<8>,@:<8>):
+  ))
+
+[end]
+
+-
+One possible variant on the theme of FIND.CNV is to produce the line bearing
+the phrase sought in the form of a KWIC index. KWIC means "keyword in context,"
+and is a technique deriving from the days of punched cards. Textual material,
+for example a bibliography, was scanned for the presence of a certain phrase,
+or keyword; cards bearing the designated phrase were listed on the printer. For
+the presence of the keyword to be more obvious, the line was rotated, so that
+the keyword occupied a central position in the printed line, the same position
+for all the lines so that they could be quickly scanned to see how each one of
+them used the target word or phrase.
+
+KWIC indices can be elaborated to a considerable degree. For example, the
+keywords can be derived from the source text itself, listing all possible
+words as they occur in all possible sentences, after discarding such trivial
+occurrences as a, and, the, and other high-frequency English words.
+
+Beware of the program shown in the next panel - it processes only a single
+file and not a family of files. However, it is a simple modification to give
+this capability, as well as to permit the use of more than one keyword, to
+rotate the line rather than just windowing it, and so on.
+
+
+
+-
+[KWIC.CNV]
+[Harold V. McIntosh, 22 March 1984]
+[[KWIC Index]]
+
+
+
+[Bind keyword]
+(()( (                         ) S )(8)( (<8>,(b,(e,(%R,<9>)))); )) a
+[KWIC line]	(()()(0 1)( ((^Z),);
+		(<0><8><1>,(, (%T,(c,<0>) <8> (d,<1>)) )(e,(%R,<9>))):
+		(,(e,(%R,<9>))): )) b
+[left segment]  (()()(0)( (<-->(and,<[25]><>,<0>),<0>); (<0>,(S)<0>): )) c
+[right segment] (()()(0)( ((and,<[25]>,<0>),<0>); (<0>,<0>(S)): )) d
+[find tabs]     (()()(0 1 2)(
+		((and,<[8]>,<0>(^I)<1>)<2>,(f,<0>)(e,<1><2>));
+		((and,<[8]>,<0>)<2>,<0>(e,<2>));
+		(<0>(^I)<1>,(f,<0>)<1>): )) e
+[expand tabs]	(()()(0)( ((and,<[8]>,<0>),<0>); (<0>,<0>        ): )) f
+[main program]	(()()(9)( (<9>,(%Or,<9>)(, (%T,Keyword?) )(a,(%R,TTY:))); ))
+[end]
+
+
+-
+Another of the utilities on the disk SIG/M #165 was BINCOM.COM, which may
+be used to compare two binary files to see whether they are identical. Even
+though it contained no adjustment to pick up synchronism after encountering
+an insertion or deletion, it is still a very useful program. One use consists
+in verifying that a dissasembly has been correctly done by comparing the newly
+assembled binary program with the original binary source; as discrepancies are
+found they can be used to refine the source code.
+
+In the next panels we show BINCOM.CNV, which is the same program written with
+CNVRT. The source is quite concise, less than a page of code. The object code
+runs past a dozen K bytes, which doesn't matter too much because it it still
+uses only a part of the memory which is typically available. The running speed
+is somewhat bound by the velocity of transmission to the terminal, but cannot
+help being slow in comparison to the assembly language program.
+
+Should a modification of BINCOM be attempted, the CNVRT version is clearly
+advantageous; not only was the program set up with about an hour's work, any
+modification will require a similar time scale. For example, the bytes examined
+could be tested to see whether they were among the 8080 instructions which use
+an address. Knowing that two programs were closely similar except for the
+widespread occurrence of address shifts caused by insertions or deletions would
+make the comparison of two versions of a program much easier.
+-
+[BINCOM.CNV]
+[Harold V. McIntosh, 22 March 1984]
+
+[CNVRT version of program SIG/M 165.04 which will compare two binary files]
+[TTY: output only; for disk replace %T by %W,(&u,<9>)]
+[[compare two binary files]]
+
+
+
+[bind <1>] (()()(1)( (<1>,(, (%T,Second file ) )(b,(&u,(%R,TTY:)))); )) a
+[bind <2>] (()()(2)( (<2>,(%Or,<1>)(%Or,<2>)(c,(1)(2))); )) b
+[read two] (()()(3)(
+	((^ZZZZ),);
+	((^ZZ),(, (%T,<1> shorter) ));
+	(<[2]>(^ZZ),(, (%T,<2> shorter) ));
+	(<3><3><>,(, (%T,match) )(, (%R,CTR:BYTE) )(1)(2)):
+	(<3>,<<
+		>>(, (%T,(&Dh,(%R,CTR:BYTE)): (&h,<3>)  (&p,<3>)) )<<
+		>>(, (%R,CTR:MISM) )<<
+		>>(1)(2)):
+	)) c
+
+[-]
+[main]  (()(
+	((%R,<1>,<[1]>)) 1
+	((%R,<2>,<[1]>)) 2
+    )(9)( (<9>,<<
+	>>(%Ow,(&u,<9>))<<
+	>>(%Or,CTR:BYTE)<<
+	>>(%Or,CTR:MISM)<<
+	>>(, (%T,First file) )<<
+		>>(a,(&u,(%R,TTY:)))<<
+	>>(, (%T,(%R,CTR:BYTE) bytes read) )<<
+	>>(, (%T,(%R,CTR:MISM) mismatches found) )<<
+	>>(%E)); ))
+
+[end]
+
+
+
+
+
+
+
+
+-
+:Postscript.
+
+The discussion of a read whose scope is defined by a pattern in the section
+"Reading and Writing Files" provided sufficient motivation to revise CNVRT.REC
+to avoid the bulk of the problem; the names of patterns and skeletons can now
+be passed as arguments of functions. The discussion and the warning was left
+unchanged because it is still valid, only that the conflictive!symbols are now
+restricted to some of the less desirable punctuation. Patterns, skeletons, or
+programs should not be given names like ";" or "{" or "<" or anything else
+readily confused with CNVRT syntax. Some, like space or right brace, have to be
+prohibited outright for their conflict with CNVRT and REC syntax; others such
+as "`" or "~" have been preempted for the internal uses to which the warning
+was directed.
+
+One is now safe if one uses upper and lower case letters and digits; some
+punctuation or symbols are usable but should only be taken when everything else
+is used up and only after carefully consulting and understanding the CNVRT
+listing.
+
+Even though the difficulty has been driven away, it is waiting to return. Just
+because the function %R no longer interposes its own set of definitions between
+the definition and the execution of its argument pattern we needn't rejoice.
+-
+It still remains that there is a fundamental conflict over preferable usage
+in a function defined with the aid of bound variables when it is an argument
+for another function. Two equally valid choices exist, one must be chosen.
+The natural choice is not the most convenient one for implementation, and it
+is also not so prevalent as to entirely exclude another alternative. According
+to this view, the bound variables used in the execution of the function should
+be the ones visible near where it was called. This ignores the fact that some
+conflicting choices of variable names may have been made when the function was
+defined as a subroutine.
+
+Persons accustomed to double integrals in calculus or indices in multiple sums
+in algebra will recognize the problem, which occurs when simple integrals are
+combined into a double integral. Distinct variables of integration must be
+chosen, just as multiple sums need distinct indices.
+
+Our resolution of the conflict is akin to choosing distinct variables or
+indices in those two examples. A more correct solution would shield the
+definitions against extraneous intermediate definitions, then recover them
+at the moment and place of execution.
+
+
+
+-
+:[CNVPRG.HLP]
+[Harold V. McIntosh, 27 March 1984]
+[end]
+

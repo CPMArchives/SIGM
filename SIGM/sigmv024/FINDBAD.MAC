@@ -1,0 +1,429 @@
+	.COMMENT \
+***************************************************
+*
+*	THIS WAS ORIGINALLY UPGRADED BY RAY PENLEY
+*  TO CPM 2.2 .
+*  DAN LUNSFORD THEN CONVERTED IT TO Z80 AND ADDED
+*  THAT SNEAKY USER 31 LOCATION FOR THE [UNUSED].BAD.
+*  SO NOW WE HAVE A SLICK WAY TO STRETCH OUR DISKS.
+*****************************************************
+   This is an adaptation of the FINDBAD
+program appearing in the September, 1980 issue
+of INTERFACE AGE magazine.  This program will
+read a CP/M disk and isolate any bad sectors
+in a reserved file, so CP/M doesn't see them 
+any more.
+
+   The original of this program was written for
+CP/M V1.4, but failed under V2.0 and above.
+This version is EXPLICITLY for V2.2 and the Z80
+and will not run under earlier versions or an 8080.
+
+   The reserved file is made totally invisible by
+being relegated to USER 31, which is not accessible
+from the CCP, or indeed, to just about anything.
+
+   Planned enhancements to this program include
+adaptation to disks other than floppys.  I want to 
+get it to handle hard disks, etc.  This means messing
+with the disk parameter blocks.  
+	\
+	.z80
+
+boot	equ	0
+bdos	equ	5
+tbuff	equ	80h
+
+tracks	equ	77
+sects	equ	26
+dbase	equ	2
+bbase	equ	2
+maxb	equ	241
+block	equ	8
+
+deletf	equ	19
+makef	equ	22
+openf	equ	15
+selecf	equ	14
+closef	equ	16
+prstrf	equ	9
+usrcdf	equ	32
+versf	equ	12
+
+cr	equ	0dh
+lf	equ	0ah
+tab	equ	09h
+
+fill	macro	nbytes,fillb
+	.xlist
+	rept	nbytes
+	defb	fillb
+	endm
+	.list
+	endm
+
+defz	macro	nbytes
+	fill	nbytes,0
+	endm
+
+start:	ld	sp,dm+1000
+	call	ibios
+	call	findb
+	jr	z,nobad
+	call	openb
+	call	setdm
+	call	closeb
+	call	setnum
+nobad:	ld	de,endmsg
+pmsg:	ld	c,prstrf
+	call	bdos
+	ld	c,usrcdf	;restore invoking user number
+	ld	a,(usrcde)
+	ld	e,a
+	call	bdos
+	jp	boot
+
+ibios:	ld	hl,(boot+1)
+	inc	hl
+	inc	hl
+	inc	hl
+	ld	de,jpvec
+	ld	bc,39
+	ldir
+	ld	c,versf
+	call	bdos
+	ld	a,l
+	or 	a
+	jr	z,vererr
+	ld	a,(tbuff)
+	cp	2
+	ret	c
+	jr	z,error1
+	ld	hl,(tbuff+2)
+	ld	a,h
+	cp	":"
+	jr	nz,error1
+	ld	a,l
+	cp	"A"
+	jr	c,error1
+	cp	"E"
+	jr	nc,error1
+	and	7
+	dec	a
+	ld	e,a
+	ld	d,0
+	ld	c,selecf
+	call	bdos
+	ld	e,0ffh
+	ld	c,usrcdf	; save invoking user number
+	call	bdos
+	ld	(usrcde),a
+	ld	e,31
+	ld	c,usrcdf	;set user number to 31
+	call	bdos
+	ret
+
+vererr:	ld	de,vermsg
+	jp	pmsg
+
+vermsg:	defb	cr,lf,"This version of FINDBAD requires"
+	defb	"CP/M 2.0 or higher",cr,lf,"$"
+
+error1:	ld	de,ermsg1
+	jp	pmsg
+
+ermsg1:	defb	cr,lf,"Error in command line"
+	defb	cr,lf,"Must be 'FINDBAD' or 'FINDBAD X:'"
+	defb	cr,lf,"$"
+
+findb:	call	chksys
+	call	chkdir
+	ld	b,bbase
+findba:	call	readb
+	call	nz,setbd
+	inc	b
+	ld	a,b
+	cp	maxb
+	jr	c,findba
+	ld	hl,(dmcnt)
+	ld	a,h
+	or	l
+	ret
+
+chksys:	ld	hl,1
+chksy1:	call	reads
+	jr	nz,syserr
+	ld	a,h
+	cp	2
+	jr	c,chksy1
+	ret
+syserr:	ld	de,ermsg9
+	ld	c,prstrf
+	call	bdos
+	ret
+
+ermsg9:	defb	cr,lf,"***WARNING*** System tracks bad***$"
+
+chkdir:	ld	b,0
+chkdi1:	call	readb
+	jr	nz,direrr
+	inc	b
+	ld	a,b
+	cp	bbase
+	jr	c,chkdi1
+	ret
+direrr:	ld	de,ermsg2
+	jp	pmsg
+
+ermsg2:	defb	cr,lf,"***Bad directory area-halting***"
+	defb	cr,lf,"$"
+
+readb:	call	cnvrtb
+	ld	c,block
+readba:	call	reads
+	ret	nz
+	dec	c
+	jr	nz,readba
+	ret
+
+cnvrtb:	push	bc
+	ld	l,b
+	ld	h,0
+	add	hl,hl
+	add	hl,hl
+	add	hl,hl
+	ld	de,dbase*256
+	ld	bc,-sects
+cnvrtc:	ld	a,h
+	or	a
+	jr	nz,cnvrtt
+	ld	a,l
+	cp	sects
+	jr	c,cnvrts
+cnvrtt:	add	hl,bc
+	inc	d
+	jr	cnvrtc
+cnvrts:	ld	e,l
+	inc	e
+	ex	de,hl
+	pop	bc
+	ret
+
+reads:	push	bc
+	push	hl
+	call	itoa
+	push	hl
+	ld	c,h
+	call	settrk
+	pop	bc
+	call	setsec
+	call	dread
+	or	a
+	pop	hl
+	pop	bc
+	push	af
+	inc	l
+	ld	a,l
+	cp	sects+1
+	jr	c,readsr
+	ld	l,1
+	inc	h
+readsr:	pop	af
+	ret
+
+itoa:	ex	de,hl
+	ld	bc,lpmap-1
+	ld	l,e
+	ld	h,0
+	add	hl,bc
+	ld	e,(hl)
+	ex	de,hl
+	ret
+
+lpmap:	defb	1,7,13,19,25,5,11,17,23,3,9,15,21
+	defb	2,8,14,20,26,6,12,18,24,4,10,16,22
+
+setbd:	ld	hl,(dmcnt)
+	ld	de,block
+	add	hl,de
+	ld	(dmcnt),hl
+	ld	hl,(dmptr)
+	ld	(hl),b
+	inc	hl
+	ld	(dmptr),hl
+	ret
+
+openb:	ld	de,bfcb
+	push	de
+	push	de
+	ld	c,deletf
+	call	bdos
+	pop	de
+	ld	c,makef
+	call	bdos
+	pop	de
+	ld	c,openf
+	call	bdos
+	cp	255
+	ret	nz
+	ld	de,ermsg3
+	jp	pmsg
+
+ermsg3:	defb	cr,lf,"Can't create [UNUSED].BAD",cr,lf,"$"
+
+setdm:	ld	hl,dm
+	ld	(dmptr),hl
+	ld	hl,(dmcnt)
+setdm0:	ld	a,h
+	or	a
+	jr	nz,gobig
+	ld	a,l
+	cp	129
+	jr	c,setdme
+gobig:	ld	de,-128
+	add	hl,de
+	push	hl
+	ld	a,128
+	call	setdme
+	ex	de,hl
+	ld	(dmptr),hl
+	call	closeb
+	ld	a,(fnum)
+	inc	a
+	ld	(fnum),a
+	ld	(bfcb+8),a
+	call	openb
+	pop	hl
+	jr	setdm0
+setdme:	ld	hl,(dmptr)
+	ex	de,hl
+	ld	hl,bfcb+16
+	ld	b,16
+	ld	(bfcb+15),a
+setdml:	ld	a,(de)
+	ld	(hl),a
+	inc	de
+	inc	hl
+	djnz	setdml
+	ret
+
+closeb:	xor	a
+	ld	(bfcb+14),a
+	ld	de,bfcb
+	ld	c,closef
+	call	bdos
+	ret
+
+setnum:	ld	hl,(dmcnt)
+	add	hl,hl
+	add	hl,hl
+	add	hl,hl
+	add	hl,hl
+	add	hl,hl
+	ld	de,255
+	add	hl,de
+	ld	l,h
+	ld	h,0
+	ld	de,numbad
+	call	dncv
+	ret
+
+dncv:	ld	b," "
+	ld	a,h
+	or	a
+	jp	p,h3
+	ld	b,"-"
+	ld	a,l
+	neg
+	ld	l,a
+	ld	a,h
+	cpl
+	jr	nz,h2
+	inc a
+h2:	ld	h,a
+h3:	ld	(dcnvhl),hl
+	ld	a," "
+	ld	(de),a
+	ld	a,b
+	ld	(dcnvpm),a
+	ex	de,hl
+	ld	(dcnvad),hl
+	xor	a
+	ld	(dcnvfl),a
+	ld	bc,-10000
+	call	dfl8
+	call	dstc
+	ld	bc,-1000
+	call	dfl8
+	call	dstc
+	ld	bc,-100
+	call	dfl8
+	call	dstc
+	ld	bc,-10
+	call	dfl8
+	call	dstc
+	ld	a,(dcnvhl)
+	or	"0"
+	ld	e,a
+dstc:	ld	hl,(dcnvad)
+	ld	a,(dcnvfl)
+	or	a
+	jr	nz,dstc3
+dstc1:	add	a,e
+	ld	(dcnvfl),a
+	jr	nz,dstc2
+	ld	a," "
+	jr	dstc4
+dstc2:	ld	a,(dcnvpm)
+	ld	(hl),a
+dstc3:	ld	a,"0"
+	or	e
+dstc4:	inc	hl
+	ld	(hl),a
+	ld	(dcnvad),hl
+	ret
+
+dcnvfl:	defb	0
+dcnvhl:	defw	0
+dcnvad:	defw	0
+dcnvpm:	defb	0
+
+dfl8:	ld	hl,(dcnvhl)
+	ld	e,0
+df1:	add	hl,bc
+	bit	7,h
+	ret	nz
+	inc	e
+	ld	(dcnvhl),hl
+	jr	df1
+
+usrcde:	defb	0
+
+bfcb:	defb	0,"[UNUSED]BAD",0,0,0,0
+	defz	17
+
+endmsg:	defb	cr,lf,tab
+numbad:	defb	"    No bad blocks found",cr,lf,"$"
+fnum:	defb	"0"
+dmcnt:	defw	0
+dmptr:	defw	dm
+
+dm:	defz	256
+
+jpvec:	defs	39
+const	equ	jpvec
+conin	equ	jpvec+3
+conout	equ	jpvec+6
+list	equ	jpvec+9
+punch	equ	jpvec+12
+reader	equ	jpvec+15
+home	equ	jpvec+18
+seldsk	equ	jpvec+21
+settrk	equ	jpvec+24
+setsec	equ	jpvec+27
+setdma	equ	jpvec+30
+dread	equ	jpvec+33
+dwrite	equ	jpvec+36
+
+	end	start
+

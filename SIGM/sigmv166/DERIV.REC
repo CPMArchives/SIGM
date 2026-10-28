@@ -1,0 +1,288 @@
+
+[DERIV.REC]
+[Calculate symbolic derivatives]
+[Harold V. McIntosh, 26 July 1983]
+
+[[]]
+
+{
+   				{
+    [find/make FCB]		(Jj'TTY:'EQZD;(':'UQD':'ED\64-%;0%;)
+				 ('.'U<(8a;@b;)Q|D>;Z'.DAT'IJj:)
+				  '.'FJDZ(3a;@b;)Q|JZDI
+				 32(dpGm$r0=npGpGd0&$Sm@znpGQ&$rrS0;
+				 r12wQmwnEn;n:)D;) f
+    [blank fill by count]	(Zz(d' 'I:;)JZ;) b
+    [zero fill]			(cmpw0%(f:;)w;) 0
+    [zero FCB & buffer]		($m33@0130@0nn&0||pLnS;) z
+    [set default input file]	(0,30$S'5C'H12wA' 'Ew4@0n0|0|pL31$S
+				 'TTY:'31$rrS; B9aQD(3a'   'E
+				 'DAT';Q;)|mw31@zn31$rrS31@r;) i
+    [open for read]		(@hr15K(255='NO FILE'I;L;)L;) r
+    [open for write]		(@hpGpG4+1&SrpG19k22k^^r128&S;) w
+    [set DMA address]		($rpG^^r^^26k;) h
+    [open]			(m@f0=n@@;nLL;) O
+    [read]			(''(AL@f(0=pG@r;'TTY:'(='T');))
+				 ('T'='';L31pG$rr12w'TTY:'Ew;w)
+				 L@&'> 'TL(@#I;:);
+				 $r(pG^^rpGmr(0=(npGpGm128&S^^26kpGr
+				 20K0=L;LL1npGpGm129+26%&SS;)npGmr;;)
+				 pG130&-n+&dm(u13%=;10%(=)pGI(26%=;
+				 L);ndm:)L^^rn&S;LpG^^r0&S:);) R
+    [write]			(Jj'='U<(A@f'TTY:'(=)(0=pG@w;;))>'='ED
+				 ZqtD; >'='EDZ<@g;) W
+    [write to disk]		($r(pG^^rpGpGmrpGm- 130+n&maQD>Z<nSn^^
+				 26kpGr21kpG^^r128&S:JZQD>nSnSL;);) g
+    [close all files]		(31pGm($r0=;pG4+r(0=L;LJj26%I<npGm@gpG
+				 ^^rpGr127(N^^26kpGr21k;L;)r16k;)ndpGm:)
+				 nL;;) c
+    [PVR]			(pG@&#'= '|TL$r(0='undef';yG;)TL;) _
+    [cr, lf]			(2573TL;)&
+    [insert cr, lf]		(2573I;)|
+    [read console]		(R13%='';08%(=)(T@#|;08%T' 'TLTLL@#;);)#
+    [type comment]		(@TD;)C
+    [display at logon]		('
+Symbolic differentiation is a symbol manipulation process, in
+which the known rules for derivatives, such as: the derivative
+of a sum is a sum of derivatives, the derivative of a product
+is a sum in which one factor is differentiated at a time, or
+the chain rule for the derivative of a function of a function,
+are applied recursively until finally the derivative of a constant
+is zero or the derivative of the variable iself is one.
+
+Enter an algebraic expression - only sums, differences, products,
+and quotients are considered, and only integer constants. Terms
+may be enclosed in parentheses.  Terminate your expression with a
+carriage return. The expression will be parsed and differentiated,
+finally the result shown; the result may be surprising because very
+little simplification and no rearrangement is made. Exit with a
+single carriage return. The message "other" indicates an error.
+'TL@&;)D
+    [write workspace]		(@&JZqt;)T
+				(@@;) }%
+    [integer arithmetic]	{(+;)+ (-;)- (*;)* (/&L;)/
+				(pGm/L1=nL1;0=n;n&:)|
+				 ((pGmJj(U);QD(O)I;npGmEDZQD(O)IjnpGmI;
+				 n@@#I)nLJZ;;) } #
+    [save & init variables]	(pGpGm$rm0&$S;) (
+    [reinitialize variable]	(pG$r0=L;LnL0&$S;) :
+    [undefine variable]		($r0=;LnL;) )
+    [compare/define variable]	(pG$r0=ZQzml&$S;&LyGEz;
+	) ]
+    [body of variable search]	(pG$r(0=)yG(E;&L)z&L@=L;pG$r(0=;LL)
+				  Z<((&pGm&n(F;''mZz<)jJQmpGl&$S
+				  zZ<@=>;J>);nLA:0&$SL>)>LL;) >
+    [body of variable search]	(pG$r(0=)yGEz@=L;pG$r(0=;LL)
+				  Z<((jJQmpGl&$S
+				  zZ<@=>;J>);nLA:0&$S>)>L;) <
+    [insert variable]		($ryGI;) [
+				
+[individual cases]
+{(0@( 1@( {(0@: 1@: ;); (
+		@;(J2573TL'intermediate 'TLZqtj()JZD;);
+  [sum]		@;(J [and] Z<( ([itr] Z<'+'Ez>; J>@j:) [itr]  
+	jJ>< {[vbl] ('+'Ez(A);) =
+	('+'0@>;)}[vbl] (A);>)>
+	 [and] 1@]JZDz<z<0@[@xZ>
+	','Iz<1@[@xZ>
+	@sZ>;);
+  [difference]	@;(J [and] Z<(([ITR] Z<@l'-'Ez>:J>;)[ITR]  
+	jJ>< {[vbl] ('-'Ez(A);) =
+	('-'0@>;)}[vbl] (A);>)>
+	 [and] 1@]JZDz<z<0@[@xZ>
+	','Iz<1@[@xZ>
+	@mZ>;);
+  [product]	@;(J [and] Z<( ([itr] Z<'*'Ez>; J>@j:) [itr]  
+	jJ>< {[vbl] ('*'Ez(A);) =
+	('*'0@>;)}[vbl] (A);>)>
+	 [and] 1@]JZDz<z<0@[','Iz<1@[@xZ>
+	@pZ>','Iz<z<0@[@xZ>
+	','I1@[@pZ>@sZ>;);
+  [quotient]	@;(J [and] Z<( ([itr] Z<'/'Ez>; J>@j:) [itr]  
+	jJ>< {[vbl] ('/'Ez(A);) =
+	('/'0@>;)}[vbl] (A);>)>
+	 [and] 1@]JZDz<'('Iz<z<z<z<0@[@xZ>
+	','I1@[@pZ>','Iz<0@[','Iz<1@[@xZ>
+	@pZ>@mZ>@uZ>'),'Iz<1@[','I1@[@pZ>@qZ>;);
+  [paren]	@;(J [and] Z<(@i(A) 
+	jJ><'('Ez {[vbl] (')'Ez(A);) =
+	(0@<;)}[vbl] (A);>)>
+	 [and] JZD0@[;):
+  [unary -]	@;(J'-'Ez0@]JZDz<z<0@[@xZ>
+	@nZ>;);
+  [variable]	@;(J'x'Ez(A)JZD'1'I;);
+  [constant]	@;(J@j(A)JZD'0'I;);
+  [other]	@;(J0@]JZDz<'other: 'I0@['C'@%Z>;);
+  ;)} 0@) 1@)   nn$S nn$S;)} x
+
+[simplify difference]
+{(0@( 1@( {(0@: 1@: ;); (
+		@;(J {[vbl] (','Ez0@];) =
+	(0@<;)}[vbl] JZD'0'I;);
+		@;(J {[vbl] (',0'Ez(A);) =
+	(0@<;)}[vbl] JZD0@[;);
+		@;(J'0,'Ez0@]JZDz<0@[@nZ>;);
+		@;(J [and] Z<(@U','Ez@U(A) 
+	jJ>< {[vbl] (','Ez1@];) =
+	(0@<;)}[vbl] (A);>)>
+	 [and] JZDz<0@['-'I1@['-'@#Z>;);
+		@;(J {[vbl] (','Ez1@];) =
+	(0@<;)}[vbl] JZD0@['-'I1@[;);
+  ;)} 0@) 1@)   nn$S nn$S;)} m
+
+[simplify negative]
+{(0@( {(0@: ;); (
+		@;(J'0'Ez(A)JZD'0'I;);
+		@;(J'('Ez [and] Z<( [or] Z<('-'Ez;
+	 J;>)>
+	 [or] @k 
+	jJ><0@](A);>)>
+	 [and] ')'Ez(A)JZD0@[;):
+		@;(J'-'Ez [and] Z<(@k(A) 
+	jJ><0@](A);>)>
+	 [and] JZD0@[;);
+		@;(J [and] Z<(@k(A) 
+	jJ><0@](A);>)>
+	 [and] JZD'-'I0@[;);
+		@;(J0@]JZD'-('I0@[')'I;);
+  ;)} 0@)   nn$S;)} n
+
+[parenthesize composite]
+{(0@( {(0@: ;); (
+		@;(J [and] Z<(@k(A) 
+	jJ><0@](A);>)>
+	 [and] JZD0@[;);
+		@;(J0@]JZD'('I0@[')'I;);
+  ;)} 0@)   nn$S;)} o
+
+[simplify product]
+{(0@( 1@( {(0@: 1@: ;); (
+		@;(J'0,'Ez((Z<>;J>);A:)JZD'0'I;);
+		@;(J((Z<',0'Ez(A)>;J>);A:)JZD'0'I;);
+		@;(J'1,'Ez0@]JZD0@[;);
+		@;(J {[vbl] (',1'Ez(A);) =
+	(0@<;)}[vbl] JZD0@[;);
+		@;(J [and] Z<(@U','Ez@U(A) 
+	jJ>< {[vbl] (','Ez1@];) =
+	(0@<;)}[vbl] (A);>)>
+	 [and] JZDz<0@['*'I1@['*'@#Z>;) ;
+		@;(J {[vbl] (','Ez1@];) =
+	(0@<;)}[vbl] JZDz<0@[@oZ>'*'Iz<1@[@oZ>;);
+  ;)} 0@) 1@)   nn$S nn$S;)} p
+
+[simplify quotient]
+{(0@( 1@( {(0@: 1@: ;); (
+		@;(J'0,'Ez((Z<>;J>);A:)JZD'0'I;);
+		@;(J'('Ez [and] Z<(@k 
+	jJ><0@](A);>)>
+	 [and] '),'Ez1@]JZD0@[','I1@[;):
+		@;(J'(-'Ez [and] Z<(@k 
+	jJ><0@](A);>)>
+	 [and] '),'Ez1@]JZD'-'I0@[','I1@[;):
+		@;(J {[vbl] (',1'Ez(A);) =
+	(0@<;)}[vbl] JZD0@[;);
+		@;(J {[vbl] (','Ez1@];) =
+	(0@<;)}[vbl] JZDz<0@[@oZ>'/'Iz<1@[@oZ>;);
+  ;)} 0@) 1@)   nn$S nn$S;)} q
+
+[simplify sum]
+{(0@( 1@( {(0@: 1@: ;); (
+		@;(J'0,'Ez0@]JZD0@[;);
+		@;(J {[vbl] (',0'Ez(A);) =
+	(0@<;)}[vbl] JZD0@[;);
+		@;(J [and] Z<(@U','Ez@U(A) 
+	jJ>< {[vbl] (','Ez1@];) =
+	(0@<;)}[vbl] (A);>)>
+	 [and] JZDz<0@['+'I1@['+'@#Z>;);
+		@;(J {[vbl] (','Ez0@];) =
+	(0@<;)}[vbl] JZD'2*'I0@[;);
+		@;(J {[vbl] (','Ez1@];) =
+	(0@<;)}[vbl] JZD0@['+'I1@[;);
+  ;)} 0@) 1@)   nn$S nn$S;)} s
+
+[negate expression]
+{(0@( 1@( {(0@: 1@: ;); (
+	@;(J [and] Z<(@l 
+	jJ><0@](A);>)>
+	 [and] '+'Ez1@]JZD0@['-'Iz<1@[@tZ>;);
+	@;(J [and] Z<(@l 
+	jJ><0@](A);>)>
+	 [and] '-'Ez1@]JZD0@['+'Iz<1@[@tZ>;);
+  ;)} 0@) 1@)   nn$S nn$S;)} t
+
+[common level for sum or difference]
+{(0@( 1@( {(0@: 1@: ;); (
+	@;(J [and] Z<(@i 
+	jJ><'('Ez {[vbl] (')'Ez;
+	) =
+	(0@<;)}[vbl] (A);>)>
+	 [and] '+'Ez [and] Z<(@i 
+	jJ><'('Ez {[vbl] (')'Ez;
+	) =
+	(1@<;)}[vbl] (A);>)>
+	 [and] JZD0@['+'I1@[;);
+	@;(J [and] Z<(@i 
+	jJ><'('Ez {[vbl] (')'Ez;
+	) =
+	(0@<;)}[vbl] (A);>)>
+	 [and] '-'Ez [and] Z<(@i 
+	jJ><'('Ez {[vbl] (')'Ez;
+	) =
+	(1@<;)}[vbl] (A);>)>
+	 [and] JZD0@['-'Iz<1@[@tZ>;);
+  ;)} 0@) 1@)   nn$S nn$S;)} u
+
+[collect]
+{(0@( 1@( 2@( {(0@: 1@: 2@: ;); (
+  ;)} 0@) 1@) 2@)   nn$S nn$S nn$S;)} v
+
+[main program]
+{
+  [alfanum]  ( [and] Z<(1(a;L)z 
+	jJ><' ''~'Mz(A);>)>
+	 [and] ;) a
+  [numeric]  ( [and] Z<(1(a;L)z 
+	jJ><'0''9'Mz(A);>)>
+	 [and] ;) b
+  [uconst]   (@b([ITR] Z<@b>:J>;)[ITR] ;) U
+  [number]   ( [or] Z<('-'Ez;
+	 J;>)>
+	 [or] @U;) c
+  [pelem]    ( [and] Z<(1(a;L)z 
+	jJ><[not] (Z<  [or] Z<('('Ez;
+	 J')'Ez;
+	>)>
+	 [or] J>)J>[not] Zz(A);>)>
+	 [and] ;) e
+  [telem]    ( [and] Z<(1(a;L)z 
+	jJ><[not] (Z<  [or] Z<('('Ez;
+	 J')'Ez;
+	 J'+'Ez;
+	 J'-'Ez;
+	 J'*'Ez;
+	 J'/'Ez;
+	>)>
+	 [or] J>)J>[not] Zz(A);>)>
+	 [and] ;) f
+  [token]    (@f([ITR] Z<@f>:J>;)[ITR] ;) g
+  [paren]    ('('Ez([ITR] Z<@j>:J>;)[ITR] ')'Ez;
+	) i
+  [term]     ( [or] Z<(@i; J@e;>)>
+	 [or] ;) j
+  [t or p]   ( [or] Z<(@g; J@i;>)>
+	 [or] ;) k
+  [prqu]     (@k([ITR] Z< [or] Z<('*'Ez;
+	 J'/'Ez;
+	>)>
+	 [or] @k>:J>;)[ITR] ;) l
+
+  (0@( {(0@: ;); (
+	@;(J [or] Z<(';'Ez;
+	 J(A);>)>
+	 [or] JZD'goodbye'I;);
+	@;(J0@]JZDz<z<0@[@xZ>
+	'C'@%Z>z<'R'@%Z>;):
+  ;)} 0@)   nn$S;)} ~
+('i'@%'D'@%'R'@%@~JZqt'c'@%;)  }
+
+[end]

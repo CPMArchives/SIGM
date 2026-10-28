@@ -1,0 +1,513 @@
+;    FILE:  MEMBIT.SRC             CREATED 14-NOV-80
+;    WRITTEN BY D.A. STEELE
+;    LAST UPDATE 
+;
+;         THIS WILL BE A RAM TEST WHICH WILL TEST 64K OF RAM
+;    IN 1K BLOCKS.  THE TESTS WILL BE DONE WITHOUT DISTROYING
+;    ANY PORTION OF RAM WITH THE EXCEPTION OF THE 5K BLOCK JUST
+;    BELOW CP/M THE TOP OF WHICH WILL BE LOCATED BY (LHLD BDOS+1;
+;    DCR H; DCR H).
+;
+;    THE TEST:
+;         1:  WILL FILL MEMORY WITH 0FFH THEN CHECK FOR 0FFH AND FILL WITH 0
+;    AND THEN CHECK FOR 0.
+;         2:   WILL START AT THE FIRST TEST BLOCK LOCATION WITH AN 88H TO
+;    BE WRITTEN.  COUNTING UPWARDS IN MEMORY EACH LOCATION IS WRITTEN
+;    WITH THE VALUE OF THE PROVIOUS LOCATION ROTATED RIGHT WITH 
+;    CARRY WICH WILL CAUSE AN UNEVEN PATTERN IN EACH 8 OR 16 BYTE
+;    BLOCK OF MEMORY.  
+;         AFTER THIS 4K BLOCK HAS BEEN TESTED THEN THE NEXT
+;    BLOCK WILL BE TESTED.
+;
+;    ERRORS WILL BE THE NUMBER OF TIMES
+;    AN ERROR WAS DETECTED.  (IE. IF THERE HAVE BEEN 3 PASSES AND ERRORS
+;     IS EQUAL TO 3 THIS WILL MEAN THAT ONE ERROR OCCURRED IN EACH PASS
+;    OR 3 ERRORS OCCURREC IN ONE PASS ETC.   STATUS: THE BIT SET WILL WILL
+;    GIVE THE 4K BLOCK LOCATION IN WHICH ERRORS HAVE OCCURRED SENCE THE START
+;    IF THE TEST.  THE HIGH ORDER BIT WILL COROSPOND TO THE F000H BLOCK OF
+;    MEMORY.
+
+;
+;    THIS TEST IS WRITTEN TO BE USED WITH A PASCAL/Z MONITOR FOR CONFIDENCE
+;    TESTS OF THE ATS III.  
+;
+;    THE MONITOR PROGRAM SHOULD HAVE THE FALLOWING DECLARATION
+;
+;    FUNCTION MEMTST : INTEGER; EXTERNAL
+;
+;    A STATUS WORD IS RETURNED TO THE CALLING PROGRAM WITH BITS SET
+;    ACCORDINGLY TO ALL MEMORY LOCATIONS WHICH FAILED.
+
+          NAME      MEMTST
+          ENTRY     MEMTST
+
+BDOS      EQU       5
+BEGIN:
+MEMTST:   JR        BACK
+          JR        BACK2     ;THE JUMP VECTOR AFTER RESTORE
+
+INIT:     EXX                 ;GET READY TO SAVE ALTERNATE REGISTERS
+          POP       H         ;SAVE THE RETURN ADDRESS
+          PUSH      D
+          PUSH      B
+          PUSH      IY
+          PUSH      IX
+          PUSH      H         ;PUT BACK THE RETURN ADDRESSŠ
+          EXX                 ;ALT. BC IS THE ERROR FLAG SO ZERO IT
+          LXI       B,0
+          LIYD      STARTA    ;THIS IS THE ADDTESS OF THE NEXT BLOCK
+          EXX                 ;TO BE TESTED
+
+          LHLD      BDOS+1    ;NOW GET THE ADDRESS OF THE SAVE AREA
+          DCR       H         ;THIS WILL BE 2 PAGES BELOW CP/M
+          DCR       H         ;TO ALLOW ROOM FOR SID.
+          MVI       L,0       ;NOW MAKE SURE ITS AN EVEN BLOCK
+          MOV       A,H
+          ANI       0F0H
+          MOV       H,A
+
+          LXI       D,1000H   ;HL IS NOW POINTING AT THE TOP BUT
+          STC                 ;WE WANT THE BOTTOM SO SUBTRACT
+          CMC                 ;1000H FROM IT.
+          DSBC      D
+          PUSH      H         ;THIS STORE THIS VALUE IN IX
+          POP       X
+          RET
+;
+;                             IX = ADDRESS OF SAVE AREA
+;                             IY ½ FIRSÔ ADDRESÓ OÆ NEXÔ BLOCË TÏ TEST
+;
+;
+;
+SAVE:     PUSH      Y         ;HL NOW POINTS TO THE START OF THE
+          POP       H         ;NEXT TEST BLOCK
+          PUSH      X         ;POINT DE TO THE SAVE AREA
+          POP       D
+          LXI       B,400H   ;MOVE ONE BLOCK
+          LDIR
+          JR        BACK22    ;RETURN TO BACKGROUND
+
+;
+;
+;
+SAVEME:   LXI       H,BOTTOM     ;GET THE END AND LENGTH OF THIS 
+          LXI       B,BOTTOM-BEGIN ; ROUTINE
+          PUSH      X         ;GET THE ADDRESS OF THE SAVE AREA
+          POP       D         ; IN D
+          PUSH      D         ; WE WILL GO TO HERE WHEN FINISHED
+          LDDR                ;WITH THE MOVE
+
+          POP       H
+          INX       H         ;GET PAST THE FIRST JUMP VECTOR
+          INX       H
+          LXI       B,BOTTOM-BEGIN
+          STC
+          CMC
+          DSBC      B         ;GET TO BOTTOM OF CODE AREA
+          PCHL
+;    
+;Š;
+UNSAVE:   DB        0FFH
+    
+;
+;
+;
+REST:     PUSH      Y  
+          POP       D
+                              ;KEEP IN MIND TO MAINTAIN A
+                              ;AS THE ERROR FLAG
+REST1:                        ;PUT HL BACK TO THE START OF THE
+                              ;START OF THE BLOCK
+                              ;BLOCK START IN DE
+          PUSH      X  
+          POP       H         ;GET SAVE AREA ADDRESS
+          LXI       B,400H
+          LDIR
+          JR        BACK5
+
+
+
+
+;
+;
+;
+BACK:     DB        0,0,0,0,0,0,0,0,0,0,0,0 ;FOR DEBUG
+          LXI       H,0
+          DAD       SP        ;GET THE OLD STACK POINTER  
+          LXI       SP,STAK
+          PUSH      H         ;SAVE OLD STACK POINTER ON NEW STACK
+          CALL      ADDRIN    ;GET START AND STOP ADDRESSES
+BACK1:    CALL      INIT      ;INITIALIZE THE NECESSARY STUFF
+
+BACK11:   JMP       SAVEME
+BACK2:    
+BACK21    JR        SAVE
+BACK22:   JR        TEST1
+BACK3     JR        TEST2
+
+BACK4:    JR        REST
+BACK5:    CPI       0         ;PASSED
+          CNZ       FAIL
+
+          
+BACK6     LXI       D,400H   ;MOVE BOTTOM OF BLOCK UP ONE
+          DADY      D         ; BLOCK
+          PUSH      Y
+          POP       H         ;GET IT IN HL
+          LBCD      STOPA     ;GET THE STOP ADDRESS
+          MOV       A,H       ;AND TEST IT AGAINST THE       
+          CMP       B         ;START OF THE NEXT BLOCK
+          JZ        DONE      ;STOP IF BLOCK > STOP
+          JNC       DONE
+          PUSH      X
+          POP       B         ;GET BOTTOM OF SAVE AREAŠ          MOV       A,B
+          SUB       H
+          CPI       30H       ;IF LESS THAN 3 BLOCKS THEN WE NEED
+                              ;TO RETURN TEST TO ITS ORIGIONAL
+                              ;POSITION
+          JRZ       RESTXFR
+
+BACK7     JRC       RESTXFR   ;IF CARRY THEN WE ARE CLOSER THAN
+                              ;WE WANT
+BACK8     MOV       A,H       ;IF HL IS NOW 0 WE HAVE GONE 46K
+          CPI       0         ;SO STOP
+          JZ        DONE
+          JR        BACK21
+;
+;
+;
+TEST1:    PUSH      Y         ;GET ADDRESS OF THE AREA TO BE
+          POP       H         ;TESTED
+          MVI       D,0FFH    ;WE'LL FILL W/ FF'S FIRST
+          LXI       B,400H   ;ONE BLOCKS WORTH
+TEST11:   MOV       M,D
+          INX       H
+          DCX       B
+          MOV       A,C
+          ORA       B
+          JRNZ      TEST11
+
+                              ;NOW TESTS FOR THOSE FF
+                              ;AND FILL W/ 0
+          LXI       B,400H
+TEST12    DCX       H         ;HL WAS INCREMENTED PAST THE LAST
+          MVI       A,0FFH    ;WRITE
+          XRA       M         ;XOR FF W/ FF = 0
+          JRNZ      ERROR     ;OOPS
+          MOV       M,A       ;FILL M W/ 0
+          DCX       B         ;COUNTIT
+          MOV       A,B
+          ORA       C
+          JRNZ      TEST12
+
+          LXI       B,400H   ;NOW TEST FOR ZEROS
+TEST13:   XRA       A         
+          XRA       M
+          JRNZ      ERROR
+          INX       H
+          DCX       B
+          MOV       A,B
+          ORA       C
+          JRNZ      TEST13
+          JR        BACK3
+
+;
+;
+;
+ERROR:    MVI       A,0FFH    ;FAILEDŠ          JR        BACK4
+;
+RESTXFR:  JR        RESTME
+BACK4XFR: JR        BACK4
+BACK6XFR: JR        BACK6
+;
+;
+;
+TEST2                         
+          PUSH      Y         ;POINT H TO BOTTOM OF TEST BLOCK
+          POP       H
+TEST21:   
+          LXI       B,400H   ;
+          MVI       A,88H
+          EXAF
+TEST22:   EXAF
+          MOV       M,A
+          INX       H
+          DCX       B
+          RAR                 ;MAKE THE NEXT PATTERN
+          EXAF                ;SAVE IT
+          MOV       A,B
+          ORA       C         ;ARE WE DONE
+          JRNZ      TEST22
+
+          LXI       B,400H
+TEST23:   EXAF                ;MEMORY IS FILLED NOW
+          RLA
+          DCX       H         ;NEXT LOCATION TO TEST
+          DCX       B
+          MOV       D,A
+          EXAF                ;SAVE PATTERN
+          MOV       A,D
+          CMP       M         ;CHECKIT
+          JRNZ      ERROR
+          MOV       A,B
+          ORA       C         ;CHECK COUNT TO SEE IF DONE
+          JRNZ      TEST23
+          MVI       A,0       ;PASSED
+          JR        BACK4XFR  ;TEST2 COMPLETED
+
+;
+;
+;
+RESTMEº   
+          JMP       BACK8
+;
+;
+;    INPUT BUFFER FROM CONSOLE
+
+CINSIZ    EQU       10
+BIOS      EQU       BDOS
+WBOOT     EQU       0
+
+ŠSTARTM:   DB        'ENTER START ADDRESS $'
+STOPM:    DB        0AH,0DH,'ENTER STOP ADDRESS $'
+EVENM:    DB        0AH,0DH,'MUST START ON EVEN 1K BLOCK BOUNDRY',0AH,0DH,'$'
+CRLF:     DB        0AH,0DH,'$'
+
+
+CIN:      LXI       D,INBUF        ;GET ADDRESS OF INPUT BUFFER
+          MVI       A,CINSIZ
+          STAX      D              ;LOAD THE BUFFER LENGTH
+          MVI       C,10
+          CALL      BIOS              ;LET CP/M INPUT BUFFER
+          RET
+
+CEND:     LDA       INBUF+1        ;GET NUMBER OF CHARACTERS
+          LXI       H,INBUF+2      ;POINT TO THE FIRST
+          MVI       D,0            ;ZERO D
+          MOV       E,A            ;CHAR COUNT IN E
+          DAD       D              ;ADD TO FIRST CHAR LOC.
+          MVI       M,0            ;AND PUT A 0 THERE
+
+HEXIN:    LXI       D,INBUF+2      ;POINT TO FIRST CHAR IN BUFFER
+          LXI       H,0            ;ZERO THE NUMBER
+IN1:      LDAX      D              ;GET A CHAR
+          SUI       '0'            ;CHECK FOR < 0
+          RC                       ;BUFFER END RETURN
+          ADI       '0'-'G'        ;CHECK > F
+          RC                       ;INVALID RETURN
+          ADI       6
+          JP        IN2            ;NO BETWEEN A AND F
+          ADI       7              
+          RC
+IN2:      ADI       10
+          ORA       A              ;CLEAR CARRY
+          MOV       C,A            ;MOVE HEX TO C
+          MVI       B,0            ;ZERO B
+          DAD       H              ;SHIFT NUMBER LEFT 4
+          DAD       H
+          DAD       H
+          DAD       H
+          DAD       B              ;AND ADD NEW DIGIT
+          INX       D              ;INC BUFFER POINTER
+          JMP       IN1            ;DO NEXT CHAR
+
+NOTEVEN:  LXI       D,EVENM        ;SEND NOT EVEN MESSAGE
+          MVI       C,9
+          CALL      BIOS
+ADDRIN:   
+          LXI       H,0
+          SHLD      STARTA         ;STORE THE START ADDRESS
+
+          LXI       H,0FFFFH
+          SHLD      STOPA          ;STORE THE STOP ADDRESS
+          
+          RET
+ŠDONE:
+          CALL      CFAIL          ;CHECK ALL BLOCKS THAT FAILED AND UPDATE ERROR FLAG
+          JMP       PASS           ;PRINT OUT THE ERRORS
+
+BOTTOM:   NOP
+
+;    FILE FAIL.SRC       14-DEC-80
+;
+;    IN THE EVENT OF A TEST FAILURE, THIS ROUTINE WILL MOVE 
+;    THE 4K BLOCK NUMBER INTO A REG.
+;    AND WILL IN TURN OR IT IN WITH THE ERROR FLAG.
+;
+;    THE PASS COUNT AND ERROR COUNT WILL BE INCREMENTED 
+;    ACCORDINGLY
+;
+;    BECAUSE IT IS NEVER EXECUTED WHILE MEMORY IS DISPLACED, THIS PORTION
+;    IF THE TEST PROGRAM IS NEVER SAVED,
+;
+
+ERRFLG:   DW        0              ;A STATUS WITH BITS SET CORROSPONDING TO THE 4K BLOCKS THAT HAVE FAILED
+ERRCNT:   DW        0              ;THE NUMBER OF BLOCKS IN WHICH ERRORS HAVE OCCURRED.  IE  IF TWO ERRORS OCCUR IN ONE PASS
+                                   ;THEN THIS WILL BE INCREMENTED BY TWO EVEN THOUGH ONLY ONE PASS HAS BEEN MADE
+ERRM:     DB        '     ERRORS = $'
+STATM:    DB        ' STATUS = $'
+ERRORS:   DB        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0    ;16 4K BLOCKS  WILL INDICATE IN WHICH BLOCKS ERRORS HAVE OCCURED.
+
+OUTCHAR:  ANI       0FH            ;MASK 4 BITS
+          ADI       90H            ;ADD OFFSET
+          DAA                      ;DEC ADJUST
+          ACI       40H            ;ADD OFFSET
+          DAA                      ;DEC ADJUST
+          MOV       E,A            ;TO FOR OUTPUT
+          MVI       C,2            ;CONSOL OUT
+          CALL      BDOS
+          RET
+
+HEXPRN:   PUSH      H
+          PUSH      PSW
+          RRC
+          RRC
+          RRC
+          RRC
+          CALL      OUTCHAR
+          POP       PSW
+          CALL      OUTCHAR
+          POP       H
+          RET          
+
+OUTIT:    MOV       A,H            ;PUT 2 HIGH ORDER DIGITS IN A
+          CALL      HEXPRN
+          MOV       A,L
+          CALL      HEXPRN
+          RET
+
+          Š;    SET THE PROPER BYTE IN ERRORS TO CORROSPOND TO THE BLOCK OF MEMORY THAT FAILED
+;    CALLED BY MEMTST AFTER A BLOCK HAS FAILED
+;
+FAIL:     PUSH      Y
+          POP       H              ;GET THE BLOCK ADDRESS
+          MOV       A,H            ;HIGH BYTE OF BLOCK INTO A
+          RRC
+          RRC
+          RRC
+          RRC
+          ANI       0FH            ;BLOCK NO. NOW IN A
+          LXI       H,ERRORS       ;GET ADDRESS OF THE ERROR FLAGS
+          MOV       E,A            ;GET OFSET OF PROPER FLAG
+          MVI       D,0
+          DAD       D              ;ADD IN THE OFFSET
+          MVI       M,0FFH         ;SET THE FLAG
+          RET                 
+
+;    SET THE ERROR FLAG TO CORROSPOND WITH ALL ERROR ARRAY BYTES THAT HAVE BEEN SET
+;
+FAILD:    PUSH      H              ;SAVE POINTER TO ERRORS
+          PUSH      B              ;SAVE COUNTER
+          MOV       A,B            ;GET BLOCK NUMBER FOR COMPAIR
+          LXI       D,5            ;EACH CASE WILL BE 5 BYTES APART
+          LXI       H,A0           ;POINT HL TO FIRST CASE
+          MVI       B,0            ;WE'LL TEST FOR 0 FIRST
+FAIL1:    CMP       B              ;IS B=BLOCK NO.?
+          JZ        AX             ;IF SO JUMP OUT
+          INR       B              ;IF NOT PREPAIR TO TEST NEXT NUMBER
+          DAD       D              ;POINT TO NEXT CASE
+          JR        FAIL1
+
+;    CHECK ERROR ARRAY FOR BLOCKS FAILED   -   CALLED BY MEMTEST AT END OF 64K PASS
+CFAIL:    LXI       H,ERRORS
+          MVI       B,0
+CFAIL1:   MVI       A,0FFH         ;LOOK AT IRST BYTE IN ERROR ARRAY
+          CMP       M              ;IF SET THEN PROCESS IT
+          CZ        FAILD
+          INX       H              ;INCREMENT POINTER
+          INR       B              ;COUNT HOW MANY WE'VE LOOKED AT
+          MVI       A,10H
+          CMP       B              ;SEE IF WE'RE DONE
+          RZ
+          JMP       CFAIL1
+
+AX:       PCHL                     ;DO THE NECESSARY CASE
+A0:       LXI       B,1
+          JR        DOOR
+A1:       LXI       B,2
+          JR        DOOR
+A2:       LXI       B,4
+          JR        DOOR
+A3:       LXI       B,8
+          JR        DOOR
+A4:       LXI       B,10HŠ          JR        DOOR
+A5:       LXI       B,20H
+          JR        DOOR
+A6:       LXI       B,40H
+          JR        DOOR
+A7:       LXI       B,80H
+          JR        DOOR
+A8:       LXI       B,100H
+          JR        DOOR
+A9:       LXI       B,200H
+          JR        DOOR
+AA:       LXI       B,400H
+          JR        DOOR
+AB:       LXI       B,800H
+          JR        DOOR
+AC:       LXI       B,1000H
+          JR        DOOR
+AD:       LXI       B,2000H
+          JR        DOOR
+AE:       LXI       B,4000H
+          JR        DOOR
+AF:       LXI       B,8000H
+          JR        DOOR
+
+DOOR:     LDED      ERRFLG         ;NOW OR INTO THE ERROR FLAG
+          MOV       A,D            ;THE BLOCK NUMBER IN WHICH THE
+          ORA       B              ;ERROR JUST OCCURED
+          MOV       D,A
+          MOV       A,E
+          ORA       C
+          MOV       E,A
+          SDED      ERRFLG         ;STORE THE ERROR FLAG
+          LHLD      ERRCNT
+          INX       H
+          SHLD      ERRCNT         ;STORE NEW ERROR COUNT
+          
+          POP       B              ;RESTORE BLOCK NUMBER WE ARE ON
+          POP       H              ;AND THE POINTER TO ERROR
+          RET                      ;TO CFAIL: + X
+
+               
+
+;    INCREMENT THE PASSCOUNT    CALLED BY MEMTST
+;    AND PRINT THE STATUS LINE TO THE CRT
+;
+PASS:     
+
+DPASS:    
+          LXI       D,ERRM         ;PRINT THE ERROR COUNT
+          CALL      PRNT
+          LHLD      ERRCNT
+          CALL      OUTIT
+          LXI       D,STATM
+          CALL      PRNT
+          LHLD      ERRFLGŠ          CALL      OUTIT
+
+                                   ; NOW PREPAIR TO RETURN TO PASCAL/Z
+          POP       IX             ; RESTORE ALL ALTERNATE REG.
+          POP       IY
+          POP       B
+          POP       D
+          EXX                 
+          XRA       A
+          LXI       H,ERRFLG       ; GET THE ERROR FLAG
+          MOV       E,M
+          INX       H
+          MOV       D,M
+          POP       H
+          SPHL                     ;RESTORE ORIGIONAL STACK POINTER
+          RET
+
+
+PRNT:     MVI       C,9
+          CALL      BDOS
+          RET
+INBUF:    DS        CINSIZ
+STARTA:   DS        2
+STOPA:    DS        2
+          DS        30
+STAK:
+

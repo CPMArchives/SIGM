@@ -1,0 +1,72 @@
+M	SET	          0
+C	SET	          0
+F	SET	          0
+;TYPE 
+;BYTE=0..255;
+;VAR
+;X,Y:BYTE;
+;
+;
+;{procedure to move the cursor to any given x,y coordinates on the
+;terminal screen...command is for a soroc or televideo terminal}
+;
+;
+;PROCEDURE MOVE_CURSOR (X,Y:BYTE);
+;BEGIN
+L150
+	NAME MOVE_CURSOR
+	ENTRY MOVE_CURSOR
+MOVE_CURSOR:
+	ENTR	D,2,0
+;	WRITE(CHR(27),'=',CHR(Y+31),CHR(X+31));
+	STMT	D,1
+	LXI	H,27
+	STMT	M,1
+	PUSH	H
+	LXI	H,769
+	XTHL
+	LXI	B,1
+	PUSH	B
+	MOV	H,L
+	PUSH	H
+	INX	S
+	LXI	H,769
+	PUSH	H
+	LXI	B,1
+	PUSH	B
+	LXI	H,61
+	MOV	H,L
+	PUSH	H
+	INX	S
+	MOV	H,A
+	MOV	L,8(IX)
+	LXI	D,31
+	DADD	D,0
+	STMT	M,1
+	PUSH	H
+	LXI	H,769
+	XTHL
+	LXI	B,1
+	PUSH	B
+	MOV	H,L
+	PUSH	H
+	INX	S
+	MOV	H,A
+	MOV	L,9(IX)
+	LXI	D,31
+	DADD	D,0
+	STMT	M,1
+	PUSH	H
+	LXI	H,769
+	XTHL
+	LXI	B,1
+	PUSH	B
+	MOV	H,L
+	PUSH	H
+	INX	S
+	LXI	B,20
+	CALL	L111
+;END;
+	STMT	D,2
+	EXIT	D,2
+

@@ -1,0 +1,701 @@
+.comment \
+
+			     TYPEL.MAC v3.6
+
+		 (c) 1984,1985 ESKAY Software Services
+			   7120 Skillman #2104
+			    Dallas, TX  75231
+
+
+NOTE:
+=====
+	If you feel the urge to "improve" this program,
+	PLEASE, call the SENECA RCPM first to see if there
+	is a later version. THEN send me your update.
+
+ Created from the LDIR code in LDIR12, LTYPE17, SYSLIB routines, and,
+ of course, thanks to Dave Rand for the USQ baseline code.
+
+ Revision history:
+
+ 01/01/85	Added page eject for $L mode, minor changes
+ 08/19/84	Rewrote USQB, added prompted mode
+ 07/21/84	Allowed type of $SYS files, adapted for SYSLIB3
+ 07/07/84	Fixed bug introduced in 3.2
+ 05/23/84	Fixed problem with end-of-file detection
+ 05/06/84	Added $L argument option
+ 04/14/84	General cleanup, added $N argument option
+ 02/15/84	Fixed problem in lbr member filename scanner
+ 02/13/84	Single file mode skipped logging - could only
+		type files in default drive/user.
+ 02/12/84	MAJOR REVISION AND NAME CHANGE v2.00
+		Program now called TYPEL. It is now able to type
+		(almost) any single file. See doc for more info
+ ...
+ 11/20/83	Initially written.
+
+ For further info and reassembly instructions read the DOC file!
+\
+.8080
+;
+	EXTRN	BBLINE	;SYSLIB line input
+	EXTRN	CCOUT	;SYSLIB character out (convert ctl chars)
+	EXTRN	LOUT	;SYSLIB list char out
+	EXTRN	COMPB	;SYSLIB compare .DE-.HL
+	EXTRN	CIN	;SYSLIB character in
+	EXTRN	DIVHD	;SYSLIB HL DIV DE
+	EXTRN	F$OPEN	;SYSLIB open file
+	EXTRN	F$READ	;SYSLIB file read
+	EXTRN	BDOS	;SYSLIB BDOS call
+	EXTRN	FNAME	;SYSLIB file name parser
+	EXTRN	PUTUD	;SYSLIB save current DU
+	EXTRN	GETUD	;SYSLIB restore default DU
+	EXTRN	LOGUD	;SYSLIB log drive/user
+	EXTRN	PRINT	;SYSLIB print routine
+	EXTRN	PSTR	;SYSLIB print <HL>
+	EXTRN	R$READ	;SYSLIB random read
+	EXTRN	RETUD	;SYSLIB return drive/user
+;
+	EXTRN	USQ	;Baseline USQ code
+	EXTRN	UINIT	;USQ init code
+	PUBLIC	FCB
+	PUBLIC	BUFF	;start of buffer
+	PUBLIC	TOPRAM	;end of buffer location
+	PUBLIC	EREXT	;error intercept from USQ
+	PUBLIC	TABLE	;1032 bytes
+	PUBLIC	BUFULL	;buffer full (print) routine
+;
+.request usqb,syslib		;take the workload off the user
+;
+cr	equ	0dh
+lf	equ	0ah
+ff	equ	12
+argch	equ	'$'		;option delimiter
+;
+bufsz	equ	1		;buffer size in K bytes
+dbuf	equ	80h		;default buffer
+dfcb	equ	5ch		;default fcb
+;
+begin:	jmp	skipc
+maxdrv:	db	1+'P'-40H	;highest accessible drive + 1 (A=2)
+maxusr:	db	1+31		;highest accessible user + 1
+maxlin:	db	0		;number of lines to print max (0=all)
+maxlps:	db	23		;max lines per screen -1 (0= no page)
+lsten:	db	1		;zero=list disable, nz=list enable
+sysen:	db	1		;zero=no sys files, nz=sys files ok
+ejectp:	db	60		;eject page after EJECTP lines in $L mode
+;
+; refuse to type these file types
+; (note that type check is done after USQ so no need to
+; check for .CQM etc)
+;
+notyp:	'COM'		
+	'OBJ'			;renamed COM
+	'LBR'			;library
+	'OV?'			;OVR,OVL,OV1,OV2 etc
+	'ARC'			;archive file
+;	'DIR'			;archive directory
+	'BAD'			;locked out bad spot
+	'SYS'			;system file
+	'??#'			;specially marked file (USERS.TX# etc)
+;	'LOG'			;log file
+	'INT'			;intermediate file (CBASIC etc)
+	'REL'			;relocatable object file
+	'?RL'			;PRL, CRL, IRL
+;	'CMD'			;hard to say... (dbase ok, cp/m86 no-go)
+	'EXE'			;executable MSDOS file, renamed COMs
+	db	0		;end of table
+	ds	9*3		;room for 9 more types
+;
+skipc:	lxi	h,0		;save CP/M stack pointer
+	dad	sp
+	shld	stack
+	lxi	sp,stack	;set up local stack
+	call	print
+	'TYPEL v3.60 (c) ESKAY 01-01-85',cr,lf,0
+	lxi	h,dbuf		;point to buffer
+	mov	b,m		;char count to b
+	inr	b
+arglp:	dcr	b
+	jz	sk1
+	inx	h
+	mov	a,m
+	cpi	argch		;check for option delimiter
+	jnz	arglp
+	dcx	h
+	mov	a,m
+	inx	h
+	cpi	' '		;option must come after a blank
+	jnz	arglp
+	dcx	h
+	mvi	m,0		;remove option
+	inx	h
+	inx	h		;point to arg
+	mov	a,m
+	cpi	'N'		;N=nopage
+	mvi	m,0
+	jz	na
+	cpi	'L'
+	jnz	exarg
+	sta	lstot
+na:	xra	a
+	sta	maxlps		;non paging
+exarg:	lda	lsten
+	ora	a
+	jnz	sk1
+	sta	lstot
+sk1:	call	putud		;save default DU
+	lxi	d,bufsz*1024	;compute...
+	lxi	h,buff		;...buffer size
+	dad	d		;for disk read
+	mov	a,h
+	sta	topram
+	call	retud		;get current drive/user
+	mov	h,b
+	mov	l,c
+	shld	userno		;save current DU
+	lda	dfcb+1		;check if no file name specified
+	cpi	' '
+	jnz	single
+loop:	call	print
+	cr,lf,'* ',0
+	mvi	a,1
+	sta	singfl
+	call	bbline
+	call	print
+	cr,lf,lf,0
+	ora	a
+	jz	finish
+	lxi	sp,stack
+	jmp	nextfl
+;
+stlin:	lda	maxlin		;max number of lines displayed
+	sta	maxls
+	sta	maxls1
+	lda	ejectp		;max # of lines in $L mode
+	sta	eject
+	lda	maxlps
+	ora	a
+	jz	mls
+	dcr	a		;first page is one less than normal
+mls:	sta	lps
+	ret
+;
+single:	lxi	h,dbuf+2	;point to argument
+nextfl:	lxi	d,fcb
+	call	stlin
+	call	fname		;parse file name
+	jz	what		;not a valid file name
+	mov	a,m		;get delimiter
+	sta	fflag		;set flag LBR/non-LBR
+	push	h		;save command line ptr
+	inx	b		;check if current DU:
+	mov	a,b
+	ora	c
+	dcx	b		;restore DU: value
+	jz	currdu		;skip this if current
+	mov	a,b		;get specified drive
+	dcr	b		;get into range 0..f
+	cpi	0ffh		;ff means current drive
+	lxi	h,maxdrv
+	jnz	newdsk		;skip if different
+	lda	driveno
+	mov	b,a
+	jmp	curdsk
+;
+newdsk:	cmp	m
+	jnc	illdu		;yes - complain
+curdsk:	mov	a,c		;get specified user area
+	cpi	'?'		;all user areas???
+	jz	illdu		;yes - complain
+	cpi	0ffh		;current user area?
+	jnz	newusr
+	lda	userno
+	mov	c,a
+	jmp	curusr
+;
+newusr:	inx	h		;illegal user specified?
+	cmp	m
+	jnc	illdu		;yes - complain
+curusr:	call	logud		;log into specified DU:
+currdu:	lda	fflag		;get flag
+	cpi	' '		;LBR member request?
+	pop	h		;get cmd line ptr back
+	jnz	nolbf		;nope, must be singlefile
+	inx	h		;get next char
+	lxi	d,memfcb	;point to member fcb
+	call	fname		;parse member name
+	lxi	h,fcb+1
+	call	ckamb		;check ambiguity
+	lxi	h,memfcb+1
+	call	ckamb
+	lxi	h,FCB+9		;default to .LBR
+	mvi	m,'L'
+	inx	h
+	mvi	m,'B'
+	inx	h
+	mvi	m,'R'
+	lxi	d,fcb
+	call	f$open		;attempt to open file
+	jnz	nofile		;not a LBR file
+	xra	a
+	sta	dirs		;set directory check size to 0
+	lda	sysen		;if $SYS suppress
+	ora	a		;then...
+	cz	sysck		;check for $sys bit
+	xra	a
+	sta	lin		;set line count to 0
+	lxi	h,memfcb+9	;point to member type
+	call	typck		;check valid type
+	call	f$read		;read directory into default buffer
+	jnz	rderr
+	lxi	h,dbuf		;point to dbuf
+	lxi	d,dirname	;point to 8 blanks
+	call	cpfn		;compare
+	jnz	nolbr		;not equal
+	lxi	d,14
+	dad	d
+	mov	a,m
+	sta	dirsiz		;directory size
+	xra	a
+	sta	memfcb
+	jmp	c00		;skip into directory check
+;
+dirlp:	lxi	d,fcb
+	call	f$read
+	jnz	rderr
+c00:	lxi	b,20h
+	lxi	h,dbuf
+	lxi	d,memfcb
+	call	cpfn
+	jz	found
+	dad	b
+	call	cpfn
+	jz	found
+	dad	b
+	call	cpfn
+	jz	found
+	dad	b
+	call	cpfn
+	jz	found
+	lda	dirs
+	inr	a
+	sta	dirs
+	mov	b,a
+	lda	dirsiz
+	cmp	b
+	jnz	dirlp
+	call	print
+	cr,lf
+	'Member file not found in LBR directory',cr,lf,0
+	jmp	erext
+;
+; Found the member file name in the LDIR
+;
+found:	lxi	d,12
+	dad	d
+	push	h		;save pointer for now,
+	inx	h		;point to size
+	inx	h
+	mov	a,m		;get low byte
+	inx	h
+	ora	m		;if a=0 then file is 0k
+	jz	nullen		;go complain
+	pop	h		;get pointer back
+	mov	a,m		;get file address
+	inx	h
+	mov	h,m
+	mov	l,a
+;
+; enter here from non-LBR routine with HL=0000
+;
+dotyp:	lxi	d,fcb		;get fcb...
+	call	r$read		;...and read random
+	jnz	rderr
+	lxi	b,dbuf		;point to buffer
+	ldax	b		;get first byte
+	cpi	76h		;if not 76H (=not squeezed)...
+	jnz	plain		;...then process as text
+	inx	b		;point to and...
+	ldax	b		;...get next byte
+	cpi	0ffh		;if FF then squeezed..
+	jnz	plain		;...else plain text (?)
+	call	uinit
+	lxi	h,dbuf+4	;point to original name
+	call	chktp		;check it's type
+	mvi	a,'('		;print the original name...
+	call	ccout		;...in parentheses
+	lxi	h,dbuf+4
+	call	pstr
+	call	print
+	')',cr,lf,0
+	call	usq		;now unsqueeze and print
+	jmp	goteof
+;
+; This routine fills the buffer then calls the print routine
+;
+plain:	lxi	d,fcb
+	lxi	b,dbuf		;default buffer
+fnext:	lxi	h,buff
+rdlp:	call	f$read		;changed to properly detect eof...
+	jnz	goteof		;...in unsqueezed single files
+mlp:	ldax	b
+	mov	m,a
+	inx	h
+	inr	c
+	jnz	mlp
+	mvi	c,80h
+	lda	topram
+	cmp	h
+	jnz	rdlp
+	call	bufull		;print buffer contents
+	jmp	fnext
+;
+goteof:	call	bufull
+	jmp	erext
+;
+; This is the print buffer routine (BUFULL)
+;
+bufull:	push	h
+	push	d
+	push	b
+	push	psw
+	lxi	h,buff
+buflp:	mov	a,m
+	cpi	1ah
+	jz	erext
+	cpi	'I'-40h
+	jz	proctab
+	ani	7fh		;strip high bits
+	call	putchr
+	cpi	lf
+	jz	eoln
+	call	condin		;get keybd char if available
+	jz	goon		;none there, go on
+	cpi	'C'-40h		;if ^C...
+	jz	erext		;...then finished
+	cpi	'S'-40h		;if not ^S...
+	jnz	goon		;...then go on, else...
+	call	cin		;...wait for keypress
+	cpi	'C'-40h
+	jz	erext
+	jmp	goon
+;
+; This is NOT the SYSLIB routine by same name...
+;
+condin:	push	h
+	push	d
+	push	b
+	mvi	c,6
+	mvi	e,0ffh
+	call	bdos
+	ora	a
+	pop	b
+	pop	d
+	pop	h
+	ret
+;
+eoln:	mvi	a,0ffh		;reset tab counter
+	sta	tab
+	lda	maxlps		;get max lines per screen
+	ora	a
+	jz	nopag		;skip if no page mode
+	lda	lps
+	dcr	a
+	sta	lps
+	jnz	nopag
+	call	print
+	'[more]',cr,0
+	call	cin
+	cpi	'C'-40h
+	jz	erext
+	call	print
+	'      ',cr,0
+	lda	maxlps
+	sta	lps
+nopag:	mvi	a,0		;filled by program
+maxls	equ	$-1		;if maxln=0...
+	ora	a
+	jz	goon		;..then skip line counter
+	lda	lin		;else increment...
+	inr	a
+	sta	lin		;...the line counter
+	cpi	0		;see if maxlin reached
+maxls1	equ	$-1
+	jnz	goon		;no, continue
+	call	print		;else abort with message
+	cr,lf
+	'TYPEL aborted  - maximum number of lines exceeded.',cr,lf
+	'Please use XMODEM to transfer file to your system.'
+	cr,lf,lf,0
+	jmp	erext
+;
+proctab:lda	tab		;get current tab value
+	mov	b,a		;save current
+	ani	0f8h		;round down to last full 8
+	adi	8		;make next tab stop
+tablp:	call	spout		;put space
+	inr	b		;continue spaces to..
+	cmp	b		;...next tab stop
+	jnz	tablp
+	sta	tab		;save next tab stop
+	jmp	go1
+;
+; Print a space
+;
+spout:	push	psw
+	mvi	a,' '
+	call	putchr
+	pop	psw
+	ret
+;
+goon:	lda	tab		;increment...
+	inr	a
+	sta	tab		;...tab counter
+go1:	inx	h		;increment buffer pointer
+	lda	topram		;get top of ram
+	cmp	h		;if not yet reached...
+	jnz	buflp		;...then get next char
+	pop	psw		;else return to caller...
+	pop	b		;...to get more
+	pop	d
+	pop	h
+	ret
+;
+; process non-LBR file
+;
+nolbf:	lxi	h,fcb+1
+	call	ckamb
+	lxi	h,fcb+9		;point to type
+	call	typck		;check valid type
+	lxi	d,fcb
+	call	f$open		;open the file
+	jnz	nofile		;not found...
+	lda	sysen
+	ora	a
+	cz	sysck		;$sys file?
+	call	f$read		;read first sector
+	lxi	h,0
+	jz	dotyp		;type it now...
+	call	print
+	cr,lf
+	'Unable to type - empty file?',cr,lf,0
+	jmp	erext
+;
+; check type of squeezed file (HL=original fn)
+;
+chktp:	push	b
+	mvi	b,9		;9 char max
+chkt1:	mov	a,m
+	inx	h
+	cpi	'.'		;end of fn?
+	jz	typck1
+	dcr	b
+	jnz	chkt1
+	pop	b
+	ret
+;
+; check file type at <HL> against table
+; PSW, HL munched, ret only if ok
+;
+typck:	push	b
+typck1:	push	d
+	push	h
+	lxi	d,notyp		;point to no-type table
+tck1:	pop	h
+	push	h
+	mvi	b,3		;3 chars to compare
+tck2:	ldax	d
+	ora	a		;if end of table...
+	jz	typok		;...then return
+	cpi	'?'		;ambiguous?
+	jz	tck3		;yes, skip
+	cmp	m		;if no match...
+	jnz	tck4		;...then skip to next table entry
+	inx	h
+	inx	d
+	dcr	b
+	jnz	tck2		;loop until all 3 match
+	pop	h
+	pop	d
+	pop	b
+	jmp	tckno		;not ok to type
+;
+; skip next character in table and filetype
+;
+tck3:	inx	h
+	inx	d
+	dcr	b
+	jnz	tck2
+	jmp	tck1
+;
+; skip to next table entry
+;
+tck4:	inx	d
+	dcr	b
+	jnz	tck4
+	jmp	tck1
+;
+; restore registers and return (ok to type)
+;
+typok:	pop	h
+	pop	d
+	pop	b
+	ret
+;
+; complain and abort (type found in table)
+;
+tckno:	call	print
+	cr,lf
+	'Can''t type a .',0
+	mvi	b,3
+tcl:	mov	a,m
+	inx	h
+	call	ccout
+	dcr	b
+	jnz	tcl
+	call	print
+	' file!',cr,lf,0
+	jmp	erext
+;
+; check if DE+10 has bit 7 set ($SYS file)
+;
+sysck:	push	h		;save HL
+	lxi	h,10
+	dad	d
+	mov	a,m
+	pop	h
+	ani	80h
+	rz
+	jmp	nofile		;pretend not there
+;
+; Here are the messages
+;
+illdu:	call	print
+	cr,lf
+	'Drive/user out of bounds',cr,lf,0
+	jmp	erext
+;
+nofile:	call	print
+	cr,lf
+	'No such file on disk',cr,lf,0
+	jmp	erext
+;
+cpfn:	push	h
+	push	d
+	push	b
+	mvi	b,12	;12 characters
+	call	compb
+	pop	b
+	pop	d
+	pop	h
+	ret
+;
+ckamb:	mvi	a,'?'		;see if there is any...
+	mvi	e,11		;...ambiguity in the file spec
+ckamlp:	cmp	m
+	jz	noamb		;complain if ambiguous fn
+	inx	h
+	dcr	e
+	jnz	ckamlp
+	ret
+;
+putchr:	push	b
+	mov	b,a
+	lda	lstot
+	ora	a
+	mov	a,b
+	jnz	cot
+	call	ccout
+	pop	b
+	ret
+;
+cot:	call	lout		;output to list device
+	cpi	lf		;if not linefeed...
+	jnz	..cte		;...then exit list out routine
+	mvi	a,0ffh
+	sta	tab
+	lda	ejectp
+	ora	a		;if no page length...
+	jz	..cte		;...then do not paginate
+	lda	eject		;get current line count
+	dcr	a		;decrement it
+	sta	eject		;store count back
+	jnz	..cte		;continue if end of page not reached
+	lda	ejectp		;get line count for one page
+	sta	eject		;reset counter
+	mvi	a,ff		;get a form feed
+	call	lout		;kick a page
+..cte:	pop	b
+	ret
+;
+nolbr:	call	print
+	cr,lf
+	'LBR directory may be damaged - aborting',cr,lf,0
+	jmp	erext
+;
+nomem:	call	print
+	cr,lf
+	'No member file name specified.',cr,lf,0
+	jmp	what
+;
+nullen:	call	print
+	cr,lf
+	'Member file is 0k - cannot type.',cr,lf,0
+	jmp	erext
+;
+rderr:	call	print
+	cr,lf
+	'Cannot read file',cr,lf,0
+	jmp	erext
+;
+noamb:	call	print
+	cr,lf
+	'No ambiguous file names allowed',cr,lf,0
+what:	call	print
+	cr,lf
+	'TYPEL v3.60 universal single-file lister',cr,lf
+	'Usage:',cr,lf
+	9,'TYPEL [du:]fn[.ft] [fn.ft]',cr,lf
+	'Examples:',cr,lf
+	9,'TYPEL MDM722 MDM722.IQF     types member file in LBR',cr,lf
+	9,'TYPEL TEST.AQM              types normal file',cr,lf
+	9,'TYPEL F4:TEST.BQS           accepts ZCPR drive/user',cr,lf
+	9,'TYPEL FOO.ASM $N            $N option=not paging',cr,lf
+	9,'TYPEL BAR.ZOT $L            $L option=LST: device',cr,lf
+	'If 1 argument is supplied, single file is typed.',cr,lf
+	'If 2 arguments, TYPEL assumes first arg is type LBR',cr,lf
+	'and attempts to type LBR member.',cr,lf
+	9,'Typing TYPEL without argument starts interactive mode.'
+	cr,lf,'You can enter individual filenames or RETURN to stop.'
+	cr,lf,lf,0
+erext:	call	getud		;restore default DU
+	lda	singfl
+	ora	a
+	jnz	loop
+finish:	lhld	stack
+	sphl
+	ret
+;
+singfl:	db	0		;0=single files, 1=prompted
+lstot:	db	0		;flag for list out
+fflag:	db	0		;flag for LBR/non-LBR
+topram:	db	0		;hi byte of buffer end
+dirs:	db	0		;# of dir sectors processed
+dirsiz:	db	0		;# of total dir sectors
+tab:	db	0		;current line tab
+lin:	db	0		;line count
+lps:	db	0		;line count for page mode
+eject:	db	0		;line count in $L mode
+userno:	db	0		;current user #
+driveno:db	0		;current drive
+fcb:	ds	36		;out fcb
+memfcb:	ds	12
+	ds	50		;25 level stack
+stack:	dw	0		;save CP/M stack pointer here
+dirname:db	0,'           '
+buff	equ	2000h		;start buffer
+table	equ	buff-1048	;usq table
+	end
+ument is supplied, single file is typed.',cr,lf
+	'If 2 argument

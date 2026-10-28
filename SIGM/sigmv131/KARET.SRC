@@ -1,0 +1,27 @@
+********************************************************************
+
+*                       KARET                                      *
+
+********************************************************************
+
+                     name karet
+                     entry karet
+                     ext mesij
+
+;FUNCTION:outputs a carriage-return/linefeed to console
+
+;CALLS:MESIJ
+
+karet:              push x
+                    lxi x,carret
+                    call MESIJ
+                    pop x
+                    ret
+carret:             db 0Dh,0Ah,24h ;0D=ASCII for carriage-return
+                                   ;0A=  "    "  line-feed
+                                   ;24=end/MESIJ
+
+                  end karet
+
+********************************************************************
+

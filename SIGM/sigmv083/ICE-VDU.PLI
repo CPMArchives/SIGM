@@ -1,0 +1,80 @@
+/*******************************************************/
+/*                                                     */
+/*        VDU SUPPORT ROUTINES FOR ICE                 */
+/*                                                     */
+/*******************************************************/
+         
+        /* clear line from cursor */
+clear_line : procedure;
+    call vdu_out('^O');
+end clear_line;
+     
+        /* clear screen from cursor */
+clear_screen: procedure;
+    call vdu_out('^K');
+end clear_screen;
+        
+        /* cursor position */
+cursor_pos: procedure(col,row);
+    declare
+        str character(linelen) varying,
+        i fixed,
+        (col, row) fixed;
+    scr_row = row;
+    scr_col = col;
+    if row = 1 then
+        do;
+        call vdu_out('^N');  /* home cursor */
+        put skip;
+        call vdu_out('^N');  /* cursor home */
+        end;
+    else
+        do;
+        call vdu_out(ascii(escape)!!ascii(2)!!ascii(row+30));
+        put skip;
+        end;
+    if col ^= 1 then
+        do;
+        str = '';
+        i = 1;
+        do while (i<col);
+            str = str !! '^S';        /* cursor right */
+            i = i+1;
+        end;
+        call vdu_out(str);
+        end;
+end cursor_pos;
+        
+        /* home cursor */
+home_cursor: procedure;
+    call cursor_pos(1,1);
+end home_cursor;
+        
+        /* scroll down */
+scroll_down: procedure;
+    call vdu_out('^D');
+end scroll_down;
+        
+        /* scroll up */
+scroll_up: procedure;
+    call vdu_out('^B');
+end scroll_up;
+        
+        /* input from vdu */
+vdu_in: procedure(data);
+    declare 
+        data character(linelen) varying;
+    get edit(data) (a);
+end vdu_in;
+        
+        /* output to vdu */
+vdu_out: procedure(data);
+    declare
+        data character(linelen) varying;
+    put edit(data) (a);
+end vdu_out;
+        
+/*****************************************************/
+        
+r);
+ 

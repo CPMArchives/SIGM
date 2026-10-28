@@ -1,0 +1,94 @@
+4c 17210
+*  N Z C P R 202- Z80-Based Command Processor Replacement, Version 2.02	*
+.
+22,24c 28575
+;  Module:  NZCPRHDR
+;  Author:  Richard Conn
+;  Module Used By: NZCPR202 Version 2.x
+;
+;  18 feb 1983 = modified by PETER PINCHIS, TORONTO, ONT
+;		 - new equate NRCOL defines the user selectable number
+;		   of columns for DIR and ERA display.
+;		 - ERAV has a new meaning : when FALSE the user is always
+;		   prompted except when ERDFLG is present in the command
+;		   line.
+;
+;
+.
+39,40d 54954
+76c 60064
+CPRLOC	EQU	0DA00H	;FILL IN WITH BDOSLOC SUPPLIED VALUE
+.
+90c 5310
+CPRR	EQU	1600H-CPRLOC	;DDT LOAD OFFSET FOR DISK1         
+.
+227,229c 25706
+; before it goes ahead and erases them.  If ERAOK is TRUE, then the prompt
+; "OK to erase?" is enabled.
+.
+235,241c 11941
+; option letter, defined by ERDFLG, is given after the file name.  
+; If ERAV is TRUE, then the user will be asked to verify only when ERDFLG
+; is contained in the command line. 
+; If ERAV is FALSE, the user will always be asked to verify , except when 
+; ERDFLG is present in the command line.
+;
+; example ( ERAOK is TRUE, ERAV is TRUE ) :
+; A0>era xxx.xxx
+; A0>; ...done
+; A0>era xxx.xxx v
+; OK to erase?y
+; A0>; ...done
+;
+; example ( ERAOK is TRUE, ERAV is FALSE ):
+; A0>era xxx.xxx
+; OK to erase?y
+; A0>; ...done
+; A0>era xxx.xxx n			; ERDFLG is "N" in this case !!!
+; A0>; ...done
+;
+; In case ERAOK = TRUE and ERAV = FALSE has been selected and a submit file
+; is required, use always ERDFLG at the end, otherwise the execution will
+; stop every time an erase is specified in the submit file.
+ 
+ERAV	equ	false		;ENABLE VERIFY OPTION
+ERDFLG	equ	'N'		;SET OPTION LETTER
+.
+282,283c 47537
+CLBASE	equ	0FA6FH	;Base address of buffer
+BUFLEN	equ	160	;160 Bytes in Input Buffer
+.
+299,306c 64553
+WERA	equ	false	;Make ERA a Wheel-Oriented Command
+WREN	equ	false	; "   REN "   "       "       "
+WLT	equ	false	; "   L/T "   "       "       "  (LIST/TYPE)
+WGO	equ	false	; "   GO  "   "       "       "
+WSAVE	equ	false	; "   SAVE "  "       "       "
+WGET	equ	false	; "   GET "   "       "       "
+WJUMP	equ	false	; "   JUMP "  "       "       "
+WDU	equ	false	; "   DU: "   "       "       " (DU Change)
+.
+324c 4669
+STKBASE		equ	0FB43H  ;Address of Bottom of External Stack
+.
+332,333c 58844
+NLINES	EQU	25		;NUMBER OF LINES ON CRT SCREEN
+nrcol	equ	5		;number of columns for DIR and ERA display
+WIDE	EQU	false 		;TRUE IF WIDE DIR DISPLAY
+.
+346c 37318
+MAXDISK	EQU	2		;MAXIMUM NUMBER OF DISKS ACCESSABLE
+.
+438c 62934
+FCBADR	equ	0FB1AH 	; Address of External FCB
+.
+462c 3527
+ROOTONLY	equ	false 	; TRUE if look at Root Only for Extended
+.
+$a 61721
+.
+qu	'N'		;SET OPTION LETTER
+.
+282,283c 47537
+CLBASE	equ	0FA6FH	;Base address of buffer
+BUFLEN	equ	160	;160 Bytes in Input 

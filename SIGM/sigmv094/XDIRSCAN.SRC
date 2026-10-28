@@ -1,0 +1,75 @@
+;*
+;*  Directory Lookup Assembler External Routines  
+;*
+;*  function dirfrst : integer; external;
+;*  function dirnext : integre; external;
+;
+bdos    equ     0005h   ;bdos entry point
+fcb     equ     005Ch   ;default fcb
+;
+dir1    equ     17      ;search for the first directory entry
+dirnxt  equ     18      ;search for the next directory entry
+;
+hldret  ds      2
+;
+        entry   dirfrst ;entry point for external routine dirfrst  
+dirfrst pop     h       ;retrieve and hold return address
+        shld    hldret
+        lxi     d,fcb   ;file name and type have been placed at the default fcb
+        mvi     c,dir1  ;search for first directory entry - function 17
+        call    bdos    ;call to o/s
+        mvi     d,0     ;return code is passed to pascal function in 
+        mov     e,a     ;de-register pair
+        lhld    hldret  ;
+        pchl            ;set program counter to return address (return)
+
+        entry   dirnext ;dirnext entry point  
+dirnext pop     h
+        shld    hldret
+        lxi     d,fcb
+        mvi     c,dirnxt ;search for next directory entry - function 18
+        call    bdos 
+        mvi     d,0
+        mov     e,a
+        mvi     a,0
+        lhld    hldret
+        pchl
+        end
+   
+
+
+
+
+Š
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

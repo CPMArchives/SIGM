@@ -1,0 +1,212 @@
+; OVERLAY MANAGER FOR PROGRAMS LINKED WITH DIGITAL RESEARCH'S LINK PROGRAM
+
+        .Z80
+
+BDOS    EQU 5                           ; BDOS ENTRY
+FDR     EQU 50H                         ; DRIVE HOLDING PROGRAM
+FCB     EQU 5CH                         ; LOCATION OF FCB
+BUFF    EQU 80H                         ; LOCATION OF BUFFER
+TRUE    EQU -1
+FALSE   EQU 0
+
+CHECK   EQU FALSE
+
+        ENTRY ?OVLAY,?OVLA0
+
+?OVLAY: LD HL,OVLAYX                    ; NOT IMPLEMENTED YET
+        JP ERREX
+
+?OVLA0: PUSH HL                         ; KEEP 2 PARAMETERS
+        PUSH DE
+        PUSH BC                         ; LOCATION OF FILE NAME IS IN BC
+        LD A,(LEVEL)                    ; OVERLAY LEVEL
+        INC A
+        CP 5
+        JP Z,TMOL                       ; EXIT IF TOO LEVEL TOO HIGH
+        LD (LEVEL),A
+
+        DEC A                           ; TO RECOVER OVERLAY LEVEL
+        ADD A,A                         ; MULTIPLY BY 10
+        LD H,A
+        ADD A,A
+        ADD A,A
+        ADD A,H
+        LD HL,FILEN                     ; FILE NAMES OF PREVIOUS OVERLAYS
+        LD D,0
+        LD E,A
+        ADD HL,DE                       ; FILE NAME OF LAST OVERLAY AT THIS LEVEL
+        LD D,B                          ; GET FILE NAME OF REQUESTED OVERLAY
+        LD E,C
+        LD BC,8                         ; COMPARE 8 BYTES
+LOOP:   LD A,(DE)                       ;   OF STRINGS STARTING AT (HL) AND (DE)
+        CPI
+        JR NZ,DIFF
+        JP PO,SAME
+        INC DE
+        JR LOOP
+DIFF:   INC BC
+        DEC HL
+        EX DE,HL
+        LDIR                            ; UPDATE FILE NAME
+        EX DE,HL
+        LD (ORIG),HL                    ; LOCATION WHERE ORIGIN IS TO BE STORED
+        INC HL
+        INC HL
+        LD (HL),0FFH                    ; CLEAR NEXT OVERLAY LEVEL
+
+        POP HL                          ; LOCATION OF FILE NAME
+        LD DE,FCB+1                     ; LOAD FILE NAME
+        LD BC,8
+        LDIR
+        LD HL,FTYPE                     ; LOAD FILE TYPE
+        LD BC,3
+        LDIR
+        LD A,(FDR)                      ; LOAD DRIVE
+        LD (FCB),A
+        XOR A                           ; A=0
+        LD (FCB+12),A                   ; EXTENT
+        LD (FCB+32),A                   ; CURRENT RECORD
+        LD C,15                         ; OPEN FILE CODE
+        LD DE,FCB
+        CALL BDOS
+        AND A
+        JP NZ,OPER                      ; JUMP ON OPEN ERROR
+        LD C,44                         ; MULTISECTOR COUNT CODE
+        LD E,1
+        CALL BDOS
+        LD C,26                         ; SET DMA CODE
+        LD DE,BUFF
+        CALL BDOS
+        LD C,20                         ; READ CODE
+        LD DE,FCB
+        CALL BDOS
+        AND A
+        JP NZ,RDER
+        LD HL,(BUFF+1)                  ; LENGTH OF OVERLAY FILE
+        DEC HL                          ; FIND NUMBER OF 128 BYTE BLOCKS
+        ADD HL,HL
+        JP C,LONG                       ; EXIT ON OVERFLOW
+        INC H
+        JP M,LONG                       ; EXIT IF GREATER THAN 128
+        LD E,H                          ; NUMBER OF BLOCKS
+        LD C,44                         ; MULTISECTOR COUNT CODE
+        CALL BDOS
+        LD DE,(BUFF+7)                  ; WHERE FILE IS TO BE LOADED
+        LD HL,(ORIG)                    ; KEEP OVERLAY ORIGIN
+        LD (HL),E
+        INC HL
+        LD (HL),D
+        LD (ORIG),DE
+        LD C,26                         ; SET DMA CODE
+        CALL BDOS
+        LD A,2                          ; START AT RECORD 2
+        LD (FCB+32),A
+        LD C,20                         ; READ CODE
+        LD DE,FCB
+        CALL BDOS
+        AND A
+        JP NZ,RDER
+        LD C,44                         ; SET MULTISECTOR COUNT TO 1
+        LD E,1
+        CALL BDOS
+        LD C,26                         ; RESET DMA TO 80H
+        LD DE,80H
+        CALL BDOS
+                         IF CHECK
+        LD HL,ACT
+        CALL MSG
+                         ENDIF
+REC:    POP DE                          ; RECOVER PARAMETERS
+        LD HL,EXIT                      ; TO LOAD EXIT
+        EX (SP),HL                      ;    ONTO STACK
+        PUSH HL
+        LD HL,(ORIG)                    ; WHERE TO JUMP TO
+        EX (SP),HL
+        RET                             ; THIS WILL JUMP TO THE OVERLAY
+
+SAME:   LD DE,ORIG                      ; FIND OVERLAY ORIGIN
+        LDI
+        LDI
+        POP HL                          ; ADJUST STACK
+                         IF CHECK
+        LD HL,NACT
+        CALL MSG
+                         ENDIF
+        JR REC
+
+EXIT:   PUSH HL                         ; ADJUST LEVEL ON EXIT FROM OVERLAY
+        LD HL,LEVEL
+        DEC (HL)
+        JP M,OLE
+                         IF CHECK
+        PUSH AF
+        PUSH BC
+        PUSH DE
+        LD HL,ADJ
+        CALL MSG
+        POP DE
+        POP BC
+        POP AF
+                         ENDIF
+        POP HL
+        RET
+
+ERREX:  LD A,(HL)                       ; LENGTH OF STRING
+        INC HL                          ; POINTS TO STRING
+        LD (CCB+2),A
+        XOR A
+        LD (CCB+3),A
+        LD (CCB),HL
+        LD C,111                        ; PRINT BLOCK CODE
+        LD DE,CCB
+        CALL BDOS
+        JP 0                            ; RETURN TO CP/M
+
+                         IF CHECK
+MSG:    LD A,(HL)                       ; LENGTH OF STRING
+        INC HL                          ; POINTS TO STRING
+        LD (CCB+2),A
+        XOR A
+        LD (CCB+3),A
+        LD (CCB),HL
+        LD C,111                        ; PRINT BLOCK CODE
+        LD DE,CCB
+        CALL BDOS
+        RET
+
+ACT:    DB 10,13,10,'ACTION',13,10
+NACT:   DB 13,13,10,'NO ACTION',13,10
+ADJ:    DB 13,13,10,'ADJ STACK',13,10
+                         ENDIF
+
+TMOL:   LD HL,TMOLX
+        JP ERREX
+OPER:   LD HL,OPERX
+        JP ERREX
+RDER:   LD HL,RDERX
+        JP ERREX
+LONG:   LD HL,LONGX
+        JP ERREX
+OLE:    LD HL,OLEX
+        JP ERREX
+
+TMOLX:  DB 15,13,10,'TOO MANY OVLS'
+OVLAYX: DB 17,13,10,'?OVLAY ACCESSED'
+FTYPE:  DB 'OVL'                        ; FILE TYPE OF OVERLAYS
+OPERX:  DB 16,13,10,'OVL FL OPN ERR'
+RDERX:  DB 15,13,10,'OVL FL RD ERR'
+LONGX:  DB 17,13,10,'OVL FL TOO LONG'
+OLEX:   DB 13,13,10,'OVL LVL ERR'
+
+        DSEG
+CCB:    DS 4                            ; CHARACTER CONTROL BLOCK
+ORIG:   DS 2                            ; ORIGIN OF OVERLAY
+LEVEL:  DB 0                            ; OVERLAY LEVEL
+FILEN:  DB 0FFH                         ; FILENAMES & ORIGINS
+        DS 50
+
+        END
+                   ENDIF
+        JR REC
+
+EXIT:   PUSH HL                         ; ADJUST LEVEL ON 

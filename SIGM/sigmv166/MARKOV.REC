@@ -1,0 +1,158 @@
+
+{ [MARKOV.REC]
+[compile a Markov rule set into a REC program]
+[format: (antecedent, consequent)]
+[or      (antecedent, consequent).]
+[Harold V. McIntosh, 5 December 1980]
+[Harold V. McIntosh, 22 February 1981]
+
+[A Markov algorithm is an attempt by the Russian mathematician
+ A. A. Markov to make a rigorous algorithmic process out of the
+ production schemes of E. L. Post. In a Post production, one is
+ required to exhibit a sequence of transformation steps, or to
+ prove that no such sequence can be found. This is a process
+ which may depend upon a considerable amount of ingenuity, or
+ involve non-constructive reasoning, which is unsatisfactory
+ from the algorithmic point of view.]
+
+[A Markov algorithm consists of a sequence of pairs - antecedents
+ and consequents - which constitute transformation rules. They are
+ to be tried in the strict priority of the order in which they are
+ listed, and each is marked according to whether the process is to
+ be repeated again from the beginning or to be terminated forthwith.
+ If no rule applies, the process also stops.  Thus a quite definite
+ sequence of events is described, with which to effect a calculation.]
+
+[Markov Algorithms can be modelled in REC with especial ease just
+ because they were taken as the model for REC's workspace and its
+ associated operators and predicates.]
+
+[Markov's own book, which spells out his scheme in minute detail,
+ is still the best source to consult for a description of these
+ algorithms.  Paralleling the development of the theory of Turing
+ machines, his treatment culminates in the enunciation of a Universal
+ algorithm.
+
+		A. A. Markov
+		The Theory of Algorithms
+		Academy of Sciences of the USSR
+		Moscow 1954 Leningrad
+
+		(also - NTIS-TT60-S1085
+		Israeli Program for Scientific Translations
+		Jerusalem, Israel, 1954.)]
+
+[30$ - input FCB]
+[31$ - output FCB]
+
+[display w/cursor]		(248%I26%TLJZqt248%FD;;) D
+
+[erase cursors]			(J(248%FD:JZ;);) E
+
+[zero file control block]	($m33cmpw0%(f:;)wnnS;) F
+
+[create input, output FCB's]	('5C'H12wA' 'Ew;B
+  [generate file names] 	 9aQpG'REC'|m (Z3b' 'E'MKV';Q;)|m w
+  [open input file]		 n30$rS 30@f
+  [open output file]		 n31$rS 31@g31@e
+				;) G
+
+[close file]			(
+  [clear wkspace, inp file]	 @p:L@y:(@p:0=;e26%(f:;)@p;;)
+  [close fil.REC]		 31$r16k
+				 ;) H
+
+[initialize]			(J@Wj@!;@!;) I
+
+[insert text as read]		(@D@$@::;) J
+
+[WS up to cursor to disk]	(jJ<(@p:L;)Zz>;) P
+
+[read, place in workspace]	(@$@::;) R
+
+[15-line window]		(AB(10%EA:;)qL
+				  15(d(10%FA;L(26%Fj;Z;)):;)Y<;<) W
+
+[open file or create it]	(@h$r15K(255=22K;;)LL;) e
+
+[open file or report absence]	(@h$r15K(255='new file 'T;;)LL;) f
+
+[delete file if present]	(@h$r19k;) g
+
+[CP/M's DMA address]		('80'H26k;) h
+
+[write one record]		(@Ej((26%EZD0;128(a);))qL26k31$r21kD'.'TL;) p
+
+[Markov subroutines]		("{
+  [cr,lf]			(2573TL;)&
+  [read phrase] 		(R13%='';T08%(=2080[sp,bs]TL)(@J|;L@J;);)J
+  [sign-on line]		('[[]]'TL@&'Initial Axiom:'TL@&@JI;:)R
+  [write workspace]		(JZqt;)W
+  [final statement]		(@&'Production:'TL@&JZqt;)X
+				"I;) s
+
+[Markov rule]			('('FD39%I
+				','FD39%I'FD'I39%I')'FD
+				('.'ED';';':';)39%I'I'II
+				;;) t
+
+[Markov preface]		("(@R(@&@WRL"I2573I;) u
+
+[Markov postscript]		(";;)@X;;)}"I;) v
+
+[compile a MARKOV file]		(Jj
+  [change file extension]	  ('.MKV]'FD'.REC]'Iz;;)
+  [find display message]	  ('[['F']]'UQD;'';)
+  [look for code gap]		  ('('Ej;2573Ez2573Ez2573Ez2573Ej2bD;A:;)
+  [insert preface; to disk]	  's'TL@s<'[[]]'FDIZ>@uz@P
+  [compile each function]	  ('t'TL@tz@P'('Fj:;)
+  [insert postscript]		  'u'TL@vz@P
+				;) w
+
+[append a record]		(128(e)L;qL26k30$r20K0=L;DLL@h) y
+
+[back to line feed]		(10%Ez;B:j;)0
+[bracket a line]		(@010%V;Z;)1
+[back to preceding line]	(@0BB@0;;)2
+[cr,lf]				(2573TL;)&
+[read w/error correction]	(RT08%=127%;13%=2573;26%(=);)$
+[clear screen]			(26%TL;)!
+[erase on ro, insert others]	(127%=z(B;;)D;I;):
+[form next window]		(Zz>@W@!;)>
+[cancel line]			(24%TL;)^
+
+(	'd' [delete] =		(ABD;;);
+	'i' [insert] =		@J@!;
+	'j' [beginning] =	Jj;
+	'x' [exchange] =	(ABD;;)RTI;
+	'z' [to end] =		Z;
+	127%[delete] =		@1D@!;
+	124%[ver bar: next] =	(10%FA;J>(10%FA;;)@Wz@!;;);
+	13% [carr ret] =	@0;
+	96% [prime: up line] =	(BA@2;J>@2@Wj@!;;);
+	95% [undrscore: back] =	(Bj;;);
+	'n' [next record] =	>(@p;L;)(@y;;)J(@W;;);
+	'p' [write 1 record] =	>(@p;L;)J(@W;;);
+	'y' [read 1 record] =	>(@y;'eof:'TL;)J(@W;;);
+	' ' [advance] =		(A;;);
+	'>' [next window] =	(@>j;>@I;);
+	'<' [beg window] =	>@I;
+	'.' [refresh screen] =	@!;
+	's'			= @s;
+	't'			= @t;
+	'u'			= @u;
+	'v'			= @v;
+	)?
+
+[main program]			(
+    [create FCB's, open file]	 30@F 31@F @G
+    [sign-on]			 'markov.rec> 'TL
+    [automatic compilation]	 ('5C'H12wAqt@&3b' 'E(w(@y:;)@w@H;);w);
+    [wait, initialize, loop]	 RTL @I (@DR
+	[exit at once]		    ';'=@!;
+	[close, exit]		    'e'=>@H;
+	[read menu]		     @?:
+	[ignore unknown]	    L:);)}
+
+[end]
+

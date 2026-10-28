@@ -1,0 +1,39 @@
+                  BIGBURST.COM
+            (BIG file BackUp/ReSTore)
+
+Copyright 1982, Gary Young, PO Box 3218, North Hollywood, CA 91609
+Permission granted to copy for non-commercial and personal use.
+ 
+    The purpose of this program is to backup and restore files from
+a hard disk to floppy disks where the file is too big to fit on one
+floppy.  The program works by copying the big file to multiple files
+where each file has a sequence number for the file type.  The last
+record of the last file has an indicator that there are no more files
+to load.
+    To backup a large file, enter
+         A>BIGBURST TESTFILE.ASM/B
+Where TESTFILE.ASM is the large file on the hard disk and the "/B"
+tells the program that this is a BACKUP operation.  The program
+will make sure the file exists on the hard disk, and as you to
+mount a floppy.  It will name the file on floppy 1 as TESTFILE.001,
+file on floppy 2 as TESTFILE.002, etc until the entire file is copied.
+    To restore the large file, enter
+         A>BIGBURST TESTFILE.ASM/R
+Where TESTFILE.ASM is the large file on the hard disk and the "/R"
+tells the program that this is a RESTORE operation.  The program
+will then tell you to mount the diskette containing TESTFILE.001.
+If you enter the wrong diskette, it will tell you to mount the
+right one.  The pogram creates TESTFILE.$$$ until the entire
+process is complete.  If TESTFILE.ASM already exists on the hard
+disk, it will be renamed TESTFILE.BAK and any other copies of
+TESTFILE.BAK will be deleted.  When the restore is successful,
+it will rename TESTFILE.$$$ as TESTFILE.ASM, but you will still
+have the original file as a backup if neccessary.
+    The only program modification required is to set the floppy disk
+drive and reassemble.  It is currently set for drive D: as indicated
+in the line 'FLOPPY  EQU 4'.  If your floppy is on F: set that to 5,
+G: = 6, ...A:=1, B:=2, C:=3 etc.  The program uses all of available
+memory as the copy buffer.  For diagnostic purposes, the program prints
+out the record number just copied after copying each buffer.  This
+can be removed be deleting all references to DEBUG.
+

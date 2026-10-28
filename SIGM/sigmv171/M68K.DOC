@@ -1,0 +1,991 @@
+
+
+
+
+
+
+			  ____________ç                          Introduction
+
+
+     If  you  have  an  8  bit  microcomputer system and want to
+experiment with the Motorola MC68000, this  cross  compiler  may
+interest you.    One  of  the  problems an experimenter faces in
+using a new microprocessor is how to develop  programs  for  it.
+One  solution  to  this  problem  is  to purchase a new computer
+system and a new set of software for each of the processors that
+interest you.  Clearly, this solution  is  expensive.    Another
+solution  is to use an existing computer and software to develop
+the programs for the new one.  Compilers which use  an  existing
+computer  to  produce  code for another machine are called cross
+compilers. Such  cross  compilers  (and  cross  assemblers)  are
+available  for  most  of  the  microprocessors  on  the  market.
+However, they  typically  run  on  a  large  mainframe  or  mini
+computer.  This  rules them out for many applications.  It would
+be nice to have a simple compiler that can be run on an existing
+microcomputer to generate code for the new processor.   That  is
+exactly  the  need  addressed  by  this  cross  compiler for the
+MC68000.
+
+     I have chosen a subset of the FORTH language because it  is
+a powerful  language  that is simple to implement.  I decided to
+write the  compiler  in  FORTH  because  most  of  the  routines
+required  by the compiler are already present so the development
+time for the compiler is greatly reduced.  The  resulting  cross
+compiler  should be transportable to any computer which supports
+FORTH.  I am using this compiler for  scientific  work  where  I
+need  the  speed  of the MC68000 so the compiler does not have a
+lot of fancy data structures and I/O  routines.    These  things
+could  be added but the current configuration is adequate for my
+purposes.
+
+     In this article I am assuming the reader is  familiar  with
+the FORTH  language.  Those not familiar with FORTH should get a
+copy of the excellent book "Starting FORTH" by Leo  Brodie.    I
+used  Starting  FORTH  as  a  reference  when  I  developed this
+compiler so  the  FORTH  words  that  are  implemented  work  as
+described there.    The  detailed  description  of the operators
+supported by the compiler is presented in assembly language,  so
+familiarity  with  the  MC68000  assembly language is needed for
+understanding the design of the compiler.  However,  it  is  not
+necessary to know assembly language to use the compiler.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+							  Page 2
+
+
+
+			 ______ ______ç                         Memory Layout
+
+
+     Before considering the compiler it is necessary to know how
+the memory  of  the  MC68000  is  used.   The compiler uses four
+separate areas of MC68000 address space.  The pointers to  these
+areas  are  all  maintained in MC68000 registers so the user can
+allocate any area of memory for the various functions by setting
+up the registers  properly.    Thus,  it  is  not  necessary  to
+recompile the program to change the memory map.  These areas are
+described below.
+
+1.  Code pool
+
+    Subroutine  definitions  place their output code in the code
+    pool and update  the  code  pool  pointer  variable  in  the
+    compiler (M68PCODE   in   listing  2,  screen  9).    During
+    execution of the resulting code, the MC68000 program counter
+    is the pointer to  this  area  of  memory.    Only  relative
+    addressing  is used so the code pool can be relocated simply
+    by moving the code and starting the program  at  the  proper
+    place.
+
+2.  Variable pool
+
+    The  memory  used  by  variables  and  arrays  is  allocated
+    relative to the variable pool pointer (A5 in  the  MC68000).
+    The  compiler  word  M68ALLOT  is used to allocate space and
+    maintain even address alignment.  To  avoid  address  faults
+    the  value  placed in A5 must be even. With that restriction
+    the variable pool  may  be  placed  anywhere  in  memory  by
+    setting the  value  of  A5.   With an appropriate supervisor
+    program, it is possible to produce  reentrant  modules  with
+    this compiler by using A5 to assign a separate space for the
+    local variables each time the module is called.
+
+3.  Data stack
+
+    The  memory  used by the data stack is pointed to by MC68000
+    register A6.    The  stack  is  maintained  using  the  auto
+    decrement  addressing mode to store information on the stack
+    and the auto increment addressing mode to remove information
+    from the stack.  For further information on the workings  of
+    the data stack see the stack operator section of listing 1.
+
+4.  Return stack
+
+    The hardware stack is used for the return stack because most
+    of the return stack operations then become automatic.  A7 is
+    used as  the  pointer to the return stack.  Since there is a
+    supervisor and a user hardware stack pointer it is  possible
+    to use modules generated by this compiler for both interrupt
+    service routines and user programs.
+
+
+
+
+
+
+
+
+
+							  Page 3
+
+
+
+		      ________ ___________ç                      Compiler Description
+
+
+     The  FORTH  subset  that  I  implemented  was  chosen for a
+particular hardware  configuration  but  could  be  expanded  if
+different I/O  were required.  I assume that you have a computer
+with a FORTH system running on it.  In the following  discussion
+I will  refer  to this computer as the host.  I also assume that
+the MC68000 is used as a coprocessor.  This  assumption  greatly
+reduces   the   complexity  of  the  subset  that  needs  to  be
+implemented.  All functions which interact with the terminal can
+be left out, also all the interaction with the operating  system
+and periferals   can   be  handeled  by  the  host.    A  simple
+bidirectional communication channel  is  all  that  is  required
+between the  host  and  the MC68000.  I have chosen to implement
+the arithmetic, stack,  memory  access,  and  control  operators
+found in  most  FORTH  systems.   I/O routines for data transfer
+between the MC68000 and  the  host  can  be  written  using  the
+primitives provided since the MC68000 uses memory mapped I/O.
+
+     The compiler generates machine code so there is no need for
+an inner  interpreter.    The MC68000 provides the capability of
+writing position independent code, so all of the  code  produced
+by  this  compiler  is  position  independent  unless  the  user
+explicitly forces it to be otherwise.  Since the  code  is  kept
+separate  from the variable and stack space, the output from the
+compiler can be put into ROM.  It is sometimes desirable to  use
+programs generated with this compiler in host environments other
+than FORTH so I have provided a simple output scheme that allows
+the output code to be sent to any device supported by the host.
+
+     To  avoid  conflict with the FORTH definitions in the host,
+most of the compiler is in a separate  vocabulary  (named  M68K)
+that is   accessed   only  through  the  defining  words.    All
+definitions created with the compiler are also  placed  in  this
+vocabulary  to  prevent accidental reference to them while using
+the host development system.  Some of the words normally used in
+FORTH have been given different names to  avoid  conflicts  with
+the host  definitions.    These  differences  will  be discussed
+later.
+
+     There are two basic types of definitions  produced  by  the
+compiler, macros  and  subroutines.    Macro  definitions do not
+generate any output code but when referenced they store the code
+implememting  the  macro  in  the  definition  currently   being
+compiled.   Subroutine  definitions  generate  output  code when
+defined and  generate  a  subroutine  call  when  referenced  in
+another subroutine  definition.    A  macro  definition  may  be
+referenced in another macro or in a subroutine definition but  a
+subroutine may  not  be  referenced  in a macro definition.  The
+macro definition is the basic building block in the compiler, so
+I  will  discuss  it  in  detail  before  considering  constant,
+variable, and array definitions.
+
+
+
+
+
+
+
+
+
+							  Page 4
+
+
+
+     A  macro  is  created  in  the  same  way  as a FORTH colon
+definition except that :M68MAC and ;M68MAC are used in place  of
+the :  and  ; of a FORTH definition.  The body of the definition
+consists of executable MC68000 machine  code  or  references  to
+macros, variables, constants, and arrays.  For examples of macro
+definitions  see  screens  33-43  in  listing 2 and the examples
+below.
+
+     When a macro is defined the M68K vocabulary is activated, a
+FORTH header is created in the dictionary of the host, and space
+is reserved for the code length.  The host FORTH is in execution
+mode so any words referenced in the body of a  macro  definition
+are executed   immediatly.      When  the  macro  definition  is
+terminated, the length of the code segment  is  stored  and  the
+FORTH vocabulary  is  reactivated.   Any subsequent reference to
+the macro copies the code contained within the macro  body  into
+the  host  dictionary  at the location HERE, then the dictionary
+pointer is updated to point to the memory location following the
+code.
+
+     To illustrate this process consider the definition  of  the
+macro 2* shown in figure 1.  First, :M68MAC is used to start the
+definition,  create  the  FORTH header for 2* (Note.. I am being
+deliberately vague about the form of  the  header  because  that
+depends  on  the particular implementation of FORTH being used),
+and allocate space for the code length.  Next the macro  DUP  is
+called,  it  copies  the code for performing a DUP function into
+the host  dictionary  at  the  location  HERE  and  updates  the
+dictionary pointer  by  two.    Then  the  macro + is called, it
+copies its code into the dictionary and updates  the  dictionary
+pointer  by  four.  Finally,  ;M68MAC  is  used to terminate the
+definition and compute and store the macro  length  in  the  two
+bytes following  the  header.    In  this case the length is six
+bytes.
+
+     Single and  double  precision  constants  are  compiled  as
+macros containing a single MC68000 instruction to push the value
+of the constant onto the data stack.  The word M68CON is used to
+define a  single  precision  constant as shown in figure 2.  The
+value of the constant is taken from the host stack and stored in
+the macro as part of a move immediate instruction  (see  listing
+1).  The word M68DCON is the same except that a double precision
+value is involved.
+
+     Variables  are  defined  as single precision constants that
+push the variable pool relative address onto the stack  for  use
+with the  fetch  and  store  operations.  Note that the variable
+pool relative address  is  a  16  bit  signed  integer,  so  the
+variable pool  can be no longer than 32K bytes.  The word M68VAR
+defines a single precision variable while the  word  M68DVAR  is
+for double precision.
+
+     Arrays  are  defined  as macros that take the index off the
+
+
+
+
+
+
+
+
+
+							  Page 5
+
+
+
+stack and compute the variable pool  relative  address  of  that
+element and  leave  the  result  on  the  stack.    The compiler
+supports arrays  whose  elements  can  be  either  byte,  single
+precision, or  double precision.  The words M68CARY, M68ARY, and
+M68DARY respectively define these data types.  Figure  3  is  an
+example  of  the  definition  of  a  byte  array containing five
+elements.  The variable pool pointer is shown before  and  after
+the  definition  of  the array. Note that the compiler maintains
+alignment on word boundaries to avoid  address  exceptions  when
+the code is executed.
+
+     When  a  subroutine  is  defined,  the  M68K  vocabulary is
+activated and a FORTH header is created in the dictionary of the
+host.  The code pool relative address of the subroutine is  then
+stored as  the  first entry of the definition.  Compilation then
+proceeds in the same way as in a macro  definition  except  that
+references to subroutine definitions are also allowed.  When the
+definition is terminated a return from subroutine instruction is
+compiled,  the  code  pool pointer M68PCODE is updated, then the
+code is sent to the output file and deleted from the dictionary.
+This leaves only the header and the code pool  relative  address
+of the  subroutine  in  the dictionary.  Subsequent reference to
+the subroutine uses the code pool relative  address  to  compute
+the   relative  address  required  in  a  branch  to  subroutine
+instruction.  Note that the branch instructions on  the  MC68000
+restrict your program to 32K bytes because all of the subroutine
+calls are back branches, forward referencing is not supported in
+this compiler.
+
+     Since  the  code  pool  relative address of a subroutine is
+stored at the start of  the  definition,  a  subroutine  may  be
+referenced recursively.    However,  care must be exercised when
+doing this.  Subroutine calls do not create local  variables  so
+any  subroutine  which  stores  a  value  in  a variable may not
+operate properly when recursively called.  I  recommend  keeping
+all variables  on  the stack in recursive subroutines.  When you
+do this make sure the data stack is large enough.  There  is  no
+check  for  stack overflow so something will be clobbered if the
+data stack space is too small.
+
+     To  illustrate  the  process  of  subroutine   compilation,
+consider the  example  in  figure  4.  The word :M68K is used to
+start the definition and create the FORTH header  for  4*,  this
+also  sets the code pool relative address of 4* (in this case it
+is zero).  Next, the macro 2* is called twice (the macro 2* that
+is refered to here is the one defined in figure 1  not  the  one
+actually  implemented  in the compiler which is more efficient).
+Each time 2* is called the code implementing it is stored in the
+host dictionary and the dictionary pointer  is  updated.    Then
+;M68K  is  used  to  terminate  the  definition  by  compiling a
+subroutine  return  instruction,  adding  the  length   of   the
+subroutine  to  the  code  pool pointer, copying the code to the
+output file, and deleting the code from the dictionary.
+
+
+
+
+
+
+
+
+
+							  Page 6
+
+
+
+			  ____________ç                          Installation
+
+
+     To  install  the  compiler  you  need either a fig FORTH or
+FORTH-79 system.  The installation on a  FORTH-79  system  is  a
+little more involved so I will cover the fig installation first.
+Listing  2  contains  the  complete source for the compiler, you
+must somehow get these 35 screens into your FORTH system.    For
+$25  I  will  provide an 8" single density CP/M disk with all of
+the source code for the compiler and this article.   The  source
+code  on  the  disk  will  be  in  a  screen  file  supported by
+Laboratory Microsystems Z80-FORTH,  and  also  as  a  text  file
+containing a listing of the screens.  By the time you read this,
+the  source may be available from a couple of user groups and/or
+RCPM systems.
+
+     A few words in the compiler  must  be  customized  to  your
+system.   In  screen  12  is  a word called HIGH-BYTE, this word
+takes the top entry off the stack and  returns  the  high  byte.
+This  definition  must  be  replaced with the code to accomplish
+this task, it may be necessary to use a code definition on  your
+system.   The  word M68OUT in screen 18 must be designed to send
+the generated code to whatever output device or file  you  want,
+refer  to  the  note  in  that screen. The word M68OUT currently
+prints the code on the screen.  If you want to use the  external
+reference  capability  you will need to modify the definition in
+screen 20 to send the output where you want it.  If you  do  not
+want that feature then simply delete screen 20 entirely.
+
+     The compiler  is  loaded  in  three  sections.    The basic
+compiler and error checking routines  are  loaded  from  screens
+8-24.   The  program  control  and looping operations with their
+associated error checking are contained in screens 25-33.    The
+macros  that  implement  the operators supported by the compiler
+are in screens 34-43.
+
+     For a FORTH-79 system the above applies but some additional
+work needs to be done.  I have used the  fig  FORTH  word  ENDIF
+instead  of  the  FORTH-79 word THEN so on a FORTH-79 system the
+definition of ENDIF given in listing 2 screen 44 should be used.
+I have also used the fig word <BUILDS in a <BUILDS  ...    DOES>
+construction.   See  screen  44 for a discussion of a definition
+for <BUILDS.  With these two definitions the compiler should run
+on a FORTH-79 system.  However, I cannot guarantee that this  is
+the  case  since  my  system  is  a  combination  fig FORTH with
+FORTH-79 extension so my testing may not have picked up  all  of
+the problems.    If  you have difficulty with this either get in
+touch with me or send in a letter to the editor.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+							  Page 7
+
+
+
+		       _____ ___ ________ç                       Using the Compiler
+
+
+     Before explaining how to use the compiler I want  to  point
+out some  of the difficulties you will encounter.  Although this
+compiler uses a subset of FORTH you will find  that  most  FORTH
+programs  will  have  to  be  modified  before the compiler will
+accept them.  Obviously, constructions which are  not  supported
+by  the  compiler must be removed and/or replaced, but also many
+programming techniques used in FORTH will not work  because  the
+output  code  is nothing like the indirect threaded code used in
+most FORTH  implementations.    Therefore,  such  practices   as
+modifying the values of constants on the fly will not work, also
+you  cannot compile things into the dictionary at run time since
+there is no dictionary.  The compiler runs as  a  collection  of
+words  in  the  host  FORTH  system but I have not rewritten the
+FORTH word NUMBER to be sensitive  to  the  state  of  the  M68K
+compiler  so  a number contained within a definition will not be
+compiled into the definition automatically.  Instead it goes  on
+the host stack and must be compiled into the definition with the
+word  LITERAL  (or  DLITERAL  in  the case of double precision).
+Also note that you must use at least one  subroutine  definition
+to get  the code sent to the output file.  I think this will all
+become clear as I go through the example in listing 3.
+
+     Listing 3, screen 8 shows the  FORTH  implementation  of  a
+benchmark program.  This will be used as a reference to show how
+the FORTH  code  must be modified to compile properly.  Screen 9
+shows the same program for the M68K compiler.  The  first  thing
+to notice is the difference in the definitions of the constants.
+The number  0  is  used  several times in the program.  To avoid
+using LITERAL so many times, I defined a constant #0 in the M68K
+vocabulary and used that wherever 0 was used.  The name 0  could
+have  been  chosen  for this constant since it is redefined only
+when the M68K vocabulary is active, but that may have  made  the
+example more  confusing.   The constant SIZE is used in two ways
+in the  program.    SIZE  is  used  as  a  FORTH  constant  when
+allocating  array  space  and  as  an  M68K  constant within the
+definition of DO-PRIME.  It is defined twice, once in the  FORTH
+vocabulary  using CONSTANT and once in the M68K vocabulary using
+M68CON.  The definition  of  the  variable  FLAGS  is  a  little
+different   from   screen  8,  the  M68K  compiler  follows  the
+convention in Starting FORTH and does  not  provide  initialized
+variables.  Note that the constants 1 and 3 used inside DO-PRIME
+are  compiled  using  LITERAL as all numbers inside a definition
+must be if they are not defined as  constants.    The  resulting
+code  for  either  a  constant or literal is identical, only the
+compilation process is different.  I used :M68MAC to define  DO-
+PRIME  because  I  wanted  the  entire  program  to  be a single
+subroutine.   Screen  10  contains  an  initialization   routine
+required  to set the pointers used by the code, it also contains
+a subroutine TEST which causes the output code to be  generated.
+TEST  also  causes  the  benchmark  to  be  iterated 10 times to
+
+
+
+
+
+
+
+
+
+							  Page 8
+
+
+
+conform to the requirements of Gilbreath's test.  Note that  the
+prime  count  cannot be printed as in the FORTH version so it is
+simply droped from the stack.  One might think  that  the  prime
+count could be eliminated from the program itself but that would
+give  a  false  representation  of  the  execution  time  of the
+benchmark.  Screen 11 is  the  same  program  as  screen  9  but
+rewritten  to  use  the  array  features  of the compiler and to
+remove a couple of the inefficiencies built  into  the  original
+program.  Screen 12 is identical to screen 10 and is here simply
+to  compile screen 11 without using an indirect LOAD. Also shown
+in listing 3 is an assembly language version  of  the  benchmark
+program used  for timing and code size comparisons.  The results
+of the benchmark are shown in figure 5.    Note  that  a  fairly
+heavy  penalty  is  paid  for  using  a stack oriented language.
+However, I think the programming convenience is worth it in most
+cases.
+
+     Figure 6 is a description of the  words  that  perform  the
+compilation operations.    The  list  is  organized functionally
+rather than alphabetically. The word described is listed to  the
+left  followed  by the host stack image, over to the right is an
+example of the proper usage of the word.  Listing 1 contains the
+assembly language source for the FORTH words supported  by  this
+compiler.   In that listing there is also a short description of
+the supported words.  The reader should refer  to  that  listing
+and  Starting  FORTH  to clear up any confusion concerning these
+definitions.   Note  that  listing  1  also  describes   several
+operators that  are  not  standard  FORTH.   Operators for doing
+absolute memory references are described in the memory  and  I/O
+section.   Absolute  subroutine calls and jumps are described in
+the control operations section.
+
+     There is no easy way to debug  programs  written  for  this
+compiler so I recommend the following development procedure.
+
+1.  Write and debug the program in FORTH.
+
+    Your  FORTH  development  system provides a good environment
+    for debugging programs that you develop for  this  compiler.
+    It  is  very  important  at  this  stage  to avoid using any
+    operations not supported by the  compiler  since  they  will
+    just have  to  be  removed  later.    You should avoid using
+    embedded literals in your definitions since they are  rather
+    messy to take care of later.
+
+2.  Translate the program into a form acceptable to the
+    compiler.
+
+    If   you  have  avoided  using  embedded  literals  in  your
+    definitions, the only changes should be replacing the :  and
+    ; as  appropriate.   The embedded literals can be taken care
+    of by defining each one as a  constant  or  using  the  word
+    LITERAL (or DLITERAL).
+
+
+
+
+
+
+
+
+
+							  Page 9
+
+
+
+
+3.  Compile the program and load it into your MC68000 computer.
+
+    Make  sure  that  registers  A5, A6, and A7 are set properly
+    (either by a supervisor program, by hand, or using the  load
+    instructions provided in the compiler).
+
+4.  The program should now operate properly.
+
+    If  not, step 2 is the most likely place to find the errors.
+    I have frequently encountered errors  in  resolving  program
+    control structures.  These errors occour because an embedded
+    literal has not been compiled.  This type of error is picked
+    up in the compile phase so no incorrect code is produced.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+							 Page 10
+
+
+
+			 _____ ________ç                         Final Comments
+
+
+     This   compiler   could   form  the  basis  for  a  modular
+programming environment for the  MC68000  microprocessor.    The
+modifications necessary  would not be very complicated.  To make
+the compiler generate modular code a new word will  have  to  be
+added to  the basic compiler.  This word should reset all of the
+compiler variables in screen  9  to  their  original  state  and
+generate  an appropriate header so the operating system can load
+and execute the module.  Another word to terminate a module  and
+check  for  errors  will be required, the error checking code in
+the existing compiler can be used as a guide.    Note  that  the
+absolute  addressing  operators  will  have  to  be used for all
+global variables. I recommend that global variables  be  avoided
+and  that  all  parameters  passed from one module to another be
+passed on the data stack.
+
+     I would like to see floating point arithmetic added to  the
+compiler but  I do not think I will do it anytime soon.  I would
+also like to have a MC68000 assembler built into the compiler so
+that machine code does not have to be typed in hex.  I encourage
+anyone who is interested to work on these extensions and publish
+their work in Dr. Dobb's for the rest of us to use.
+
+     Please  note  that  I  have  copyrighted   this   compiler.
+However,  I  am  releasing  it  for  personal  use and nonprofit
+distribution.  If you sell my compiler as an integral part of  a
+commercial software  package I expect a small royalty.  Any code
+produced by the compiler may be sold  without  notifying  me  or
+paying royalties.    Other  than that feel free to use it as you
+see fit and give it to whomever you like.  You may also want  to
+send  it  on  to your favorite user group, all I ask is that you
+acknowlege the source.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+			    FIGURES                      Page 11
+
+
+
+
+
+:M68MAC 2* DUP + ;M68MAC
+
+      _______
+     |   2*  |       Dictionary header for the macro 2*
+     |_______|
+     | 00 06 |       Length of macro code segment
+     |_______|
+     | 3D 16 |       MC68000 machine code for DUP
+     |_______|
+     | 30 1E |       MC68000 machine code for +
+     | D1 56 |
+     |_______|
+
+
+Figure 1: Example of a macro definition and the resulting 
+	  dictionary entry.
+
+
+
+
+
+
+
+
+
+
+5 M68CON #5          ( Defines the constant #5 )
+
+      _______
+     |   #5  |       Dictionary header for the macro #5
+     |_______|
+     | 00 04 |       Length of macro code segment
+     |_______|
+     | 3D 3C |       MOVE.W  #5,-(A6)
+     | 00 05 |       Pushes the value 5 onto data stack
+     |_______|
+
+
+Figure 2: Example of a constant definition and the
+	  resulting dictionary entry.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+			    FIGURES                      Page 12
+
+
+
+
+
+5 M68CARY EXAMP      ( Defines the byte array EXAMP )
+
+      _______
+     | EXAMP |       Dictionary header for the macro EXAMP
+     |_______|
+     | 00 06 |       Length of macro code segment
+     |_______|
+     | 30 3C |       Code to add the variable pool relative
+     | 00 20 |       address of the array ( 20 hex ) to the
+     | D1 56 |       index value on the data stack.
+     |_______|
+
+Variable pool pointer:
+Before = 0020;  After = 0026
+
+Figure 3: Example of an array definition, the resulting 
+	  dictionary entry, and the effect on the variable 
+	  pool pointer.  Note all values are in hex.
+
+
+
+
+
+
+
+
+
+
+:M68K 4* 2* 2* ;M68K
+
+      _______
+     |   4*  |       Dictionary header for the subroutine 4*
+     |_______|
+     | 00 00 |       Relative address of subroutine
+     |_______|
+
+Code pool pointer:
+Before = 0000;  After = 000E
+
+Code sent to the output file:
+
+	2*        |         2*        | RTS instruction
+__________________|___________________|________________
+3D 16 30 1E D1 56 | 3D 16 30 1E D1 56 | 4E 75
+
+
+Figure 4: Example of a subroutine definition, the resulting
+	  dictionary entry, and the output code.
+
+
+
+
+
+
+
+
+
+
+
+
+			    FIGURES                      Page 13
+
+
+
+
+
+Source     Code size    Time (10 iter.)    Comments
+___________________________________________________________________________
+Screen 8   109 Bytes    85 sec             Z80 FORTH @ 3.5Mhz
+Screen 9   220 Bytes    8.7 sec            68000 @ 10Mhz with 2 wait states
+Screen 11  216 Bytes    8.1 sec            68000 @ 10Mhz with 2 wait states
+Assembler   74 Bytes    2.1 sec            68000 @ 10Mhz with 2 wait states
+
+
+Figure 5: Results of benchmark tests shown in listing 3.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+			    FIGURES                      Page 14
+
+
+
+
+
+:M68K   ( -- )                                  :M68K xxxx
+
+	Creates a header for the subroutine  word  xxxx  in  the
+	M68K  vocabulary  and  sets  the  variables M68ENTRY and
+	M68PFA.   Reference  to   xxxx   within   a   subroutine
+	definition generates a branch to subroutine using the PC
+	relative addressing  mode.    The  word xxxx may only be
+	referenced within a subroutine definition.    Any  other
+	usage will produce an error message.  So long as no side
+	effects   occour,   the  word  xxxx  may  be  referenced
+	recursively.  Note that the code may  be  put  into  ROM
+	because  the  stack  and variable space is kept separate
+	from the code.
+
+;M68K   ( -- )
+
+	Terminates the construction of a  subroutine  definition
+	and sends the code to the output file.  The code for the
+	subroutine  is deleted from the host dictionary after it
+	is written out and only the code pool  relative  address
+	of the subroutine is retained.
+
+:M68MAC ( -- )                                  :M68MAC xxxx
+
+	Creates  a  header  for  the macro word xxxx in the M68K
+	vocabulary  and  sets  the  compiler  variable   M68PFA.
+	Reference   to  xxxx  within  a  definition  copies  the
+	compiled code into the host dictionary.   A  macro  word
+	may be referenced within the definition of another macro
+	word or within the definition of a subroutine word.
+
+;M68MAC ( -- )
+
+	Terminates  the  construction  of  a  macro  type  word,
+	encloses the code, and updates the compiler variables.
+
+M68CON  ( n -- )                                n M68CON xxxx
+
+	Defines a macro word xxxx that pushes the value  n  onto
+	the stack when xxxx is executed.  The value n must be on
+	the host stack when M68CON is referenced.
+
+M68DCON ( d -- )                                d M68DCON xxxx
+
+	Defines  a  double precision constant in the same way as
+	M68CON.
+
+
+
+
+
+
+
+Figure 6: Description of compiling words
+
+
+
+
+
+
+			    FIGURES                      Page 15
+
+
+
+
+
+M68ALLOT ( n -- )                               n M68ALLOT
+
+	Allocates n bytes of  space  in  the  variable  pool  by
+	updating  the  variable  pool  pointer variable M68PVAR.
+	Note.. this word maintains even byte alignment  so  that
+	address  exceptions  will  not  occour  on 16 and 32 bit
+	memory references.  Also note that it is an error if the
+	variable pool becomes longer  than  32K  bytes  but  the
+	compiler  will not report this as an error, so incorrect
+	code would be generated.
+
+M68VAR  ( -- )                                  M68VAR xxxx
+
+	Defines a single precision variable by using the pointer
+	M68PVAR as the parameter n  for  M68CON.    The  pointer
+	M68PVAR  is  then  updated  by two bytes using M68ALLOT.
+	Execution of the word  xxxx  leaves  the  variable  pool
+	relative  address  of  the  variable  on  the top of the
+	stack.
+
+M68DVAR ( -- )                                  M68DVAR xxxx
+
+	Defines a double precision variable in the same  way  as
+	M68VAR  except  that  the  pointer M68PVAR is updated by
+	four bytes.
+
+M68ARY  ( n -- )                                n M68ARY xxxx
+
+	Defines a single precision array xxxx that is n elements
+	long. The word xxxx is defined as a macro that takes  an
+	element  number  off the top of the stack and leaves the
+	variable pool relative address of that element.
+
+M68CARY ( n -- )                                n M68CARY xxxx
+
+	Defines a byte array in the same manner as M68ARY.
+
+M68DARY ( n -- )                                n M68DARY xxxx
+
+	Defines a double precision array in the same  manner  as
+	M68ARY.
+
+EXTERNAL ( -- )                                 EXTERNAL xxxx
+
+	Creates  an  external  reference xxxx which contains the
+	code pool relative address of the last  subroutine  word
+	that was  defined.    This word may be customized by the
+	user to produce a file containing an external  reference
+	list.   Currently,  this word creates a constant xxxx in
+	the FORTH vocabulary of the host.
+
+
+
+Figure 6: Description of compiling words (continued)
+
+
+
+

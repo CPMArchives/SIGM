@@ -1,0 +1,129 @@
+
+[ASMBL.CNV]
+[CNVRT assembler of intermediate code for "C"]
+[Harold V. McIntosh, 20 June 1983]
+
+
+
+[generic assignment]
+(()()(0 1)(
+	(+=@&<:1:><-->@[2]in,(%C,/pob/poa/*a#<1>/+[b]a/pu[b])[2]in);
+	(+=@&<:1:><-->@&[2]in,(%C,poa/pob/lb[b]/xab/*a#<1>/+[b]a/pu[b])[2]in);
+	(-=@&<:1:><-->@[2]in,(%C,/pob/poa/*a#<1>/-[b]a/pu[b])[2]in);
+	(-=@&<:1:><-->@&[2]in,(%C,poa/pob/lb[b]/xab/*a#<1>/-[b]a/pu[b])[2]in);
+	(<0>@&<:2:>in@<:2:>in,(%C,/pob/poa(b,<0>)/pua)[2]in);
+	(<0>@&<:2:>in@&<:2:>in,(%C,/poa/pob/lb[b]/xab(b,<0>)/pua)[2]in);
+	(,can<'>t store);
+  )) a
+
+[code for assignment options]
+(()()()(
+	(=,/sa[b]);
+	(+=,/+a[b]/sa[b]);
+	(-=,/-a[b]/sa[b]);
+  )) b
+
+[generic binary]
+(()()(0 1)(
+	(-@<:1:><-->@<:1:>,[2]in(%C,/poa/pob/div#<1>/pua));
+	(<0>@[2]in@[2]in,[2]in(%C,/poa/pob(d,<0>))/pua);
+	(<0>@&[2]in@[2]in,[2]in(%C,/pob/la[b]/pob(d,<0>)/pua));
+	(<0>@[2]in@&[2]in,[2]in(%C,/poa/pob/lb[b](d,<0>)/pua));
+	(<0>@&[2]in@&[2]in,[2]in(%C,/pob/la[b]/pob/lb[b](d,<0>)/pua));
+  )) c
+
+[code for binary options]
+(()()()(
+	(+,/+ab);
+	(-,/-ab);
+	(*,/*ab);
+  )) d
+
+[generic unary]
+((
+	((and,(or,+,-,!),<0>)) A
+	((and,(or,pri,prd,poi,pod),<0>)) B
+  )()(0 1)(
+	(&@&<0>,<0>);
+	(&,(%C,excess &));
+	(*@&*<0>,&<0>(%C,/pob/pu[b]));
+	(<:A:>@&[2]in,[2]in(%C,/pob/pu[b])(%C,(f,<0>)));
+	(<:B:>@&[2]in,[2]in(%C,(f,<0>)));
+	(<:A:>@[2]in,[2]in(%C,(f,<0>)));
+	(<:B:>@&*[<1>],[2]in(%C,(g,<0>@<1>)));
+	(<:B:>@&[<-->*<1>],[2]in(%C,(g,<0>@<1>)));
+	(<0>@[2]in,[2]in(%C,(f,<0>)));
+  )) e
+
+[code for unary options]
+(()()()(
+	(pri,/pob/i[b]/pu[b]);
+	(prd,/pob/d[b]/pu[b]);
+	(poi,/pob/pu[b]/i[b]);
+	(pod,/pob/pu[b]/d[b]);
+	(!,/poa/-a#1/sbb ax,ax/pua);
+	(-,/poa/neg ax/pua);
+	(~,/poa/not ax/pua);
+  )) f
+
+[auto increment and decrement]
+(()()(0 1)(
+	(pri@<0>,/pob/la[b]/+a#<0>/sa[b]/pua);
+	(prd@<0>,/pob/la[b]/-a#<0>/sa[b]/pua);
+	(poi@<0>,/pob/la[b]/pua/+a#<0>/sa[b]);
+	(pod@<0>,/pob/la[b]/pua/-a#<0>/sa[b]);
+  )) g
+
+[assemble fetches]
+(()()(0 1)(
+		( <0><,><--> <0><1><,>,&<1>(%C,/la#<0>/pua));
+		( <0><,>,&[2]int(%C,/la#<0>/pua));
+  )) h
+
+[assemble index]
+(()()(0 1)(
+	(&[2]in@&[<-->*<0>]<1>,&[<0>]<1><<
+		>>(%C,/pob/la[b]/pob/*a#<0>/+ba/pub));
+	([2]in@&[<-->*<0>]<1>,&[<0>]<1><<
+		>>(%C,/poa/pob/*a#<0>/+ba/pub));
+	(,not indexable);
+  )) i
+
+[assemble function]
+(()()(0 1)(
+	(&<(><)><0>@,<0>(%C,/pob/call [bx]));
+  )) j
+
+[option menu]
+((
+  [pointer weights]	((or,*(and,*,<1>),*[<1>],[<-->*<1>])) 1
+  [pointer compatible]  ((or,*<-->],[2],<-->*2])) 2
+  )()(0 1 2 3)(
+	(;,);
+	(:<0>,(%C,<0>)(%R)<0>):
+	(/fetch<0>:prog:<1>:dict:<2>,<<
+		>>::prog:(h,<0><,><2>)@<1>:dict:<2>):
+	(/define<0>:prog:<1>:dict:<2>,<<
+		>>::prog:<1>:dict:<0><2>):
+	(/assign <0>:prog:<1>@<2>@<3>,<<
+		>>::prog:(a,<0>@<1>@<2>)@<3>):
+	(/binary <0>:prog:<1>@<2>@<3>,<<
+		>>::prog:(c,<0>@<1>@<2>)@<3>):
+	(/unary <0>:prog:<1>@<2>,::prog:(e,<0>@<1>)@<2>):
+	(/index:prog:<0>@<1>@<2>,::prog:(i,<0>@<1>)@<2>):
+	(/function:prog:<0>@<1>@<2>,::prog:(j,<0>@<1>)@<2>):
+	(/char<0>,/define a[1]ch<,> b[1]ch<,> c[3*1]ch<,> d*[1]ch<,><0>):
+	(/int<0>,/define i[2]in<,> j*[2]in<,> k[8*2]in<,><<
+		>> o**[8*3*2]in<,> l<(><)>[2]in<,><0>):
+	(/float<0>,/define p[4]fl<,> q***[4]fl<,> r<(><)>[4]fl<,><0>):
+	(/clear,::prog:@(%|):dict:):
+	(<-->:prog:<0>,(%C,nope)::prog:<0>):
+  )) w
+
+[main program]
+(()()()(  
+	(,(w,(%R):prog:@(%|):dict:));
+  ))
+
+[end]
+

@@ -1,0 +1,1249 @@
+*********************************************************
+*							*
+* PISTOL-Portably Implemented Stack Oriented Language	*
+*			Version 1.3			*
+* (C) 1982 by	Ernest E. Bergmann			*
+*		Physics, Building #16			*
+*		Lehigh Univerisity			*
+*		Bethlehem, Pa. 18015			*
+*							*
+* Permission is hereby granted for all reproduction and	*
+* distribution of this material provided this notice is	*
+* is included.						*
+*							*
+*********************************************************
+
+      BRIEF, PRELIMINARY DOCUMENTATION ON PISTOL 1.3:
+
+		(updated February 24, 1982)
+
+	PISTOL is a Portably Implemented Stack Oriented
+Language that has been developed for general use and
+experimentation. It is at an early developmental stage and so
+may have lots of "bugs". I would appreciate any comments and
+suggestions.  For the DEC-20, it has been implemented in
+PASCAL;  for CP/M, it has been implemented with the BD Software
+C compiler v1.4.
+
+	PISTOL resembles an HP calculator in many ways.  It
+uses a (parameter) stack to pass numbers between routines.  The
+language is "RPN", that is Reverse Polish Notation.  At
+present, all arithmetic is performed in integer form.  This
+language was inspired by and has evolved from two mini- and
+micro- based languages, FORTH (Charles Moore, 1970) and STOIC
+(MIT and Harvard Biomedical Engineering Center, 1977).
+
+
+GETTING STARTED
+======= =======
+	Before describing the language further, this is how to
+"bring it up":
+
+type
+	DIR CORE1 to see if this file exists, otherwise, type
+	DIR PBASE to make sure this file exists.
+
+
+type
+	EXE PISTOL.PAS
+(and for the DEC-20):
+link TTY: to the input.
+
+	PISTOL should come up with:
+
+***PISTOL 1.3***
+X>
+
+	To make it smarter, it can be "educated" with a set of
+useful definitions already prepared in a file named, CORE1 or
+PBASE ; to do this type:
+
+X> 'CORE1 RESTORE	(only if CORE1 exists!)
+or
+==
+
+X> 'PBASE LOAD		(if PBASE exists; this is much slower)
+X> 'CORE1 COREDUMP	(creates CORE1 for future use)
+
+
+TUTORIAL:
+=========
+
+	Before discussing some examples and features, it is
+probably best to understand the "prompt".  The prompt is what a
+program types at the beginning of the line when it is awaiting
+input from the user.  The prompt supplied by PISTOL can be
+several characters long and it is to inform or remind the user
+about the "state" of the program.  If a number appears at the
+beginning of the prompt, it signifies that the parameter stack
+is not empty.  Next, a letter is displayed (such as "X") that
+indicates the current number base used for i/o ("X", the Roman
+numeral for "10", signifies decimal). After this letter there
+may be other characters or symbols that are used to indicate if
+you are in the middle of some syntactical construction.
+Finally, the ">" completes the prompt expression.  In the
+examples supplied above and below we have attempted to suggest
+the typical prompts that one might expect to see.
+
+	After educating PISTOL by loading PBASE or by restoring
+CORE1, the system is "smarter" you can try the following
+examples:
+
+X> 1 2 23 STACK
+
+The system takes each number as encountered and places them on
+the stack.  The word, STACK , prints the current contents of
+the stack without changing the stack in any way.
+
+	Now try typing:
+3X> + STACK
+
+This should result in the addition of the top two members of
+the stack (2 and 23) and placing the result (answer 25) back on
+the stack. The word STACK then displays the current contents of
+the stack.
+
+	Now try typing:
+2X> * stack
+
+The top two items of the stack will be multiplied together and
+the result left on the stack.  The word, "stack" is interpreted
+as STACK, and we see that the only thing in the stack is the
+answer 25.
+
+	To disable the automatic interpretation of lowercase
+as uppercase, type:
+
+X> RAISE OFF (or "raise off")
+
+and successive lines will be interpreted without conversion of
+lowercase to uppercase.  To revert to conversion, type:
+
+X> RAISE ON
+
+	There are a number of different options that can be
+invoked such as ECHO ON and ECHO OFF which control the listing
+of files read in by the '<filename> LOAD operation.  One can
+use CONSOLE ON and CONSOLE OFF to determine what reaches the
+terminal.  An error condion will automatically restore output
+to the terminal.  LIST ON and LIST OFF will determine what
+output will also be routed to the output list file(of course a
+listfile has to be declared first).  This is useful to have a
+more permanent record of what happened during a session.  There
+is also a SHOWCODE and a NOSHOWCODE which will show the results
+of compiling each input line (that is for those who want or
+like to know what is going on behind the scenes).
+
+	On the DEC-20 (and also in CP/M) one can exit from
+PISTOL by using a control-C, but a more "refined" way is to
+type the word, BYE, which will return you to the operating
+system.
+
+	PISTOL can examine the contents of its own (virtual)
+memory. The W@ ("fetch") operator is similar in spirit to the
+PEEK function in BASIC.  To place the contents of a memory
+location on the stack one simply places the address on stack
+and then types W@ .  For example, if we want to place the
+current value of RADIX, the base used in all I/O number
+conversion, we need to find the value stored in the RAM
+location at -1 (i.e. what is RAM[-1]?) we can type:
+
+X> -1 W@
+
+which will place the desired information on stack.  The inverse
+operation, which is more dangerous(because a mistake can crash
+the program), is to store a new value in the RADIX, hence
+change the number base.  The operator, W! ("word store"),
+performs this function(for this example we suppose that the
+RADIX address is -1, usually, it is not):
+
+X> 16 -1 W!
+
+would convert PISTOL to converse in hexadecimal.
+
+	Of course it is aukward to remember constants, such as
+the address of RADIX so we can define such constants by:
+
+X> -1 'RADIX CONSTANT
+
+After such a CONSTANT definition we can redo the examples that
+use W@ and W! by (RADIX is in fact already defined in PBASE):
+
+X> RADIX W@
+and
+X> 16 RADIX W!
+
+	As an additional convenience the user can define space
+for variables with the word, VARIABLE.  For example, If you
+wish to define a variable with the initial value 0 and named
+ANSWER, you should type:
+
+X> 0 'ANSWER VARIABLE
+
+Later, if you wish to perform the PASCAL statement:
+
+ANSWER := ANSWER + 1;
+
+you would write the PISTOL code:
+
+X> ANSWER W@ 1 + ANSWER W!
+
+Notice that you MUST choose an initial value in VARIABLE and,
+of course, CONSTANT definitions.
+
+	Just like the convenience feature of PASCAL,
+for which one can use SUCC(ANSWER) to increment ANSWER
+by one, there exists an analogous operator (or you can
+define your own!):
+
+X> ANSWER 1+W!
+
+
+	The language has many resources beyond those presented
+so far.  Perhaps the most significant is the ability to define
+new words or definitions to make the language increasingly
+smarter. Try examining the contents of the file, PBASE , to see
+how the definitions may be formed.  As a complex example, the
+word, = is defined whose function is to take the top item off
+of the stack and print its value.  For example, typing:
+
+X> 8 8 + =
+
+will cause the system to respond with the answer: 16.  Note
+that this calculation causes no net change to the stack(it is
+the presence of a number before "X>" that indicates the number
+of items in the stack at that moment); its contents before the
+first "8" was typed is the same as its contents after the
+system responds with 16.  Thus the definition of the word = has
+increased the convenience of the system for arithmetic
+calculations.
+
+	The system can and does handle strings.  Suppose you
+would like the system to output "HELLO".  Try typing:
+
+X> 'HELLO MSG
+
+The system will take the 'HELLO as a string to be placed upon
+the stack.  The MSG ,"message" takes the top item off of the
+stack, assumes it to be a string, and prints it.  The stack
+contains the same stuff after MSG is executed as before the
+'HELLO was typed.
+
+	Useful I/O words are CR which will output a carriage
+return and line feed sequence.  The word SPACE will output a
+space. And the word SPACES will pop the top of stack to obtain
+the number of spaces to be output.  For example:
+
+X> 'HELLO MSG SPACE 'HELLO MSG CR 5 SPACES 'BYE MSG
+
+should produce:
+
+HELLO HELLO
+     BYE
+
+
+	Standard output would be most tedious if we could not
+create definitions to speed up programming.  Here is a humorous
+example:
+
+X> 'HELLO : 'HELLO, MSG SPACE 'YOURSELF! CR ;
+
+The use of : and ; provide the means to define a new word
+"HELLO" Later, you can type:
+
+X> HELLO
+
+and the system will respond:
+
+HELLO, YOURSELF!
+
+	Thus we see that the pair of symbols, ":" and ";"
+delineate a structure used to make definitions.  The material
+in between the two symbols becomes the definition of the word
+whose name is the string that was lastly placed on the stack
+before the ":".
+
+	One can create strings with embedded blanks and tabs up
+to 127 characters long by using double quotes to delineate both
+ends of the string.  For example, the word, HELLO, defined
+above, could have been defined:
+
+'HELLO : "HELLO, YOURSELF!" MSG CR ;
+
+Even with RAISE ON, lowercase characters within double
+quotation marks will not be converted.
+
+	There are other types of structures.  The pair of
+words, DO and LOOP permit an iterative structure.  They use the
+top two quantities on the stack as limits of iteration.  So:
+
+X> nn n DO ... LOOP
+
+is equivalent to the PASCAL structure:
+
+	FOR  I := n TO (nn-1) DO
+		BEGIN ... END;
+
+To place the current value of the iteration variable on the
+stack one uses the word, "I" .  Here is an example that you can
+try:
+
+X> 'COUNTING : CR 1 + 1 DO I = SPACE LOOP ;
+
+X> 10 COUNTING
+and see PISTOL counting to 10.
+
+	An alternative terminating word to this structure is
++LOOP.  If one uses in PISTOL:
+
+	nn n DO ... m +LOOP
+one simulates the BASIC structure:
+
+100 FOR I=n TO (nn-1) STEP m
+.
+.
+.
+200 NEXT I
+
+	PISTOL supports a conditional structure of the form:
+
+	IF ... ELSE .... THEN
+
+When the IF is encountered the top of the stack is used as a
+boolean variable; it is considered false if equal to zero and
+true otherwise (as in LISP).  If true, the actions "..." that
+are bracketed between IF and ELSE are carried out; then program
+flow skips to what follows THEN.  Whereas, if the top of the
+stack was false, the actions "...." between ELSE and THEN are
+carried out instead. The "ELSE ...." portion is optional, in
+analogy to PASCAL.
+
+	To illustrate, here is an example:
+
+X> 'STATE? :
+X:> 'TURNED- MSG W@ IF 'ON ELSE 'OFF THEN
+1X:> MSG ;
+X>
+
+Trying this new word:
+
+X> CONSOLE STATE?
+we get the response:
+TURNED-ON
+
+whereas for:
+
+X> LIST STATE?
+TURNED-OFF
+
+	PISTOL supports a number of other structures which are
+analogous to the PASCAL structures:
+
+		WHILE .. DO ... ;
+
+			and
+
+		REPEAT ... UNTIL NOT .. ;
+
+They are, respectively:
+
+		BEGIN .. IF ... REPEAT
+
+			and
+
+		BEGIN ... .. END
+
+	As in most languages, structures may be nested.  In the
+interest of user convenience, the prompt will indicate whether
+execution is being deferred, pending completion of unfinished
+structures.
+
+	PISTOL can communicate in a variety of different number
+bases, as was alluded to in the section on W@ and W! . Changing
+bases has been formalized by a set of defined words provided in
+PBASE.  These words are: BINARY(B), OCTAL(Q), DECIMAL(X), and
+HEX(H); the parenthesized letter is the corresponding symbol
+that appears in the prompt.  Thus, in the examples described
+above, the number base was decimal.  Here are a few examples of
+the use of other number bases:
+
+X> HEX
+H> 8 8 + =
+10
+H> 11 BINARY =
+10001
+B> 2
+2 ?
+***PISTOL 1.3***
+
+B>
+	Whenever the system responds with ***PISTOL 1.3*** it
+has performed an ABORT which resets stacks and prints this
+identifying message.
+
+	You may "redefine" words, that is to say, the same name
+may be used again and again.  Earlier definitions that use the
+word will continue to utilize the old meaning; future defini-
+tions that reference the redefined word will access the new
+meaning.  A warning will be issued when you are redefining.
+
+	It is important to keep in mind that when new words are
+defined, their names are added to the "string stack" and the
+compiled code is added to the "code stack".  If a recent
+definition is not satisfactory, or no longer serves a need, you
+may wish to "FORGET" it, so that the "string stack" and the
+"code stack" are popped of this useless material.  To discard
+this definition AND ALL SUBSEQUENT DEFINITIONS, one should
+type:
+
+X> '<name> FORGET
+
+	To obtain the code locations and names of the last ten
+definitions, type:
+
+X> TOP10
+
+To obtain information successively on the ten previous
+defintions, type:
+
+1X> NEXT10
+
+	A crude, line-oriented editor has been implemented
+recently inside PISTOL.  Try it out by typing the following
+sequence of commands:
+
+X> LI
+
+X> 3 LI
+
+X> 3 5 LI
+
+X> 4 2 LI
+
+X> 3 INPUT
+3: MARY HAD
+4: A LITTLE
+5: LAMB.
+6: <cr>
+
+
+X> LI
+
+X> 3 DELETE
+
+X> LI
+
+
+
+
+*************************
+*			*
+*	GLOSSARY	*
+*			*
+*************************
+
+(Assuming that the definitions in PBASE have been compiled):
+
+ARITHMETIC OPERATORS:
+========== =========
+
++	Adds the top two items on stack.
+
+-	Subtracts the top two items on stack.
+
+*	Multiplies the top two items on stack.
+
+/	Divides the top of stack into next to top.
+
+MOD	Calculates the remainder ("modulo") of division
+	of next to top by the top of stack.
+
+/MOD	Divides the next to top by the top of stack;
+	new next to top is the result and top is the
+	remainder.
+
+MINUS	Changes the sign of the top of stack.
+
+MAX	Leaves the larger of the top two members on stack.
+
+MIN	Leaves the smaller of the top two members on stack.
+
+ABS	Taks the absolute value of the top of stack.
+
+1+	Increments the top of stack.
+
+1-	Decrements the top of stack.
+
+W+	Increments the address on top of stack by the wordsize.
+
+1+W!	Increments the word variable addressed
+	by the top of stack.
+
+W+W!	Increments address variable addressed by the top of
+	stack by the word size.
+
+LOGICAL OPERATORS:
+======= =========
+
+TRUE	Pushes -1 on stack.
+
+FALSE	Pushes 0 on stack.
+
+NOT	[A quantity is "false" if zero; otherwise,it is "true"].
+	Replaces top of stack by FALSE if non-zero;
+	otherwise replaces top by TRUE.
+
+LAND	If either of the top two items on stack is zero,
+	it pushes FALSE on stack; otherwise it pushes TRUE.
+	("LOGICAL AND").
+
+LOR	If both items on stack are zero, it pushes FALSE;
+	otherwise it pushes TRUE.  ("LOGICAL OR").
+
+GT	Pushes TRUE if the next to top is greater than
+	the top of stack.
+
+LT	Pushes FALSE if next to top is less than
+	the top of  stack.
+
+LTZ	Pushes TRUE if top of stack is less than zero;
+	otherwise, it pushes FALSE.
+
+GTZ	Pushes TRUE if top of stack is greater than zero;
+	otherwise, it pushes false.
+
+EQZ	Pushes TRUE if the top of stack is zero; otherwise,
+	it pushes FALSE.
+
+EQ	Pushes TRUE if the top two members on stack were
+	equal; otherwise it pushes FALSE.
+
+..	(Takes three arguments).  Tests for range.  The top
+	three items pushed on the stack should be value,
+	bottom of range, and top of range.  If value is below
+	bottom or above top, FALSE is pushed on stack;
+	otherwise TRUE is pushed on stack.
+
+
+STACK OPERATORS:
+===== =========
+
+STACK	Non-destructively lists the size and contents of
+	the parameter stack.
+
+RSTACK	Non-destructively lists the size and contents of
+	the return stack.
+
+SWAP	Interchanges the top two items on stack.
+
+DUP	Pushes a duplicate copy of the top of stack.
+
+DDUP	Pushes a duplicate pair of the top two items.
+
+DROP	removes the top item from the stack.
+
+OVER	pushes the next to top on top of stack.
+
+2OVER	pushes the second to top on top of stack.
+
+3OVER	pushes the third to top on the stack.
+
+S@	Takes the top member of stack as an index to the
+	interior of the stack; " 0 S@ " is equivalent
+	to " DUP ".
+
+R@	Take the top of the parameter stack as an index
+	into the return stack.
+
+<R	Pushes the top of stack on to the return stack.
+
+R>	(opposite of " <R ").
+
+SP	pushes the current size of stack on stack.
+
+RP	pushes the current size of the return stack.
+
+L@	similar to S@ and R@ but for the loop stack.
+
+CASE@	similar to S@ and R@ but for the case stack.
+
+DEFINITIONAL OPERATORS:
+============ =========
+
+CONSTANT	defines a word whose name is on the top	of
+		stack and assigns it the permanent value given
+		by the next to top.
+
+VARIABLE	Allocates space in RAM and defines a word whose
+		name is on top of stack.  Later, when the name
+		is invoked, a pointer to the allocated space is
+		pushed on stack.  The variable is initialized
+		to the next to top of stack.
+
+:  ... ;	is used in creating a standard definition.
+		It takes the string pointed to by the top of
+                stack as the name of the word being defined.
+                The body of the word is anything that is placed
+                between the ":" and the ";". When the
+                definition extends beyond one line of text,
+                thesystem displays a prompt that contains a
+                ":".  Examples have been provided already in
+                the tutorial.
+
+$: ... ;$	is used to create a "macro" definition.  In
+                syntax and use its behavior is very similar to
+                a standard definition, as described immediately
+                above.  However the code that is associated
+                with the newly defined word will be compiled
+                "in line" when the word is invoked, instead of
+                being called.  Its use increases the execution
+                speed of any code that uses the word (since the
+                is no overhead from a "call"), but the
+                resulting code is usually longer; thus we can
+                choose our own preference between speed and
+                memory space.  It is used to define "perfect
+                NOPs", such as in the definition of W* when the
+                word size is, in fact, 1. (see the beginning of
+                PBASE).
+
+MEMORY RELATED OPERATORS:
+====== ======= =========
+
+
+W@	Fetches the contents of the word location addressed
+	by the top of stack (used extensively with words
+	defined by VARIABLE).
+
+W!	Stores at the word location addressed by the top of
+	stack the value next to top.
+
+W<-	equivalent to " SWAP W! "
+
+C@	fetches the ASCII value of the character in the
+	string area addressed by the top of stack.
+
+C!	stores in the string area addressed by the top of
+	stack the character whose ASCII value is next to
+	the top.
+
+R@ , S@, L@, and CASE@	(see stack operations, above)
+
+ON	sets location addressed by top of stack to TRUE.
+
+OFF	sets location addressed by top of stack to FALSE.
+
+
+SYSTEM OPERATIONS:
+====== ==========
+
+COREDUMP	saves an image of PISTOL's memory as a
+		file named with the string previously
+		placed on top of the stack.  (for an
+		example see "GETTING STARTED", near the
+		start of this documentation).
+
+RESTORE		takes the file whose name is on the top
+		of stack and "restores" the memory image
+		that had been previously saved by a
+		COREDUMP command.  (for an example see
+		"GETTING STARTED", near the start of this
+		documentation).
+
+LISTFILE	opens a new file with the name that was
+		on the top of stack.  This new file can
+		be written into to keep a record of the
+		terminal session (using the boolean:
+		LIST).  For example, to record portions 
+		of the terminal session in a file named
+		"DIALOG":
+
+		X> 'DIALOG LISTFILE
+		X> LIST ON
+			.
+			. (recorded)
+			.
+		X> LIST OFF
+			.
+			. (not recorded)
+			.
+		X> LIST ON
+			.
+			. (recorded)
+			.
+			etc.
+
+LOAD	is used to take a PISTOL source file whose name is
+        pointed to by the top of stack.
+
+SHOWCODE	makes pistol display the contents of its
+                compile buffer after every compilation.  It is
+                most useful when you are trying to estimate
+                where special patching needs to be done, such
+                as done by ARGPATCH (see the definitions in
+                PBASE for this one!).  To stop showing code you
+                should use:
+
+NOSHOWCODE	turns off the SHOWCODE, described immediately
+                above.
+
+
+SYSTEM VARIABLES:
+====== =========
+
+COLUMN	current column that the console is believed to be
+	in.
+
+TERMINAL-WIDTH	current declared maximum line length of
+		output device (used to automatically
+		insert carriage return,line feeds if
+		output overruns line).
+
+#LINES	contains the number of lines printed since the
+	last carriage return was input from the keyboard.
+
+TERMINAL-PAGE	current declared maximum number of lines
+		user will accept.  Output will pause
+		when #LINES equals TERMINAL-PAGE.  Output
+		will resume, following a carriage return
+		from the keyboard.  Typing a Q followed
+		by the carriage return will abort the
+		current activity.
+
+TAB-SIZE	is the current gap size between tab stops
+		(initially set to 8).
+
+TRACE-LEVEL	Boolean and number related to level of
+		return stack where trace action occurs.
+
+TRACE-ADDR	contains patched address for TRACE .
+
+RAISE	Boolean that determines whether lowercase input
+	is to be converted to uppercase (does not affect
+	text between double quotes).
+
+ECHO	Boolean controlling display of files being loaded.
+
+CONSOLE	Boolean controlling output to console.
+
+LIST	Boolean controlling output to the "list" file.
+
+CURRENT	contains pointer to the last defined word's definition.
+
+.D	contains current end of RAM used to store definitions.
+
+.C	contains current end of the compile buffer.
+
+RADIX	contains current base for numerical I/O.
+
+RADIX-INDICATOR	contains prompt character displaying
+		current base.
+
+FENCE	contains lower limit for FORGET to prevent
+	inadvertent excessive "loss of memory".
+
+USER	is a memory constant that is used in calculations to
+        locate various system variables and constants.
+
+W	is a constant that indicates the separation of word
+        addresses.  Different virtual machines may have
+        different word sizes and the use of this constant makes
+        it possible to transport PISTOL code among such
+        different machines.  Its use appears in many
+        definitions such as W+ , W- , and W* .
+
+VERSION	is the constant, 13. (for PISTOL 1.3)
+
+
+I/O OPERATIONS:
+=== ==========
+
+TYI	inputs a character from the keyboard and places
+	its ASCII value on the stack.  (Console input is
+        buffered line-by-line).
+
+TYO	outputs a character whose ASCII value is on the	stack.
+
+TYPE	types the number of characters of text specified
+	by the top of stack from the string area, starting at
+	the location pointed to by the next to top of stack.
+
+MSG	types a message pointed to by the top of stack;
+	starts a new line if the string is too long to
+	"fit" on current line(tabs not properly estimated).
+
+MSGS	takes the number on top of stack as the number of
+	that are next to the top of stack that are to be
+	output, the BOTTOM-MOST one first.  For example:
+
+	'ONE 'TWO 'THREE 3 MSGS
+
+	produces:
+
+	ONETWOTHREE
+
+	If the combined length of all the strings will
+	not fit on the current line, a new line is started.
+	(tabs not properly estimated).
+
+TAB	simulates a tab; tab stops are separated by the
+	size specified by the variable, TAB-SIZE.
+
+TABS	outputs as many simulated tabs as is specified
+	by the top of stack.
+
+INDENT	advances to the coulumn specified by the top of
+	stack unless one is already there or beyond.
+	Trying to indent beyond TERMINAL-WIDTH, causes
+	a new line to be started instead.
+
+ASCII	converts a small number (a digit) into its ASCII
+	representation.
+
+SPACE	outputs a blank.
+
+SPACES	outputs as many blanks as specified by top of stack.
+
+CR	Outputs a carriage return, line-feed sequence.
+
+IFCR	does a CR if not in column 0.
+
+=	type the numerical value of the top of stack;
+	no leading or trailing blanks are supplied.
+
+?	types the numerical value of the RAM location
+	pointed to by the top of stack; equivalent to
+	" W@ = ".
+
+HEX	sets the base for numerical I/O to 16.
+
+OCTAL	"	"	"	"	"   8.
+
+BINARY	"	"	"	"	"   2.
+
+DECIMAL	"	"	"	"	"  10.
+
+
+%	is the comment delimiter; the compiler ignores
+        remaining text to the end of the current line.  Do not
+        shun its use in creating PISTOL source files;  PISTOL
+        is NOT self documenting!
+	   ===
+
+EDITOR
+======
+	(Line numbers change with the editing process, the first
+line in the file is numbered 1, the next, 2, etc.)
+
+NEWF	resets pointers in the editor so that the edit buffer
+	is empty.
+
+LISTALL	lists the complete contents in the edit buffer.
+
+LFIND	take the line number from the top of stack and replaces
+	it with a pointer to the string pointing to the	string
+	corresponding to that line.
+
+LI	lists portions of the edit buffer; it acts differently
+	depending upon the number of arguments on stack.  If
+	there are no arguments, everthing is listed (LISTALL).
+	If there is a single line number on the stack, that
+	single line is displayed.
+		Listing a sequence of lines within the edit
+	buffer is achieved with two line numbers on the stack.
+	The sequence of displayed lines begins with the line
+	numbered by the bottom of stack.  If the top of stack
+	contains a larger number, that number is the number
+	of the last line in the displayed sequence.  Otherwise,
+	if it is a smaller number, it is used to specify the
+	total number of lines in the sequence.
+
+INPUT	takes the line number on the top of stack and allows
+	the user to enter (insert above the old line specified)
+	as many new lines as desired.  Completion of input is
+	signified by supplying an empty line (an immediate
+	carriage return).
+
+DELETE	takes a single line number and deletes that line from
+	the edit buffer.
+
+DELETES deletes several lines.  How many is specified by the
+	top of stack.  The location by the next to top.
+
+OPENR	 takes a string pointed to by the top of stack and
+	opens that named file for reading.  It is the user's
+	responsibility to make sure that the named file
+	exists already.  If another file was opened for reading
+	previously, it is closed by this new OPENR.
+
+OPENW	takes a string pointed to by the top of stack and
+	opens that named file for writing.
+	(*** It will DESTROY any file that already exists
+	with that name!!!****)
+
+READLINE reads a line of text from the file that has been
+        opened for reading (from OPENR) and places it into
+        the input line buffer, pointed to by LINEBUF. This
+	text will be overwritten by the next input line so
+	it should be used prior to the next input line.
+
+WRITELINE writes that line that is in STRINGS (usually in
+	the edit buffer) whose pointer is on the top of the
+	stack.  The writing is into the file that was opened
+	for writing by OPENW.
+
+READ	takes the number of lines specified by the top of
+	stack from the file specified by the last OPENR and
+	appends them to the end of text in the edit buffer.
+
+WRITE	takes the number of lines specified by the top of
+	stack from the beginning of the text in the edit
+	buffer and places them at the end of the file
+	specified in the last OPENW.
+
+FINISH	is used to end the edit session.  It appends both
+	the contents of the editbuffer to the file
+	specified in the last OPENW and the remaining
+	lines of the file specified by the last OPENR.
+
+
+ITERATION
+=========
+
+	PISTOL provides four means for iterative execution
+of a sequence of words, namely:
+
+BEGIN ... END
+
+	executes words between BEGIN and END until a
+condition is satisfied.
+
+BEGIN ... IF ... REPEAT
+
+	is similar to BEGIN ... END except the condition is
+tested at the beginning of the loop; iteration terminates
+when the tested condition is false.
+
+DO ... LOOP
+
+	executes the words between DO and LOOP, running an
+index [accessible as "I"] from a lower to upper limit,
+incrementing by one each time.
+
+DO ... n +LOOP
+
+	executes the words between DO and +LOOP, running
+an index from a lower to an upper limit, incrementing 
+by n each time.
+
+	Iterations may be nested subject to the normal
+restrictions on overlapping ranges, i.e. any iteration which
+is initiated within the range of another iteration must be
+terminated within that same range.  PISTOL has implemented a
+"check stack" to enforce this syntax rule and, as an aid to
+interactive programming, displays this stack in the prompt.
+
+	We shall describe these four iterative structures in
+more detail now:
+
+BEGIN ... END
+=============
+	The BEGIN ... END syntax permits the user to execute
+a sequence of words and then, depending upon a computed
+logical variable, either loop back or continue on:
+
+BEGIN word1 word2 .... wordm END
+
+	The sequence word1, word2, ... is executed once.
+When END is reached, the top of the stack is popped and
+tested.  If it is true (non-zero) then control passes to the
+word following END.  If it is false (zero) then control
+passes back to the word following BEGIN.
+
+An example:
+
+	'EXAMPLE : BEGIN 1- DUP DUP = EQZ END DROP ;
+
+	defines the word EXAMPLE which might be called
+	as follows:
+
+	X>  5 EXAMPLE
+	4 3 2 1 0
+
+	Each time through the loop, the top of the stack
+	(initially the number 5) is decremented, printed and
+	compared to zero.  If it is not zero, the loop is
+	repeated; the loop terminates when it becomes zero.
+
+BEGIN ... IF ... REPEAT
+=======================
+	BEGIN ... IF ... REPEAT is similar to BEGIN ... END
+except that the test is at the beginning of the loop.  The
+words between BEGIN and IF are executed. The top of the
+stack is then popped and tested.  If it is true (non-zero)
+the words between IF and REPEAT are executed and control
+passes back to the first word after BEGIN. If the top of the
+stack had been tested false (zero) control would have passed
+to the word following REPEAT.
+
+An example:
+
+	'LENGTH : 0 BEGIN SWAP DUP IF W@ SWAP 1+ REPEAT UNDER ;
+
+	might be used to determine the length of a chain of
+	pointers terminated by zero.  The initial pointer
+	would be placed on the stack and LENGTH would be
+	invoked.  If one could not place the test at the
+	beginning of the iteration, one would have a problem
+	with a zero length chain (a zero initially on the
+	 stack).
+
+
+DO LOOPS
+========
+	A DO LOOP facility is provided by PISTOL for indexing
+through a sequence of words.  There are two forms of DO LOOP:
+
+HIGH LOW DO word1 word2 ... wordn LOOP
+
+HIGH LOW DO word1 word2 ... wordn STEP +LOOP
+
+	The limits HIGH and LOW (the top two stack entries) are
+compared.  If HIGH is less than or equal to LOW, control passes
+to the word following LOOP or +LOOP.  Otherwise, the sequence
+word1, word2, ... is executed.  LOOP causes the lower limit,
+LOW to be incremented and compared to the upper limit, HIGH.
+If LOW is greater than or equal to HIGH, the loop is
+terminated.  Otherwise another iteration is performed. The
++LOOP is identical to LOOP except that the LOW is incremented
+by the word on top of stack, STEP. Normally, STEP would be a
+positive number.
+
+	Within the range of a loop, the current value of the
+loop index is available by using "I".  If DO LOOPs are nested,
+I contains always the value of the innermost index.  The next
+outer indices are available using the words, J and K.  The word
+I' is used to obtain the value of (HIGH+LOW-I-1).  This is used
+to run an index backwards from HIGH-1 to LOW .  The words J'
+and K' are similarly defined.  When parenthesis (iteration
+brackets) are nested with DO LOOPs, they count as one level of
+indexing.  When I is used within the range of an iteration
+bracket the current iteration count (which runs from its
+initial value downwards to one) is placed on stack.
+
+	The word EXIT causes the innermost loop in which
+it is embedded to terminate unconditionally.
+
+Some examples:
+
+	5 0 DO I = LOOP
+
+	causes the numbers 0 to 4, inclusive to be typed out.
+
+	5 0 DO 5 0 DO J 5 * I + = LOOP CR LOOP
+
+	causes the numbers 0 through 24 inclusive to be
+	typed out as 5 lines of 5 numbers each.
+
+	5 0 DO I' = LOOP
+
+	causes the numbers 4 ... 0, inclusive to be output.
+
+	0 21 1 DO I + DUP = 2 +LOOP DROP
+
+	types out the first 10 perfect squares starting with 1.
+
+	When using I' (or J' or K') in conjunction with +LOOP,
+HIGH should be replaced by HIGH - STEP + 1  if it is desired
+to produce the same set of indices as with I .  For example:
+
+	X>  24 0  DO I = 4 +LOOP
+	0 4 8 12 16 20
+
+	X>  24 0 DO I' = 4 +LOOP
+	23 19 15 11 7 3 1
+
+	X>  24 4 - 1+ 0 DO I' = 4 +LOOP
+	20 16 12 8 4 0
+
+
+
+CONDITIONALS
+============
+
+	PISTOL has a powerful IF ... ELSE ... THEN construction
+which allows moderately complex logical tests to be performed.
+In addition, for more complex situations an OFCASE ... ENDCASE
+n-branch construction is provided also [the"CASE"construction].
+Conditionals may be nested within each other and within
+iteration loops with the same restrictions that apply to
+iterations.  The check check enforces that proper nesting is
+maintained and will issue fatal error messages otherwise.  The
+prompt provides the user with information on the current
+nesting status.
+
+	For purposes of the conditional, "true" is considered
+to be any non-zero value; "false" is any zero value. [The
+"best" true value is -1, viz. all 1's in binary, in that
+"-1 N AND" will be always "true" unless N is "false".]
+
+val IF true1 true2 ... ELSE false1 false2 ... THEN
+
+	The top of stack, val is tested and
+
+	if true (non-zero), the words true1,true2,...
+	are executed; control passes then to the word
+	following THEN,
+
+	otherwise, if false (zero) control passes to false1 ,
+	false2 ... ; control passes then to the word
+	following THEN, 
+
+Two examples:
+
+	'ABS : DUP LTZ IF MINUS THEN ;
+
+	defines the word ABS which replaces the top of stack
+	with its absolute value.
+
+	'MAX : DDUP GT IF DROP ELSE UNDER THEN ;
+
+	defines the word MAX which compares the top two stack
+	entries and leaves the larger of the two.
+
+	The CASE construction simplifies many programs where
+the value of a variable is used to choose among many
+possibilities. Its syntax is necessarily more complex:
+
+value	OFCASE	<test1> C: <action1> ;C
+		<test2> C: <action2> ;C
+		.	.	.	.
+		.	.	.	.
+		<testn> C: <actionn> ;C
+	ENDCASE
+
+	The liberal use of carriage returns and tabs in the
+coding improves readability, but is not required by the syntax.
+OFCASE saves value and replaces it on the stack before each
+test. If <test1> is true then <action1> (which may be any
+number of words) is carried out and control skips to the first
+word after ENDCASE. Otherwise, if <test1> is false, value is
+again placed on stack and <test2> performed;  if it proves true
+then <action2> is done and control passes to the word following
+ENDCASE, etc. Thus the first successful test selects the action
+performed.
+
+	If every test, including <testn> is false, control
+reaches ENDCASE and a fatal error message is generated.
+An example should clarify this (notice how the prompt changes):
+
+X> 'SPELL : OFCASE
+X:C> 0 EQ C: 'ZERO ;C
+X:C> 1 EQ C: 'ONE ;C
+X:C> 2 EQ C: 'TWO ;C
+X:C> 2 GT C: 'MANY ;C
+X:C> ENDCASE MSG ;
+
+When testing this definition one finds:
+
+X> 2 SPELL
+TWO
+X> 3 SPELL
+MANY
+X> -1 SPELL
+CASE EXECUTION ERROR AT 11672 FOR THE VALUE -1       PISTOL
+
+	The fatal error message provides the address of ENDCASE
+and the value that created the problem.
+
+	OFCASE does not use the loop stack but uses its own
+"CASE" stack;  the words I , J , K , I' , J' , K' and EXIT will
+properly access the DO...LOOP counters when intermixed with
+this structure. The words, ICASE and JCASE, access the case
+variable of the innermost OFCASE structure and the next to
+innermost OFCASE structure, respectively.  They are somewhat
+analogous to the words I and J of the DO LOOP structure.
+
+
+RECURSION
+=========
+	Normally, a procedure cannot invoke itself because it
+is compiled before its own name is recorded;  therefore the
+word RECURSE is provided as a "stand-in" for the name of the
+procedure being defined.  This word also provides the means for
+recursing within the compile buffer, itself.
+
+	For recursion which requires forward references one has
+to make an extra effort (as one does in PASCAL, which requires
+the use of the reserved word, FORWARD). In PISTOL we must
+define first a variable, say, FW, which is destined to contain
+the address of the forward reference.  One defines then those
+routines that invoke the forward-referenced routine with the
+code:
+
+	... FW W@ EXEC ...
+
+Eventually, one is in the position to define the routine that
+is needed to complete the recursive circle, say, LAST.  After
+defining LAST the recursive loop is established with:
+
+	'LAST ADDRESS FW W!
+
+which records the address of LAST in the variable, FW .
+
+
+MISCELLANEOUS AIDS
+============= ====
+
+	To name the ten most recent definitions one should
+type:  TOP10 .  It will display the information and leave on
+stack the address of the 11th most recent definition.  To name
+further definitions, one can type NEXT10 which takes the
+address off of the stack and names the next ten definitions.
+In turn, it leaves the address of the 21th most recent
+definition on stack.
+
+	One can dis-assemble a definition using the word, DIS .
+For example:
+
+X> 'TOP10 DIS
+
+produces the result:
+
+'TOP10 : CURRENT W@ NEXT10 ;
+
+Not all definitions are disassembled so faithfully.
+
+	To examine the stack in a non-destructive manner, one
+can use the word, STACK.  It will display the number of items
+in the stack and their values.  For testing definitions it is
+useful to check the stack before and after the definition has
+been invoked.
+
+	If the definition appears to be faulty, it is often
+useful to debug it by tracing the program flow through the
+definition and the state of the stack at intermediate steps.
+This can be accomplished automatically by the use of the word,
+TRACE.  For example, to trace the action of DDUP one can type:
+
+X> 1 2 'DDUP TRACE
+
+
+	To examine the contents of the return stack in a
+non-destructive manner, one can use the word, RSTACK .
+
+
+SHOWCODE and
+NOSHOWCODE	permit you to see (and to stop seeing!) the
+                generated code in the compile buffer after each
+                compilation.  It can be educational as well as
+                important for certain debugging tasks.
+
+
+'name LISTFILE
+LIST ON
+.
+.
+LIST OFF	permit recording details of the session in a
+                file for later review.  It can be a lot more
+                convenient then using the printer all the time.
+or testing 

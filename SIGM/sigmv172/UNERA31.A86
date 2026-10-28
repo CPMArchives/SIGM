@@ -1,0 +1,765 @@
+; DATE 02/16/84  16:16       last update
+; 02/16/84 the program has been converted to support both CP/M-86 ver 3.1
+; and CCP/M-86 ver 3.1.
+; MP/M is not supported but only because I don't have a way to test this
+; version on the MPM operating system.
+
+	TITLE	'UNERA 	FOR CP/M-86 VER3.1'
+
+; UNERA31.A86
+; by: H.H. Van Tassell, 120 Hill Hollow Rd, Watchung NJ  07060 (201)755-5272
+;
+; This is a program to recover erased files in CP/M-86 and is modelled on the
+; UNERA program for CP/M-80 on SIG/M volume 76. See volumes 76 and 44 for 
+; author credits and more information.
+; 
+; The program reads the directory, sector by sector, listing filenames that
+; have been erase by placing an 0E5H as byte 0. The extent number is also
+; listed. NO check is made to determine if the disk space has been re-allocated
+; to another file after the file was erased. After listing the file names, the 
+; user is asked if recovery is desired. A page of help is displayed if the
+; program is invoked with // as the file name.
+
+; The direct BIOS disk call data structure was choosen for conversion to 
+; CP/M-86 versions 3.0 and higher (CONCURRENT and PLUS).
+;
+; TO GENERATE PROGRAM:
+;	RASM86 UNERA $SZPZ
+;	LINK86 UNERA [data[add [100]]]
+;
+
+;
+SLINES	EQU	22			;LINES ON CONSOLE LESS 2
+
+FALSE	EQU	0
+TRUE	EQU	NOT FALSE
+
+CR	EQU	13
+LF	EQU	10
+TAB	EQU	9
+
+CONIN	EQU	1		;READ CONSOLE
+DCONIN	EQU	6		;DIRECT CONSOLE READ
+RESET	EQU	13		;SYSTEM RESET
+SELDSK	EQU	14		;SELECT DISK
+GETDR	EQU	25		;GET DRIVE
+DIRBIOS	EQU	50		;DIRECT BIOS CALLS
+
+; DIRECT BIOS CALL PARAMETER BLOCK DATA STRUCTURE
+;
+BPB_FUNC EQU	BYTE PTR 0[BX]
+BPB_CX	 EQU	WORD PTR 1[BX]
+BPB_DX	 EQU	WORD PTR 3[BX]
+
+; DISK BIOS CALLS DATA STRUCTURE
+;
+SELECT_DISK	EQU  WORD PTR 0[BX]
+SET_TRACK	EQU  WORD PTR 2[BX]
+SET_DMASEG	EQU  WORD PTR 4[BX]
+SET_DMAOFF	EQU  WORD PTR 6[BX]
+SET_SECTOR	EQU  WORD PTR 8[BX]
+READ_SECTOR	EQU  WORD PTR 10[BX]
+WRITE_SECTOR	EQU  WORD PTR 12[BX]
+SECTOR_XLAT	EQU  WORD PTR 14[BX]
+
+
+TBUF	EQU	80H		;TRANSIT DEFAULT BUFFER
+FCB	EQU	5CH		;DEFAULT FILE CONTROL BLOCK
+									
+DRV_DPB		equ	31	;BDOS call 31
+
+
+BIO_SELDSK 	equ	9		;BIOS function number
+BIO_READ  	equ	10		;BIOS function number
+BIO_WRITE  	equ	11		;BIOS function number
+
+; PARTIAL DATA STRUCTURE OF DPH
+;
+LOG_SEQN	equ	byte ptr 6	;to force reset of permanent media
+DPB_PTR31	equ	word ptr 8	;offset of DPB pointer in DPH (v3.1)
+DPB_PTR11	equ	word ptr 10	;offset in version 1.1
+DPB_SIZE	equ	17		;size of Disk Parameter Block
+
+
+; DPB DATA STRUCTURE 
+;
+SPT		equ	word ptr 0[bx]
+BSH		equ	byte ptr 2[bx]
+BLM		equ	byte ptr 3[bx]
+EXM		equ	byte ptr 4[bx]
+DSM		equ	word ptr 5[bx]
+DRM		equ	word ptr 7[bx]
+AL0		equ	byte ptr 9[bx]
+AL1		equ	byte ptr 10[bx]
+CKS		equ	word ptr 11[bx]
+OFF		equ	word ptr 13[bx]
+PHYSHF		equ	byte ptr 15[bx]
+PHYMSK		equ	byte ptr 16[bx]
+
+
+BIOS_PTR  	equ	dword ptr .28h	;loc of BIOS entry in SYSDAT
+UDA_SEG	  	equ	word ptr .4eh	;loc of UDA seg in system data area
+
+;------- for CCP/M -3.1 ----------------
+S_SYSDAT	equ	154		;get system data area
+P_PDADR		equ	156		;get PDA address
+
+CCPM_31	equ	1431h			;CCP/M-86 version number
+
+P_UDA		equ	word ptr 10h	;User Data Area
+;-----------------------------------------
+
+
+	CSEG
+
+	MOV	CX,DS		;USING DATA SEGMENT
+	MOV	SS,CX		;SET UP LOCAL STACK
+	LEA	SP,STACK	
+
+	CALL	HELLO
+	CALL	PCHECK
+	CALL	TRYFIX
+	CMP	FIXCNT,0	;WERE ANY FIXABLE FILES FOUND?
+	JZ	NO_RECOVER
+	CALL	RECOVER		;YES, GO RECOVER EM
+NO_RECOVER:
+	CALL	BYE
+EXIT:
+	MOV	CL,SELDSK			;RETURN TO CURRENT DISK
+	MOV	DL,BYTE PTR CURDR
+	INT	224
+	MOV	CL,RESET			;RESET SYSTEM
+	INT	224
+QUIT:
+	MOV	CL,0
+	MOV	DL,0
+	INT	224
+
+; SAY WHO WE ARE
+HELLO:
+	MOV	DX,OFFSET HMSG			;POINT TO HELLO MESSAGE
+	CALL	PRINT
+	RET
+
+; CHECK FOR VALID PARAMETERS
+PCHECK:
+	CALL	FCBCHK			;MAKE SURE FILE IS SPECIFIED
+	CALL	CPMCHK			;CHECK CP/M VERSION
+	RET
+
+; ASK IF THEY WANT TO RECOVER THE REVIEWED FILES
+RECOVER:
+	MOV	DX,OFFSET RVMSG		;ASK IF RECOVERY WANTED
+	CALL	PRINT
+	MOV	CL,CONIN		;GET ANSWER
+	INT	224
+	AND	AL,5FH			;MAKE UPPER CASE
+	CMP	AL,'Y'
+	JNE	EXIT			;EXIT UNLESS YES
+	MOV	VIEW_EM,0		;RESET THE VIEW FLAG
+	MOV	FIX_EM,0FFH		;SET THE FIX EM FLAG
+	MOV	AL,BYTE PTR MAXSEC	;RESTORE MAXDIR
+	MOV	BYTE PTR MAXDIR,AL
+	MOV	SECTOR,0		;SECTOR 
+	MOV	FIXCNT,0		;AND FIXCOUNT
+	CALL	TRYFIX			;AND FIXEM
+	RET
+
+; LOOK THROUGH THE DIRECTORY TRYING TO MATCH FCB FILENAME
+TRYFIX:
+	CALL	NXTSECT			;GET A DIRECTORY SECTOR
+	JNZ	TRY_MORE		;RETURNS ZERO SET IF NO MORE
+	RET
+TRY_MORE:
+	CALL	CHKENT			;CHECK IT OUT AND MAYBE FIX
+	JMPS	TRYFIX			;KEEP IT UP TILL DONE
+
+; SIGN OFF 
+BYE:
+	CMP	FIXCNT,0		;CHECK FOR ACTIVITY	
+	JE	NOFIND
+	MOV	DX,OFFSET BMSG		;WARN EM
+	CALL	PRINT
+	RET
+NOFIND:
+	MOV	DX,OFFSET NFMSG		;SAY NOTHING FOUND
+	CALL	PRINT
+	RET
+
+; MAKE SURE A LEGAL FILENAME WAS FOUND
+FCBCHK:
+
+; scans tbuffer at 80h for a / as indication of help wanted
+; returns with ZF set if '/' is found in buffer
+;
+	push es ! push ds ! pop es	;save ES, ES=DS
+	xor	cx,cx
+	mov	di,80h			;point to tbuffer @ 80h
+	mov	cl,byte ptr[di]		;CX=length of tbuf string
+	inc	cx
+	mov	al,'/'
+	repnz	scasb			;scan for /
+	pop	es			;ZF set if help signal
+	jz	help
+
+	CMP	BYTE PTR .FCB+1,' '	;IS 1ST BYTE A NON BLANK
+	JBE	NO_NAME
+
+
+	MOV	CL,GETDR		;GET CURRENT DRIVE
+	INT	224
+	MOV	BYTE PTR CURDR,AL	;SAVE IT
+
+	MOV	AL,BYTE PTR .FCB	;SEE IF DEFAULT DRIVE SPEC
+	CMP	AL,0
+	JZ	DEFAULT			;YES, NO DEC
+	DEC	AL			;ELSE DEC IT
+	PUSH	AX
+	MOV	CL,SELDSK		;SELECT DISK
+	MOV	DL,AL
+	INT	224
+	POP	AX
+	JMPS	NOT_DEFAULT
+DEFAULT:
+	MOV	AL,CURDR
+NOT_DEFAULT:
+	MOV	BYTE PTR .FCB,AL	;PUT IT BACK AND
+	MOV	DRIVE,AL
+
+	ADD	AL,'A'			;MAKE IT ASCII
+	MOV	BYTE PTR FILNAM0,AL	;AND PUT IT IN FILNAM DATA
+	RET
+NO_NAME:
+	MOV	DX,OFFSET NOFMSG	;CANT FIND A FILE NAME
+	CALL	PRINT
+	JMP	QUIT
+
+; GIVE EM SOME HELP AND QUIT
+HELP:
+	MOV	DX,OFFSET HLPMSG
+	CALL 	PRINT
+	JMP	QUIT
+
+IS_MPM:
+	MOV	DX,OFFSET MPMSG
+	CALL	PRINT
+	JMP	EXIT
+
+UNK_VER:
+	MOV	DX,OFFSET WVMSG
+	CALL	PRINT
+	JMP	EXIT
+
+; CHECKS CPM VERSION AND INITIALIZES THINGS
+CPMCHK:
+	MOV	CL,12			;GET VERSION NUMBER
+	INT	224
+	MOV	CPM_VERSION,AX		;SAVE IT
+	TEST	AH,01H			;IS IT MP/M ?
+	JNZ 	IS_MPM
+	CMP	AL,22H			;IS IT VERSION 11
+	JE	VER_11
+	CMP	AL,31H			;IS IT VERSION 31
+	JE	VER_31
+	JMP	UNK_VER			;UNKNOWN VERSION
+
+VER_11:
+	MOV	CALL_TBL,OFFSET TABLE11
+	JMPS	VER_OK
+VER_31:
+	MOV	CALL_TBL,OFFSET TABLE31
+VER_OK:
+	MOV	CL,BYTE PTR .FCB	;GET DRIVE
+	XOR	CH,CH
+	XOR	DX,DX			;FIRST SELECTION
+	MOV	BX,CALL_TBL
+	CALL	SELECT_DISK		;SELECT DISK
+	CMP	BX,0			;IS DISK OK
+	JNZ	DISKOK			;TELL IF NOT OK
+	CALL	ILDISK
+DISKOK:					;A CALL TO DISK SELECT COPYS
+	CMP	BYTE PTR CPM_VERSION,31H ! JE SETUP31
+SETUP11:
+	MOV	AX,ES:WORD PTR [BX]	;XLAT TABLE ADDRESS IN BX
+	MOV	XLAT_ADR,AX
+	MOV	CL,31			;GET DISK PARAMETERS
+	INT	224
+	MOV	AX,ES:WORD PTR 13[BX]	;GET DIRECTORY TRACK
+	MOV	DX,ES:WORD PTR 7[BX]	;DX=DRM
+	MOV	CL,2			;SHIFT RIGHT TWICE
+	JMPS	COM_SETUP
+SETUP31:
+	MOV	BX,OFFSET DPB		;THE DPB TO LOCAL STORAGE
+	MOV	AX,SPT
+	MOV	SEC_PER_TRK,AX
+	MOV	AL,4
+	MOV	CL,PHYSHF		;GET PHYSICAL SHIFT
+	CMP	CL,0 ! JZ SSSD		;PHYSHF IS ZERO FOR SSSD
+	SHL	AL,CL			;SHIFT LEFT ? TIMES GIVES
+SSSD:
+	MOV	DIR_PER_SEC,AL		;NUMBER DIR ENTRYS/SECTOR
+
+	MOV	AX,OFF			;GET DIRECTORY TRACK
+	MOV	DX,DRM			;GET NUMBER OF DIR ENTRYS-1
+	MOV	CL,PHYSHF
+	ADD	CL,2			
+COM_SETUP:
+	INC	DX			;ACCOUNT FOR -1
+	SHR	DX,CL			;SHIFT RIGHT ? TIMES = SECTORS
+	MOV	MAXDIR,DX		;SAVE NUMBER OF DIR SECTORS
+	MOV	MAXSEC,DX
+
+	MOV	TRACK,AX		;SAVE DIRECTORY TRACK
+	MOV	SECTOR,0		;ZERO SECTOR COUNT
+	MOV	FIXCNT,0
+
+	MOV	CX,DS
+	MOV	DMASEG,CX
+	MOV	BX,CALL_TBL
+	CALL	SET_DMASEG		;SET DMA SEGMENT TO DATA SEG
+	MOV	CX,DMAOFF
+	MOV	BX,CALL_TBL
+	CALL	SET_DMAOFF		;SET DMA TO DIR_BUF
+	RET
+
+; READS NEXT SECTOR (GROUP OF DIRECTORY ENTRIES)
+; RETURN WITH ZERO SET IF NO MORE
+NXTSECT:
+	CMP	MAXDIR,0
+	JNZ	DO_SECT
+	RET				;RET WITH ZERO SET
+DO_SECT:
+	MOV	CX,TRACK		;SET TRACK
+	MOV	BX,CALL_TBL
+	CALL	SET_TRACK
+	MOV	CX,SECTOR
+	MOV	BX,CALL_TBL
+	CALL	SECTOR_XLAT		;RETURNS XLATED SECT IN BX
+	MOV	CX,BX
+	MOV	BX,CALL_TBL
+	CALL	SET_SECTOR
+	MOV	BX,CALL_TBL
+	CALL	READ_SECTOR
+	AND	AL,1			;REVERSE SENSE OF ERROR FLAG
+	XOR	AL,1			;RETURN WITH ZERO SET IF BAD READ
+	RET				
+
+; CHECK THE CURRENT GROUP DIRECTORY ENTRIES AGAINST ARGUMENT
+; IF MATCH, REWRITE SECTOR WITH REACTIVATED FIRST BYTE
+CHKENT:
+	MOV	REWRT,0			;ASSUME NO REWRITE
+	MOV	CL,DIR_PER_SEC		;# ENTRIES TO CHECK
+	MOV	BX,OFFSET DIR_BUF	;THIS IS WHERE THEY ARE AT...
+CKLOOP:
+	CMP	BYTE PTR [BX],0E5H	;IS IT UNUSED?
+	JNE 	CKINC			;NO, GO DO ANOTHER	
+	CMP	BYTE PTR 1[BX],0E5H	;IF THIS IS AN E5 THEN ITS
+	JE	CKINC			;...NOT A DIR NAME	
+	CMP	BYTE PTR 1[BX],00H	;IF THIS IS AN 00 THEN ITS
+	JE	CKINC			;...NOT A DIR NAME	
+	PUSH	BX
+	CALL	COMPAR			;COMPARE WITH ARGUMENT
+	POP	BX
+	JNZ	CKINC			;JMP IF ZERO NOT SET, NO MATCH
+	CMP	FIX_EM,0FFH		;SHOULD WE FIX EM?
+	JNE	NO_FIX
+	MOV	BYTE PTR [BX],0		;ELSE, REACTIVATE IT
+	MOV	REWRT,0FFH		;SET REWRITE FLAG
+NO_FIX:
+	INC	FIXCNT			;BUMP FIX COUNTER
+	CMP	VIEW_EM,0FFH		;IS THE VIEW FLAG SET?
+	JNE	CKINC			;NO,JMP OVER THE SHOW-OFF
+	PUSH	BX
+	CALL	SHOWIT			;ELSE, TELL EM HOW GOOD YOU ARE
+	POP	BX
+CKINC:					;DO ANOTHER ENTRY	
+	ADD	BX,32
+	DEC	CL			;ONE LESS TO DO	
+	JNZ	CKLOOP			;GO DO IT
+	CMP	REWRT,0			;NEED REWRITE 
+	JZ	CKDONE			;NO, THEN DONE WITH CHECK
+
+; WRITE DIRECTORY ENTRY BACK TO THE DISK
+	MOV	CX,TRACK		;SET TRACK
+	MOV	BX,CALL_TBL
+	CALL	SET_TRACK
+	MOV	CX,SECTOR
+	MOV	BX,CALL_TBL
+	CALL	SECTOR_XLAT		;RETURNS XLATED SECT IN BX
+	MOV	CX,BX
+	MOV	BX,CALL_TBL
+	CALL	SET_SECTOR
+	MOV	BX,CALL_TBL
+	CALL	WRITE_SECTOR
+	CMP	AL,0	
+	JZ	CKDONE
+	JMP	ERRWRT			;WOOPS
+CKDONE:
+	DEC	MAXDIR			;REDUCE SECTORS LEFT
+	INC	SECTOR			;BUMP TO NEXT SECTOR
+	RET
+
+; COMPARE 11 BYTES OF DIRECTORY ENTRY AGAINST ARGUMENT
+; RETURN WITH ZERO FLAG SET IF MATCH IS MADE
+COMPAR:
+	MOV	CL,11			;COMP 11 CHARS.
+	INC	BX			;BX POINTS TO DIR ENTRY
+	MOV	SI,FCB+1		;SI POINT TO FCB ARGUMENT
+CPLOOP:
+	MOV	AL,[BX]			;GET DIR CHAR
+	AND	AL,7FH			;STRIP PARITY
+	CMP	[SI],AL			;ARE FCB & DIR ENTRY THE SAME?
+	JE	DO_MORE
+	CMP	BYTE PTR[SI],'?'	;IF FCB IS A ?, ANY THING GOES
+	JE	DO_MORE
+	RET				;RETURN ZERO NOT SET IF NOT SAME
+DO_MORE:
+	INC	BX
+	INC	SI
+	DEC	CL
+	JNZ	CPLOOP			;LOOP FOR 11 CHARS.
+	RET				;RET WITH ZERO SET IF SAME
+
+; MOVE FILE NAME TO DATA AREA AND SHOW IT ON CONSOLE
+; ENTRY BX POINTS TO NAME-1 IN DIR_BUF
+SHOWIT:
+	PUSH	DS			;MAKE SURE ES IS CORRECT
+	POP	ES
+	MOV	SI,BX			;POINT TO FILE NAME
+	INC	SI			;NOW ITS CORRECT
+	MOV	DI,OFFSET FILNAM1	;PUT IT THERE
+	MOV	CX,8			;FIRST MOVE NAME
+	CALL	MOVEIT			;USE ROUTINE TO STRIP HI BIT
+	INC	DI			;JUMP OVER DOT
+	MOV	CX,3			;MOVE TYPE
+	CALL	MOVEIT
+	MOV	AL,[SI]			;GET EXTENT
+	ADD	AL,'0'			;MAKE IT ASCII
+	MOV	BYTE PTR FILNAM2,AL	;PUT IN AWAY
+	MOV	DX,OFFSET FILNAM	;GET READY TO PRINT
+	CMP	FIXCNT,1		;IS IT THE FIRST RECOVERY?
+	JNE	NOT_FIRST
+	MOV	DX,OFFSET RCMSG		;GIVE PRAMBLE
+NOT_FIRST:
+	CALL	PRINT
+	INC	LINES			;BUMP LINE COUNT
+	CMP	LINES,SLINES
+	JB	NO_WAIT
+	CALL	WAIT
+NO_WAIT:
+	RET
+
+; MOVE CX BYTES FROM DS:SI TO ES:DI AND STRIP HI BIT
+MOVEIT: MOV 	AL,[SI]
+	AND	AL,7FH
+	MOV	ES:[DI],AL
+	INC DI ! INC SI
+	LOOP	MOVEIT
+	RET
+
+; PRINT MESSAGE POINTED TO BY DX, terminated with either a 0 
+PRINT:	MOV	BX,DX
+PRN_LP:	MOV	DL,[BX]
+	CMP	DL,0 ! JE PRN_RET
+	INC	BX
+	MOV	CL,2
+	PUSH	BX
+	INT	224
+	POP	BX
+	JMPS	PRN_LP
+PRN_RET: RET
+
+; SPECIFIED ILLEGAL DISK
+ILDISK:
+	MOV	DX,OFFSET ILMSG
+	CALL	PRINT
+	JMP	EXIT
+
+; ERROR ON DISK WRITE
+ERRWRT:
+	MOV	DX,OFFSET WMSG
+	CALL	PRINT
+	JMP	EXIT
+
+; DISPLAY WAIT MESSAGE AND WAIT FOR KEY PRESS
+WAIT:
+	MOV	DX,OFFSET WTMSG0
+	CALL	PRINT
+	CALL	KEYPRESS
+	MOV	DX,OFFSET WTMSG1
+	CALL	PRINT
+	MOV	LINES,0
+	RET
+
+; WAIT FOR A KEY PRESS AND RETURN IT IN AL
+KEYPRESS:
+	MOV	CL,DCONIN		;DIRECT CONSOLE IO
+	MOV	DL,0FFH			;REQUEST AN INPUT CHECK
+	INT	224
+	CMP	AL,0
+	JE	KEYPRESS
+	RET
+
+; DIRECT BIOS CALL FOR CP/M-86 VERSION 1.1
+;
+SELECT_DISK11:
+	MOV	AL,9			;BIOS FUCN 9
+	JMPS	BIOS			;RETURNS DPH ADDR IN ES:BX
+SET_TRACK11:
+	MOV	AL,10
+	JMPS	BIOS
+SET_DMASEG11:
+	MOV	AL,17
+	JMPS	BIOS
+SET_DMAOFF11:
+	MOV	AL,12
+	JMPS	BIOS
+SET_SECTOR11:
+	MOV	AL,11
+	JMPS	BIOS
+READ_SECTOR11:
+	MOV	AL,13
+	JMPS	BIOS
+WRITE_SECTOR11:
+	MOV	AL,14
+	JMPS	BIOS
+SECTOR_XLAT11:
+	MOV	AL,16
+	MOV	DX,XLAT_ADR		;RETURN XLATED SECTOR IN BX
+	JMPS	BIOS
+BIOS:
+	MOV	BX,OFFSET BPB		;FILL IN BIOS PARAMETER BLOCK
+	MOV	BPB_FUNC,AL
+	MOV	BPB_CX,CX
+	MOV	BPB_DX,DX
+	MOV	CL,DIRBIOS		;BDOS FUNC 50
+	MOV	DX,BX
+	INT	224			;CALL IT
+	RET
+
+
+
+; DIRECT BIOS CALLS FOR CP/M-86 VERSION 3.1
+;
+SET_SECTOR31:
+	mov	sector,cx
+	ret
+
+SET_TRACK31:
+	mov	track,cx
+	ret
+
+SECTOR_XLAT31:
+	mov	bx,cx
+	ret
+
+SET_DMASEG31:			;DMA IS SET IN CPMCHK ROUTINE
+SET_DMAOFF31:
+		ret
+
+;++++++++++++++++++++++++++++++++++++++
+SELECT_DISK31:	;selects a drive
+;------
+; resets login sequence number of drive to 0, to force
+; permanent media to be logged in again on disk reset
+;	Entry:	CL = drive to select
+;		DL = 0 if initial select, else 1
+
+	push es ! push ds		;save context
+	push cx				;save drive
+	call getsu			;set up DS and ES
+	pop cx				;restore drive
+	mov ax,BIO_SELDSK		;do the BIOS SELDSK call
+	callf BIOS_ptr			;call indirect BIOS
+	mov LOG_SEQN[bx],0		;force disk reset: 0 login sequence no.
+
+	pop es ! push es		;get DS into ES
+	mov di,offset dpb		;setup dest of dpb
+	mov si,DPB_PTR31[bx]		;get the info from DPH
+	mov cx,DPB_SIZE
+	rep movsb			;copy DPB into local storage
+	pop ds ! pop es			;restore context
+	ret
+
+READ_SECTOR31:	;reads a physical sector
+;----
+	mov bx,BIO_READ
+	jmp biosiopb
+
+WRITE_SECTOR31:	;writes a physical sector
+;-----
+	mov bx,BIO_WRITE
+
+biosiopb:	;put the IOPB on the stack, call BIOS
+	push ds				;ds will contain SYSDAT seg
+	push es				;es will contain UDA seg
+					;push iopb onto stack
+	mov ah,mcnt
+	mov al,drive
+	push ax				;drive and multi-sector count
+	push track			;track #
+	push sector			;sector # = 0
+	push dmaseg			;track buffer DMA segment
+	push dmaoff			;track buffer DMA offset = 0
+
+	call getsu			;set up DS-SYSDAT and ES-UDA
+	mov ax,bx			;set I/O function into AX
+	callf BIOS_ptr			;call indirect the BIOS
+					;AL,BL = return status
+	add sp,10			;restore stack
+	pop es				;restore original ES
+	pop ds				;ditto for DS
+	ret
+
+;======
+GETSU:	
+;======
+	CMP 	CPM_VERSION,CCPM_31	;IS IT CCP/M?
+	JNE	GETSU10
+getsu14:		;get sysdat and uda addrs for CCP/M ver 1431
+;-----
+;	entry:	DS = local data seg
+;	exit:	DS = SYSDAT seg, ES=UDA seg (for call to XIOS)
+
+	mov ax,udaaddr			;get the saved value
+	or ax,ax			;set flags
+	jz getsu14a			;uninitialized, go do the OS call
+	  mov es,ax			;we've been here before, just load regs
+	  mov ds,sysaddr
+	  ret
+getsu14a:
+	mov cl,S_SYSDAT			;will return system data seg in ES
+	int 224 
+	mov sysaddr,es			;save system data segment
+
+	mov cl,P_PDADR			;will return PDA address in BX
+	int 224
+;	mov pdaddr,bx			;and save it
+	mov ax,es:P_UDA[bx]		;grab UDA_seg
+	mov udaaddr,ax			;save for future calls
+	push ax				;save uda_seg
+	mov ds,sysaddr
+	pop es				;restore uda_seg
+	ret
+
+;----------------
+getsu10:	;get sysdat and uda addrs
+;-----
+;	entry:	DS = local data seg
+;	exit:	DS = SYSDAT seg, ES=UDA seg (for call to BIOS)
+
+	mov ax,udaaddr			;get the saved value
+	or ax,ax			;set flags
+	jz getsu10a			;uninitialized, go do the OS call
+	  mov es,ax			;we've been here before, just load regs
+	  mov ds,sysaddr
+	  ret
+getsu10a:
+	mov cl,DRV_DPB			;will return segment of SYSDAT in ES
+	int 224
+	mov ax,es:UDA_seg		;grab UDA_seg
+	mov udaaddr,ax			;save for future calls
+	push ax				;save uda_seg
+	mov ax,es
+	mov sysaddr,ax			;save for future calls
+	mov ds,ax
+	pop es				;restore uda_seg
+	ret
+
+; ***** DATA STORAGE AREA*****************
+	DSEG
+
+
+HLPMSG	DB	CR,LF,LF
+	DB	'USAGE: A>UNERA Dr:FILENAME.TYP',CR,LF,LF
+	DB	TAB,'Filename and/or type may be wildcards.',CR,LF
+	DB	TAB,'Wildcards may be either ? or *',CR,LF,LF
+	DB	TAB,'CAUTION! use the * wildcard with care.',CR,LF
+	DB	TAB,'Using *.* will recover ALL erased filenames.',CR,LF,LF
+	DB	TAB,'The recoverable file(s) matching the FILNAME.TYP',CR,LF
+	DB	TAB,'will be listed, you then have an option to quit.',CR,LF,LF
+	DB	TAB,'Be SURE to check recovered files before using to',CR,LF
+	DB	TAB,'confirm that they are OK and function properly.',CR,LF
+	DB	TAB,'If possible, make a CRC check on recovered files.',CR,LF,LF
+	DB	TAB,'HINT: for best results use UNERA immediately after',CR,LF
+	DB	TAB,'making an unwanted erasure, else the space may be',CR,LF
+	DB	TAB,'re-allocated to another file and recovery is impossible.'
+	DB	CR,LF,0
+
+HMSG	DB	CR,LF,'UNERA ver 3.1 (2-16-84) for CP/M-86, CP/M-86+ & CCP/M-86   // for HELP',0
+WMSG	DB	CR,LF,'ERROR OCCURED DURING DISK WRITE - ABORTED',0
+ILMSG	DB	CR,LF,'SPECIFIED AN ILLEGAL DISK DRIVE - ABORTED',0
+BMSG	DB	CR,LF,'PLEASE! check recovered files before using them',0
+NOFMSG	DB	CR,LF,'NO FILE NAME SPECIFIED - ABORTED',0
+NFMSG	DB	CR,LF,'FILE NOT FOUND',0
+WVMSG	DB	CR,LF,'Only CP/M-86 ver 1.1 & 3.1 Plus and CCP/M ver 3.1 are Supported',0
+MPMSG	DB	CR,LF,'THE MP/M OPERATING SYSTEM IS NOT SUPPORTED',0
+RVMSG	DB	CR,LF,'Do you wish to recover the File(s) (Y/N)? ',0
+WTMSG0	DB	CR,LF,'  Press any key to continue ',0
+WTMSG1	DB	CR,'                             ',CR,0
+
+
+RCMSG	DB	CR,LF,LF,'Recovered File(s) will be on '
+FILNAM0	DB	'X: User 0'
+FILNAM	DB	CR,LF
+FILNAM1	DB	'FILENAME.TYP - Extent # '
+FILNAM2	DB	'X',0
+
+
+TABLE11	DW	OFFSET SELECT_DISK11	;DIRECT BIOS CALLS FOR CP/M-11
+	DW	OFFSET SET_TRACK11
+	DW	OFFSET SET_DMASEG11
+	DW	OFFSET SET_DMAOFF11	
+	DW	OFFSET SET_SECTOR11
+	DW	OFFSET READ_SECTOR11	
+	DW	OFFSET WRITE_SECTOR11 	 
+	DW	OFFSET SECTOR_XLAT11	
+
+TABLE31	DW	OFFSET SELECT_DISK31	;DIRECT BIOS CALLS FOR CP/M-31
+	DW	OFFSET SET_TRACK31
+	DW	OFFSET SET_DMASEG31
+	DW	OFFSET SET_DMAOFF31	
+	DW	OFFSET SET_SECTOR31
+	DW	OFFSET READ_SECTOR31	
+	DW	OFFSET WRITE_SECTOR31 	 
+	DW	OFFSET SECTOR_XLAT31	
+
+CURDR	DB	0			;CURRENT DRIVE HERE
+LINES	DB	2			;LINES PRINTED ON SCREEN COUNTER
+FIX_EM	DB	0			;FIX FLAG
+VIEW_EM DB	0FFH			;VIEW FLAG
+
+BPB	RS	5			;SPACE FOR BIOS PARAMETER BLOCK
+
+CALL_TBL RW	1			;ADDRESS OF BIOS CALL TABLE GOES HERE
+XLAT_ADR RW	1			;ADDRESS OF TRANSLATION TABLE
+
+FIXCNT	RB	1			;NUMBER OF FIXES
+REWRT	RB	1			;WRITE BACK TO DISK FLAG
+MAXDIR	RW	1
+MAXSEC	RW	1
+
+DIR_PER_SEC	DB	4		;number directory entrys per sector
+SEC_PER_TRK	DW	26
+
+CPM_VERSION	DW	0		;cpm version
+
+sysaddr		dw	0		;save location for sysdat addr
+udaaddr		dw	0		;save location for process uda addr
+
+mcnt	db	1			;multi-sector count
+drive	rb	1			;drive number (A:=1)
+track	rw	1			;track number
+sector	rw	1			;sector number
+dmaseg	rw	1			;DMA segment for data
+dmaoff	dw	offset dir_buf		;DMA offset for data
+
+dpb	rb	DPB_SIZE
+
+	RW	32			;32 WORD LOCAL STACK
+STACK	RW	1
+
+dir_buf	rs	0000			;4K data buffer [add[100]] at link
+
+	END
+

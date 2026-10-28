@@ -1,0 +1,390 @@
+                    NAME CLOCK
+                    ENTRY CLOCK
+
+
+CLKBAS EQU 50H        = CLOCK PORT BASE ADDRESS
+CLKCMD EQU CLKBAS+10  =   "   COMMAND PORT ADDRESS
+CLKDTA EQU CLKBAS+11  =   "   DATA     "      "
+BIOS EQU 5
+TO_CPM EQU 0
+NO_OP EQU 00H
+RDFREE EQU 10H
+WRFREE EQU 20H
+HOLD EQU 40H
+RDHELD EQU 50H
+WRHELD EQU 60H
+SECS01 EQU 00H
+SECS10 EQU 01H
+MINS01 EQU 02H
+MINS10 EQU 03H
+HRS01 EQU 04H
+HRS10 EQU 05H
+AM_PM EQU 05H
+WKDAY EQU 06H
+DAYS01 EQU 07H
+DAYS10 EQU 08H
+LEAPYR EQU 08H
+MTHS01 EQU 09H
+MTHS10 EQU 0AH
+YRS01 EQU 0BH
+YRS10 EQU 0CH
+ROW EQU 01
+COLM EQU 55
+
+                    **********************
+                    *                    *
+                    *        MACROS      *
+                    *                    *
+                    **********************
+
+TYPE:   MACRO MSG
+        LXI D,MSG
+        CALL TYPIST
+        ENDMAC
+
+
+PRNT1:  MACRO
+        MOV A,M
+        CALL RDDGT
+        ADI 30H
+        CALL PRNTCHAR
+        ENDMAC
+       
+                   *****************************
+                   *                           *
+                   *         MAIN LOOP         *
+                   *                           *
+                   *****************************
+
+
+CLOCK:   LXI SP,STACK    SETUP LOCAL STACK
+CLKBGN:  CALL CLRHOM
+         CALL BEEP
+CLKRPT:  TYPE SIGNON
+         CALL RESPONSE
+         CPI 'X'
+         JZ TO_CPM
+         CPI 'S'
+         JZ SETTIME
+         CPI 'P'
+         JZ PRNTTIME
+         CPI 'C'
+         JZ FOREVER
+         TYPE BOOBOO
+         JMP CLKBGN
+
+
+                  ******************************
+                  *                            *
+                  *        SUBROUTINES         *
+                  *                            *
+                  ******************************
+
+* CLEAR THE SCREEN AND HOME THE CURSOR :
+
+clrhom:  TYPE CLEAR
+         RET
+clear:   db 1Ah,1Eh,24h ;1A=ASCII for clear screen
+                        ;1E   "    "  home cursor
+                        ;24   "    "  end/TEXT
+
+                  *********************
+
+* RING CURSOR BELL :
+
+BEEP:   TYPE DING
+        RET
+ding:   DB 07h,24h     ;07=ASCII for bell,24=end/TEXT
+
+                  *********************
+
+* MASTER ROUTINE FOR GETTING TIME AND DATE INPUT FROM USER.
+* POINTS HL AND DE TO BUFFER AND COMMAND TABLE RESPECTIVELY.
+* BUFFER IS FILLED AND THEN DIGITS WRITTEN FROM BUFFER TO CLOCK.
+
+SETTIME: CALL GETTIME    FILL THE TIME/DATE DIGIT BUFFER
+         LXI H,DTABLE    POINT HL TO BUFFER
+         LXI D,ATABLE    POINT DE TO COMMAND TABLE
+         MVI B,14        SETUP B AS COUNTER
+         MVI A,HOLD      STOP THE CLOCK
+         OUT CLKCMD
+SET1:    DCR B
+         JZ SET2        IF ALL DONE THEN ------.
+         MOV A,M        ELSE:GET DIGIT > A     |
+         MOV C,A        & MOVE IT > C,         |
+         LDAX D         GET COMMAND > A &      |
+         CALL WRTDGT    WRITE DIGIT > CLOCK.   |
+         INX H          BUMP                   |
+         INX D          POINTERS               |
+         JMP SET1       & LOOP.                |
+SET2:    MVI A,NO_OP    CLEAR CMND PORT,  <----'
+         OUT CLKCMD     
+         CALL CLKPRNT
+         JMP CLKBGN     & EXIT SUBROUTINE.
+
+                   ****************
+
+* NEXT S/R GETS DIGITS FROM CONSOLE INTO THE
+* BUFFER POINTED TO BY HL.
+
+GETTIME: TYPE ASKTIME
+         LXI H,DTABLE
+GET1:    CALL GETNUMB
+         CPI 0DH
+         JZ GETDATE
+         ANI 0FH
+         MOV M,A
+         INX H
+         JMP GET1
+GETDATE: TYPE ASKDATE
+GET2:    CALL GETNUMB
+         CPI 0DH
+         JZ GETDAY
+         ANI 0FH
+         MOV M,A
+         INX H
+         JMP GET2
+GETDAY:  TYPE ASKDAY
+GET3:    CALL GETNUMB
+         CPI 0DH
+         RZ
+         ANI 0FH
+         MOV M,A
+         INX H
+         JMP GET3
+
+                    ******************
+
+* NEXT S/R GETS A CHARACTER FROM CONSOLE :
+*        :RETURNS ONLY 'LEGAL' CHARACTERS
+*        :(i.e. A  C/R OR A NUMERAL)
+
+GETNUMB: CALL RESPONSE
+         CPI 0DH
+         RZ
+         CPI '0'
+         JC GETNUMB
+         CPI '9'+1
+         JNC GETNUMB
+         RET
+
+                    ******************
+
+* WRITE A DIGIT TO THE CLOCK :
+* SET THE 24hr & LEAPYEAR BITS :
+* ON CALL DIGIT COMMAND IS IN A :
+*  "  "     "   IS IN C :
+
+WRTDGT: PUSH PSW           SAVE THE COMMAND
+        ADI HOLD           ADD HOLD COMMAND
+        OUT CLKCMD         INSTRUCT CLOCK
+        CPI AM_PM+HOLD     24 HR BYTE ?
+        JNZ WRT1
+        MOV A,C            IF SO :
+        ADI 08H            SET 24 HR BIT.
+        JMP WRT3
+WRT1:   CPI LEAPYR+HOLD    LEAP YEAR BYTE ?
+        JNZ WRT2
+        MOV A,C            IF SO :
+        ANI 03H            SET LEAPYEAR BIT.
+        JMP WRT3
+WRT2:   MOV A,C            DIGIT > A
+WRT3:   OUT CLKDTA         DIGIT > CLOCK
+        POP PSW            COMMAND > A
+        ADI WRHELD         ADD WRITE & HOLD COMMANDS
+        OUT CLKCMD
+        SUI WRFREE         REMOVE 'WRITE' FROM COMMAND
+        OUT CLKCMD         SEND LAST COMMAND OF SEQUENCE
+        RET
+
+                 *************************
+
+* THE NEXT S/R READS A DIGIT FROM THE CLOCK : 
+*             :THE LEAPYEAR AND 24hr MODE BITS ARE MASKED.
+*             :ON CALL THE DIGIT COMMAND MUST BE IN A.
+*             :ON RETURN THE DIGIT VALUE IS IN A.
+
+RDDGT: ADI RDFREE          ADD 'READ' TO COMMAND.
+       OUT CLKCMD
+       CPI RDFREE+AM_PM   WILL IT CONTAIN 24hr BIT?
+       IN CLKDTA          GET DIGIT
+       RNZ
+       SUI 8              KILL 24hr BIT
+       RET
+
+                ***************************
+
+* MOVE CURSOR TO PREDEFINED ROW/COLUMN LOCATION
+
+CRSR:    PUSH H       ;
+         PUSH D
+         PUSH B
+         MVI E,1BH    ;ESC
+         MVI C,2
+         CALL 5
+         MVI E,3DH    ;=
+         MVI C,2
+         CALL 5
+         MVI E,ROW+31 ;ROW OUT
+         MVI C,2
+         CALL 5
+         MVI E,COLM+31;COLUMN OUT
+         MVI C,2
+         CALL 5
+         POP B
+         POP D
+         POP H         
+         RET
+
+                *************************
+
+* NEXT S/R PRINTS THE CURRENT TIME AND DATE ONCE,COMPLETE
+* WITH COLONS AND SLASHES,THEN RETURNS.
+
+CLKPRNT: CALL CRSR
+         LXI H,ATABLE      POINT HL TO TABLE OF COMMANDS
+         CALL PRINT2       PRINT 1ST 2 DIGITS
+         MVI A,':'
+         CALL PRNTCHAR
+         CALL PRINT2       PRINT NEXT 2 DIGITS
+         MVI A,':'
+         CALL PRNTCHAR
+         CALL PRINT2       & NEXT 2
+         MVI A,' '
+         CALL PRNTCHAR
+         MVI A,' '         & 2 SPACES
+         CALL PRNTCHAR
+         CALL PRINT2       & 2 MORE DIGITS
+         MVI A,'/'
+         CALL PRNTCHAR
+         CALL PRINT2       & 2 MORE
+         MVI A,'/'
+         CALL PRNTCHAR
+         CALL PRINT2       & LAST 2
+         RET
+
+                 **********************
+
+PRINT2:  PRNT1
+         INX H
+         PRNT1
+         INX H
+         RET
+
+               ***********************
+
+PRNTTIME: CALL CLRHOM
+          CALL CLKPRNT
+          JMP CLKRPT
+
+               ************************
+
+* NEXT S/R PRINTS THE TIME, UPDATES IT ONCE EVERY SECOND,
+* AND CONTINUES DOING SO UNTIL A ^C IS TYPED.
+
+FOREVER: CALL CLRHOM
+         MVI A,0AH
+         CALL PRNTCHAR
+FOR1:    MVI A,0DH
+         CALL PRNTCHAR
+         CALL CLKPRNT
+         MVI A,SECS01
+         CALL RDDGT
+         MOV B,A
+FOR2:    MVI A,SECS01
+         CALL RDDGT
+         CMP B
+         JZ FOR2
+         JMP FOR1
+
+                   ***********************
+
+RESPONSE: PUSH H
+          MVI C,01    BIOS CHAR/IN
+          CALL BIOS
+          POP H
+          CPI 'a'    RANGE CHECK UPPER CASE
+          JC SKIP
+          ANI 5FH    CONVERT TO UPPER CASE
+SKIP:     ANI 7FH    STRIP OFF PARITY
+          CPI 03H    CHECK FOR ^C
+          JZ TO_CPM
+          RET
+
+                   ************************
+
+* NEXT S/R PRINTS A CHARACTER ON THE SCREEN :
+*   (ALSO WATCHES FOR ^C INPUT FROM CONSOLE).
+
+PRNTCHAR: PUSH D      -.
+          MOV E,A      |
+          MVI C,2      | = PRINT CHARACTER
+          PUSH H       |
+          CALL BIOS   _|
+
+          MVI C,0BH   -.
+               *       | = CHECK CONSOLE
+          CALL BIOS   _|
+
+          POP H
+          POP D
+
+          ORA A        -.   IF A KEY WAS STRUCK
+          CNZ RESPONSE  |   THEN GET CHARACTER 
+               *        |   & CHECK FOR ^C.
+               *       _|
+          RET
+
+                 **********************
+
+TYPIST: PUSH H
+        MVI C,09H
+        CALL BIOS
+        POP H
+        RET
+
+                     ************************
+                     *                      *
+                     *     MESSAGES,etc.    *
+                     *                      *
+                     ************************
+
+SIGNON: DB 0DH,0AH,'                 CALENDER-CLOCK MASTER PROGRAM'
+        DB 0DH,0AH,0DH,0AH
+        DB 'TO SELECT A FUNCTION PLEASE HIT CORRESPONDING COMMAND KEY'
+        DB 0DH,0AH,0DH,0AH
+        DB '            FUNCTION                      COMMAND KEY',0DH,0AH
+        DB ' SET THE TIME , DATE & WEEKDAY      =         S',0DH,0AH
+        DB ' PRINT THE TIME & DATE (ONCE)       =         P',0DH,0AH
+        DB ' PRINT THE TIME & DATE CONTINUOUSLY =         C',0DH,0AH
+        DB ' EXIT TO OPERATING SYSTEM           =         X',0DH,0AH
+        DB 0DH,0AH,'COMMAND = ?',08H,'$'
+
+
+BOOBOO: DB 0DH,0AH,'SORRY,I DID NOT RECOGNIZE THAT COMMAND.'
+        DB 0DH,0AH,'PLEASE TRY AGAIN.$'
+
+
+ASKTIME: DB 0DH,0AH,'WHAT IS THE TIME (24hr FORMAT - HH:MM:SS)?'
+         DB 0DH,0AH,'$'
+
+
+ASKDATE: DB 0DH,0AH,'WHAT IS THE DATE (MM/DD/YY)?',0DH,0AH,'$'
+
+ASKDAY:  DB 0DH,0AH,'WHAT IS THE WEEKDAY (SUNDAY = 0) ?',0DH,0AH,'$'
+
+* DIGIT ADDRESS TABLE :
+ATABLE: DB HRS10,HRS01,MINS10,MINS01,SECS10,SECS01,MTHS10,MTHS01
+        DB DAYS10,DAYS01,YRS10,YRS01,WKDAY
+
+* DIGIT INPUT BUFFER :
+DTABLE: DS 13
+
+* LOCAL STACK AREA :
+        DS 32  16 LEVEL STACK
+STACK:         * N.B.: STACKS GROW INTO LOW MEMORY!
+
+
+                    *********************
+
+                          END CLOCK

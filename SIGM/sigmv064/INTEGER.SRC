@@ -1,0 +1,194 @@
+C	SET	          0
+M	SET	          0
+F	SET	          0
+;TYPE
+;$STRING0 = STRING 0;
+;$STRING80= STRING 80;
+;$STRING255 = STRING 255;
+; 
+;VAR
+;NUMBER:INTEGER;
+;DATA:$STRING80;
+;
+;PROCEDURE SETLENGTH(VARX:$STRING0;Y:INTEGER);EXTERNAL;
+	EXTD	L156,SETLENGT
+;FUNCTION LENGTH(X:$STRING255):INTEGER;EXTERNAL;
+	EXTD	L157,LENGTH  
+;
+;{the following function converts a string to an integer.
+;as written, the string has a maximum size of 80 char.  
+;requires pascal/z's external function: length}
+;
+;FUNCTION STRTOINT (STR:$STRING80):INTEGER;
+;LABEL 1;
+;
+;VAR
+;I,LEN,SIGN,VAL:INTEGER;
+;
+;BEGIN
+L158
+	NAME STRTOINT
+	ENTRY STRTOINT
+STRTOINT:
+	ENTR	D,2,8
+;VAL:=0;
+	STMT	D,1
+	MOV	-6(IX),A
+	MOV	-7(IX),A
+;LEN:=LENGTH(STR);
+	STMT	D,2
+	PUSH	IX
+	POP	H
+	LXI	B,88
+	DADD	B
+	SPSH	S,255
+	CALL	L157
+	STMT	M,2
+	MOV	-2(IX),D
+	MOV	-3(IX),E
+;I:=1;
+	STMT	D,3
+	MOV	0(IX),A
+	MVI	-1(IX),1
+;SIGN:=1;
+	STMT	D,4
+	MOV	-4(IX),A
+	MVI	-5(IX),1
+;
+;IF LEN = 0 THEN	GOTO 1;
+	STMT	D,5
+	MOV	L,-3(IX)
+	MOV	H,-2(IX)
+	MOV	D,A
+	MOV	E,A
+	DSB1	D,0
+	JNZ	L191
+	STMT	D,6
+	CTRL	M,6
+	JMP	L159
+L191
+;
+;REPEAT
+	STMT	D,7
+;
+;	CASE STR[I] OF
+L201
+	STMT	D,8
+	MOV	L,-1(IX)
+	MOV	H,0(IX)
+	RCHK	H,1,80
+	XCHG
+	LXI	H,88
+	ADDR	IX
+;
+;	 '-' : SIGN:=-1; 
+	MOV	D,A
+	MOV	E,M
+	MOV	A,E
+	CMPI	D,45
+	JNZ	L216
+L218
+	XRA	A
+	STMT	D,9
+	MVI	-4(IX),255
+	MVI	-5(IX),255
+;	 '.' : GOTO 1;
+	JMP	L217
+L216
+	CMPI	D,46
+	JNZ	L231
+L232
+	XRA	A
+	STMT	D,10
+	CTRL	M,10
+	JMP	L159
+;
+;	'0','1','2','3','4','5','6','7','8','9':
+	JMP	L217
+L231
+	CMPI	D,48
+	JRZ	L242
+	CMPI	D,49
+	JRZ	L242
+	CMPI	D,50
+	JRZ	L242
+	CMPI	D,51
+	JRZ	L242
+	CMPI	D,52
+	JRZ	L242
+	CMPI	D,53
+	JRZ	L242
+	CMPI	D,54
+	JRZ	L242
+	CMPI	D,55
+	JRZ	L242
+	CMPI	D,56
+	JRZ	L242
+	CMPI	D,57
+	JNZ	L241
+;		VAL:=(VAL * 10) + (ORD(STR[I]) - 48); {48 = ORD OF 0}
+L242
+	XRA	A
+	STMT	D,11
+	MOV	L,-7(IX)
+	MOV	H,-6(IX)
+	LXI	D,10
+	MULT	D,0
+	PUSH	H
+	MOV	L,-1(IX)
+	MOV	H,0(IX)
+	RCHK	H,1,80
+	XCHG
+	LXI	H,88
+	ADDR	IX
+	MOV	D,A
+	MOV	E,M
+	STMT	M,11
+	LXI	H,-48
+	DADD	D,0
+	POP	D
+	DADD	D,0
+	MOV	-6(IX),H
+	MOV	-7(IX),L
+;
+;       END; {OF CASE}
+L241
+	XRA	A
+L217
+;
+;I:=I+1;
+	STMT	D,12
+	MOV	L,-1(IX)
+	MOV	H,0(IX)
+	INX	H
+	MOV	0(IX),H
+	MOV	-1(IX),L
+;
+;UNTIL I > LEN;
+	STMT	D,13
+	CTRL	M,13
+	MOV	L,-1(IX)
+	MOV	H,0(IX)
+	MOV	E,-3(IX)
+	MOV	D,-2(IX)
+	GRET	D,0
+	JNC	L201
+;
+;
+;1: { Exit immediately upon detection of a fatal error.}
+	STMT	D,14
+L159
+;
+;STRTOINT:=SIGN * VAL;
+	STMT	D,15
+	MOV	L,-5(IX)
+	MOV	H,-4(IX)
+	MOV	E,-7(IX)
+	MOV	D,-6(IX)
+	MULT	D,0
+	MOV	3(IX),H
+	MOV	2(IX),L
+;END; {OF PROCEDURE}
+	STMT	D,16
+	EXIT	D,81
+

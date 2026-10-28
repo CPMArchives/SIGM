@@ -1,0 +1,148 @@
+        title   'Boot loader module for CP/M 3.0'
+                                    ; m80 version
+
+true    equ -1
+false   equ 0
+
+banked  equ true
+
+        .Z80
+
+        entry    ?init,?ldccp,?rlccp,?time
+        external ?pmsg,?conin,?pdec
+        external @civec,@covec,@aivec,@aovec,@lovec
+        external @scb24,@scb76,@scb77,@scb78,@scb80
+                   if banked
+        external ?trans,@xmvst
+                   endif
+
+bdos    equ 5
+cr      equ 13
+lf      equ 10
+nblk    equ 32                      ; number of 128 bytes in CCP
+
+        dseg
+
+?init:
+        ld hl,08000h 
+        ld (@covec),hl              ; assign co to screen
+        ld hl,04000h
+        ld (@civec),hl              ; assign ci to keyboard
+        ld hl,02000h 
+        ld (@lovec),hl              ; assign lo to printer
+        ld hl,01000h 
+        ld (@aivec),hl
+        ld (@aovec),hl              ; assign aux to modem
+                   if banked
+        xor a
+        ld (@xmvst),a               ; clear xmove status
+                   endif
+                                    ; load system control block values
+        ld hl,16
+        ld (@scb24),hl              ; sub,com search order
+        ld hl,0
+        ld (@scb76),hl              ; search default disk
+        ld hl,1
+        ld (@scb77),hl              ; search disk A
+        ld hl,255
+        ld (@scb78),hl              ; end of search
+        ld hl,4
+        ld (@scb80),hl              ; disk D is temporary disk
+        ld hl,signon
+        call ?pmsg                  ; print signon message
+        ret
+
+    ;   This version of the boot loader loads the CCP from a file
+    ;   called CCP.COM on the system drive (A:).
+        cseg
+?ldccp:
+        ; First time, load the A:CCP.COM file into TPA
+
+        xor a 
+        ld (ccpfcb+15),a                ; zero extent
+        ld hl,0 
+        ld (fcbnr),hl                   ; start at beginning of file
+        ld de,ccpfcb 
+        call open                       ; open file containing CCP
+        inc a 
+        jp z,noCCP                      ; error if no file...
+        ld de,0100h 
+        call setdma                     ; start of TPA
+        ld de,nblk 
+        call setmul                     ; allow up to nblk*128 bytes
+        ld de,ccpfcb 
+        call read                       ; load the thing
+
+                   if banked
+                                        ; store ccp in bank 2
+        ld c,1                          ; source bank
+        ld de,100h                      ; source location
+        ld b,2                          ; destination bank
+        ld hl,0                         ; destination location
+        ld a,nblk                       ; number of blocks
+        call ?trans                     ; do copy
+        ret
+                   else
+        ld hl,100h
+        ld de,0e800h
+        ld bc,128*nblk
+        ldir
+        ret
+                   endif
+
+noCCP:                                  ; here if we couldn't find the file
+        ld hl,ccpmsg 
+        call ?pmsg                      ; report this...
+        call ?conin                     ; get a response
+        jp ?ldccp                       ; and try again
+
+?rlccp:                                 ; copy ccp from bank 2
+                   if banked
+        ld c,2                          ; source bank
+        ld de,0                         ; source location
+        ld b,1                          ; destination bank
+        ld hl,100h                      ; destination location
+        ld a,nblk                       ; number of blocks
+        call ?trans                     ; do copy
+        ret
+                   else
+        ld hl,0e800h
+        ld de,100h
+        ld bc,128*nblk
+        ldir
+        ret
+                   endif
+
+?time:
+        ret
+
+        ; CP/M BDOS Function Interfaces
+
+open:
+        ld c,15 
+        jp bdos                         ; open file control block
+
+setdma:
+        ld c,26 
+        jp bdos                         ; set data transfer address
+
+setmul:
+        ld c,44 
+        jp bdos                         ; set record count
+
+read:
+        ld c,20 
+        jp bdos                         ; read records
+
+
+signon:         db      cr,lf,cr,lf,'CP/M Version 3.0',cr,lf,0
+
+ccpmsg:         db      cr,lf,'BIOS Err on A: No CCP.COM file',0
+
+
+ccpfcb:         db      1,'CCP     ','COM',0,0,0,0
+                ds      16
+fcbnr:          db      0,0,0
+
+        end
+

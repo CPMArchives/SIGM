@@ -1,0 +1,124 @@
+MEMORY RELATED OPERATORS:
+copyright (C) 1983 by E. E. Bergmann
+definitions in alphabetical(ASCII) order
+:
+::
+*********************************************************
+*							*
+* PISTOL-Portably Implemented Stack Oriented Language	*
+*			Version 2.0			*
+* (C) 1983 by	Ernest E. Bergmann			*
+*		Physics, Building #16			*
+*		Lehigh Univerisity			*
+*		Bethlehem, Pa. 18015			*
+*							*
+* Permission is hereby granted for all reproduction and *
+* distribution of this material provided this notice is *
+* included.						*
+*							*
+*********************************************************
+:
+::
+1+W!	ADDR -->
+	Increments the word in RAM at ADDR by one.
+
+?	ADDR -->
+	Prints the word value located in RAM at ADDR;
+	equivalent to:   W@  =
+
+C!	stores in the string area addressed by the top of
+	stack the character whose ASCII value is next to
+	the top.
+
+C@	fetches the ASCII value of the character in the
+	string area addressed by the top of stack.
+
+COMPBUF	System constant that points to the compile buffer in
+	RAM.
+
+EDITBUF	System constant that points in the strings area to the
+	start of the editbuffer.  It also is the upper limit of
+	the input linebuffer, see LINEBUF.
+
+LINEBUF	System constant that points in the strings area to the
+	start of the input line buffer that is filled in the
+	process of compiling a line of PISTOL.  It is filled
+	by GETLINE.
+
+OFF	sets location addressed by top of stack to FALSE.
+
+ON	sets location addressed by top of stack to TRUE.
+
+RAMMAX	System constant that points to the end of accessible
+	RAM.
+
+RAMMIN	System constant that points to the start of accessible
+	RAM; the area between RAMMIN and USER contains system
+	constants that can be read from but not written to.
+
+READ-PROTECT
+	Boolean system constant.  If it is true, then operators
+	that access memory for reading are checked for legal
+	ranges.  For example, addresses must be in the range,
+	[RAMMIN..RAMMAX] for W@ and [STRINGSMIN..STRINGSMAX]
+	for C@ .  If the address during a read is outside these
+	limits, an error "READ VIOLATION" is generated and the
+	program does an ABORT.
+
+STRINGSMAX	System constant that points to the end of the
+	strings area.
+
+STRINGSMIN	System constant that points to the start of the
+	strings area.
+
+TRANS	converts the logical address to the "actual address".
+	It is equivalent to mutiplying by the wordsize, W , and
+	adding the offset, USER ; its definition is, in effect:
+	W * USER +
+
+TRANS@	Equivalent to: TRANS W@
+
+USER	System constant that points to near the bottom of RAM.
+	It points to the lowest system variable location and
+	marks the top of the area where the system constants
+	are in RAM; these constants can be read with W@, but
+	not changed by W!
+
+USER+	equivalent to: USER + 
+
+W	System constant that gives the word size in address
+	units; see, for example, W+ , below.
+
+W!	Stores at the word location addressed by the top of
+	stack the value next to top.
+
+W*	TOS --> W*TOS
+	Multiplies the top of stack by the wordsize, W ;
+	Equivalent to:  W *
+
+W+	TOS --> W+TOS
+	Increments the top of stack by the wordsize of the
+	implementation; equivalent to:   W +
+
+W+W!	ADDR -->
+	Increments the word in RAM at ADDR by the wordsize, W.
+
+W<-	equivalent to " SWAP W! "
+
+W@	Fetches the contents of the word location addressed
+	by the top of stack (used extensively with words
+	defined by VARIABLE).
+
+WRITE-PROTECT
+	Boolean system constant.  If it is true, then operators
+	that access memory for writing are checked for legal
+	ranges.  For example, addresses must be in the range,
+	[USER..RAMMAX] for W! and [STRINGSMIN..STRINGSMAX]
+	for C! .  If the address during a write is outside
+	these limits, an error "WRITE VIOLATION" is generated
+	and the	program does an ABORT.
+
+:
+ER + 
+
+W	System constant t

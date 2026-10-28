@@ -1,0 +1,579 @@
+
+;************************************************
+;*						*
+;*		FILE PRINT UTILITY		*
+;*						*
+;************************************************
+;
+;	By		Bill Bolton
+;			Software Tools
+;			P.O. Box 80
+;			Newport Beach
+;			NSW, 2016
+;			AUSTRALIA
+;
+;	CP/M-86 History (most recent version at top)
+;
+;	Version	1.0	Adapted from PAGE utility
+;			4/Mar/82
+;
+	TITLE	'PRINT utility for CP/M-86'
+	PAGEWIDTH	132
+	EJECT
+
+;************************************************
+;*						*
+;*	       MISCELLANEOUS EQUATES		*
+;*						*
+;************************************************
+
+TFCB	EQU	005CH			;TRANSIENT PROGRAM FCB
+TBUF	EQU	0080H			;TRANSIENT PROGRAM BUFFER 
+OPEN	EQU	15			;OPEN FUNCTION CODE
+READ	EQU	20			;READ FUNCTION CODE
+BS	EQU	08H			;ASCII Back Space
+TAB	EQU	09H			;ASCII TAB
+LF	EQU	0AH			;ASCII Line Feed
+FORMF	EQU	0CH			;ASCII Form Feed
+CR	EQU	0DH			;ASCII Carriage Return
+SPACE	EQU	20H			;ASCII Blank
+FILLER	EQU	00H			;USED AS FF NULL
+PAGSZ	EQU	66			;LINES/PAGE
+MAXLN	EQU	58			;USABLE LINES/PAGE
+NULLS	EQU	1			;NULLS AFTER A FORM FEED
+ODEV	EQU	5			;CON:=2  LST:=5
+M	EQU	Byte Ptr 0[BX]		;Handy for ASM86
+
+	EJECT
+	CSEG
+
+;************************************************
+;*						*	
+;*	GET PARAMETERS FROM COMMAND LINE	*
+;*						*
+;************************************************
+
+PRINT:
+	MOV	BX,TBUF			;POINT TO BUFFER
+	MOV	CH,M			;GET COUNT OF CHARACTERS IN CMD
+	MOV	AL,M			;GET COUNT AGAIN
+	OR	AL,AL			;TEST FOR ZERO
+	JNZ	L_1	
+	JMP	PERR			;YES, NO ARGUMENTS
+L_1:
+	INC	BX			;SKIP COUNT
+SKP1:
+	MOV	AL,M			;GET BYTE
+	CMP	AL,' '			;SPACE?
+	JNZ	SKP2			;NO
+	INC	BX			;BUMP POINTER
+	DEC	CH			;DECRMENT COUNT
+	JNZ	SKP1			;SKIP TO FIRST NON-SPACE
+	JMPS	PERR			;NO, NON SPACE AFTER FILE ID
+SKP2:
+	MOV	AL,M			;GET CHAR
+	CMP	AL,' '			;SPACE?
+	JZ	SKP3			;YES
+	INC	BX			;BUMP POINTER
+	DEC	CH			;DECREMENT COUNT
+	JNZ	SKP2			;SKIP TO SPACE
+	JMP	PEND			;NO SPACE AFTER FILE ID
+SKP3:
+	MOV	AL,M			;GET CHAR
+	CMP	AL,' '			;TEST FOR NON,SPACE
+	JNZ	SKP4			;FOUND ARGUMENTS
+	INC	BX			;BUMP POINTER
+	DEC	CH			;DECREMENT COUNT
+	JNZ	SKP3
+	JMP	PEND
+SKP4:
+	MOV	DX,(Offset PARMS)
+SKP4A:
+	MOV	AL,M
+	MOV	SI,DX
+	MOV	[SI],AL
+	INC	BX
+	INC	DX
+	DEC	CH
+	JNZ	SKP4A
+	MOV	AL,' '
+	MOV	SI,DX			;INDICATE END OF PARMS
+	MOV	[SI],AL
+
+;************************************************
+;*						*
+;*	     PROCESS PARAMETERS			*
+;*						*
+;************************************************
+
+PPARM:
+	MOV	DX,(Offset PARMS)	;POINT TO PARMS AREA
+PLP0:
+	MOV	BX,(Offset PTAB)	;POINT TO PARM TABLE
+	MOV	CH,(Offset PTABS)	;SIZE OF PARM TABLE
+PLP1:
+	MOV	SI,DX			;GET PARM BYTE
+	MOV	AL,[SI]
+	CMP	AL,' '			;END OF PARMS?
+	JZ	PEND			;YES, DONE
+	CMP	AL,00			;END OF PARMS?
+	JZ	PEND			;YES, DONE
+	CMP	AL,M			;COMPARE TO TABLE ENTRY
+	JZ	PFND			;FOUND IT
+	INC	BX			;BUMP PARM TABLE PTR
+	INC	BX
+	INC	BX
+	DEC	CH			;DECREMENT COUNT
+	JNZ	PLP1			;KEEP LOOKING
+PERR:
+	MOV	DX,(Offset PERMSG)	;POINT TO PARM ERROR MSG
+	MOV	CL,09			;WRITE MSG
+	INT	224
+	MOV	CL,0			;EXIT
+	MOV	DL,0
+	INT	224
+PFND:
+	INC	BX			;POINT TO ROUTINE ADDR
+	PUSH	DX			;SAVE PARM POINTER
+	MOV	DL,M
+	INC	BX
+	MOV	DH,M			;GET ROUTINE ADDR
+	MOV	BX,(Offset PRET)	;RETURN ADDRESS
+	PUSH	BX			;SIMULATE CALL
+	XCHG	BX,DX			;GET ROUTINE ADDR
+	JMP	BX			;EXIT TO PARM PROC. ROUTINE
+PRET:
+	POP	DX			;GET PARM POINTER AGAIN
+	INC	DX			;POINT TO NEXT ONE
+	JMPS	PLP0			;CONTINUE
+;
+;************************************************
+;*						*
+;*	PARAMETER PROCESSING ROUTINES		*
+;*						*
+;************************************************
+
+NPARM:
+	MOV	AL,0FFH			;SET 'NO HEADING' SWITCH
+	MOV	Byte Ptr NSWT,AL
+	RET
+;
+CPARM:
+	MOV	AL,0FFH			;SET 'NO PAGINATION' SWITCH
+	MOV	Byte Ptr CSWT,AL
+	RET
+
+;************************************************
+;*						*
+;*		OPEN FILE FOR INPUT		*
+;*						*
+;************************************************
+
+PEND:
+	MOV	DX,TFCB			;POINT TO FCB
+	CALL	FOPEN			;OPEN FILE
+	JNB	L_2	
+	JMP	ERR			;IF ERROR, EXIT
+L_2:
+	CALL	HEAD			;PRINT HEADING
+
+;****************************************
+;*					*
+;*	    MAIN PROCESSING LOOP	*
+;*					*
+;****************************************
+
+LOOP:
+	CALL	GETBT			;GET A BYTE
+	JNB	L_3	
+	JMP	ERR			;ERROR
+L_3:
+	CMP	AL,1AH			;EOF?
+	JZ	DONE			;YES
+	CMP	AL,CR			;CR?
+	JZ	CRET			;YES
+	CMP	AL,LF			;LF?
+	JZ	LFEED			;YES
+	CMP	AL,TAB			;TAB?
+	JZ	TABMOV			;YES
+	CMP	AL,FORMF		;FORM FEED?
+	JZ	FFEED			;YES
+	CMP	AL,BS			;BACKSPACE
+	JZ	BSPACE			;YES
+	CMP	AL,SPACE		;ODD CONTROL CHR?
+	JB	LOOP			;YES, IGNORE IT
+	CALL	PBYT			;OTHERWISE PRINT IT
+	JMPS	LOOP			;CONTINUE
+
+;************************************************
+;*						*
+;*		FINAL PROCESSING		*
+;*						*
+;************************************************
+
+DONE:
+	CALL	TPAGE			;MOVE TO TOP OF PAGE
+	MOV	CL,0			;EXIT TO BDOS
+	MOV	DL,0
+	INT	224
+
+;************************************************
+;*						*
+;*		PROCESS TABS			*
+;*						*
+;************************************************
+
+TABMOV:
+	MOV	BX,(Offset COL)		;POINT TO COLUMN
+TBLP:
+	MOV	AL,SPACE		;PRINT ONE SPACE
+	CALL	PBYT
+	MOV	AL,M			;GET COLUMN
+	AND	AL,07H			;MODULO 8
+	JNZ	TBLP			;IF NOT AT TAB STOP, KEEP TYPING
+	JMPS	LOOP
+	CALL	PBYT			;PRINT BYTE
+	JMPS	LOOP
+
+;************************************************
+;*						*
+;*		PROCESS <CR>			*
+;*						*
+;************************************************
+
+CRET:
+	XOR	AL,AL
+	MOV	Byte Ptr COL,AL
+	MOV	AL,CR
+	CALL	PBYT			;PRINT <CR>
+	JMPS	LOOP			;CONTINUE IN MAIN LOOP
+
+;************************************************
+;*						*
+;*		PROCESS <LF>			*
+;*						*
+;************************************************
+
+LFEED:
+	MOV	AL,Byte Ptr CSWT	;GET PAGINATION SWITCH
+	OR	AL,AL			;SEE IF 'NO PAGINATION'
+	JNZ	LFEED2			;TRUE, SKIP PAGINATION TEST
+	MOV	AL,Byte Ptr LINE	;GET LINE COUNT
+	CMP	AL,MAXLN		;PAGE OVERFLOW?
+	JZ	FFEED			;YES
+LFEED2:
+	MOV	AL,Byte Ptr LINE	;GET LINE  COUNT
+	INC	AL			;BUMP LINE COUNT
+	MOV	Byte Ptr LINE,AL
+	MOV	AL,LF
+	CALL	PBYT
+	JMP	LOOP
+
+;****************************************
+;*					*
+;*		PROCESS <BS>		*
+;*					*
+;****************************************
+
+BSPACE:
+	MOV	AL,BS
+	CALL	PBYT
+	MOV	AL,Byte Ptr COL		;GET COLUMN COUNTER
+	OR	AL,AL			;IF ZERO, DONT DECREMENT IT
+	JNZ	L_4	
+	JMP	LOOP
+L_4:
+	DEC	AL
+	MOV	Byte Ptr COL,AL		;DECREMENT COLUMN COUNT
+	JMP	LOOP
+
+;************************************************
+;*						*
+;*		PROCESS FORM FEED		*
+;*						*
+;************************************************
+
+FFEED:
+	MOV	AL,CR
+	CALL	PBYT			;PRINT CR
+	CALL	TPAGE			;POSITION AT TOP OF PAGE
+	CALL	HEAD			;PRINT HEADING
+	JMP	LOOP			;CONTINUE IN MAIN LOOP
+
+;************************************************
+;*						*
+;*		HEADING PRINT ROUTINE		*
+;*						*
+;************************************************
+
+HEAD:
+	MOV	AL,Byte Ptr NSWT	;NO HEADING SWITCH
+	OR	AL,AL			;IF SET, NO HEADING
+	JNZ	HEADA
+	MOV	BX,(Offset FMSG)	;POINT TO MESSAGE
+	CALL	PSTRNG			;PRINT STRING
+	MOV	BX,TFCB+1		;POINT TO NAME
+	MOV	CH,8			;SIZE OF NAME
+	CALL	PCNT			;PRINT COUNT
+	MOV	AL,SPACE		;PRINT A SPACE
+	CALL	PBYT
+	MOV	BX,TFCB+9		;POINT TO TYPE
+	MOV	CH,03			;SIZE OF TYPE
+	CALL	PCNT			;PRINT COUNT
+	MOV	BX,(Offset PMSG)	;POINT TO MESSAGE
+	CALL	PSTRNG			;PRINT STRING
+	MOV	AL,Byte Ptr PAGEN	;GET PAGE NUMBER
+	INC	AL			;BUMP IT
+	MOV	Byte Ptr PAGEN,AL	;SAVE IT
+	CALL	DEC			;CONVERT TO DECIMAL
+	MOV	BX,(Offset DECWRK)	;POINT TO DEC STRING
+	MOV	CH,3
+	CALL	PCNT			;PRINT PAGE NUMBER
+	MOV	AL,CR			;PRINT CR
+	CALL	PBYT
+	MOV	AL,LF
+	CALL	PBYT			;PRINT LF
+	MOV	AL,LF
+	CALL	PBYT			;AND SECOND
+	MOV	AL,LF
+	CALL	PBYT			;AND A THIRD
+	MOV	AL,3			;SET NUMBER OF LINES PRINTED
+	JMPS	HEADB
+HEADA:
+	XOR	AL,AL
+HEADB:
+	MOV	Byte Ptr LINE,AL	;RESET LINE COUNT
+	XOR	AL,AL			;RESET COLUMN
+	MOV	Byte Ptr COL,AL		;RESET COLUMN
+	RET
+
+;************************************************
+;*						*
+;*		CHARACTER PRINT ROUTINE		*
+;*						*
+;************************************************
+
+PBYT:
+	PUSH	BX
+	PUSH	CX
+	PUSH	AX
+	MOV	DL,AL
+	MOV	CL,ODEV
+	INT	224			;PRINT
+	POP	AX
+	CMP	AL,SPACE		;NON-PRINTING?
+	JB	PBY2			;YES, DONT BUMP COL
+	MOV	BX,(Offset COL)		;INCREMENT COLUMN
+	INC	M
+PBY2:
+	MOV	CL,11			;GET CONSOLE STATUS
+	INT	224
+	CMP	AL,00			;BREAK?
+	JZ	L_5	
+	MOV	CL,0			;YES, DONE
+	MOV	DL,0
+	INT	224
+L_5:
+	POP	CX
+	POP	BX
+	RET
+
+;************************************************
+;*						*
+;*		STRING PRINT ROUTINE		*
+;*						*
+;************************************************
+
+PSTRNG:
+	MOV	AL,M			;GET BYTE
+	CMP	AL,'$'			;STRING END?
+	JNZ	L_6	
+	RET				;YES, DONE
+L_6:
+	CALL	PBYT			;PRINT BYTE
+	INC	BX			;BUMP POINTER
+	JMPS	PSTRNG			;LOOP
+
+;************************************************
+;*						*
+;*	STRING PRINT ROUTINE (COUNT IN B)	*
+;*						*
+;************************************************
+
+PCNT:
+	MOV	AL,M			;GET BYTE
+	CALL	PBYT			;PRINT IT
+	INC	BX			;BUMP POINTER
+	DEC	CH			;DECREMENT COUNT
+	JNZ	PCNT
+	RET
+
+;************************************************
+;*						*
+;*		DECIMAL OUTPUT ROUTINE		*
+;*						*
+;************************************************
+
+DEC:
+	MOV	BX,(Offset DECWRK)
+	MOV	CL,100
+	CALL	DIGIT
+	MOV	CL,10
+	CALL	DIGIT
+	MOV	CL,1
+	CALL	DIGIT
+	RET
+
+DIGIT:
+	MOV	M,'0'
+DI0:
+	SUB	AL,CL
+	JS	DI1
+	INC	M
+	JMPS	DI0
+DI1:
+	ADD	AL,CL
+	LAHF
+	INC	BX
+	SAHF
+	RET
+
+;************************************************
+;*						*
+;*		TOP OF PAGE ROUTINE		*
+;*						*
+;************************************************
+
+TPAGE:
+	MOV	AL,FORMF		;ISSUE FORM FEED
+	CALL	PBYT
+	MOV	CH,NULLS		;NUMBER OF NULLS
+TPAGE2:
+	MOV	AL,FILLER
+	CALL	PBYT
+	DEC	CH			;PRINT N FILLERS
+	JNZ	TPAGE2
+	RET
+
+;************************************************
+;*						*
+;*	   I/O ERROR MESSAGE ROUTINE		*
+;*						*
+;************************************************
+
+ERR:
+	MOV	DX,(Offset ERMSG)
+	MOV	CL,09H			;WRITE MSG
+	INT	224
+	MOV	CL,0
+	MOV	DL,0
+	INT	224
+
+;************************************************
+;*						*
+;*	           F O P E N            	*
+;*	    ROUTINE TO OPEN A DISK FILE		*
+;*	                               		*
+;*	  INPUT:     DX= pointer to FCB 	*
+;*	 OUTPUT:     CARRY=ERROR		*
+;*						*
+;************************************************
+
+FOPEN:
+	MOV	CL,OPEN			;OPEN CODE
+	INT	224			;ISSUE OPEN
+	CMP	AL,0FFH			;ERROR?
+	JZ	FOERR			;YES
+	XOR	AL,AL			;CLEAR CARRY
+	RET
+FOERR:
+	STC
+	RET
+
+;********************************************************
+;*							*
+;*		         G E T B T           		*
+;* 		   ROUTINE TO READ A BYTE		*
+;*							*
+;*		  OUTPUTS:     AL = BYTE		*
+;*		               CARRY = ERROR		*
+;*							*
+;********************************************************
+
+GETBT:
+	MOV	BX,TBUF+128
+	XCHG	BX,DX			;BUFFER END ADDR. IN DE
+	MOV	BX,Word Ptr INPTR	;CURRENT POINTER IN HL
+	CMP	BX,DX			;TEST FOR END OF BUFFER
+	JZ	GETB2			;YES, READ
+GETB1:
+	MOV	AL,M			;GET BYTE
+	INC	BX			;BUMP POINTER
+	INC	Word Ptr INPTR		;BUMP POINTER
+	OR	AL,AL			;RESET CARRY
+	RET
+GETB2:
+	MOV	CL,READ			;READ CODE
+	MOV	DX,TFCB			;FCB ADDRESS
+	INT	224			;ISSUE READ
+	CMP	AL,00			;ERROR?
+	JNZ	IERR			;YES
+	MOV	BX,TBUF			;RESET BUFFER POINTER
+	MOV	Word Ptr INPTR,BX
+	JMPS	GETB1			;CONTINUE
+IERR:
+	STC
+	RET
+
+	EJECT
+
+;************************************************
+;*						*
+;*		   D  A  T  A			*
+;*						*
+;************************************************
+
+L_8	EQU	$
+	DSEG
+	ORG	Offset L_8
+
+	DB	'PRINT.CMD - File PRINT Utility, CP/M-86 Version 1.0, '
+	DB	'(C) Copyright March 1982, '
+	DB	'By Bill Bolton, Software Tools, Sydney, Australia'
+
+NSWT	DB	0			;NO HEADING SWITCH
+CSWT	DB	0			;NO PAGINATION SWITCH
+
+INPTR	DW	TBUF+128		;INPUT POINTER
+DECWRK	DB	'000'			;DECIMAL WORK AREA
+COL	DB	0			;COLUMN COUNTER
+LINE	DB	0			;LINE COUNTER
+PAGEN	DB	0			;PAGE COUNTER
+
+FMSG	DB	CR,'FILE: $'
+PMSG	DB	'                                            PAGE $'
+PERMSG	DB	'PARAMETER ERROR',CR,LF,'$'
+ERMSG	DB	'ERROR',CR,LF,'$'
+
+PARMS	RS	16			;PARAMETER STORAGE AREA
+
+;************************************************
+;*						*
+;*	     PARAMETER PROCESSING TABLE		*
+;*						*
+;*	      ENTRIES ARE 3 BYTES WIDE		*
+;*						*
+;*	      BYTE 1 = PARAMETER BYTE		*
+;*						*
+;*	      BYTES 2,3 = ROUTINE ADDRESS	*
+;*						*
+;************************************************
+
+PTAB	DB	'N'
+	DW	(Offset NPARM)
+	DB	'C'
+	DW	(Offset CPARM)
+PTABS	EQU	((Offset $)-(Offset PTAB))/3
+
+	END
+

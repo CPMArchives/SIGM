@@ -1,0 +1,31 @@
+
+{string value routine}
+
+FUNCTION stringval (VAR str : string255) : integer;
+
+CONST	zero = 48;
+
+VAR	value : real;
+	loc : integer;
+	negative : boolean;
+
+begin
+	loc := 1;
+	negative := false;
+	value := 0.0;
+	for loc := 1 to length(str) do
+		if (str[loc] >= '0') and (str[loc] <= '9') then
+			value := (10.0 * value) + ord(str[loc]) - zero
+			else if (str[loc] = '-') then
+				negative := true;
+	if (negative = true) then value := -value;
+	if (value < maxint) and (value > -maxint) then
+		stringval := trunc(value)
+	else
+		begin
+		writeln (' *** Value of string exceeds integer range ***');
+		stringval := 0
+		end
+end;
+
+

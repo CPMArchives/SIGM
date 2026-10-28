@@ -1,0 +1,895 @@
+.page
+.sbttl /The ZAPPLE-CORE Monitor/
+BEGIN:	sei
+	ldx	#0FF
+	txs
+	ldy	#0
+AHEAD:
+IOINIC:	jsr	IOINIT
+ERROR:	ldx	#0FF
+	txs
+	lda	#"*"
+	jsr	CO
+;
+START:	nop
+	lda	#START>8
+	pha
+	lda	#START
+	pha
+	jsr	NXTLIN
+	lda	#"."
+	jsr	CO
+STAR0:	jsr	TI
+	beq	STAR0
+	sbc	#"@"-1
+	bmi	STAR0
+	cmp	#"Z"-"@"+1
+	bcs	..rts
+	asla
+	tax
+	lda	TBL+1,X
+	pha
+	lda	TBL,X
+	pha
+	ldy	#0
+..rts:	rts
+;
+;;
+ATSUM:	jsr	EXPR2
+	sty	ptrC
+..atsu:	clc
+	lda	ptrC
+	adc	@ptrHL,Y
+	sta	ptrC
+	jsr	HILO
+	bcc	..atsu
+	lda	ptrC
+	jmp	LBYTE
+;
+;;
+GOTO:	sty	saveBP
+	jsr	EXPR2
+	lda	ptrD
+	ora	ptrE
+	beq	..goto
+	lda	@ptrDE,Y
+	sta	saveBP
+..goto:	jmp	@ptrHL
+;
+;;
+MOVE:	jsr	EXPR3
+..mov0:	lda	@ptrHL,Y
+	sta	@ptrBC,Y
+	jsr	INXBC
+	jsr	HILOX
+	bcc	..mov0
+;
+;;
+ZSIZE:	jsr	BLK
+	jsr	MEMCK
+SIZEHL:	stx	ptrL
+	sta	ptrH
+	jmp	HLSP
+;
+;;
+PUTA:	jsr	EXPR1
+	jsr	NXTLIN
+..put1:	jsr	CI
+	and	#7F
+	cmp	#3	;ctrl C
+	beq	LFADR
+	cmp	#7F
+	beq	..put3
+	sta	@ptrHL,Y
+	jsr	INXHL
+..put2:	jsr	CO
+	jmp	..put1
+;
+..put3:	jsr	DCXH
+	lda	@ptrHL,Y
+	jmp	..put2
+;
+;;
+LBYTBK:	jsr	LBYTE
+	jmp	BLK
+;
+LFADR:	jsr	NXTLIN
+HLSP:	jsr	LADR
+BLK:	lda	#" "
+	bne	OUTCO	;jump
+;
+PRBLNK:	ldx	#3
+PRBL2:	lda	#" "
+PRBL3:	jsr	CO
+	dex
+	bne	PRBL2
+	rts
+;;
+EXPR3:	jsr	EXPR2
+	jsr	EXPR0
+	stx	ptrC
+	sta	ptrB
+;
+;fall into NXTLIN
+;
+NXTLIN:	lda	#0D
+	jsr	CO
+	lda	#0A
+	jsr	CO
+	jsr	CSTS
+	bne	CCHK
+CRTS:	rts
+;
+CCHK:	jsr	CI
+	and	#7F
+	cmp	#3
+	bne	CRTS
+;
+HEXN:	jsr	EXPR2
+	clc
+	lda	ptrL
+	adc	ptrE
+	tax
+	lda	ptrH
+	adc	ptrD
+	jsr	SIZEHL
+	sec
+	lda	ptrL
+	sbc	ptrE
+	tax
+	lda	ptrH
+	sbc	ptrD
+LADRHL:	stx	ptrL
+	sta	ptrH
+;
+;fall into LADR
+;
+LADR:	lda	ptrH
+	jsr	LBYTE
+	lda	ptrL
+LBYTE:	pha
+	lsra
+	lsra
+	lsra
+	lsra
+	jsr	LBYTE2
+	pla
+LBYTE2:	jsr	CONV
+OUTCO:	jmp	CO
+;
+CONV:	and	#0F
+	ora	#"0"
+	cmp	#3A
+	bcc	..lb2
+	adc	#6
+..lb2:	rts
+;
+;;
+SHOWIT:	and	#7F
+	cmp	#" "
+	bcs	..typ2
+	lda	#"."
+..typ2:	jsr	CO
+;
+;fall into HILOX
+;
+HILOX:	jsr	HILO
+	bcc	..rts
+	pla
+	pla
+..rts:	rts
+;
+HILO:	jsr	INXHL
+	lda	ptrH
+	ora	ptrL
+	sec
+	beq	..rts
+	lda	ptrE
+	sbc	ptrL
+	lda	ptrD
+	sbc	ptrH
+	bcs	..clc
+	sec
+..rts:	rts
+..clc:	clc
+	rts
+;
+;;
+;
+EXPR1:	jsr	EXPR0
+	stx	ptrL
+	sta	ptrH
+	rts
+;
+;;
+EXPR2:
+EXPR:	jsr	EXPR1
+	jsr	EXPR0
+	stx	ptrE
+	sta	ptrD
+	rts
+;
+EXPR0:	sty	regL
+	sty	regH
+EXPRx:	jsr	TI
+EXPRA:	sta	regB
+	jsr	NIBBLE
+	bcs	EXPRC
+	ldx	#4
+..loop:
+	pha	;dad	H
+	clc
+	lda	regL
+	adc	regL
+	sta	regL
+	lda	regH
+	adc	regH
+	sta	regH
+	pla
+;
+	dex
+	bne	..loop
+	ora	regL
+	sta	regL
+	jmp	EXPRx
+;
+EXPRC:	lda	regB
+	jsr	QCHK
+	bcs	..exit
+	jmp	ERROR
+..exit:	ldx	regL
+	lda	regH
+	rts
+;
+;;
+COPCK:	lda	#"-"
+	jsr	CO
+PCHK:	jsr	TI
+QCHK:	cmp	#" "
+	beq	..rts
+	cmp	#","
+	beq	..rts
+	cmp	#0D
+	sec
+	beq	..rts
+..clc:	clc
+..rts:	rts
+;
+;;
+TI:	jsr	CI
+	and	#7F
+	beq	..rts
+	cmp	#0D
+	beq	..rts
+	jsr	CO
+	cmp	#"A"-1
+	bcc	..rts
+	cmp	#"z"+1
+	bcs	..rts
+	and	#5F
+..rts:	rts
+;
+;;
+NIBBLE:	sec
+	sbc	#"0"
+	bcc	..sec
+	cmp	#"G"-"0"
+	bcs	..sec
+	cmp	#0A
+	bcc	..rts
+	sbc	#"A"-"9"-1
+	cmp	#0A
+	bcc	..sec
+..clc:	clc
+..rts:	rts
+..sec:	sec
+	rts
+;
+SUBS:	jsr	EXPR1
+..sub0:	lda	@ptrHL,Y
+	jsr	LBYTE
+	jsr	COPCK
+	cmp	#" "
+	beq	..sub1
+	cmp	#","
+	beq	..sub1
+	cmp	#0D
+	beq	..rts
+	cmp	#7F
+	beq	..sub2
+	jsr	exprA
+	lda	regL
+	sta	@ptrHL,Y
+	lda	regB
+	cmp	#0D
+	beq	..rts
+..sub1:	jsr	INXHL
+..sub3:	lda	ptrL
+	and	#7
+	bne	..sub0
+	jsr	LFADR
+	jmp	..sub0
+..sub2:	jsr	DCXH
+	jmp	..sub3
+;
+..rts:	rts
+;
+;;
+FILL:	jsr	EXPR3
+..fil0:	lda	ptrC
+	sta	@ptrHL,Y
+	jsr	HILO
+	bcc	..fil0
+	jmp	ERROR
+;
+;;
+VERIFY:	jsr	EXPR3
+..ver1:	lda	@ptrBC,Y
+	cmp	@ptrHL,Y
+	beq	..ver2
+	jsr	VERR
+	jsr	BLK
+	jsr	LADR
+	jsr	NXTLIN
+..ver2:	jsr	INXBC
+	jsr	HILOX
+	bcc	..ver1
+;
+VERR:	pha
+	jsr	HLSP
+	lda	@ptrHL,Y
+	jsr	LBYTBK
+	pla
+	jmp	LBYTE
+;
+;;
+DISPLA:	jsr	EXPR2
+DISP0:	jsr	LFADR
+DISP1:	jsr	BLK
+	lda	@ptrHL,Y
+	jsr	LBYTE
+	jsr	HILOX
+	lda	ptrL
+	and	#DISPM
+	bne	DISP1
+	beq	DISP0
+;
+;;
+TYPE:	jsr	EXPR2
+TYPE0:	jsr	LFADR
+	ldx	#TYPEW
+TYPE1:	lda	@ptrHL,Y
+	jsr	SHOWIT
+	dex
+	bne	TYPE1
+	beq	TYPE0
+;
+;;
+INXBC:	inc	ptrC
+	bne	..rts
+	inc	ptrB
+..rts:	rts
+;
+INXHL:	inc	ptrL
+	bne	..rts
+	inc	ptrH
+..rts:	rts
+;
+DCXH:	pha
+	lda	ptrL
+	bne	..neq
+	dec	ptrH
+..neq:	dec	ptrL
+	pla
+	rts
+;
+;;
+.page
+.sbttl /The Trace Function/
+;The Trace Function
+CHTBL:	.ascii	"CZID81VN"
+REGTBL:	.ascii	"AXYS"
+;
+IRQ:	sta	ACC
+	pla
+	pha
+	asla
+	asla
+	asla
+	bmi	BREAK
+	jmp	@IRQLOC
+;
+BREAK:	PLP
+	jsr	SAV1
+	pla
+	sta	pcLO
+	pla
+	sta	pcHI
+	jmp	@BRKV
+OLDBRK:
+XBRK:	jsr	INSDS1
+	jsr	DSPREG
+	jmp	START
+;
+;;
+BRANCH:	clc
+	ldy	#1
+	lda	@pcLO,Y
+	jsr	PCADJ3
+	sta	pcLO
+	tya
+	sec
+	bcs	PCINC2
+NBRNCH:	jsr	SAVE
+	sec
+	bcs	PCINC3
+;
+;;
+SCRN2:	bcc	..skz
+	lsra
+	lsra
+	lsra
+	lsra
+..skz:	and	#0F
+	rts
+;
+;;
+EXECUT:	dec	YSAV
+;
+NEXTIN:	jsr	EXPR1
+	ldx	#2
+	jsr	A1PC
+STEP:	jsr	INSDSP
+	pla
+	sta	RTNL
+	pla
+	sta	RTNH
+	ldx	#8
+XQINIT:	lda	INITBL-1,X
+	sta	XQT,X
+	dex
+	bne	XQINIT
+	lda	@pcLO,X
+	beq	XBRK
+	ldy	LENGTH
+	cmp	#20
+	beq	XJSR
+	cmp	#60
+	beq	XRTS
+	cmp	#4C
+	beq	XJMP
+	cmp	#6C
+	beq	XJMPAT
+	cmp	#40
+	beq	XRTI
+	and	#1F
+	eor	#14
+	cmp	#4
+	beq	XQ2
+XQ1:	lda	@pcLO,Y
+XQ2:	.byte	99
+	.byte	XQT
+	.byte	0	;	sta	pgz,Y
+	dey
+	bpl	XQ1
+	jsr	RSTORE
+	jmp	XQTNZ
+;
+;
+XRTI:	clc
+	pla
+	sta	STATUS
+XRTS:	pla
+	sta	pcLO
+	pla
+PCINC2:	sta	pcHI
+PCINC3:	lda	LENGTH
+	jsr	PCADJ3
+	sty	pcHI
+	clc
+	bcc	NEWPCL
+;
+XJSR:	clc
+	jsr	PCADJ2
+	tax
+	tya
+	pha
+	txa
+	pha
+	ldy	#2
+XJMP:	clc
+XJMPAT:	lda	@pcLO,Y
+	tax
+	dey
+	lda	@pcLO,Y
+	stx	pcHI
+NEWPCL:	sta	pcLO
+	bcs	XJMP
+RTNJMP:	lda	RTNH
+	pha
+	lda	RTNL
+	pha
+REGDSP:	jsr	NXTLIN
+DSPREG:
+	jsr	HLSP
+	lda	STATUS
+;
+	ldx	#8
+..shf:	rola
+	pha
+	bcc	..prz
+	lda	CHTBL-1,X
+	jsr	CO
+	clv
+	bvc	..pla
+..prz:	lda	#"0"
+	jsr	CO
+..pla:	pla
+	dex
+	bne	..shf
+;
+..prl:	jsr	BLK
+	lda	REGTBL,X
+	jsr	CO
+	lda	#"="
+	jsr	CO
+	lda	ACC,X
+	jsr	LBYTE
+	inx
+	cpx	#4
+	bne	..prl
+	jmp	NXTLIN
+;
+;
+;;
+RESET:	cld
+ NEWMON:	lda	SOFTEV+1
+	eor	#0A5
+	cmp	PWREDUP
+	bne	PWRUP
+	lda	SOFTEV
+	bne	NOFIX
+	lda	#0E0
+	cmp	SOFTEV+1
+	bne	NOFIX
+FIXSEV:	ldy	#3
+	sty	SOFTEV
+;	jmp	SAM76
+NOFIX:	jmp	@SOFTEV
+;
+;;
+PWRUP:	lda	SOFTEV+1
+	eor	#0A5
+	sta	PWREDUP
+	ldx	#5
+SETPLP:	lda	PWRCON-1,X
+	STA	BRKV-1,X
+	dex
+	bne	SETPLP
+	jmp	FIXSEV
+;
+;;
+PWRCON:	 .word	OLDBRK
+	.byte	0,0E0,45
+DISKID:	.byte	20,0FF,0,0FF,03,0FF,3C
+;
+;;
+INITBL:	nop
+	nop
+	jmp	NBRNCH
+	jmp	BRANCH
+RTBL:	.byte	0C1
+	.byte	0D8
+	.byte	0D9
+	.byte	0D0
+	.byte	0D3
+;
+;;
+.page
+.sbttl	/Disassembler/
+;
+.ifdef %SEG2,[
+.loc	0F800]
+CODEL:	jsr	EXPR1
+CODE1:	lda	#LISTHT
+CODE2:	pha
+	jsr	INSDSP
+	jsr	PCADJ
+	sta	pcLO
+	sty	pcHI
+	pla
+	sec
+	sbc	#1
+	bne	CODE2
+	jsr	TI
+	cmp	#" "
+	beq	CODE1
+	rts
+;
+FMT1:
+.byte	4,20,54,30,0D
+.byte	80,4,90,3,22
+.byte	54,33,0D,80,4
+.byte	90,4,20,54,33
+.byte	0D,80,4,90,4
+.byte	20,54,3B,0D,80
+.byte	4,90,0,22,44
+.byte	33,0D,0C8,44,0
+.byte	11,22,44,33,0D
+.byte	0C8,44,0A9,1,22
+.byte	44,33,0D,80,4
+.byte	90,1,22,44,33
+.byte	0D,80,4,90
+.byte	26,31,87,9A
+;
+FMT2:
+.byte	0	;err
+.byte	21	;imm
+.byte	81	;Zpage
+.byte	82	;abs
+.byte	0	;implied
+.byte	0	;accumulator
+.byte	59	;@zpag,X
+.byte	4D	;@zpag,Y
+.byte	91	;zpag,X
+.byte	92	;abs,X
+.byte	86	;abs,Y
+.byte	4A	;@abs
+.byte	85	;zpag,Y
+.byte	9D	;relative
+;
+;;
+CHAR1:	.ascii	",),#($"
+CHAR2:	.byte	"Y",0,"X","$","$",0
+;
+;;
+MNEML:
+.byte	1C,8A,1C,23,5D,8B
+.byte	1B,0A1,9D,8A,1D,23
+.byte	9D,8B,1D,0A1,0,29
+.byte	19,0AE,69,0A8,19,23
+.byte	24,53,1B,23,24,53,19,0A1	;A format
+.byte	0,1A,5B,5B,0A5,69,24,24		;B format
+.byte	0AE,0AE,0A8,0AD,29,0,7C,0	;C format
+.byte	15,9C,6D,9C,0A5,69,29,53	;D format
+.byte	84,13,34,11,0A5,69,23,0A0	;E format
+;
+;
+MNEMR:
+.byte	0D8,62,5A,48,26,62
+.byte	94,88,54,44,0C8,54
+.byte	68,44,0E8,94,0,0B4
+.byte	8,084,74,0B4,28,6E
+.byte	74,0F4,0CC,4A,72,0F2,0A4,8A	;A format
+.byte	0,0AA,0A2,0A2,74,74,74,72	;B format
+.byte	44,68,0B2,32,0B2,0,22,0		;C format
+.byte	1A,1A,26,26,72,72,88,0C8	;D format
+.byte	0C4,0CA,26,48,44,44,0A2,0C8	;E format
+;
+;;
+INSDS1:	jsr	NXTLIN
+	ldx	pcLO
+	ldy	pcHI
+	jsr	PRNTYX
+	jsr	PRBLNK
+	lda	@pcLO,X
+INSDS2:	tay
+	lsra
+	bcc	..even
+	rora
+	bcs	..erb
+	cmp	#0A2
+	beq	..erb
+	and	#87
+..even:	lsra
+	tax
+	lda	FMT1,X
+	jsr	SCRN2
+	bne	GETFMT
+..erb:	ldy	#80
+	lda	#0
+GETFMT:	tax
+	lda	FMT2,X
+	sta	FORMAT
+	and	#03
+	sta	LENGTH
+	tya
+	and	#8F
+	tax
+	tya
+	ldy	#3
+	cpx	#8A
+	beq	..dx3
+..dx1:	lsra
+	bcc	..dx3
+	lsra
+..dx2:	lsra
+	ora	#20
+	dey
+	bne	..dx2
+	iny
+..dx3:	dey
+	bne	..dx1
+	rts
+;
+;;
+INSDSP:	jsr	INSDS1
+	pha
+PRNTOP:	lda	@pcLO,Y
+	jsr	LBYTE
+	ldx	#1
+..tbl:	jsr	PRBL2
+	cpy	LENGTH
+	iny
+	bcc	PRNTOP
+	ldx	#3
+	cpy	#4
+	bcc	..tbl
+	pla
+	tay
+	lda	MNEML,Y
+	sta	LMNEM
+	lda	MNEMR,Y
+	sta	RMNEM
+..nm1:	lda	#0
+	ldy	#5
+..nm2:	asl	RMNEM
+	rol	LMNEM
+	rola
+	dey
+	bne	..nm2
+	adc	#0BF
+	jsr	CO
+	dex
+	bne	..nm1
+	jsr	PRBLNK
+	ldy	LENGTH
+	ldx	#6
+ADR1:	cpx	#3
+	beq	ADR5
+ADR2:	asl	FORMAT
+	bcc	..adr3
+	lda	CHAR1-1,X
+	jsr	CO
+	lda	CHAR2-1,X
+	beq	..adr3
+	jsr	CO
+..adr3:	dex
+	bne	ADR1
+	rts
+;
+ADR4:	dey
+	bmi	ADR2
+	jsr	LBYTE
+ADR5:	lda	FORMAT
+	cmp	#0E8
+	lda	@pcLO,Y
+	bcc	ADR4
+RELADR:	jsr	PCADJ3
+	tax
+	inx
+	bne	PRNTYX
+	iny
+PRNTYX:	tya
+PRNTAX:	jsr	LBYTE
+PRNTX:	TXA
+	jmp	LBYTE
+;
+;;
+PCADJ:	sec
+PCADJ2:	lda	LENGTH
+PCADJ3:	ldy	pcHI
+	tax
+	bpl	..adj4
+	dey
+..adj4:	adc	pcLO
+	bcc	..rts
+	iny
+..rts:	rts
+;
+;
+;;
+RSTORE:	lda	STATUS
+	pha
+	lda	ACC
+RESTR1:	ldx	Xreg
+	ldy	Yreg
+	plp
+	rts
+;
+SAVE:	sta	ACC
+SAV1:	stx	Xreg
+	sty	Yreg
+	php
+	pla
+	sta	STATUS
+	tsx
+	stx	SPNT
+	cld
+	rts
+;
+;;
+A1PC:	txa
+	beq	..rts
+..pclp:	lda	XQT,X
+	sta	pcLO,X
+	dex
+	bpl	..pclp
+..rts:	rts
+;
+;;
+.ifndef %BITS,[
+.XLIST]
+;
+.ifdef %BITS,[
+BITS:	ldx	#8
+..bit2:	rola
+	pha
+	lda	#"0"
+	bcc	..clr
+	adc	#1
+..clr:	jsr	CO
+	pla
+	dex
+	bne	..bit2
+	rts]
+;
+;;
+.ifndef %XAM,[
+RETRP:	nop
+	nop
+	nop
+XAMIN:	php
+	jmp	REGDSP]
+;
+;;
+.ifdef %XAM,[
+.page
+.sbttl /Break Point Routine/
+;Reference Dr. Dobb's V2 N6 P26 - Willi Kusche
+;
+RETRP:	nop
+	nop
+	nop
+XAMIN:	php
+	jsr	SAVE
+	lda	#0
+	sta	saveBP
+	beq	BRKEN1
+BRKENT:	jsr	SAVE
+BRKEN1:	pla
+	sta	pcLO
+	pla
+	sta	pcHI
+	jsr	BLK
+	lda	saveBP
+	beq	..bypa
+	lda	pcLO
+	bne	..alt1
+	dec	pcHI
+..alt1:	dec	pcLO
+	bne	..alt2
+	dec	pcHI
+..alt2:	dec	pcLO
+..bypa:
+	jsr	DSPREG
+;
+	ldx	#0
+	lda	saveBP
+	beq	..skip
+	sta	@pcLO,X
+	stx	saveBP
+	ldx	SPNT
+	txs
+	lda	pcHI
+	pha
+	lda	pcLO
+	pha
+	jsr	RSTORE
+	rts
+;
+..skip:	jmp	START]
+;
+;;
+.list
+                                                                                                                            

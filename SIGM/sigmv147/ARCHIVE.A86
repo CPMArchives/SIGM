@@ -1,0 +1,845 @@
+;********************************************************
+;*							*
+;*	CP/M-86 ARCHIVE.A86 File Backup Utility		*
+;*							*
+;*	See the August 1982 issue of LifeLines		*
+;*	for full documentation on this program.		*
+;*							*
+;********************************************************
+;
+;	Originally written by Kelly Smith, June 6, 1982
+;
+;	Published in Liflines/The Software Magazine
+;	August 1982
+;
+;VERSION LIST, most recent version first
+;
+;24/Dec/82 Changed msgout routine to strip MSB of characters to
+;	   to be displayed, as some 8086 machines accept MSB of
+;	   char to display special or graphics characters (i.e.
+;	   NEC APC. Further changes to messages.
+;	   Version 1.1 Bill Bolton
+;
+;13/Aug/82 Numerous keying errors corrected, VERS and REV equates
+;	   added, header reformatted, some messages reformatted
+;	   and reworded. XLT86ed from CP/M-80 version. Bill Bolton
+;
+;09/Aug/82 Keyed in from Lifelines. MSGOUT subroutine added.
+;	   Steve Engel
+; 
+;06/Jun/82 Orginal version. Kelly Smith
+;
+	TITLE	'ARCHIVE Version 1.0'
+;
+M	EQU	Byte Ptr 0[BX]		;Xlt86's derived 'M'
+;
+vers	EQU	11			;Version number
+rev	EQU	'A'			;Revision number
+;
+true	EQU	-1
+false	EQU	not true
+mpm	EQU	false			;conditional for mpm
+;
+bdos	EQU	5			;cpm entry point
+exit	EQU	0			;cpm exit point
+dfcb	EQU	05ch			;cpm default fcb
+fcbext	EQU	dfcb+12			;fcb extent byte
+fcbrno	EQU	dfcb+32			;fcb record number byte
+dbuff	EQU	80h			;default buffer
+;
+coninp	EQU	1			;console input buffer
+pchar	EQU	2			;print character
+dircon	EQU	6			;direct console i/o
+pmessg	EQU	9			;print message
+constat	EQU	11			;console status
+version	EQU	12			;return cp/m version number
+rsetdsk	EQU	13			;reset disk system
+seldsk	EQU	14			;select disk
+open	EQU	15			;open file
+close	EQU	16			;close file
+srchfst	EQU	17			;search first
+srchnxt	EQU	18			;search next
+delete	EQU	19			;delete file
+read	EQU	20			;read record
+write	EQU	21			;write record
+make	EQU	22			;make file
+currdsk	EQU	25			;return current disk
+stdma	EQU	26			;set dma address
+attrib	EQU	30			;set file attribute
+;
+tab	EQU	9
+lf	EQU	0ah
+cr	EQU	0dh
+;
+	ORG	0100h
+;
+	JMPS	over
+;
+	DB	cr,lf,'Archive Version '
+	DB	vers/10 +'0','.',vers mod 10 +'0'
+	DB	rev
+	DB	', Kelly Smith'
+	DB	cr,lf,'Z'-40h
+;
+;get current disk and save it
+;
+over:
+	MOV	CL,currdsk		;get function
+	INT	224
+	MOV	Byte Ptr logdsk,AL	;save as logged disk
+;
+;reset disk system is case someone swapped a disk
+;
+	MOV	CL,rsetdsk		;get the function
+	INT	224
+;
+;now return to original logged disk
+;
+	MOV	AL,Byte Ptr logdsk	;get logged disk
+	MOV	DL,AL
+	MOV	CL,seldsk
+	INT	224
+;
+;announcing, the new improved ARCHIVE.
+;
+	MOV	DX,(Offset signon)
+	CALL	msgout
+;
+;check for proper environment, we only live for CP/M-86 1.0 or later
+;
+	MOV	CL,version
+	INT	224
+	CMP	AL,22h			;correct version?
+	MOV	DX,(Offset bad@ver@num)
+	JZ	L_3			;yes
+	JMP	arcexit			;no, display error message
+L_3:
+;
+;
+;check if filename specified, abort if not
+;
+	MOV	AL,Byte Ptr .dfcb+1
+	CMP	AL,' '
+	JNZ	gotname			;got a name ?
+	MOV	DX,(Offset no@file@nam)	;inform user no filename
+	CALL	msgout
+	MOV	DX,(Offset opts)	;tell 'em wot to do
+	JMPS	arcexit			;bail out now-no name
+;
+;got a name,now check to see which (if any) disk specified
+;
+gotname:
+	MOV	AL,Byte Ptr .dfcb	;check for specific drive
+	DEC	AL
+	MOV	DL,AL			;set up for select disk call
+	MOV	CL,seldsk
+	INC	AL			;if no drive spec, skip call
+	MOV	Byte Ptr src@dsk@num,AL	;save drive specifier for later
+	JZ	L_4	
+	INT	224
+L_4:
+	XOR	AL,AL			;now zap out drive specifier
+	MOV	Byte Ptr .dfcb,AL
+	MOV	AL,'?'			;force extent number wild
+	MOV	Byte Ptr .dfcb+12,AL
+	MOV	AL,Byte Ptr .dfcb+17	;get option
+	MOV	Byte Ptr option,AL	;and save for later
+	CMP	AL,'B'			;backup ?
+	JZ	okopt
+	CMP	AL,'S'			;set archive
+	JZ	okopt
+	CMP	AL,'R'			;reset archive
+	JZ	okopt
+	CMP	AL,'D'			;display archive
+	JZ	okopt
+;
+badot:
+	MOV	DX,(Offset ilgopt)	;point to bad option
+arcexit:
+	CALL	msgout
+	MOV	CL,0
+	MOV	DL,0
+	INT	224
+;
+;findout now, if operator is for backup or general lobotomy
+;
+okopt:
+	MOV	AL,Byte Ptr option	;get option back
+	CMP	AL,'B'
+	JNZ	arc@s@r			;not backup, something else
+dest:
+	MOV	DX,(Offset req@dest)	;ask for destination
+	CALL	msgout
+	MOV	CL,coninp		;get console input
+	INT	224
+	AND	AL,05fh			;force upper case
+	SBB	AL,'A'			;force binary digit
+	CMP	AL,16			;disk > 16
+	JNB	dest			;must satisfy ourselves
+	MOV	BX,(Offset logdsk)	;is this jerk backing up to
+					;same disk ?
+	AND	AL,0fh			;strip high nibble
+	CMP	AL,M
+	LAHF				;save flags
+	XCHG	AL,AH
+	PUSH	AX
+	XCHG	AL,AH
+	INC	AL			;readjust disk number
+	MOV	Byte Ptr dest@dsk@num,AL
+	POP	AX
+	XCHG	AL,AH
+	SAHF
+	JZ	dsksame			;if same, tell em' so now
+	INC	BX			;bump pointer to dest disk
+	MOV	AL,M			;get disk number
+	INC	BX			;bump pointer to source disk
+	CMP	AL,M
+	JZ	L_5	
+	JMP	backup
+L_5:
+dsksame:
+	MOV	DX,(Offset same@dsk)	;point to same disk messg
+	CALL	msgout
+	JMPS	dest
+;
+;ready for directory write operations now..do archive set/reset
+;
+arc@s@r:
+	CALL	crlf
+	XOR	AL,AL			;zero file count
+	MOV	Byte Ptr filcnt,AL
+	MOV	DX,dfcb
+	MOV	CL,srchfst
+	INT	224
+	INC	AL			;search successfull ?
+	JNZ	gotfile			;yes, proceed
+	MOV	DX,(Offset no@file@fnd)	;point to error message
+	JMP	arcexit			;print error and exit
+;
+gotfile:
+	DEC	AL			;for 'inr' above
+	ROR	AL,1
+	ROR	AL,1
+	ROR	AL,1
+	AND	AL,60h
+	MOV	BX,dbuff		;point to base of buffer
+	MOV	CL,AL
+	MOV	CH,0
+	LAHF				;index file by offset
+	ADD	BX,CX
+	RCR	SI,1
+	SAHF
+	RCL	SI,1
+	PUSH	BX			;save dir entry
+	MOV	CX,(Offset filetable)	;point to base of file table
+	CALL	filepoint		;get table pointer into HL
+	XCHG	BX,DX			;put it in DE instead
+	MOV	AL,Byte Ptr filcnt	;keep track of number of files
+	INC	AL
+	MOV	Byte Ptr filcnt,AL
+	POP	BX			;HL points to dir entry
+	MOV	CH,32
+	CALL	blkmov
+getnext:
+	MOV	CL,srchnxt		;search for next
+	MOV	DX,dfcb
+	INT	224
+	INC	AL			;returns 0ffh if at end of
+					;search
+	JNZ	gotfile			;got another-go save it
+;
+;end of directory encountered - process now
+;
+tagfile:
+	CALL	abort			;check for user abort
+	MOV	CX,(Offset filetable)-32 ;allow for file count +1
+	CALL	filepoint
+	PUSH	BX
+	MOV	DX,dfcb			;copy name to dfcb
+	MOV	CH,32
+	CALL	blkmov			;move it
+	XOR	AL,AL
+	MOV	Byte Ptr .dfcb,AL	;clear drive number
+	MOV	DX,-20			;point back to extent field
+	LAHF
+	ADD	BX,DX
+	RCR	SI,1
+	SAHF
+	RCL	SI,1
+	MOV	M,'$'			;tag end of print here
+	POP	DX			;get back pointer to start
+	LAHF				;bump forward to name
+	INC	DX
+	SAHF
+	CALL	msgout
+	MOV	DL,' '			;space between name and ext
+	MOV	CL,pchar
+	INT	224
+	MOV	AL,Byte Ptr .dfcb+12	;get extent number
+	LAHF				;save it
+	XCHG	AL,AH
+	PUSH	AX
+	XCHG	AL,AH
+	ADD	AL,'0'			;make ASCII
+	MOV	DL,AL
+	MOV	CL,pchar
+	POP	AX
+	INT	224
+	MOV	AL,Byte Ptr option	;get otion back
+	CMP	AL,'D'			;display only ?
+	JZ	nextfile
+	ROR	AL,1			;bit 7=0 for B,R,D and 1 for S
+	AND	AL,80h
+	MOV	CH,AL			;save mask
+	MOV	DX,dfcb+11		;point to t3
+	MOV	SI,DX			;get it
+	MOV	AL,[SI]
+	AND	AL,07fh			;and strip it
+	OR	AL,CH			;set if set option
+	MOV	SI,DX			;and put it back
+	MOV	[SI],AL
+	MOV	DX,dfcb			;point to start of fcb
+	XOR	AL,AL			;zap out drive field
+	MOV	SI,DX
+	MOV	[SI],AL
+	MOV	CL,attrib		;do set file attribute
+	INT	224
+;
+nextfile:
+	MOV	AL,Byte Ptr .dfcb+11	;get t3
+	ROL	AL,1			;isolate t3
+	AND	AL,1
+	ADD	AL,'R'			;make 'R' or 'S'
+	MOV	Byte Ptr donmsg+1,AL
+	MOV	DX,(Offset donmsg)
+	CALL	msgout			;print completion message
+;	call	crlf
+	MOV	BX,(Offset filcnt)	;point to file counter
+	DEC	M			;count it down
+	JNZ	L_6	
+	MOV	CL,0			;exit if done
+	MOV	DL,0
+	INT	224
+L_6:
+	JMP	tagfile			;tag next file
+;
+;backup routine - does mutiple file search and copy
+;
+backup:
+	CALL	crlf
+noback:
+	CALL	abort			;check for abort
+	CALL	mfname			;set up multi-file search
+	JNB	movname			;file found if no carry
+	MOV	AL,Byte Ptr mfflg1	;check if anything ever found..
+	OR	AL,AL
+	MOV	DX,(Offset bakup@done)	;set-up backup done message
+	JNZ	nofile			;if not-indicate
+	MOV	AL,Byte Ptr got@arc	;check archive found flag
+	OR	AL,AL
+	JZ	L_7	
+	JMP	arcexit			;if not zero, must have found 1
+L_7:
+	MOV	DX,(Offset narcs)	;indicate no arcive files found
+	JMP	arcexit			;print message and exit
+;
+nofile:
+	MOV	DX,(Offset no@file@fnd)	;oops, file not found
+	JMP	arcexit
+;
+movname:
+	MOV	BX,dfcb+11		;point to t3 in fcb
+	MOV	AL,M			;get it
+	ROL	AL,1			;archive bit set
+	JB	noback			;if so, no backup required
+	ROR	AL,1			;adjust back to normal
+	MOV	Byte Ptr got@arc,AL	;set archive file found flag
+	OR	AL,080h			;set archived flag
+	MOV	M,AL			;put it back
+	PUSH	BX			;save pointer
+	MOV	DX,dfcb			;point fcb
+	MOV	CL,attrib		;make a set attributes
+	INT	224
+	POP	BX			;restore pointer
+	DEC	BX			;point to t2 in fcb
+	MOV	AL,M			;get it
+	AND	AL,07fh			;strip off t2
+	MOV	M,AL			;put it back
+	DEC	BX			;point to t1 in filename
+	MOV	AL,M			;get t1 byte
+	AND	AL,07fh			;strip it
+	MOV	M,AL			;save it
+	MOV	BX,dfcb+1		;point to filename for move
+	MOV	DX,(Offset fname)	;display dest for filename
+	MOV	CH,8			;setup 8 for mve
+	CALL	blkmov			;and move it
+	MOV	DX,(Offset fname)+9	;point to ext
+	MOV	CH,3
+	CALL	blkmov
+dspname:
+	MOV	DX,(Offset fname)	;display name and filetype
+	CALL	msgout
+;
+;save first fcb for user later as destination filename
+;
+	MOV	CH,11			;number of chars to move
+	MOV	BX,dfcb+1		;from here
+	MOV	DX,(Offset destfcb)+1	;to here
+	CALL	blkmov			;move em'
+;
+;open the source file
+;
+	MOV	AL,Byte Ptr logdsk	;select the disk
+	MOV	DL,AL
+	MOV	CL,seldsk
+	INT	224
+	MOV	DX,dfcb
+	MOV	CL,open			;make an open call
+	INT	224
+	CMP	AL,0ffh			;file not found ?
+	JNZ	openok
+	MOV	DX,(Offset src@open@err)	;oops, source file open error
+	JMP	arcexit
+;
+;open the destination file
+;
+openok:
+	MOV	DX,(Offset destfcb)	;point to destination fcb
+	MOV	AL,Byte Ptr dest@dsk@num	;get dest disk #
+	MOV	SI,DX			;put it in the fcb
+	MOV	[SI],AL
+	MOV	CL,delete		;erase any old file
+	INT	224
+	MOV	DX,(Offset destfcb)
+	MOV	CL,make
+	INT	224			;make the new one
+	CMP	AL,0ffh			;all ok ?
+	JNZ	L_8	
+	JMP	full
+L_8:
+;
+;read source file to buffer, write to destination file
+;
+copy:
+	MOV	BX,((Offset table@end)-(Offset filetable))/128	;save buffer size
+	MOV	Word Ptr bufmax,BX
+	XOR	AL,AL			;clear eof flag
+	MOV	Byte Ptr eof@flg,AL
+copy1:
+	CALL	abort			;check for user abort
+	MOV	BX,0			;set current counter to 0
+	MOV	Word Ptr bufcnt,BX
+	MOV	BX,(Offset filetable)	;set buffer start pointer
+	MOV	Word Ptr bufpnt,BX
+;
+;file source reading loop to read all of buffer full or stop on
+;eof
+;
+copy2:
+	MOV	BX,Word Ptr bufpnt	;set dma address to buffer pntr
+	XCHG	BX,DX
+	MOV	CL,stdma
+	INT	224
+	MOV	DX,dfcb			;point at default fcb for reading
+	MOV	CL,read			;make a read
+	INT	224
+	OR	AL,AL			;check if read was ok or eof
+	JNZ	copy3			;end of file
+	MOV	BX,Word Ptr bufpnt	;set buffer pntr up 1 sector
+	MOV	DX,128
+	LAHF
+	ADD	BX,DX
+	RCR	SI,1
+	SAHF
+	RCL	SI,1
+	MOV	Word Ptr bufpnt,BX
+	MOV	BX,Word Ptr bufcnt	;increase buffer sector count
+	LAHF
+	INC	BX
+	SAHF
+	MOV	Word Ptr bufcnt,BX
+	XCHG	BX,DX
+	MOV	BX,Word Ptr bufmax	;maximum sector count
+	CALL	cdehl			;compare
+	JNZ	copy2
+	JMPS	copy4
+;
+;here if read operation indicates file is at end on read
+;
+copy3:
+	MOV	AL,0ffh			;set eof flag
+	MOV	Byte Ptr eof@flg,AL
+;
+;write operation pro cessing loop to send mem to disk file
+;
+copy4:
+	MOV	BX,(Offset filetable)	;point to byffer
+	MOV	Word Ptr bufpnt,BX
+copy5:
+	CALL	abort			;check for abort
+	MOV	BX,Word Ptr bufcnt	;see if buffer is empty
+	MOV	AL,BH
+	OR	AL,BL
+	JZ	copy6			;buffer empty so check eof flag
+	DEC	BX			;dec buffer sector count
+	MOV	Word Ptr bufcnt,BX
+	MOV	BX,Word Ptr bufpnt	;set up buffer pointer
+	PUSH	BX			;save for size bump
+	XCHG	BX,DX
+	MOV	CL,stdma
+	INT	224
+	POP	BX
+	MOV	DX,128			;increase by 1 sector size
+	ADD	BX,DX
+	MOV	Word Ptr bufpnt,BX
+	MOV	DX,(Offset destfcb)	;point to dstination fcb
+	MOV	CL,write		;make a write record
+	INT	224
+	OR	AL,AL			;any errors ?
+	JZ	copy5			;no-continue
+	JMPS	full			;yes-disk maybe full
+;
+copy6:
+	MOV	AL,Byte Ptr eof@flg	;buffer all written, go and
+					;check eof
+	OR	AL,AL
+	JNZ	L_9
+	JMP	copy1
+L_9:
+	MOV	DX,(Offset destfcb)	;point to destination fcb
+	MOV	CL,close		;close file
+	INT	224
+	CMP	AL,0ffh			;all Ok
+	JZ	L_10
+	JMP	backup			;yes-continue
+L_10:
+	MOV	DX,(Offset src@close@err)	;no-close error
+	JMP	arcexit
+;
+; subroutine to compare [DE] to [HL],  [Z] set if equal
+
+cdehl:
+	MOV	AL,DH			;high byte equal ?
+	CMP	AL,BH
+	JZ	L_11
+	RET
+L_11:
+	MOV	AL,DL			;yes-how about low byte
+	CMP	AL,BL
+	RET				;set zero if equal
+;
+;subroutine to allow disk change, to continue backup proceedure
+;
+full:
+	MOV	DX,(Offset destfcb)	;delete partial file
+	MOV	CL,delete
+	INT	224
+	MOV	DX,(Offset dsk@full)	;indicate disk is full
+	CALL	msgout
+	MOV	AL,Byte Ptr dest@dsk@num	;get dest disk number
+	ADD	AL,040h			;make it ASCII
+	MOV	DL,AL
+	MOV	CL,pchar
+	INT	224
+	MOV	DX,(Offset now@full)	;display remainder of message
+	CALL	msgout
+req@cnt:
+	MOV	DX,(Offset enter@ret)	;tell em' to remove disk and
+					;hit return
+	CALL	msgout
+	MOV	CL,coninp
+	INT	224
+	CMP	AL,cr			;cr ?
+	JNZ	req@cnt			;if not ask again
+	CALL	crlf
+	MOV	CL,rsetdsk		;make a reset disk system
+	INT	224
+	CALL	reset@fcb		;also reset the fcb
+	JMP	dspname			;continue on new disk, with
+					;last file
+;
+;Multi-file access subroutine. Allows processing of multiple
+;files (i.e. *.*) from disk. This routine builds the proper
+;name in the fcb each time it is called. Carry is set if no
+;more names can be found.
+;
+mfname:
+	MOV	CL,stdma		;set dma address
+	MOV	DX,dbuff
+	INT	224
+	XOR	AL,AL			;clear fcb extention and rec #
+	MOV	Byte Ptr .fcbext,AL
+	MOV	Byte Ptr .fcbrno,AL
+	MOV	AL,Byte Ptr mfflg1	;get multi-file flag
+	OR	AL,AL
+	JZ	mfile1			;if zero, not first time flag
+	MOV	BX,dfcb			;save filename as requestd name
+	MOV	DX,(Offset mfreq)
+	MOV	CH,12
+	CALL	blkmov
+	MOV	AL,Byte Ptr .dfcb
+	MOV	Byte Ptr mfcur,AL	;save disk in current fcb
+	MOV	BX,(Offset mfreq)	;set-up for filename search
+	MOV	DX,dfcb
+	MOV	CH,12
+	CALL	blkmov
+	MOV	CL,srchfst		;search for 1st match
+	MOV	DX,dfcb
+	INT	224
+	JMPS	mfile2			;check if file found
+;
+mfile1:
+	MOV	BX,(Offset mfcur)	;search first on current name
+	MOV	DX,dfcb
+	MOV	CH,12
+	CALL	blkmov
+	MOV	CL,srchfst
+	MOV	DX,dfcb
+	INT	224
+	MOV	BX,(Offset mfreq)	;do search on filename
+	MOV	DX,dfcb
+	MOV	CH,12
+	CALL	blkmov
+	MOV	CL,srchnxt		;make a search next
+	MOV	DX,dfcb
+	INT	224
+mfile2:
+	INC	AL			;return carry set if file not
+	STC				;found
+	JNZ	L_12
+	RET
+L_12:
+;
+;move name found to current filename
+;
+	DEC	AL			;adjust location found
+	AND	AL,3
+	ADD	AL,AL
+	ADD	AL,AL
+	ADD	AL,AL
+	ADD	AL,AL
+	ADD	AL,AL
+	ADD	AL,81h
+	MOV	BL,AL			;make filename pointer
+	MOV	BH,0
+	PUSH	BX			;save pointer
+	MOV	DX,(Offset mfcur)+1
+	MOV	CH,11
+	CALL	blkmov			;move name to current filename
+;
+;move filename found to fcb
+;
+	POP	BX			;restore filename pointer
+	MOV	DX,dfcb+1
+	MOV	CH,11
+	CALL	blkmov
+;
+;setup fcb for subsequent file write operation
+;
+reset@fcb:
+	MOV	DX,dfcb			;point to source fcb
+	MOV	AL,Byte Ptr src@dsk@num	;force disk #, in case not
+	MOV	SI,DX			;logged disk
+	MOV	[SI],AL
+	XOR	AL,AL			;clean up for new file backup
+	MOV	Byte Ptr .fcbext,AL
+	MOV	Byte Ptr .fcbrno,AL
+	MOV	Byte Ptr destfcb,AL
+	MOV	Byte Ptr destfcb+12,AL
+	MOV	Byte Ptr destfcb+32,AL
+	MOV	Byte Ptr mfflg1,AL	;turn off 1st time flag
+	RET
+;
+;subroutine to perform a block move (aahh for a Z-80)
+;
+blkmov:
+	MOV	AL,M			;copy byte from [HL] to [DE]
+	MOV	SI,DX
+	MOV	[SI],AL
+	LAHF
+	INC	BX
+	SAHF
+	LAHF
+	INC	DX
+	SAHF
+	DEC	CH
+	JNZ	blkmov			;continue for B bytes
+	RET
+;
+;subroutine to index [BC] by file counter
+;
+filepoint:
+	MOV	BX,Word Ptr filcnt	;get file counter
+	MOV	BH,0			;force high order to 0
+	SHL	BX,1			;multiply by 32
+	SHL	BX,1
+	SHL	BX,1
+	SHL	BX,1
+	SHL	BX,1
+	LAHF				;use as index to file table
+	ADD	BX,CX
+	RCR	SI,1
+	SAHF
+	RCL	SI,1
+	RET
+;
+;subroutine to check for user abort (control C)
+;
+abort:
+	PUSH	BX			;save all regs
+	PUSH	DX
+	PUSH	CX
+	LAHF
+	XCHG	AL,AH
+	PUSH	AX
+	XCHG	AL,AH
+	MOV	CL,dircon		;make a direct console I/O
+	MOV	DL,0ffh			;input only
+	INT	224
+	OR	AL,AL			;set flags
+	JZ	abortx			;return if zero result
+	CMP	AL,'C'-040h		;control-c ?
+	JNZ	abortx			;no-return
+	MOV	DX,(Offset abort@process)	;point to proper message
+	CALL	msgout
+	MOV	CL,0
+	MOV	DL,0
+	INT	224
+;
+abortx:
+	POP	AX
+	XCHG	AL,AH
+	SAHF
+	POP	CX
+	POP	DX
+	POP	BX
+	RET
+;
+;subroutine to print a crlf
+;
+crlf:
+	MOV	DX,(Offset crlf@msg)
+;
+;subroutine to print out a message pointed to by DX
+;
+msgout:
+	PUSH	DX			;might need pointer again
+	MOV	SI,DX
+mloop:
+	MOV	AL,[SI]			;get char from string
+	AND	AL,07fh			;strip off high bit
+	CMP	AL,'$'			;string terminator?
+	JZ	mdone			;Yes, exit
+	MOV	DL,AL
+	MOV	CL,pchar		;No, display it
+	INT	224
+	INC	SI			;point to next char in string
+	JMP	mloop
+;
+mdone:
+	POP	DX
+	RET
+;
+;
+signon		DB	cr,lf,'Archive Version '
+		DB	vers/10 + '0','.',vers mod 10 + '0'
+		DB	rev
+		DB	cr,lf
+		DB	'CP/M-86 File BACK UP utility.'
+		DB	cr,lf,cr,lf,'$'
+;
+ilgopt		DB	'Invalid or Unspecified option - must be'
+		DB	' specified as:',cr,lf,cr,lf
+opts		DB	tab,'B - Backup file(s) with Archive flag set or,'
+		DB	cr,lf
+		DB	tab,'S - Set Archive flag on file(s) or,'
+		DB	cr,lf
+		DB	tab,'R - Reset Archive flag on file(s) or,'
+		DB	cr,lf
+		DB	tab,'D - Display state of Archive flag on file(s)'
+		DB	cr,lf,'$'
+;
+no@file@fnd	DB	cr,lf,'File not found, aborting$'
+;
+donmsg		DB	' $'
+;
+crlf@msg	DB	cr,lf,'$'
+;
+bad@ver@num	DB	'Sorry, you MUST have CP/M-86 Version 1.0 or later to use ARCHIVE.$'
+;
+req@dest	DB	'Destination disk for files to be BACKED UP (A to P)? $'
+;
+same@dsk	DB	cr,lf,'You can''t BACK UP files to the Source disk!'
+		DB	cr,lf,'$'
+;
+abort@process	DB	cr,lf,'User abort of BACK UP process$'
+;
+narcs		DB	cr,lf,'No files with Archive flag set were found to BACK UP$'
+;
+no@file@nam	DB	'No filename or Option specified - '
+		DB	'ARCHIVE must be invoked as:'
+		DB	cr,lf,cr,lf
+		DB	tab,'ARCHIVE FN.FT OPTION <CR>'
+		DB	cr,lf,cr,lf
+		DB	'Where:',tab,'FN.FT is the filename'
+		DB	' and filetype'
+		DB	cr,lf,cr,lf
+		DB	'And:',tab,'OPTION is specified as:'
+		DB	cr,lf,cr,lf,'$'
+;
+src@open@err	DB	cr,lf,'Oops, Can''t open file on'
+		DB	' Source disk$'
+;
+dsk@full	DB	cr,lf,'Destination BACK UP disk $'
+;
+now@full	DB	': is now full - Remove and insert new Disk$'
+;
+enter@ret	DB	cr,lf,'Enter RETURN when ready to continue'
+		DB	' BACK UP process: $'
+;
+src@read@err	DB	cr,lf,'CP/M-86 File Read ERROR on Source disk$'
+;
+src@close@err	DB	cr,lf,'CP/M-86 File Close ERROR on Destination disk$'
+;
+bakup@done:
+	DB	cr,lf,'BACK UP Complete, Exiting to CP/M-86',cr,lf,'$'
+;
+fname	DB	'            $'		;for filename.typ
+;
+got@arc		DB	0		;archive file found flag
+;
+mfflg1		DB	1		;1st time flag for mf access
+;
+mfreq		RS	12		;mf requested filename
+;
+mfcur		RS	12		;mf current filename
+;
+arch@addr	RS	2		;archive patch address
+;
+logdsk		RS	1		;current logged disk
+;
+dest@dsk@num	RS	1		;dest disk number
+;
+src@dsk@num	RS	1		;source disk number
+;
+filcnt		RS	1		;count of files in filetable
+;
+option		RS	1		;option storage location
+;
+destfcb		RS	33		;destination fcb
+;
+bufmax		RS	2		;maximum buffer size
+;
+bufcnt		RS	2		;buffer sector count
+;
+bufpnt		RS	2		;buffer pointer
+;
+eof@flg		RS	1		;end-of-file flag
+;
+filetable EQU	(Offset $)		;file buffer space
+		RS	4*4096		;buffer-up 16k
+;
+table@end	DB	0		;filetable end address
+;
+	END
+

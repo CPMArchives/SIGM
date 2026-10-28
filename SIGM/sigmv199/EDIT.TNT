@@ -1,0 +1,247 @@
+* DATE 07/20/84  17:59
+* edit.cmd
+* this program will edit the current record
+STOR CHR(PEEK (063)) TO dr
+* if deleted it cant be edited so
+RECA
+* store field variables into mem variables for editing
+STOR tenant TO mtenant
+STOR bcode TO mbcode
+STOR tunit TO mtunit
+STOR baddr TO mbaddr
+STOR tcontac TO mtcontac
+STOR tphone TO mtphone
+STOR alt TO malt
+STOR altad TO maltad
+STOR altcty TO maltcty
+STOR ttype TO mttype
+STOR trentpc TO mtrentpc
+STOR texpir TO mtexpir
+STOR trentpcr TO mtrenpcr
+STOR tfirst TO mtfirst
+STOR tsec TO mtsec
+STOR tsecb TO mtsecb
+STOR tlate TO mtlate
+STOR trent TO mtrent
+STOR taddl TO mtaddl
+STOR trente TO mtrente
+STOR trentm TO mtrentm
+STOR trentp TO mtrentp
+STOR trentpd TO mtrentpd
+STOR tlatec TO mtlatec
+STOR trentd TO mtrentd
+STOR trenty TO mtrenty
+STOR trentt TO mtrentt
+STOR tflag TO mtflag
+STOR tnotes TO mtnotes
+STOR tupdate TO mtupdate
+* set up screen and prompt for editing
+ERAS
+STOR 'Edit Tenant Data' TO mode
+STOR 'Enter the new or corrected information' TO prompt1
+STOR "Control 'Q' to end edit session" TO prompt2
+@ 0,26 SAY mode
+@ 1, 0 SAY " -------------------------------------------------"
+@ 1,50 SAY "-----------------------------"
+@ 3, 2 SAY "Tenant:"
+@ 3,53 SAY "Code:"
+@ 4, 4 SAY "Unit:"
+@ 4,26 SAY "Building:"
+@ 5, 1 SAY "Contact:"
+@ 5,52 SAY "Phone:"
+@ 6,09 SAY "Alternate mailing address: "
+@ 7,01 SAY "Address:"
+@ 8,04 SAY "City:"
+@ 10, 4 SAY "Type:"
+@ 10,19 SAY "Addl Percentage:"
+@ 10,48 SAY "1st Lease:"
+@ 11,04 SAY "Base:"
+@ 11,47 SAY "Expiration:"
+@ 12, 0 SAY "Security:"
+@ 12,30 SAY "Bank:"
+@ 12,48 SAY "Late Date:"
+@ 13, 4 SAY "Rent:"
+@ 13,25 SAY "Late Chgs:"
+@ 13,48 SAY "Addl Rent:"
+@ 14, 3 SAY "G & E:"
+@ 14,24 SAY "Other Chgs:"
+@ 15, 0 SAY "Rent Due:"
+@ 15,22 SAY "Last Payment:"
+@ 15,49 SAY "Amt Paid:"
+@ 16,00 SAY "Total Yr:"
+@ 16,30 SAY "Flag:"
+@ 16,52 SAY "Total:"
+@ 18, 3 SAY "Notes:"
+@ 18,51 SAY "Update:"
+@ 19, 0 SAY " -------------------------------------------------"
+@ 19,50 SAY "-----------------------------"
+@ 20, 7 SAY prompt1
+@ 21, 7 SAY prompt2
+@ 3,10 GET mtenant
+@ 3,59 GET mbcode PICTURE '99999'
+@ 4,10 GET mtunit
+@ 4,36 GET mbaddr
+@ 5,10 GET mtcontac
+@ 5,59 GET mtphone PICTURE '(999)999-9999'
+@ 6,36 GET malt PICTURE '!'
+@ 7,10 GET maltad
+@ 8,10 GET maltcty
+@ 10,10 GET mttype PICTURE '!'
+@ 10,36 GET mtrentpc
+@ 10,59 GET mtfirst PICTURE '99/99/99'
+@ 11,10 GET mtrenpcr
+@ 11,59 GET mtexpir PICTURE '99/99/99'
+@ 12,10 GET mtsec
+@ 12,36 GET mtsecb
+@ 12,59 GET mtlate PICTURE '99'
+@ 13,10 GET mtrent
+@ 13,36 GET mtlatec
+@ 13,59 GET mtaddl
+@ 14,10 GET mtrente
+@ 14,36 GET mtrentm
+@ 15,10 GET mtrentd
+@ 15,36 GET mtrentpd PICTURE '99/99/99'
+@ 15,59 GET mtrentp
+@ 16,10 GET mtrenty
+@ 16,36 GET mtflag PICTURE '99/99/99''
+@ 16,59 GET mtrentt
+@ 18,10 GET mtnotes
+@ 18,61 GET mtupdate PICTURE '99/99/99'
+READ
+CLEA GETS
+* test if there is a bad field validation
+DO CASE
+CASE mbcode = ' '
+ STOR t TO error
+CASE .NOT.(malt = 'Y' .OR. malt = 'N')
+ STOR t TO error
+CASE .NOT.(mttype = 'R'.OR.mttype='P'.OR. mttype='O')
+ STOR t TO error
+CASE (mttype = 'P'.OR. mttype = 'O') .AND.(.NOT.(mtrentpc >0.AND. mtrenpcr >0))
+ STOR t TO error
+OTHE
+ STOR f TO error
+ENDC
+* if test for error was true then fix the fields that need fixing
+IF error
+* erase the lines to be used for prompts
+ @ 00,00
+ @ 20,00
+ @ 21,00
+* tell them to correct it
+ @ 0,18 SAY 'Please Correct the Indicated Data'
+* keep looping until all fields are fixed
+ STOR t to an:error
+ DO WHIL an:error
+  DO CASE
+  CASE mbcode = ' '
+   @ 20,00
+   @ 21,00
+   @ 20,15 SAY 'Must have a tenant code                              '
+   @ 03,59 GET mbcode PICTURE '99999'
+   READ
+  CASE .NOT.(malt = 'Y' .OR. malt = 'N')
+   @ 20,00
+   @ 21,00
+   @ 20,15 SAY "Must answer 'Y' or 'N' to alternate address"
+   @ 06,36 GET malt PICTURE '!'
+   READ
+  CASE .NOT.(mttype = 'R'.OR.mttype='P'.OR. mttype='O')
+   @ 20,00
+   @ 21,00
+   @ 20,05 SAY "Type must be 'R' for Regular, 'P' for Percentage which uses the higher of"
+   @ 21,05 SAY "the percentage or the base rent or 'O' for Overage plus base rent"
+   @ 10,10 GET mttype PICTURE '!'
+   READ
+  CASE (mttype = 'P'.OR. mttype = 'O').AND.(.NOT.(mtrentpc>0.AND. mtrenpcr> 0))
+   @ 20,00
+   @ 21,00
+   @ 20,05 SAY 'If a percentage or overage lease, you must state the percentage'
+   @ 21,05 SAY 'AND the base for calculating the percentage rent'
+   @ 10,36 GET mtrentpc
+   @ 11,10 GET mtrenpcr
+   READ
+  OTHE
+   STOR f TO an:error
+  ENDC
+ ENDD while an:error
+ENDI error
+STOR 'N' TO command
+@ 20,00
+@ 21,00
+@ 20,15 SAY 'Are there any more changes ?                        '
+@ 20,48 GET command picture '!'
+READ
+IF command = 'Y'
+ @ 0,00
+ @ 0,26 SAY mode
+ @ 3,10 GET mtenant
+ @ 3,59 GET mbcode PICTURE '99999'
+ @ 4,10 GET mtunit
+ @ 4,36 GET mbaddr
+ @ 5,10 GET mtcontac
+ @ 5,59 GET mtphone PICTURE '(999)999-9999'
+ @ 6,36 GET malt PICTURE '!'
+ @ 7,10 GET maltad
+ @ 8,10 GET maltcty
+ @ 10,10 GET mttype PICTURE '!'
+ @ 10,36 GET mtrentpc
+ @ 10,59 GET mtfirst PICTURE '99/99/99'
+ @ 11,10 GET mtrenpcr
+ @ 11,59 GET mtexpir PICTURE '99/99/99'
+ @ 12,10 GET mtsec
+ @ 12,36 GET mtsecb
+ @ 12,59 GET mtlate PICTURE '99'
+ @ 13,10 GET mtrent
+ @ 13,36 GET mtlatec
+ @ 13,59 GET mtaddl
+ @ 14,10 GET mtrente
+ @ 14,36 GET mtrentm
+ @ 15,10 GET mtrentd
+ @ 15,36 GET mtrentpd PICTURE '99/99/99'
+ @ 15,59 GET mtrentp
+ @ 16,10 GET mtrenty
+ @ 16,36 GET mtflag PICTURE '99/99/99'
+ @ 16,59 GET mtrentt
+ @ 18,10 GET mtnotes
+ @ 18,61 GET mtupdate PICTURE '99/99/99'
+ @ 20,00
+ @ 21,00
+ @ 20,04 SAY prompt1
+ @ 21,04 SAY prompt2
+* let user enter data
+ READ
+ CLEA GETS
+ENDI command = 'Y'
+REPL tenant WITH mtenant, bcode WITH mbcode, tunit WITH mtunit
+REPL baddr WITH mbaddr, tcontac WITH mtcontac, tphone WITH mtphone
+REPL alt WITH malt, altad WITH maltad, altcty WITH maltcty
+REPL ttype WITH mttype, texpir WITH mtexpir
+REPL trentpc WITH mtrentpc, trentpcr WITH mtrenpcr
+REPL tfirst WITH mtfirst, tsec WITH mtsec, tsecb WITH mtsecb
+REPL tlate WITH mtlate, trent WITH mtrent, taddl WITH mtaddl
+REPL trente WITH mtrente, trentm WITH mtrentm, trentp WITH mtrentp
+REPL trentpd WITH mtrentpd, tlatec WITH mtlatec, trentd WITH mtrentd
+REPL trenty WITH mtrenty, trentt WITH mtrentt
+REPL tflag WITH mtflag, tnotes WITH mtnotes
+* ask if an automatic update of the date is wanted
+IF $(DATE(),1,2) <> '00'
+ STOR 'Y' TO command
+ @ 20,00
+ @ 21,00
+ @ 20,12 SAY 'Do You wish to UpDate to Todays Date (Y/N) ?'
+ @ 20,57 GET command PICTURE '!'
+ READ
+ IF command = 'Y'
+  REPL tupdate WITH  DATE()
+ ELSE
+  REPL tupdate WITH mtupdate
+ ENDI $(date)
+ENDI command = 'Y'
+RELE ALL
+* restore original memory
+STOR '?' TO command
+STOR t TO more
+STOR t TO first
+RETU
+

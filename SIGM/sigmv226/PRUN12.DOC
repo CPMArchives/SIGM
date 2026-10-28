@@ -1,0 +1,110 @@
+Documentation for PRUN12.COM			03/28/84
+
+
+Description:
+
+PRUN is an independent command run facility for CP/M and ZCPR2 which allows
+execution of PRL files.
+
+PRUN is compatible with CP/M 2.x with either stock CCP or ZCPR.  PRUN can be
+implemented as "extended command facility" under ZCPR2.  It will, however,
+not honor search paths.  The PRL file to be run MUST exist on the currently
+logged drive or else execution will fail. As of version 1.20, PRUN will now
+correctly parse the command line and place the two FCBs at 5C and 6C. Also,
+if the PRL file is not found, PRUN will simply echo "FILENAME?" and return
+to CP/M. If there are no command errors and the PRL file is not corrupt,
+an unsuspecting use will be unable to see any difference between CCP and PRUN.
+
+
+PRL FILES:
+==========
+PRL files are defined in the MP/M manual.  This is a brief explanation:
+
+PRL files consist of 3 parts, a header, a code block and a bit map.
+The header is 256 bytes long and defined as follows:
+BYTE 0		Undocumented. Usually 00, could be FDH
+BYTE 1 & 2	The size of the code block in bytes
+BYTE 3		Undefined
+BYTE 4 & 5	Buffer space required beyond the end of program
+BYTE 6 to 255	RESERVED
+After the header, the code, ORGed at 100H, follows. It is followed by
+a bit map, where each bit describes one byte in the program. If the
+bit is SET, the corresponding byte is relocatable, else it is absolute.
+
+Digital Research's LINK will correctly produce OGR-100 PRL files with
+the [OP] option. Do not use the [OS] option or any [Lnnnn] option.
+
+
+Requirements:
+
+PRUN will execute properly in any Z80 CP/M 2.2 system.  PRUN will not
+execute in 8080 systems.  In mode 0, PRUN is unnecessary in CP/M plus,
+as that operating system honors the PRL protocol.
+
+
+Operation:
+
+PRUN in mode 0 will correctly place a standard PRL file at
+0100H and attempt execution.  The PRL file must be ORGed at 0100H.
+
+To generate an org-zero PRL file with DRI's LINK, use the following
+LINK option immediately after the PRL file name: [OP,L0], i.e.:
+A>LINK PRUN[OP,L0]=PRUN,SYSLIB[S]
+
+Two additional modes of operation are available:
+
+1. Relocate to below BDOS and run
+2. Relocate to specified address and run
+
+MODE 1:
+=======
+
+Under mode 1, the PRL file is relocated so that it's last byte is
+located in the page immediately preceeding BDOS and then execution is
+attempted at the program's start address.  No provisions are made, however
+to protect the program from overwriting.  This is the sole responsibility
+of the program itself.
+
+Under mode 2, the PRL file is relocated to a specific user-supplied
+address and executed.  PRUN will do no range checking and allow the file
+to be relocated to anywhere in RAM, except 0000H or at a location which
+would cause part of the program to wrap around at FFFFH.
+
+HOW TO IMPLEMENT PRUN MODES:
+============================
+
+Basic operation (mode 0) requires no special processing of the PRL file,
+except that it MUST be orged at 0.
+
+Modes 1 and 2 require a "relocation control block" (RCB) to be located
+immediately following the program.  The RCB is always 5 bytes long.
+
+BYTE 1 : 76H	(always)
+BYTE 2 : 76H	(always)
+BYTE 3 : nn	If nn=0 THEN mode 1, else nn= starting page of relocated
+		program in mode 2.
+BYTE 4 and 5	Program entry point
+
+It is very unlikely that any type executable 8080 or Z80 file will ever
+end with two HLT instructions, so it is safe to assume that 7676H
+indicates the presence of an RCB.  (This idea borrowed from
+SQ/USQ, where 76FF is used at the start of a squeezed file.)
+
+The RCB has to be added at the end of the ASM file, immediately before
+the END statement.  Example:
+
+.... code ....
+	ds	50
+stack	equ	$	;last regular program line
+;
+	db	76h	;RCB id#1
+	db	76h	;RCB id#2
+	db	0	;select mode 1
+	dw	begin	;entry point (usually first byte of code)
+	end
+
+
+
+10/24/83 02:15 v1.00
+10/24/83 19:56 v1.10
+03/28/84 09:05 v1.20es no special pr

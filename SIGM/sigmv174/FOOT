@@ -1,0 +1,45 @@
+.. June 25, 1983 footnoting experiment
+.. try it with:
+.. "A>roff4 foot ) "
+..
+.pl 30 ;saving paper
+.rm 25
+.ow 35
+.rg f# 1
+.ds "fn"^+\\f#\\^-"
+........................
+.di fnotes             .
+.sp 2                  .
+.ce 1                  .
+^U^BFOOTNOTES^b^u
+.sp 1                  .
+.ed                    .
+........................
+........................
+.dm FS ;footnote start .
+.di fnotes             .
+\\fn\\\\
+.em                    .
+........................
+........................
+.dm FE ;footnote end   .
+.br                    .
+.ed                    .
+.rg f# +1              .
+.em                    .
+........................
+.he /WEATHER//page #/
+.fo //-#-//
+.........................
+.. START OF ACTUAL TEXT!.
+.........................
+It is a nice day.\fn\
+.FS
+conventional expression.
+.FE
+It's a crummy day.\fn\
+.FS
+unconventional!
+.FE
+.SO FNOTES ;writing out the footnotes here
+.  That is to say thate sensitive".  That is to say thatŠcapitalization and

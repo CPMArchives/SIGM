@@ -1,0 +1,67 @@
+
+{	DASTRLONG
+
+	This takes an integer date value and returns a string with all
+	words spelled out.
+
+	If WITHDAY is passed as true then the returned string will
+	include the day of the week, otherwise only month, day and
+	year will be returned.
+
+	The following global types must be declared:
+		TYPE	string255 = string 255;
+			byte = 0..255;
+
+	The following additional procedures must be declared:
+		PROCEDURE breakdate;
+		PROCEDURE setlength; external;
+}
+
+FUNCTION dastrlong (days : integer; withday : boolean) : string255;
+
+CONST	zero = 48;
+
+VAR	day, mo, date, yr : byte;
+	str, str2 : string255;
+
+begin
+	brkdate (days,mo,date,yr,day);
+	if withday then
+		begin
+		case day of
+			0 : str := 'Sunday';
+			1 : str := 'Monday';
+			2 : str := 'Tuesday';
+			3 : str := 'Wednesday';
+			4 : str := 'Thursday';
+			5 : str := 'Friday';
+			6 : str := 'Saturday'
+			end;
+		append (str,', ')
+		end
+		else setlength (str,0);
+ 	case mo of
+		1 : str2 := 'January';
+		2 : str2 := 'February';
+		3 : str2 := 'March';
+		4 : str2 := 'April';
+		5 : str2 := 'May';
+		6 : str2 := 'June';
+		7 : str2 := 'July';
+		8 : str2 := 'August';
+		9 : str2 := 'September';
+		10 : str2 := 'October';
+		11 : str2 := 'November';
+		12 : str2 := 'December'
+		end;
+	append (str,str2);
+	append (str,' ');
+	if (date > 9) then append (str,chr((date div 10) + zero));
+	append (str,chr((date mod 10) + zero));
+	append (str,', 19');
+	append (str,chr((yr div 10) + zero));
+	append (str,chr((yr mod 10) + zero));
+	dastrlong := str
+end;
+
+

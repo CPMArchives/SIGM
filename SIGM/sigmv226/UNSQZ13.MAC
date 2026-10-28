@@ -1,0 +1,461 @@
+;UNSQueeZe (USQZ) version 1.30
+;
+; Why yet another unsqueezer??????
+;
+; 1. UNSQZ.COM, using Dave Rand's USQBASE and Rick Conn's SYSLIB,
+;    allows a more natural syntax:
+;    A>unsqz *.* f7:		;unsqueeze all *.?Q? files to E7:
+;    A>unsqz b5:*.aqm c4:	;go across drives/users
+;    A>unsqz *.*		;unsqueeze all *.?Q? files to current DU:
+;    A>unsqz *.* $e		;erase file after unsqueeze
+;    A>unsqz *.* $q		;query unsqueeze
+; 2. UNSQZ will not clutter up the screen with messages such as
+;    "not a SQ file" by only processing *.?Q? files.
+;
+; 12/15/84 BUG FIX (version 1.30)
+;	never heard any complaints that unsqueezing across user areas
+;	didn't work, which is an indication as to the popularity of UNSQ.
+;	Nevertheless, this program is still supported.
+;
+cr	equ	0dh
+lf	equ	0ah
+delim	equ	'$'		;option delimiter (use ';' for TDOS)
+;
+dfcb1	equ	5ch
+cmdln	equ	80h
+;
+; declare SYSLIB externals
+;
+	extrn	f$exist,f$close,f$write,f$mopen,f$delete,fi0$open,f0$get
+	extrn	fi0$close,f$open,condin
+	extrn	pfn1,print,putud,getud,retud,logud,pafdc,phlfdc,cout
+	extrn	codend,sksp,fname,initfcb,hmovb,initfcb,caps,capin
+;
+; other externals
+;
+	extrn	wildex		;wildcard expansion routine
+	extrn	usq,getusq
+	public	get1
+;
+begin:	lxi	sp,stack	;gain 2k buffer space - possibly destroy CCP
+	lhld	6		;(if we run under CP/M)
+	mvi	l,0
+	dcr	h
+	shld	eoram		;top of RAM
+	call	putud		;put away current DU:
+	call	print
+	db	cr,lf
+	db	' -----------------------------------',cr,lf
+	db	'| UNSQZ version 1.30 (c) 1984 ESKAY |',cr,lf
+	db	'|       Multifile unsqueezer        |',cr,lf
+	db	' -----------------------------------',cr,lf,lf,0
+	lxi	h,cmdln		;point to CCP command line at 80H
+	mov	a,m
+	inx	h
+	ora	a
+	jz	help
+	call	sksp		;skip to first arg
+	mov	a,m
+	ora	a
+	jz	help
+	lxi	d,infcb		;point to input fcb (temp)
+	call	fname		;parse filename
+	jz	fnerr		;error?
+	push	h		;save line pointer
+	mov	h,b
+	mov	l,c		;move DU:
+	call	retud		;get current DU:
+	call	combdu		;combine parsed/current DU:
+	shld	srcdu		;save as source DU
+	shld	desdu		;for now also destination DU
+	pop	h		;get line pointer back
+	mov	a,m
+	ora	a
+	jz	cont		;continue
+	call	sksp		;skip spaces
+	mov	a,m
+	ora	a
+	jz	cont		;done, continue
+	cpi	delim		;delimiter?
+	jnz	nodel		;no, skip this
+	call	getop
+	jmp	cont
+;
+nodel:	lxi	d,dfcb1		;point to dummy fcb
+	call	fname		;parse possible destination drive/user
+	jz	fnerr		;error?
+	push	h
+	mov	h,b
+	mov	l,c
+	call	retud		;get current DU
+	call	combdu
+	shld	desdu		;save destination DU
+	pop	h
+	mov	a,m
+	ora	a
+	jz	cont
+	call	sksp
+	mov	a,m
+	ora	a
+	jz	cont
+	cpi	delim
+	jnz	cont
+	call	getop
+cont:	mvi	a,'Q'		;default to sq'd filename
+	sta	infcb+10
+	lhld	srcdu		;get source drive/user
+	mov	b,h
+	mov	c,l
+	call	logud		;log in new DU
+	call	codend		;get end of code (begin of usq buffer)
+	lxi	d,1056
+	dad	d
+	shld	fnbuf		;save as filename buffer pointer
+	lxi	d,infcb		;point to input fcb
+	call	wildex
+	jz	nofile		;no file found
+	shld	files
+	mov	a,l
+	dcr	a
+	jz	skpc		;say "n files ..." only if more than 1
+	call	phlfdc
+	call	print
+	db	' files matched.',cr,lf,0
+skpc:	xchg			;count to DE
+	lxi	b,16		;bytes per filename
+	lhld	fnbuf		;buffer ptr
+bcalc:	dad	b
+	dcx	d
+	mov	a,d
+	ora	e
+	jnz	bcalc
+	inr	h
+	mvi	l,0
+	shld	outbf		;start of output buffer
+usqlp:	lhld	files		;get file count
+	mov	a,h
+	ora	l		;if no more...
+	jz	done		;...then quit
+	dcx	h		;else count down...
+	shld	files		;...and continue
+	call	print
+	db	cr,lf,0
+	lda	abort
+	ora	a
+	jnz	stopp
+	lhld	srcdu
+	call	prtdu
+	lhld	fnbuf		;get ptr to next fn
+	lxi	d,infcb		;point to input fcb
+	push	d
+	mvi	b,16		;move 16 bytes
+	call	hmovb		;do it
+	pop	d		;get fcb ptr back
+	shld	fnbuf		;save filename pointer
+	call	initfcb		;initialize fcb
+	inx	d		;point to name
+	call	pfn1
+	dcx	d		;back to fcb
+	call	print
+	db	' ',0		;make some room
+	call	fi0$open	;open the input file
+	jnz	unopn		;unable to open
+	call	codend		;get usq buffer address
+	call	usq		;initialize unsqueezer
+	jz	usqok
+	call	print
+	db	'error, cannot unsqueeze, skipped',0
+	jmp	skip
+;
+usqok:	call	caps		;capitalize line
+	lxi	d,otfcb		;point to out fcb
+	call	fname		;parse filename
+	inx	d		;point to name
+	lhld	desdu		;get destination DU
+	call	print
+	db	'--> ',0
+	call	prtdu		;print it
+	call	pfn1
+	lda	qopt		;query?
+	ora	a
+	jz	noqer
+	call	print
+	db	' usq?',7,0
+gcl:	call	capin
+	cpi	'Y'
+	jz	yesu
+	cpi	'N'
+	jnz	gcl
+	call	print
+	db	' NO ',0
+	jmp	skip
+;
+yesu:	call	print
+	db	' YES',0
+;
+noqer:	dcx	d
+	lhld	desdu		;get destination du
+	mov	b,h
+	mov	c,l
+	call	logud		;log in destination
+	call	f$exist		;file there already?
+	jz	noex		;doesn't exist yet
+	call	f$open		;see if RO
+	lda	otfcb+9
+	ani	80h
+	jz	noro		;skip if not RO
+	call	print
+	db	' already exists, read only',7,0
+	jmp	skip
+;
+noro:	call	f$delete	;delete previous
+	call	print
+	db	' already exists, deleted',0
+noex:	call	f$mopen		;make and open
+	jz	opnok		;opened
+	call	print
+	db	' unable to make file',7,0
+	jmp	skip
+;
+opnok:	lhld	srcdu		;log back into source area
+	mov	b,h
+	mov	c,l
+	call	logud
+	lhld	outbf
+	shld	obptr
+	lxi	h,0
+	shld	bufct
+fillbf:	call	getusq		;get a byte
+	jnz	eof		;end of file
+	lhld	bufct
+	inx	h
+	shld	bufct
+	lhld	obptr
+	mov	m,a
+	inx	h
+	shld	obptr		;save pointer
+	xchg
+	lhld	eoram
+	mov	a,h
+	cmp	d
+	jnz	fillbf
+	mov	a,l
+	cmp	d
+	ora	a		;reset carry!
+	cz	purgeb		;purge buffer if necessary
+	jc	werr
+	jmp	fillbf
+;
+eof:	call	purgeb
+	jc	werr
+	lhld	desdu
+	mov	b,h
+	mov	c,l
+	call	logud
+	lxi	d,otfcb
+	call	f$close
+	jz	skip
+	call	print
+	db	' unable to close destination',7,0
+skip:	call	fi0$close
+	jmp	usql1
+;
+werr:	call	print
+	db	' write error - aborted',7,0
+	jmp	quit
+;
+unopn:	call	print
+	db	'unable to open file - skipped',0
+usql1:	lhld	srcdu
+	mov	b,h
+	mov	c,l
+	call	logud
+	lda	eopt		;erase source?
+	ora	a
+	jz	usqlp		;no, continue
+	lda	qopt		;query?
+	ora	a
+	jz	delin		;no, delete it
+	call	print
+	db	' delete? ',7,0
+ynl:	call	capin
+	cpi	'Y'
+	jz	yesd
+	cpi	'N'
+	jnz	ynl
+	call	print
+	db	'NO',0
+	jmp	usqlp
+;
+yesd:	call	print
+	db	'YES',0
+delin:	lxi	d,infcb		;point to input fcb
+	call	f$delete	;snuff it out
+	call	print
+	db	' [source deleted]',0
+	jmp	usqlp
+;
+; purge buffer - logs into output area, writes buffer to disk,
+; then resets buffer pointers and logs into source area
+;
+purgeb:	lhld	desdu		;get destination area
+	mov	b,h
+	mov	c,l
+	call	logud		;log in
+	call	purge
+	push	psw
+	lhld	srcdu		;get destination area
+	mov	b,h
+	mov	c,l
+	call	logud		;log in
+	pop	psw
+	ret
+;
+purge:	lhld	outbf
+	shld	obptr
+purglp:	lxi	b,cmdln		;bc=.defdma
+	lhld	bufct
+	xchg
+	lhld	obptr		;hl=buffer pointer
+plp:	mov	a,m
+	stax	b
+	inx	h
+	dcx	d
+	mov	a,d
+	ora	e
+	jz	plabt
+	inr	c
+	jnz	plp		;move 80h bytes
+plabt:	shld	obptr		;save out buffer
+	xchg
+	shld	bufct
+	lxi	d,otfcb		;de=output fcb
+	call	f$write		;write the buffer to disk
+	jnz	wrerr		;write error
+	call	abchk		;check for abort
+	lhld	bufct		;get count
+	mov	a,h
+	ora	l
+	jnz	purglp
+	shld	bufct
+	lhld	outbf
+	shld	obptr
+	xra	a		;be sure CY=0
+	ret
+;
+wrerr:	stc
+	ret
+;
+; get1 routine - get a byte from the previously opened file
+;
+get1:	call	abchk		;check abort
+	jmp	f0$get		;SYSLIB function fulfills requirements
+;
+abchk:	call	condin
+	rz
+	cpi	3
+	rnz
+	sta	abort
+	ret
+;
+; get option (either E or S)
+;
+getop:	call	sksp
+	mov	a,m
+	inx	h
+	ora	a
+	rz
+	cpi	'E'
+	jz	ste
+	cpi	'Q'
+	jnz	getop
+	sta	qopt
+	jmp	getop
+;
+ste:	sta	eopt
+	jmp	getop
+;
+; print HL as DU:
+;
+prtdu:	mov	a,h
+	adi	'A'
+	call	cout
+	mov	a,l
+	call	pafdc
+	mvi	a,':'
+	jmp	cout
+;
+; combine DU: in BC with parsed DU: in HL
+; B=D (0..F), C=U (0..1F)
+; H=D (1..10 or FF=same) L=U (0..1F or FF=same)
+; on exit, HL=DU
+;
+combdu:	inr	h
+	jz	curd		;skip if current disk
+	mov	b,h
+	dcr	b
+	dcr	b
+curd:	inr	l
+	jz	curu		;skip if current user
+	mov	c,l
+	dcr	c
+curu:	mov	h,b
+	mov	l,c
+	ret
+;
+fnerr:	call	print
+	db	cr,lf,7
+	db	'Illegal drive or user specified',cr,lf,0
+	jmp	quit
+;
+nofile:	call	print
+	db	cr,lf,7
+	db	'File(s) not found : ',0
+	lhld	srcdu
+	call	prtdu
+	lxi	d,infcb+1
+	call	pfn1
+	call	print
+	db	cr,lf,lf,0
+	jmp	quit
+;
+done:	call	print
+	db	cr,lf,lf
+	db	'*** END OF EXECUTION ***',cr,lf,lf,0
+	jmp	quit
+;
+stopp:	call	print
+	db	cr,lf,7
+	db	'*** ABORTED ***',cr,lf,lf,0
+	jmp	quit
+;
+; Give help (no input filename typed)
+;
+help:	call	print
+	db	cr,lf,7
+	db	'No filename specified. Syntax:',cr,lf
+	db	'A>unsqz [du:]afn [du:] [$o]',cr,lf,lf,0
+quit:	call	getud		;get DU: back
+	rst	0		;get outta here
+;
+abort:	db	0		;nz=abort
+qopt:	db	0		;S option
+eopt:	db	0		;E option
+fnbuf:	dw	0		;start of filename buffer
+files:	dw	0		;number of files
+outbf:	dw	0		;output buffer start
+obptr:	dw	0		;output buffer pointer
+eoram:	dw	0		;end of RAM
+bufct:	dw	0		;buffer contents
+srcdu:	dw	0		;source drive/user
+desdu:	dw	0		;destination drive/user
+infcb:	ds	36
+otfcb:	ds	36
+	ds	80
+stack	equ	$
+	end
+	db	cr,lf,7
+	db	'Illegal drive or user specified',cr,lf,0
+	jmp	quit
+;
+nofi

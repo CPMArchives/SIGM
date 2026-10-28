@@ -1,0 +1,95 @@
+/*
+ * This header file contains hardware-dependent definitions for C programs.
+
+    Set up for Big Board II by Michael Mee		1983-7-30
+    Revision 0.0
+
+	Includes initialization for use with modem, with thanks to
+Gordon Banks.
+ */
+
+/*
+ * Some console (video) terminal characteristics:
+ */
+
+#define TWIDTH	80	/* # of columns	*/
+#define TLENGTH	24	/* # of lines	*/
+#define CLEARS	"\032"	/* String to clear screen on console	*/
+#define INTOREV	"\033G4" /* String to switch console into reverse video	*/
+#define OUTAREV "\033G0" /* String to switch console OUT of reverse video  */
+#define ESC	'\033'	/* Standard ASCII 'escape' character	*/
+
+
+/*
+	The following definitions provide a portable low-level interface
+	for direct I/O to the  console and modem devices. The values
+	used here are only for example; be certain to go in and customize
+	them for your system! Note that only one of the two sections
+	(I/O port vs. memory mapped) will be needed for your system,
+	so feel free to edit the unused section out of the file and remove
+	the conditional compilation lines around the section you end up
+	using.
+*/
+						/* Console */
+#define CON_TBE		(TRUE)		/* Memory mapped screen always rdy */
+#define CON_RDA		(bios(2,0))
+#define CON_TDATA(byte)	(bios(4,byte))
+#define CON_RDATA	(bios(3,0))
+
+						/* Modem */
+/*************
+	Comment out the appropriate block for SIO A/B
+							*************/
+#define SIOA	/* change to SIOB for B port */
+
+#ifdef SIOA
+#define CPORT 	0x81			/* sio A control port */
+#define DPORT 	0x80			/*  '      data   '   */
+#define BAUDPORT 0x89			/* CTC B channel 1    */
+#endif
+#ifdef SIOB
+#define CPORT	0x83			/* sio B control port */
+#define DPORT	0x82			/*  '      data   '   */
+#define BAUDPORT 0x88			/* CTC B channel 0    */
+#endif
+
+#define	MOD_TBE		(inp(CPORT) & 4)
+#define MOD_RDA		(inp(CPORT) & 1)
+#define	MOD_TDATA(byte)	(outp(DPORT, byte))
+#define	MOD_RDATA	(inp(DPORT))
+
+
+/**********  init - set up SIO (port A)
+	For 8 bits, no parity, 1 start & stop bit
+
+Add a call to init() from TELED, or incorporate this into
+your BIOS to set up your SIO & CTC for modem use.
+
+( I haven't checked this for port B.  Check SIO documentation
+ if you have problems - and channel A WILL work)
+						  *********/
+
+#define X8BIT	0x60	/* transmit 8 bits */
+#define XDTR	0x80	/* ready to transmit */
+#define XBREAK	0x10	/* transmit a break */
+#define XENABLE 0x08	/* transmit enable */
+#define XRTS	0x02	/* Ready to send */
+#define R8BIT	0xC0	/* receive 8 bits */
+#define R1STOP  0x04	/* receive 1 stop bit */
+#define RENABLE 1	/* receive enable */
+#define R16CLCK 0x40	/* 16 x clock mode */
+#define BAUDPORT 0	/* baud rate generator port (SIO chan A) */
+
+
+init()		/* set up modem port */
+{
+	outp(BAUDPORT, 0x47);		/* set up baud rate */
+	outp(BAUDPORT, 128);		/* (to 300) */
+	outp(CPORT, 4);			/* select SIO reg 4 */
+	outp(CPORT, R16CLCK | 0x04); 	/* 16 clock, 1 stop bit */
+	outp(CPORT, 3);			/* reg 3 */
+	outp(CPORT, R8BIT | RENABLE);	/* 8 bits, read enable */
+	outp(CPORT, 5);			/* reg 5 */
+	outp(CPORT, XDTR | X8BIT | XENABLE | XRTS);
+}
+

@@ -1,0 +1,603 @@
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:
+:          Cross Reference listing of Z-80 Mnemonics      
+:
+:Courtesy of Tim Eliseo
+:		%PCE, 4778 Dewey Dr, Fair Oaks, Ca 95628
+:June 1980
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+     This  document is a cross-reference listing of the  standard 
+Zilog Z-80 mnemonics to the bastardized TDL Z-80 mnemonics.   The 
+TDL  mnemonics  are upward compatible to the standard Intel  8080 
+mnemonics,  making  it  easy  to  upgrade  existing  8080  source 
+programs to the Z-80 CPU.  The only problem is that they are just 
+as illogical as the original 8080 mnemonics, and there is no real 
+standard for them.   These are the mnemonics which are used  with 
+PASCAL/Z  and the assembler that comes with the  package.   These 
+tables   will  make  it  easy  for  the  Z-80  assembly  language 
+programmer to cross reference the non-standard mnemonics.
+     If an asterisk appears in the left-hand column of a line, it 
+means that all of the instructions specified in that line, except 
+those that refer to the Z-80 index registers, are compatible with 
+the 8080.
+     There   are   a  few  instructions  that   require   further 
+clarification.  The TDL assembler mnemonics JV, JNV, CV, CNV, RV, 
+and RNV are synonymous to the 8080 mnemonics JPE,  JPO, CPE, CPO, 
+RPE,  and  RPO  respectively.   These instructions refer  to  the 
+parity/overflow  flag in the Z-80 when it is used as an  overflow 
+flag  and  are not included in 8080 assemblers,  even though  the 
+instructions  will execute on the 8080 but will always  refer  to 
+the  flag as a parity flag (this flag is always a parity flag  in 
+the 8080).
+     Another  instruction which requires clarification is the RST 
+instruction.   In the TDL assembler the operand is a number which 
+is actually the restart address divided by 8,  while in the Zilog 
+assembler the operand is the actual restart address.
+     Following  is a list of the abbreviations that are  used  to 
+reference a group of similar operands.   Notice that although the 
+same  symbol may be used as an operand for both a Zilog  mnemonic 
+and a TDL mnemonic that they may refer to different things.  When 
+two  lists  are given in the following table,  one for the  Zilog 
+assembler and one for the  Z  assembler,  you may assume that the 
+items in each list parallel each other.
+
+
+Symbol	Standard (Zilog) Z-80		Bastardized (TDL) Z-80
+
+r	Register A,B,C,D,E,H, or L	Register A,B,C,D,E,H, or L
+n	One byte value			One byte value
+ii	Index register IX, IY		Index register X or IX, Y or IY
+jj	rr or ii			rr or ii
+d	8-bit index displacement	8-bit index displacement
+zz	Register pair BC or DE		Register pair B or D
+nn	Two byte (address) value	Two byte (address) value
+rr	Register pair BC,DE,HL, or SP	Register pair B,D,H, or SP
+qq	Register pair BC,DE,HL, or AF	Register pair B,D,H, or PSW
+s	r, (HL), or (ii+d)		r, M, or d(ii)
+tt	Register BC,DE,SP, or IX	Register B,D,SP, or X
+uu	Register BC,DE,SP, or IY	Register B,D,SP, or Y
+b	Bit number 0-7			Bit number 0-7
+.PA
+
+            Z-80 instructions arranged by group
+
+
+8080?	Standard (Zilog) Z-80		Bastardized (TDL) Z-80
+
+
+                      8 Bit load group
+
+*	LD	r,s			MOV	r,s
+*	LD	r,n			MVI	r,n
+*	LD	s,r			MOV	s,r
+*	LD	A,(nn)			LDA	nn
+*	LD	(nn),A			STA	nn
+*	LD	A,(zz)			LDAX	zz
+*	LD	(zz),A			STAX	zz
+	LD	A,I			LDAI
+	LD	A,R			LDAR
+	LD	I,A			STAI
+	LD	R,A			STAR
+
+
+
+                     16 Bit load group
+
+*	LD	jj,nn			LXI	jj,nn
+	LD	BC,(nn)			LBCD	nn
+	LD	DE,(nn)			LDED	nn
+*	LD	HL,(nn)			LHLD	nn
+	LD	IX,(nn)			LIXD	nn
+	LD	IY,(nn)			LIYD	nn
+	LD	SP,(nn)			LSPD	nn
+	LD	(nn),BC			SBCD	nn
+	LD	(nn),DE			SDED	nn
+*	LD	(nn),HL			SHLD	nn
+	LD	(nn),IX			SIXD	nn
+	LD	(nn),IY			SIYD	nn
+	LD	(nn),SP			SSPD	nn
+*	LD	SP,HL			SPHL
+	LD	SP,IX			SPIX
+	LD	SP,IY			SPIY
+*	PUSH	qq			PUSH	qq
+	PUSH	ii			PUSH	ii
+*	POP	qq			POP	qq
+	POP	ii			POP	ii
+
+
+
+         Exchange, block transfer, and search group
+
+*	EX	DE,HL			XCHG
+	EX	AF,AF'			EXAF
+	EXX				EXX
+*	EX	(SP),HL			XTHL
+	EX	(SP),IX			XTIX
+	EX	(SP),IY			XTIY
+	LDI				LDI
+	LDIR				LDIR
+	LDD				LDD
+	LDDR				LDDR
+	CPI				CCI
+	CPIR				CCIR
+	CPD				CCD
+	CPDR				CCDR
+
+
+
+             8 bit arithmetic and logical group
+
+*	ADD	A,s			ADD	s
+*	ADD	A,n			ADI	n
+*	ADC	A,s			ADC	s
+*	ADC	A,n			ACI	n
+*	SUB	A,s			SUB	s
+*	SUB	A,n			SUI	n
+*	SBC	A,s			SBB	s
+*	SBC	A,n			SBI	n
+*	AND	A,s			ANA	s
+*	AND	A,n			ANI	n
+*	OR	A,s			ORA	s
+*	OR	A,n			ORI	n
+*	XOR	A,s			XRA	s
+*	XOR	A,n			XRI	n
+*	CP	A,s			CMP	s
+*	CP	A,n			CPI	n
+*	INC	s			INR	s
+*	DEC	s			DCR	s
+
+
+
+      General purpose arithmetic and CPU control group
+
+*	DAA				DAA
+*	CPL				CMA
+	NEG				NEG
+*	CCF				CMC
+*	SCF				STC
+*	NOP				NOP
+*	HALT				HLT
+*	DI				DI
+*	EI				EI
+	IM	0			IM0
+	IM	1			IM1
+	IM	2			IM2
+
+
+
+                  16 bit arithmetic group
+
+*	ADD	HL,rr			DAD	rr
+	ADC	HL,rr			DADC	rr
+	SBC	HL,rr			DSBC	rr
+	ADD	IX,tt			DADX	tt
+	ADD	IY,uu			DADY	uu
+*	INC	jj			INX	jj
+*	DEC	jj			DCX	jj
+
+
+
+                   Rotate and shift group
+
+*	RLCA				RLC
+*	RLA				RAL
+*	RRCA				RRC
+*	RRA				RAR
+	RLC	s			RLCR	s
+	RL	s			RALR	s
+	RRC	s			RRCR	s
+	RR	s			RARR	s
+	SLA	s			SLAR	s
+	SRA	s			SRAR	s
+	SRL	s			SRLR	s
+	RLD				RLD
+	RRD				RRD
+
+
+
+               Bit set, reset, and test group
+
+	BIT	b,s			BIT	b,s
+	SET	b,s			BSET	b,s
+	RES	b,s			RES	b,s
+
+
+
+                         Jump group
+
+*	JP	nn			JMP	nn
+*	JP	Z,nn			JZ	nn
+*	JP	NZ,nn			JNZ	nn
+*	JP	C,nn			JC	nn
+*	JP	NC,nn			JNC	nn
+*	JP	PO,nn			JPO	nn
+*	JP	PE,nn			JPE	nn
+*	JP	P,nn			JP	nn
+*	JP	M,nn			JM	nn
+*	JP	PE,nn			JV	nn
+*	JP	PO,nn			JNV	nn
+	JR	nn			JMPR	nn
+	JR	Z,nn			JRZ	nn
+	JR	NZ,nn			JRNZ	nn
+	JR	C,nn			JRC	nn
+	JR	NC,nn			JRNC	nn
+	DJNZ	nn			DJNZ	nn
+*	JP	(HL)			PCHL
+	JP	(IX)			PCIX
+	JP	(IY)			PCIY
+
+
+
+                   Call and return group
+
+*	CALL	nn			CALL	nn
+*	CALL	Z,nn			CZ	nn
+*	CALL	NZ,nn			CNZ	nn
+*	CALL	C,nn			CC	nn
+*	CALL	NC,nn			CNC	nn
+*	CALL	PO,nn			CPO	nn
+*	CALL	PE,nn			CPE	nn
+*	CALL	P,nn			CP	nn
+*	CALL	M,nn			CM	nn
+*	CALL	PE,nn			CV	nn
+*	CALL	PO,nn			CNV	nn
+*	RET				RET
+*	RET	Z			RZ
+*	RET	NZ			RNZ
+*	RET	C			RC
+*	RET	NC			RNC
+*	RET	PO			RPO
+*	RET	PE			RPE
+*	RET	P			RP
+*	RET	M			RM
+*	RET	PE			RV
+*	RET	PO			RNV
+	RETI				RETI
+	RETN				RETN
+*	RST	n			RST	n/8
+
+
+
+                   Input and output group
+
+*	IN	A,(n)			IN	n
+	IN	r,(C)			INP	r
+	INI				INI
+	INIR				INIR
+	IND				IND
+	INDR				INDR
+*	OUT	(n),A			OUT	n
+	OUT	(C),r			OUTP	r
+	OUTI				OUTI
+	OUTD				OUTD
+	OTDR				OUTDR
+
+
+
+    Z-80 instructions sorted by standard Zilog mnemonics
+
+
+8080?	Standard (Zilog) Z-80		Bastardized (TDL) Z-80
+
+
+*	ADC	A,n			ACI	n
+*	ADC	A,s			ADC	s
+	ADC	HL,rr			DADC	rr
+*	ADD	A,n			ADI	n
+*	ADD	A,s			ADD	s
+*	ADD	HL,rr			DAD	rr
+	ADD	IX,tt			DADX	tt
+	ADD	IY,uu			DADY	uu
+*	AND	A,n			ANI	n
+*	AND	A,s			ANA	s
+	BIT	b,s			BIT	b,s
+*	CALL	C,nn			CC	nn
+*	CALL	M,nn			CM	nn
+*	CALL	NC,nn			CNC	nn
+*	CALL	nn			CALL	nn
+*	CALL	NZ,nn			CNZ	nn
+*	CALL	P,nn			CP	nn
+*	CALL	PE,nn			CPE	nn
+*	CALL	PE,nn			CV	nn
+*	CALL	PO,nn			CNV	nn
+*	CALL	PO,nn			CPO	nn
+*	CALL	Z,nn			CZ	nn
+*	CCF				CMC
+*	CP	A,n			CPI	n
+*	CP	A,s			CMP	s
+	CPD				CCD
+	CPDR				CCDR
+	CPI				CCI
+	CPIR				CCIR
+*	CPL				CMA
+*	DAA				DAA
+*	DEC	jj			DCX	jj
+*	DEC	s			DCR	s
+*	DI				DI
+	DJNZ	nn			DJNZ	nn
+*	EI				EI
+*	EX	(SP),HL			XTHL
+	EX	(SP),IX			XTIX
+	EX	(SP),IY			XTIY
+	EX	AF,AF'			EXAF
+*	EX	DE,HL			XCHG
+	EXX				EXX
+*	HALT				HLT
+	IM	0			IM0
+	IM	1			IM1
+	IM	2			IM2
+*	IN	A,(n)			IN	n
+	IN	r,(C)			INP	r
+*	INC	jj			INX	jj
+*	INC	s			INR	s
+	IND				IND
+	INDR				INDR
+	INI				INI
+	INIR				INIR
+*	JP	(HL)			PCHL
+	JP	(IX)			PCIX
+	JP	(IY)			PCIY
+*	JP	C,nn			JC	nn
+*	JP	M,nn			JM	nn
+*	JP	NC,nn			JNC	nn
+*	JP	nn			JMP	nn
+*	JP	NZ,nn			JNZ	nn
+*	JP	P,nn			JP	nn
+*	JP	PE,nn			JPE	nn
+*	JP	PE,nn			JV	nn
+*	JP	PO,nn			JNV	nn
+*	JP	PO,nn			JPO	nn
+*	JP	Z,nn			JZ	nn
+	JR	C,nn			JRC	nn
+	JR	NC,nn			JRNC	nn
+	JR	nn			JMPR	nn
+	JR	NZ,nn			JRNZ	nn
+	JR	Z,nn			JRZ	nn
+*	LD	(nn),A			STA	nn
+	LD	(nn),BC			SBCD	nn
+	LD	(nn),DE			SDED	nn
+*	LD	(nn),HL			SHLD	nn
+	LD	(nn),IX			SIXD	nn
+	LD	(nn),IY			SIYD	nn
+	LD	(nn),SP			SSPD	nn
+*	LD	(zz),A			STAX	zz
+*	LD	A,(nn)			LDA	nn
+*	LD	A,(zz)			LDAX	zz
+	LD	A,I			LDAI
+	LD	A,R			LDAR
+	LD	BC,(nn)			LBCD	nn
+	LD	DE,(nn)			LDED	nn
+*	LD	HL,(nn)			LHLD	nn
+	LD	I,A			STAI
+	LD	IX,(nn)			LIXD	nn
+	LD	IY,(nn)			LIYD	nn
+*	LD	jj,nn			LXI	jj,nn
+	LD	R,A			STAR
+*	LD	r,n			MVI	r,n
+*	LD	r,s			MOV	r,s
+*	LD	s,r			MOV	s,r
+	LD	SP,(nn)			LSPD	nn
+*	LD	SP,HL			SPHL
+	LD	SP,IX			SPIX
+	LD	SP,IY			SPIY
+	LDD				LDD
+	LDDR				LDDR
+	LDI				LDI
+	LDIR				LDIR
+	NEG				NEG
+*	NOP				NOP
+*	OR	A,n			ORI	n
+*	OR	A,s			ORA	s
+	OTDR				OUTDR
+	OTIR				OUTIR
+	OUT	(C),r			OUTP	r
+*	OUT	(n),A			OUT	n
+	OUTD				OUTD
+	OUTI				OUTI
+	POP	ii			POP	ii
+*	POP	qq			POP	qq
+	PUSH	ii			PUSH	ii
+*	PUSH	qq			PUSH	qq
+	RES	b,s			RES	b,s
+*	RET				RET
+*	RET	C			RC
+*	RET	M			RM
+*	RET	NC			RNC
+*	RET	NZ			RNZ
+*	RET	P			RP
+*	RET	PE			RPE
+*	RET	PE			RV
+*	RET	PO			RNV
+*	RET	PO			RPO
+*	RET	Z			RZ
+	RETI				RETI
+	RETN				RETN
+	RL	s			RALR	s
+*	RLA				RAL
+	RLC	s			RLCR	s
+*	RLCA				RLC
+	RLD				RLD
+	RR	s			RARR	s
+*	RRA				RAR
+	RRC	s			RRCR	s
+*	RRCA				RRC
+	RRD				RRD
+*	RST	n			RST	n/8
+*	SBC	A,n			SBI	n
+*	SBC	A,s			SBB	s
+	SBC	HL,rr			DSBC	rr
+*	SCF				STC
+	SET	b,s			BSET	b,s
+	SLA	s			SLAR	s
+	SRA	s			SRAR	s
+	SRL	s			SRLR	s
+*	SUB	A,n			SUI	n
+*	SUB	A,s			SUB	s
+*	XOR	A,n			XRI	n
+*	XOR	A,s			XRA	s
+
+
+
+   Z-80 instructions sorted by bastardized TDL mnemonics
+
+
+8080?	Standard (Zilog) Z-80		Bastardized (TDL) Z-80
+
+
+*	ADC	A,n			ACI	n
+*	ADC	A,s			ADC	s
+*	ADD	A,s			ADD	s
+*	ADD	A,n			ADI	n
+*	AND	A,s			ANA	s
+*	AND	A,n			ANI	n
+	BIT	b,s			BIT	b,s
+	SET	b,s			BSET	b,s
+*	CALL	nn			CALL	nn
+*	CALL	C,nn			CC	nn
+	CPD				CCD
+	CPDR				CCDR
+	CPI				CCI
+	CPIR				CCIR
+*	CALL	M,nn			CM	nn
+*	CPL				CMA
+*	CCF				CMC
+*	CP	A,s			CMP	s
+*	CALL	NC,nn			CNC	nn
+*	CALL	PO,nn			CNV	nn
+*	CALL	NZ,nn			CNZ	nn
+*	CALL	P,nn			CP	nn
+*	CALL	PE,nn			CPE	nn
+*	CP	A,n			CPI	n
+*	CALL	PO,nn			CPO	nn
+*	CALL	PE,nn			CV	nn
+*	CALL	Z,nn			CZ	nn
+*	DAA				DAA
+*	ADD	HL,rr			DAD	rr
+	ADC	HL,rr			DADC	rr
+	ADD	IX,tt			DADX	tt
+	ADD	IY,uu			DADY	uu
+*	DEC	s			DCR	s
+*	DEC	jj			DCX	jj
+*	DI				DI
+	DJNZ	nn			DJNZ	nn
+	SBC	HL,rr			DSBC	rr
+*	EI				EI
+	EX	AF,AF'			EXAF
+	EXX				EXX
+*	HALT				HLT
+	IM	0			IM0
+	IM	1			IM1
+	IM	2			IM2
+*	IN	A,(n)			IN	n
+	IND				IND
+	INDR				INDR
+	INI				INI
+	INIR				INIR
+	IN	r,(C)			INP	r
+*	INC	s			INR	s
+*	INC	jj			INX	jj
+*	JP	C,nn			JC	nn
+*	JP	M,nn			JM	nn
+*	JP	nn			JMP	nn
+	JR	nn			JMPR	nn
+*	JP	NC,nn			JNC	nn
+*	JP	PO,nn			JNV	nn
+*	JP	NZ,nn			JNZ	nn
+*	JP	P,nn			JP	nn
+*	JP	PE,nn			JPE	nn
+*	JP	PO,nn			JPO	nn
+	JR	C,nn			JRC	nn
+	JR	NC,nn			JRNC	nn
+	JR	NZ,nn			JRNZ	nn
+	JR	Z,nn			JRZ	nn
+*	JP	PE,nn			JV	nn
+*	JP	Z,nn			JZ	nn
+	LD	BC,(nn)			LBCD	nn
+*	LD	A,(nn)			LDA	nn
+	LD	A,I			LDAI
+	LD	A,R			LDAR
+*	LD	A,(zz)			LDAX	zz
+	LDD				LDD
+	LDDR				LDDR
+	LD	DE,(nn)			LDED	nn
+	LDI				LDI
+	LDIR				LDIR
+*	LD	HL,(nn)			LHLD	nn
+	LD	IX,(nn)			LIXD	nn
+	LD	IY,(nn)			LIYD	nn
+	LD	SP,(nn)			LSPD	nn
+*	LD	jj,nn			LXI	jj,nn
+*	LD	r,s			MOV	r,s
+*	LD	s,r			MOV	s,r
+*	LD	r,n			MVI	r,n
+	NEG				NEG
+*	NOP				NOP
+*	OR	A,s			ORA	s
+*	OR	A,n			ORI	n
+*	OUT	(n),A			OUT	n
+	OUTD				OUTD
+	OTDR				OUTDR
+	OUTI				OUTI
+	OTIR				OUTIR
+	OUT	(C),r			OUTP	r
+*	JP	(HL)			PCHL
+	JP	(IX)			PCIX
+	JP	(IY)			PCIY
+	POP	ii			POP	ii
+*	POP	qq			POP	qq
+	PUSH	ii			PUSH	ii
+*	PUSH	qq			PUSH	qq
+*	RLA				RAL
+	RL	s			RALR	s
+*	RRA				RAR
+	RR	s			RARR	s
+*	RET	C			RC
+	RES	b,s			RES	b,s
+*	RET				RET
+	RETI				RETI
+	RETN				RETN
+*	RLCA				RLC
+	RLC	s			RLCR	s
+	RLD				RLD
+*	RET	M			RM
+*	RET	NC			RNC
+*	RET	PO			RNV
+*	RET	NZ			RNZ
+*	RET	P			RP
+*	RET	PE			RPE
+*	RET	PO			RPO
+*	RRCA				RRC
+	RRC	s			RRCR	s
+	RRD				RRD
+*	RST	n			RST	n/8
+*	RET	PE			RV
+*	RET	Z			RZ
+*	SBC	A,s			SBB	s
+	LD	(nn),BC			SBCD	nn
+*	SBC	A,n			SBI	n
+	LD	(nn),DE			SDED	nn
+*	LD	(nn),HL			SHLD	nn
+	LD	(nn),IX			SIXD	nn
+	LD	(nn),IY			SIYD	nn
+	SLA	s			SLAR	s
+*	LD	SP,HL			SPHL
+	LD	SP,IX			SPIX
+	LD	SP,IY			SPIY
+	SRA	s			SRAR	s
+	SRL	s			SRLR	s
+	LD	(nn),SP			SSPD	nn
+*	LD	(nn),A			STA	nn
+	LD	I,A			STAI
+	LD	R,A			STAR
+*	LD	(zz),A			STAX	zz
+*	SCF				STC
+*	SUB	A,s			SUB	s
+*	SUB	A,n			SUI	n
+*	EX	DE,HL			XCHG
+*	XOR	A,s			XRA	s
+*	XOR	A,n			XRI	n
+*	EX	(SP),HL			XTHL
+	EX	(SP),IX			XTIX
+	EX	(SP),IY			XTIY
+

@@ -1,0 +1,191 @@
+Screen # 8
+
+ 0 ( Eratosthenes Sieve Prime Number program in FORTH )
+ 1 ( by Jim Gilbreath, BYTE September 1981 page 190 )
+ 2 FORTH DEFINITIONS DECIMAL
+ 3 8190 CONSTANT SIZE      0 VARIABLE FLAGS        SIZE ALLOT
+ 4 
+ 5 : DO-PRIME      FLAGS SIZE 1 FILL
+ 6                 0 SIZE 0
+ 7                 DO FLAGS I + C@
+ 8                    IF I DUP + 3 + DUP I +
+ 9                         BEGIN DUP SIZE <
+10                         WHILE 0 OVER FLAGS + C! OVER + REPEAT
+11                         DROP DROP 1+
+12                    THEN
+13                 LOOP
+14                 .  ." primes " ;
+15 ;S
+
+Screen # 9
+
+ 0 ( Eratosthenes Sieve Prime Number program for M68K compiler )
+ 1 ( Original by Jim Gilbreath, BYTE September 1981 page 190 )
+ 2 DECIMAL 0 M68CON #0 ( Note.. 0 is used a lot in the following )
+ 3 8190 CONSTANT SIZE      SIZE M68CON SIZE ( Both forms needed )
+ 4 M68VAR FLAGS    SIZE M68ALLOT
+ 5 
+ 6 :M68MAC DO-PRIME FLAGS SIZE 1 LITERAL FILL
+ 7                 #0 SIZE #0
+ 8                 DO FLAGS I + C@
+ 9                    IF I DUP + 3 LITERAL + DUP I +
+10                         BEGIN DUP SIZE <
+11                         WHILE #0 OVER FLAGS + C! OVER + REPEAT
+12                         DROP DROP 1+
+13                    THEN
+14                 LOOP ;M68MAC
+15 -->
+
+Screen # 10
+
+ 0 ( Test program to run the prime number program )
+ 1 HEX 7000. M68INIT ( Open the output file )
+ 2 :M68MAC INIT ( Initialize all the registers )
+ 3         800.    A5LD    ( Load variable pointer )
+ 4         4000.   A6LD    ( Load data stack pointer )
+ 5         7800.   A7LD    ( Load return stack pointer )
+ 6 ;M68MAC
+ 7 DECIMAL
+ 8 :M68K TEST ( Run the prime number test ten times )
+ 9         INIT
+10         10 LITERAL #0 DO DO-PRIME DROP LOOP
+11 ;M68K
+12 M68END ( Close the output file )
+13 ;S
+14 
+15 
+
+Screen # 11
+
+ 0 ( Eratosthenes Sieve Prime Number program improved version )
+ 1 ( Original by Jim Gilbreath, BYTE September 1981 page 190 )
+ 2 DECIMAL 0 M68CON #0 ( Note.. 0 is used a lot in the following )
+ 3 8190 CONSTANT SIZE      SIZE M68CON SIZE ( Both forms needed )
+ 4 SIZE M68CARY FLAGS
+ 5 
+ 6 :M68MAC DO-PRIME #0 FLAGS SIZE 1 LITERAL FILL
+ 7                 #0 SIZE #0
+ 8                 DO I FLAGS C@
+ 9                    IF I 2* 3 LITERAL + DUP I +
+10                         BEGIN DUP SIZE <
+11                         WHILE #0 OVER FLAGS C! OVER + REPEAT
+12                         2DROP 1+
+13                    THEN
+14                 LOOP ;M68MAC
+15 -->
+
+Screen # 12
+
+ 0 ( Test program to run the prime number program )
+ 1 HEX 7000. M68INIT ( Open the output file )
+ 2 :M68MAC INIT ( Initialize all the registers )
+ 3         800.    A5LD    ( Load variable pointer )
+ 4         4000.   A6LD    ( Load data stack pointer )
+ 5         7800.   A7LD    ( Load return stack pointer )
+ 6 ;M68MAC
+ 7 DECIMAL
+ 8 :M68K TEST ( Run the prime number test ten times )
+ 9         INIT
+10         10 LITERAL #0 DO DO-PRIME DROP LOOP
+11 ;M68K
+12 M68END ( Close the output file )
+13 ;S
+14 
+15 
+
+******************************************************************************
+
+	.PROC   PRIME
+;
+;  Eratosthenes Sieve Prime Number program in M68000 assembly language.
+;  This program provides a baseline for evaluating the performance of the
+;  M68K compiler.
+;
+;  Register variables:
+;       D0.. Temporary storage
+;       D1.. Number of iterations
+;       D2.. I - DO loop counter
+;       D3.. P - candidate prime number
+;       D4.. K - array index used with P
+;       D5.. COUNT - number of primes
+;       D6.. SIZE - size of the flags array
+;
+;       A0.. FLAGS - base address of the FLAGS array
+;       A1.. Temporary address register used for initializing FLAGS
+;
+;
+;  Note..
+;       This program does not correspond exactly to the FORTH version but
+;       the algorithm is the same so this should be a fair comparison.
+;       The portions of the FORTH code which correspond to the sections of
+;       assembler code are indicated in the comments.
+;
+;
+SIZE    .EQU    8190
+FLAGS   .EQU    800H            ;Base address of the FLAGS array
+ITER    .EQU    10              ;Number of iterations of the sieve
+;
+	MOVE.W  #ITER,D1
+	MOVE.W  #SIZE,D6
+	MOVEA.W #FLAGS,A0
+	BRA.S   ENDIL           ;Enter the iteration loop at the proper place
+STARTIL                         ;Start of the iteration loop
+;
+;  FORTH code:
+;       FLAGS SIZE 1 FILL
+;
+	MOVEQ   #1,D0
+	MOVE.W  D6,D2           ;Load SIZE into D2
+	MOVEA.L A0,A1           ;Address of element of FLAGS to set
+	BRA.S   $02
+$01     MOVE.B  D0,(A1)+
+$02     DBRA    D2,$01
+;
+;  FORTH code:
+;       0 SIZE 0 DO
+;
+	CLR.W   D5              ;Clear prime counter
+	CLR.W   D2              ;Clear DO loop counter
+DOLOOP
+;
+;  FORTH code:
+;       FLAGS I + C@ IF
+;
+	BTST    #0,0(A0,D2.W)
+	BEQ.S   THEN            ;If false, skip the true part of IF structure
+;
+;  FORTH code:
+;       I DUP + 3 + DUP I +
+;
+	MOVE.W  D2,D3
+	ADD.W   D3,D3
+	ADDQ.W  #3,D3           ;P=I+I+3
+	MOVE.W  D3,D4
+	ADD.W   D2,D4           ;K=P+I
+;
+;  FORTH code:
+;       BEGIN DUP SIZE <
+;       WHILE 0 OVER FLAGS + C! OVER + REPEAT
+;       DROP DROP 1+
+;
+BEGIN   CMP.W   D6,D4
+	BGE.S   $03
+	CLR.B   0(A0,D4.W)
+	ADD.W   D3,D4
+	BRA.S   BEGIN
+$03     ADDQ.W  #1,D5           ;Update prime counter
+;
+;  FORTH code:
+;          THEN
+;       LOOP
+;
+THEN    ADDQ.W  #1,D2
+	CMP.W   D6,D2
+	BLT.S   DOLOOP
+;
+;
+ENDIL   DBRA    D1,STARTIL      ;Repeat for requested number of iterations
+	.END
+,D2
+	CMP.W   D6,D2
+	BLT.

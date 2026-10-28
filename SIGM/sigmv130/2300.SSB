@@ -1,0 +1,13 @@
+2310 ' set or kill r/o file attribute
+2320 ' 1.0
+2330 SETFMD=TESTADDRESS+&HC
+2340 FCB$ = STRING$(8," ")
+2350 FCBNAME$=LEFT$(FCBNAME$,8)
+2360 LSET FCB$ = FCBNAME$
+2370 IF RO%=1 THEN
+	 FCB$= CHR$(0)+FCB$+CHR$(&HA0)+CHR$(&HA0)+" "
+	ELSE
+	 FCB$= CHR$(0)+FCB$+"   "
+2380 CALL SETFMD(FCB$)
+2390 RETURN
+

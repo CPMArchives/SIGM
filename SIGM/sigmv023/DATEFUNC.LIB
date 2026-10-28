@@ -1,0 +1,41 @@
+
+{	Subprogram declarations for date routines compiled separately
+	with DATE.PAS.
+
+	The following types have to be declared globally:
+		TYPE	string255 = string 255;
+			byte = 0..255;
+
+	Note that this library includes declarations for the
+	standard Pascal/Z external routines setlength and length,
+	since both are required by the date routines.
+}
+
+
+PROCEDURE setlength (var y : string0; x : integer); external;
+
+FUNCTION length (x : string255) : integer; external;
+
+PROCEDURE prompt (msg : string255); external;
+
+FUNCTION makedate (msg : string255) : integer; external;
+
+FUNCTION rmakedate (msg : string255; minyr, maxyr : byte) : integer;
+	external;
+
+PROCEDURE brkdate (days : integer; VAR mo, da, yr, weekday : byte);
+	external;
+
+FUNCTION dastrlong (days : integer; withday : boolean) : string255;
+	external;
+
+FUNCTION dastrshort (days : integer; withday : boolean) : string255;
+	external;
+
+FUNCTION strbyte (val : byte; withspace : boolean) : string255;
+	external;
+
+FUNCTION dastrfixed (days : integer; spaces : boolean) : string255;
+	external;
+
+

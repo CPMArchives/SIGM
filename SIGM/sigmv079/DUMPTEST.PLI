@@ -1,0 +1,41 @@
+dumptest: proc options(main);	/* dump procedures tester */
+	%replace
+	   TRUE by '1'b,
+	   FALSE by '0'b;
+
+
+	dcl
+	    odump entry(ptr,fixed(15)),
+	    aodump entry(ptr,fixed(15)),
+	    adump entry(ptr,fixed(15));
+
+
+	dcl
+	    module         fixed(7) static init(0),
+	    length         fixed(15),
+	    adrptr         ptr,
+	    address        bit(16);
+
+	
+	    do while(module < 1 | module > 3);
+	    put skip list('Test: (1) ODUMP, (2) AODUMP, (3) ADUMP ? ');
+	    get list (module);
+	    end;
+
+
+	    do while(TRUE);
+	    put skip list('Enter address: (hexadecimal) ');
+	    get edit (address) (b4(4));
+	    put skip list('Enter length: (decimal) ');
+	    get list (length);
+	    unspec(adrptr) = address;
+	    if module = 1 then
+	        call odump(adrptr,length);
+	    else if module = 2 then
+	        call aodump(adrptr,length);
+	    else
+	        call adump(adrptr,length);
+	    end;
+
+	end dumptest;
+

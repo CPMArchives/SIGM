@@ -1,0 +1,11 @@
+#!/bin/bash
+
+#output=lbrdates2
+#[ -f $output ] && rm $output
+for i in {001..310}; do
+  lines=$(ls sigmv$i/*.LBR > /dev/null 2>&1 && ls sigmv$i/*.LBR -1)
+  for j in $lines; do 
+    printf "%-22s%-10s%10s\n" "$j" "$(mlbr $j | grep -v 'CRC is bad' | head -2 | tail -1 | cut -b63-74)" "$(ls -l --time-style=full-iso $j | cut -b25- | cut -d' ' -f2)"
+    mlbr $j | tail -n+2
+  done
+done

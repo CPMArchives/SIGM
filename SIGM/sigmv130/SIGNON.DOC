@@ -1,0 +1,765 @@
+release 1.2    9/29/82
+               *******************************
+               *                             *
+               *                             *
+               *        s i g n o n          *
+               *                             *
+               ª      ó õ â ó ù ó ô å m      *
+               *                             *
+               *            by               *
+               *                             *
+               *        dick  lieber         *
+               *                             *
+               *                             *
+               *******************************
+
+
+Thå  SIGNOÎ  Subsysteí ió á numbeò oæ prograí moduleó thaô  allo÷ 
+selectivå accesó tï anä controì oæ useró iî aî RCPÍ system®   Thå 
+entrù modulå (SIGNON.BAS© ió similaò tï tï thå RBBÓ entrù  modulå 
+RBBENT.BAS.
+
+                      Subsystem Highlights
+
+===> Allows selective access to an RCPM system.
+
+===> Password protection of users.  Passwords are encrypted.
+
+===¾ Bauä ratå selectioî froí thå SIGNOÎ menu®  (Distributioî 
+     version supports PMMI.  But other modems may be supported
+     by writing one new routine.
+
+===> Adjusô maximuí drive¬  useò etc®  iî BYE®  Parameteró maù bå 
+     assigneä  tï  eacè accesó level®   Provideó foò  futurå  BYÅ 
+     options.   NZCPR WHEEL function optional supported by access
+     level.
+
+===> Menu driven configuration and manager modules.
+
+===> Allows archive backup of caller and comment logs.
+
+===> Archive backups of deleted users may also be kept.
+
+===> Time and date interfaces are seperate linkable modules,
+     major modules need not be changed for many systems.
+
+===> Supports BYE81.ASM to update user's records even if carrier
+     is lost or user signs off improperly. 
+
+===> Searcheó messagå subsysteí SUMMARÙ filå tï announcå thaô thå 
+     user has messages waiting.
+
+===> System sends comments to SYSOP on various error conditions.
+
+
+Š
+The subsystem consists of the following programs:
+
+     Three or four used by the user:
+
+          SIGNON.BAS     The entry module
+
+          TOS.BAS
+                         Nameä TOÓ (Timå Oî System© tï bå consis
+                         tenô witè otheò RCPÍ entrù systems®  Thå 
+                         useò   maù  ruî  TOÓ  tï  determinå  thå 
+                         elapseä  timå oî thå system®   Thå  useò 
+                         caî alsï enteò commentó tï thå sysop.
+
+          NOTE:  Either EXIT.BAS  is used or the combination of
+                         BYECMD.BAS and FINISH.BAS
+
+          EXIT.BAS       (usually run as BYE.COM)
+                         Useä tï sign-ofæ thå system® Thå useò ió 
+                         tolä  ho÷ lonç hå waó oî anä ió  alloweä 
+                         tï leavå comments®   Controì ió returneä 
+                         tï BYÅ iî higè memory®  EXIT.BAÓ ió useä 
+                         with BYE79 and lower BYE versions.  
+                         {EXIT.BAÓ  ió  noô parô oæ thå  standarä 
+                         SIGNOÎ  distributioî  package¬   buô  ió 
+                         available on the Bridgeport RCPM.}
+
+          BYECMD.BAS     (usually run as BYE.COM) 
+                         Ió  ruî wheî thå useò wisheó tï sigî ofæ 
+                         oæ thå system®   Á texô filå messagå  ió 
+                         optionallù  presenteä  anä thå  useò  ió 
+                         askeä  iæ  á commenô  ió  desired®   Thå
+                         modeí ió theî disconnected¬ allowinç BYÅ 
+                         to run the FINISH program.
+
+
+          FINISH.BAS     Updateó thå USERÓ anä CALLERÓ fileó wheî 
+                         thå  useò signó off®   FINISÈ ió  loadeä 
+                         anä  executeä  bù thå BYE8°  (oò  later© 
+                         when carrier is lost.
+
+
+     Four used by the SYSOP in normal operation:
+
+          CONFIG.BAS
+          CNGF1.BAS
+                         Allowó settinç configuratioî parameters
+                         anä  sysop'ó passwords®   Musô  bå  ruî 
+                         before any other signon modules! 
+
+                         CNFG1.BAÓ  ió  ruî aó CNFG1.OVÒ  anä  ió 
+                         used by CONFIG as an overlay.
+
+          POSYS.BAS
+                         {SYSOP spelled backwards, get it!}Š                         Thå Subsysteí manager®   Useä tï  managå 
+                         thå CALLERÓ files®   Alsï allowó editinç 
+                         individuaì  users®   Actó aó á routeò tï 
+                         otheò subsysteí manageò modules.
+.cp7
+          USRMAINT.BAS
+                         Useä  tï removå deleteä users¬  reorderó 
+                         useró  anä  caî  optionallù  deletå  olä 
+                         useró  whï haven'ô useä thå systeí iî  á 
+                         while.                                   
+          
+          COMRG.BAS
+                         Thå commentó manager®   Allowó SYSOĞ  tï 
+                         view¬   deletå   anä  makå  archiveó  oæ 
+                         comments®
+
+     Used by SYSOP to set up the system:
+
+          TMODTEST.MAC   Á tesô driveò tï checë ouô thå real-timå 
+                         clock module (TMOD.MAC).
+
+          MFIL.BAS       Generateó  tesô versionó oæ alì  oæ  thå 
+                         text files that are needed.
+
+          CONVRBB.BAS    Convertó  thå  USEÒ  filå  produceä   bù 
+                         RBBENT27.BAÓ  tï  á formaô foò uså  witè 
+                         SIGNON®   Allowó foò TWITS¬  REGULAÒ anä 
+                         SPECIAÌ  useró tï bå  assigneä  specifiã 
+                         accesó levels.  See CONVRBB.DOC.
+
+          DRIVER.MAC     Useä   tï  interfacå  assemblù  langaugå 
+                         moduleó    witè   moduleó    whilå    iî 
+                         interprter®  {Noô normallù used¬ anä noô 
+                         parô   oæ  distributioî   package¬   buô 
+                         available on Bridgeport RCPM.}
+
+     Submit files to aid in setting up the system:
+
+          MAKELIB.SUB    Generateó  thå SIGNLIB.REÌ filå foò  uså 
+                         when linking or using LOADRIVE.SUB.
+
+          COMPILE.SUB    Compileó  anä linkó anù onå SIGNOÎ  Sub
+                         systeí basiã module.
+
+          JOB.SUB        Compileó  anä  linkó thå  wholå  system®  
+                         Requireó Supeò Submit.
+
+          LOADRIVE.SUB   Stickó thå assemblù langaugå moduleó anä 
+                         driveò  intï  higè  memorù  sï  programó 
+                         runninç  iî  thå  interpreteò  caî  finä 
+                         them® NOTEº Thå loaä addresó musô bå seô 
+                         tï  matcè  á freå areá oæ  raí  iî  youò 
+                         system®   Usuallù thå samå placå BYE.COÍ 
+                         runó  at®  {Noô normallù used¬  anä  noô 
+                         parô oæ distributioî package¬ buô avail
+                         ablå oî Bridgeporô RCPM.}Š
+
+     Files linked to various SIGNON Subsystem modules:
+
+          TMOD.MAC       Thió  modulå  returî thå systeí timå  oæ 
+                         daù  clock®   Iô musô bå  rewritteî  foò 
+                         youò  owî  hardwarå  clock¬  unlesó  yoõ 
+                         happeî tï havå á CompuPrï Systeí Supporô 
+                         Onå  Board®   Easù  tï modifù foò  otheò 
+                         clockó  usinç  thå  OKÉ 583²  clocë  IC®  
+                         TMODSCI.MAÃ ió á versioî oæ TMOD.MAÃ foò 
+                         the SciTronics clock.
+
+          USERMD.MAC     Allowó  SIGNOÎ programó tï  changå  cp/í 
+                         2.² useò numbers.
+
+          SETFMD.MAC     Allows SIGNON programs to change cp/m
+                         files attribute flags.
+
+          SELDSK.MAC     Changes default drive.
+
+
+     Routineó  useä  bù onå oò morå moduleó  anä  "%INCLUDEd¢  aô 
+     compilå time.
+
+          *.SSB          
+                         Theså fileó nameä witè thå numbeò oæ thå 
+                         routinå foò thå filå name®  Foò aî exacô 
+                         index to these files see the file:
+
+                                   SIGNDISK.CAT
+
+
+     These files are produced and maintained by the subsystem:
+
+          USERS          Thió ió thå rosteò oæ users®  Therå ió á 
+                         headeò recorä followeä byå á recorä  foò 
+                         eacè    useró    witè   thå    followinç 
+                         information:
+
+                              First name
+                              Last name
+                              Location
+                              Access level
+                              Count of signons
+                              Last date of use
+                              Last time of use
+                              Length of last signon
+                              Password
+                              Flags Byte 
+
+          .USR           Archiveó    oæ   deleteä   useró    (egº 
+                         12/20/81.USÒ oò 06-15-82.USR)
+
+          USER.          UBK       Backup of the last USER file. Š
+
+          CALLERS        This is the log of callers with:
+                              
+                              First name
+                              Last name
+                              Date of use
+                              Time of use
+                              Notatioî  froí systeí (new¬  denieä 
+                              etc)
+
+          .CLR files are archiveó oæ calleró (egº 12/20/81.CLR)
+
+
+          COMMENTS       Commentó  arå lefô bù useró  aô  variouó 
+                         pointó  withiî thå subsystem®
+
+          .CMT files are archiveó  oæ  olä  comments®   Theù  arå 
+                         usefuì   foò  transferinç  commentó   tï 
+                         messageó etc.
+.cp8                         
+          
+          pwds           Thió ió thå configuratioî file®  Variouó 
+                         parameteró  arå storeä herå  alonç  witè 
+                         thå sysop'ó passwords®  Thå nameó oæ thå 
+                         messagå  texô  fileó  arå  storeä  here®  
+                         Alsï  thå useò numbeò oæ  thå  ancillarù 
+                         fileó  ió  herå to®   Thå filå ió  saveä 
+                         witè  read/onlù  anä systeí  flagó  set®  
+                         Thå loweò caså namå preventó anù oæ  thå 
+                         standarä cp/í  utilitieó froí viewinç oò 
+                         altering.
+
+                         Thió filå maù bå deleteä witè SWEEP.COM¬ 
+                         DUU.COÍ oò á similaò utility.
+
+LASTCALR       Thió  ió  thå  outpuô  oæ  SIGNON®   Thå 
+                         following information is stored:
+
+                              First name
+                              Last name
+                              Datå oæ signon
+                              Time of signon
+                              Access level
+                              Flags byte
+
+                         {Thå  flagó  bytå wilì bå useä iî futurå 
+                         versionó oæ signon.}
+                                   
+
+     These are the default names for the the message file:
+               (these names may be changed by CONFIG)
+          
+          BULLETIN       Thió  ió showî righô afteò  thå  welcomå 
+                         message.  
+Š          NEWCOM         Shown the first time a user signs on.
+
+          NOACC          Showî  tï  á non-useò attemptinç  accesó 
+                         wheî  ne÷  useró arå noô alloweä  oò  iæ 
+                         access is denied for any reason.
+
+          SUCESS         Thió  ió showî righô afteò thå useò  haó 
+                         been "signed on".
+
+          OPTION         Thå useò ió askeä iæ hå woulä likå  thió 
+                         information®  Thå questioî ió entereä iî 
+                         CONFIG.
+
+          INSTRUCT       Thió  filå  ió  displayeä  jusô   beforå 
+                         entering cp/m.
+
+     Bringing up SIGNON:
+
+          Iæ  yoõ caî wait¬  thå firsô thinç tï dï ió tï geô TMOÄ 
+          working®   Thió  shoulä  bå thå onlù thinç  thaô  mighô 
+          requirå  extensivå changes®   Yoõ caî linë TMODTESÔ  tï 
+          your customized TMOD to test the module.
+
+          Oncå  TMOÄ ió working¬  assemblå thå resô oæ  thå  .MAÃ 
+          files®  Theî ruî thå submiô filå MAKELIB.SUÂ tï builä á 
+          librarù oæ thå modules®  Thió requireó LIB.COM
+
+          Submiô thå JOB.SUÂ file®   Thió requireó SUPERSUB®   Iæ 
+          yoõ  don'ô  havå  SUPERSUBMIÔ anä  musô  DRI'ó  SUBMIT¬ 
+          you'lì  havå tï submiô eacè filå foò compilation®   Foò 
+          example:
+                    
+                         A>SUBMIT COMPILE SIGNON
+
+          To compile the entry module SIGNON.
+
+          JOB.SUÂ takeó á considerablå amounô oæ timå tï run¬ thå 
+          exacô  timå will¬  oæ course¬  varù witè MPÕ  anä  disë 
+          speed®   Note¬  thaô therå maù noô bå enougè rooí oî  á 
+          singlå sideä, singlå densitù drive.
+
+          Witè  alì oæ thió done¬  yoõ caî ruî CONFIG.COM®   Plaù 
+          with CONFIG a bit.
+
+          Ruî thå prograí MFIL.BAÓ tï producå samplå texô  files¬  
+          theså  fileó makå iô easù tï telì whaô SIGNOÎ ió doing®  
+          Yoõ wilì ediô theså fileó tï contaiî whateveò texô  yoõ 
+          desire once you get the hang of it.
+
+          The rest of the modules can be run.  
+
+
+     Running the Subsystem:
+
+          SIGNON.COÍ itself¬ ió usuallù loadeä bù BYE®  It'ó namå Š          ió  ofteî  changeä sï thaô á useò can'ô  jusô  ruî  it®  
+          SIGNON.COÍ  musô bå kepô iî USEÒ ° aó BYÅ leaveó yoõ iî 
+          thå  useò  areá wherå iô loadó thå .COÍ filå  froí  anä 
+          SIGNON.COÍ musô finä thå pwdó filå iî thå currenô  useò 
+          areá  becauså iô can'ô changå useò areaó untiì iô findó 
+          pwds.
+
+          EXIT.COÍ  ió usuallù renameä BYE.COM®   Thå actuaì  BYÅ 
+          programí must¬  oæ course¬   bå remaneä somethinç otheò 
+          thaî  BYE.COM®   Thå  reaì BYÅ ió onlù envokeä  bù  thå 
+          SYSOĞ tï starô thå systeí wheî usinç SIGNON.
+
+          BYECMD.COÍ  anä TOS.COÍ musô bå availablå froí anù useò 
+          areá oî anù drive®  Iæ runninç thå ZCPÒ replacemenô foò 
+          thå standarä CCP¬  you'rå alì set®   Howeveò theså  twï 
+          programó  cannoô finä thå ruî timå modulå (BRUN© iæ thå 
+          useò  waó  iî á useò areá otheò thaî 0®   Thió  caî  bå 
+          solveä  bå  usinç thå SECURITY.ASÍ prograí  whicè  getó 
+          configureä  tï  loaä anä ruî BYECMÄ (oò EXIT©  oò  TOS®  
+          Yoõ might¬  foò example¬ renamå TOS.COÍ aó XTOS.COÍ anä 
+          leavå  iô  iî useò ° oî drivå A®   Witè  á  versioî  oæ 
+          SECURITÙ oî Aº  iî useò areá 0¬  renameä aó TOS.COM¬  á 
+          useò  anywherå iî thå systeí coulä typå TOS®   SECURITÙ 
+          woulä geô control¬  changå thå drivå anä useò tï  wherå 
+          XTOS.COÍ  is®   XTOS.COÍ  woulä bå loadeä  anä  controì 
+          passeä tï it.
+
+          Thå  utilitù fileó POSYS.COM¬  CONFIG.COÍ  (anä  .OVR)¬ 
+          COMGR.COÍ anä USRMAINT.COÍ arå usallù kepô oî á speciaì 
+          disk thaô runó iî B:®   Yoõ probablù don'ô wanô tï keeğ 
+          theså  fileó  oî  linå  eveî thougè theiò  uså  maù  bå 
+          restricteä witè á CONFIÇ optioî tï onlù thå SYSOP.
+
+          Iô  ió  expecteä thaô mosô SYSOPó wilì uså  BYECMÄ  anä 
+          FINISÈ ratheò thaî EXIT®   Wheî testinç witè BYECMÄ anä 
+          FINISH¬  BYECMÄ doesn'ô updatå anù files¬  it'ó primarù 
+          purposå ió tï disconnecô thå modeí sï thaô BYÅ caî  ruî 
+          FINISH¬  whicè updateó thå useró records® 
+
+          Iæ  yoõ executå BYECMD.COÍ wheî BYÅ ió noô iî  control¬ 
+          the system will get stuck in a loop printing:
+
+               Waiting for disconnect.................
+
+          Yoõ  wilì  havå tï tï á hardwarå reseô tï  geô  ouô  oæ 
+          this.
+
+
+The SYSOP
+
+          Thå SYSOĞ ió thå manageò oæ thå system®  CONFIG¬ POSYS¬ 
+          COMGÒ anä USRMAINÔ will¬  optionally¬   noô functioî iæ 
+          thå SYSOĞ ió noô iî LASTCALR.
+
+          Thå SYSOĞ signó oî bù usinç á specifiã  firsô anä  lasô Š          name®   Iæ  thå firsô anä lasô namå matcheó thaô oæ thå 
+          SYSOP¬  SIGNOÎ theî askó foò á password®   Foò  examplå 
+          the default first and last name for the SYSOP is:
+
+                    first name:    PASS1
+
+                    last name:     PASS2
+
+          Iæ  theså  twï  nameó  matcè thå useò ió  askeä  foò  á 
+          password.  The default SYSOP password is:
+
+                              PASS3
+
+          Iæ alì oæ thió matched¬  thå useró ió signeä oî aó  thå 
+          SYSOP®   Thå  namå  SYSOĞ replaceó thå firsô  anä  lasô 
+          names used while signing on.
+
+          Thå  SYSOĞ passworä ió onlù askeä foò iæ thå firsô  anä 
+          lasô nameó match®   Anyonå tryinç tï guesó thå passworä 
+          woulä  firsô havå tï kno÷ thå SYSOĞ firsô anä lasô namå 
+          to even be asked the password.
+
+          Thå  wordó  PASS1¬  PASS²  anä PASS³  arå  replaceä  aó 
+          desired by the SYSOP.
+
+Passwords
+
+          Wheneveò  thå  systeí requestó á  password¬  á  speciaì 
+          strinç  inpuô  routinå ió used®   Thió routinå echoó  á 
+          randoí  numbeò  oæ Xó foò eacè  keù  pressed®   Someonå 
+          watchinç  oveò youò shouldeò can'ô eveî telì  ho÷  lonç 
+          thå passworä is®   Thå Xó dï givå á positivå indicatioî 
+          tï  thå  useò  thaô thå keù  haó  beeî  accepted®   Thå 
+          passworä inpuô routinå treató upper¬  loweò anä controì 
+          characteró  thå  same®  Thuó thå systeí treató  alì  oæ 
+          theså thå same:
+
+                         PASSWORD
+
+                         Password
+
+                         PASSWOR^D
+
+          Á  limiteä  numbeò  oæ  guesseó  arå  alloweä  foò  thå 
+          passwordó  (botè useò anä SYSOP)®   Thió numberó ió seô 
+          with CONFIG.
+
+          Therå  ió nï meanó withiî anù oæ thå subsysteí  moduleó 
+          tï seå á password®   Passwordó caî bå changeä buô neveò 
+          viewed®   Pleaså  don'ô  trù  tï writå á  utilitù  thaô 
+          displayó  passwords®   Iæ  á useò forgetó  hió  oò  heò 
+          password, it should be blanked or a new one assigned.
+
+          Thå  SYSOĞ  musô havå á password®   Useró musô  havå  á 
+          passworä  iæ  theiò  accesó leveì ió  abovå  á  certaiî Š          maximuí level®  Thió leveì ió seô usinç CONFIG.
+
+          Thå  SYSOP'ó  passworä  (anä names© arå seô  onlù  witè 
+          CONFIG®   Useró  requirinç  á  passworä  caî  havå  thå 
+          passworä  seô bù thå SYSOĞ oò thå useò caî  selecô  hió 
+          owî  passworä thå firsô timå hå signó oî oò  afteò  hió 
+          accesó  leveì  ió raiseä abovå á  non-passworä  maximuí 
+          (seå Accesó Levels).
+
+Access levels
+
+          Eacè  useò  ió assigneä aî accesó  level®   Thå  accesó 
+          leveì  ió  useä  bù  progamó  outsidå  oæ  thå   SIGNOÎ 
+          Subsysteí  tï  allo÷ oò denù accesó  tï  variouó  otheò 
+          programó  oæ  systeí features®   Thå accesó  leveì  is¬ 
+          optionally¬  pokeä  intï lo÷ raí sï thaô aî applicatioî 
+          prograí  caî  determinå thå accesó leveì  oæ  thå  useò 
+          without reading LASTCALR. 
+
+          SIGNOÎ  doeó  makå  severaì useó oæ thå  accesó  level®  
+          CONFIÇ seô á maximuí accesó leveì thaô doeó noô requirå  
+          á password®   Thuó severaì leveló oæ accesó maù bå  seô  
+          thaô dï noô requirå á password®  Variouó parameteró maù  
+          bå  seô  foò eacè accesó  level®   SIGNON,  optionally¬ 
+          pokeó  theså   parameteró  intï BYE'ó  variableó  forº                    
+
+                                                                   
+                         Maximum drive                             
+                         Maximum user area number                  
+                         Total time                                
+
+          Optionallù  SIGNOÎ wilì pokå NZCPR'ó WHEEÌ addresó witè 
+          á  valuå  tï makå useò 1µ thå DFÕ  anä  enablå  certaiî 
+          built-iî  commandó foò privledgeä useró aó specifieä iî 
+          CONFIG. 
+                                                                   
+          Provisioî   ió   alsï  madå  foò  severaì  futurå   BYÅ  
+          parameters®                                              
+          
+          Useró  witè  leveló abovå thå maximuí arå  requireä  tï 
+          havå  á  password®   Theså useró  arå giveî á  menõ  oæ 
+          optionó beforå beinç droppeä intï CP/M®   Thå useò  maù 
+          changå hió passworä froí thió menu.
+
+          Ne÷  useró arå assigneä accesó leveì 0®   Thå SYSOĞ maù 
+          changå thå accesó leveì oæ á useò bù usinç POSYS.
+
+Input Editing
+
+          Mosô  oæ thå standarä inpuô editinç controì  characteró 
+          are implimented including ^R, ^U, ^X.
+
+User Editor
+
+          Thå  useò editoò portioî oæ POSYÓ ió useä tï enteò  ne÷ Š          useró intï thå system¬  deletå useró anä changå certaiî 
+          information about the user.
+
+          Notå  thaô thå SYSOP'ó recorä maù bå  changed¬  howeveò 
+          thå  SYSOP'ó passworä anä accesó leveì arå noô obtaineä 
+          froí  thå  USEÒ filå buô froí thå "pwds¢  configuratioî 
+          filå aó seô bù CONFIG.
+
+          Passwordó  maù bå changeä oò deleteä buô noô displayed®  
+          Thå user'ó passworä wilì eitheò bå displayeä as:
+
+                         *************
+
+          if a password exists or like this:
+
+                         -------------
+
+          if none has been choosen yet.
+
+          Á  user¬  oò morå properlù non-useò maù bå flaggeä aó á 
+          "TWIT"®   Twitó arå loggeä ofæ thå system®  Howeveò thå 
+          attempteä uså ió loggeä iî botè  thå USERÓ anä  CALLERÓ 
+          files.
+
+New User Qualification
+
+          Optionally¬  ne÷  useró arå askeä á qualificatioî  tesô 
+          question®   Thió  questioî  ió designeä tï  helğ  limiô 
+          access in open access systems.
+
+          The default question is:
+
+          "Whaô  ió  thå  namå  oæ  Digitaì  Research'ó  standarä 
+          debugger?"
+
+          Two answers may be specified, default answers are:
+
+                         DDT and SID
+
+          Thió  tesô  maù  optionallù bå requireä  foò  anù  useò 
+          withouô  á  passworä  (seô bù CONFIG©  eacè  timå  theù 
+          signon.
+
+
+COMMENTS
+
+          Useró  maù leavå commentó tï thå SYSOĞ aô variouó poinô 
+          iî thå interactioî witè thå SIGNOÎ Subsystem.
+
+          Thoså  witè passwordó maù leavå commentó aô thå  signoî 
+          menu.
+
+          Anù useò maù leavå á commenô froí thå TOÓ (SIGNTOS.BAS© 
+          module®   Thå thå time¬ date¬ elapseä timå anä á chancå 
+          tï  leavå  á commenô arå giveî thå user®Š
+          Commentó  maù bå lefô froí EXIÔ oò BYECMD®  Note¬  thaô 
+          these files are normally renamed BYE.COM.
+
+          Commentó  maù onlù bå reaä bù thå SYSOP®   Thió ió donå 
+          iî  COMGR®   Thå SYSOĞ maù deletå commentó oò  makå  aî 
+          archivå  filå  oæ thå comments®   Thå archivå  commentó 
+          fileó receivå á filå namå consistinç oæ thå datå witè á 
+          filå typå oæ ".CMT"®   ".CMT¢ fileó maù bå editeä  witè 
+          standarä CP/Í editoró (ED¬ Wordmasteò etc.)
+
+          Archive comments files may be displayed using POSYS.
+
+          Variouó  erroò conditionó wilì producå  á  comment¬  to 
+          aid the SYSOP in finding problems.
+
+
+USER 
+
+          Thå USEÒ filå ió thå rosteò oæ users¬  iô ió maintaineä 
+          bù thå SYSOĞ usinç thå individuaì editoò iî POSYS® Filå 
+          widå changeó arå madå witè USRMAINT®  Thå followinç maù 
+          bå changed by POSYS:
+
+                         First Name
+                         Last Name
+                         Location
+                         Access Level
+                         Password
+
+          Thå  followinç  ió maintaineä bù thå subsysteí anä  maù 
+          only be viewed in the individual editor:
+
+                         Signon Count
+                         Last Date of Use
+                         Last Time of Use
+.cp5
+          USEÒ recordó maù bå deleteä anä "un-deleted"®  USRMAINÔ 
+          caî  bå useä tï physicallù removå deleteä recordó  froí 
+          thå filå USER®   Theså deleteä recordó maù bå senô tï á 
+          deleteä  USEÒ archivå file®   Thå fileó arå nameä  witè 
+          thå datå anä á filå typå oæ ".USR".
+
+          USRMAINÔ  maù  bå useä tï removeä recordó  flaggeä  foò 
+          deletion¬  deletå  useró whï havå onlù calleä iî á  fe÷ 
+          times®  Iô caî alsï vie÷ thå USEÒ anä ".USR¢ files.
+
+CALLERS 
+
+          Thå CALLERÓ filå ió á loç oæ useró whï havå signeä ontï 
+          thå  system®   Thå followinç informatioî ió storeä  foò 
+          each caller:
+
+                         First Name
+                         Last Name
+                         Date of SignonŠ                         Time of Signon
+                         Time on System
+                         Notation
+
+          Thå Notatioî ió madå bù SIGNON®   Exampleó oæ notationó 
+          are:
+
+                    normal    most signons have this note
+                    denied    a new user attempt (if unallowed)
+                    new       a first time user (sucessful)
+                    twiô      á  useò loggeä ofæ aó á  twiô  (bù 
+                              SIGNON)
+
+          Thå  CALLERÓ filå maù bå viewed¬  bù thå  SYSOP¬  usinç 
+          COMGR.   Thå filå maù bå cleareä (thå signoî counteò ió 
+          kept)®   Thå  calleró maù bå writteî tï archivå  files®  
+          Thå  archiveó  havå thå datå foò thå filå namå  witè  á 
+          filå  typå  oæ ".CLR"®   ".CLR¢ fileó maù bå vieweä  bù 
+          COMGR.
+
+System utilities Access
+
+          CONFIG¬ POSYS¬ COMGÒ anä USRMAINÔ probablù shouldn'ô bå 
+          lefô  uğ  oî  thå systeí  howeveò  somå  operatoró  maù 
+          requirå remotå access®   Theså files¬ optionally¬  looë 
+          foò  thå  filå LASTCALÒ anä checë thaô thå useò ió  thå 
+          SYSOP®  
+
+          Alì  buô  CONFIÇ wilì simplù returî tï thå CCĞ  iæ  thå 
+          tesô fails®  CONFIÇ wilì asë foò á passworä iæ LASTCALÒ 
+          ió noô present®  Thå passworä ió SIGNOÎ anä shoulä onlù 
+          bå needeä foò intiallù settinç uğ thå subsystem®  
+
+          CONFIÇ  wilì  onlù  asë  foò thå  startuğ  passworä  iæ 
+          LASTCALR does not exist.  
+
+.cp9
+New Users
+          
+          Ne÷  useró arå optionallù allowed®   Iæ ne÷  useró  arå 
+          noô  alloweä thå subsysteí maù bå configureä tï presenô 
+          á  messagå  typå  filå tï explaiî whù  accesó  waó  noô 
+          alloweä  anä  perhapó bå giveî instructionó oî  ho÷  tï 
+          becomå  á  user®   Denieä ne÷ useró maù bå  alloweä  tï 
+          leave comments to the SYSOP.
+
+          All of these features are selected using CONFIG.
+
+          Ne÷ useró arå askeä foò theiò locatioî anä maù bå askeä 
+          á   qualificatioî  questioî  beforå  beinç  alloweä  tï 
+          signon®   POSYÓ  maù bå useä tï instrucô SIGNOÎ tï  asë 
+          for the location again for an individual user.
+
+          Ne÷ useró arå assigneä thå accesó leveì 0®  Thió maù bå 
+          changed by the SYSOP using POSYS.
+Š
+Message Files
+
+          Severaì  messagå  fileó  maù bå presenteä tï  useró  aô 
+          variouó timeó thoughouô thå useró interactioî witè  thå 
+          system.
+
+          Thå  nameó  oæ  theså  fileó maù bå  changeä  froí  thå 
+          defaultó usinç CONFIG®   Anù filå maù bå seô sï thaô iô 
+          is not even looked for.
+
+          SIGNOÎ wilì noô diå iæ anù oæ theså messagå  fileó  arå 
+          missing.
+
+          CONFIÇ  maù  bå useä tï disablå thå printinç oæ alì  oæ 
+          thå  messagå typå files®   Thió ió usefuì wheî  testinç 
+          thå  subsystem®   Theù  shoulä bå  turneä  oî  wheneveò 
+          the SIGNON subsystem is "on-line".
+
+          Theså fileó arå createä anä maintaineä usinç anù oæ thå 
+          CP/M compatable editors (ED, Wordmaster etc.).
+
+
+BYE interface
+
+          Optionallù  SIGNOÎ caî pasó severaì parameteró  tï  thå 
+          BYÅ prograí (runninç iî higè memory)®  Currently¬ threå 
+          parameters are passed:
+
+               Maximum user        Thió ió thå highesô useró areá 
+                                   that the user may access.
+
+               Maximum drive       Highesô  drivå  thaô thå  useò 
+                                   may acccess.
+
+               Total time          Time to allow sleepy callers.
+
+          Therå   arå  provisionó  foò  passinç  twï   additionaì 
+          parameters.
+
+          Thió waó testeä witè BYE79.ASM¬  buô wilì probablù worë 
+          with other later versions of BYE with little change.
+
+          Thå  EXIT.BAÓ modulå useó thå RBBSCË optionalù  featurå 
+          oæ  BYE.ASÍ tï disablå thå carrieò losó detecô  featurå 
+          oæ  BYÅ  sï  thaô  EXIÔ caî updatå alì  oæ  it'ó  fileó 
+          withouô  problemó iæ thå calleò hangó uğ  afteò  typinç 
+          "bye".
+
+          Alì  oæ  thå moduleó thaô interfacå witè BYÅ tesô  thaô 
+          BYÅ ió loadeä bù lookinç foò thå worä "BYE¢ aô 1± byteó 
+          pasô thå beginninç oæ BYE®  Iæ runninç á versioî oæ BYÅ 
+          otheò  thaî BYE7¹ thå offseô maù havå tï bå changeä  iî 
+          subroutineó 500° iî SIGNON.BAÓ anä EXIT.BAS®  Iæ BYÅ ió 
+          noô founä thå messagå "nï BYE¢ wilì bå displayed®  Thió Š          wilì alwayó happeî iî thå interrupter.
+
+Editing
+Data Files
+          Alì  oæ thå datá fileó anä archiveó maù bå editeä  witè 
+          standarä  editors®   Takå speciaì carå iæ yoõ feeì  yoõ 
+          musô ediô USERS¬  CALLERS¬  COMMENTÓ oò anù oæ thå .UBË 
+          oò .USÒ files®  Theså fileó havå headeò records®  Theså 
+          headeró contaiî pointeró anä otheò criticaì datá needeä 
+          for the operation of the subsystem.
+
+          There shouldn't be any need to edit these.  But...
+
+
+Future modules
+
+          É hopå tï writå á fe÷ morå moduleó foò thå subsystem¬ á 
+          compatiblå message subsystem will be the next project.
+
+          Thå abilitù tï leavå personaì messageó thaô á useò wilì 
+          seå  wheî hå signó oî wilì bå incorporateä iî á  futurå 
+          version®  Thió  personaì messagå featurå wilì wilì  uså 
+          much of message subsystem.
+
+          Á prograí tï gatheò statisticó abouô systeí uså wilì bå 
+          added®   Leô må kno÷ whaô informatioî yoõ woulä likå tï 
+          seå reporteä on.
+
+HELP!
+
+          Iæ  yoõ  havå  problemó gettinç  thå  SIGNOÎ  Subsysteí 
+          running on your RCPM I'll be happy to help.
+
+          I may be contacted at:
+
+                    312-326-4014   voice
+                    312-326-4392   RCPM
+
+          Messages may be left on the Chicago CBBS
+
+                    312-545-8086
+
+          messages¬  commentó oò bugó caî bå lefô oî mù systeí oò 
+          thå Hydå Parë RCPM®
+
+                    312-955-4493
+
+credits:
+          CP/M is the registered trademark of Digital Research.
+          Wordmasteò  ió  thå registereä  trademarë  oæ  MicroPrï 
+          International.
+          CBBÓ  ió  thå registereä trademarë oæ Warä  Christenseî 
+          and Randy Suess (the original CBBS).
+          The Hyde Park RCPM is operated by Ben Bronson.
+          RBBS is by Howard Moulton, Bruce Ratoff, Ron FowlerŠ          and Ben Bronson
+
+
+          Thå  SIGNOÎ Subsysteí ió offereä tï alì RCPÍ useró  anä 
+          is placed in the public domain.  It may not be sold.

@@ -1,0 +1,77 @@
+; Procedure DELAY(timer:integer);
+; { call delay with timer = number seconds * 10 }
+; {  DELAY(10);	will give about 1 second delay }
+; {  DELAY(5);	will give about 1/2 second delay }
+; CONST	factor = 172;
+; var	ix,jx : integer;
+; begin
+;
+	NAME	DELAY
+;
+	ENTRY	DELAY
+;
+DELAY:	ENTR	D,2,4
+;   for ix:=1 to factor do
+	MOV	0(IX),A
+	MVI	-1(IX),1
+	PUSH	IX
+	LXI	H,172
+	XTHL
+L153
+	MOV	D,M
+	DCX	H
+	MOV	E,M
+	XTHL
+	PUSH	H
+	GE	D,0
+	JNC	L154
+;     for jx:=1 to timer do {dummy};
+	MOV	-2(IX),A
+	MVI	-3(IX),1
+	PUSH	IX
+	POP	H
+	DCX	H
+	DCX	H
+	PUSH	H
+	MOV	L,8(IX)
+	MOV	H,9(IX)
+	XTHL
+L169
+	MOV	D,M
+	DCX	H
+	MOV	E,M
+	XTHL
+	PUSH	H
+	GE	D,0
+	JNC	L170
+	CTRL
+	POP	H
+	XTHL
+	INR	M
+	INX	H
+	JRNZ	L177
+	INR	M
+	JV	L178
+L177
+	JMP	L169
+L170
+	POP	D
+L178
+	POP	D
+	CTRL
+	POP	H
+	XTHL
+	INR	M
+	INX	H
+	JRNZ	L179
+	INR	M
+	JV	L180
+L179
+	JMP	L153
+L154
+	POP	D
+L180
+	POP	D
+; end{of delay};
+	EXIT	D,2
+

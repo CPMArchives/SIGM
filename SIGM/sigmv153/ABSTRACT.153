@@ -1,0 +1,101 @@
+; DATE 12/18/83  07:50  by H M Van Tassell
+
+This version of XLISP is taken from David Betz version 1.1 for CP/M-80
+and the AZTEC compiller which is on SI/G volume 118.
+
+I wanted a CP/M-86 version and recompiled the source code with the
+Computer Innovations compiler CI-C86. The only changes made to the
+original source code files was to change from <...> to "..." on the
+#include <stdio.h>.
+
+The setjmp.h file was made empty because the CI-C86 stdio.h defines
+this item. The empty file ctype.h was added to the disk since the
+CI-C86 compiler doesn't use this header file. A new #setdef was added
+to the xlisp.h file for the CI-C86 compiler.
+
+New submit files were made and you may re-compile and link by:
+   1. A>submit cclisp
+   2. A>submit linklisp
+NOTE for systems with limited disk storage:
+     submit.cmd and cc1.cmd, cc2.cmd, cc3.cmd, and cl.cmd must be available
+     on resident disks and you may need to modify the cclisp.sub and
+     linklisp.sub files to show on which disks certain files may be found.
+This should result in a new XLISP.CMD file being generated
+
+
+This is the SI/G volume 118 abstract and is presented here for 
+information. Files marked by ** are not included on this disk.
+--------------------------------------------------------------
+
+The CP/M distribution for XLISP contains the following files:
+
+	ABSTRACT.118    this file)
+	xlisp.doc	(documentation)
+	xlbind.c	(routines to bind values to symbols)
+	xldmem.c	(dynamic memory management routines)
+	xleval.c	(the evaluator)
+	xlfio.c		(file i/o routines)
+	xlio.c		(i/o routines for 'xlread')
+	xlisp.c		(the main routine)
+	xlisp.h		(the definition file)
+	xllist.c	(list functions)
+	xlmath.c	(arithmetic functions)
+	xlobj.c		(object oriented functions)
+	xlkmap.c	(keymap functions)
+	xlprin.c	(the printer)
+	xlread.c	(the reader)
+	xlstr.c		(string functions)
+	xlsubr.c	(misc. functions)
+	junk.c	    **	(routines needed for the AZTEC C version)
+	setjmp.h	(definition file for 'setjmp.asm')
+	setjmp.asm  **	(setjmp and longjmp for AZTEC C)
+	alloc.c	    **	(memory allocation routines)
+	sbrk.asm    **	(more memory allocation routines)
+	xlisp.com   **	(an executable for 64K Z-80 systems)
+	xlmake.sub  **	(a file for compiling and assembling XLISP)
+	xlisp.lnk   **	(a command file for linking XLISP)
+	pt.lsp		(a sample program)
+	t.lsp		(another sample program)
+
+Before compiling XLISP, look at the beginning of the file 'xlisp.h'.
+You should check to see that the conditionals defined here are
+appropriate for your machine.
+
+You should also edit the command files 'xlmake.sub' and 'xlisp.lnk'
+to indicate which disks to expect input from and which disks to place
+output on.  They are currently configured for my VT180 system with
+four 180K 5 1/4 inch mini-floppies.  I assigned the disks as follows:
+
+	A	the C compiler, assembler, library, 'stdio.h' and 
+		'setjmp.h'
+	B	unimportant
+	C	the XLISP sources and the '.ASM' files generated
+		by the compiler
+	D	the generated object files
+
+Note that all of the source files expect to find 'stdio.h' and
+'setjmp.h' on disk A.
+
+Since XLISP evaluates functions recursively, it tends to use up
+a lot of stack space.  Depending on how stack space is allocated
+on your machine, you may need to tell the linker to allocate more
+than the normal amount of space.  I generated the original XLISP
+on a PDT-11/150 under the RT-11 operating system using the DECUS-C
+compiler and needed to tell the RT-11 linker to allocate 10000 octal
+bytes of stack space in order to make XLISP run reasonably well.
+
+You can gain back about 400 nodes worth of list space by leaving
+out the 'Keymap' class.  This can be done by editing the 'xlisp.h'
+file under the conditional for 'AZTEC' and removing the definition
+for the symbol 'KEYMAPCLASS'.  You only really need to recompile
+'xlisp.c' and 'xldmem.c' after changing this definition.  You should
+then relink leaving out 'xlkmap.o'.
+
+Have fun and let me know of any problems or suggestions you might
+have.
+
+David Betz
+
+
+Best of luck too from Harry Van Tassell
+

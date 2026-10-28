@@ -1,0 +1,32 @@
+;************************************************************
+
+;               CHROUT
+
+;************************************************************
+
+                NAME CHROUT
+                ENTRY CHROUT
+
+;FUNCTION:prints on console the character whose ASCII is
+;         transmitted to CHROUT in A.
+
+BIOS equ 5
+OUTCOD equ 2
+
+CHROUT:         push psw
+                push b
+                push d
+                push h
+                mov e,a      ;A->E,for BIOS
+                mvi c,OUTCOD ;      "    "
+                call BIOS
+                pop h
+                pop d
+                pop b
+                pop psw
+                ret
+
+                END CHROUT
+
+;***********************************************************
+

@@ -1,0 +1,374 @@
+;
+; Program: DIR  
+; Author:  Richard Conn
+; Version:  1.0
+; Date: 23 Mar 84
+;
+version	equ	10
+z3env	SET	0f400h	;set ZCPR3 Environment Descriptor Address
+
+;
+; Equates
+;
+fcb	equ	5ch
+fcb2	equ	6ch
+ctrlc	equ	03h
+cr	equ	0dh
+lf	equ	0ah
+
+;
+; Z3LIB and SYSLIB References
+;
+	ext	z3init
+	ext	dirqs,codend,retud,pfn1,fsize,dfree,dutdir,dparams
+	ext	crlf,cout,pafdc,phldc,z3log,fillb,getcrt,cin
+
+;
+; Environment Definition
+;
+	if	z3env ne 0
+;
+; External ZCPR3 Environment Descriptor
+;
+	jmp	start
+	db	'Z3ENV'	;This is a ZCPR3 Utility
+	db	1	;External Environment Descriptor
+z3eadr:
+	dw	z3env
+start:
+	lhld	z3eadr	;pt to ZCPR3 environment
+;
+	else
+;
+; Internal ZCPR3 Environment Descriptor
+;
+	MACLIB	Z3BASE.LIB
+	MACLIB	SYSENV.LIB
+z3eadr:
+	jmp	start
+	SYSENV
+start:
+	lxi	h,z3eadr	;pt to ZCPR3 environment
+	endif
+
+;
+; Start of Program -- Initialize ZCPR3 Environment
+;
+	call	z3init	;initialize the ZCPR3 Env
+;
+; Make FCB Wild if No Entry
+;
+	lxi	h,fcb+1		;pt to first char
+	mov	a,m		;get it
+	cpi	' '		;check for space
+	mvi	b,11		;prepare to set 11 bytes
+	mvi	a,'?'		;... to "?"
+	cz	fillb		;do it if space
+;
+; Check for Help
+;
+	lxi	d,fcb+1		;pt to first char of FCB
+	ldax	d		;get first char of FCB
+	cpi	'/'
+	jnz	doit
+	call	print
+	db	'DIR '
+	db	(version/10)+'0','.',(version mod 10)+'0',cr,lf
+	db	'Syntax:',cr,lf
+	db	'	DIR dir:afn o',cr,lf
+	db	'Options: A=All, S=System, T=File Type/Name Sor','t'+80H
+	ret
+;
+; Perform Directory Function
+;
+doit:
+	dcx	d		;pt to FCB
+	call	z3log		;log into DIR
+	xra	a		;clear disk selection byte
+	stax	d
+;
+; Process Options in FCB2
+;
+	lxi	h,fcb2+1	;pt to options
+	mvi	b,8		;allow for up to 8 options
+	mvi	c,10000000b	;assume just normal files
+optloop:
+	mov	a,m		;get next char
+	inx	h		;advance
+	dcr	b		;count down
+	jz	setdata		;done - set data
+	cpi	' '
+	jz	optloop
+	cpi	'T'		;file type?
+	jz	settype
+	cpi	'S'		;system?
+	jz	setsys
+	cpi	'A'		;system and normal?
+	jnz	optloop
+;
+; Select Both System and Normal Files
+;
+	mvi	a,11000000b	;normal and system files
+	jmp	setsys1
+;
+; Select File Type/Name Alphabetization
+;
+settype:
+	mov	a,c		;get flag
+	ori	00100000b
+	mov	c,a
+	jmp	optloop
+;
+; Select Just System Files
+;
+setsys:
+	mvi	a,01000000b	;system
+setsys1:
+	push	psw
+	mov	a,c
+	ani	00111111b	;mask out
+	mov	c,a
+	pop	psw
+	ora	c
+	mov	c,a
+	jmp	optloop
+;
+; Set Selection Byte in A
+;
+setdata:
+	call	dparams		;init parameters
+	call	codend		;pt to free area
+	mov	a,c		;selection in A
+;
+; Load and Sort Directory
+;
+	call	dirqs		;quick load
+	jnz	display
+	call	print
+	db	' Ovf','l'+80H
+	ret
+;
+; Display Directory
+;
+display:
+	push	h		;save ptr to first entry
+;
+; Init:
+;	Total of All File Sizes
+;	Number of Files Displayed
+;	Line Counter
+;	Entry Counter
+;
+	lxi	h,0		;set total size count
+	shld	totcount
+	lxi	h,fcount	;save file count
+	mov	m,c
+	inx	h
+	mov	m,b		;file count saved from BC
+	pop	h		;pt to first entry
+	xra	a
+	sta	lcount		;init line count
+	sta	count		;init entry count
+	mov	a,b		;check for done
+	ora	c
+	jz	prremain	;print remaining space on disk and exit
+	call	print
+	db	' '+80H		;print first leading space
+;
+; Loop to Display File Entries
+;
+disploop:
+;
+; Print Separator if Within a Line
+;
+	lda	count		;see if new entry on line
+	ani	3
+	jz	displ1
+;
+; Print Separator if Entry is Within a List
+;
+	call	print		;print separator
+	db	'|',' '+80H
+;
+; Print Next Entry
+;
+displ1:
+	push	h		;save key regs
+	push	b		;HL pts to next entry, BC = count
+;
+; Print File Name
+;
+	inx	h		;pt to file name
+	xchg
+	call	pfn1		;print file name
+	xchg
+	dcx	h		;pt to first byte of file entry
+;
+; Print File Size and Increment Total of All File Sizes
+;
+	push	h		;save ptr to first byte of file entry
+	call	fsize		;compute file size
+	lhld	totcount	;increment total count
+	dad	d
+	shld	totcount
+	xchg
+	call	phldc		;print file size
+	pop	h		;get ptr to first byte of file entry
+;
+; Check R/O Byte
+;
+	mvi	b,' '		;assume R/W
+	lxi	d,9		;pt to R/O
+	dad	d
+	mov	a,m		;get R/O byte
+	ani	80H		;look at it
+	jz	roout
+	mvi	b,'r'		;set R/O
+roout:
+	mov	a,b		;get char
+	call	cout
+;
+; Increment Entry Count and Issue New Line if Limit Reached
+;
+	lda	count		;increment entry count
+	inr	a
+	sta	count
+	ani	3		;new line?
+	jnz	displ2
+	call	prnl
+;
+; New Line - Increment Line Count and Issue Page Break if Limit Reached
+;
+	lda	lcount		;count down lines
+	inr	a
+	sta	lcount
+	call	getcrt		;get CRT data
+	inx	h		;pt to text line count
+	inx	h
+	dcr	a		;back up again
+	cmp	m		;compare
+	jnz	displ2
+	xra	a		;reset line count
+	sta	lcount
+	call	print
+	db	'Pause -',' '+80H
+	call	cin
+	call	prnl		;print new line with leading space
+	cpi	ctrlc		;abort?
+	jnz	displ2
+	pop	psw		;clear stack
+	pop	psw
+	ret
+;
+; Advance to Next Entry
+;
+displ2:
+	pop	b		;restore count and ptr to current entry
+	pop	h
+	lxi	d,16		;skip to next entry
+	dad	d
+	dcx	b		;count down
+	mov	a,b		;done?
+	ora	c
+	jnz	disploop
+	lda	count		;see if new line required
+	ani	3
+	cnz	crlf		;new line if any entries on line
+;
+; Print Remaining Space on Disk and Exit
+;
+prremain:
+;
+; Print DU
+;
+	mvi	b,12		;space over 12 spaces
+	mvi	a,' '
+spacer:
+	call	cout
+	dcr	b
+	jnz	spacer
+	call	retud		;get DU in BC
+	mov	a,b		;print disk letter
+	adi	'A'		;convert to ASCII
+	call	cout
+	mov	a,c		;print user number
+	call	pafdc		;print floating
+	call	print		;print separator
+	db	':'+80H
+	call	dutdir		;see if matching DIR
+	jz	prrem1
+;
+; Print DIR if any
+;
+	mvi	b,8		;8 chars max
+prrem0:
+	mov	a,m		;get char
+	inx	h		;pt to next
+	cpi	' '		;space?
+	cnz	cout		;echo char
+	dcr	b		;count down
+	jnz	prrem0
+;
+; Print File Count
+;
+prrem1:
+	lhld	fcount		;print number of files
+	call	print
+	db	' --',' '+80H
+	call	phldc
+;
+; Print Total of All File Sizes
+;
+	lhld	totcount	;print total count
+	call	print
+	db	' Files Using',' '+80H
+	call	phldc		;print as floating
+;
+; Print Amount of Free Space Remaining
+;
+	call	dfree		;compute amount of free space
+	xchg			;... in HL
+	call	print
+	db	'K ','('+80H
+	call	phldc
+	call	print
+	db	'K Left',')'+80H
+	ret
+;
+; Print New Line with Leading Space
+;
+prnl:
+	call	print
+	db	cr,lf,' '+80H	;new line with leading space
+	ret
+;
+; Print Routine (String at Return Address) which is terminated by MSB
+;
+print:
+	xthl			;pt to string and save HL
+	push	psw
+print1:
+	mov	a,m		;get next char
+	ani	7fh		;mask MSB
+	call	cout
+	mov	a,m		;get next char
+	inx	h		;pt to next
+	ani	80h		;check MSB
+	jz	print1
+	pop	psw		;get A
+	xthl			;restore return address and HL
+	ret	
+;
+; Buffers
+;
+count:
+	ds	1		;counter used in display
+fcount:
+	ds	2		;number of files displayed
+lcount:
+	ds	1		;line counter
+totcount:
+	ds	2		;total of sizes of all files
+
+	end
+

@@ -1,0 +1,374 @@
+;DUMPDIR v1.10 as of 05/11/84
+;ESKAY
+;
+cr	equ	0dh
+lf	equ	0ah
+;
+fcb	equ	5ch
+fcb2	equ	6dh
+dreset	equ	13
+seldk	equ	14
+sfirst	equ	17
+snext	equ	18
+curdk	equ	25
+getdpb	equ	31
+;
+	extrn	bdos,print,phl4hc,phldc,codend
+	extrn	pa2hc,cout,crlf,cin
+	extrn	sort
+;
+begin:	lxi	h,0
+	dad	sp
+	shld	stksav
+	lxi	sp,stack
+	mvi	c,curdk
+	call	bdos
+	push	psw
+	mvi	c,dreset
+	call	bdos
+	pop	psw
+	mov	e,a
+	mvi	c,seldk
+	call	bdos
+	call	print
+	db	cr,lf
+	db	'DUMPDIR v1.10 by ESKAY  05/11/84',cr,lf,0
+	lxi	d,fcb+1
+	ldax	d
+	cpi	' '
+	jz	help
+	dcx	d
+	ldax	d
+	sta	defdrv
+	ora	a
+	jz	nosel
+	push	d
+	dcr	a
+	mov	e,a
+	mvi	c,seldk
+	call	bdos
+	pop	d
+nosel:	mvi	c,curdk
+	call	bdos
+	adi	'A'
+	sta	drcd
+	xra	a
+	stax	d
+	lda	fcb2
+	cpi	' '
+	jz	noopt
+	call	ckopt
+	lda	fcb2+1
+	call	ckopt
+noopt:	call	codend
+	push	d
+	lxi	d,efcb
+	call	wildx1
+	pop	d
+	shld	freed
+	call	codend
+	call	wildx1
+	jz	nofile
+	mvi	c,getdpb
+	call	bdos
+	lxi	d,6
+	dad	d
+	mov	a,m
+	sta	f816
+	inx	h
+	mov	e,m
+	inx	h
+	mov	d,m
+	inx	h
+	inx	h
+	inx	h
+	call	crlf
+	mov	a,m
+	inx	h
+	ora	m
+	jnz	flp
+	call	print
+	db	'Hard',0
+	jmp	hrd
+;
+flp:	call	print
+	db	'Floppy',0
+hrd:	xchg
+	inx	h
+	call	print
+	db	' drive directory.',cr,lf
+	db	'Capacity: ',0
+	call	phldc
+	call	print
+	db	' entries max, ',0
+	push	h
+	lhld	count
+	call	phldc
+	call	print
+	db	' entries displayed, ',0
+	lhld	freed
+	mov	a,h
+	cma
+	mov	d,a
+	mov	a,l
+	cma
+	mov	e,a
+	pop	h
+	dad	d
+	inx	h
+	call	phldc
+	call	print
+	db	' entries unused.',cr,lf,0
+	lhld	count
+	mov	b,h
+	mov	c,l
+	lxi	d,32
+	call	codend
+	lda	nopt
+	ora	a
+	cz	sort
+	call	codend
+	shld	dptr
+dislp:	lhld	count
+	mov	a,h
+	ora	l
+	jz	done
+	dcx	h
+	shld	count
+	lhld	dptr
+	call	print
+	db	cr,lf
+drcd:	db	' ',0
+	mov	a,m
+	push	h
+	push	b
+	cpi	0e5h
+	jnz	noers
+	call	print
+	db	'**',0
+	jmp	ersd
+;
+noers:	call	pa2dc
+ersd:	pop	b
+	pop	h
+	mvi	a,':'
+	call	cout
+	inx	h
+	call	pfn
+	call	spc
+	call	spc
+	inx	h
+	inx	h
+	inx	h
+	inx	h
+	lda	f816
+	ora	a
+	jz	do8bit
+	mvi	b,8
+lp16:	mov	e,m
+	inx	h
+	mov	d,m
+	inx	h
+	call	ckab
+	xchg
+	mov	a,h
+	ora	l
+	jz	disnx
+	call	spc
+	call	phl4hc
+	xchg
+	dcr	b
+	jnz	lp16
+	jmp	disnx
+;
+do8bit:	mvi	b,16
+lp08:	call	ckab
+	call	spc
+	mov	a,m
+	inx	h
+	ora	a
+	jz	disnx
+	call	pa2hc
+	dcr	b
+	jnz	lp08
+disnx:	lhld	dptr
+	lxi	d,32
+	dad	d
+	shld	dptr
+	jmp	dislp
+;
+ckopt:	cpi	'A'
+	jz	seta
+	cpi	'N'
+	rnz
+setn:	sta	nopt
+	ret
+;
+seta:	mvi	a,'?'
+	sta	fcb
+	ret
+;
+pa2dc:	mov	l,a
+	mvi	h,0
+	lxi	b,-10
+	call	mdec
+	lxi	b,-1
+	call	mdec
+	ret
+;
+mdec:	mvi	d,-1
+mdlp:	shld	dtemp
+	inr	d
+	dad	b
+	jc	mdlp
+	lhld	dtemp
+	mvi	a,'0'
+	add	d
+	jmp	cout
+;
+ckab:	call	condin
+	cpi	'C'-40h		;if ^C...
+	jz	abort		;...then finished
+	cpi	'S'-40h		;if not ^S...
+	rnz			;...then go on, else...
+	call	cin		;...wait for keypress
+	cpi	'C'-40h
+	jz	abort
+	ret
+;
+; This is NOT the SYSLIB routine by same name...
+;
+condin:	push	h
+	push	d
+	push	b
+	mvi	c,6
+	mvi	e,0ffh
+	call	bdos
+	ora	a
+	pop	b
+	pop	d
+	pop	h
+	ret
+;
+spc:	mvi	a,' '
+	jmp	cout
+;
+pfn:	mvi	b,8
+	call	pfn1
+	mvi	a,'.'
+	call	cout
+	mvi	b,3
+pfn1:	mov	a,m
+	ani	7fh
+	call	cout
+	call	ckab
+	inx	h
+	dcr	b
+	jnz	pfn1
+	ret
+;
+wildx1:	shld	bufptr
+	lxi	h,0
+	shld	count
+	mvi	a,'?'
+	sta	fcb+12
+	mvi	c,sfirst
+	call	bdos
+	cpi	0ffh
+	rz			;nothing found -- error
+	call	moven		;move name
+wloop:	mvi	c,snext		;search for next
+	call	bdos
+	cpi	0ffh
+	jz	donew		;finished
+	call	moven
+	jmp	wloop
+;
+donew:	ora	a
+	lhld	count
+	ret
+;
+moven:	lhld	bufptr
+	add	a
+	add	a
+	add	a
+	add	a
+	add	a
+	adi	80h
+	mov	c,a
+	mvi	b,0
+	ldax	b
+	cpi	0e5h
+	rz
+	push	d
+	mvi	d,32		;move 32 chars
+movlp:	ldax	b
+	mov	m,a
+	inx	h
+	inx	b
+	dcr	d
+	jnz	movlp
+	shld	bufptr
+	pop	d
+	lhld	count
+	inx	h
+	shld	count
+	ret
+;
+abort:	call	print
+	db	cr,lf
+	db	'*** ABORTED***',cr,lf,0
+	jmp	quit
+;
+nofile:	call	print
+	db	cr,lf,lf
+	db	'FILE NOT FOUND',cr,lf,0
+	jmp	quit
+;
+done:	call	print
+	db	cr,lf
+	db	'*** END OF EXECUTION ***',cr,lf,0
+	jmp	quit
+;
+help:	call	print
+	db	cr,lf,lf
+	db	'To use:',cr,lf
+	db	9,'Enter: DUMPDIR [d:]ufn[ oo]',cr,lf
+	db	9,'All matching files (if any) will be displayed,',cr,lf
+	db	9,'along with the physical disk location information',cr,lf
+	db	9,'in group numbers.',cr,lf
+	db	'OPTIONS:',cr,lf
+	db	9,'A = display all user areas',cr,lf
+	db	9,'N = display unsorted',cr,lf,lf,0
+quit:	lda	defdrv
+	ora	a
+	jz	nol
+	mov	e,a
+	dcr	e
+	mvi	c,seldk
+	call	bdos
+nol:	lhld	stksav
+	sphl
+	ret
+;
+stksav:	dw	0
+bufptr:	dw	0
+count:	dw	0
+dptr:	dw	0
+freed:	dw	0
+dtemp:	dw	0
+nopt:	db	0
+defdrv:	db	0
+f816:	db	0
+efcb:	db	'?????????????',0,0,0
+	ds	60
+stack	equ	$
+	end
+e 32 chars
+movlp:	ldax	b
+	mov	m,a
+	inx	h
+	inx	b
+	dcr	d
+	jnz	movlp
+	

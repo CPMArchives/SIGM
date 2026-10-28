@@ -1,0 +1,197 @@
+LL1P80: PROC;
+/****************************************************************
+*               LL(1) GRAMMAR ANALYZER - PHASE 8		*
+*PURPOSE:                                                       *
+*    THIS PROGRAM VALIDATES THAT THE GRAMMAR ANALYZED WAS IN-   *
+*    DEED LL(1).  THIS IS DONE BY INSURING THAT THE SELECTION	*
+*    SETS OF ALL PRODUCTIONS WITH THE SAME LEFT-HAND-SIDE ARE	*
+*    DISJOINT (I.E. HAVE NO COMMON ELEMENTS).			*
+*INPUT:                                                         *
+*    1) BASIC GRAMMAR TABLES					*
+*    2) NULLABLE NON-TERMINALS AND PRODUCTIONS TABLES		*
+*    3) ARRAY2 = THE SELECTION SET FOR ALL PRODUCTIONS		*
+*OUTPUT:                                                        *
+*OUTLINE:                                                       *
+*REMARKS:                                                       *
+****************************************************************/
+
+/****************************************************************
+* * * * * * * * * * * COMMON DATA DEFINITIONS * * * * * * * * * *
+****************************************************************/
+
+/*	* * *  COMMON REPLACEMENTS  * * *	*/
+%REPLACE TRUE BY '1'B;
+%REPLACE FALSE BY '0'B;
+
+%INCLUDE 'LL1CMN.DCL';	/* GET COMMON AREAS. */
+	DCL NUM_ERR FIXED;
+
+
+/****************************************************************
+* * * * * * * * * * * COMMON PROCUDURES * * * * * * * * * * * * *
+****************************************************************/
+
+
+%INCLUDE 'LL1PRC.DCL';
+
+
+/****************************************************************
+* * * * * * * * * * GRAMMAR ANALYSIS PROCEDURES * * * * * * * * *
+****************************************************************/
+
+
+VALD_SS: PROC;
+/*THIS ROUTINE IS VALIDATES THAT ALL SELECTION SETS FOR   */
+/*EACH NON-TERMINAL ARE DISJOINT.  */
+	DCL I FIXED;		/* INDICES */
+	DCL J FIXED;
+	DCL K FIXED;
+	DCL L FIXED;
+	DCL SAMLHS(256) BIN(15);
+	DCL NUMSAM BIN(15);
+	DCL CURNTRM CHAR;
+	DCL TMPSET(32) BIT(8);
+	DCL DISJNT BIT(1);
+
+/* MAIN LOOP - LOOP FOR ALL NONTERMINALS. */
+	DO I=1 TO LENGTH(NTRM);
+	   CURNTRM=SUBSTR(NTRM,I,1);
+
+/* FIND ALL PRODUCTIONS FOR THIS NON-TERMINAL WHERE IT IS THE LHS. */
+	   NUMSAM=0;
+	   DO J=1 TO NUMPRD;
+	      IF CURNTRM=LHS(J) THEN	/**NON-TERMINAL IS LHS**/
+		 DO;
+		    NUMSAM=NUMSAM+1;
+		    SAMLHS(NUMSAM)=J;	/*SAVE PRODUCTION NUMBER.*/
+		 END;
+	   END;
+
+/* INSURE THAT ALL SELECTION SETS FOR THIS NON-TERMINAL ARE DISJOINT. */
+	   IF NUMSAM<2 THEN	/*NOT ENOUGH SETS*/
+	      ;
+	   ELSE
+	      DO J=1 TO NUMSAM-1; /*LOOP FOR EACH SET*/
+		 DO K=J+1 TO NUMSAM; /*LOOP FOR REMAINING SETS*/
+		    DO L=1 TO 32; /*FIND COMMON ELEMENTS*/
+		       TMPSET(L)=ARRAY2(SAMLHS(J),L) & ARRAY2(SAMLHS(K),L);
+		    END;
+		    DISJNT=TRUE; /*DEFAULT TO DISJOINT*/
+		    DO L=1 TO 32;
+		       IF TMPSET(L)='00000000'B THEN /**DISJOINT**/
+			  ;
+		       ELSE
+			  DO;
+			     DISJNT=FALSE;
+			     L=32;
+			  END;
+		    END;
+		    IF DISJNT THEN
+		       ;
+		    ELSE
+		       DO;
+			  NUM_ERR=NUM_ERR+1;
+                          PUT FILE(LSTFIL) SKIP 
+			   LIST('***WARNING: THE SELECTION SET FOR',
+				' PRODUCTIONS',SAMLHS(J),' AND',SAMLHS(K),
+				' ARE NOT DISJOINT!!!');
+		       END;
+		 END;
+	      END;
+
+/* END OF MAIN LOOP */
+	END;
+
+/* RETURN TO CALLER. */
+	END VALD_SS;
+
+
+/****************************************************************
+* * * * * * * * * * * GRAMMAR PRINT PROCUDURES * * * * * * * * **
+****************************************************************/
+
+PRINT_PRODUCTIONS: PROC;
+/*THIS ROUTINE IS RESPONSIBLE FOR PRINTING THE VOCABULARY. */
+	DCL I BIN(15);		/* INDEXES */
+	DCL J BIN(15);
+	DCL K BIN(15);
+	DCL NUM_LINES BIN(15);	/* MAXIMUM NUMBER OF LINES */
+	DCL LHS_ENT CHAR(10) VARYING;
+	DCL RHS_ENT(5) CHAR(10) VARYING;
+
+/* OUTPUT THE HEADING. */
+	ON ENDPAGE(LSTFIL)
+	   BEGIN;
+	      PUT FILE(LSTFIL) PAGE;
+	      PUT FILE(LSTFIL) SKIP(3) 
+		  EDIT('*** PRODUCTION LISTING W/SELECTION SETS***','PAGE',
+			PAGENO(LSTFIL)-1)
+		  (X(20),A(42),X(10),A(4),F(4));
+	      PUT FILE(LSTFIL) SKIP(1);
+	   END;
+	SIGNAL ENDPAGE(LSTFIL);
+
+/* PRINT THE REPORT LINES. */
+	PUT FILE(LSTFIL) SKIP(1)
+		  EDIT('STARTING SYMBOL: ',VOC(CHRNUM(STRSYM)))
+		  (X(14),A(17),A(10));
+	DO I=1 TO NUMPRD;
+	   LHS_ENT=VOC(CHRNUM(LHS(I)));
+	   DO J=1 TO 5;
+	      IF J>LENGTH(RHS(I)) THEN
+	         RHS_ENT(J)='';
+	      ELSE
+	         RHS_ENT(J)=VOC(CHRNUM(SUBSTR(RHS(I),J,1)));
+	   END;
+	   PUT FILE(LSTFIL) SKIP(1)
+	       EDIT(I,LHS_ENT,' -> ',(RHS_ENT(J) DO J=1 TO 5),';')
+		  (F(4),X(01),A,A(04),5(A,X(01)),A(1));
+	   PUT FILE(LSTFIL) SKIP(1) EDIT('{') (X(20),A);
+	   K=0;
+	   DO J=LENGTH(NTRM)+1 TO NUMVOC;
+	      IF TSTBIT(I,J,ADDR(ARRAY2)) THEN
+		 DO;
+		    K=K+1;
+		    IF K>9 THEN
+		       DO;
+		          PUT FILE(LSTFIL) SKIP EDIT(' ') (X(20),A);
+			  K=0;
+		       END;
+		    PUT FILE(LSTFIL) LIST(VOC(J)||' ');
+		 END;
+	   END;
+	   IF TSTBIT(I,NUMVOC+1,ADDR(ARRAY2)) THEN
+	      PUT FILE(LSTFIL) LIST('''_|_'' }');
+	   ELSE
+	      PUT FILE(LSTFIL) LIST('}');
+	   PUT FILE(LSTFIL) SKIP;
+	END;
+
+        END  PRINT_PRODUCTIONS;
+
+
+/****************************************************************
+* * * * * * * * * * * MAIN LINE PROCEDURE * * * * * * * * * * * *
+****************************************************************/
+
+
+/* ANALYZE THE GRAMMAR. */
+	PUT SKIP LIST('BEGINNING PHASE 8 PROCESSING.');
+	PUT FILE(LSTFIL) PAGE;
+
+/* CALCULATE THE SELECTION SET. */
+	PUT SKIP LIST('VALIDATING THE SELECTION SETS...');
+	NUM_ERR=0;
+	CALL VALD_SS;		/*VALIDATE THE RELATION.*/
+
+/* PRINT THE PRODUCTIONS IF NO ERRORS. */
+	PUT SKIP LIST('PRINTING THE PRODUCTIONS...');
+	IF NUM_ERR=0 THEN
+	   CALL PRINT_PRODUCTIONS;	/*VALIDATE THE RELATION.*/
+
+/* RETURN TO CALLER. */
+	PUT FILE(LSTFIL) SKIP LIST('THERE WERE',NUM_ERR,' ERRORS FOUND.');
+	PUT SKIP LIST('THERE WERE',NUM_ERR,' ERRORS FOUND.');
+	PUT SKIP LIST('PHASE 8 PROCESSING COMPLETE.');
+	END LL1P80;
+

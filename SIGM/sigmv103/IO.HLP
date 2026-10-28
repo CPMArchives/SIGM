@@ -1,0 +1,319 @@
+Redirectable I/O Under ZCPR2 and SYSIO
+Loading Redirectable I/O Drivers -- IOLOADER
+Displaying and Selecting Redirectable I/O Drivers -- DEVICE
+Controlling the Disk Output Facility -- RECORD
+Redirectable I/O and the ZCPR2 System
+:Redirectable I/O Under ZCPR2
+
+     Basically¬  thå  concepô  oæ redirectablå I/Ï  involveó  thå 
+assignmenô  oæ physicaì deviceó tï logicaì  devices®   ZCPR²  anä 
+CP/Í supporô fouò logicaì devices:
+
+          CON: - Console - An I/O Device for User/System Commo
+          LST: - Printer - An Output-Only Device for Printouts
+          RDR: - Reader  - An Input-Only Device
+          PUN: - Punch   - An Output-Only Device
+
+     Undeò  CP/M¬  therå arå onlù fouò physicaì deviceó whicè maù 
+bå  assigneä tï eacè oæ thå fouò logicaì devices®   Undeò  ZCPR2¬ 
+therå  maù  bå aó manù physicaì deviceó aó desireä whicè  maù  bå 
+assigned to each of the four logical devices.
+
+     Á   "physicaì  device¢  iî  thå  traditionaì  senså   ió   á 
+conventionaì I/Ï device¬  likå á CRÔ oò á Printer®   Iî thå senså 
+oæ ZCPR2¬  iô ió á devicå driver¬  oò bodù oæ software¬  whicè ió 
+communicateä witè viá thå BIOS®   Thió bodù oæ software¬ iî turn¬ 
+may communicate with any device OR SET OF DEVICES that it wishes.
+
+     SYSIÏ  ió á samplå seô oæ Redirectablå I/Ï Driveró  designeä 
+tï bå useä witè ZCPR² oî mù system®   Undeò SYSIO¬  thå followinç 
+"physical devices" are implemented:
+
+CON: Devices - TTY
+               CRT
+               CRT Input and CRT/Remote Computer Output
+               CRT and Modem Input and CRT and Modem Output
+                    in Parallel
+               CRT Input and CRT/Modem Output
+
+LST: Devices - TTY
+               CRT
+               Modem
+               Remote Computer
+
+RDR: and PUN: Devices - Modem
+                        Clock
+
+
+     Aó  yoõ  caî  see¬  thå "physicaì devices¢ undeò  ZCPR²  caî 
+actuallù  bå combinationó oæ actuaì devices®   Thå CRÔ Inpuô  anä 
+CRT/Remotå Computeò Outpuô device¬ foò instance¬ ió useä tï allo÷ 
+a remote computer record screen displays which go to the CRT.
+
+     Undeò ZCPR2¬  yoõ caî creatå aó manù sets¬  oò packages¬  oæ 
+Redirectablå I/Ï Driveró aó yoõ wish®  Eacè packagå caî bå seô uğ 
+tï givå thå useò differenô typeó oæ capabilities®   Foò instance¬ 
+onå  packagå  caî  bå likå thå onå É  havå  defineä  abovå  whilå 
+anotheò  packagå caî providå Disë Recordinç capability¬  sucè  aó 
+CRT Input and CRT/Disk File Output.
+
+
+     Thå  ZCPR²  Systeí  oæ  Programó  containó  threå  utilitieó 
+designeä tï supporô thå Redirectablå I/Ï System®  Theså utilitieó 
+and their functions are:
+
+          IOLOADER -- Load a Redirectable I/O Package
+          DEVICE   -- Display and Select Physical I/O Devices
+          RECORD   -- Turn on and off the Recording Facility
+
+     Thió  HELĞ  Filå discusseó theså utilitieó anä ho÷ theù  arå 
+intended to be used.
+
+     Chapteò  ·  oæ  thå "Conceptó Manuaì  foò  ZCPR2¢  discusseó 
+redirectablå  I/Ï  aó  iô caî bå implementeä  undeò  ZCPR2®   Thå 
+reader is invited to refer to this for much more detail.
+
+
+:Loading Redirectable I/O Drivers -- IOLOADER
+
+     IOLOADEÒ  ió useä tï loaä aî indicateä oò implieä I/Ï driveò 
+packagå  intï  youò redirectablå I/Ï buffeò  area®   IOLOADEÒ  ió 
+invoked by one of the following forms:
+
+          IOLOADER //              <-- Print Help Message
+          IOLOADER                 <-- Load SYSIO.IO
+          IOLOADER filename        <-- Load filename.IO
+          IOLOADER filename.typ    <-- Load filename.typ
+
+     Notå  thaô  thå  DIRº  prefiø ió  NOÔ  supporteä  witè  thió 
+program®   Iî alì caseó oæ loadinç files¬ IOLOADEÒ searcheó alonç 
+thå ZCPR² patè foò thå indicateä oò implieä file®  Oncå found¬ iô 
+is loaded into your redirectable I/O buffer.
+
+     GENINÓ  ió useä tï instalì IOLOADER¬  anä IOLOADEÒ neeä onlù 
+kno÷ thå addresó oæ thå externaì path¬ thå symboì foò thå currenô 
+useò anä disë indicatoò ("$¢ bù default)¬  anä thå addresó oæ thå 
+redirectable I/O buffer.
+
+:Displaying and Selecting Redirectable I/O Drivers -- DEVICE
+
+     DEVICE¬  oò  DEVICE²  (sï calleä becauså iô  ió  thå  seconä 
+generatioî  oæ mù DEVICÅ program)¬  ió useä tï allo÷ thå useò  tï 
+interactivelù displaù thå nameó oæ thå availablå physicaì deviceó 
+(actually¬  devicå  drivers© whicè maù bå assigneä tï thå logicaì 
+deviceó  anä tï allo÷ thå useò tï assigî á physicaì devicå  tï  á 
+logical device by name.
+
+     DEVICE is invoked by one of the following forms:
+
+          DEVICE //           <-- Print Help Info
+          DEVICE              <-- Enter Interactive Command Mode
+          DEVICE cmd,cmd,...  <-- Immediately Execute Commands
+
+     Iî  alì cases¬  wheneveò yoõ arå givinç commandó tï  DEVICE¬ 
+whetheò  iô  ió  froí thå commanä leveì oæ ZCPR² oò  froí  withiî ŠDEVICÅ itself¬  yoõ caî specifù á serieó oæ commandó separateä bù 
+commas.
+
+
+     The following commands can be given to DEVICE:
+
+          DISPLAY ALL or CON or LST or RDR or PUN
+               <-- Display Physical Device Driver Names which
+                    can be assigned to CON:, LST:, RDR:, or PUN:
+                    Logical Devices; also display the current
+                    assignment
+
+          CON or LST or RDR or PUN = Device
+               <-- Assign a Physical Device Driver to a Logical
+                    Device
+
+     Iî alì cases¬ onlù thå firsô letteò oæ DISPLAÙ anä thå firsô 
+letteò oæ á Logicaì Devicå oò thå worä "ALL¢ ió  necessary®   Alì 
+otheò  letteró  arå ignored®   Thå completå namå oæ  thå  device¬ 
+however, is necessary.
+
+     Also¬   thå   spacå  anä  thå  characteò  "=¢  maù  bå  useä 
+interchangably and case is not significant.
+
+     The following are examples of DEVICE commands:
+
+          D C,D L or D=C,D=L
+               Display CON: and LST: Devices
+
+          con:=crt,list=tty,reader=modeí oò c=crt,ì tty,r=modem
+               Select the Physical Device Driver called CRT for
+               the CON: Logical Device, select TTY for the LST:
+               Logical Device, and select MODEM for the RDR:
+
+     Thå  followinç terminaì sessioî furtheò illustrateó thå  uså 
+oæ DEVICÅ witè mù particulaò seô oæ Redirectablå I/Ï Drivers®  Mù 
+comments are indicated by <<--.
+
+
+B7>device display console
+DEVICE2, Version 1.3
+
+CON: Devices --
+        CRTMOD2  - Televideo 950 CRT Input and CRT/Modem Output
+        CRTREM   - Televideo 950 CRT Input and CRT/Remote Output
+        CRTMOD   - Televideo 950 CRT and Modem in Parallel
+        CRT      - Televideo 950 CRT
+        TTY      - Model 43 Printing Terminal
+  Current Assignment: CRTMOD  
+
+B7>device
+DEVICE2, Version 1.3
+DEVICE2 Interactive Command System
+Type ? and Strike RETURN for Help
+
+
+DEVICE2 Command? d l,lst:=modem         <<-- Multiple Commands in
+                                        <<-- Free Format
+LST: Devices --
+        MODEM    - DC Hayes Smartmodem
+        REMOTE   - Remote Computer
+        CRT      - Televideo 950 CRT
+        TTY      - Model 43 Printing Terminal
+  Current Assignment: TTY     
+DEVICE2 Command? display list
+
+LST: Devices --
+        MODEM    - DC Hayes Smartmodem
+        REMOTE   - Remote Computer
+        CRT      - Televideo 950 CRT
+        TTY      - Model 43 Printing Terminal
+  Current Assignment: MODEM   
+
+
+DEVICE2 Command? l tty             <<-- Assign Device
+DEVICE2 Command? l ttyx            <<-- How DEVICE Handles Errors
+Invalid Name Assignment at -- TTYX
+DEVICE2 Command? d l
+
+LST: Devices --
+        MODEM    - DC Hayes Smartmodem
+        REMOTE   - Remote Computer
+        CRT      - Televideo 950 CRT
+        TTY      - Model 43 Printing Terminal
+  Current Assignment: TTY     
+
+
+DEVICE2 Command? ?                 <<-- Built-In Help
+DEVICE2 Commands are of the form:
+Command,Command, ...    <-- Issue Commands
+where "command" may take the following forms:
+                DISPLAY=ALL     <-- Display Names of All Devices
+                DISPLAY=CON     <-- Display Names of Consoles
+                DISPLAY=LST     <-- Display Names of Printers
+                DISPLAY=RDR     <-- Display Names of Readers
+                DISPLAY=PUN     <-- Display Names of Punches
+
+                CON:=name       <-- Select Console
+                LST:=name       <-- Select Printer
+                RDR:=name       <-- Select Reader
+                PUN:=name       <-- Select Punch
+
+A command line beginning with a semicolon (;) is a comment.
+The X Command Exits DEVICE2.
+
+DEVICE2 Command? x            <<-- Exit
+:Controlling the Disk Output Facility -- RECORD
+
+     RECORÄ  ió  useä tï controì thå Disë Outpuô Facilitù oæ  thå 
+Redirectablå I/Ï Drivers®   Copieó oæ Consolå anä Printeò outputó 
+caî bå createä iî disë fileó bù thå uså oæ thió facility¬  anä iô 
+maù bå extendeä intï á numbeò oæ otheò applicationó aó well.
+
+     RECORD is invoked by one of the following forms:
+
+          RECORD or RECORD //           <-- Get Help
+          RECORD ON or OFF              <-- Console Recording
+          RECORD ON or OFF PRINTER      <-- Printer Recording
+
+     Foò RECORÄ tï perforí itó function¬  iô musô bå  implementeä 
+iî thå Redirectablå I/Ï Drivers®  Thió ió lefô aó aî exerciså foò 
+thå  reader®   Thå  Redirectablå I/Ï Driveró supplieä witè  ZCPR² 
+havå  simplå RETurî instructionó aó thå subroutineó  executeä  bù 
+the RECORD functions.
+
+
+     Fouò  routineó  arå accesseä iî thå Redirectablå I/Ï  Driveò 
+package to control the RECORD function.  They are:
+
+          COPEN -- Open File for Recording Console Output
+          LOPEN -- Open File for Recording List Output
+          CCLOSE -- Close File for Recording Console Output
+          LCLOSE -- Close File for Recording List Output
+
+     Iî  thå caseó oæ COPEÎ anä LOPEN¬  theù arå passeä á pointeò 
+tï  thå  firsô twelvå byteó oæ aî FCÂ iî HL®   Theù arå  tï  copù 
+theså  twelvå  byteó  intï theiò internaì FCBó anä  uså  theí  tï 
+definå thå filå names®   Typically¬ thå outpuô fileó generateä bù 
+thå  RECORÄ functioî arå placeä iî thå currenô  directory¬  althï 
+thå  Redirectablå  I/Ï Driveró maù bå configureä  tï  placå  theí 
+anywherå desired.
+
+     Wheî  RECORÄ  ió  invokeä  tï  turî OÎ  onå  oæ  thå  recorä 
+functions¬ iô promptó thå useò foò thå namå oæ thå filå tï recorä 
+into®  RECORÄ theî calló thå appropriatå OPEÎ routine.
+
+     Thå  RECORÄ  prograí knowó iæ disë filå outpuô  driveró  arå 
+availablå thrõ thå Redirectablå I/Ï Packagå Statuó  Routine®   Iæ 
+Registeò Á ió returneä witè thå high-ordeò biô set¬  sucè driveró 
+arå available.
+
+     RECORÄ  ió tieä intï thå Redirectablå I/Ï Packageó anä workó 
+witè  them®   Thå readeò ió inviteä tï refeò tï thå  Installatioî 
+Manuaì  anä  thå  Conceptó  Manuaì  foò  furtheò  detaiì  oî  thå 
+organizatioî anä functioî oæ sucè packages.
+
+     RECORÄ ió alsï indirectlù tieä intï DEVICE®  Invokinç RECORÄ 
+itselæ   doeó  noô  necessarilù  starô  thå   recordinç   procesó 
+immediately®   Twï  functionó musô takå placå tï begiî  recordinç 
+outpuô ontï disë files:
+
+          1) RECORD has to turn the appropriate Driver ON
+          2) DEVICE has to select the appropriate Driver
+
+
+     Thió leadó tï interestinç possiblities®   Bù turninç  RECORÄ 
+OFÆ  durinç  á recordinç session¬  thå outpuô filå ió closeä  anä 
+availablå  foò otheò uses®   Iæ RECORÄ ió lateò  turneä  ON¬  thå 
+outpuô  filå  maù  bå deleteä (iæ thå samå filå  ió  selecteä  tï 
+recorä into)®   However¬ iæ á ne÷ devicå ió selecteä whilå RECORÄ 
+ió  OÎ  (say¬  DEVICÅ  CON:=CRÔ ió  issued)¬  theî  recordinç  ió 
+SUSPENDEÄ (NOÔ turneä off© untiì thå recordinç devicå ió selecteä 
+again®   Hence¬  iæ  iô  lookó likå thå recordinç sessioî ió  noô 
+goinç well¬  recordinç caî bå suspended¬  thå probleí fixed¬  anä 
+theî recordinç caî bå resumed.
+
+     Thió  combineä systeí oæ DEVICÅ anä RECORÄ provideó  á  verù 
+flexiblå  outpuô  recordinç  system®   Iî  addition¬  thå  outpuô 
+recordinç  neeä noô necessarilù gï tï á disë file®   Iô coulä  bå 
+seô uğ tï senä CONº outpuô tï thå CRÔ and¬ say¬ á Remotå Computeò 
+foò  processing®   Thå systeí caî bå configureä iî á largå numbeò 
+oæ ways.
+
+:Redirectable I/O and the ZCPR2 System
+
+     Thå  ZCPR² Systeí caî functioî witè oò withouô  Redirectablå 
+I/Ï  aó implementeä bù thå Redirectablå I/Ï Driveò  Packageó  anä 
+thå IOLOADER¬  DEVICE¬ anä RECORÄ programs®  Obviously¬ thå ZCPR² 
+System is made much more flexible by employing these facilities.
+
+     DEVICÅ  anä RECORÄ arå tieä directlù tï thå Redirectable I/Ï 
+Packageó themselves®  Theù don'ô uså anù oæ thå otheò featureó oæ 
+thå  ZCPR² Systeí tï speaë of¬  anä theù arå installeä bù  GENINÓ 
+(theù neeä tï kno÷ wherå thå Redirectablå I/Ï Buffeò ió located)®  
+IOLOADEÒ alsï needó tï bå tolä wherå thå Redirectablå I/Ï  Buffeò 
+ió  locateä  bù GENINS¬  anä iô useó thå ZCPR² patè tï  finä  itó 
+files.
+
+     Thå  programó  controllinç thå Redirectablå I/Ï Driveró  arå 
+tied together in this manner:
+
+          IOLOADER loads the drivers
+          DEVICE controls the drivers
+          RECORD enables and disables the disk recording
+               facilities of the drivers
+

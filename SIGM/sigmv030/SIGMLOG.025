@@ -1,0 +1,740 @@
+Sig/M volume 25		database seed system
+			multi-track system BIOS
+			fixed length disk sort system
+			print format program
+			
+          (original materials from Pascal Z User Group volume 7)
+
+	-CATALOG.025		contents of Sig/M volume 25
+	-CATALOG.ACK		acknowledgement file
+	ABSTRACT.025		comments on Sig/M volume 25
+        CRCKFILE.025            CRC of Sig/M volume 25
+
+25.1	DATABASE.DOC	32K	database seed program by Dr. Bowles
+25.2	DBBUILDE.CPM	22K	      /
+25.3	DBDEMO.CPM	 1K	     /
+25.4	DBUNIT.1	 8K	    /
+25.5	DBUNIT.2	19K	   /
+25.6	DBUNIT.3	22K	  /
+25.7	DBUNIT.4	17K	 /
+25.8	DBUNIT.CPM	 1K	/
+25.9	SGEN.COM	 2K	BIOS for greater than 2 system tracks
+25.10	SGEN.MAC	10K	   /
+25.11	MACROZ.MAC	18K	  /
+25.12	CLIB.MAC	 9K	 /
+25.13	SGEN.DOC	 5K	/
+25.14	BSORT.ASM	40K	fixed length disk sort program
+25.15	BSORT.COM	 4K	 /
+25.16	BSORT.NOT	 4K	/	
+25.17	PGLST.PAS	 3K	print format program
+25.18	PGLST.COM	 8K	  /
+25.19	PGLST.NOT	 1K	 /
+25.20	W3UA.LIB	 6K	/
+
+Sig/Í acknowledgeó thå contributioî froí thå Pascaì Ú Useró Grouğ 
+iî compilinç thå followinç material:
+
+the database seed system was contributed by Dr. Bowles
+
+the multi-track BIOS system was written by Donald Killen
+
+thå prinô formaô prograí anä fixeä lengtè disë sorô systeí werå 
+donateä bù Genå Duncaî oæ Palï Alto¬ Ca.
+
+
+                       CONTENTS OF VOLUME #7
+
+     Thió  volumå developeä fasô anä slow®   Thå materiaì camå iî 
+fasô  buô  É  haä  thå newsletteò tï geô  ouô  sï  iô  waó  slow®  
+However¬  yoõ wilì seå somå ne÷ nameó thió timå anä somå originaì 
+ideas®  Wå havå á excellenô starô witè ouò diskó anä iô ió easieò 
+tï  prograí  witè sucè help®  Buô don'ô slo÷ down®  Keeğ  sendinç 
+thoså programs®   Iæ wå keeğ iô up¬  thå daù wilì comå wheî  mosô 
+anù  modulå wå neeä wilì bå availablå FREE®  Theî programinç wilì 
+be just a logical excerise and not a coding drag.
+                         
+1®   Thió firsô grouğ ió thå Dr.Bowleó DataBaså seeä prograí thaô 
+     he used in his classes.  It is a frame to which a expanded 
+     data base can be built.  I have a special interest in data
+     baseó  anä É aí glaä thaô Dr.Bowleó donateä thió  tï  Publiã 
+     Domain® Thå onå whï getó thió converteä tï Pascal/Ú wilì wiî 
+     á  freå disë fulì oæ softwarå anä thå gratitudå oæ  everyonå 
+     else.
+
+     DATABASE.DOC        DBBUILDE.CPM        DBDEMO.CPM
+     DBUNIT.1            DBUNIT.2            DBUNIT.3
+     DBUNIT.4            DBUNIT.CPM
+
+2®   Donalä Killeî ,oæ Carrolltoî Texas¬ founä thaô aó hå playeä 
+     arounä  witè  hió BIOS¬  hå raî ouô oæ tracë space®   Sï  hå 
+     reworked things a bit. Now he has as much space as he wants.
+     That means, of course, a different SYSGEN. So this group of
+     programó  arå alì abouô ho÷ tï dï that®  
+
+     SGEN.COM            SGEN.MAC            MACROZ.MAC
+     CLIB.MAC            SGEN.DOC            
+
+3®   Genå Duncan¬  oæ Palï Alto-Ca¬ likeó tï dï orginaì worë anä 
+     has donated the following programs.  His address is listed
+     in Newsletter #5 and would appreciate any feedback that you
+     might want to pass on to him. It'll give him an idea of how
+     he is doing.  The BSORT group is a sort program that is fast
+     anä  can'ô  bå  fooled®   Hå giveó somå  backgrounä  iî  thå 
+     program so be sure to check that program.  The PGLST group 
+     is a print format program that will save paper.  It reads a
+     texô  filå  oæ fixeä oò variablå lengtè  characteò  records¬ 
+     eacè recorä endinç witè á CÒ anä LF¬  anä arrangeó theí oî á 
+     prinô  pagå iî columns®  É addeä thå datá filå W3UÁ tï  sho÷ 
+     you how it works, nice utility.
+
+     BSORT.ASM           BSORT.COM           BSORT.NOT
+     PGLST.PAS           PGLST.COM           PGLST.NOT
+     W3UA.LIB
+
+       -----------------------------------------------
+
+   MORE THAN TWO SYSTEM TRACKS FOR CP/M 2.2 - A PRACTICAL SOLUTION
+
+                By Donald E. Killen
+
+
+For those of you out there in CP/M-land who want three (or more) system
+tracks but are tired of asking "HOW", here is one way.  It works in
+conjunction with the program "SGEN.COM" which I have provided the Group
+with.  
+
+For openers, when I found myself running out of BIOS space (CP/M 2.2 is
+two sectors WORSE than good ol' 1.4 on this count), I asked myself,
+"Self, how are you going to GET all the nice stuff you write in assembler
+code ON a floppy, using Digital Research's SYSGEN (or a "GETSYS/
+PUTSYS" combination of some sort)?"  And I answered - "with difficulty".
+
+Next, I found myself musing about compatibility with the "two-tracked"
+world once I did manage to build 3 or more system tracks and use the
+thing successfully.  So again I said, "Self, how are you going to get
+out of THAT one?"  And I answered "With difficulty".
+
+Just to show you how unreliable first impressions can be, I looked
+closer at the documentation on CP/M 2.2 (As an avid non-reader of
+most documentation, I did what I usually did, search for the
+pictures, found none of those,and started from the back, reading
+towards the front.)
+
+About three one morning I said "AHA" - I know what I'll do - I'll fool
+the system by defining (in 2.2) TWO sets of logical disk drives, and
+"fold" one set over the other such that there is one set of physical
+drives, each drive of which has two logical definitions, either
+of which can be specified at run time.
+
+I defined eight physical drives, 0 through 7.  Drives 0,1,2, & 3
+are defined just like the others execpt that three (3) tracks are
+"reserved" - i.e. used for the "system", which includes my gigantic
+BIOS.  Drives 4,5,6, & 7 use two (2) system tracks.
+Selecting drive 'A' in my system gets a 3-track drive, selecting 'E'
+gets you the SAME physical drive, only it is known (to CP/M) to
+have only two system tracks.  Thus I can be compatible with certain
+2-tracked worlds with only one drive, if I must.  Or I can use up to
+four drives and mix them any way I want.  One EASY way to tell if you've
+forgotten and selected a two-track drive which has a 3-track floppy
+in it is that DIR gets you a lot of nulls or "NO FILE", depending
+upon whims, etc.This works the other way around also.  
+
+	Physical Drive	0	1	2	3
+	----------------------------------------------
+	3-track drive:	A	B	C	D
+	2-track drive:	E	F	G	H
+	----------------------------------------------
+ŠThe chart above is a handy reference and serves to illustrate the
+functionality of this scheme.  However, one further point has to be
+mentioned.  Your average (e.g. Tarbell) Floppy Disk Interface can
+select one of a maximum of FOUR drives.  Therefore, I had to perform
+minor surgery on the SELDSK routine in BIOS.  Just at the point that
+SELDSK is about to ship off two bits specifying which of four
+drives you want, the third (hi-order, or bit 2) bit gets discarded.
+Up to that point, and for that matter, in RAM until changed, are three
+bits defining the LOGICAL drive requested.  That accesses the tables
+(in CP/M 2.2) which define the disk parameters.  Then, for the purposes
+of limited controllers (like the Tarbell Single Density controller), only
+the least significant two bits are used - hence a 4 looks like a 0,
+a 5 like a 1, and so-forth.
+
+If anyone is really interested in the gory details, Charlie Foster has
+a disk with a copy of my BIOS (KBIOS.MAC/PRN) - which might convey
+the details in more depth.  
+
+Oncå  CP/Í  haó  thió capability¬  É nexô needeä  tï  refinå  thå prograí 
+É  calì  SGEÎ  ®   SGEN.COÍ  wilì  dï  anythinç  Digitaì Research'ó SYSGEÎ 
+wilì do¬ pluó iô ió aî "n-track¢ systeí iî thaô iô  askó yoõ uğ fronô ho÷ 
+manù trackó (systeí tracks© yoõ wanô tï copy®   Iô workó witè 1-¹ trackó 
+(NOTEº   Iæ anyonå comeó uğ witè  á one-tracë system¬ leô må know¬ o.k.)® 
+Iô makeó yoõ saù "y¢ (oò "Y"©  tï  makå doublù sure¬  theî copieó froí 
+memorù oò  disë  tï memorù oò disk - just like SYSGEN. You'll also need 
+the upgraded versions of MACRO.LIB, which, after converting nearly 
+everything to Zilog notation, is called MACROZ.MAC, and I beleive CLIB.MAC 
+is also used.  The latter is a clutter of miscellany which I've put together 
+for assembly development work.
+
+I have no idea what one would do with regard to defining drives "sort of"
+like the above only for CP/M 1.4 - but I'd like to hear any
+comments anyone has.
+
+      ------------------------------------------------
+EDITOR'Ó  NOTEº   Doî Killeî ió willinç tï discusó thió  (oò  anù 
+                  otheò   itemó  oæ  interest©  witè  anyonå  buô 
+                  preferó   á  notå  iî thå  maiì  howeveò he   
+                  doesn't really  mind the phone at all. So----
+Donald Killen
+2101 Hickory Drive            home: (214) 242-4968
+Carrollton, Tx                
+75006
+
+
+
+
+(************************************************************)
+:
+:    A gentlemen down south was kind enough to send me this
+:  copy of Dr Bowles database seed.  It was in UCSD format
+:  so I had to spend several days in cleaning it up.  But 
+:  its done now so I am passing this program on to those who
+:  may be interested.  The units are still in UCSD BUT by putting
+:  them in circulation among the membership of Pascal/Z
+:  we'll chip away at it until we have it converted and
+:  boy! won't that be a program.
+:
+************************************************************)
+
+
+
+                   {EE&CS 63 Database Homework Project}
+12 February, 1980
+K.L.Bowles
+     
+     Assigneä  homeworë  foò thå remaindeò oæ  thå  quarteò  wilì 
+consisô   oæ   carryinç  ouô   one¬   two¬   oò   threå   prograí 
+design/implementatioî projectó dependinç upoî whetheò yoõ plaî tï 
+earî á courså gradå of'C'¬  'B'¬  or'A§ respectively®  Alì oæ thå 
+projectó  wilì  involvå  makinç changeó iî á starteò  prograí  oæ 
+mediuí complexity®  Thå starteò prograí ió á partiallù  completeä 
+databaså manager¬ thå desigî oæ whicè haó beeî discusseä iî EE&CÓ 
+6³ lectureó foò thå lasô week¬ anä wilì bå thå principaì topiã oæ 
+the remaininç lectureó for the course.
+                          1. {Objectives}
+     Practicaì uså oæ databaseó typicallù requireó morå extensivå 
+programminç  thaî caî reasonablù bå requireä foò homeworë froí  á 
+clasó  aô  thå leveì oæ EE&CÓ  63®  Nevertheless¬  onå  importanô 
+objectivå  oæ  thå courså ió tï preparå studentó foò thå kinä  oæ 
+workinç environmenô theù maù encounteò upoî takinç jobó aó  (non-
+numerical©   programmeró  afteò  leavinç  UCSD®   Worë  witè  thå 
+databaså  starteò prograí provideä witè thió courså wilì helğ  tï 
+prepare you in several ways:
+
+ a© Thå besô waù tï develoğ á largå prograí ió tï proceeä iî easù 
+stages¬  addinç facilitieó anä debugginç theí aô eacè stage® Thió 
+methoä  ió  ofteî  calleä  "step-wiså  refinement"®  Thå  starteò 
+prograí wilì givå yoõ á realistiã baså froí whicè tï starô  work¬ 
+anä  wilì allo÷ gettinç significanô resultó withouô goinç througè 
+thå morå difficulô firsô steğ oæ establishinç thå overalì  desigî 
+of an eventual program system.
+ b© Iî workinç witè largå programs¬ thå stylå useä iî writinç thå 
+programó  becomeó  increasinglù important®  Thå stylå issueó  arå 
+difficulô  tï teacè usinç shorô quizzeó anä homeworë  assignmentó 
+aó iî EE&CÓ 61® Yoõ shoulä spenä enougè timå readinç anä studyinç 
+thå  starteò  program¬  anä  associateä  librarieó  oæ  routines¬ 
+provideä  tï yoõ thaô yoõ havå á gooä understandinç oæ  ho÷  theù 
+work®  Aó yoõ dï this¬ noticå thå treatmenô giveî tï stylå issueó 
+sucè  aó  indentatioî (aó á substitutå foò  structurå  diagrams)¬ 
+relativå  brevitù oæ procedureó anä functions¬  uså oæ CONSÔ  anä 
+TYPÅ declarations¬  anä handlinç oæ erroò conditions® Experienceä Šprogrammeró  ofteî learî morå abouô ho÷ tï uså á ne÷  programminç 
+languagå  oò computeò systeí froí readinç largå programó  writteî 
+bù  otheró  thaî  froí  extensivå  amountó  oæ  writteî  texô  oò 
+lectures.
+ c©  Á databaså prograí ió generallù useä oveò aî extendeä perioä 
+oæ  time¬  anä  usuallù  evolveó  froí  itó  initiaì  performancå 
+specificationó intï á changeä oò expandeä wholå aó timå goeó  on® 
+Iî  manù  cases¬  thå initiaì prograí ió largå enougè tï  requirå 
+severaì programmeró tï bå employeä tï completå separatå partó  oæ 
+thå program® Foò botè oæ theså reasons¬ iô ió verù importanô thaô 
+methodó bå useä tï simplifù thå problemó oæ á programmeò assigneä 
+tï  modifù oò {maintainı á prograí previouslù createä bù  others® 
+Thió  requireó thaô gooä specificatioî anä maintenancå  documentó 
+bå  writteî tï gï witè thå program¬  anä thaô á reasonablå numbeò 
+oæ  commentó bå embeddeä iî thå prograí tï assisô onå  programmeò 
+tï reaä anä understanä thå worë oæ another®  Worë witè thå  EE&CÓ 
+6³  databaså  prograí  bù thå clasó wilì requirå  thaô  differenô 
+teamó  oæ  studentó  exchangå documentatioî  anä  programó  whicè 
+refinå thå starteò prograí iî differinç ways® Thió shoulä providå 
+á moderatelù realistiã simulatioî oæ thå reaì worlä oæ worë  witè 
+large programs outside the University. 
+               
+                         {Organization}
+
+     Thå complexitù oæ thå worë needeä tï completå thå desigî anä 
+implementatioî  iî  anù  oæ  thå topiã areaó  describeä  herå  ió 
+toï  greaaô tï expecô anù homeworë teaí iî EE&CÓ 6³ tï carrù  thå 
+worë iî á topiã areá tï completion®  However¬ iô wilì bå possiblå 
+tï  makå  significanô  performancå improvementó  iî  thå  prograí 
+withiî  roughlù thå amounô oæ timå á teaí shoulä expecô tï  spenä 
+on homework in a two-week period.
+     Thå  methoä oæ operatioî wilì requirå thaô á  homeworë  teaí 
+writå specificationó oî á proposeä changå tï thå starteò program® 
+Theså  specificationó  wilì  bå  discusseä  witè  Prof®   Bowles¬ 
+Richarä  Kaufmann¬  oò  iî  somå caseó  witè  á  proctor¬  beforå 
+proceedinç  tï  writå anä debuç thå prograí  changeó  themselves® 
+Studentó whï carrù ouô thå programminç changeó beforå writinç thå 
+specificationó  shoulä  bå awarå thaô thoså changeó wilì onlù  bå 
+regardeä  aó  experimentaì  anä  onlù  usefuì  foò  writinç   thå 
+specificcation®  Iî  general¬  thå specificationó wilì havå tï bå 
+approveä first¬  aó thå firsô steğ iî completinç á homeworë  set® 
+Yoõ  shoulä expecô tï bå requesteä tï changå youò  specificationó 
+iî  significanô wayó beforå proceedinç tï implemenô youò  prograí 
+changes®  Thuó  iô  ió possiblå thaô prograí changeó madå iî  thå 
+courså  oæ  decidinç ho÷ tï writå thå specificationó  wilì  servå 
+onlù  aó  á learninç experience¬  anä maù noô  bå  acceptablå  iî 
+completion of a homework set. 
+     Eacè  seô  oæ  specificationó shoulä contaiî  aô  leasô  thå 
+following parts:
+a©  Á  statemenô  oæ  thå  objectiveó oæ thå  worë  yoõ  plaî  tï 
+undertake.
+b©  Á  statemenô oæ thå methoä yoõ plaî tï uså iî  reachinç  youò 
+objectives®  Á diagraí oò twï maù provå usefuì iî explaininç youò 
+method.
+c©  Á rougè descriptioî oæ thå additionó oò changeó yoõ  plaî  tï Šmakå  tï  thå  starteò program®  Thió maù  includå  headingó  anä 
+parameteò declarationó oæ somå oæ thå procedureó and/oò functionó 
+yoõ   proposå  tï  use®   Iô  woulä  typicallù  includå  á  brieæ 
+descriptioî  oæ thå rolå eacè importanô procedurå oò functioî  ió 
+expected to play.
+d©  Á  listinç oæ thå parameteró yoõ expecô tï  use¬  alonç  witè 
+maximuí  anä minimuí valueó oò otheò statemenô oæ thå speciaì  oò 
+limiting values each parameter may take on.
+e©  Á statemenô oæ ho÷ yoõ plaî tï tesô youò prograí  changeó  tï 
+verifù  thaô  theù  iî facô operatå aó planneä oncå  writteî  anä 
+compiled®  Foò  thå typicaì homeworë problem¬  thå lengtè oæ  thå 
+specificationó maù ruî froí onå tï abouô threå pages®  Tï havå  á 
+seô oæ specificationó accepteä foò gradinç purposes¬  bå prepareä 
+tï defenä thå desigî choiceó yoõ proposå tï use® Eacè membeò oæ á 
+homeworë  teaí musô bå familiaò witè alì aspectó oæ thå worë thaô 
+thå  teaí  proposeó tï takå on®  Iæ yoõ spliô uğ thå worë  tï  bå 
+handleä separatelù bù differenô teaí members¬  yoõ shoulä  defenä 
+youò  owî  worë tï thå otheò teaí memberó beforå submittinç  youò 
+worë  foò  formaì acceptance®  Otherwiså therå ió nï  purposå  iî 
+workinç  aó á team¬  anä yoõ shoulä bå defendinç youò  individuaì 
+worë separatelù foò grading® Foò formaì grading¬ neatnesó wilì bå 
+importanô  (buô  yoõ don'ô neeä tï geô carrieä awaù anä  spenä  á 
+largå  parô oæ youò timå jusô iî makinç youò worë neat)®  Iæ  thå 
+writteî specificatioî ió aî unreadablå mess¬ yoõ wilì bå askeä tï 
+re-dï  iô  beforå  iô caî bå considereä  foò  acceptance®  Tï  bå 
+accepteä  foò gradinç purposes¬  eacè specificatioî  documenô  oò 
+prograí  submitteä  musô  contaiî thå nameó oæ  alì  personó  whï 
+workeä  oî  it¬  anä thå approximatå datå oî whicè thå  worë  waó 
+carrieä out® Iî programs¬ theså shoulä bå iî thå forí oæ commentó 
+aô  thå  heaä oæ á listing¬  oò iî standardizeä initialó sucè  aó 
+(*KLB*©  embeddeä  iî  á prograí  wherå  yoõ  makå  changes®  Thå 
+initialó  caî  bå useä witè thå Editor'ó F(inä commanä tï  locatå 
+changes made by each of several individuals. 
+
+          {General Description of the Starter Program}
+
+     Thå  packagå oæ prograí listingó passeä ouô tï thå clasó  oî 
+1± February contains four sections, as follows:
+a) Program DBTEST - pages 1 .. 4
+b) Unit DBUNIT - begins on page 5
+c) Unit SCUNIT - begins on page 41
+d) Unit STARTER - begins on page 46
+     Alì  threå unitó arå useä bù thå DBTESÔ program¬  whicè  haó 
+onlù  á  maiî prograí bodù runninç froí linå 21µ tï linå  23´  oî 
+pagå 4®  Thå USEÓ statemenô oî linå 21³ oæ thå listinç occuró  iî 
+thå  prograí  sourcå filå immediatelù afteò thå  PROGRAÍ  headinç 
+linå (linå ³ iî thå listing)® Alì oæ thå interveninç lineó iî thå 
+DBTESÔ listinç arå froí thå INTERFACÅ partó oæ thå unitó nameä iî 
+thå  USEÓ  statement.Iî  UCSÄ Pascal¬  á Uniô haó  thå  followinç 
+form:
+UNIT XYZ;
+INTERFACE
+CONST
+...
+TYPE
+...
+VARŠ...
+PROCEDURE & FUNCTION headings
+IMPLEMENTATION
+CONST
+...
+TYPE
+...
+VAR
+...
+PROCEDURE & FUNCTION declarations
+
+     Alì oæ thå declareä objectó arå similaò iî purposå tï  thoså 
+iî aî ordinarù Pascaì program®  Objectó declareä iî thå INTERFACÅ 
+parô arå intendeä tï bå useä bù programó oò otheò unitó whicè uså 
+thå  Uniô XYÚ (oò whateveò namå yoõ choose)®  Objectó declareä iî 
+thå  IMPLEMENTATIOÎ  parô generallù maù noô bå useä  directlù  bù 
+usinç  prograí  oò  units®  Howeveò thå  procedurå  anä  functioî 
+headingó iî thå INTERFACÅ parô servå aó thå equivalenô oæ FORWARÄ 
+declarationó   matcheä   bù  completeä  procedurå   oò   functioî 
+declarationó iî thå IMPLEMENTATIOÎ part® Procedureó anä functionó 
+declareä  onlù iî thå IMPLEMENTATIOÎ parô maù bå calleä  onlù  bù 
+other procedures and functions, not by a using program.
+     Thå  prograí  listinç foò thå DBTESÔ prograí duplicateó  thå 
+INTERFACÅ partó oæ alì threå oæ thå Unitó thaô iô uses®  Lineó  µ 
+througè  12¶ arå thå interfacå foò thå DBUNIT¬  lineó 13° througè 
+14·  arå foò thå SCUNIT¬  anä lineó 15° througè 21² arå  foò  thå 
+STARTEÒ  unit®  Thå  STARTEÒ  uniô encompasseó thå  bulë  oæ  thå 
+originaì contenô oæ thå DBTESÔ prograí itself¬  anä iô representó 
+onlù  aî approximatioî tï thå librarù oæ primitivå routineó  thaô 
+mighô  bå useä foò á fullù developeä databaså system®  Bù placinç 
+functioninç partó oæ thå DBTESÔ prograí iî thå STARTEÒ  unit¬  iô 
+haó  beeî  possiblå  tï  reducå thå sizå  oæ  á  typicaì  prograí 
+compilattioî  foò  thå  clasó tï á smalì anä  readilù  manageablå 
+size.Aó  maù bå seeî froí lineó 21µ througè 23´ oî  pagå  4¬  thå 
+DBTESÔ  prograí ió basicallù quitå simple®  First¬  thå procedurå 
+STINITIALIZÅ ió called®  Detailó oî STINITIALIZÅ maù bå founä  iî 
+thå  listinç foò thå STARTEÒ uniô oî pagå 48¬  lineó 27¶  througè 
+305®  Foò mosô purposes¬  thå procedurå operateó jusô aó iô woulä 
+havå  haä iô beeî haä iô beeî declareä iî fulì withiî thå  DBTESÔ 
+program®  Continuinç iî DBTESÔ (pagå 4)¬ thå prograí loopó iî thå 
+REPEAÔ  statemenô untiì DONÅ ió set®  DONÅ ió á Booleaî  variablå 
+declareä iî thå INTERFACÅ parô oæ STARTER¬ aó maù bå seeî aô linå 
+19² oî pagå 4¬  oò linå 19² oî pagå 46®  GOTOXÙ (linå 21¸ oî pagå 
+4© ió á built-iî procedurå provideä bù thå UCSÄ Pascaì system® Iô 
+causeó thå cursoò tï jumğ tï thå (column¬ row© locatioî indicateä 
+bù  thå  parameteò  expressionó  (typå  Integer)®  Thå  functionó 
+GETCOMMANÄ  anä CHANGEREC¬  anä thå procedureó SAVEREC¬  FINDREC¬ 
+GETREC¬  anä  NEWREÃ arå alì declareä iî thå  STARTEÒ  unit®  Thå 
+procedurå  DBSHOWERÒ ió declareä iî thå DBUNIT®  Iî general¬  yoõ 
+caî  identifù  routineó  declareä iî thå  databaså  supporô  uniô 
+DBUNIÔ bù thå prefiø "DB"¬  anä thoså iî thå screeî controì  uniô 
+SCUNIÔ bù thå prefix "SC". 
+     Foò  lacë oæ time¬  iô wilì noô bå possiblå tï distributå  á 
+fulì  seô oæ writteî descriptionó oæ thå routineó iî thå programó 
+distributed®  Whilå  iô  waó planneä tï providå yoõ witè  á  morå 
+comprehensivå  writteî description¬  thå leveì  oæ  documentatioî 
+provideä  herå ió probablù typicaì oæ documentatioî yoõ maù  havå 
+tï  copå witè iî reaì worlä programminç assignments®  Iî general¬ 
+mosô  importanô  routineó  havå brieæ commentó oî  whaô  theù  dï Šimmediatelù followinç theé headinç lines®  Virtuallù alì routineó 
+havå beeî giveî nameó whicè directlù suggesô whaô theù do®  Afteò 
+á brieæ descriptioî oæ thå datá structurå useä bù thå system¬  wå 
+wilì walë yoõ througè onå oæ thå STARTEÒ procedureó tï assisô  iî 
+readinç thå programs. 
+
+
+          {The Data Structure and DataBase Support Module DBUNIT}
+
+     Thå  generaì concepô oæ softwarå tooló ió describeä  brieflù 
+iî  thå Beginneró Manuaì foò thå UCSÄ Pascaì System¬  chapteò  9® 
+DBUNIÔ  haó beeî designeä witè thå intenô tï providå á librarù oæ 
+primitivå  softwarå  tooló tï simplifù writinç  databaså  handleò 
+programó  foò  á  varietù oæ  purposes®  Thå  datá  structurå  ió 
+intendeä  tï  overcomå twï bothersomå limitationó oæ  thå  Pascaì 
+language¬   anä  typicaì  smalì  operatinç  systems¬   foò  theså 
+purposes:
+a©  Thå Pascaì requiremenô tï uså recordó oæ fixeä sizå leadó  tï 
+inefficienô  uså  oæ storagå spacå iæ alì recordó arå  storeä  iî 
+conventionaì Pascaì files® Tï accounô foò nameó oò otheò variablå 
+sizå  objectó  oæ  maximuí length¬  mosô recordó  contaiî  wasteä 
+space®  Oî  average¬  á typicaì filå mighô contaiî froí 5° tï  7µ 
+percenô  wasteä  space®  Thå datá structurå  implementeä  iî  thå 
+DBUNIÔ overcomeó thió bù providinç randoí accesó tï variablå sizå 
+objects. The cost is a small amount of access overhead.
+b©  Á  typicaì  databaså containó severaì  relateä  buô  distincô 
+files¬  eacè witè itó owî distincô recorä format(s)®  Maintenancå 
+oæ theså files¬ anä thå spacå eacè filå occupies¬ caî becomå verù 
+awkward®  Thå DBUNIÔ baseä systeí overcomeó thió bù interminglinç 
+alì  oæ  thå logicaì datá sequences¬  thaô otherwiså woulä bå  iî 
+separatå  files¬  iî  onå UCSÄ Pascaì file®  Thå  datá  structurå 
+provideó  packinç oæ variablå sizå datá objectó bù  usinç  linkeä 
+lists®  Iô  provideó  reasonablù  rapiä randoí  accesó  tï  thoså 
+objectó  bù  breakinç  thå databaså filå intï  "pages"®  Iî  thió 
+system¬  á pagå ió treateä aó á mediuí sizå physicaì recorä largå 
+enougè tï holä manù logicaì recordó oæ variablå size®  Á CONSTanô 
+iî  thå  DBUNIÔ  establisheó thå pagå sizå  aó  409¶  bytes¬  thå 
+equivalentô oæ ¸ blockó oæ 51² byteó each®  Thió coulä bå changeä 
+iæ  onå  wisheä bù recompilinç thå unit®  Thå DBUNIÔ  allowó  foò 
+manipulatinç  thå  contenô oæ á pagå bù loadinç iô  intï  anù  oæ 
+severaì  "workareas¢  whicè caî bå "opened¢ foò uså bù  primitivå 
+routineó  provideä witè thå unit®  Datá caî bå extracteä  iî  onå 
+workareá  anä moveä tï anotheò workareá oò tï thå usinç  program® 
+Datá  caî  bå editeä (bù procedurå anä functioî calls©  withiî  á 
+workarea¬  anä  lateò  inserteä intï anotheò workarea®  Wheî  thå 
+contentó  oæ á full-pagå workareá ió readù tï bå saveä  agaiî  oî 
+thå  disk¬  thaô caî bå donå usinç thå DBPUTPAGÅ  function®  Wheî 
+opened¬  á  workareá maù bå aó largå aó á fulì page¬  oò  smalleò 
+dependinç upoî thå programmeró requirementó foò temporarù workinç 
+storagå  iî  memory®  Withiî á page¬  thå datá structurå  caî  bå 
+describeä witè thå helğ oæ figureó 1¬  ² anä 3®  Figurå ± showó á 
+pagå  containinç  severaì "groups"®  Iî thió system¬  á grouğ  ió 
+equivalenô  tï á "repeatinç group"¬  aó ofteî referreä tï iî  thå 
+databaså  industry®  Iô ió á structurå whicè containó á  variablå 
+numbeò  oæ  records®  Recordó arå similaò iî  concepô  tï  Pascaì Šrecords¬ excepô thaô thå fieldó iî á recorä iî thió systeí maù bå 
+oæ variablå size®  Thå relationshipó amonç groups¬  records¬  anä 
+fieldó arå showî iî Figurå 2® Á grouğ startó witè á linë pointinç 
+tï  thå  beginninç oæ thå followinç group¬  oò tï thå enä oæ  thå 
+lisô (indicateä bù á linë valuå oæ 0)®  Withiî á group¬ therå arå 
+severaì records¬ eacè oæ whicè startó witè á linë pointinç tï thå 
+nexô  record®  Withiî á record¬  therå arå  severaì  fields®  Alì 
+variablå  fieldó starô witè á linë pointinç tï thå nexô field®  Á 
+recorä maù contaiî onå oò morå unlinkeä fieldó oæ fixeä size® Alì 
+fixeä sizå fieldó arå lumpeä intï á singlå linkeä pseudo-fielä aô 
+thå  beginninç  oæ  thå record®  Thå fixeä  fieldó  arå  accesseä 
+relativå tï thå positioî oæ thå linë whicè makeó thå pseudo-fielä 
+appeaò similaò tï otheò fieldó withiî thå linkeä lisô  structure® 
+Á fielä maù bå defineä tï contaiî á group®  Thuó thå structurå ió 
+recursive¬ anä maù contaiî manù leveló oæ nesteä groups¬ records¬ 
+anä fieldó in applications where that makes sense.     Thå formaô oæ alì groups¬  records¬  anä fieldó ió undeò thå 
+controì  oæ  "descriptor¢ recordó storeä iî threå groupó  aô  thå 
+beginninç oæ thå databaså file®  Iî thå filå TESTDÂ thaô yoõ wilì 
+bå using¬  alì threå listó oæ descriptoró arå containeä iî Pagå £ 
+0® Groupó arå iî predefineä descriptoò grouğ #1¬ recordó iî grouğ 
+#2¬  anä fieldó iî grouğ #3®  Á grouğ descriptoò referó tï onå oò 
+morå  numbereä descriptoró foò thå recordó iô contains®  Á recorä 
+descriptoò containó á simplå (unlinked© lisô oæ  field-descriptoò 
+numbers®  Á fielä descriptoò referrinç tï á nesteä grouğ containó 
+thå descriptoò numbeò oæ thaô group¬  ratheò thaî á specificatioî 
+oæ thå typå of information contained in the field. 
+     Figurå  ³  showó á closå approximatioî tï thå  relationshipó 
+amonç thå descriptoró iî thå TESTDÂ filå whicè yoõ wilì bå  usinç 
+foò  thió course®  Aó maù bå seen¬  Grouğ #° (thå "People_Group"© 
+referó  tï  jusô  onå  recorä  descriptoò  foò  Recorä  #°   (thå 
+"Person_Rec")®  Recorä #0¬  iî turn¬  referó tï fielä descriptoró 
+numbereä ° througè 10®  Fieldó 0¬ 1¬ anä ² arå fixeä sizå integeò 
+fields¬  anä eacè ió ² byteó wide®  Fieldó ´ througè ¹ arå strinç 
+typå   fields¬   witè  maximuí  widthó  ranginç  froí  1µ  tï  4° 
+characters®  Fielä  #1°  referó tï Grouğ #²  (thå  "TransGroup")¬ 
+whicè iî turî containó recordó witè threå fixeä sizå fieldó each® 
+Thå  notatioî "SW¢ referó tï á bytå storeä witè  eacè  descriptoò 
+containinç  controì  bits®  Mosô  oæ thå controì  bitó  arå  lefô 
+undefineä foò possiblå uså iî á user'ó program®  Foò fields¬  biô 
+#±  (correspondinç tï thå valuå 2© indicateó á fixeä widtè field® 
+Thå notationó "Row"¬  "Lcol"¬  anä "Dcol¢ arå foò controllinç thå 
+screeî locatioî anä formaô oæ datá display®  Botè thå "label¢ anä 
+thå  datá contenô oæ á fielä arå tï bå displayeä iî thå samå  ro÷ 
+oî  thå  screeî  (numberinç ° aô thå toğ tï 2³  aô  thå  bottom)® 
+"Lcol¢ indicateó thå columî numbeò iî whicè thå field'ó labeì  ió 
+tï bå started® "Dcol¢ indicateó thå columî iî whicè thå left-mosô 
+datá  characteò shoulä appear®  Thå descriptoró arå storeä iî thå 
+TESTDÂ  filå aó linkeä listó similaò iî concepô tï thoså  iî  thå 
+listó theù describe®  Thå descriptoró arå storeä iî thå file¬ anä 
+edited¬  usinç  thå  samå primitivå operationó thaô applù tï  thå 
+datá  theù  describe®  However¬  accesó  tï  thå  descriptoró  ió 
+accomplisheä witè thå globaì Booleaî DBTYPECHECË (linå 4´ oî pagå 
+±  oæ thå listing© seô tï FALSE®  Thió suppresseó  referenceó  tï 
+descriptoró  wheî  movinç  arounä iî  thå  groups¬  records¬  anä 
+fields®  Insteaä  thå descriptoró arå considereä bù DBUNIÔ itselæ Šaó madå uğ oæ simplå linkeä strings® Theså arå passeä tï thå datá 
+structurå  editoò  program®  Thå datá  structurå  editoò  prograí 
+currentlù availablå ió quitå primitive¬ anä supplieä tï thå clasó 
+aó  parô  oæ  thå  prograí DBUILDER®  DBUILDEÒ  ió  basicallù  aî 
+experimentaì laboratorù designeä tï allo÷ step-by-steğ  debugginç 
+oæ thå DBUNIT® Yoõ arå welcomå tï uså iô (aô youò owî peril)¬ buô 
+nï  documentatioî wilì bå provided®  Eventually¬  á morå friendlù 
+datá  structurå editoò wilì bå provided®  (Anù clasó  grouğ  thaô 
+feeló  reallù  ambitiouó mighô consideò writinç á datá  structurå 
+editoò  foò  thå  seconä  anä thirä  homeworë  projectó  iî  thió 
+course.©  Witè aî understandinç oæ thå relationshiğ  betweeî  thå 
+datá  structurå anä thå primitivå operationó oæ thå  DBUNIT¬  yoõ 
+shoulä  bå  ablå tï reaä á listinç oæ thå DBUILDEÒ  prograí  witè 
+relativelù littlå problem¬  anä theî shoulä bå ablå tï uså iô foò 
+step-by-steğ viewinç oæ thå datá containeä iî thå file® Aó maù bå 
+seeî  froí pagå ² oæ thå listing¬  thå DBUNIÔ routineó arå brokeî 
+intï severaì functionaì groupings®  Thå traversaì primitiveó  arå 
+useä  foò  movinç arounä iî thå datá structurå withiî á pagå  (aó 
+containeä  iî  á workarea)®  Thå transfeò  primitiveó  movå  datá 
+betweeî  workareas¬  anä betweeî á workareá anä á usinç  program® 
+Thå  workareá  primitiveó  arå  useä tï  establisè  workareaó  oæ 
+appropriatå  sizes®  Thå filå primitiveó maintaiî tableó foò  thå 
+onå  oò morå dataabaså fileó needeä bù á useò program®  Yoõ  wilì 
+probablù  restricô  youò attentioî tï jusô onå databaså  filå  iî 
+thió course®  Noticå alsï thå debugginç primitiveó aô thå toğ  oæ 
+pagå  ³  oæ thå listing®   Wheî yoõ loaä á pagå intï  á  workareá 
+usinç  DBGETPAGE¬  thå workarea'ó locatioî pointeò ió initializeä 
+aô  thå heaä oæ thå firsô grouğ (grouğ #0)®  Tï geô tï  thå  nexô 
+grouğ  iî  thå lisô uså DBNEXT®  Tï geô tï thå firsô recorä iî  á 
+group¬  uså DBDESCEND®  Iî otheò words¬  yoõ descenä onå leveì iî 
+thå  treå  structureä lisô tï movå froí thå GROUPÔ leveì  tï  thå 
+RECORDÔ leveì (seå linå 2° oî pagå ± oæ thå listing)®  Tï geô  tï 
+recorä Î withiî thaô group¬  yoõ caî uså DBSEEK¬ oò calì DBNEXÔ Î 
+times® Tï geô tï thå enä oæ thå lisô iî ordeò tï linë yeô anotheò 
+recorä  there¬  uså DBTAIL®  Tï accesó individuaì fieldó withiî á 
+record¬  uså DBDESCENÄ again®  Tï returî froí thå FIELDÔ leveì tï 
+thå heaä oæ thå enclosinç record¬  uså DBASCEND® DBHEAÄ takeó yoõ 
+tï  thå  locatioî oæ thå firsô iteí iî thå lisô  aô  thå  currenô 
+level®  DBHOMÅ  returnó  yoõ tï thå heaä oæ thå  outermosô  grouğ 
+leveì iî thå page® DBFINDREÃ ió useä tï scaî througè recordó iî á 
+singlå  group¬  searchinç  foò á matcè witè á strinç iî  thå  KEÙ 
+parameter. 
+     Oncå yoõ havå locateä á desireä record¬ yoõ maù wisè tï movå 
+informatioî  froí  thå  fieldó  oæ thaô recorä  tï  youò  callinç 
+program¬  oò  yoõ maù wisè tï replacå informatioî iî  thå  recorä 
+witè  ne÷  information®  Thió ió donå bù passinç thå  informatioî 
+througè  thå  DBUNIT'ó "mailbox¢ variablå (declareä  startinç  iî 
+linå 4¸ oî pagå ± oæ thå listing)®  Thå DBMAIÌ recorä passeó  onå 
+iteí oæ anù typå oæ informatioî supporteä bù thå systeí usinç thå 
+transfeò  primitiveó DBGEÔ anä DBPUÔ whicè arå similaò iî concepô 
+tï Pascal'ó GEÔ anä PUÔ useä witè files®  Youò prograí accesseó á 
+valuå froí thå datá structurå bù usinç DBGET¬  oncå thå  locatioî 
+pointeò haó beeî moveä tï thå desireä item® DBGEÔ loadó á copù oæ 
+thå iteí intï DBMAIL® Yoõ caî theî accesó thå valuå withiî DBMAIÌ 
+(jusô  aó  yoõ caî uså FIDŞ foò á file)¬  oò yoõ caî  assigî  thå Švaluå  iî DBMAIÌ tï á variablå iî youò program®  DBPUÔ takeó  thå 
+valuå  iî  thå DBMAIÌ variablå anä useó iô tï replacå  thå  valuå 
+currentlù  storeä  iî thå datá structurå aô thå locatioî  oæ  thå 
+workarea'ó  locatioî pointer®  Thå DBMAILTYPÅ taç fielä oæ DBMAIÌ 
+musô bå useä tï identifù whaô typå oæ informatioî ió beinç passeä 
+viá thå mailboø (otherwiså yoõ wilì geô bizarrå anä unpredictablå 
+results!)®  Aô present¬ onlù thå STRINGÆ anä INTEGERÆ optionó arå 
+implemented®  (Iæ  yoõ  arå eveî morå ambitious¬  yoõ  mighô  trù 
+addinç  onå oæ thå otheò typeó foò thå seconä anä thirä  homeworë 
+tasks.)     Alì  thå  otheò transfeò primitiveó operatå withiî thå  datá 
+structure¬  anä dï noô refeò tï DBMAIL®  Commentó iî thå headingó 
+oæ theså primitives describe what they do in the DBUNIT listing.
+
+               {Walk-thru of a STARTER procedure}
+
+     Iæ  yoõ executå thå prograí DBPROÇ (showî iî thå listinç  aó 
+DBTEST)¬  anä  answeò thå prompô bù askinç foò thå databaså  filå 
+TESTDÂ (transfeò iô witè thå Fileò tï youò #4º oò #5º disk)¬ theî 
+thå  operatioî  oæ thå severaì procedureó caî  bå  summarizeä  aó 
+follows:
+a©  F(indreã wilì asë foò aî approximatå indeø "key"®  Afteò  yoõ 
+presó  <return>¬  á  portioî oæ thå indeø wilì bå displayeä  witè 
+selectioî letters®  Picë á letter¬  anä thå correspondinç  recorä 
+wilì be displayed.
+b©  C(hangereã  allowó  alterinç thå contentó  oæ  thå  displayeä 
+record®  Selecô  thå  fielä  tï alteò bù  pressinç  itó  selectoò 
+letter¬  oò  bù usinç <return¾ tï geô tï thå nexô field®  Thå olä 
+valuå oæ thå fielä caî bå editeä oò á ne÷ valuå substituted®  Seå 
+pagå  4³ oæ thå listinç foò detailó oî thå  SCREADSTRÇ  procedurå 
+useä  tï  handlå  thió  editing®  Oî thå  Apple¬  uså  thå  ASCIÉ 
+characteò "CAN¢ (Control-X© tï geô thå effecô oæ DEÌ describeä iî 
+thå  procedure®  Savå thå ne÷ valuå oæ thå fielä usinç  <return>® 
+<escape¾  returnó  yoõ  tï  thå  C(hangereã  controì  leveì   anä 
+redisplayó  thå originaì valuå oæ thå field®  Froí thå C(hangereã 
+controì level¬ <ETX¾ saveó thå ne÷ recorä value¬ <ESC¾ returnó tï 
+thå prograí with no change in the record.
+c© N(ewreã ió useä tï creatå á ne÷ record¬  anä storå iô anä  itó 
+index entries in the file.
+d©  G(etreã  ió á debugginç procedurå useä tï allo÷ yoõ tï  refeò 
+explicitlù tï á page¬  group¬  anä recorä numbeò  location®  Datá 
+recordó  iî  TESTDÂ arå oî pageó ² anä up®  Pagå ±  containó  thå 
+currentlù implementeä singlå leveì index®  Pagå ° containó mainlù 
+the descriptor groups.
+e) Q(uit as it implies gets you out of the program.
+f©  T(racå  allowó  manipulatinç  thå controló  useä  tï  triggeò 
+detaileä  "dumps¢  oæ thå datá structurå bù thå DBUNIÔ  procedurå 
+TRACEWA®  Thå T(racå displaù wilì prompô foò tracå "sites"¬ whicè 
+arå  numberó  associateä  witè specifiã  traversaì  anä  transfeò 
+primitives®  Foò example¬  iæ yoõ seô tracinç foò sitå #9¬ á dumğ 
+wilì  bå  triggereä thå nexô timå thå DBSEEË routinå  ió  entereä 
+(Seå  linå 90¶ oî pagå 2° oæ thå listing.© Á tablå oæ  alì  tracå 
+siteó  wilì bå provideä tï thå clasó iî á supplementarù  handout® 
+No÷  refeò tï thå STARTEÒ procedurå SAVEINDEXITEÍ whicè startó oî 
+linå 42° oæ pagå 5° iî thå listing®  Thå arraù SELECÔ ió  assumeä 
+tï  havå  beeî previouslù loadeä witè itemnumberó anä  descriptoò Šnumberó bù thå SHOWREÃ procedure®  ZEROWORKAREA(WA2© ió á  DBUNIÔ 
+procedurå  useä herå tï initializå workareá #² (seå CONSÔ iî linå 
+15´ pagå 46)® Thå followinç lisô oæ calló tï DBEMPTYITEM¬ DBHOME¬ 
+DBDESCENÄ  alì seô á dummù integeò variable®  Mosô oæ thå  DBUNIÔ 
+routineó arå functionó whicè maù returî á non-zerï erroò valuå iî 
+á manneò similaò tï aî erroò IORESULT®  Iî thå lineó showî  here¬ 
+wå havå assumeä thaô theså routineó wilì ruî correctly¬  anä makå 
+no provision for error handling. 
+     Aó  yoõ  wilì  find¬  iô ió probablù preferablå foò  yoõ  tï 
+controì alì oæ youò calló tï theså routineó usinç  DBSHOWERR¬  aó 
+illustrateä  oî linå 46´ oæ pagå 51®  Iî thaô case¬  wå copù  thå 
+iteí  currentlù pointeä aô iî WA² (workareá #2© intï thå  currenô 
+positioî  pointeä aô iî WA0®  Iæ DBCOPÙ failó (returnó á noî zerï 
+value©   theî   thå  messagå  giveî  bù  thå   strinç   parameteò 
+'SAVEINDEXITEÍ - copù WA² tï WA0§ wilì bå displayed¬ anä yoõ wilì 
+bå  askeä  ho÷  tï  proceed®  Wå eliminatå  thå  spacå  anä  timå 
+consuminç  uså  oæ DBSHOWERÒ onlù afteò enougè testinç  haó  beeî 
+donå  tï sho÷ thaô erroró arå verù unlikely®  Yoõ  wilì  probablù 
+finä  thaô ouò confidencå iî usinç DUMMY:=..®  haó beeî misplaceä 
+iî somå oæ its uses in the STARTER unit. 
+     Iî  linå 46° oî pagå 51¬  wå seô thå locaì variablå RSLÔ  tï 
+thå valuå returneä bù DBDESCEND®  Thió allowó thå prograí tï takå 
+evasivå  actioî iæ thå DBDESCENÄ routinå failó foò á  predictablå 
+reason®  Iî  thió caså DBDESCENÄ mighô faiì iæ WA° ió  completelù 
+empty.
+
+                    {Homework Problem Topics}
+
+     Duå tï shortagå oæ time¬ thió sectioî wilì generallù providå 
+onlù  á brieæ recountinç oæ thå areaó iî whicè teamó oæ  studentó 
+maù proposå homeworë topics® Aî additionaì handouô providinç morå 
+detailó  wilì bå availablå iî á fe÷ days®  Á poinô oæ cautioî  ió 
+thaô  therå  arå probablù severaì bugó iî thå  prograí  materialó 
+provideä  tï yoõ - á toucè oæ whaô yoõ wilì alsï finä iî  workinç 
+iî thå reaì world after leaving UCSD.
+     Foò thå firsô homeworë project¬  alì buô thå morå  ambitiouó 
+groups may wish to attack problem 6.1b, c, or d.
+
+                         {ISAM Index}
+
+     Thå  indeø facilitù iî thå starteò prograí ió incompletå  iî 
+many ways. Any of the following would be suitable project tasks:
+a© Thå starteò prograí provideó onlù á coarså index® Extenä iô bù 
+addinç  finå  indeø handling®  Sincå thå indeø filå handlinç  maù 
+makå thió time-consuming¬  puô "Updatinç ..®  ¢ oî thå screeî  tï 
+sho÷ that work is in progress. 
+b©  Thå STARTEÒ unit'ó SAVEINDEXITEÍ procedurå makeó nï provisioî 
+tï replacå aî indeø entrù witè aî editeä entry®  Iæ thå ne÷ entrù 
+differó iî anù waù froí thå old¬  theî thå ne÷ entrù ió addeä  tï 
+thå index¬  buô thå olä remains® Repaiò thió probleí bù arranginç 
+tï  replacå  thå olä entrù witè thå ne÷  wheî  appropriate®  Thió 
+shoulä noô prevent adding new index items when NEWREC is called.
+c©  Thå  STARTEÒ  unit'ó indeø handlinç makeó  nï  provisioî  foò 
+storinç  multiplå  referenceó tï á singlå indeø  keù  value®  Foò 
+example¬  therå  arå twï referenceó iî thå TESTDÂ filå foò  Texaó ŠInstruments¬  buô  onlù  onå caî bå reacheä viá thaô keù  iî  thå 
+index® This should be fixed.
+d© Relativå tï thå F(inä command'ó displaù oæ Keù values¬ providå 
+á  capabilitù  tï uså thå UĞ anä DOWÎ arro÷ keyó tï geô thå  nexô 
+datá  record¬  oò  thå previouó one¬  iî thå  indeø  (alphabetic© 
+sequence.
+e©  Builä  á completå indeø froí á pre-existinç  DFIÄ  file¬  foò 
+example to provide a new combination of fields that are indexed. 
+f©  Re-builä  aî  existinç ISAÍ indeø iî  ordeò  tï  balancå  thå 
+occupancy of the several pages.
+
+                         {Transaction File}
+      Thå starteò prograí currentlù containó onlù primitivå hookó 
+to implement the transaction file.
+a) Implement the transaction file initializer/maintainer.
+b) Collect transaction data from the keyboard and display it.
+c© Displaù recenô transactioî recordó associateä witè thå currenô 
+datá  record®   Implemenô  á  "next¢  capabilitù  tï  scrolì  thå 
+transactioî records so that earlier ones may be seen.
+
+                         {Batch Search}
+
+      Implemenô  á  generaì  purposå meanó oæ goinç  througè  thå 
+entirå  datá  recordó  file¬  allowinç  specifieä  processinç  oî 
+selecteä records.
+
+                    {Summary Report Generator}
+
+     Baseä oî á batcè strategy¬  summarizå numeriã datá fieldó iî 
+thå datá records¬ anä providå á formatteä outpuô reporô whicè maù 
+bå either displayed or printed.
+
+                    {Reformat a Data Records File}
+
+     Providå  á generaì capabilitù tï creatå á ne÷ databaså  filå 
+witè  á newlù defineä layouô oæ fieldó iî thå records¬  baseä  oî 
+inpuô from an old pre-existing file with a different layout.
+
+                    {Sort/Merge Utility}
+
+     Writå  á utilitù prograí tï Sorô and/oò Mergå recordó  iî  á 
+database®  Thió  includeó á substantiaì amounô oæ disë  handling¬ 
+anä ió á fairly major project. 
+
+                    {Garbage Collection}
+
+      Afteò substantiaì amountó oæ use¬ thå Datá Recordó filå maù 
+becomå "checkerboarded¢ witè unuseä recorä locations® Rebuilä thå 
+filå  tï eliminatå unuseä recorä linkó embeddeä withiî thå  file® 
+Thió maù requirå ---------"Thió ió wherå iô endeä oî mù disë sï É 
+supposå  á  smalì parô ió missing¬  howeveò iô won'ô effecô  youò 
+efforts. GOOD LUCK"
+
+PASCAL/Z USERS GROUP
+Charlie FosterŠ 

@@ -1,0 +1,92 @@
+(*
+	GETARG (var argc:integer; var argv:argl );
+
+	Pascal MT+ version getarg
+	by T.Nomura
+
+	call getarg then return argc and argv.
+*)
+program GetArgTest(input,output);
+const
+     MAXARG = 10;     (* max of numbers of argv[max] *)
+     ARGLEN = 20;     (* max of length of argv[i] *)
+     NULL   =  0;     (* terminator *)
+type
+    pstrg = ^string;
+
+    arg = array[1..MAXARG] of string[ARGLEN];
+    argl = string[255];
+var i,len:integer;
+    argc:integer;
+    argv:arg;
+
+
+external function @cmd : pstrg;
+
+procedure GetArgList(var arglist:argl);
+var
+    s:argl;
+    ptr:pstrg;
+begin
+     ptr := @cmd;
+     arglist := ptr^;
+end;
+
+
+procedure getarg(var argc:integer;var argv:arg);
+var
+   i,len:integer;
+   argnum:integer;
+   arglist:argl;
+   first:boolean;
+begin
+     GetArgList(arglist);
+     len := length(arglist);
+     argnum := 1;
+     for i := 1 to MAXARG do
+         argv[i] := '';
+     i := 1;
+     first := true;
+
+     (* pass the spaces *)
+     while ( i <= len ) and ( arglist[i] = ' ') do
+           i := i + 1;
+     if i > len then
+           argc := 1
+     else
+      begin
+           while ( i <= len ) and (argnum <= MAXARG+1) do
+            begin
+                 if arglist[i] = ' ' then
+                  begin
+                       if first then
+                        begin
+                             argnum := argnum + 1;
+                             first := false;
+                        end
+                  end
+                 else
+                  begin
+                       argv[argnum] := concat(argv[argnum], arglist[i]);
+                       first := true;
+                  end;
+                 i := i + 1;
+            end;
+           if first then
+              argc := argnum + 1
+           else
+               argc := argnum;
+           if argnum > MAXARG+1 then
+              writeln('Error : Argv overflow');
+     end;
+end;
+(*------------------------------------------------------------------------*)
+(* MAIN *)
+(* test program *)
+begin
+     getarg(argc,argv);
+     writeln('argc = ',argc);
+     for i := 1 to argc-1 do
+         writeln(argv[i]);
+end.
+

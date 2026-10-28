@@ -1,0 +1,117 @@
+                        THE BENCHMARKS
+
+The  benchmarks are extracted from a paper to be presented  by 
+Dr.  M.  R.  Wigan  at the 1982 MICSIG conference in Canberra, 
+August 18-20. If you'd like to know more about the benchmarks, 
+make sure you get to MICSIG.
+
+The  SYSOP rewrote the "C" benchmarks to eliminate the  "goto" 
+statements.  I  don't  believe  that it is fair  to  burden  a 
+structured  language  like "C" or PASCAL with constructs  like 
+"goto"  in benchmarks.  As "goto"s in these languages are  not 
+intended  for  anything but desperation  situations  (such  as 
+error   exits  from  deeply  nested  functions)  there  is  no 
+incentive   for   the  author  to  code   "goto"   efficently. 
+The  efficency  of coding in structured languages  often  goes 
+into the constructs which allow for clear program control.
+
+Perhaps  some  PASCAL  fan will rewrite  the  PASCAL  routines 
+similarly.  Is  some one intersted in rewriting the  bechmarks 
+into RATFOR? Feedback on your results for any of the benchmark 
+series  (with full details of the hardware environment)  would 
+be interesting.
+
+Now its over to Mark for his description of the bechmarks.
+ 
+
+BENCHMARKS AND ENVIRONMENTS
+
+The benchmarks used have been published in a number of places. 
+The two primary sources are Coll (1978) and Fox (1980).
+
+The  first  source was John Coll's paper in the 27  July  1978 
+issue  of Computing Europe (later issued in the proceedings of 
+the Do-It-Yourself Computing Conference,  OnLine  Conferences, 
+Uxbridge,UK). Coll presented the results of numerous runs done 
+on eight simple programs written in BASIC on a large number of 
+machines. Seven of these programs had previously been used for 
+an earlier article in the June 1977 issue of Kilobaud. As Coll 
+pointed out ,  although his eighth program added trancendental 
+functions  to  the range of tests,  there was still no  string 
+handling  program included in this  expanded  set.  Australian 
+Personal   Computing  1(4)  p14  lists  these  codes   without 
+crediting  the  original  author  or  noting  their   previous 
+history.
+
+The second source for benchmark checks was given by Tom Fox in 
+the   June   1980   issue  of    Interface   Age,   where   an 
+(intentionally)   crude  prime number routine was given as  an 
+exerciser  for  the  basic  BASIC  integer  functions.    This 
+benchmark has,  in spite of its simplicity and crudity of code 
+(perhaps  even  because of it..)  attracted  numerous  further 
+reports by readers in subsequent issues of that magazine.
+
+The  benchmarks themselves are very simple,  and are  designed 
+explicitly for lucidity in interpretation of the results.  The 
+credit  for this should of course go to the original  authors. 
+It   should  be  emphasised  that  the  previously   published 
+benchmarks   were  in  BASIC  only.   The  simplicity  of  the 
+benchmarks  might  have  been  expected to  lead  to  an  easy 
+translation to other languages...  but such was not the  case. 
+The 8080 APL implementation to hand took 561 seconds for BM9 - 
+the  Prime Number routine - is perhaps the  least  transparent 
+recoding,  but  the  same  (enforced) variations  produced  to 
+satisfy  each  language  were  applied to  all  the  different 
+compilers of that type.  The major exceptions were for  Pascal 
+and  its'  variants.  The label construction was  enabled  for 
+Pascal  and Structured-Algol,  which - while not in the spirit 
+of  either langauge - was certainly there in the flesh  to  be 
+exploited in the name of strict comparability!
+
+
+BENCHMARK SPECIFICATIONS
+
+Benchmark BM1 : A null-action FOR, REPEAT or DO loop, executed 
+                1000 times.
+
+Benchmark BM2 : A  null-action explicitly-coded loop  executed 
+                1000 times.
+
+Benchmark BM3 : BM2 plus A=K/K*K+K-K in the loop.
+
+Benchmark BM4 : BM2 plus A=K/2*3+4-5 in the loop.
+
+Benchmark BM5 : BM4  plus  a branch to null-action  subroutine 
+                from inside the loop.
+
+Benchmark BM6 : BM5  plus  an array declaration  M(5),  and  a 
+                null-action  FOR  loop (of 1-5)  also  in  the 
+                loop.
+
+Benchmark BM7 : BM6 plus M(L)=A in this 1-5 loop.
+
+Benchmark BM8 : A  square  function,   log  function  and  sin 
+                function  in  an  explicitly-coded  FOR  loop, 
+                repeated 100 times.
+
+Benchmark BM9 : Prime  numbers in the range 1-1000 are printed 
+                to the screen,  calculated in an outer loop of 
+                1000 and an inner loop of 500,  with no tricks 
+                at  all.  This  is  a very  bad  prime  number 
+                routine  indeed,  but a very useful basis  for 
+                inter-machine,    interpreter   and   compiler 
+                comparisons. 
+
+The  output of numbers to the screen required by BM9 can  slow 
+the execution speed of this benchmark.  The "standard"  screen 
+speed  was therefore set to be 19,200 baud wherever  possible. 
+In  some cases of fast execution the screen handling  overhead 
+proved  to  be a major delay factor.  The Z8000 4MHz  AMC  "C" 
+integer  benchmark  runs suffered up to 25% delay  under  some 
+situations.
+
+[End of Document]
+  an  explicitly-coded  FOR  loop, 
+                repeated 100 times.
+
+Benchmark BM9 : Prime  numbers in the range 1-1000 

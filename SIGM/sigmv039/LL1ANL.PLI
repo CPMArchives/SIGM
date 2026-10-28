@@ -1,0 +1,79 @@
+LL1ANL: PROC OPTIONS(MAIN);
+/****************************************************************
+*              LL(1) GRAMMAR ANALYZER - MAIN ROUTINE		*
+*PURPOSE:                                                       *
+*    THIS PROGRAM IS THE MAIN CONTROL ROUTINE OF THE LL(1)      *
+*    GRAMMAR ANALYZER SYSTEM.  ITS RESPONSIBILITY IS TO IN-     *
+*    VOKE EACH PHASE OF THE ANALYZER AND CONTAIN THE COMMON     * 
+*    AREAS PASSED BETWEEN PHASES.				*
+*INPUT:                                                         *
+*OUTPUT:                                                        *
+*OUTLINE:                                                       *
+*REMARKS:                                                       *
+****************************************************************/
+
+/****************************************************************
+* * * * * * * * * * * *  DATA DEFINITIONS   * * * * * * * * * * *
+****************************************************************/
+
+/*	* * *  COMMON REPLACEMENTS  * * *	*/
+%REPLACE TRUE BY '1'B;
+%REPLACE FALSE BY '0'B;
+
+/*	* * *  COMMON AREAS  * * *	*/
+%INCLUDE 'LL1CMN.DCL';
+
+/*	* * *  COMMON PROCEDURES  * * *	*/
+%INCLUDE 'LL1PRC.DCL';
+
+/*	* * *  EXTERNAL ROUTINES  * * *		*/
+	DCL LL1P00 ENTRY;
+	DCL LL1P10 ENTRY;
+	DCL LL1P20 ENTRY;
+	DCL LL1P30 ENTRY;
+	DCL LL1P40 ENTRY;
+	DCL LL1P50 ENTRY;
+	DCL LL1P60 ENTRY;
+	DCL LL1P70 ENTRY;
+	DCL LL1P80 ENTRY;
+
+/*	* * *  MAIN ROUTINE  * * *	*/
+
+/*	DO INITIALIZATION. */
+	PUT SKIP(2) LIST('INITIALIZING COMMON AREAS...');
+	CALL	LL1P00;		/* DO IT. */
+
+/*	READ IN THE GRAMMAR WITH MINOR ANALYSIS. */
+	PUT SKIP(2) LIST('READING IN THE GRAMMAR...');
+	CALL	LL1P10;		/* READ IN THE GRAMMAR. */
+
+/*	PRINT THE GRAMMAR. */
+	PUT SKIP(2) LIST('PRINTING THE GRAMMAR...');
+	CALL	LL1P20;		/* ANALYZE IT. */
+
+/*	FIND NULLABLE NON-TERMINALS AND PRODUCTIONS. */
+	PUT SKIP(2) LIST('FINDING THE NULLABLE NON-TERMS AND PRODS...');
+	CALL	LL1P30;		/* ANALYZE IT. */
+
+/*	CALCULATE THE BEGINING TYPE RELATIONS. */
+	PUT SKIP(2) LIST('CALCULATE THE BEGINING TYPE RELATIONS...');
+	CALL	LL1P40;		/* ANALYZE IT. */
+
+/*	CALCULATE THE END TYPE RELATIONS. */
+	PUT SKIP(2) LIST('CALCULATE THE END TYPE RELATIONS...');
+	CALL	LL1P50;		/* ANALYZE IT. */
+
+/*	CALCULATE THE FOLLOW SET RELATION. */
+	PUT SKIP(2) LIST('CALCULATE THE FOLLOW SET RELATION...');
+	CALL	LL1P60;		/* ANALYZE IT. */
+
+/*	CALCULATE THE SELECTION SET. */
+	PUT SKIP(2) LIST('CALCULATE THE SELECTION SET...');
+	CALL	LL1P70;		/* ANALYZE IT. */
+
+/*	VALIDATE THAT THE LANGUAGE IS LL(1). */
+	PUT SKIP(2) LIST('VALIDATING THAT THE LANGUAGE IS LL(1)...');
+	CALL	LL1P80;		/* ANALYZE IT. */
+
+	END LL1ANL;
+

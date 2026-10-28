@@ -1,0 +1,408 @@
+
+[HOWTOUSE.DOC]
+[Harold V. McIntosh, 28 December 1983]
+
+This disk is intended as a collection of examples for the programming
+language REC, although many of the examples are useful in their own
+right, particularly CNVRT.REC which compiles the programming language
+CONVERT. The files REC80.COM and REC86.CMD are binary files containing
+object code for REC destined respectively for the Intel 8080 and the
+Intel 8086. REC80 may be executed by the Intel 8080, Intel 8085, or the
+Zilog Z80, since it uses none of the instructions which differentiate
+these CPU's. REC86 will presumably execute in any of the Intel family
+of 8086 CPU's, that is the 8088, 80186, 80286, although in fact it has
+only been proven on Godbout's dual 8085-8088 board.
+
+REC80 partitions the available memory in the ratio 5-4-1 for compile
+area, pushdown area and workspace, after setting aside space for the
+8080's pushdown stack and having lost whatever space was occupied by the
+binary program and the tables FXT and VRT.  REC86 is configured for 8080
+mode with a 64K code segment, and a fixed partition for the available
+memory. Thus REC80 will work in almost any system - at least 16K or
+larger, but since the source code is available on the companion disk,
+either of the two versions can be reassembled to suit whatever system
+desired by changing the EQU's defining the memory partition or else
+by reprogramming the partitioning alogrithm.
+
+The assumed operating system is CP/M 2.2, on the one hand, or CP/M86
+on the other hand. However, deliberate advantage is taken of the CP/M
+transfer vector in BIOS to get direct access to console I-O. This was
+necessary in some editor-like applications of REC, for which CP/M's
+tampering with the data stream was too slow and conflicted with the
+natural editing functions of the programs involved. The source code
+contains provision to restore the CP/M I-O. We have observed that the
+direct access prevents REC programs from working with MicroShell in all
+respects. REC80 will run with CP/M 1.4, because it does not use any of
+the features which distinguish the two versions.
+
+There are some minor aspects in which the programs are dependent on
+the nature of the console equipment, again when used for editing and
+similar purposes. Although some ASCII standards are universally res-
+pected, such as for the assignment of carriage return and line feed,
+many others are not, or do not even exist. Thus screen clear, and the
+cursor movements may require some adjustment, although this adjustment
+can be made in the applications programs and would not require any
+change in the binary REC programs.  As written, they have all worked
+successfully with the TeleVideo 912-C and TeleVideo 910 terminals.
+
+REC has operators which give direct access to the I-O ports. None of
+these applications programs use them.   Anyone planning to use them
+would clearly have to know the configuration of his own system to do
+so.  The operators in REC86 are literal transcriptions of those in
+REC80, and have not been tested for 16-bit port addresses.
+
+REC expects to find one or two file names on its command line.  If it
+finds neither, it enters a conversational mode, in which it displays
+a logo with the version date.  In this mode REC expressions may be
+entered, using CP/M's editing facilities [which means that you can get
+back to CP/M by typing ^C at the beginning of a blank line].  They are
+compiled and promptly executed, giving one an opportunity to experiment
+with REC as a language.  Try ('hello'TL;) for example. A line may be
+edited, but once a carriage return is given, it is compiled and cannot
+be retrieved for additional changes. As many lines will be prompted as
+required to balance parentheses; there is no guarantee that the program
+entered makes sense, of course.
+
+When REC encounters a file name on the command line, it supposes that
+it is the name of a source file which is to be loaded and executed. A
+second file name is preserved and transmitted to the executing program
+in the CP/M location 05CH, which means that an application program can
+make use of CP/M's file handling facilities. REC does not preserve the
+remainder of the command line, however.
+
+There is no such thing as REC object code, because the compiler is a
+loader, which loads for immediate execution.
+
+REC, as a language, can be described rather simply. There are four
+control symbols - the two parentheses, colon and semicolon. There are
+also operations, and some of these can have truth values [true or
+false], and are designated predicates. Operations are executed in the
+sequence they are written, which can be interrupted in two ways. A
+colon means to repeat the sequence from the beginning, a semicolon means
+to quit entirely. A predicate can interrupt the sequence in one further
+way - when it is false you take up a new sequence. The new sequence can
+be written after the nearest colon or semicolon, a place which otherwise
+is inaccessible. After mentioning two idiosyncracies the description of
+the control is complete.
+
+First, several predicates in a sequence all go over to the same alternate
+sequence in the case they are false. Instead of giving a program the form
+of a binary tree in which the point at which execution has arrived is
+well defined by the hisory of previous definitions, many of the branches
+are allowed to overlap. Often this is of no concern, but it will now and
+then happen that it is necessary to know how the program got to a given
+point. Setting and testing variables is a simple resolution which goes
+outside the framework of a simple control structure - it implies a theory
+of variables. Repeating a past predicate may be inconvenient [say there
+is a very long calculation involved] or impossible [a real-time event
+has passed]. This quandray already appears in the calculation of an
+exclusive or [a and not-b or not-a and b; you may have to do one or the
+other twice].  Recognizing the existence of this point goes a long way
+toward meeting the confusion it may cause, which in many years of REC
+programming has seemed to be the only really serious source of indecision
+in laying out programs.
+
+The second point is that logical negatives are essential in setting up
+a program, and can be obtained in a slightly backhanded way by reversing
+the sense of all predicates in the final segment of a REC expression. In
+a simpler form, if p is a predicate, (p) is its negative.
+
+Indeed, boolean combinations of predicates can be realized through the
+flow of control set up by the syntactic elements we have mentioned. If
+p and q are two predicates, (p;q;) is their logical or, (pq;) is their
+and. (p(q);(p)q;) is the exclusive or but, as remarked, it may involve
+doing p or q twice. Since the evaluation of a series of predicates is
+sequential, from left to right, no more of them will be executed than is
+necessary to reach a decision. As a consequence the boolean operations are
+not really commutative, and care must be taken  with their ordering. In
+practice this situation is more of an advantage than a disadvantage.
+
+Few programs can subsist without subroutines, and REC is no exception.
+The mechanism of subroutine definition is to enclose a list of the
+desired subroutines and their names, together with the program which
+is to use them, in a pair of curly braces. The combination might show
+the form {(www) a (xxx) b ... (yyy) n (zzz)}, in which the first
+parenthesis [which itself could be enclosed in braces because of some
+subroutine nesting] the definition of the subroutine a, and so on. It 
+is agreed that all the subroutine definitions will be valid within the
+main program and each other, but only within the curly braces, and
+unless superceded at a lower level by a new subroutine definition on
+that level.
+
+In reality, the syntactical definition of REC says nothing whatsoever
+about the choice of operators or predicates for the language, nor about
+the symbolism used to represent them, beyond the reservation of the
+symbols which have been mentioned.  It is a historical custom that REC
+has used single letters for symbols, mainly because of the convenience
+of a single keystroke in its interactive use, and the resulting economy
+of not having to parse identifiers. REC80, which is linguistically
+identical to REC86, displays a collection of operators and predicates
+assigned to slightly less than the 96 printable characters of the ASCII
+alphabet, whose detailed description is often quite intricate, and which
+may be deduced from the explanations given in the source listings. Some
+twenty years of experience, and the influence of several people have gone
+into the choice of a relatively general-purpose collection. Anyone could
+start afresh and create a new version of REC by changing its inherent
+function library; something which has been done from time to time in the
+past.
+
+The REC in this collection makes use of three principal data structures,
+to which a proportionate share of the available memory is dedicated. They
+are: the compiling area, the pushdown list, and the workspace. The first
+of these is where the program which REC compiles is normally stored;
+if access to the compiler itself is granted in the choice of functions
+[C, in the present example], the use of this area can be programmed.
+The second, the pushdown list, reflects a decision to work on the level
+of reversed Polish notation, passing arguments to functions through a
+stack and recovering results from the same place. Chains of characters
+are likely to be the principal data type used, which means that some
+provision must be made for handling variable length arguments.  The
+third structure is a sort of accumulator for long character strings,
+and is serviced by specialized functions such as searches, insertions,
+and deletions.
+
+The source listings contain descriptions of each of the operators and
+predicates, and should be consulted for the details of their functioning.
+The listing is broken down into separate modules according to these
+functional groupings, namely compiler, pushdown list, workspace, main
+program and input-output.
+
+REC interacts with the CP/M operating system by treating BDOS as a
+subroutine [k, or K] to which the necessary parameters are passed.
+Space for buffers, file control blocks and the like can be taken from
+the pushdown list, the workspace, or from absolute locations in the
+memory.
+
+The disk is mostly filled with applications programs.  Five of them
+are compilers for "languages," such as one would meet in a Computer
+Science course. Indeed, in Puebla they are used for exercises in just
+such courses. Consequently, a certain background in things mathematical
+ - symbolic logic,  for example - would probably be useful preparation
+for the examples. Be that as it may, the applications of these languages
+are in turn readily comprehensible and rather amusing.  Much sport can
+be had making up Turing Machines or Markov Algorithms to do simple
+things.
+
+The languages are:
+
+		Turing Machine
+		Markov Algorithm
+		Post Production
+		LISP
+		CONVERT.
+
+They range from simple to complex; by far the most attention was
+devoted to the last of these, because it is a practical language of
+many applications.  So is LISP, of course, but here it was written in
+REC as an exercise, which means that one should turn to one of the
+many serious LISP processors available if the intention is to use it
+for a major undertaking.
+
+In all cases one or two sample programs are shown for these languages
+so that some comparisons can be made between the ways that each of
+these languages goes about doing things; a binary sum is one example,
+a self-compiler of the language where appropriate is another.  The
+user of this disk is urged to prepare for unpleasant surprises by
+making a backup copy before doing any experimentation. The REC versions
+of the sample programs will actually run, and are intended to be
+significant and illustrative in their own right. However, the five
+programs cited above will compile them from their own source programs.
+If this compilation is botched, one will be deprived of the enjoyment
+of the sample programs until the art of compilation has been mastered;
+this may or may not take a while.
+
+One of the great stimulants for the evolution of REC in particular
+directions was the desire to have a language with which CONVERT could
+be compiled; CONVERT has previously existed as an interpreter within
+LISP. Even yet there are details to be mastered in the generation of
+search patterns for CONVERT, so that CNVRT.REC will suffice for a time.
+CONVERT is a pattern matching language whose evolution from a scheme
+such as Post Productions is relatively evident. The idea behind its
+operation is to isolate segments of a text, either because they satisfy
+some requirement or because they are situated in a prescribed envoiron-
+ment [letters between a pair of parentheses, for example]. The segments
+so isolated are to be combined into new text, preferably with the help
+of very general functions and control structures. The whole process can
+be repeated over and over until a desired result is obtained.
+
+A brief outline of CNVRT is the following. The same structure that REC
+has is followed, to facilitate compilation. Thus a string of subroutines
+is to be written terminated by a main program; CNVRT.REC will insert the
+curly braces and the set of system subroutines.
+
+Each individual program is a quadruple, (()()()()), consisting of a list
+of pattern definitions, a list of skeleton definitions, a list of the
+variables to be used, and a rule set. Some of these elements may be null,
+but they must nevertheless be represented in the quadruple by a parenthesis
+pair.
+
+Pattern and skeleton lists follow the convention of alternating the body
+of the definition with the name which will represent it. Variables are
+simply numbers, in the range 0 to 20 or so (32, minus variables used by
+the system), separated by spaces. The only penalty attached to listing
+more variables than are needed is that they will be needlessly saved and
+unsaved many times.
+
+The rule set is a sequence of pairs, each pair must be followed by a
+colon or semicolon; in the nature of REC this determines whether the
+rule is a repetitive rule or a terminal rule. The pair consists of a
+pattern and a skeleton; the pattern is a predicate which ascertains
+whether the content of REC's workspace has a prescribed form or not.
+If it does, it may have identified some strings and labelled them as
+values of the variables. A successful pattern match is followed by
+substitution in the skeleton, an unsuccessful match results in passing
+to the next rule. If no rules remain, the process halts, the workspace
+remains unchanged.
+
+The skeleton portion of the rule determines the new content of the
+workspace. The workspace may be transformed iteratively by a repetitive
+rule, in which case the same rule set is scanned anew. Among the patterns
+are functions, whose arguments fill the workspace, and whose own rule set
+determines the further course of transformation. Several functions can
+work in sequence, each building up its part of the new workspace.
+
+Patterns are primitive and composite. Primitive patterns can be constants
+or variables. Implicitly, any character string which is not otherwise a
+pattern is a constant, recognizing the same character string in the
+workspace text. An interplay between round parentheses and angular
+brackets is used to quote these syntactic elements. Variables are strings
+of characters which are identified by special symbols, and which ought to
+have been selected in advance of the pattern matching. Part of the intricacy
+of CNVRT.REC, whose development has still not been brought to completion,
+lies in the mixing of the generation of variable candidates with the search
+and matching mechanism. If they are not mixed, however, the search becomes
+even more time consuming than it already is.
+
+Composite patterns are either boolean combinations of simpler patterns, or
+pattern definitions, or recursive combinations of the two. Two special
+cases, maximal iteration and minimal iteration, handle the majority of
+applications of recursively defined patterns [a parenthesis nest, a list
+of even length, or something similar], and may indeed be sufficient for
+all such combinations.
+
+Skeletons are either constants, variables, or functions. Again, anything
+which is not explicitly something else is implicitly a constant, which
+saves a great deal of quotation. Variables are character strings which
+were dissected out of the source text by the matching pattern paired with
+the skeleton. For the moment, functions are defined externally, but with
+time and experience inherent functions will probably be included in the
+language - counterparts of such things as do, while, or if in some of the
+other popular languages.
+
+Two principal examples of the use of CNVRT are included; one is the
+traditional symbol manipulation exercise of calculating symbolic
+derivatives without deltas and epsilons, but rather from a systematic
+application of the rules for the construction of algebraic expressions
+and the rules for the derivatives of these constructions; both can be
+given a very elegant formulation in recursive terms.
+
+The second example is not complete, but is included because of its
+utility in understanding another popular language - "C". The five
+programs
+
+		ASMBL.CNV
+		STMNT.CNV
+		DCLRN.CNV
+		EXPRN.CNV
+		PRGRM.CNV
+
+each illustrate one aspect of"C".  They can be used to test one's
+understanding of respectively, "C", Kernighan and Ritchey's book,
+CNVRT, or any combination of the three.  In particular, STMNT does
+not exactly handle "CASE" correctly; this can be easily corrected,
+it is a useful exercise to see how to do so.  It is interesting that
+the five programs were written in one month's time, using appendix
+A of the book, with little previous understanding of many of the
+principal ingredients.  Two months are still lacking to realize the
+hypothetical goal of establishing a "C" compiler in a new machine,
+and will evidently be spent in learning how to bring down the size
+of all the intermediates a little.
+
+As a final illustration, a CNVRT "compiler" of REC is shown, which
+in turn may be examined for some insight into how REC works.
+
+One portion of the REC compiler, which occupies about 1.5K bytes,
+does the actual compilation, and functions just about as efficiently
+as a loader would.  In fact, the custom of restricting REC functions
+to single letters results in the compiled code occupying about three
+times the volume of the source code.  This is understandable in terms
+of the jumps and calls, each three byte instructions, into which the
+majority of REC characters translate.  Particularly in the days of
+paper tape readers or punched card readers, the saving in volume amply
+repaid the time dedicated to compilation.
+
+A second portion of REC contains functions managing the pushdown list,
+with another third involved in the operation of the workspace. Some
+space is dedicated to tables, and to input-output routines.  However,
+the majority of these depend upon CP/M for their operation, which is
+a part of the system overhead.  All told, REC for either machine, 8080
+or 8086, occupies 5K bytes of code.
+
+There is obviously some inefficiency resulting from compiling a program
+in REC rather than writing it in assembly language.  The restriction of
+the number of functions to the ASCII alphabet has resulted in some
+ingenious combinations and programming conventions which all take their
+toll in space.  As usual, the rapidity with which certain tasks can be
+programmed in any language overshadows many of the penalties which are
+paid for a systematic and stylized way of doing things.
+
+The situation becomes more pronounced in CNVRT; to program every
+possible combination within a general class without fail requires
+elaborate precautions which are hardly ever necessary in the simpler
+examples.  One has only to think of the similar situation in "C",
+FORTRAN, and other languages where the generality of indexing in
+arrays leads to formulations which appear excessive when applied to
+one-dimensional character strings.  CNVRT seems to inflate by a
+factor between two and five when compared to REC, again depending
+on the proportion of comments present.  This can mean a factor of
+ten to twenty compared to machine language.
+
+This condition will have to be overcome before a "C" compiler written
+in CNVRT becomes a practical reality. As it would seem, the same could
+be said of a "C" compiler written in "C".
+
+The programming examples are intended to be self-sufficient.  Thus,
+when executed, say by a command line such as:
+
+A>REC80 DERIV.REC
+
+they will respond with an indication of the kind of input that they
+expect.  Many are one-shot, running through a single cycle of oper-
+ation before returning to CP/M, others will cycle indefinitely until
+given null input.  A person who wishes to improvise some programs of
+his own should note the trick employed by the five language compilers.
+Any commentary enclosed between double square brackets - [[...]] -
+will be echoed by the program as part of its initialization.  Also,
+the source programs have three blank lines near their beginning, which
+designates a preferred location for the pre-defined subroutines which
+the compiler will incorporate into its object program.
+
+In general, these two features must be found within the first 1K bytes
+of the source program, and considerable caution should be exercised
+regarding the placement of parentheses, double square brackets, and
+triple blank lines at the beginning of programs.  Also, a title such
+as [PROGRAM.XXX] will be changed to [PROGRAM.REC], helping to identify
+the compiled program.
+
+The compilers require a command line of the form:
+
+A>REC80 LANGUAGE.REC PROGRAM.LNG
+
+where LNG is the extension - TNG, MKV, PST, LSP, or CNV - identifying
+the language.  In each case, the program will expect the user to employ
+it as an editor, compiling the source code line by line.  Inexperienced
+users will probably not want to follow this procedure; therefore when
+the language extension is omitted:
+
+A>REC80 LANGUAGE.REC PROGRAM
+
+the compiler will follow an automatic sequence which will require no
+operator intervention. However, the file must already exist on the disk
+with the appropriate extension.  The usual CP/M conventions for designating
+alternative disks may be used, nor need REC80 reside on disk A. In this
+mode of operation there is no interaction via the console, and thus there
+need be no preoccupation with the cursor controls and screen clearing
+commands.
+
+[end]
+

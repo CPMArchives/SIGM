@@ -1,0 +1,707 @@
+Alternates to the ZCPR2 Resident Commands
+The XDIR Command
+Help File for XDIR
+The ERASE Command
+The RENAME Command
+The PAGE Command
+The PRINT Command
+The PHELP Command
+The PROTECT Command
+The PATH Command
+The WHEEL Command
+The SAK Command
+The COMMENT Command
+:Alternates to the ZCPR2 Resident Commands
+
+     Aó  thå  readeò  caî seå bù reviewinç thå  helğ  filå  nameä 
+Z2RES¬  thå  residenô commandó oæ ZCPR² arå logicaì extensionó oæ 
+thå residenô commandó oæ thå CP/Í 2.² CCP®  Witè thå ZCPR² Systeí 
+oæ  Programs¬  however¬  comeó á seô oæ transienô programó  whicè 
+providå  thå  samå  typeó  oæ functionó  aó  thå  ZCPR²  residenô 
+commands but with many more options and much more flexibility.
+
+     Aó  aî  overview¬  thå followinç tablå  compareó  thå  ZCPR² 
+residenô  commandó anä theiò transienô alternates®   Thå residenô 
+commandó oæ SAVE¬  JUMP¬  GET¬  anä GÏ havå nï alternateó bù  thå 
+nature of their functions.
+
+
+Resident  Alternate Additional Alternate Functions
+--------  --------- ------------------------------
+  DIR       XDIR    Sorts Display, Prints File Sizes, Negative
+          alias       Selection, Disk Output, Printer Output,
+            XDIR3     File Scan Function, Named Directories
+
+  ERA       ERASE   File List, Named Directories, Inspect Mode,
+                      Can Erase R/O Files, System File Protection
+
+  REN       RENAME  File List, Named Directories, Inspect Mode,
+                      Wild Cards Permitted, Control Mode,
+                      System File Protection
+
+  TYPE      PAGE    File List, Named Directories, Screen Wrap,
+                      Speed Change
+
+  LIST      PRINT   File List, Named Directories, Headings,
+                      Page Numbering, Time Stamp, Paging,
+                      Skip to Specified Page
+
+     Iî  additioî tï thå transientó nameä oî thå previouó  table¬ 
+siø  transientó noô relateä tï anù onå specifiã residenô  commanä 
+whicè kinä oæ falì intï thå categorù oæ "speciaì systeí transienô 
+commands¢ are:
+
+          COMMENT -- "Block Comment" Routine
+
+          PATH -- Display and Set Command or File Search Paths
+
+          PHELP -- Special Version of PRINT which is used to
+               Print Help (HLP) Files
+
+          PROTECT -- Set Protection Codes and Tag Bits on Files
+
+          SAË -- Alerô Useò anä Optionallù Aborô á Multiplå
+               Command Line
+
+          WHEEL -- Enable and Disable Certain Resident Commands
+
+     These will also be discussed in this HELP File.
+
+
+     Onå notå beforå proceedingº  alì oæ thå transientó discusseä 
+herå  whicè accepô botè filå nameó anä optionó aó argumentó  wilì 
+noô accepô á filå namå beginninç witè á slash®   Thió ió á trade-
+ofæ É haä tï makå ..®  É wanteä tï makå iô easù tï omiô thå  filå 
+namå (assuminç alì fileó selected© anä jumğ righô tï thå options®  
+Tï bå consistent¬  É selecteä thå slasè (nonå oæ mù currenô fileó 
+begiî  witè á slasè anä É likå iô aó aî optioî delimiteò froí  mù 
+experiences with DEC software).
+
+     Hence¬ aó á generaì rulå foò alì transientó É createä tï ruî 
+witè ZCPR2¬  iæ á filå namå ió omitted¬ theî thå ¯ characteò musô 
+proceeä  thå  firsô  option®   Additionally¬  aî  invaliä  optioî 
+invokeó  á  built-iî Helğ facilitù withiî alì oæ thå  transients¬ 
+and / is never an option character.  So, we have:
+
+          command filename.typ o...     <-- form with file spec
+          command /o...                 <-- form sans file spec
+          command //                    <-- always gives help
+
+
+     Anotheò  iteí tï notå ió thaô manù transientó  supporô  filå 
+listó wherå á singlå filå namå waó giveî before®  Iî theså cases¬ 
+thå  useò caî specifù á lisô oæ filå specó separateä bù commaó iî 
+the file name position:
+
+          command dir:f1.typ,dir:f2.typ,... o...
+
+     Alsï  iî manù cases¬  thå DIÒ forí maù bå prefixeä  tï  eacè 
+filå name®   Thå DIÒ forí maù bå thå namå oæ á nameä directorù oò 
+it may be a simple DU form.
+
+:The XDIR Command
+
+     Thå  XDIÒ  Commanä (XDIR³ program© ió aî extendeä  directorù 
+display utility.  It has the general form of:
+
+          XDIR dir:filename.typ ooo...
+
+where:
+
+          "dir:¢ ió á DIÒ prefix» iô maù bå á nameä directory¬ 
+               like ROOT, a DU form, like A5, or omitted
+          "filename.typ" is an ambiguous file name reference,
+               and it may be omitted
+          "o" is an option character, and, if "filename.typ" is
+               omitted, the first option must be proceeded by
+               a slash
+
+
+     Valid options under XDIR are:
+
+          Aa -- Set File Attributes
+               AA = Select System and Non-System Files
+               AN = Select Non-System Files
+               AS = Select System Files
+          D  -- Send Output to Disk File XDIR.DIR as well as
+                    to the Console
+          Ff -- Enable a Disk-Based File Scanner Function
+               FL = Log Names to FNAMES.DIR
+               FP = Print Names Stored in FNAMES.DIR
+               FS = Scan Disk and Compare to FNAMES.DIR
+          G  -- Toggle Grouping (by filename/type or type/name)
+          H  -- Toggle Display (Horizontal/Vertical)
+          I  -- Inspect Logged Files (for FL option only)
+          N  -- Negate Selection (File NOT Matching Wildcard)
+          P  -- Send Output to Printer as well as Console
+
+
+     Uså  oæ alì oæ theså optionó ió ratheò involved¬  anä  XDIR³ 
+haó  á Helğ Filå dedicateä tï it®   Thå nexô informatioî  sectioî 
+chains to that Help File.
+
+::XDIR3
+:The ERASE Command
+
+     Thå ERASÅ commanä ió useä tï eraså files¬  likå ERA®   Therå 
+arå  manù majoò differences¬  however®   Thå generaì forí oæ  thå 
+ERASE Command is:
+
+          ERASE dir:f1.typ,dir:f2.typ,... o...
+
+     Aó  thå readeò caî see¬  á filå lisô ió permitteä aó welì aó 
+the DIR prefix.  The file specs may be ambiguous.
+
+     Á  majoò differencå iî functionaì concepô betweeî ERASÅ  anä 
+ERÁ  ió thaô ERÁ alwayó "sees¢ botè Systeí anä Non-Systeí  files®  
+ERASÅ onlù "sees¢ Non-Systeí fileó anä musô bå tolä explicitlù tï 
+matcè  Systeí fileó aó well®   É feeì thaô thió affordó aî  addeä 
+degreå  oæ  protectioî  tï thå  ZCPR²  environmenô  overall¬  anä 
+commandó  likå "ERASÅ *.*¢ affecô onlù workinç fileó anä noô  thå 
+System files which may be hidden in the directory.
+
+
+     The options recognized by ERASE are:
+
+          S -- Include System Files; if S is not present, then
+                    ERASE does not "see" System Files
+
+          R -- Erase Read/Only Files without asking the user for
+                    permission; if ERASE encounters a Read/Only
+                    filå whilå iô ió performinç itó functioî
+                    without the R option enabled, it will ask
+                    the user if he wants to erase the file before
+                    it does so; with the R option, it simply goes
+                    ahead and erases the file
+
+          I -- Inspect; ERASE can be instructed to display each
+                    file to the user and ask permission before
+                    it erases it; if the user gives permission
+                    and ERASE discovers that the file is R/O with
+                    the R option off, it will ask a second time
+                    before going ahead
+
+Examples:
+     ERASE A4:*.TXT      Erase all Non-System files of type
+                         TXT in directory A4; if a file is R/O,
+                         ERASE will ask for permission before
+                         proceeding
+
+     ERASE *.TXT,TXT:*.TXT RI
+                         Erase all Non-System files of type TXT
+                         in the current directory and in the
+                         directory named TXT; if a file is R/O,
+                         go ahead and erase it; allow the user to
+                         see the name of the file and approve its
+                         erasure before it is erased
+
+     ERASE SCRATCH: SR   Erase all System and Non-System files
+                         iî thå directorù nameä SCRATCH» iæ á
+                         file is R/O, erase it without asking;
+                         this erases absolutely every file in
+                         that directory
+:The RENAME Command
+
+     Thå RENAMÅ commanä ió á brotheò tï thå REÎ residenô command®  
+Therå arå manù majoò differences¬ however:
+
+          . RENAMÅ allowó  ambiguouó filå nameó tï thå used
+          . RENAMÅ supports an Inspect Mode, where the user is
+               presented with each name change and allowed to
+               approve of it before it is done
+          . RENAME supports a Control Mode, where the user is
+               presented with each file to be RENAMEd and allowed
+               to manually enter the new name or not rename the
+               file
+          . RENAME accepts a list of files
+          . RENAME does not "see" System files unless told to
+          . RENAME can rename Read/Only files
+          . RENAME sets the attibutes (R/O and SYS) of the
+               new file names to be the same as those on the
+               old file names
+          . RENAME supports Named Directories
+
+
+     The RENAME command is of the general form:
+
+          RENAME dir:f1.typ,dir:f2.typ,... o...
+
+     The options to RENAME are:
+
+          S -- Include System Files
+          I -- Allow user to Inspect the file before performing
+                    the rename
+          C -- (Control Mode) Allow the user to manually name
+                    each of the selected files or to skip it
+
+     Iæ á ne÷ filå namå ió thå samå aó aî existinç file¬ thå useò 
+wilì  bå askeä iæ hå wisheó tï deletå thå existinç filå iî  ordeò 
+for the rename function to be performed.
+
+
+Examples:
+     RENAME A4:MYFILE.TXT=HISFILE.TXT
+          Rename HISFILE.TXT in A4 to MYFILE.TXT
+
+     RENAME A4:*.MAC=*.ASM,*.TXT=*.TEX IS
+          Rename all files of type ASM in A4 to type MAC; also
+          rename all files of type TEX in the current directory
+          to type TXT; include System files and Inspect (approve)
+          each file before the rename is done
+
+     RENAME TXT: C
+          Rename all Non-System files in directory TXT; the user
+          is presented with the name of the file and manually
+          enters a new name for it
+
+     RENAME 1:*.TXT CS
+          Rename all Non-System and System files in User 1 of the
+          current disk whose file type is TXT and allow the user
+          to manually enter each new name
+
+     RENAME S*.TXT=*.TXT
+          Rename all Non-System files in the current directory
+          whoså filå typå ió TXÔ sï thaô thå firsô letteò oæ
+          their names is an S and the rest of the letters are
+          unchanged
+
+:The PAGE Command
+
+     Thå  PAGÅ commanä ió useä tï lisô fileó oî thå console®   Iô 
+offeró á fe÷ advantageó oveò TYPÅ iî thaô PAGÅ knowó thå widtè oæ 
+thå screeî anä handleó wraparounä (whicè ió á biç complainô  witè 
+TYPÅ  wheî  tryinç  tï  pagå througè "wide¢  listingó  likå  thaô 
+produceä bù thå assemblers)®   PAGÅ alsï acceptó á filå lisô  anä 
+supports named directories.
+
+     PAGE is invoked by a command line of the following form:
+
+          PAGE dir:f1.typ,dir:f2.typ,... o...
+
+wherå  "dir:fn.typ¢ ió aî ambiguouó filå speã (wilä cardó maù  bå 
+used©  witè  á DIÒ prefiø (nameä directorieó oò DÕ forí  allowed© 
+and "o" is one or more of the following options:
+
+
+          0-9  Set Character Print Speed (0=fastest=default)
+
+          I    Inspect Files
+                    The user is allowed to approve each file to
+                    bå printeä beforå thå printinç begins» 
+                    default is NO Inspection
+
+          L    Toggle Line Numbering
+                    Each line may be numbered; default is NO Line
+                    Numbers
+
+          P    Toggle Screen Paging
+                    Turî ofæ thå facilitù oæ pausinç oncå á
+                    screen is filled; default is Paging Enabled
+
+          Snn  Skip to Specified Page
+                    Skip to indicated page (size of page on
+                    printer) before beginning; default is NO Skip
+
+
+     Thå Speeä optioî oæ thå PAGÅ commanä shoulä bå discusseä  iî 
+somewhaô  morå detail®   Whilå á filå ió beinç pageä tï thå user¬ 
+thå  useò caî strikå onå oæ thå digitó tï varù thå speeä  oæ  thå 
+outpuô dynamically®  ° ió thå fastest¬ ¹ ió thå slowest®  Iî thió 
+way¬  thå  useò caî easilù scaî á filå bù runninç PAGÅ witè thå Ğ 
+optioî  (sï  iô  doeó noô stoğ wheî thå  screeî  ió  filled©  anä 
+strikinç  á digiô froí timå tï timå tï speeä uğ oveò sectionó  hå 
+isn't interested in and slow down for sections he is.
+
+     Whilå  thå  outpuô  ió beinç directeä tï  thå  screen¬  PAGÅ 
+supportó  thå followinç single-characteò commandó tï  changå  thå 
+output display in one way or another:
+
+
+          0 to 9 - change speed (0=slowest, 9=fastest)
+
+          P or p - toggle pause when screen fills
+                    (the user can dynamically turn on and off
+                     the ability to delay when a screen fills)
+
+          ^X     - skip to next file
+
+          ^C     - abort to operating system
+
+          ^S     - pause output; any key will resume, and all
+                    of these commands (except ^S) will work
+
+     PAGÅ ió constantlù acceptinç useò input¬  anä theså commandó 
+arå iî effecô alì oæ thå time®   Thió includeó thå timå wheî PAGÅ 
+haó  pauseä afteò fillinç thå screeî (itó default)¬  sï thå  useò 
+caî  turî  ofæ  paginç  oò varù thå speeä aô  thió  time¬  iæ  sï 
+desired®  Anù otheò characteò wilì bå ignored.
+
+:The PRINT Command
+
+     Thå  PRINÔ  commanä  ió useä tï prinô á  filå  oî  thå  LSTº 
+device¬  likå LISÔ does¬  buô offeró manù morå options®   Iô wilì 
+prinô  á heading¬  pagå thå file¬  numbeò thå pages¬  numbeò  thå 
+lines¬  placå á date/timå stamğ oî thå output¬  puô thå filå namå 
+oî thå output¬ anä others.
+
+     The PRINT command is of the following form:
+
+          PRINT dir:f1.typ,dir:f2.typ,... o...
+
+wherå  "dir:fn.typ¢  ió aî ambigouó filå namå witè á  DIÒ  prefiø 
+(supportinç  thå DÕ forí oò á nameä directory© anä "o¢ ió onå  oò 
+morå oæ thå following:
+
+
+          E - Exact Print (Expand Tabs, Form Feed, No Line or
+               Page Numbers, No Heading)
+
+          F - Toggle default of file name display on page header
+               (defaulô ió ON¬ so Æ turnó ofæ name display)
+
+          H<delim>text<delim> - Define Heading text to appear
+               at the top of each page
+
+          I - Inspect Files (allow user to select files before
+               printing begins)
+
+          L - Enable numbering of each line
+
+
+          M - Disable Multiple Run Flag
+               (if multiple run is ON, then no "Set Top of Form"
+                message appears for each file and PRINT moves
+                from one file to another unattended); default is
+               with Multiple Run ON
+
+          N - Disable numbering of each page
+
+          Sn - Start printing on page n
+
+          T - Toggle date/time stamp in the header of each page
+               (a TIME subroutine must be assembled into PRINT
+                to enable the date/time stamp feature)
+
+
+     Thå  specifiã  featureó  oæ  thå  printeò  arå  seô  bù  thå 
+installeò  witè  GENINS®   Sucè featureó includå  thå  numbeò  oæ 
+physicaì lineó oî á page¬  thå numbeò oæ lineó oæ texô oî á page¬ 
+anä thå widtè oæ á linå iî characters.
+
+     Thå date/timå stamğ featurå ió verù  machine-dependent¬  anä 
+PRINÔ haó tï bå reassembleä tï supporô it.
+
+     While PRINT is running, the following commands work:
+
+          ^C   Abort and return to operating system
+
+          ^X   Skip to top of next page and skip to next file
+
+:The PHELP Command
+
+     Thå  PHELĞ commanä ió á speciaì versioî oæ PRINÔ designeä tï 
+prinô Helğ (HLP© files®   PHELĞ knowó abouô thå structurå oæ Helğ 
+Files¬  anä iô useó thió informatioî tï prinô theí iî á preferreä 
+format®  Iæ iô ió dealinç witè aî indexeä Helğ File¬ PHELĞ printó 
+thå  indeø oî thå firsô pagå anä thå bodù startinç oî thå  seconä 
+page®   PHELĞ  alwayó  skipó  tï thå toğ oæ á ne÷  pagå  wheî  iô 
+encounteró aî informatioî section®   Iô outputó á ne÷ linå wheî á 
+forí  feeä characteò (useä bù HELĞ tï breaë screeî displays)¬  aó 
+opposed to causing a page eject.
+
+     The PHELP command is of the following form:
+
+          PHELP dir:f1.typ,dir:f2.typ,... o...
+
+wherå  "dir:fn.typ¢  ió aî ambigouó filå namå witè á  DIÒ  prefiø 
+(supportinç  thå DÕ forí oò á nameä directory© anä "o¢ ió onå  oò 
+morå oæ thå following:
+
+
+          H<delim>text<delim> - Define Heading text to appear
+               at the top of each page
+
+          I - Inspect Files (allow user to select files before
+               printing begins)
+
+          L - Enable numbering of each line
+
+          Sn - Start printing on page n
+
+          T - Toggle date/time stamp in the header of each page
+               (a TIME subroutine must be assembled into PRINT
+                to enable the date/time stamp feature)
+
+     Aó  witè PRINT¬  ^Ã abortó thå printouô anä ^Ø skipó tï  thå 
+next file after issuing a form feed.
+
+:The PROTECT Command
+
+     Thå  PROTECÔ commanä replaceó thå attributå seô capabilitieó 
+oæ  thå  STAÔ transienô anä addó morå  flexibility®   PROTECÔ  ió 
+designeä tï allo÷ thå useò tï specifù thå attributeó  (Read/Only¬ 
+System¬  anä  Archive© anä taç bitó (thå Mosô Significanô Bitó oæ 
+the eight characters in a file name) of a file or set of files.
+
+     The PROTECT command is of the following form:
+
+          PROTECT dir:f1.typ,dir:f2.typ,... o...
+
+     Aó thå readeò caî see¬  á filå lisô ió permitteä aó welì  aó 
+nameä directories®   Thå filå specó maù bå ambiguous®  Optionó tï 
+the PROTECT Command are:
+
+     PROTECT always "sees" both System and Non-System files.
+
+
+          I -- Inspect        C -- Control
+
+          R, S, A -- Turn on Attributes Read/Only, System, and
+               Archive
+
+          n, 1 <= n <= 8 -- Set Tag Bits
+
+     Inspecô  Modå allowó thå useò tï looë aô eacè filå beforå iô 
+ió  "protected¢  anä  permiô  oò  disallo÷  thå  functioî  tï  bå 
+performed on a case-by-case basis.
+
+     Controì Mode¬ aó witè thå RENAMÅ command¬ allowó thå useò tï 
+seå  thå  namå  oæ  eacè  filå  selecteä  anä  manuallù  seô  itó 
+attributeó anä taç bits®  Iî responså tï thå Controì Modå prompt¬ 
+thå useò caî typå iî anù combinatioî oæ thå letteró A¬  R¬ S¬ anä 
+the digits 1-8.
+
+
+Examples:
+     PROTECT A4:*.COM,ROOT:*.COM RSI
+          Set the Attributes of all COM files in directories A4
+          and ROOT to Read/Only and System.  Turn off the Archive
+          attribute and all tag bits.  Allow the user to inspect
+          each file before the operation is performed.
+
+     PROTECT ROOT:*.TXT
+          Clear all attributes and all tag bits of all files of
+          type TXT in the directory named ROOT
+
+     PROTECT A: C
+          Allow the user to manually set all attributes and tag
+          bits of all files on Disk A in the current user
+
+:The PATH Command
+
+     Thå  PATÈ  Commanä ió useä tï dynamicallù changå  á  memory-
+baseä  filå searcè patè oò thå ZCPR² commanä searcè  path®   Witè 
+PATH¬  thå  useò caî definå á ne÷ patè tï bå followeä oò  hå  caî 
+view what the current path is.
+
+     Thå  PATÈ commanä ió installeä bù GENINS¬  and¬  durinç  thå 
+installatioî process¬  GENINÓ telló PATÈ thå beginninç addresó oæ 
+thå patè iô ió tï worë with®  PATÈ maù bå installeä severaì timeó 
+bù GENINS¬  giveî differenô patè addresses¬  anä theî saveä undeò 
+different names to support each path the ZCPR2 System uses.
+
+     Thå  PATÈ  commanä  dealó witè  patè  expressions®   Á  patè 
+expressioî  ió  á  sequencå  oæ  directorù  names  whicè  caî  bå 
+expresseä  aó "ambiguous¢ DÕ forms¬  absolutå DÕ forms¬  oò Nameä 
+Directory forms.
+
+
+     Aî  absolutå DÕ forí indicateó jusô á disë  letteò  (currenô 
+useò  ió assumed)¬  jusô á useò numbeò (currenô disë ió assumed)¬ 
+oò botè á disë letteò anä á useò number®   Aî "ambiguous¢ DÕ forí 
+ió  onå  iî  whicè  thå disë letteò oò useò  numbeò  oò  botè  ió 
+replaceä witè á "$¢ character¬ meaninç "currenô disk¢ oò "currenô 
+user"®   Á Nameä Directorù form¬ oæ course¬ ió simplù thå namå oæ 
+a directory.
+
+     Tï illustrate¬  let'ó saù thaô yoõ arå loggeä intï B1®   Thå 
+path
+          $0 A$ A0 ROOT
+
+represents the sequence
+
+          B0 to A1 to A0 to ROOT
+
+
+     Thå PATÈ Command¬ then¬ maù bå invokeä bù theså forms:
+
+          PATH //                  <-- Print Help
+          PATH                     <-- Display Path
+          PATH path-expression     <-- Set Path
+
+     Actuaì  screeî displayó illustratinç thå uså oæ PATÈ follow®  
+Comments are denoted at the size by being prefixed with "<<".
+
+
+B7>path //			<< Print Help
+PATH  Version 1.0
+        PATH allows the user to display his current path
+and set a new path.  It is invoked by one of the forms:
+
+                PATH                    <-- Display Path
+                PATH path-expression    <-- Set Path
+                PATH //                 <-- Print Help
+
+B7>path				<< Print Current Path
+PATH  Version 1.0
+Current Path in Symbolic Form -- 
+        A$: --> A 15:
+Current Path in Absolute Form --
+        A  7: --> A 15:
+Current Path in Named Directory Form --
+        R-WS: --> ROOT:
+
+
+B7>path $0 a$ base root:	<< Set a Path
+PATH  Version 1.0		<< Note: a named dir may have a : suffix
+Current Path in Symbolic Form -- 
+        $  0: --> A$: --> A  0: --> A 15:
+Current Path in Absolute Form --
+        B  0: --> A  7: --> A  0: --> A 15:
+Current Path in Named Directory Form --
+        DEV-BASE: --> R-WS: --> BASE: --> ROOT:
+
+
+B7>path 0 base root help	<< Set a Path with an Error in It
+PATH  Version 1.0
+
+Invalid Path Expression Element -- Error Flagged at:
+        -->0 BASE ROOT HELP
+This may be an invalid DU: form (disk or user out of range)
+or an undefined named direcory.
+
+Aborting to CP/M
+
+
+B7>path a$			<< I kept ROOT in the path before
+PATH  Version 1.0		<< This is where my commands are
+Current Path in Symbolic Form -- 
+        A$:
+Current Path in Absolute Form --
+        A  7:
+Current Path in Named Directory Form --
+        R-WS:
+B7>path			<< Path Can't be found without ROOT being
+PATH?			<< in the path expression
+B7>a15:path a$ root	<< ... UNLESS the DU: prefix is used
+PATH  Version 1.0	<< (DU: can be disabled by the ZCPR2 installer)
+Current Path in Symbolic Form -- 
+        A$: --> A 15:
+Current Path in Absolute Form --
+        A  7: --> A 15:
+Current Path in Named Directory Form --
+        R-WS: --> ROOT:
+
+B7>
+
+     No÷  wå  arå  bacë  tï ouò  originaì  path®   Notå  thaô  bù 
+disablinç thå DÕ form¬  á loô oæ securitù ió addeä tï thå system®  
+Commandó caî onlù comå froí thå currenô path¬ anä CÄ MUSÔ bå useä 
+tï  loç  intï á directory®   Addeä tï this¬  oæ  course¬  ió  thå 
+abilitù  tï hidå Systeí Directorieó froí vie÷ bù PWÄ anä  forcinç 
+thå  useò  tï  providå  á passworä iî ordeò  tï  enteò  á  Systeí 
+Directory.
+
+:The WHEEL Command
+
+     Thå  WHEEÌ  commanä  ió useä tï enablå anä  disablå  certaiî 
+selecteä (aô installatioî time© ZCPR² residenô commands®  Á WHEEÌ 
+optioî  caî  bå  specifieä wheî ZCPR² ió installeä  oî  á  targeô 
+system®  Iæ thå WHEEÌ optioî ió enableä foò á particulaò command¬ 
+thaô commanä wilì worë onlù iæ á Wheeì Byte¬ locateä somewherå iî 
+memory¬ ió set®  Thå commanä wilì echï aó aî erroò messagå iæ thå 
+Wheeì Bytå ió noô set.
+
+     Thå  WHEEÌ commanä ió useä tï seô anä reseô thå Wheeì  Byte®  
+It supports the following forms:
+
+          WHEEL or WHEEL //   <-- Print Help
+          WHEEÌ passworä SEÔ  <-- Seô Wheeì Bytå (Enablå Cmd)
+          WHEEL password      <-- Set Wheel Byte
+          WHEEÌ passworä RESEÔ  <-- Reset¬ oò Clear¬ Wheeì Byte
+
+     Thå WHEEÌ concepô caî bå extendeä intï transienô commandó aó 
+well®   Thió ió noô donå witè thå transientó supplieä witè ZCPR2¬ 
+however.  The WHEEL command is installed by GENINS.
+
+:The SAK Command
+
+     SAË  (Strikå  Anù Key© waó designeä tï providå  somå  simplå 
+utilitù functions¬  onå oæ whicè ió associateä witè thå  Multiplå 
+Commanä Linå featurå oæ ZCPR2®  Iô waó designeä foò thå followinç 
+purposes:
+
+          1.  to allow the user to program a wait in a multiple
+               command line until he instructs the system to
+               continue
+
+          2.  to allow the user to abort a multiple command line
+
+          3.  to allow the user to program an interruptable delay
+               in the execution of a multiple command line
+
+          4.  to provide a simple alarm for the user
+
+
+     The SAK command line is:
+
+          SAK o...
+
+where "o" is zero or more of the following options:
+
+          A    -- DO NOT Allow the User to Abort the MCL
+          B    -- Ring Bell
+          Pnn  -- Pause nn seconds and continue if no response
+
+     Witè NÏ options¬  SAË waitó foò useò input¬  anä iæ thå useò 
+strikeó  á  ^C¬  theî  thå multiplå commanä linå ió  aborteä  anä 
+control is returned to the user.
+
+     SAË ió particularlù usefuì iæ thå useò wisheó tï interjecô á 
+delaù  iî  á  multiplå commanä linå  generateä  bù  á  Menu®   Aî 
+applicatioî  whicè É founä usefuì waó tï displaù thå timå tï  thå 
+user¬  calì hió attentioî tï iô (viá ECHO)¬ givå hií á delaù (viá 
+SAK), and then invoke dBASE II with an initializing command file.
+
+:The COMMENT Command
+
+     COMMENÔ ió á simplå routinå whicè allowó thå useò tï typå aó 
+manù  lineó  aó hå wisheó withouô theí beinç processeä bù  ZCPR2®  
+It has no arguments.
+
+     COMMENT has two main applications in the ZCPR2 environment:
+
+          1.  when the console displays are being recorded,
+               COMMENT allows the user to easily type notes
+               to the future reader without having to begin
+               lines with a semicolon (;); all of these lines
+               are clearly shown to be comments since they begin
+               with the prompt "COMMENT>"
+
+          2®  wheî consolå I/Ï ió redirecteä tï twï differenô
+               users, such as CRT and MODEM I/O in parallel,
+               then COMMENT may be used to provide a simple
+               mechanism for them to communicate; both users
+               can type to each other without having any effect
+               on the system (such as command processing)
+
+
+     COMMENÔ  ió aborteä bù strikinç á ^Ã aó thå firsô  characteò 
+oæ á line®  Backspacå anä Deletå botè servå tï echï aó Backspace¬ 
+space, backspace, and ^X and ^U both erase the current line.
+
+     Iæ  COMMENÔ ió tï bå useä tï chaô betweeî twï users¬  iô  ió 
+recommendeä thaô aî over/ouô protocoì bå employeä (aó recommendeä 
+witè thå UNIØ WRITÅ program)®   Thå firsô useò types¬  and¬  wheî 
+finished¬  terminateó  witè thå letteò "o¢ foò over®   Thå seconä 
+useò  typeó anä signaló completioî thå samå way®   Completioî  oæ 
+thå  conversatioî  maù bå signalleä bù "o+o¢ foò  oveò  anä  out®  
+Example:
+
+COMMENT> Hi, Charlie, how's it going? o
+COMMENT> Hi, Rick, fine ... and you? o
+COMMENT> Fine, Charlie
+COMMENT> Here is how I use XDIR -- let me do the typing
+COMMENT> from now on ... just watch, and I'll reenter COMMENT
+COMMENT> when done ... here goes o+o
+

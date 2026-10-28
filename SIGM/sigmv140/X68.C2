@@ -1,0 +1,664 @@
+/*
+X68	Motorola 6800 Cross Assembler 		June 1982
+	For CP/M based computer systems
+	(with lots of memory and big drives!) 
+/*
+ *	PERMISSION IS GRANTED FOR THE PUBLIC DOMAIN
+ *	NON COMMERCIAL USE OF THIS SOFTWARE.
+ *
+ *	(C) CHRIS UNDERY 25th OCTOBER 1982
+ *	11 MARGARET ST NEWTOWN 2042
+ *	SYDNEY, AUSTRALIA
+ */
+
+	Chris Undery July 1982
+	Peter Ansell Sept 1982
+	
+	Root Module:		X68 Overlay loader & function library
+
+	Overlay segments:	X68SEG1  Pass 1
+				X68SEG2  Pass 2
+
+
+
+*/
+
+#include "x68.h"		/* Global definitions file	*/
+#define OVERLAY_ADDRESS 0x3c00
+
+/*	Assembler Main Control Loop	*/
+
+main(argc, argv)
+int argc;
+char **argv;
+{
+	int (*ptrfn) ();
+	struct key *binary();
+	struct nlist *lookup(), *install();
+	char *tohex(), *getok();
+	char *flush(), *purge(), * fault(), *smov();
+	char *op(), *numops(), numargs(), *ev(), *evaluate(), *getsub();
+	int cnum, todec(), getcomment();
+	char command[12];
+			
+	ptrfn = OVERLAY_ADDRESS;		/* Start of overlay RAM */
+	
+	printf("\nX68  M6800 Cross Assembler Version A.1     Sept 1982\n");
+	if (argc < 2 ) {
+		printf("USAGE: A>X68 Filename (options list)\n");
+		exit();
+	}
+	strcpy(filename,argv[1]);
+	clrsym();		/* Clear defaults and symbol table */
+	if (!load()) 		/* Load mnemonics lookup table	*/
+		exit();
+	if ( argc >= 2 ) {	/* There are some options to get */
+		for (cnum = 2; cnum < argc ; cnum++ ) {
+			strcpy(command,argv[cnum]);
+			if (!parse(command)) exit();
+		}
+	}
+	if (yanking) yankit();	/* Load an old symbol table */
+	if (mloading) {		/* Run Macro processor overlay */
+		if (swapin("SEG3X68.OVL",OVERLAY_ADDRESS) != ERROR)
+		(*ptrfn)();	/* Execute overlay 	*/
+	}
+	if (swapin("SEG1X68.OVL",OVERLAY_ADDRESS) != ERROR)
+		(*ptrfn)();	/* Execute overlay	*/
+
+	else {
+		printf("Aborting\n");
+		exit();
+	}
+	if (swapin("SEG2X68.OVL",OVERLAY_ADDRESS) != ERROR)
+		(*ptrfn)();
+	else {
+		printf("Aborting\n");
+		exit();
+	}
+	if (syming) wrsym();	/* Dump symbol table to UFN.SYM */
+	stats();
+
+}
+
+clrsym()	/* Clear up the symbol bucket pointers	*/
+{
+	int i;
+	_allocp = NULL;		/* Initialise memory allocator */
+	for (i=0; i < HASHSIZE; i++) hashtab[i] = NULL;
+	mloading = decad = lineno = useage = numlines = nb = dec = errors = 0;
+	debug = listing = syming = yanking = 0;	/* Default off on all options */
+	numbytes = xing = printing = 0;
+	strcpy(hexad,"0000");	/* Default to ORG zero */
+}
+
+hash(s)		/* Calculate hash bucket start point for symbol */
+char *s;
+{
+	int hashval;
+
+	for (hashval = 0; *s != '\0'; )
+		hashval += *s++;
+	return(hashval % HASHSIZE);
+}
+
+struct nlist *lookup(s)			/* Lookup symbol s in hashtab */
+char *s;
+{
+	struct nlist *np;
+
+	for (np = hashtab[hash(s)]; np != NULL; last = np,  np = np->next)
+		if (strcmp(s,np->name) == 0)
+			return(np);	/* found symbol	*/
+	return(NULL);
+}
+
+struct nlist *install(nam,df)		/* Put new symbol into table */
+char *nam, *df;
+{
+	struct nlist *np, *lookup();
+	char *strsave(), *alloc();
+	int hashval;
+
+	if ((np = lookup(nam)) == NULL) {
+		np = alloc(sizeof(*np));
+		if (np == NULL)
+		   return(NULL);
+		if ((np->name = strsave(nam)) == NULL)
+		   return(NULL);
+		hashval = hash(np->name);
+		np->next = hashtab[hashval];
+		hashtab[hashval] = np;
+		useage += sizeof(*np);	/* Keep statistics */
+	} else			/* already there */
+		free(np->def);	/* free previous definition */
+	if ((np->def = strsave(df)) == NULL)
+		return(NULL);
+	return(np);
+}
+
+
+strsave(s)	/* Save string in space obtained from dynamic store */
+{
+	char *p;
+
+	if ((p = alloc(strlen(s)+1)) != NULL)
+	  	strcpy(p,s);
+	return(p);
+}
+
+/* this function performs a binary search of the opcodes table */
+/* which was loaded from file OPCODES */
+
+struct key *binary(word)
+char *word;
+{
+	int cond;
+	int mid, high, low;
+	char kludge;		/* silly flag */
+	
+	kludge = (word[3] == ' ');
+	if (kludge) {
+		word[3] = word[4]; /* Move register to 3 */
+		word[4] = NULL;
+	}
+	low = 0;
+	high = NKEYS - 1;
+	while (low <= high) {
+		mid = (low + high) /2;
+		if ((cond = strcmp(word,v[mid].keyword)) < 0)
+			high = mid - 1;
+		else if (cond > 0)
+			low = mid + 1;
+		else {		/* Extract goodies from table */
+			strcpy(inst,v[mid].hexcode);
+			strcpy(dest,v[mid].use);
+			m4[0] = word[3];
+			if (m4[0] != 'A')
+			  if (m4[0] != 'B') m4[0] = NULL;
+			if (kludge) { /* Restore to spaced mnem */
+				word[4] = word[3];
+				word[3] = ' ';
+				word[5] = NULL;
+			}
+			return(1);
+		}
+	}
+	return(NULL);
+}
+
+/*	Load opcode lookup table, pre sorted to KEYTAB */
+
+load()
+{
+	int i;
+	char buffer[132], nem[BUFSIZ];;
+	struct key *bb;
+	
+	i = 0;
+	if (fopen("OPCODES",nem) == ERROR) {
+		printf("The OPCODES file is missing !!\n"); 
+		return(0);
+	}
+	while(fgets(buffer,nem)) { 
+          bb = &v[i++];
+	  sscanf(buffer,"%s\t%s\t%s\n",bb->keyword,bb->hexcode,bb->use);
+	}
+	fclose(nem);
+	return(1);
+}
+
+/*	Print assembly statistics */
+
+stats()
+{
+	printf("\nAssembly complete: ");
+	if (errors) printf("%d ERROR(S)\n",errors);
+	else printf("no errors\n");
+	printf("Source lines processed: %d\n",numlines);
+	printf("Last address: %04xH\n",decad);
+	printf("Code generated: %d bytes (dec)\n",numbytes);
+	printf("Symbol table useage: %d bytes (dec)\n",useage);
+	if (syming) printf("Symbol file %s created\n",symname);
+	if (xing) printf("Hex file %s created with bias of %04xH\n",hexname,bias);
+	if (listing) printf("Print file %s created\n",lstname);
+	return(1);
+}
+
+
+/* Convert string representing number in BASE N */
+
+todec(ascii,base)		/* Return val of base string */
+char *ascii, base;
+{
+	unsigned val;		/* will be result */
+	char c;
+
+	val = 0;
+	if (_bc(_igs(&ascii),base) == ERROR ) return(0);
+	while ((c = _bc(*ascii++,base)) != 255)
+		val = val * base + c;
+	ascii--;
+	return(val);
+}
+
+
+/*	Extract substring TOKEN from source string	*/
+/*	place in destination string, and truncate 	*/
+/*	destination after WIDTH characters have moved	*/
+
+getok(token,from,fldnum,width)
+char *token, *from;
+int fldnum, width;
+
+{
+	int i;
+	char inquote;		/* true if on quoted string */
+
+	inquote = 0;
+	fldnum--;		/* Gives start occ of string to get */
+	if (fldnum == 0) fldnum--;	/* special case fld one */
+	i = 0;
+	while (i < fldnum) {	/* Index along to fld start	*/
+		if ((*from == TAB) || (*from == '\n')) i++;
+		if (*from++ == '\0' ) {
+			*token = NULL;
+			return(0);
+		}
+	}
+	while ((*from != TAB) && (*from != '\n')) {
+		if (width-- == 0) {
+			*token = '\0';
+			return(1);
+		}
+		if (*from == 0x22 || *from == 0x27) inquote = (~ inquote);
+		if (inquote) *token++ = *from++; /* dont alter quotes */
+		else *token++ = toupper(*from++);
+	}	
+	*token = '\0';
+}
+
+/*	Scan string for comment delimiter and then move delimter */
+/*	and everything following into destination string comment */
+/*	ignore case of letters */
+
+getcomment(s)			/* Get COMMENT FLD FROM LINE */
+char *s;
+{
+	while (*s++ ) {		/* search string to comment fld */
+		if (*s == ';') {
+			strcpy(comment,--s);
+			return(1);
+		}
+	}
+	strcpy(comment,"\n");	/* Terminate string with CRLF */
+	return(0);
+}
+
+
+tohex(dst,s)			/* Convert decimal to hex */
+char *dst;
+int s;
+{
+	sprintf(dst,"%04x",s);	/* 4 digit precision required */
+}
+
+smov(dest,source,num)	/* MOV a string partial to dest string */
+char *dest, *source;
+int num;
+{
+	while ((*dest++ = *source++) && (num-- != 0));
+	*--dest = '\0';
+}
+
+
+parse(option)	/* Parse the assembly time options */
+char *option;
+{
+
+	if (*option != '-' ) {		/* Invalid command format */
+		printf("Bad option syntax: %s\n",option);
+		return(0);
+	}
+	switch (option[1])  {		/* now determine command */
+	case 'Y': { yanking = 1;	/* Yank symbol file before start */
+		    strcpy(symname,&option[2]);
+		    strcat(symname,".SYM");
+		    return(1);
+		}
+	case 'W': { syming = 1;		/* Write symbol file at end */
+		    strcpy(symn,&option[2]);
+		    strcat(symn,":");
+		    strcat(symn,filename);
+		    strcat(symn,".SYM");
+		    return(1);
+		}
+	case 'L': { printing = 1;	/* Output to list device */
+		    return(1);
+		}
+	
+	case 'P': { strcpy(lstname,&option[2]);
+		    strcat(lstname,":"); /* drive name terminator */
+		    strcat(lstname,filename);
+		    strcat(lstname,".PRN");
+		    listing = 1;
+		    return(1);		/* Create list file name */
+		}
+	case 'M': mloading = 1;		/* Enable the pre-processor */
+		  return(1);
+
+	case 'D': debug = 1;		/* dont erase tmp file at end */
+		  return(1);
+
+	case 'O': if (!ev(&option[2])) {
+			printf("Cannot fwd ref on origin switch\n");
+			exit();
+		  }
+		  tohex(hexad,dec); /* else convert result to hex */
+		  return(1);
+
+	case 'H': xing = 1;		/* Enable hex file output */
+		  strcpy(hexname,&option[2]);
+		  strcat(hexname,":");
+		  strcat(hexname,filename);
+		  strcat(hexname,".HEX");
+		  return(1);
+	}
+	printf("Bad option: <%c>\n",option[1]);
+	return(0);			/* force an abort */
+}
+
+/*	Write Symbol Table to UFN.SYM		*/
+/*	For later re-reading			*/
+
+wrsym()			/* WRite symbol table */
+{
+
+	char symb[BUFSIZ];
+	struct nlist *tp, *lookup();		/* table pointers */
+	int bucket, num;				/* Bucket pointer */
+
+	if (fcreat(symn,symb) == ERROR) {	/* Cannot create */
+		printf("Cannot create symbol file: DISK FULL\n");
+		exit();
+	}
+	bucket = num = 0;
+	while (bucket < HASHSIZE) {	/* Loop through symbol table */
+		for (tp = hashtab[bucket]; tp != NULL; tp = tp->next) {
+			fprintf(symb,"%s\t%s\t\n",tp->def,tp->name);
+		}
+	bucket++;			/* Next bucket */
+	}
+	putc(0x1a,symb);		/* Close symbol file */
+	fflush(symb);
+	fclose(symb);
+	return(1);
+}
+
+/* delete an entry from the symbol table */
+
+purge(symbol)
+char *symbol;
+{
+	struct nlist **prev_link, *tp, *lookup();
+	int bucket, num;
+
+	bucket = num = 0;
+	if ((tp = lookup(symbol)) == NULL) {
+		printf("**WARNING: non existent symbol <%s> no purge\n");
+	}
+	else {		/* remove this bugger from linked list */
+		prev_link = last;
+		*prev_link = tp->next;
+		free(tp);
+		useage -= sizeof(*tp);
+	}
+	return(1);
+}
+
+flush()		/* flush all local symbols from the symbol table */
+{
+
+	struct nlist *tp, **back;
+	int bucket, num;				/* Bucket pointer */
+	char temp[10];
+
+	bucket = num = 0;
+	while (bucket < HASHSIZE) {	/* Loop through symbol table */
+		for (tp = hashtab[bucket]; tp != NULL; back = tp,tp = tp->next) {
+			strcpy(temp,tp->def);
+			if (temp[0] < 'A') {	/* if graphic not alpha */
+			   *back = tp->next;
+			   useage -= sizeof(*tp);
+			   free(tp);
+			}
+		}
+	bucket++;			/* Next bucket */
+	}
+	return(1);
+}
+
+/*	Load an old symbol file into the symbol table */
+/*	to allow linkage to other modules		*/
+
+yankit()		/* Load symbol file */
+{
+	char  *symbols, *install(); /* Structure pointers */
+	
+	if (fopen(symname,ibuf) == ERROR ) {
+		printf("Cannot open: %s\n",symname);
+		exit();
+	}
+	printf("Loading %s\n",symname);	/* indicate doing something */
+	while (fgets(temp,ibuf)) {	/* Loop reading symbols */
+		getok(hexad,temp,1,6);
+		getok(label,temp,2,9);	/* Extract from buffer */
+		if ((symbols = install(label,hexad)) == NULL ) {
+			printf("SYM FILE LOAD HAS BLOWN MY TABLE SPACE BOSS");
+			exit();
+		}
+	}
+	fclose(ibuf);	/* Free up buffer for next overlay */
+}
+
+
+/*	Calculate the number of operators in expression */
+
+numops(x)			/* Get # of + - div mult */
+char *x;
+{
+	int  j;
+
+	j = 0;			/* default to no operators */
+	while (*x) if (op(*x++)) j++;
+	return(j);
+}
+
+op(c)				/* Determine if character is operator */
+char c;
+{
+	switch (c) {		/* compare most common first for speed */
+		
+		case '+':
+		case '-':
+		case '/':
+		case '*':
+		case '%':
+		case '>':
+		case '<':
+		case '|':
+		case '&': return(1);
+			  break;
+		default : return(0);
+	}
+}
+
+numargs(s)			/* Get # of commas in an expression */
+char *s;	/* string address */
+{
+	int i;			/* Argument counter */
+	i = 0;
+	while (*s) if (*s++ == ',' ) i++;
+	return(i+1);		/* there is one more than num of , */
+}
+
+/* Evaluate left or right sub expression of a compound operand */
+
+ev(exp)			/* Evaluate expression */
+char *exp;
+{
+	int values[10], j, val, num;
+	struct nlist *ep, *lookup(); /* Symbol table pointers */
+
+	if (exp[0] == '$') {		/* Location counter reference */
+		dec = decad;		/* Simple one */
+		return(1);
+	}
+	if (exp[0] == '#') strcpy(subexp,&exp[1]);
+	else 
+		strcpy(subexp,&exp[0]);
+	if (isdigit(subexp[0])) {	/* We have literal expression */
+
+		j = strlen(subexp);
+		switch (subexp[--j]) {	/* Find Radix */	
+	
+		case 'B':	subexp[j] = NULL; /* Binary */
+				dec = todec(subexp,2); /* Radix two */
+				return(1);
+			
+		case 'O':
+		case 'Q':	subexp[j] = NULL; /* Octal */
+				dec = todec(subexp,8);
+				return(1);
+
+		case 'H':	subexp[j] = NULL; /* Hex */
+				dec = todec(subexp,16);
+				return(1);
+		
+		default:	dec = todec(subexp,10); /* Decimal string */
+				return(1);
+		} 
+	} 		/* End of Numeric literals */
+
+	if ((subexp[0] == 0x22) || (subexp[0] == 0x27)) { /* Quoted */
+		dec = subexp[1];	/* Get ordinal value of char */
+		return(1);
+	}
+	if ((ep = lookup(subexp)) == NULL ) return(0);
+	dec = todec(ep->def,16); /* Convert symbol table entry to dec */
+	return(1);
+}
+
+/* Evaluate the operand expression. It may be a simple or complex 
+ * expression. the function determines if the expression is complex
+ * and if so, splits it into a left and right parts. the two parts 
+ * are then separately resolved and finally the they are combined via
+ * a case switch on the operator . The evaluator can fail with invalid
+ * result if an invalid literal is converted to decimal, as the _igs
+ * function does not return a status indicating validity of the literal
+ * ideally, the evaluator should not just peform a left right split as
+ * this prevents it from handling expressions with more than two 
+ * components.. this is an area for much improvemment
+ */
+
+evaluate(exp)
+char *exp;		/* Expression pointer */
+{
+	int acc1, acc2;			/* Evaluation accumulators */
+	char done, ops;
+	char res1, res2;		/* result of ev */
+
+	ops = numops(exp);		/* Find number of operators */
+	if (ops == 0) return(ev(exp));	/* Normal simple expression */
+	done = 0;			/* Else here we go */
+	acc1 = acc2 = xptr = 0;		/* Clear accumulators */
+
+	getsub(exp);	/* Split left most two args */
+	res1 =ev(xp1);
+	acc1 = dec;	/* up to caller to handle the problem */
+	res2 = ev(xp2);
+	acc2 = dec;
+	switch (operator) {	/* decide on operation */
+			
+		case '+' : acc1 +=  acc2; /* Addition */
+			   break;
+		case '-' : acc1 -=  acc2; /* Subtraction */
+			   break;
+		case '/' : acc1 /=  acc2; /* Division */
+			   break;
+		case '*' : acc1 *=  acc2; /* Multiplication */
+			   break;
+		case '%' : acc1 %=  acc2; /* Mod */
+			   break;
+		case '<' : acc1 = (acc1 << acc2); /* shift left */
+			   break;
+		case '>' : acc1 = (acc1 >> acc2); /* shift right */
+			   break;
+		case '|' : acc1 = (acc1 | acc2);  /* logical OR */
+			   break;
+		case '&' : acc1 = (acc1 & acc2);  /* logical AND */
+			   break;
+
+		default  : acc1 = 0;
+			   fault(1);	/* invalid operator */
+			   res1 = 0;
+	}
+	dec = acc1;
+	if ((!res1) || (!res2)) return(0);
+	return(1);	/* trap error in either argument */
+}
+
+/*	Split the next two left most arguments from expression */
+
+getsub(x)			/* Passed the address of operand */
+char x[];
+{
+
+	int s;
+
+	s = xptr = 0;
+	while ((!op(x[s])) && (x[s] != ' ')) {
+		 s++;
+	}
+	smov(xp1,x,s);
+	while (x[s] == ' ') s++;
+	operator = x[s++];	/* Crank past op */
+	while (x[s] == ' ') s++;
+	smov(xp2,&x[s],10);	/* found now copy */
+}
+
+fault(num)		/* Inform carbon based unit of trouble */
+int num;
+{
+	printf("**ERR: ");
+	switch (num) {			/* Print verbals 	*/
+
+		case 20: printf("Unknown mnemonic ");
+			 break;
+	        case 14: printf("Re-definition of %s ",label);
+			 break;
+		case 23: printf("Bad addressing mode, %s %s",mnem,operand);
+			 break;
+		case 210 : printf("Confused with %s %s %s ",label,mnem,operand);
+			 break;
+		case 215 : printf("Bad literal %s ",operand);
+			 break;
+		case 250:
+		case 251: printf("Displacement out of range ");
+			 break;
+		case 600: printf("Cannot evaluate operand ");
+			break;
+		case 1  : printf("Illegal operator in <%s> ",operand);
+			break;
+		}
+
+p_num:	printf(" <%03d> at line %u in module %s\n",num,lineno,iname);
+	printf("%s\n",line);
+	errors++;
+	fprintf(obuf,";** ERR: %02d ",num);
+ 	fprintf(obuf,"PC: <%s> Mnem: <%s> Oprnd: <%s> ",labrec,mnem,operand);
+	fprintf(obuf,"Class: <%c> I1: <%s> I2: <%s>",m4[0],i1,i2);
+	fprintf(obuf,"I3: <%s>\n",i3);
+	
+}
+

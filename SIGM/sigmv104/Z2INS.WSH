@@ -1,0 +1,153 @@
+
+
+
+
+
+
+
+
+   ***********************************************************
+   *                                                         *
+   *                INSTALLATION INSTRUCTIONS                *
+   *                                                         *
+   *                           for                           *
+   *                                                         *
+   *  ZCPR2 -- Z80 Command Processor Replacement, Version 2  *
+   *                                                         *
+   ***********************************************************
+
+
+                               by
+
+                          Richard Conn
+
+
+
+                        Manual Revision 0
+                         2 February 1983
+
+
+
+
+
+
+                          ZCPR2 Version
+                               2.0
+
+            Copyright (c) 1982, 1983 by Richard Conn
+                       All Rights Reserved
+
+
+
+     ZCPR2¬  itó utilitieó aó distributed¬  anä itó documentatioî 
+fileó aó distributeä arå copyrighted¬  198² anä 1983¬  bù Richarä 
+Conn®   Refeò  tï Appendiø Á foò á completå listinç oæ thå  ZCPR² 
+distributioî files.
+
+
+
+     CP/Í ió á registereä trademarë oæ Digitaì Research.
+
+
+
+
+
+
+
+
+               Installation Instructions for ZCPR2
+
+                        Table of Contents
+
+
+          Section                                      Page
+
+          1.0  Introduction                              1
+               1.1 Required Software for Installation    2
+               1.2 Required Hardware for Installation
+                    and Running ZCPR2                    3
+
+          2.0  Installing ZCPR2                          4
+               2.1 ZCPR2 Installation Example            7
+
+          3.0  ZCPR2 Customization                      11
+               3.1 Patching SUBMIT.COM                  18
+
+          4.0  Special Installation Considerations      19
+               4.1 ZCPR2 Sizing                         19
+               4.2 Programs Which Try to Load the
+                    FCB Command Line                    20
+
+          5.0  Modification to the BIOS Cold Boot
+                    Routine                             21
+               5.1 Installation Note (IN):
+                    Multiple Command Line Buffer        25
+               5.2 IN:  Memory-Based Named Directories  26
+               5.3 IN:  Redirectable I/O System         26
+               5.4 IN:  Default Command Search Path     28
+               5.5 IN:  Sample ZCPR2 Structure          30
+
+          6.0  Installation of the ZCPR2 Utilities      31
+               6.1 Sample GENINS Session                36
+
+
+          A.0  Appendix A -- ZCPR2 Distribution Files   43
+
+
+
+.he               ZCPR2 Installation Manual -- Foreword
+.fo                                                    Page F-#
+.pn 1
+
+                            Foreword
+
+     Welcomå  tï thå worlä oæ ZCPR2®   Thió ió onå oæ fouò  ZCPR² 
+manuals¬  namelù thå Installatioî Manual®  Itó purposå ió tï telì 
+yoõ  ho÷ tï instalì ZCPR2®   Therå arå threå otheò manualó iî thå 
+ZCPR2 manual series:
+
+          o the Concepts Manual
+          o the User's Guide
+          o the Rationale
+
+     Thå  Conceptó Manuaì ió á gooä manuaì tï reaä  first®   Oncå 
+completed¬  thå  intermediatå oò advanceä useò shoulä bå readù tï 
+instalì ZCPR² oî hió microcomputer®  Tï perforí thå installation¬ 
+thió Installatioî Manuaì ió provided®  Thió ió verù technicaì anä 
+assumeó  intimatå  knowledgå oæ 808° anä  Z8°  assemblù  languagå 
+programming®   Foò  readeró withouô sucè knowledge¬  É  recommenä 
+thaô  yoõ finä youò nearesô computeò cluâ (anä therå arå TONÓ  oæ 
+them© anä seeë help®   Computeò Clubó arå verù nicå foò thaô sorô 
+oæ thing®   É myselæ aí á membeò oæ thå Amateuò Computeò Grouğ oæ 
+Ne÷ Jerseù (ACG-NJ)¬  whicè ió oveò 110° memberó strong®  Gettinç 
+involveä  iî á computeò cluâ caî reallù bå lotó oæ fuî anä educa
+tional¬ anä informatioî anä programs¬ likå ZCPR2¬ caî bå shared.
+
+     Thå  purposå  oæ thå Conceptó Manuaì ió tï introducå yoõ  tï 
+thå basic¬  underlyinç principleó behinä ZCPR² anä tï givå yoõ  á 
+workinç knowledgå oæ thå followinç things:
+
+          o What ZCPR2 Is
+          o What ZCPR2 is Capable of Doing
+          o How to Use ZCPR2
+          o How to Adapt ZCPR2 to Your Particular Desires
+
+     Anotheò ZCPR² manuaì ió thå User'ó Guide®   Alì oæ thå ZCPR² 
+utilitieó  (referenceä bù namå anä versioî number© arå  describeä 
+iî  thå  User'ó Guide¬  anä manù samplå terminaì  sessionó  whicè 
+illustratå theiò uså arå included.
+
+     Finally¬  thå lasô manuaì ió thå Rationale®   Thió manuaì ió 
+aî  expose§ oæ whù É diä thingó likå É diä witè ZCPR2¬  whaô  thå 
+tradå  offó were¬  whaô directionó werå takeî iî thå  desigî  anä 
+why¬  anä  otheò  sucè technicaì ditties®   Thió manuaì ió  quitå 
+technicaì  anä ió provideä tï givå thå intermediatå anä  advanceä 
+CP/Í  useò á betteò feelinç anä understandinç oæ ZCPR²  internaló 
+anä concepts.
+
+     É  sincerelù  hopå yoõ enjoù usinç ZCPR2®   Iô  haó  beeî  á 
+pleasurå creatinç it¬  anä iô ió alsï á loô oæ fuî tï uså it®  Mù 
+opinion¬ oæ course®  Takå care¬ anä gooä luck.
+
+                                        Richard Conn
+

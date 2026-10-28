@@ -1,0 +1,129 @@
+DIMS editor help file - January 16, 1982
+
+     If there's a record number or a pair of record numbers anywhere in the 
+command line, the command will be done on the specified range of records.
+The words "from" "to" "all" "end" or "last" may be used when talking about
+record numbers.  "." instead of a number means use the most recently dis-
+played record.  All the built-in commands may be shortened to three letters.
+
+	For example, all the following are valid commands:
+
+			add
+			delete from 10 to 20
+			delete 10 20
+			print to 75
+			print select labels
+			find Wombat from . to 500
+			change 57
+			change .  (means change last record shown)
+			10 20
+			list from 10 to 20 (same result as "10 20"
+			select copy delete
+
+
+DIMS editor help screen 2         ---> Final commands <---
+
+These commands are normally the last word in the command sentence, any fol- 
+lowing words except record numbers will be ignored.
+
+	add	Appends records to the end of the file, prompting field by 
+                field.  In this mode the following commands take effect:
+
+               	"stop" alone in any field quits adding.
+               	"\" (backslash) at end of any field skips back 1 field.
+               	";" alone in the field copies data from last record shown.
+
+        done    Closes file and returns to no-file menu
+
+        fields  Allows "hiding" fields you don't want to show.  You may un-hide
+                them with the same command.  Controls output of 'put.'
+
+        format 0      Installs default display and print formats.
+        formats       Shows available format definition files.
+        format <name> Installs named format definition for screen and printer.
+
+        backup  Makes complete new backup file from main file.  Rarely used 
+                since backup file is maintained automatically.
+DIMS editor help screen 3
+
+	renumber Renumbers all records sequentially from the top in both main 
+                and backup files, closing up holes from deleted records.
+
+The following commands may be given freely anywhere in the command line:
+
+	change <#> Shows record or records field by field, new data may be 
+                entered for each field or the old data may be kept by just 
+                hitting RETURN.  To erase a field enter just one space then
+                RETURN.  Backslash '\' backs up to previous field.
+
+	delete <#> Shows record or records and asks approval to erase.
+
+	list	Shows records.  Assumed if no final command is given.
+
+	find <word> Finds records containing the exact word string.  A phrase 
+                can be found if underlines_are_used_instead_of_spaces.
+
+	select	Finds records containing up to 10 different words or phrases, 
+                (you will be asked for them) in all fields or in specific 
+                fields.  You also can specify up to 10 words or phrases that 
+                will cause the record to be skipped.
+DIMS editor help screen 4 -- more free-form command words
+
+	print	Prints on list device rather than screen in current format.
+
+	copy	Copies data records and adds them on to the end of another
+                DIMS file.  You will be asked for the name.  You may create a 
+                new file this way or add to an existing one, but the field 
+                definitions must be the same.  New records have no auto backup.
+
+	and	Permitted for clarity, ignored.
+
+	page	Sets page number to start printout with.
+
+	margin	Sets printer margin if you don't want the default setting.
+
+	flag	In an add or a change to a range of records, asks you for a 
+                string to be added to any (one) field in the record.
+
+	programs  Shows a directory of available "transient commands," i.e. 
+                  various batch processes than can work on the file.
+
+
+
+DIMS editor help screen 5        --> TRANSIENT COMMANDS <--
+Transient commands are sub-programs which do a batch of work and then return
+you to DEDIT.  Where appropriate, they will take a range of records and selec-
+tion criteria from the command line.  Example:  print select labels 100 to 150
+
+	cform	Process for creating format definition files.  Complicated.
+
+	doc	A "notepad" where you can read or write notes associated with 
+                the data file.  The doc file can be edited later with WordStar.
+                Useful for remembering codes you invent for your file.
+
+	labels	Prints a batch of labels (use "print labels") with blank fields
+                closed up.  Works only with three standard address file formats
+                that will do for most jobs, not hard to modify if necessary.
+
+	letters	Merges an address file with a form letter.  A personal 
+                salutation line or other data lines may be included if desired.
+                DLETTERS.BAS must be modified for each job.
+
+	sort	Sorts the records into a new sequence in the whole file or a 
+                range of the file.  Asks questions for set-up.  Sorts 
+                alphabetically unless all fields specified for keys are 
+                numeric.  May overlay or make a new file.
+DIMS editor help screen 6 -- more transient commands
+
+	stat	Computes descriptive statistics for a selected field.
+
+	put	Makes an output file in standard Basic sequential form for
+		further processing with other programs.  You may select a
+		range of records in the invoking command line, and selection
+		specifications.
+
+	get	Stuffs a conventional Basic sequential data file into
+		the DIMS file from which it is called, adding records to
+		the end.  Allows skipping and re-ordering of fields.
+
+

@@ -1,0 +1,224 @@
+{prints flt on display to a given length and format}
+{could be converted to any text file varible like}
+{lst:,myfile etc. with an additional pram}
+PROCEDURE ftostr (u:flt; fieldsize:byte; mode:char);
+
+var  num$:string 30;   {string to written out}
+     sign_u     :integer;
+     exp_u      :integer;
+     counter    :integer;
+     fieldleft  :integer;
+     chtoleft   :integer;
+     numzeros   :integer;
+     uu         :array [1..digmax] of byte;
+     
+{builds pusedo string too copy from}
+procedure fillarray;
+
+var  n,m:byte;
+
+begin
+m:=1;
+for n:=1 to dpmax
+do   begin
+     uu[m]:=(u.dp[n] div 10)+ord('0');
+     uu[m+1]:=(u.dp[n] mod 10)+ord('0');
+     m:=m+2
+     end;
+end; {fillarray}
+
+{completes string after decimal point}
+procedure fillfield;
+
+begin
+while (fieldleft>0) and (counter<=digmax)
+do   begin
+     append(num$,chr(uu[counter]));
+     fieldleft:=fieldleft-1;
+     counter:=counter+1
+     end;
+while fieldleft>0
+do   begin
+     append(num$,'0');
+     fieldleft:=fieldleft-1
+     end;
+end; {fillfield}
+
+{for engineering type buy it from eric brom}
+procedure scitype;
+
+var exp$   :string 10;
+    radix,x  :integer;
+    anyway :boolean;
+
+begin
+fillarray;
+setlength(num$,0);
+sign_u:=signdig(u);
+exp_u:=expvalue(u);
+if sign_u=1
+then append(num$,'-');
+append (num$,chr(uu[1]));
+append (num$,'.');
+setlength(exp$,0);
+append(exp$,'E');
+if exp_u <0
+then begin
+     append(exp$,'-');
+     exp_u:=abs(exp_u);
+     end;
+radix:=10000;
+anyway:=false;
+for counter:=1 to 5
+do   begin
+     if (exp_u>=radix) or anyway
+     then begin
+          x:=exp_u div radix +ord('0');
+          exp_u:=exp_u mod radix;
+          radix:=radix div 10;
+          append(exp$,chr(x));
+          anyway:=true
+          end
+     else radix:=radix div 10
+     end;
+x:=fieldsize+1-length(num$)-length(exp$);
+for counter :=2 to x
+do   append(num$,chr(uu[counter]));
+append (num$,exp$);
+write(num$)
+end; {scitype}
+
+
+{this mode tells you as much as possible in the space allotted}
+{it drops thru to scitype automatic}
+procedure infotype;
+
+begin
+fillarray;
+setlength(num$,0);
+sign_u:=signdig(u);
+exp_u:=expvalue(u);
+fieldleft:=fieldsize;
+if sign_u=1
+then begin
+     append(num$,'-');
+     fieldleft:=fieldleft-1;
+     end;
+chtoleft:=exp_u+1;
+if chtoleft>fieldleft
+then scitype
+else begin
+     if chtoleft<1
+     then begin
+          append(num$,'0.');
+          fieldleft:=fieldleft-2;
+          numzeros:=0-chtoleft;
+          if numzeros>(fieldleft-2)
+          then scitype
+          else begin
+               fieldleft:=fieldleft-numzeros;
+               while numzeros>0
+               do   begin
+                    append(num$,'0');
+                    numzeros:=numzeros-1
+                    end;
+               counter:=1;
+               fillfield;
+               write(num$)
+               end
+          end
+     else begin
+          for counter:=1 to chtoleft
+          do append(num$,chr(uu[counter]));
+          counter:=chtoleft+1;
+          fieldleft:=fieldleft-chtoleft;
+          if fieldleft>0
+          then begin
+               append(num$,'.');
+               fieldleft:=fieldleft-1;
+               end;
+          fillfield;
+          write(num$)
+          end
+     end
+end; {infotype}
+
+{tries to hold decimal point in a given position but}
+{will drop thru to infotype to avoid displaying  0.0000}
+procedure fixtype;
+
+var  fixval     :integer;
+     numblank   :integer;
+     holestoleft:integer;
+
+begin
+fillarray;
+setlength(num$,0);
+exp_u:=expvalue(u);
+sign_u:=signdig(u);
+fixval:=ord(mode)-ord('0');
+chtoleft:=exp_u+1;
+holestoleft:=fieldsize-fixval-sign_u-1;
+fieldleft:=fieldsize;
+if chtoleft>holestoleft
+then infotype
+else begin
+     if chtoleft<1
+     then begin
+          numblank:=holestoleft-sign_u-1;
+          while numblank>0
+          do   begin
+               append(num$,' ');
+               numblank:=numblank-1
+               end;
+          if sign_u=1
+          then append(num$,'-');
+          append(num$,'0.');
+          fieldleft:=fixval;
+          if (fieldleft+chtoleft)<1
+          then infotype
+          else begin
+               while (chtoleft<0) and (fieldleft>0)
+               do   begin
+                    append(num$,'0');
+                    chtoleft:=chtoleft+1;
+                    fieldleft:=fieldleft-1
+                    end;
+               counter:=1;
+               fillfield;
+               write(num$)
+               end
+          end
+     else begin
+          numblank:=holestoleft-sign_u-chtoleft;
+          while numblank>0
+          do   begin
+               append(num$,' ');
+               numblank:=numblank-1;
+               end;
+          if sign_u=1
+          then append(num$,'-');
+          counter:=1;
+          while chtoleft>0
+          do   begin
+               append(num$,chr(uu[counter]));
+               counter:=counter+1;
+               chtoleft:=chtoleft-1
+               end;
+          append(num$,'.');
+          fieldleft:=fixval;
+          fillfield;
+          write(num$)
+          end
+     end
+end; {fixtype}
+
+begin
+case mode of
+     '0','1','2','3','4','5','6','7','8','9'
+          :fixtype; {allows console entry of mode}
+     'i','I':infotype;
+     else:scitype
+   end; {case}
+end; {ftostr}
+

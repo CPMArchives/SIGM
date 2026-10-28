@@ -1,0 +1,298 @@
+SIG/M volume 8		PASCAL and Communications related programs
+		
+			PASCAL related programs
+ 
+8.01	BOOT.ASM	 1K	Sample BOOT for PASCAL
+8.02	BOOTER.DOC	 3K	PASCAL documentation for CP/M
+8.03	TEST.ASM	 7K	Scan and load 8080/Z80 Pascal
+				interpreter
+8.04	PAS2CPM.ASM	 8K	Format conversion 
+8.05	PASCAL.ASM	 7K	Initialization of PASCAL system
+8.06	PASCAL.COM	17K
+8.07	PASCAL.DOC	 1K
+8.08	PASTOCPM	12K	Format conversion
+8.09	PBOOT.ASM	 1K	Utilities to initialize PASCAL system
+8.10	PGEN.ASM	 4K
+8.11	PGEN.COM	 1K
+8.12	PINIT.ASM	 6K
+8.13	READ.ME		 2K	PASCAL startup documentation
+
+			Communications related programs
+
+8.14	CHAT13.ASM	 5K	2-way communications with remote caller
+8.15	DCHBYE57.ASM	24K	Upgrade of remote console DCHBYE55
+				on SIG/M 7.01
+8.16	MODEM5A.ASM	46K	Auto-dial and auto re-dial capability
+				on DC Hayes and PMMI modem boards
+8.17	PLNK1018.ASM	21K	Upgrade of PLNK925 on SIG/M 7.6 and
+				CP/M UG 19.4 with more modem types
+8.18	NEWBAUD.ASM	 4K	Switch BAUD rate on a remote PMMI
+				to readjust modem speed
+8.19	RBBS22.ASC	20K	Update of RBBS in SIG/M volume 7
+8.20	RBBS22.DOC	 6K
+8.21	RBSUTL22.ASC	 9K
+8.22	MBOOT3.ASM	 8K	Compacted version of MODEM for RECV
+				only usage
+8.23	XMODEM38.ASM	24K	Update of SIG/M 7.8 - remote CP/M to
+				CP/M transfer
+AFTER THE DOCUMENTATION WAS PRINTED WE DISCOVERED THAT A FARLY LARGE NUMBER
+OF PEOPLE HAVE BIOS'S LARGER THAN THE STANDARD 512 BYTES.  IF YOU DO...
+
+MSIZE = SIZE OF MEMORY IN KBYTES AS USUAL.
+BIOSSZ = SIZE OF BIOS IN BYTES.  BIOSSZ MUST BE A MULTIPLE OF 256.
+
+    THE ONLY THING AFFECTED IS IS PUTTING A BOOTER ONTO A PASCAL DISK.
+THE STEPS TO BE FOLLOWED ARE:
+
+1.  COMPUTE LOADP := MSIZE*1024-BIOSSZ-1024;
+    BIOSORG := MSIZE*1024-BIOSSZ
+
+2.  WRITE THE PROGRAM PBOOT AND ASSEMBLE IT.
+    PBOOT MUST LOAD SECTORS 2 THRU  9 + BIOSSZ/128 
+    IT MUST LOAD THEM STARTING AT LOCATION
+    LOADP, AND THEN JUMP TO LOADP.
+
+3.  CHANGE MSIZE AND BIOSSZ IN  PINIT AND ASSEMBLE.
+
+4.  CHANGE BIOSSZ IN PGEN AND REASSEMBLE, THEN LOAD.
+    (THEREBY CREATING PGEN.COM)
+
+5.  STITCH TOGETHER THE PIECES
+    A) TO FIND THE OFFSET PINIT.HEX SHOULD BE READ IN WITH, USE
+       LOADP RATHER THAN BA00.
+    B) TO FIND THE OFFSET BIOS.HEX SHOULD BE READ IN WITH, USE
+       BIOSORG RATHER THAN BE00.
+    C) SAVE  14 + BIOSSZ/256 RATHER THAN 16 WHEN SAVING
+       PGEN.COM
+Forming a Pascal System Booter
+------------------------------
+
+
+
+	To create an UCSD Pascal system booter you must have the following:
+
+		1)  A short boot loader that will read in track 0 sectors 2 - 13
+
+		2)  A copy of PINIT.ASM
+
+		3)  A hex version of your current BIOS
+
+		4)  A copy of PGEN.COM
+
+
+	The short boot loader of 1) can be generated from your current system
+boot loader if either a source or listing of it is available.  This trans-
+formation process is simply the reduction of a two track bootstrap into a
+single track one.  Two programs BOOT.ASM and PBOOT.ASM are provided as inspir-
+ation for this proceedure.
+
+
+	NOTE:  PBOOT loads its sectors to location (MSIZE-48)*1024+0BA00H
+	       and then jumps to that same point.
+
+
+	If you have no inkling of how your current system boot either loads or
+works, you will have to prevail on your system supplier for that information.
+
+
+	PINIT.ASM is the source for the code that boots in and starts
+SYSTEM.MICRO, the P-Machine interpreter.  A quick edit of PINIT.ASM is needed
+to modify the MSIZE equate to match the memory size (in kilobytes) of the
+current system BIOS.  Once this has been done each of the modules PBOOT, PINIT
+and BIOS must be assembled to produce the .HEX files which will be overlayed
+into PGEN's data area as follows:
+
+	NOTE:  In the following we assume a 48k system
+
+
+
+A>DDT PGEN.COM			;Read PGEN code into memory
+
+DDT VERS 1.3			;We will be overlaying PBOOT,
+NEXT  PC			;  PINIT, and BIOS into PGEN's
+0300 0100			;  data area, and finally saving
+				;  the memory image.
+-IPBOOT.HEX			;Set 'PBOOT.HEX' as the input file
+-H900 0				;PBOOT starts at location 0,  we want
+0900 0900			;  to compute a bias to read it to loc 900
+-R900				;Using this bias we read PBOOT to PGEN's
+NEXT  PC			;  data area
+0980 0000
+-IPINIT.HEX			;We will now do the same proceedure with
+-H980 BA00			;PINIT.  This object code will go to
+C380 4F80			;  location 980, notice PINIT starts at
+-R4F80				;  BA00 (HEX) in a 48k system.
+NEXT  PC
+0A7D BA00			;The value below NEXT will vary with the release
+-IBIOS.HEX			;Last we read BIOS to location D80
+-HD80 BE00
+C380 4F80			;This should be the same bias value as last time
+-R4F80
+NEXT  PC
+0F76 0000			;The value below NEXT is dependant on BIOS
+-^C				;We now leave ddt to save our work
+
+A>SAVE 16 PGEN48.COM		;Our boot writer will be called PGEN48
+A>PGEN48			;The booter may now be put out to Pascal
+
+PGEN VERSION 1.0		;  system disks by executing PGEN48
+
+GET BOOTER?(Y/N)N		;  as shown
+
+PUT BOOTER?(Y/N)Y
+WRITING BOOTER TO DRIVE A, TYPE RETURN
+AGAIN?(Y/N)N
+
+REBOOTING CP/M, TYPE RETURN
+
+
+Bringing UCSD Pascal up for the first time
+------------------------------------------
+
+
+
+	To bring up Pascal first assure yourself that you have a standard
+BIOS area (i.e.  all i/o vectors are in order) and that the warm boot
+vector is in place.  Next if you have a single drive system, make sure that
+your BIOS ignors all requests to drive B.  Two drive systems will require
+diskettes in both drives until you modify your disk drivers to return a
+not ready condition (i.e. a 1 in the A register) when the drive has no diskettee.
+Now bring up your standard system, and run the program PASCAL.COM supplied
+on the 8080/Z80 support diskette.  This program will prompt you with a request
+for a Pascal system diskette in dirve A.  At that time insert the UCSD
+distribution Pascal diskette and if you have a second dirve place
+any initialized diskette in that drive as well.  Type return and enter the
+world of pascal.
+
+
+
+	This is a preliminary documentation file for the 2.0
+version of RBBS (Remote Bulletin Board System).  More com-
+plete documentation, to include a complete overview as well
+as more detailed implementation notes, is planned.
+
+============================================================
+
+RBBS PROGRAM
+
+    The RBBS software has four new features with the 2.0
+implementation:
+	
+	1) Personal messages:  A caller can leave a personal
+	   message to anyone else by entering the password
+	   "*".  This causes the message to be invisible in
+	   summary commands, and retrieve and kill, for any-
+	   one but the sender and receiver.  An attempt to
+	   Kill a personal message by anyone other than the
+	   sender or receiver (and, of course, the SYSOP),
+	   will result in a "message not found".
+
+	2) Re-entry:  when a user has exited to the operating
+	   system, RBBS will retain his name in a file called
+	   "LASTCALR".	If RBBS is subsequently re-entered
+	   with RBBS P (the "P" was arbitrarily chosen), the
+	   system will retrieve his name from the "LASTCALR"
+	   file, and skip the sign-on printing.  Note that if
+	   you are using a loader program to load RBBS from
+	   another user area (under cp/m 2.x), you can make
+	   this function automatic, by having the loader fill
+	   in the "P" immediately before it transfers control
+	   to RBBS.  In this case, your BYE program should
+	   store a non-"P" character at location 5DH (default
+	   cp/m file control block).
+
+	3) Killed messages will now have additional information
+	   in the record used to store the message number:
+			0:<#>:<user name>
+	   where 0 indicates a killed message to RBBS, <#> is
+	   the original message number, and <user name> is the
+	   name of the user who killed the message.  This should
+	   be helpful in restoring messages improperly killed
+	   by inept/malicious individuals.  Note that after
+	   using an editor to restore the message (be careful
+	   here - the editor must not choke on blank-filled
+	   lines), the "BUILDSUM" function of the RBBSUTIL pro-
+	   gram can be used to generate a new summary file.
+
+	4) Message passwords, previously only stored in the sum-
+	   mary file, are now duplicated in the message file.  
+	   This was necessary to allow the BUILDSUM function of
+	   RBBSUTIL to generate a complete summary file.
+
+==============================================================
+
+RBBS UTILITY PROGRAM (RBBSUTIL)
+
+	The utility program has the following changes with the
+2.0 upgrade:
+
+	1) When transferring a disk file to the message file,
+	   the files must have already been purged.  This in-
+	   sures that the files will have been backed up prior
+	   to any messages being added.  Note also that the
+	   file "COUNTERS" will also be backed up by purge.
+
+	2) The purge function writes deleted messages to an ar-
+	   chive file called <DATE>.ARC, where the date is sup-
+	   plied by the operator when purge is invoked.  The
+	   archive file is written sequentially, and lines are
+	   unpacked before writing to conserve space.
+
+	3) The purge function allows renumbering of the messages
+	   starting at any number specified when purge is in-
+	   voked.  You may choose not to use this option if you
+	   maintain archives, because duplicate message numbers
+	   can be left in the archive files.
+
+	4) A new function, "B", will build a summary file from
+	   the message file.  This can be useful after editing
+	   the message file.  It also allows only the message
+	   file to be saved when doing back-up operations, as
+	   the summary file can now be derived from the message
+	   file.  Note that releases of RBBS previous to 2.0 did
+	   not save the passwords in the message file, there-
+	   fore, a summary file, rebuilt from such a message
+	   file will not have password protection.
+
+					Ron Fowler
+					Nov 18, 1980
+					Westland, Mich.
+
+
+	  PREVIOUS DOCUMENTATION OF THE RBBS SYSTEM
+	  =========================================
+
+
+		    RBBS.DOC as of 10/23/80
+
+   RBBS is short for "Remote Bulletin Board System".
+   RBBS.ASC is a file that was created with MBASIC 5.2.  Do
+not try to edit it with a CP/M text editor because some  of
+the multiple line statements may have special end-of-line
+sequences which may mess up a video-oriented editor, making it
+impossible to see some of the lines.  Use MBASIC 5.2 to edit the
+file.  This is public-domain software, feel free to use it on
+your own system.  The  best  way to run this program is to com-
+pile it with the MBASIC compiler, making a COM file out of it.
+It will run much faster  that way.  This is what Bruce Ratoff
+did, and it works great on his system. 
+   The POKES to address 0000h change the C3 to a CD during
+execution  of this program.  Bruce Ratoff tests for this in
+his DCHBYE55  remote  console program. This testing is also done
+in the PMMIBY63 remote console program. In the input from modem
+port routine a test is made to see if address 0000h is a CD, if
+so it causes the input routine to ignore control-C, changing it
+to to a null character instead.  This makes it impossible for
+the user to control-C  out of RBBS.   When the program is done,
+if you are exiting to CP/M for file transfers, it changes the CD
+back to a C3 and then jumps to 0000h (warm boot).
+   RBBSPURG.ASC is a program for purging dead messages out of
+the RBBS message files.  This should be done periodically to
+compactthe message files, since  the "Kill" function simply
+deletes  the pointer to the message, not the message itself.
+
+-------
+ NOTE: The above RBBSPURG.ASC has been superceded by
+	 RBBSUTIL.ASC	  rgf
+-------
+

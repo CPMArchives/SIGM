@@ -1,0 +1,46 @@
+A68K  1.9  11/08/82 -- Run on 11/09/82
+       00 -- inserted for even address adjustment
+                               OPT     OBJ-H           Intel HEX format
+004000                         ORG     $4000
+                       
+      00003210         LOC     EQU     $3210
+                       
+004000  2001           FRONT   MOVE.L  D1,D0
+004002  1001                   MOVE.B  D1,D0
+004004  3001                   MOVE.W  D1,D0
+004006  3001                   MOVE    D1,D0           data reg direct
+004008  3009                   MOVE    A1,D0           address reg direct
+00400A  3011                   MOVE    (A1),D0         address reg indirect
+00400C  3019                   MOVE    (A1)+,D0        with post increment
+00400E  3021                   MOVE    -(A1),D0        with pre decrement
+004010  3029 0002              MOVE    2(A1),D0        with index
+004014  3031 1002              MOVE    2(A1,D1),D0     with index and offset
+004018  3038 3210              MOVE    $3210,D0        absolute short
+00401C  3039 00003210          MOVE    $3210.L,D0      absolute long forced
+004022  3039 00003210          MOVE    (LOC).L,D0      isolate .L from symbol LOC
+004028  3039 00043210          MOVE    $43210,D0       absolute long
+00402E  303A 002A              MOVE    DATA(PC),D0     pc relative
+004032  303B 1026              MOVE    DATA(PC,D1),D0  pc relative with index
+004036  303C 3210              MOVE    #$3210,D0       immediate
+                       
+00403A  D081                   ADD.L   D1,D0
+00403C  D001                   ADD.B   D1,D0
+00403E  D041                   ADD.W   D1,D0
+004040  D041                   ADD     D1,D0
+004042  5440                   ADD     #2,D0
+004044  5440                   ADDQ    #2,D0
+004046  0640 0009              ADD     #9,D0
+00404A  0640 0009              ADDI    #9,D0
+                       
+00404E  48 65 6C 6C            DC.B    'Hello'
+        6F
+       00 -- inserted for even address adjustment
+004054  48 65 6C 6C            DC      'Hello'
+        6F 00
+                       
+00405A  3210 3210      DATA    DCB     3,$3210
+        3210
+                       
+    0 Errors detected
+                               END
+

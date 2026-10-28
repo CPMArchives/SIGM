@@ -1,0 +1,85 @@
+[TOOLS.DOC of JUG Vol.11]
+
+----------------------------------------------------------------
+
+               Software Tools in Turbo Pascal 
+                             by 
+                K. Nakazato (JUG-CP/M No.55)
+                        Jan. 27, 1985
+
+-----------------------------------------------------------------
+
+PROGRAM:
+  liblink ... library linker
+
+USAGE:
+  liblink main_file_name [include_file_name]
+
+FUNCTION:
+  "liblink" links modules in Pascal source files (library
+  files).  It genarates include file according to the
+  following linker directives.
+
+  in MAIN file
+    {#scan library_file_name1,library_file_name2,...}
+    {#external module_name1,module_name2,...}
+  in LIBRARY file
+    {#name module_name}
+    {#external module_name1,module_name2,...}
+
+  When include_file_name is absent, 'LIB.INC' is assumed.
+
+EXAMPLE:
+  To make liblink.com and update.com files in this diskette,
+  >liblink liblink.pas
+  >turbo
+  >liblink update.pas
+  >turbo
+
+-----------------------------------------------------------------
+
+PROGRAM:
+  update ... update library
+
+USAGE:
+  update library_file_name [include_file_name]
+
+FUNCTION:
+  "update" updates library_file from include_file.
+  When include_file_name is absent, 'LIB.INC' is assumed.
+
+EXAMPLE:
+  To update 'update.pas' from 'LIB.INC',
+  >update update.pas
+
+-----------------------------------------------------------------
+
+PROGRAM:
+  rel2pas ... transforms relocatable code to Pascal inline code
+
+USAGE:
+  rel2pas relocatable_file_name [inline_file_name]
+
+FUNCTION:
+  "rel2pas" tranforms REL file to Turbo Pascal source file
+  with inline codes.
+  The extension name of relocatable_file_name is replaced to
+  "REL", automatically.  Thus,
+    rel2pas upcase
+    rel2pas upcase.abc
+  are identical to
+    rel2pas upcase.rel
+
+  When inline_file_name is absent, the same file name as
+  relocatable_file_name with extension "INC" is assumed.
+  In the above case, 'upcase.inc' is generated as inline file.
+
+EXAMPLE:
+  To make inline codes from assemble source 'upcase.mac',
+  >m80 upcase,=upcase
+  >rel2pas upcase
+
+-----------------------------------------------------------------
+
+ 
+

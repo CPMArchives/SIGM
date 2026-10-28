@@ -1,0 +1,359 @@
+; program to load boot routines to tracks one & two
+
+        title 'loadsys'
+        .z80
+
+bdos    equ 5             ; cpm entry point
+cr      equ 0dh           ; carriage return
+lf      equ 0ah           ; line feed
+boot    equ 0             ; boot location
+
+loadsy:                   ; entry point
+
+; check we have cpm3
+        ld c,12           ; to get version number
+        call bdos
+        ld a,l            ; version number in a
+        cp 30h            ; version 30 or later
+        jp c,oldver       ; jump if old version
+
+; read cpmldr
+        ld c,15           ; open file code
+        ld de,fcb         ; fcb address
+        call bdos
+        and a
+        jp nz,operr       ; jump if can't open file
+        ld de,cpmldr
+        ld c,26           ; set dma address
+        call bdos
+        ld e,26           ; set to read 26 sectors
+        ld c,44           ; multi-record read
+        call bdos
+        ld de,fcb
+        ld c,20           ; read instruction
+        call bdos
+        inc a
+        jp z,rderr        ; jump if read fails
+        ld e,1
+        ld c,44           ; to reset multi-record count
+        call bdos
+
+; message to load target disk
+ltd:    ld c,13           ; to reset disk system
+        call bdos
+        call clear
+rp:     ld de,lddm
+        ld c,9            ; output string code
+        call bdos
+        ld de,rbuff       ; read buff location
+        ld c,10           ; read buffer
+        call bdos
+        ld hl,(rbuffc)    ; count to l, char to h
+        ld a,l
+        and a             ; get flags
+        jp z,exit         ; exit if no chars entered
+        ld a,h            ; character
+        sub 'A'           ; change 'A' to 0
+        jr c,rp           ; try again if disk not valid
+        ld e,a            ; need result in e
+        sub 32            ; in case lowercase
+        jr c,uc           ; jump if uppercase
+        ld e,a
+uc:     ld a,e
+        cp 3              ; check disk = A,B or C
+        jr nc,rp
+
+; select disk and get disk characteristics
+        ld c,14           ; disk select code
+        call bdos
+        and a             ; get flags
+        jp nz,slerr       ; select error
+        ld c,31           ; code to get dpb address
+        call bdos
+        ld bc,13
+        add hl,bc         ; now points to offset
+        ld c,(hl)         ; c contains offset
+        inc hl
+        inc hl            ; now points to psh
+        ld b,(hl)         ; contains psh
+        ld e,b
+        ld d,0            ; de contains psh
+        ld hl,nsec        ; address of sector table
+        add hl,de
+        ld a,(hl)         ; number of sectors
+        push af           ; number of sectors in a
+        ld hl,msec        ; address of sectors per track
+                          ;   table
+        add hl,de
+        ld a,(hl)         ; sectors per track
+        ld (msecx),a      ; keep this
+        ld hl,cread       ; address of table of primary
+                          ;   load routines
+        add hl,de
+        add hl,de         ; points to address of plr
+        ld e,(hl)
+        inc hl
+        ld d,(hl)         ; de contains address of plr
+        ld (creada),de    ; store in creada
+        ld hl,128         ; calculate sector length
+        ld a,b
+        and a
+        jr z,zer          ; djnz does not handle b=0
+dbbl:   add hl,hl         ; double hl
+        djnz dbbl
+zer:    ld (seclen),hl    ; sector length
+
+; set track
+        ld a,c            ; get directory offset
+        srl a             ; dd => offset=4 => a=2 => track=1
+                          ; sd => offset=2 => a=1 => track=1
+        cp 3              ; make sure track <= 2
+        jp nc,it          ; jump if invalid track
+        ld l,a            ; track number to hl
+        ld h,0
+        ld (biosbc),hl    ; track number
+        ld a,10
+        ld (biospb),a     ; function code
+        ld c,50           ; bios code call
+        ld de,biospb      ; register image array
+        call bdos
+
+; set bank=1 for disk operations
+        ld a,1
+        ld (biosa),a      ; bank number
+        ld a,28
+        ld (biospb),a     ; set function = setbnk
+        ld c,50           ; bios code call
+        ld de,biospb      ; register image array
+        call bdos
+
+; load cpmldr to track 1 of disk
+        pop bc            ; number of sectors of b
+        ld hl,cpmldr      ; address of image of cpmldr
+        ld (craddr),hl    ; keep address
+        ld c,1            ; initial sector number
+wloop:  push bc           ; sector count and number
+        ld b,0
+        ld (biosbc),bc    ; sector number
+
+        ld a,11           ; bios set sector code
+        ld (biospb),a     ; bios command
+        ld c,50           ; bios call code
+        ld de,biospb      ; register image array
+        call bdos         ; set sector
+
+                          ; set dma for disk ops
+        ld bc,(craddr)    ; address of current seg
+        ld (biosbc),bc
+        ld hl,(seclen)    ; sector length
+        add hl,bc         ; form address of next
+        ld (craddr),hl    ;   segment of cpmldr
+        ld a,12           ; bios set dma code
+        ld (biospb),a     ; bios command
+        ld c,50           ; bios call mode
+        ld de,biospb      ; register image array
+        call bdos
+ 
+        ld a,14           ; bios write code
+        ld (biospb),a     ; bios command
+        ld c,50
+        ld de,biospb      ; register image array
+        call bdos         ; write
+        and a
+        jp nz,werr        ; jump if write error
+
+        pop bc
+        inc c             ; update sector number
+        ld a,(msecx)      ; find number of sectors per track
+        cp c
+        jr nz,cy1
+        ld c,1            ; first cycle complete
+cy1:    inc c
+        djnz wloop        ; read next segment
+
+; set track = 0
+        ld hl,0
+        ld (biosbc),hl    ; track number
+        ld a,10
+        ld (biospb),a     ; function code
+        ld c,50           ; bios code call
+        ld de,biospb      ; register image array
+        call bdos
+
+; load primary loader to track 0 of disk
+        ld bc,1           ; sector number
+        ld (biosbc),bc    ; sector number
+        ld a,11           ; bios set sector code
+        ld (biospb),a     ; bios command
+        ld c,50           ; bios call code
+        ld de,biospb      ; register image array
+        call bdos         ; set sector
+
+                          ; set dma for disk ops
+        ld bc,(creada)    ; address of primary ldr
+        ld (biosbc),bc
+        ld a,12           ; bios set dma code
+        ld (biospb),a     ; bios command
+        ld c,50           ; bios call mode
+        ld de,biospb      ; register image array
+        call bdos
+
+        ld a,14           ; bios write code
+        ld (biospb),a     ; bios command
+        ld c,50
+        ld de,biospb      ; register image array
+        call bdos         ; write
+        and a
+        jp nz,werr        ; jump if write error
+
+        jp ltd            ; function complete
+
+oldver: ld de,ovm         ; not cpm3 error exit
+        ld c,9            ; output string
+        call bdos
+        jp boot           ; to exit
+ovm:    db 'Need cpm-3',cr,lf,'$'
+
+operr:  ld de,oem         ; can't open cpmldr error exit
+        ld c,9            ; output string code
+        call bdos
+        jp boot           ; to exit
+oem:    db 'Cannot open cpmldr.com',cr,lf,'$'
+rderr:  ld de,rem         ; read error
+        ld c,9
+        call bdos
+        jp boot
+rem:    db 'Read fails',cr,lf,'$'
+
+; clear console input
+clear:  ld c,11           ; to check console status
+        call bdos
+        and a             ; to set flags
+        ret z             ; return if no character
+        ld c,1            ; console input
+        call bdos
+        jr clear          ; cycle until console clear
+
+lddm:   db 'Enter drive name; <ret> to quit: $'
+
+exit:   ld c,13           ; reset disk system
+        call bdos
+        jp boot
+
+slerr:  ld de,sem         ; select error
+        ld c,9
+        call bdos
+        jp boot
+
+sem:    db 'Disk select fails',cr,lf,'$'
+
+it:     ld de,itm         ; invalid track
+        ld c,9
+        call bdos
+        jp boot
+
+itm:    db 'Invalid track',cr,lf,'$'
+
+werr:   ld de,wem         ; write fails
+        ld c,9
+        call bdos
+        jp boot
+
+wem:    db 'Write error',cr,lf,'$'
+
+rbuff:  db 1              ; buffer length
+rbuffc: ds 2              ; number chars entered
+
+; fcb for cpmldr
+fcb:    db 1,'CPMLDR  COM',0,0,0,0
+        ds 16
+        db 0,0,0
+
+; temporary storage for cpmldr
+cpmldr: ds 1000h          ; 4k
+
+craddr: ds 2              ; address of next portion
+                          ;   of cpmldr to be loaded
+seclen: ds 2              ; sector length
+creada: ds 2              ; address of primary loader
+msecx:  ds 1              ; sectors per track
+
+; parameter block for making calls to bios
+biospb: ds 1
+biosa:  ds 1
+biosbc: ds 2
+biosde: ds 2
+bioshl: ds 2
+
+; number of sectors
+nsec:   db 26             ; 26 128 byte blocks
+        db 13             ; 13 256 byte blocks
+        db 7              ; 7 512 byte blocks
+        db 4              ; 4 1024 byte blocks
+
+;number of sectors per track
+msec:   db 26
+        db 26
+        db 15
+        db 8
+
+; code to read track 1 to core
+
+rdcpm   macro ?nsec,?blkl,?msec
+                          ; ?nsec = number of sectors
+                          ; ?blkl = sector length
+                          ; ?msec = sectors per track
+        local rloop,rloop1,rok,sl1
+        .phase 0e700h     ; to executed at 0e700h
+        ld c,1
+        call 0e00ch       ; track 1
+        ld c,0
+        call 0e030h       ; side 0
+        ld c,0
+        call 0e01bh       ; drive A
+        ld bc,100h        ; dma
+        call 0e012h       ; set dma
+        ld bc,?nsec*100h+1; ?nsec sectors & sector number
+rloop:  call 0e00fh       ; set sector
+        push bc           ; store sector count & no.
+        ld b,5            ; 5 tries to read
+rloop1: push bc
+        call 0e015h       ; do read
+        pop bc
+        jr nc,rok         ; jump out if ok
+        djnz rloop1
+rok:    jp c,0e02ah       ; error exit
+        call 0e024h       ; get dma to bc
+        ld hl,?blkl       ; length of block
+        add hl,bc         ; increment dma
+        ld b,h
+        ld c,l
+        call 0e012h       ; and set dma
+        pop bc
+        ld a,c
+        cp ?msec-1        ; check for one cycle
+        jr nz,sl1
+        ld c,0            ; one cycle of disk complete
+sl1:    inc c             ; increment sector no. by 2
+        inc c
+        djnz rloop        ; loop controlled by reg b
+        jp 100h           ; jump to cmpldr
+        .dephase
+        endm
+
+cread0: rdcpm 26,128,26
+cread1: rdcpm 13,256,26
+cread2: rdcpm 7,512,15
+cread3: rdcpm 4,1024,8
+
+cread:  dw cread0
+        dw cread1
+        dw cread2
+        dw cread3
+
+        end loadsy
+ecord read
+        call bdos
+        ld de,fcb
+        ld c,20           ; read instruction
+        call b

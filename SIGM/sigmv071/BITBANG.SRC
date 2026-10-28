@@ -1,0 +1,73 @@
+; Routines to set, test and reset a bit within a byte
+;
+; Declarations are as follows:
+;
+;    type       byte = 0..255;
+;
+;    procedure  bset( var x: byte; y: byte ); external;
+;    procedure reset( var x: byte; y: byte ); external;
+;    function   test(     x: byte; y: byte ): boolean; external;
+;
+; If these routines are passed an integer instead of a byte (reference
+; parameters only) these routines will set/reset the low order byte.
+;
+        entry    bset,reset,test
+
+bset:   pop      d              ; get return address
+        pop      b              ; get variable size & bit to set
+        pop      h              ; get variable address
+        dcr      b              ; check for var of size 1
+        cnz      sizpatch       ; otherwise fix the pointer
+        xra      a              ; clear acc
+        stc                     ; set carry
+        mov      b,c            ; counter (0..7) to b
+        inr      b              ; increment counter ( now between 1 & 8 )
+setloop:adc      a              ; shift left 1 bit
+        djnz     setloop        ; now A has the bit in the correct position
+        ora      m              ; set the new bit
+        mov      m,a            ; return to the var
+        xchg                    ; hl <- return address
+        xra      a              ; clear acc
+        pchl                    ; return
+
+reset:  pop      d              ; get return address
+        pop      b              ; get variable size & bit to reset
+        pop      h              ; get variable address
+        dcr      b              ; check for var of size 1
+        cnz      sizpatch       ; otherwise fix the pointer
+        xra      a              ; clear acc
+        stc                     ; set carry
+        mov      b,c            ; counter (0..7) to b
+        inr      b              ; increment counter ( now between 1 & 8 )
+rstloop:adc      a              ; shift left 1 bit
+        djnz     rstloop        ; now A has the bit in the correct position
+        cma                     ; complement accumulator
+        ana      m              ; set the new bit
+        mov      m,a            ; return to the var
+        xchg                    ; hl <- return address
+        xra      a              ; clear acc
+        pchl                    ; return
+
+test:   pop      h              ; get return address
+        pop      d              ; get variable and bit to test
+        xra      a              ; clear acc
+        stc                     ; set carry
+        mov      b,e
+        inr      b              ; increment counter ( now between 1 & 8 )
+tstloop:adc      a              ; shift left 1 bit
+        djnz     tstloop        ; now A has the bit in the correct position
+        ana      d              ; set the new bit
+        jrz      testdone       ; test is done if we have a zero
+        xra      a              ; clear acc
+        stc                     ; and set carry to indicate true
+testdone:
+        pchl                    ; return
+
+
+
+sizpatch:
+        dcx      h              ; point to the low byte of a two byte number
+        ret                     ; and return.
+
+        end
+

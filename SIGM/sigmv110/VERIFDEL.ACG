@@ -1,0 +1,71 @@
+* verifdel.cmd 02/08/83 sml
+* verify records which have been marked for deletion
+
+* start looking for deleted records
+GOTO TOP
+LOCATE FOR *
+
+* set up the loop
+STORE t TO more
+DO WHILE more .AND. (.not. eof)
+  
+  *setup screen
+  SET FORMAT TO SAY-rec 
+  STORE 'Verify deleted records' TO mode
+  STORE '<C>ontinue, <E>dit, <D>elete/Recall, <P>rint, <Q>uit ' TO prompt1
+  STORE ' ' TO prompt2
+  STORE ' ' TO prompt3
+  STORE '?' TO command
+  
+  * check to see if current record is marked for deletion
+  *  DO delcheck.acg
+  IF *
+    STORE 'Deleted' TO deleted
+  ELSE
+    STORE ' ' TO deleted
+  ENDIF * 
+  
+  * show it on the screen
+  READ
+  
+  * find out what to do next
+  DO CASE
+      
+    CASE command = 'D' 
+  * DO DELETE.acg
+
+  IF *
+    RECALL
+  ELSE
+    DELETE
+  ENDIF * 
+      
+    CASE command = 'E' 
+      STORE # to recordno
+      SET INDEX TO
+      GOTO recordno
+      RELEASE recordno
+      RECALL 
+      DO EDIT.acg
+      
+    CASE command = 'P' 
+      DO PRINT.acg
+      
+    CASE command = 'Q' 
+      STORE f TO more
+      
+    CASE command = 'C' 
+      CONTINUE
+      
+  ENDCASE 
+  
+ENDDO WHILE more .AND. (.not. eof) 
+
+* release local memory variables
+RELEASE mode, prompt1, prompt2, prompt3
+
+* put memory back the way it was
+STORE t TO more
+STORE '?' TO command
+
+

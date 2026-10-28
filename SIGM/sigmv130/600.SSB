@@ -1,0 +1,24 @@
+604 ' password code entry
+608 ' get string (echo random Xes)
+612 '1.5	#
+616 PWDSTRING$="!1QAZ@2WSX#3EDC$$RFV%5TGB^6YHN&7UJ"
+620 PWDSTRING$=PWDSTRING$+"M*8IK,<(9OL.>)0P:;?/_-[=']+~`|\}{"
+624 GOSUB 1600
+628 RANDOMIZE(VAL(RIGHT$(TIME$,1)))
+632 MAX%=13
+636 ANSWER$=""
+640 KEY$="*"
+644 NKEY%=0
+648 WHILE NKEY% <= MAX%
+652	KEY$=INPUT$(1)
+656	PRINT STRING$(INT(RND(2) * 30 / 10)+1,88);
+660	KEY%=ASC(KEY$)					' make into a number
+664	IF KEY%=13 THEN RETURN				'
+668	NKEY%=NKEY%+1					'
+672	IF KEY% >= 97 AND KEY% <=122 THEN KEY%=KEY%-32	'convert lower to upper
+676	IF KEY% >=0 AND KEY% <=31 THEN KEY%=KEY%+64	'convert control to chr
+680	KEY%=INSTR(PWDSTRING$,CHR$(KEY%))+&H20		'
+684	ANSWER$=ANSWER$+CHR$(KEY%)
+688 WEND
+692 RETURN
+

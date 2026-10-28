@@ -1,0 +1,62 @@
+  /* * * * * * * * * * * * * * * * * * * * * * * * * * * *
+   *                                                     *
+   *                       ODUMP                         *
+   *                                                     *
+   *                  HEX DUMP ROUTINE                   *
+   *                                                     *
+   * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+
+	   displays offset and data (no address)
+
+	   dptr         =  ptr to data to be dumped
+	   nbytes       =  number of bytes to dump */
+
+odump:proc(dptr,nbytes);
+  	%replace
+	    true   by  '1'b,
+	    false  by  '0'b;
+
+	declare
+	    dptr           ptr,
+	    nbytes         bin fixed (15);
+
+	declare
+	    data(0:127)    bit(8) based (dptr),
+	    (offset,lngth) fixed,
+	    optr           ptr,
+	    offseta        bit(16) based (optr),
+	    (i,j)          fixed,
+	    c              char(1),
+	    chrptr         ptr,
+	    chr            char(1) based (chrptr);
+
+	put skip;
+	offset = 0;
+	optr = addr (offset);
+	lngth = max (0, nbytes-1);
+
+	    do while (offset < lngth);
+	    j = min (offset+15, lngth); 
+	    put skip;
+	    put edit (offseta,'') (b4,a(3));
+	    put edit ((data(i) do i = offset to j)) (8(b4, x(1)),x(1));
+	    put edit ('') (col(59), a);
+
+	        do i = offset to j;
+	        if data(i) > '1f'b4 & data(i) < '7f'b4 then do;
+	            chrptr = addr(data(i));
+	            c = chr;
+	            end;
+	        else
+	            c = '.';
+	        put edit (c) (a(1));
+                end;
+	    offset = offset + 16;
+	    end;
+
+	end odump;
+
+
+
+
+

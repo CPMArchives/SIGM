@@ -1,0 +1,57 @@
+[FS-SF.DOC of JUGPDS Vol.16]				85-09-15
+
+                 Fortran Coding Format Converter
+                               by
+                   H. Miyasaka (JUG-CP/M No.6)
+
+   1. fs.com
+  
+	Usage : fs filename {[n]}
+
+		Filename is a source program file in free format coding
+		with the default extension of .FRE  
+                Output file extension is .FOR
+		Option 'n' means no auto indent.
+
+
+   2. sf.com
+	
+	Usage : sf filename
+
+		Filename is a source program file in standard Fortran
+		format with the default extension of .FOR
+		Output file extension is .FRE
+		
+   
+   3. Codeing Rule.
+
+	(1) The first column with a " is a comment line.
+	(2) Fortran statements and statment numbers must be within 1-80 
+            columns.
+   	(3) A continuation of statement is indicated by a '-' in the last 
+            character of the previous statement.
+
+
+   4. Sample Program.
+
+  
+     Free format coding                         Standard format coding
+
+   1     7           (column)                  1     7          (column)
+   "  THIS IS A COMMENT LINE                   C  THIS IS A COMMENT LINE
+   REAL A(100),B(100),C(100),-                       REAL A(100),B(100),C(100),
+   D(100)                                           $D(100)
+   READ(5,100,END=999) N          ------->           READ(5,100,EMD=999) N
+   100 FORMAT(I10)                 fs.com        100 FORMAT(I10)
+   IF(N.LE.0) GO TO 999                              IF(N.LE.0) GO TO 999
+   DO 10 I=1,N                                       DO 10 I=1,N
+   A(I)=0.0                       <-------             A(I)=0.0
+   10 CONTINUE                     sf.com         10 CONTINUE
+   020 FORMAT(1H0,14X,'DETERMINA-                020 FORMAT(1H0,14X,'DETERMINA
+   NT OF MAT = ',E16.8)                             $NT OF MAT = ',E16.8)
+        .                                             .
+        .                                             .
+        .                                             . 
+   999 STOP                                      999 STOP
+   END                                               END
+

@@ -1,0 +1,71 @@
+If you are lucky enough to have a VERSAFLOPPY II disk controller board you
+will appreciate how reliable it is.  There was one problem however SD Systems
+supplied a bios for their SDOS.	I wanted to run CP/M 2.2 and simmilar systems
+The 5 programs:
+	MYDDBIOS.Z80
+	MYBOOT.Z80
+	DDSKBIOS.Z80
+	SYSGEN.Z80
+	FORMAT.Z80
+should allow you to get CP/M running on this board.
+
+Here is how it works.	First only two drives are assumed (A: & B:)  both must
+be 8" drives. This saves a lot of extra code I did not want but others could
+probably modify acordingly.	The major problem is the bios must know if it
+is talking to a single density disk or double density disk (sd dd).	RAM
+locations 58h & 59h will always contain flags for the density of drives A & B
+Upon cold or warm boot the bios gets the density of disk A (see below). If it
+is sd then 58h=00h if dd then 58h=40h.	Since drive B: has not yet been called
+in a flag of 0ffh is put at 59h.	The first time B: drive is selected
+its density is selected and the 0ffh flag is changed to either 00h or 40h.
+When CP/M does a SELDSK it will be routed to one of two different disk 
+parameter lookup tables depending on the two above flags.
+How does the board find out the density of the disk?	SD systems used a neet
+trick.	They use a trial and error method.	Upon any read address command
+the 4th byte returned is the sector length.	For 128 byte sectors it is
+00h.	So if the read address command returns anything othere than 00h chances
+are we do not have the correct disk density.	Look at my UNITSL: routine and
+this will hopefully be clear.
+I have made one large extra addition to the bios at the end you may want to 
+remove.	It is a section to display on a VDM board in "real time" the actual 
+sector,track,disk currently being read or written to. Bit 7 of port 0ffh turns
+this info on or off.	It is great for debugging at the start.
+
+All of the above and 99% of the bios is stored in ROM (just like SD SYSTEMS
+do for their system) -- this is by the way MYDDBIOS.Z80
+
+Two othere things are required:-
+MYBOOT.Z80	is the CP/M boot loader to go with this system. As usuall it
+goes on track 0 sector 1 of all disks.	This loader brings in the rest of CP/M
+loads it at the correct place in RAM (this depends on the size of your CP/M 
+system) along with a tiny RAM based BIOS which I call:-
+
+DDSKBIOS.Z80	As far as CP/M is conserned this is THE bios. It contains
+all the appropiate jumps to the ROM bios and the RAM dependent disk parameter
+lookup tables.
+
+If you are new at this stuff get somebody to show you how to link in these
+two programs to CP/M before sysgening a system.
+
+The following is an example of a 60k system setup
+ZSID
+F100,4000,0
+ICPM60.COM
+R
+ISYSGEN.COM		;I put sysgen here so I can have a file with sysgen
+R			;and CP/M @ 900h saved (if this is not clear do it
+IMYBOOT.HEX		;the way CP/M suggests)
+R880
+IDDSKBIOS.HEX
+R3980
+^C
+SAVE 34 SYSGEN60.COM	;(This way I have sysgen + the CP/M image in memory)
+SYSGEN60		;You are on your own after this
+
+
+
+
+				Good Luck
+				  John Monahan
+
+

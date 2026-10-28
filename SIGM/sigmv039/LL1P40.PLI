@@ -1,0 +1,161 @@
+LL1P40: PROC;
+/****************************************************************
+*               LL(1) GRAMMAR ANALYZER - PHASE 4		*
+*PURPOSE:                                                       *
+*    THIS PROGRAM ANALYZES A LL(1) GRAMMAR GIVEN IN MODIFIED    *
+*    BNF FORMAT AND FINDS THE RELATION, BEGINS-DIRECTLY-WITH    *
+*    AND BEGINS-WITH FOR SYMBOLS.  ALSO, IT CALCULATES THE RE-  *
+*    LATION FIRST FOR PRODUCTIONS.				*
+*INPUT:                                                         *
+*    1) BASIC GRAMMAR TABLES					*
+*    2) NULLABLE NON-TERMINALS AND PRODUCTIONS TABLES		*
+*OUTPUT:                                                        *
+*    1) FILE, $1.T01, CONTAINS THE BEGINS-WITH RELATION.	*
+*    2) FILE, $1.T02, CONTAINS THE FIRST RELATION.		*
+*OUTLINE:                                                       *
+*REMARKS:                                                       *
+****************************************************************/
+
+/****************************************************************
+* * * * * * * * * * * COMMON DATA DEFINITIONS * * * * * * * * * *
+****************************************************************/
+
+/*	* * *  COMMON REPLACEMENTS  * * *	*/
+%REPLACE TRUE BY '1'B;
+%REPLACE FALSE BY '0'B;
+
+%INCLUDE 'LL1CMN.DCL';	/* GET COMMON AREAS. */
+
+
+/****************************************************************
+* * * * * * * * * * * COMMON PROCUDURES * * * * * * * * * * * * *
+****************************************************************/
+
+
+%INCLUDE 'LL1PRC.DCL';
+
+
+/****************************************************************
+* * * * * * * * * * GRAMMAR ANALYSIS PROCEDURES * * * * * * * * *
+****************************************************************/
+
+
+CALC_BDW: PROC;
+/*THIS ROUTINE IS RESPONSIBLE FOR CALCULATING THE RELATION*/
+/*BEGINS-DIRECTLY-WITH.  WE SAY THAT <A> BEGINS-DIRECTLY- */
+/*WITH B IF A SEQUENCE BEGINNING WITH B CAN BE OBTAINED   */
+/*FROM A BY APPLYING EXACTLY ONE PRODUCTION AND THEN OP-  */
+/*TIONALLY REPLACING NON-TERMINALS WITH EPSILON.  THUS, WE*/
+/*BUILD THE RELATIONSHIP FOR ALL NON-TERMINALS WHICH HAVE */
+/*A NONE NULL RIGHT-HAND-SIDE.  FIRST, THE FIRST SYMBOL ON*/
+/*THE RIGHT-HAND-SIDE IS PART OF THE RELATIONSHIP.  ALSO, */
+/*THE FOLLOWING SYMBOL IS PART OF IT AS LONG AS THE CUR-  */
+/*RENT ONE IS A NULLABLE NON-TERMINAL. */
+	DCL I BIN(15);		/* INDEXES */
+	DCL J BIN(15);
+
+/* CALCULATE THE RELATION. */
+	DO I=1 TO NUMPRD;	/* LOOP THRU ALL PRODUCTIONS. */
+	   IF LENGTH(RHS(I))=0 THEN /*EPSILON PRODUCTION*/
+	      ;
+	   ELSE
+	      DO J=1 TO LENGTH(RHS(I));
+		 CALL SETBIT(CHRNUM(LHS(I)),
+			      CHRNUM(SUBSTR(RHS(I),J,1)),ADDR(ARRAY1));
+	         IF ISNLNT(SUBSTR(RHS(I),J,1)) THEN
+	            ;
+		 ELSE
+		    J=LENGTH(RHS(I));
+	      END;
+	END;
+
+/* RETURN TO CALLER. */
+	END CALC_BDW;
+
+
+CALC_BW: PROC;
+/*THIS ROUTINE IS RESPONSIBLE FOR CALCULATING THE RELATION*/
+/*BEGINS-WITH.  BEGINS-WITH IS THE REFLEXIVE TRANSITIVE   */
+/*CLOSURE OF THE RELATION, BEGINS-DIRECTLY-WITH. */
+
+/* CALCULATE IT. */
+	CALL CLOSUR(ADDR(ARRAY1));
+
+/* RETURN TO CALLER. */
+	END CALC_BW;
+
+
+CALC_FIRST: PROC;
+/*THIS ROUTINE IS RESPONSIBLE FOR CALCULATING THE RELATION*/
+/*FIRST FOR PROCUTIONS.  WE SAY THAT THE FIRST RELATION   */
+/*FOR A PRODUCTION IS THE UNION OF THE FIRST SYMBOL RELA- */
+/*TION INCLUDING AND UNTIL THE FIRST NON-NULLABLE NON-    */
+/*TERMINAL IS FOUND OR A TERMINAL IS FOUND.  THE FIRST    */
+/*SYMBOL RELATION IS SIMPLY THE PORTION OF THE BEGINS-WITH*/
+/*MATRIX FOR NON-TERMINALS HORIZONTALLY AND TERMINALS     */
+/*VERTICALLY. */
+	DCL I BIN(15);		/* INDEXES */
+	DCL J BIN(15);
+	DCL K BIN(15);
+
+/* CALCULATE THE RELATION. */
+	DO I=1 TO NUMPRD;	/* LOOP THRU ALL PRODUCTIONS. */
+	   IF LENGTH(RHS(I))=0 THEN /*EPSILON PRODUCTION*/
+	      ;
+	   ELSE
+	      DO J=1 TO LENGTH(RHS(I));
+		 IF ISTRM(SUBSTR(RHS(I),J,1)) THEN /**TERMINAL**/
+		    DO;
+		       CALL SETBIT(I,CHRNUM(SUBSTR(RHS(I),J,1)),
+					ADDR(ARRAY2));
+		       J=LENGTH(RHS(I)); /*FORCE END OF LOOP.*/
+		    END;
+		 ELSE                               /**NON-TERMINAL**/
+		    DO;
+		       DO K=LENGTH(NTRM)+1 TO LENGTH(NTRM)+LENGTH(TRM);
+			  IF TSTBIT(CHRNUM(SUBSTR(RHS(I),J,1)),
+			              K,ADDR(ARRAY1)) THEN
+			     CALL SETBIT(I,K,ADDR(ARRAY2));
+		       END;
+		       IF ISNLNT(SUBSTR(RHS(I),J,1)) THEN /**NULLABLE**/
+			  ;
+		       ELSE
+			  J=LENGTH(RHS(I)); /*FORCE END OF LOOP.*/
+		    END;
+	      END;
+	END;
+
+/* RETURN TO CALLER. */
+	END CALC_FIRST;
+
+
+/****************************************************************
+* * * * * * * * * * * MAIN LINE PROCEDURE * * * * * * * * * * * *
+****************************************************************/
+
+
+/* ANALYZE THE GRAMMAR. */
+	PUT SKIP LIST('BEGINNING PHASE 4 PROCESSING.');
+	CALL ZEROAR(ADDR(ARRAY1)); 
+	CALL ZEROAR(ADDR(ARRAY2)); 
+	PUT SKIP LIST('CALCULATING BEGINS-DIRECTLY-WITH...');
+	CALL CALC_BDW;		/*CALCULATE THE RELATION BEGINS-
+				  DIRECTLY-WITH. */
+	CALL PRTARY('*** BEGINS-DIRECTLY-WITH RELATION ***',TRUE,
+			 NUMVOC,NUMVOC,ADDR(ARRAY1));
+	PUT SKIP LIST('CALCULATING BEGINS-WITH...');
+	CALL CALC_BW;		/*CALCULATE THE RELATION BEGINS-WITH.*/
+	CALL PRTARY('*** BEGINS-WITH RELATION ***',TRUE,
+			 NUMVOC,NUMVOC,ADDR(ARRAY1));
+	PUT SKIP LIST('CALCULATING FIRST...');
+	CALL CALC_FIRST;	/*CALCULATE THE RELATION FIRST.*/
+	CALL PRTARY('*** FIRST PRODUCTION RELATION ***',FALSE, 
+			 NUMPRD,NUMVOC,ADDR(ARRAY2));
+	PUT SKIP LIST('SAVING BEGINS-WITH...');
+	CALL SAVARY(ADDR(ARRAY1),'T01');
+	PUT SKIP LIST('SAVING FIRST...');
+	CALL SAVARY(ADDR(ARRAY2),'T02');
+	PUT SKIP LIST('PHASE 4 PROCESSING COMPLETE.');
+	END LL1P40;
+
+

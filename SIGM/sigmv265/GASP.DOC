@@ -1,0 +1,526 @@
+
+[GASP.DOC of JUGPDS Vol.7]
+
+  -----------------------------------------------------------------
+  !								  !
+  !   Simulation with GASP (General Activity Simulation Program)  !
+  !								  !
+  !                               by				  !
+  !								  !
+  !           Makoto Yamagiwa (JUG-CP/M No.61)	June 16, 1984  	  !
+  !		   Phone: 0424-61-5440 (evenings)		  !
+  -----------------------------------------------------------------
+
+		            Abstract
+
+     GASP is a Fortran program package for general purpose simulation.  A
+user defined main program in Microsoft FORTRAN-80 or SSS FORTRAN-86 serves
+as a chassis into which subroutines are the building blocks.  All simula-
+tion models are virtually machine independent.  Thus, you can also use this 
+package under MS-Fortran.
+     The user must provide the main and key routines.  However, all other 
+low-level subroutines have been included in the package as the GASP library
+so that you can link them with the main program.
+
+
+
+                              Contents
+
+1.  Introduction					page 1
+2.  The GASP II Programming language			page 1
+3.  Statement of the sample models			page 4
+4.  GASP Data Format					page 5
+5.  Data Format for Example 1				page 8
+6.  How to Use GASP					page 9
+
+
+
+  
+
+1.  Introduction
+
+     The GASP (General Activity Simulation Program) is a simulator for 
+Discrete Event Simulation models.  GASP II [1] was developed at Arizona State
+University from the original GASP developed at U. S. Steel and RAND Corpora-
+tion [2].  GASP II was written in FORTRAN-IV for IBM 1130 Computer with the
+limitation of 8K words of storage (16-bit per word).  Further updated version
+of GASP is available [3].
+
+     The present version of GASP is based on GASP II and has been written for
+Microsoft FORTRAN-80 (CP/M-80), SSS FORTRAN-86 and ai-Fortran86 (CP/M-86). 
+
+
+2. The GASP II Programming Language
+
+2.1 Functional Breakdown of GASP II
+
+     A functional breakdown of the GASP II subprograms is shown in Table 1.
+A brief description is given here.  The GASP executive controls a simula-
+tion by updating simulation time (TNOW) from event to event and calling 
+programmer-written events through subroutine EVNTS.  Subroutine DATAN
+initializes all GASP II variables and reads from disk all initial events 
+and entities into filing array NSET.
+
+     The storage of information is accomplished by subroutine FILEM.  This
+routine inserts the values contained in the buffer storage vector ATRIB into
+the first available column of the filing array NSET and calls subroutine SET,
+which updates the pointing system to insert the entry into subroutine RMOVE.
+This routine removes an entry from NSET,  and stores its row values in the
+buffer storage array ATRIB, then calls subroutine SET to update the file by
+altering the pointing system.  To find specific entries in a file to locate
+an entry whose attributes satisfy stated conditions. The various conditions
+for which search can be performed in subroutine FIND.
+
+     Monitoring and error reporting are performed through the use of sub-
+routines MONTR and ERROR.  These subroutines have been designed to assist the
+programmer in debugging a simulation program.  Subroutine MONTR can also be
+used to obtain intermediate results during the course of a simulation run.
+
+     The routines involved in data collection, statistical computations and
+reporting, random variable generation, and other support functions are 
+listed in Table 1.
+
+
+        Table 1  Functional Breakdown of the GASP Subprograms
+----------------------------------------------------------------------
+  Function              !        Subprogram
+----------------------------------------------------------------------
+GASP Executive          !       Subroutine GASP(NSET)
+Initialization          !       Subroutine DATAN(NSET)
+Information Storage	!	Subroutine SET(JQ,NSET)
+and Retrieval           !	Subroutine FILEM(JQ,NSET)
+                        !       Subroutine RMOVE(KCOL,JQ,NSET)
+                        !       Subroutine FIND(XVAL,MCODE,JQ,
+                        !                	JATT,KCOL,NSET)
+Data Collection         !       Subroutine COLCT(X,N,NSET)
+                        !       Subroutine TMST(X,T,N,NSET)
+                        !       Subroutine HISTO(X1,A,W,N)
+Statistic Computations  !	Subroutine PRNTQ(JQ,NSET)
+and Reporting 		!       Subroutine ERROR (J,NSET)
+Random Deviate		!	Subroutine DRAND(ISEED,RNUM)
+Generators              !       Subroutine RANDU(IY,YFL)
+                        !       Function UNFRM(A,B)
+                        !       Function RNORM(J)
+                        !       Function RLOGN(J)
+                        !       Function ERLNG(J)
+---------------------------------------------------------------------
+
+2.2 A Typical GASP Program in Fortran
+
+     Table 2 and Fig.1 are the basic idea of Single Server Queueing System.
+While Listing 1 shows a prototype (skeleton) program for the main and sub-
+routine EVNTS of the service system.  Note that the main and EVNTS programs
+are user defined and normally follow the format given here.  In subroutine 
+EVNTS, "I" is an event code.  Subroutine EVNTS selects one of the events 
+ARRVL, ENDSV, or ENDSM.  The programmer (user) needs to write only the 
+event subroutines in order to have a complete simulation program.
+
+      Table 2  General conditions of Single Server Queueing System
+------------------------------------------------------------------------
+ENTITIES    ATTRIBUTES   EVENTS      ATTRIBUTES       RELATIONSHIP
+------------------------------------------------------------------------
+Customers  Arrival rate  Arrival of  Time of arrival  Customers who wait-
+           Arrival type  a customer  Customer  type   ing area of server
+           Job type                  Service prior-
+                                     ity
+
+Server     Server rate   End of      Time of comple- 
+                         service     tion
+------------------------------------------------------------------------
+
+
+
+Arriving Customers ----> Waiting area ---> Server ---> Departing
+
+Customers -----> Satisfied Customers
+          -----> Dissatisfied customers
+                 Customers Who have been served.
+
+Fig 1.  General transition of Single Server Queueing System
+
+
+Listing 1.  Layout of the main and Subroutine EVNTS.
+
+C       MAIN PROGRAM
+        DIMENSION NSET(6,ID)
+C       ID; to be specified by user
+        COMMON  (GASP variables)
+        COMMON  (non-GASP variables)
+C
+C       Initialization of non-GASP variables
+        CALL    GASP(NSET)
+C       If more runs are desired, insert GO TO statement
+C       to either reinitialize non-GASP variables or
+C       to call GASP again
+        CALL    EXIT
+        END
+C
+        SUBROUTINE      EVNTS(I,NSET)
+        DIMENSION NSET(6,ID)
+C       ID; to be specified
+        COMMON  (GASP variables)
+        COMMON  (non-GASP variables)
+C
+        GO TO (1,2,3), I
+    1   CALL    ARRIV(NSET)
+        RETURN
+    2   CALL    ESERV(NSET)
+        RETURN
+    3   CALL    ENDSM(NSET)
+        RETURN
+        END
+
+2.3 GASP Library
+     The GASP subprograms given in Table 1 have been provided as the
+GASP library (GASPLIB.FOR, GASLIBX.FOR, etc.).  Here is an outline 
+hierarchy  for EXA1 (USER1, see 3.2 below).
+
+*EXA1 (Main)
+	GASP
+		DATAN
+		MONTR
+		RMOVE
+			SET
+		*EVNTS
+			*ARRVL
+				DRAND
+				TMST
+				COLCT
+				FILEM
+					SET
+			*ENDSV
+				COLCT
+				HISTO
+				TMST
+				RMOVE
+				FILEM
+			*ENDSM
+				TMST
+				RMOVE
+				ENDSV
+		SUMRY
+	       *OTPUT
+		ERROR
+
+Note that the programs with asterisk are user defined.
+		
+3. Statement of A Sample Modeling
+
+     In the following I am going to describe a model case in detail.
+You can interpret the other examples in the similar manner.
+
+	 Example 1: A Single-Channel Queueing Situation
+
+ Program-id.    	USER1.FOR	USER1.F86
+ GASP library  		GASPLIB.FOR	GASPLIB.F86
+ Load module   		USER1.COM	EXA1.COM
+ GASP data file     	GASP1.DAT	GASP1.DAT
+
+ 3.1 Statement of the problem
+     The system to be simulated consists of a single server who processes 
+arriving items sequentially.  When the server is processing an item, other
+items arriving must wait for service.  Only a single queue can form, and 
+there is no limitation on its length.  The time between arrivals of items
+and the processing time for the server are assumed to be exponentially
+distributed.  The mean time between the arrival of items is 10 time units
+and the mean processing time is 6 time units.  The system is to be simulated
+for 3000 time units.  Estimates of the expected value and standard deviation
+of the server's idle time , the total time spent by items in system, and the
+waiting time of the items are to be calculated.
+
+     All items arriving before time 3000 should be processed, and the sta-
+tistics concerning these items should be included in the overall statis-
+tics of the simulation. 
+
+        The intial conditions are:
+
+        1) The server is busy and will complete service at time 3.5.
+        2) The first new arrival to the system will occur at time 0.0.
+        3) No items are waiting in the queue.
+
+3.2 Procedure
+	The following programs are necessary:
+
+	1) The main program of the simulation ..... EXA1
+	2) Arrival of an item to the system....... Subroutine ARRVL
+	3) A completion of the processing of an item by the server
+	                                   ....... Subroutine ENDSV
+	4) The completion of the simulation at a time specified by 
+	   the programmer                  ....... Subroutine ENDSM
+	5) Control routine for subroutines ARRVL, ENDSV, and ENDSM
+                                           ....... Subroutine EVNTS
+	6) To provide information in addition to that normally printed 
+   	   in the GASP summary report      ....... Subroutine OTPUT
+	
+Note that all of the above programs must be written by the programmer
+(user).  They have been designated as USER*.*.
+
+4. GASP Data Format
+      There are eight types of "Data Card" to be input to GASP.  They are 
+listed in Tables 3 through 10, and are stored as GASP*.DAT files in the
+card image.
+
+Table 3  Type 1 Data Card for GASP
+-----------------------------------------------------------------
+GASP variables      Column (FORMAT)	   Definition
+Initialized 
+-----------------------------------------------------------------
+NAME        	    1 to 12 (6A2)       Title of simulation
+NPROJ               13 to 16 (I4)       Project number
+MON                 17 to 18 (I2)       Month number (MM)
+NDAY                19 to 20 (I2)       Day number (DD)
+NYR                 21 to 24 (I4)       Year number (19YY)
+NRUNS               25 to 28 (I4)   	Number of simulation runs
+					to be made
+------------------------------------------------------------------
+
+ Table 4  Type 2 Data Card for GASP
+----------------------------------------------------------------------
+GASP variables      Column (FORMAT)         Definition
+Initialized 
+----------------------------------------------------------------------
+NPRMS               1 to 5 (I5)         Number of sets of parameters
+                        		to be used insimulation
+NHIST               6 to 10 (I5)        Number of histograms required
+                                	for the simulation
+NCLCT               11 to 15 (I5)       Number of variables for which
+                        		statistics are collected in
+                                        subroutine COLCT
+NSTAT               16 to 20 (I5)       Number of variables for which
+                        		statistics are collected in
+                                        subroutine TMST
+ID                  21 to 25 (I5)       Number of columns in the filing
+                        		array NSET
+IM                  26 to 30 (I5)       Maximum number of attributes
+                        		associated with any entry of
+                                        the filling array
+NOQ                 31 to 35 (I5)       Number of files contained in
+                        		the filling array
+MXC                 36 to 40 (I5)       Largest number of cells to be
+                        		used in any histogram
+SCALE               41 to 50 (F10.2)    Parameter used to scale attri-
+                        		bute value to avoid truncation
+                                        errors due to the use of fixed
+					point array for the filling 
+----------------------------------------------------------------------
+
+Table 5  Type 3 Data Card for GASP. If NHIST > 0, the number of cells
+ 	 for each histogram used is initialized from Type 3 Data Card.
+	 The GASP variable NCELS(K) is the number of cells in histogram
+	 K ,not including the end cells.
+-----------------------------------------------------------------------
+GASP variables      Column (FORMAT)          Definition
+Initialized 
+--------------------------------------------------------------------
+NCELS(1)              1 to 5  (I5)
+NCELS(2)              6 to 10  (I5)
+NCELS(3)              11 to 15 (I5)
+NCELS(4)              16 to 20 (I5)
+--------------------------------------------------------------------
+
+Table 6  Type 4 Data Card for GASP.  The values of the vector KRANK
+	 are initialized with Type 4 Data Card.
+--------------------------------------------------------------------
+GASP variables      Column (FORMAT)        Definition
+Initialized 
+--------------------------------------------------------------------
+KRANK(1)              1 to 5   (I5)
+KRANK(2)              6 to 10  (I5)
+KRANK(3)              11 to 15 (I5)
+KRANK(4)              16 to 20 (I5)
+--------------------------------------------------------------------
+
+Table 7  Type 5 Data Card for GASP.  This card reads value for the
+	 vector INN.  INN(J) is the variable that specifies
+	 whether File J is a low-value-first (LVF) or high-value-
+	 first (HVF) file. The code for LVF and HVF are 1 and 2,
+	 respectively.
+-------------------------------------------------------------------
+GASP variable
+initialized 	    Column (FORMAT)           Definition
+-------------------------------------------------------------------
+INN(1)              1 to 5   (I5)
+INN(2)              6 to 10  (I5)
+INN(3)              11 to 15 (I5)
+INN(4)              16 to 20 (I5)
+-------------------------------------------------------------------
+
+Table 8  Type 6 Data Card for GASP.  This card is used only when
+	 parameters are used in the simulation (NPRMS >= 1).
+-----------------------------------------------------------------
+GASP variables
+Initialized 	    Column (FORMAT)            Definition
+-----------------------------------------------------------------
+PARAM(J,1)          1 to 10  (F10.4)
+PARAM(J,2)          11 to 20 (F10.4)
+PARAM(J,3)          21 to 30 (F10.4) 
+PARAM(J,4)          31 to 40 (F10.4)
+-----------------------------------------------------------------
+
+Table 9  Type 7 Data Card for GASP
+----------------------------------------------------------------------
+GASP variable
+initialized 	Column (FORMAT)      	Definition
+-----------------------------------------------------------------------
+MSTOP		1 to 5 (I5)	       0: End of simulation, event has
+                        	       been furnished by the programmer.
+                                       MSTOP > 0: The simulation is to
+				       end when TNOW >= TFIN.
+                                       MSTOP < 0: Programmer indicated 
+				       the simulation run is completed
+				       and ask the final reports. 
+JCLR            6 to 10 (I5)           0: Do not clear statistical
+                        	       storage areas.
+                                       1: Clear statistical storage
+NOPRT           11 to 15 (I5)          0: Final GASP summary report
+                                       1: No final summary report
+NEP             16 to 20 (I5)          A control variable which
+                    		       determine the data card
+                                       type at which DATAN will 
+                                       begin to process foe the
+                                       next simulation run
+TBEG            21 to 30 (F10.3)       Beginning time of the simula-
+                        	       tion run.
+TFIN            31 to 40 (F10.3)       Final or ending time of the
+                        	       simulation if MSTOP > 0. 
+JSEED           41 to 44 (I4)          Random number seed,
+                        	       ISEED = JSEED
+----------------------------------------------------------------------
+
+Table 10  Type 8 Data Card for GASP.  Actually there are two kinds of
+	  Type 8 Cards. They are used to initialize the filing array and
+	  to insert initial entries into it.  Each set of Type 8 Cards 
+	  contains the file number (JQ) and the attributes (ATRIB) for
+	  one entry that is to be inserted in file JQ. If JQ is negative,
+	  the entire filing array is initialized.  If JQ is positive,
+	  the values in ATRIB are inserted into an entry in File JQ.
+-----------------------------------------------------------------------
+GASP variable       Column (FORMAT)         Definition
+Initialized 
+-----------------------------------------------------------------------
+JQ	            1 to 10 (I10)       File number, if JQ < 0 
+					the array is initialized.
+-----------------------------------------------------------------------
+ATRIB(1)            1 to 10 (F10.4)
+ATRIB(2)            11 to 20 (F10.4)
+ATRIB(3)            21 to 30 (F10.4)
+  .                         .
+  .                         .
+ATRIB(7)            61 to 70 (F10.4)
+----------------------------------------------------------------------
+
+  
+5.  Data Format for Example 1 (GASP1.DAT)
+
+Column Layout:
+              1         2         3         4         5         6
+     123456789012345678901234567890123456789012345678901234567890
+
+     TEST-PROG-1    1 2281984   1                          Type 1 Card
+         0    1    2    2   25    4    2   22      10.00   Type 2 Card
+        20                                                 Type 3 Card
+         1    3                                            Type 4 Card
+         1    1                                            Type 5 Card
+         0    1    0    7     0.0    3000.0  0567          Type 7 Card
+             -1                                            Type 8 Card
+	    0.0    1.0       0.0       0.0                 Type 8 Card
+              1                                            Type 8 Card
+         3000.0    3.0       0.0       0.0                 Type 8 Card
+              1						   Type 8 Card	
+            3.5    2.0       0.0       0.0                 Type 8 Card
+              0                                            End of data
+       
+ Remarks
+        File 1 is the event file, and File 2 is the queue of items
+        waiting for processing. The attributes associated with each
+        of these files are shown below:
+
+	  File 1
+        Attribute 1:    Scheduled time of event.
+        Attribute 2:    Event Code.
+        Attribute 3:    Time customer enters system, if event code
+                        is 2.
+        Attribute 4:    Not used.
+
+	  File 2
+        Attributes 1, 2 and 4: Not used.
+        Attribute 3:    Time item entered system.
+
+6. How to Use GASP
+6.1 Organization of GASP Disks
+    The GASP program package submitted to the Public Domain consists
+of the following four volumes.
+
+	Vol.1 of 4: Documentation and CP/M-80 (FORTRAN-80) Version
+	Vol.2 of 4: CP/M-86 (SSS FORTRAN/ai-FORTRAN) Version and
+		    Source Programs of GASP Subprograms
+	Vol.3 of 4: Executable GASP Code for CP/M-86
+	Vol.4 of 4: Extended Version of GASP II for F80 and F86
+
+    Those who have only FORTRAN-80 should get Vols. 1, 2 and 4.
+
+6.2 Using Microsoft FORTRAN-80 on CP/M-80
+1) Compile user programs in FORTRAN-80
+   f80 USER1,tty:=USER1/n  (c/r)
+
+2) Compile GASP Library programs
+   f80 GASLIB,tty:=GASLIB/n  (c/r)
+
+3) Link USER1.REL, and GASLIB.REL to make object module
+   l80 USER1,GASLIB,forlib/s,EXA1/n/e
+
+4) Execute Object module EXA1.COM
+   EXA1  (c/r)
+
+5) Input GASP Data file
+   Output GASP data file to Display(3) or Printer(2)
+   Enter Output Device number 2 or 3: 2 (c/r)
+
+   Input GASP data file name (max 8 characters): GASP1   (c/r)
+   Input GASP data file name: GASP1   DAT
+
+6.3  Using Super Soft FORTRAN-86
+
+ 1) Compile user programs in FORTRAN-86
+    for USER1.F86  USER1.REL  (c/r)
+    cnv USER1.REL  USER1.R86  (c/r)
+
+ 2) Compile GASP Library programs
+    for  GASLIB.F86  GASLIB.REL
+    for  GASLIB.REL  GASLIB.R86
+
+ 3) Link USER1.R86, and GASLIB.R86 to make object module
+    link86 -o EXEC1 semu USER1 GASLIB sflib.lib mlib.lib
+
+ 4) Execute Object module EXEC1.CMD
+    EXEC1  (c/r)
+
+ 5) Input GASP Data file
+    Output GASP data file to Display(1) or Printer(4): 
+    Output Device number 1 or 4: 4 (c/r)
+
+    Input GASP data file name (max 12 characters) : GASP1.DAT (c/r)
+    Input GASP data file name : GASP1.DAT
+
+
+
+                             REFERENCES
+
+[1] A. Alan, B. Pritsker and P. J. Kiviat: "Simulation with GASP II -
+    A FORTRAN based Simulation Language," 1969
+[2] P. J. Kiviat: "GASP- A General Activity Simulation Program,"
+    Applied Research Lab., United States Steel Corporation, 
+    Monroeville, Pa., 1963
+[3] A. Alan  and B. Pritsker: "The GASP IV Simulation Language," 
+     Wiley, New York, 1975
+
+
+****************************************************************
+Editor's comments to Japanese users:
+
+	Japanese documentation on this program package has been
+published by the contributor in the following journal.
+
+ÔÏ·ÞÜ ÏºÄ: ¢16bit Ö³ FORTRAN Compiler É Test£, Information,
+	  Vol.4 (1985), No.3, p.21
+

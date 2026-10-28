@@ -1,0 +1,169 @@
+               ---NOTES ON THE PACKET RADIO MODULES FOR CP/M---
+
+
+        Description of disk files.
+
+        PACKET.ASM
+
+        This is the main program.   It contains all the protocol logic as 
+        well as the disk file I/O for both receiving and sending.
+
+
+        PACIO.ASM
+
+        This is the modem I/O module.  It has the routines which drive
+        the modem as well as the stations call sign.  It needs to be
+        customized for the hardware the user will be interfacing with.
+        Normally it will be the only module that needs to be changed.
+
+        RECV.ASM
+
+        This is a very small module which provides an entry from and
+        exit to CP/M for the receiver section of PACKET.ASM.
+
+        SEND.ASM
+
+        This  is  the same as RECV.ASM except that it causes entry to  the 
+        transmitting section of PACKET.ASM.
+
+        SEQIO2.LIB
+
+        This is a modified version of "SEQIO.LIB" from Digital Research.
+        The mods fix a bug which prevented it from working with the  RMAC 
+        assembler.   It  contains the disk file interface macros and is 
+        used by "PACKET.ASM" only.
+
+
+
+              ---What to do with the above list of files---
+
+        If you don't know what 8080 assembly language is I would  suggest 
+        you  get  some help or go back to playing STARTREK  because  some 
+        knowledge of this is required to modify the "PACIO.ASM" file.
+
+        1)    Read the instructions in the "PACIO.ASM" file and modify it 
+        to match your hardware.
+
+        2)   Use the Digital Research RMAC relocating macro assembler  to 
+        assemble the following files:
+                       SEND.ASM
+                       RECV.ASM
+                       PACKET.ASM
+                       PACIO.ASM
+
+
+
+
+
+                                        1
+
+
+
+
+
+
+
+
+
+        3)   You will now have 4 .REL files
+                       SEND.REL
+                       RECV.REL
+                       PACKET.REL
+                       PACIO.REL
+
+             Now  you need to link them with the Digital Research  linker 
+        "LINK.COM" to create two .COM files.
+
+        Do this:  A>LINK SEND,PACIO,PACKET
+
+                  A>LINK RECV,PACIO,PACKET
+
+             Now  you have "SEND.COM" and "RECV.COM" which are the  ready 
+        to run packet radio programs.
+
+
+
+
+                 ----HOW TO USE THE SEND AND RECV PROGRAMS----
+
+        SEND:
+
+        First  of all there must be another station running the  RECV.COM 
+        program.   Assuming  this is the case,  to send him a file do the 
+        following:
+                       A>SEND TEST.ASM K4ZZ
+
+        That caused the file "TEST.ASM" to be sent to K4ZZ.
+
+        This is the sequence of events after typing the command.
+
+        1)  Your station and the called station are IDed in morse code in 
+        the format:  HIS CALL   DE   YOUR CALL   ie:  K4ZZ DE WA4DSY.
+
+        2)   An ENQ packet is sent to see if K4ZZ is on the air.
+
+        3)   If an ACK packet is received from K4ZZ then Transmission  of 
+        the data packets will begin.
+
+        4)    The  file "TEST.ASM" is sent 1024 bytes per  packet.   K4ZZ 
+        will send an ACK packet after each 1024 byte segment if no errors 
+        are detected.   Both stations will ID in morse code after every 8 
+        packets and at end of the last packet.   If K4ZZ detects an error 
+        he  will send a NAK packet and your station will  retransmit  the 
+        last packet up to 4 times.
+
+
+
+
+
+
+
+
+
+
+                                        2
+
+
+
+
+
+
+
+
+
+        RECV:
+
+        There  are 2 ways to use RECV.   If you simply want to go on line 
+        and  receive  all  messages or files addressed to  you  just  run 
+        RECV.COM.
+        example:       A>RECV
+
+             If  you want to get a message or file from  another  station 
+        just  do  the  following (assuming the other station  is  running 
+        RECV.COM).
+
+        example:       A>RECV TEST.ASM K4ZZ
+
+             That  will  cause  K4ZZ to send you  the  TEST.ASM  file  as 
+        follows.
+
+        1)   Your station sends a file request (FRQ) packet to K4ZZ.
+
+        2)    If K4ZZ has the file on his disk he will send an ACK and go 
+        into send mode to send the file in the normal way as described in 
+        the SEND section then revert to RECV again.
+
+        3)    Your station will go into the normal receive mode  and  get 
+        the packets from K4ZZ and store them on your disk.
+
+                  *** SPECIAL CASE "DIR" *****
+
+        If  the file name DIR is specified the directory of the disk will 
+        be sent or received as if it were a file.  It will be stored in a 
+        disk file named "DIR".   For example if you wondered what was  on 
+        K4ZZ's  disk you would type "RECV DIR K4ZZ".   After he sends you 
+        his directory you would "TYPE DIR" to see it.   You can send your 
+        directory  with  the command "SEND DIR K4ZZ".   He may  not  know 
+        where  it came from, since it will be stored on his disk as  "DIR" 
+        with no call sign.
+

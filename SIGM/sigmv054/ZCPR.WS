@@ -1,0 +1,989 @@
+.po 2
+.he            ZCPR - A Z80 Replacement for the CP/M CCP
+.fo                                               Page #
+
+
+
+
+   Documentation on ZCPR - A Z80 Replacement for the CP/M CCP
+
+
+
+
+            ZCPR is a Group Project By the CCP-GROUP:
+          RLC - Richard Conn            FJW - Frank Wancho
+          KBP - Keith Peterson          RGF - Ron Fowler
+
+
+                    ZCPR Documentation By RLC
+
+
+
+
+
+
+
+                        Table of Contents
+                        ----- -- --------
+
+     Introduction                                       2
+
+     Part A: Installation Instructions                  4
+          ZCPR Integration Example                      5
+          Setting the ZCPR Inline Options               8
+            REL, BASE, CPRLOC, RAS, SUBA, CLEVEL3       8
+          Customization Symbols                         8
+            NLINES, WIDE, PGDFLT                        8
+            PGDFLG, MAXUSR, SYSFLG, SOFLG, SUPRES,
+              DEFUSR, SPRMPT, CPRMPT, NUMBASE,          9
+              SECTFLG, FENCE                           10
+          Patching SUBMIT.COM                          10
+
+     Part B: Usage Instructions and Explanation of
+             Commands                                  11
+          The ZCPR Command Hierarchy Search            11
+          The ZCPR-Resident Commands                   14
+            DIR, ERA                                   14
+            LIST, TYPE, SAVE                           15
+            REN, USER, DFU                             16
+            JUMP, GO, GET                              17
+          ZCPR Error Messages                          18
+
+     Part C: ZCPR Command Levels and How to Use Them   19
+
+
+   Documentation on ZCPR - A Z80 Replacement for the CP/M CCP
+
+
+
+
+     ZCPR ió á replacemenô foò thå CP/Í Consolå Commanä Processoò 
+(CCP©  whicè  ió  designeä tï ruî aó parô oæ  CP/Í  oî  Z80-baseä 
+microcomputers®   Iî mosô caseó iô ió upward-compatible witè  thå 
+originaì CP/Í Versioî 2.² CCP.
+
+     ZCPR¬  however¬  provideó  manù extensionó tï thå CP/Í  CCP®  
+Includeä iî theså extensionó arå thå followinç features:
+
+          ® Thå TYPÅ functioî caî bå madå tï pagå oò noô pagå itó 
+outpuô aô thå user'ó discretion
+
+          ®  Á LISÔ functioî ió availablå whicè sendó itó  outpuô 
+tï thå CP/Í LSTº Devicå anä doeó NOÔ page
+
+          ®  Thå  DIÒ commanä haó beeî extendeä tï allo÷ thå dis
+plaù oæ thå systeí fileó oò alì files
+
+          ® Thå ERÁ commanä no÷ printó ouô thå nameó oæ thå fileó 
+iô ió erasing
+
+          ®  Thå  currenô useò numbeò maù bå includeä aó parô  oæ 
+thå commanä prompt»  iæ thå useò ió undeò á numbeò otheò thaî  0¬ 
+thå prompô ió oæ thå forí 'du>§ (likå 'A2>§ oò 'B10>')¬  and¬  iæ 
+thå  useò ió undeò 0¬  thå prompô maù bå 'd>§ oò 'd0>§ aó peò hió 
+choice
+
+          ®  Thå  SUBMIÔ facilitù haó beeî changeä iî  twï  basiã 
+ways:
+               - thå  prompô  changeó tï 'du$§ oò 'd$§  wheî  thå 
+SUBMIÔ commanä ió printed
+               - thå $$$.SUÂ ió executeä froí drivå Aº (notå thaô 
+thå  originaì  SUBMIÔ  probleí no÷ exists¬  buô thå  ne÷  SUB.COÍ 
+facilitù  correctó it)»  thå CCP-GROUĞ definitioî oæ aî  Indirecô 
+Commanä  Filå  no÷  applies¬  anä thió  definitioî  ió  thaô  anù 
+sequencå oæ commandó whicè maù bå issueä froí thå consolå ió alsï 
+á  valiä  sequencå  oæ commandó foò executioî  froí  aî  Indirecô 
+Command File; hence, the sequence:
+
+                    DIR
+                    B:
+                    DIR
+                    A:
+
+maù  bå  issueä  froí eitheò thå consolå oò aî  Indirecô  Commanä 
+File¬  anä thå resultó oæ thå executioî oæ thió sequencå arå  thå 
+same®   Basically¬  thió  sayó  thaô Indirecô Commanä  Fileó  arå 
+upward-compatiblå  tï thå consolå inpuô (buô noô necessarilù thaô 
+thå  contentó  oæ aî Indirecô Commanä Filå maù bå issueä  aô  thå 
+consolå withouô modification).Š
+          ®  Á command-searcè hierarchù ió no÷ implementeä  whicè 
+ió executeä roughlù aó follows:
+               - thå  user'ó commanä ió checkeä againsô thå  CPR-
+residenô commandó anä executeä immediatelù iæ á matcè ió found
+               - failinç  that¬  thå  currenô useò numbeò oî  thå 
+currenô disë ió scanneä foò thå COÍ file»  thå COÍ filå ió loadeä 
+anä executeä iæ found
+               - failinç that¬ á defaulô useò numbeò (initiallù ° 
+buô  caî bå reseô witè thå DFÕ CPR-residenô command© oî thå  cur
+renô disë ió scanneä foò thå COÍ file» thå COÍ filå ió loadeä anä 
+executeä iæ found
+               - finally¬  failinç that¬  thå defaulô useò numbeò 
+oî disë Aº  ió scanneä foò thå COÍ file»  thå COÍ filå ió  loadeä 
+anä executeä iæ founä oò aî erroò messagå (COMMAND?¬ wheî COMMANÄ 
+waó thå user'ó commanä name© ió printed
+
+          ®   Thå  numeriã  argumenô foò thå SAVÅ commanä caî  bå 
+specifieä  iî hexadecimaì sï thaô thå useò maù emploù thå  valueó 
+presented by tools such as DDT exactly as they are given
+
+          ®  Á  GEÔ  commanä whicè loadó á filå  aô  á  specifieä 
+memorù addresó anä á JUMĞ commanä whicè "calls¢ thå subroutinå aô 
+á  specifieä memorù addresó havå beeî added»  á GÏ commanä  whicè 
+"calls¢  thå  subroutinå aô 100È (subseô oæ thå JUMĞ  capability© 
+has also been added
+
+
+     Thió  documenô provideó thå useò oæ ZCPR witè thå  followinç 
+information:
+
+          Part A:  Installation Instructions
+          Part B:  Usage Instructions and Explanation of Commands
+          Part C:  ZCPR Command Levels and How to Use Them
+
+
+                             Part A
+                    Installation Instructions
+
+     Iî  ordeò tï instalì ZCPR oî á targeô microcomputeò (musô bå 
+currently running CP/M 2.2), the user must know two basic things:
+
+          1)  Where his CCP is currently running in memory
+          2©  Wherå hió CCĞ ió locateä iî thå SYSGEÎ  image¬  or¬ 
+foò systemó whicè don'ô supporô SYSGEÎ (sucè aó P&Ô CP/Í 2.²  foò 
+thå TRS-8° Modeì II)¬ wherå hió CCĞ ió locateä oî disë anä ho÷ tï 
+place the new ZCPR on top of it
+
+     Thå  firsô questioî ió answereä relativelù easily®   Á  pro
+gram¬  knowî  aó eitheò BDOSLOÃ oò BDLOÃ (foò BDOÓ  Locator)¬  ió 
+provideä  witè ZCPR®   Yoõ shoulä assemblå thió prograí foò  youò 
+particulaò  computeò (changå thå baså ORÇ iæ yoõ arå runninç non-
+ORG-° CP/M© anä executå it®   Upoî execution¬ iô wilì providå yoõ 
+witè  thå baså addresó oæ (1© thå BDOÓ anä (2© thå CCĞ  foò  youò 
+particulaò system®   BDOSLOÃ haó workeä correctlù foò alì systemó 
+testeä sï far¬  buô therå ió alwayó á chancå thaô iô maù NOÔ worë 
+foò somå non-testeä system®   Foò thå timå being¬  assumå thaô iô 
+workó correctlù anä recorä thå startinç baså pagå addresó oæ youò 
+CCP.
+
+     Thå  seconä questioî ió noô answereä nearlù sï  easily®   Iæ 
+yoõ  havå  thå abilitù tï SYSGEÎ youò system¬  iô ió mucè  easieò 
+(commonly© thaî iæ yoõ dï not®   Yoõ must¬  afteò assemblinç  thå 
+ZCPR  properly¬  integratå iô intï thå sysgeî (oò disk© imagå  oæ 
+CP/M®   Thió  caî  bå  donå bù obtaininç á SYSGEÎ imagå  oæ  youò 
+system¬ scanninç iô viá á debuggeò sucè aó DDÔ tï finä thå offseô 
+foò thå CCP¬  readinç thå ne÷ CPR iî oî toğ oæ thå olä  one¬  anä 
+finallù  runninç  SYSGEÎ agaiî tï placå thå resultanô  systeí  oî 
+disk®   Iæ  yoõ  DÏ NOÔ havå SYSGEÎ capability¬  á  Disë  Utilitù 
+prograí  ió requireä tï locatå thå CCĞ oî disë anä theî writå thå 
+ne÷  ZCPR  oî  toğ  oæ thå olä  one®   Thå  neô  resulô  oæ  thió 
+integratioî  ió  thå placemenô oæ thå ne÷ ZCPR ontï disë  iî  thå 
+propeò  placå sï thaô iô wilì bå loadeä witè thå resô oæ CP/Í  oî 
+colä booô anä executeä properly.
+     Tï finä thå originaì CCP¬ yoõ typicallù havå tï locatå iô bù 
+itó appearance®   Iô ió probablù storeä contiguouslù oî disk¬ so¬ 
+oncå iô ió found¬ á sequentiaì overwritå ió alì thaô ió required®  
+Probabilitù  ió extremelù higè thaô iô ió storeä contiguouslù  iî 
+thå SYSGEÎ image®   Thå CCĞ startó witè twï (2© anä ONLÙ TWÏ jumğ 
+instructionó  followeä  bù á buffeò areá (possiblù containinç  aî 
+initiaì  commanä and/oò thå Digitaì Researcè  copyrighô  notice)®  
+Thå  Digitaì  Researcè manualó sho÷ thå CCĞ tï residå aô  addresó 
+980È  iî thå SYSGEÎ image¬  buô thió maù varù  witè  system®   Tï 
+finä  thió image¬  uså DDÔ oò somå otheò sucè debugger¬  loaä thå 
+SYSGEÎ imagå yoõ caî geô viá SYSGEN¬  anä examinå memorù startinç 
+aô arounä 900È foò thå twï (anä ONLÙ two© jumpó describeä  above®  
+Iæ  yoõ finä aî areá witè morå thaî twï jumpó (á grouğ oæ  them)¬ 
+yoõ  arå probablù lookinç aô thå BIOÓ anä shoulä gï loweò foò thå 
+CCP®   Thå  CCĞ wilì probablù starô oî aî eveî pagå oò  half-pagå 
+address (like 900H, 980H, 1100H, etc).Š
+     No÷ thaô thå locatioî oæ thå CCĞ haó beeî found¬ recorä thió 
+addresó foò later®  Yoõ arå no÷ readù foò thå integratioî oæ ZCPR 
+intï youò system®   Tï dï this¬ perforí thå followinç stepó usinç 
+thå  informatioî  oæ thå pagå addresó oæ thå CCĞ  (obtaineä  froí 
+BDOSLOÃ  anä  calleä  CPRLOÃ withiî ZCPR© anä  thå  SYSGEÎ  imagå 
+address of the CCP (called IMAGE for reference in this document).
+
+          1®  Ediô  ZCPÒ  anä seô thå CPRLOÃ equatå tï thå  valuå 
+obtaineä froí above®  Alsï seô anù flagó anä valueó aó yoõ desirå 
+(seå thå sectioî oî ZCPÒ Customizatioî below)®   Wheî  satisfied¬ 
+enä thå ediô session.
+
+          2®   Assemblå  ZCPR  witè MAÃ  (oò  equivalent)®   Thió 
+assembleò  ió  requireä  becauså oæ thå MACROó  used®   Onlù  thå 
+resultant HEX file is required.
+
+          3®   Assuminç thaô yoõ caî uså SYSGEN¬  obtaiî á SYSGEÎ 
+image of your current CP/M system and save it on disk.
+
+          4®   Loaä  thå  SYSGEÎ imagå intï memorù witè  DDÔ  (oò 
+equivalent)®  Oncå loaded¬ verifù thaô thå originaì CCĞ ió aô thå 
+IMAGÅ  addresó  founä abovå anä computå  thå  integratioî  offseô 
+using the DDT H command:
+               H<IMAGE adr>,<CPRLOC adr>
+Thå  seconä numbeò displayeä giveó yoõ thå OFFSEÔ valuå  requireä 
+for step 5.
+
+          5®   Integratå  ZCPR intï youò SYSGEÎ imagå viá DDT'ó É 
+anä ROFFSEÔ commands®  Uså IZCPR.HEØ (oò thå namå oæ youò versioî 
+oæ  ZCPR© tï loaä thå FCÂ anä ROFFSEÔ (wherå OFFSEÔ waó  computeä 
+iî  steğ 4© tï loaä thå ZCPR.HEØ filå intï memorù aô  thå  propeò 
+location®   Checë  tï seå thaô ZCPR ió indeeä properlù loadeä  bù 
+examining the SYSGEN IMAGE area.
+
+          6®   Placå thå ne÷ systeí oî disë bù runninç SYSGEÎ anä 
+NOT loading the system from disk (use the memory image).
+
+     Foò   furtheò  clarificatioî  oæ  thå  abovå  process¬   thå 
+followinç  ió á samplå terminaì sessioî whicè outlineó thå  stepó 
+taken.
+
+                    ZCPR Integration Example
+
+
+B>; Sample terminal session for integrating ZCPR
+B>sysgen
+SYSGEN VER 2.2
+SOURCE DRIVE NAME (OR RETURN TO SKIP)b
+SOURCE ON B, THEN TYPE RETURN  <-- I hit the RETURN key here
+FUNCTION COMPLETE                                /
+DESTINATION DRIVE NAME (OR RETURN TO REBOOT)  <-- and here
+B>save 44 cpm56.com      <-- We now have a SYSGEN image of CP/M
+                              to work with
+ŠB>xdir
+XDIR   Version 2.6  User Number:   0,  Double Density
+File Attributes:  Non-System  
+
+Filename.Typ Size K   Filename.Typ Size K   Filename.Typ Size K
+-------- --- ------   -------- --- ------   -------- --- ------
+!TEXTWRK.-12      0   CPR     .DOC      8   EE687   .TXT      4
+CPR     .AQM     34   TFS     .HLP      6   EE687PRE.TXT      4
+CPR     .ASM     50   CONTENTS.T01      6   SW1     .TXT     10
+CPR     .BAK      4   CONTENTS.T02      4   SW2     .TXT      2
+CPM56   .COM     12   CONTENTS.T03      4
+B:  30 Entries &   22 Files --    338K Bytes Remaining
+File Data:         14 Files --    154K Bytes Displayed
+B>bdosloc      <-- Now to locate the CCP's address
+The Base Page Address of this system's BDOS is C5
+The Base Page Address of this system's CCP is  BD <-- This is it
+B>ddt cpm56.com     <-- Now to find the CCP in the SYSGEN image
+DDT VERS 2.0
+NEXT  PC
+2D00 0100
+-d900,90f      <-- Start looking around here
+0900 31 80 E7 3E 06 3C 3C FE 1B CA 00 C2 DA 11 E7 D6 1..>.<<.........
+-da00,a0f
+0A00 31 00 01 01 01 0C C5 CD 0F E4 21 00 BE 11 00 04 1.........!.....
+-db00,b0f
+0B00 31 00 01 01 01 11 C5 CD 0F E4 21 00 C0 11 00 02 1.........!.....
+-db80,b8f
+0B80 31 00 01 01 09 01 CD A8 00 21 00 D2 11 00 C2 0E 1........!......
+        -- Detail Left Out --
+-d1100         <-- I found it at 1100H; note the 2 JMP's
+1100 C3 FF BD C3 FB BD 50 10 20 20 20 20 20 20 20 20 ......P.        
+1110 20 20 20 20 20 20 20 20 00 00 00 00 00 00 00 00         ........
+1120 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................
+        -- Detail Left Out --
+-^Ã            <-- Returî tï CP/M» É kno÷ thaô CPRLOÃ wilì be
+                    BD00H and the IMAGE offset is 1100H
+
+B>eä cpr.así {ediô ZCPR herå anä placå CPRLOC=BD00H}#  
+        -- Detail Left Out --
+
+B>mac cpr $pz sz         <-- Now to assemble the CPR
+CP/M MACRO ASSEM 2.0
+C4F0                     <-- Note that CPR MUST end before BDOS
+                              begins!
+014H USE FACTOR
+END OF ASSEMBLY
+
+
+
+B>ddt cpm56.com          <-- Now to integrate!
+DDT VERS 2.0
+NEXT  PC
+2D00 0100
+-h1100,bd00              <-- Compute offset for new CPR
+CE00 5400                <-- Offset is 5400H
+-icpr.hex                <-- Init FCB
+-r5400                   <-- Read in new CPR with offset
+NEXT  PC
+2D00 0000
+-^C                      <-- Done!
+B>sysgen                 <-- Now to SYSGEN onto disk
+SYSGEN VER 2.2
+SOURCE DRIVE NAME (OR RETURN TO SKIP)   <-- Use memory image
+DESTINATION DRIVE NAME (OR RETURN TO REBOOT)b     <-- onto B:
+DESTINATION ON B, THEN TYPE RETURN
+FUNCTION COMPLETE
+DESTINATION DRIVE NAME (OR RETURN TO REBOOT) <-- Done for now
+
+B>
+
+
+                 Setting the ZCPR Inline Options
+
+     Thå  followinç  arå thå fouò basiã optionó availablå tï  thå 
+user under ZCPR for customization of his package.
+
+Option Name    Function
+
+   REL         Configures CPRLOC (CPRLOC equ 0) for integration
+               via MOVCPM rather than the DDT/SYSGEN technique
+               outlined above; set to TRUE for MOVCPM integra-
+               tion or FALSE for DDT/SYSGEN integration
+
+   BASE        Base address of your CP/M system; standard CP/M
+               has a base of 0, but some CP/M systems (such as
+               for the TRS-80 Model I and Heath/Zenith H89/Z89)
+               start physical RAM memory at a higher address;
+               equate BASE to the starting RAM memory address of
+               your system
+
+   CPRLOC      This is the starting address of ZCPR; set the
+               second CPRLOC equate to the address you obtain
+               from BDOSLOC
+
+   RAS         This is an equate which masks out selected ZCPR
+               command functions for security purposes on
+               Remote Access Systems such as Bulletin Boards;
+               the masked out functions currently include
+               SAVE, ERA, REN, JUMP, GO, and GET; set RAS to TRUE
+               to mask these out or FALSE to leave them in
+
+   SUBA        This is an equate which determines the drive
+               onto which ZCPR will look for an executing
+               Indirect Command File.  If the basic philosophy
+               of the Indirect Command File described above is
+               to be maintained, this symbol should be set to
+               TRUE (look on drive A: for the $$$.SUB file); if
+               not, this symbol should be set to FALSE (look on
+               the default drive from the $$$.SUB file).  To
+               review, the basic philosophy of the Indirect
+               Command File is that any sequence of commands
+               which may be issued from the console (within
+               reason, which means NOT to erase a $$$.SUB file)
+               may also be issued from within an Indirect
+               Command File, and the resultant execution should
+               be identical (same functions performed).
+
+   CLEVEL3     This equate enables or disables extended Command
+               Leveì ³ Processing®  Iæ seô tï TRUE¬ extended
+               Command Level 3 Processing is enabled and the user
+               command line is automatically capitalized, the
+               terminatinç zerï ió placeä aô thå enä oæ thå
+               buffer, and the internal CIBPTR is set correctly
+               (see later for more information).
+
+
+                      Customization Symbols
+
+     Thå followinç symboló arå provideä foò furtheò customizatioî 
+of ZCPR to a user's particular tastes and hardware facilities.
+
+Option Name    Function
+
+   NLINES      Number of lines on the user's CRT for paging
+
+   WIDE        This equate is used to select a narrow or wide
+               display under the DIR command; if WIDE is equated
+               to TRUE, each file name is separated by two
+               spaces, a FENCE, and two more spaces; if WIDE is
+               equated to FALSE, each file name is separated by
+               one space, a FENCE, and one more space
+
+   PGDFLT      This is the Paging Default flag for the TYPE
+               command; if PGDFLT is set to TRUE, the TYPE
+               command will page its output by default and
+               the P option on the TYPE command (see below)
+               will prohibit paging; if PGDFLT is set to FALSE,
+               the TYPE command will NOT page its output by
+               default and the P option will enable paging
+
+   PGDFLG      This sets the option character in the command
+               line for the TYPE command (the 'P' mentioned
+               above); if the user wishes to change this option
+               character, he need only change this equate
+
+   MAXUSR      This is the largest user number recognized by
+               the USER command; if the user wishes to protect
+               the higher user areas, he may set this symbol
+               to the highest area normally accessable; 15 is
+               the largest permitted value for MAXUSR
+
+   SYSFLG      This is the option character for the DIR command
+               line which is used to specify that DIR search
+               All Files (both $SYS and $DIR) for its display;
+               the distributed default for this is 'A'
+
+   SOFLG       This is the option character for the DIR command
+               line which is used to specify that DIR search
+               ONLY the $SYS files for its display; the distri-
+               buted default for this is 'S'
+
+   SUPRES      Set SUPRES to TRUE to suppress printing the user
+               number when the user is under User Number 0 or
+               set SUPRES to FALSE to ALWAYS display the User
+               Number with the CPR prompt; with SUPRES set to
+               TRUE, a user on B: in user 0 sees 'B>' as the
+               prompt, but with SUPRES set to FALSE, a user on
+               B: in user 0 sees 'B0>' as the prompt
+
+   DEFUSR      This is the CPR-default user number which is
+               searched in the command hierarchy for the COM
+               files (distributed as 0); the DFU changes this
+               temporarily until a Warm Boot or Cold Boot is
+               done, at which time the search reverts to this
+               value
+
+   SPRMPT      This is the CPR prompt character which indicates
+               that a SUBMIT file is in execution; by default
+               it is set to '$', so prompts like 'A$' appear
+               during SUBMIT file execution
+
+   CPRMPT      This is the CPR prompt character which indicates
+               that the CPR is awaiting a user console command;
+               by default it is set to '>', so prompts like
+               'A>' appear during user input to the CPR
+
+   NUMBASÅ     Thió ió thå escapå characteò useä bù thoså
+               commands which require a DECIMAL number as
+               an argument; placing this character after
+               the number argument switches the base to
+               HEXADECIMAL; for example, 'SAVE 15 MYFILE' can be
+               expressed as 'SAVE FH MYFILE' if NUMBASE is
+               set to 'H' (the default)
+
+   SECTFLG     This character constant is the suffix option for
+               the SAVE command which specifies that sectors,
+               as opposed to pages, are to be saved; the default
+               value is 'S'
+
+   FENCE       This is the character printed to separate entries
+               in a directory listing; it's default value is '|'
+
+
+                       Patching SUBMIT.COM
+
+     SUBMIT.COÍ  maù bå patcheä tï ruî witè ZCPÒ bù thå followinç 
+procedurå  (thió  ió  recommendeä  iæ  thå  useò  doeó  noô  havå 
+SUB.COM)®   Thió  patcè simplù makeó iô alwayó placå thå  $$$.SUÂ 
+filå oî Drivå A:®  Illustrative terminaì sessioî follows:
+
+A>ddt b:submit.com
+DDT VERS 2.0
+NEXT  PC
+0600 0100
+-s5bb		<-- Patch is at 5BB Hex
+05BB 00 1	<-- Change 0 (default drive) to 1 (drive A:)
+05BC 24 .	<-- That's it!
+-d5b0 5cf	<-- See change
+05B0 00 00 00 00 00 00 30 30 31 20 24 01 24 24 24 20 ......001 $.$$$ 
+05C0 20 20 20 20 53 55 42 00 00 00 1A 1A 1A 1A 1A 1A     SUB.........
+-^C		<-- Done
+A>save 5 newsubmt.com	<-- Save new SUBMIT.COM file
+
+                             Part B
+         Usage Instructions and Explanation of Commands
+
+
+     Thå  followinç instructionó arå writteî witè thå  assumptioî 
+thaô  thå  readeò ió quitå familiaò witè ho÷ tï uså CP/Í 2.²  anä 
+itó CCP®   ZCPR ió writteî aó á logicaì extensioî oæ thå CP/Í 2.² 
+CCĞ philosophù anä shoulä bå addresseä aó such.
+
+
+
+                The ZCPR Command Hierarchy Search
+
+     Thå first¬  anä mosô basiã thing¬ tï learî abouô ZCPR ió thå 
+ordeò iî whicè ió searcheó foò á COÍ filå foò executioî oò á filå 
+specifieä  bù thå GEÔ command®   Undeò thå CP/Í 2.² CCP¬  iæ  thå 
+specifieä  COÍ filå commanä waó noô founä oî thå currenô drivå iî 
+thå  currenô useò area¬  thå CCĞ aborteä witè aî  erroò  message®  
+ZCPR¬  however¬  continueó searchinç froí thió poinô á maximuí oæ 
+twï  morå  levels®   Thió commanä hierarchù searcè  waó  outlineä 
+abovå anä ió describeä herå iî furtheò detail.
+
+          1®   Iæ  thå  commanä ió oæ thå forí 'COMMAND§ anä  NOÔ 
+'d:COMMAND'¬  thå  CPR-residenô  commanä lisô ió searcheä  foò  á 
+match®   Iæ  thå  matcè ió found¬  thå  CPR-residenô  commanä  ió 
+immediatelù processed®   Iæ thå matcè ió noô founä oò thå commanä 
+ió  oæ thå forí 'd:COMMAND'¬  thå nexô steğ ió taken®   Notå thaô 
+thå  'd:COMMAND§  forí ió gooä foò executinç á commanä  COÍ  filå 
+whicè  haó thå samå namå aó á CPR-residenô commanä (sucè aó  SAVÅ 
+or DIR).
+
+          2®   Iæ  thå commanä ió oæ thå forí  'd:COMMAND'¬  disë 
+drivå  'd:§  ió  temporarilù loggeä iî foò  thå  purposå  oæ  thå 
+commanä  search®   Otherwise¬  thå  currentlù logged-iî drivå  ió 
+used.
+
+          3®  No÷ thå filå nameä COMMAND.COÍ ió searcheä for®  Iæ 
+found¬  iô  ió loadeä intï memorù startinç aô 100È anä  executed®  
+If not, proceed to step 4.
+
+          4®   No÷  thaô  thå firsô searcè  foò  COMMAND.COÍ  haó 
+failed¬  thå  CPR checkó tï seå iæ thå useò ió undeò thå  currenô 
+Defaulô Useò Number®   Thå Defaulô Useò Numbeò maù bå thaô seô bù 
+thå  DEFUSÒ equatå iî thå CPR oò thaô seô bù thå useò viá thå DFÕ 
+command®   DEFUSÒ  ió iî effecô iæ DFÕ haó noô beeî issueä  sincå 
+thå lasô Warí oò Colä Boot¬ anä DFÕ ió iî effecô iæ iô waó issueä 
+sincå thå lasô Warí oò Colä Boot®   Iæ thå useò ió NOÔ undeò  thå 
+currenô  Defaulô Useò Number¬  ZCPR temporarilù logó hií intï  iô 
+anä  searcheó  thå directory®   Iæ COMMAND.COÍ ió  found¬  iô  ió 
+loadeä aó describeä abovå anä executed®  Iæ not¬ ZCPR proceedó tï 
+the next step.
+
+
+          5®   Thå useò ió no÷ iî thå Defaulô Useò Number¬ anä aô 
+thió  point¬  ZCPR checkó tï seå iæ thå useò ió oî disë drivå A:®  
+Iæ not¬ iô temporarilù logó intï Aº anä searcheó thå defaulô useò 
+numbeò  oæ  Aº  foò  COMMAND.COM®   Iæ found¬  iô  ió  loadeä  aó 
+describeä abovå anä executed®   Iæ not¬  ZCPR printó thå  commanä 
+namå  aó  aî  erroò messagå anä returnó tï  commanä  inpuô  mode¬ 
+aborting the SUBMIT file if COMMAND came from it.
+
+     Iî  alì caseó oæ thå searcè above¬  iæ COMMAND.COÍ ió found¬ 
+afteò  iô  ió loadeä intï memory¬  ZCPR resetó thå  useò  tï  hió 
+originaì disë drivå anä useò number®  Hence¬ thå fileó referenceä 
+by the user by default are obtained from this environment.
+
+     Tï  illustratå thió commanä hierarchù search¬  consideò  thå 
+following examples:
+
+Example 1:  DEFUSR equ 0 {default user number is 0}
+
+B10>           <-- User is on Drive B:, User Number 10
+B10>ASM TEST.BBZ    <-- User wishes to assemble TEST.ASM in
+                         Drive B:, User 10
+     <-- At this point, ZCPR looks on B:/10 for ASM.COM, fails,
+          looks on B:/0, fails, and finally looks on A:/0; it
+          finds ASM.COM here and goes back to B:/10 for the file
+
+
+Example 2:  DEFUSR equ 0 and DFU issued
+
+B10>           <-- User is on Drive B:, User Number 10
+B10>DFU 5      <-- User Selects User 5 as default
+B10>ASM TEST.BBZ    <-- As above
+     <-- At this point, ZCPR looks on B:/10 for ASM.COM, fails,
+          look on B:/5, fails, and finally looks on A:/5; it
+          fails here also and prints ASM? as an error message
+
+Example 3:  DEFUSR equ 0
+
+B>             <-- User is on Drive B:, User Number 0
+B>ASM TEST.BBZ      <-- As above
+     <-- At this point, ZCPR looks on B:/0 for ASM.COM, fails,
+          looks on A:/0, fails, and prints error message
+
+Example 4:  DEFUSR equ 0
+
+A10>           <-- User is on Drive A:, User Number 10
+A10>ASM TEST.AAZ    <-- As above, but file on A:
+     <-- At this point, ZCPR looks on A:/10 for ASM.COM, fails,
+          looks on A:/0, fails, and prints error message
+
+
+Another Example:
+
+          Foò  example¬  iæ thå useò ió loggeä intï Drivå  Bº  iî 
+Useò Areá 10¬ thå Defaulô Useò Numbeò ió 0¬ anä thå followinç COÍ 
+fileó arå presenô aó indicateä --
+
+               WM.COM on Drive A: in User 0
+               MBASIC.COM on Drive A: in User 0 and on
+                    Drive B: in User 0
+               TEST.COM on Drive B: in User 10 and Drive B:
+                    in User 0
+
+theî  thå  followinç  happenó wheî  thå  followinç  commandó  arå 
+issued from the console (or Indirect Command File):
+
+B10>WM TEST2.TXT
+ \   \    \__ File to be edited
+  \   \__ Invoke the WM.COM file (Word Master editor)
+   \__ User is on Drive B: in User Area 10
+
+     Results:
+          ZCPR searcheó Bº  Useò 10¬ Bº Useò 0¬ anä Aº Useò ° foò 
+WM.COM»  iô findó WM.COÍ iî Aº  Useò 0¬  loadó it¬  logó thå useò 
+back into B: User 10, and executes it.
+
+B10>MBASIC
+ \    \__ Invoke the MBASIC.COM file (MBASIC Interpreter)
+  \__ User is on Drive B: in User Area 10
+
+     Results:
+          ZCPR searcheó Bº  Useò 1° anä Bº Useò ° foò MBASIC.COM» 
+iô findó MBASIC.COÍ iî Bº Useò 0¬ sï iô doesn'ô botheò tï looë oî 
+Aº  Useò 0®   MBASIC.COÍ ió theî loadeä anä executeä aó describeä 
+in the previous example.
+
+B10>TEST
+  \   \__ Invoke the TEST.COM file (TEST program)
+   \__ User is on Drive B: in User Area 10
+
+     Results:
+          ZCPR  searcheó  Bº  Useò  1°  foò  TEST.COM»  iô  findó 
+TEST.COÍ iî Bº  Useò 0¬  sï iô doesn'ô botheò tï looë furtheò (iæ 
+iô had¬  iô woulä havå founä TEST.COÍ iî Bº Useò 0)®  TEST.COÍ ió 
+then loaded and executed as described above.
+
+B10>TEST2
+  \    \__ Invoke the TEST2.COM file (TEST2 program)
+   \__ User is on Drive B: in User Area 10
+
+     Results:
+          ZCPR searcheó Bº  Useò 10¬ Bº Useò 0¬ anä Aº Useò ° foò 
+TEST2.COM»  iô  doesn'ô finä it¬  sï iô issueó thå erroò  messagå 
+'TEST2?', which says it couldn't find TEST2.COM.
+Š
+
+
+                   The ZCPR-Resident Commands
+
+     Thå  followinç  pageó describå thå  ZCPR-Residenô  Commands®  
+Theså  arå commandó locateä withiî ZCPR itselæ whicè arå executeä 
+froí withiî ZCPR®  Thå phraseó <afn¾ anä <ufn¾ refeò tï ambiguouó 
+file name and unambigous file name as per the CP/M convention.
+
+Command: DIR
+Function:  To Display a listing of the names of the files on disk
+Forms:
+     DIR <afn>           <-- Displays $DIR files
+     DIR <afn> S         <-- Displays $SYS files
+     DIR <afn> A         <-- Displays both $DIR and $SYS files
+Customization Variables:
+     WIDE      SYSFLG    SOFLG     FENCE
+Examples:
+     DIR *.ASM           <-- All $DIR .ASM files
+     DIR *.COM S         <-- All $SYS .COM files
+     DIR *.COM A         <-- All .COM files
+Notes:
+     Iæ  á  filå ió scanneä foò anä nï sucè namå existó oî  disk¬ 
+thå  'Nï  Files§ messagå wilì appear®   However¬  iæ  á  filå  ió 
+scanneä foò anä thå namå existó aó á $SYÓ filå anä $DIÒ fileó arå 
+beinç  scanneä for¬  nï filå namå ió displayeä buô thå 'Nï Files§ 
+messagå doeó NOÔ appear®  Foò example¬ iæ TEST.COÍ ió á $SYÓ filå 
+anä  'DIÒ  TEST.COM§ ió issued¬  nï  messagå  appears®   Iæ  'DIÒ 
+TEXT.COM§ ió issueä anä TEXT.COÍ doeó noô exisô oî disk¬  thå 'Nï 
+Files' message is displayed.
+
+
+Command: ERA
+Function:  To Erase the specified $R/W files from disk
+Forms:
+     ERA <afn>           <-- Erase both $DIR and $SYS files
+Customization Variables:
+     WIDE      FENCE
+Examples:
+     ERA *.ASM           <-- Erase all .ASM files
+     ERA *.*             <-- Erase all files
+Notes:
+     Iæ á $R/Ï filå ió encountered¬  á BDOÓ erroò messagå wilì bå 
+displayeä  anä thå procedurå ió stopped®   Thå useò ió unsurå  aô 
+thió  timå aó tï whicè fileó havå beeî eraseä anä whicè havå  noô 
+anä shoulä check®  Sorrù foò thió problem¡  Thå ERASÅ commanä (tï 
+bå  giveî  tï SIG/Í bù RLÃ iî thå neaò future© ió á  solutioî  tï 
+this problem.
+
+
+
+Command: LIST
+Function:  To Print the specified file on the CP/M LST: device
+Forms:
+     LIST <ufn>          <-- Print the file (no paging)
+Customization Variables:
+     -None-
+Examples:
+     LIST TEST.TXT       <-- Print TEST.TXT on LST:
+Notes:
+     Iæ  thå filå haó á $SYÓ attribute¬  iô wilì bå founä aó welì 
+as those with $DIR attributes.
+
+
+Command: TYPE
+Function:  To Print the specified file on the CP/M CON: device
+Forms:
+     TYPÅ <ufn¾          <-- Prinô thå filå witè thå paginç deflt
+     TYPE <ufn> P        <-- Print the file with the paging deflt
+                              negated
+Customization Variables:
+     NLINES    PGDFLT    PGDFLG
+Examples:
+     TYPE TEST.TXT
+     TYPE TEST.TXT P
+Notes:
+     Wheî  thå  displaù pauseó durinç paging¬  typå anù  chaò  tï 
+continue or ^C to abort.  ^S also works.
+
+
+Command: SAVE
+Function:  To Copy the TPA starting at 100H to disk
+Forms:
+     SAVE <Number of Pages> <ufn>  <-- <Number of Pages> in DEC
+     SAVE <Number of Pages>H <ufn> <-- <Number of Pages> in HEX
+     SAVE <Number of Sectors> <ufn> S  <-- Number of sectors
+     SAVE <Number of Sectors>H <ufn> S <-- Number of sectors
+Customization Variables:
+     NUMBASE   RAS
+Examples:
+     SAVE 15 MYFILE.TXT        <-- 15 pages saved
+     SAVE FH MYFILE.TXT        <-- 15 pages saved
+     SAVE 10H MYFILE.TXT S     <-- 16 sectors (8 pages) saved
+Notes:
+     Iæ thå filå namå tï bå saveä alreadù exists¬  theî SAVÅ wilì 
+exiô witè thå messagå 'Delete File?'» iæ thå useò REALLÙ wantó tï 
+savå  undeò  thió name¬  hå maù theî typå Ù oò ù anä thå  currenô 
+filå wilì bå deleteä anä theî recreateä containinç thå  specifieä 
+part of the TPA.
+
+
+
+
+
+Command: REN
+Function:  To Change the name of a disk file
+Forms:
+     REN <ufn new>=<ufn old>
+Customization Variables:
+     RAS
+Examples:
+     REN NEWFILE.TXT=OLDFILE.TXT
+Notes:
+     Iæ <ufî new¾ alreadù exists¬ thå messagå 'Deletå File?§ wilì 
+bå  printeä  anä thå useò maù responä witè Ù oò ù tï  deletå  thå 
+currenô <ufî new¾ anä theî renamå <ufî old¾ tï <ufî new>.
+
+Command: USER
+Function:  To Change the current user number
+Forms:
+     USER <User Number>       <-- <User Number> in DEC
+     USER <User Number>H      <-- <User Number> in HEX
+Customization Variables:
+     -None-
+Examples:
+     USER 15        USER FH        USER 0
+     USER      <-- Same as USER 0
+Notes:
+     -None-
+
+
+Command: DFU
+Function:  To Temporarily Change the default user number for the
+           command hierarchy search
+Forms:
+     DFU <User Number>        <-- <User Number> in DEC
+     DFU <User Number>H       <-- <User Number> in HEX
+Customization Variables:
+     -None-
+Examples:
+     DFU 15         DFU FH         DFU 0
+     DFU       <-- Same as DFU 0
+Notes:
+     See above for explanation.
+
+
+
+
+Command: JUMP
+Function:  To "call" the subroutine at the specified page address
+Forms:
+     JUMP <Address> <Cmd Parms> <-- <Address> in HEX
+Customization Variables:
+     NUMBASE   RAS
+Examples:
+     JUMP E000 or JUMP E000H  <-- Jump to E000H
+     JUMP                     <-- Jump to 000H
+     JUMP 0                   <-- Jump to 000H
+Notes:
+     JUMĞ performó á subroutinå "call"¬ sï thå calleä routinå maù 
+return to the ZCPR by either a RET or a Warm Boot.
+
+
+Command: GO
+Function:  To "call" the subroutine starting at 100H
+Forms:
+     GO <Cmd Parms>           <-- Execute reentrant at 100H
+Customization Variables:
+     RAS
+Examples:
+     GO *.ASM                 <-- Assuming XDIR is loaded,
+                                   gives directory of *.ASM
+Notes:
+     Thió  commanä ió identicaì iî functioî tï JUMĞ  100H»  JUMP¬ 
+however¬ leaveó thå addresó aó thå firsô entrù iî CP/Í BASÅ « 80È 
+(the input line buffer), while GO has no such address.
+
+
+Command: GET
+Function:  To load a file from disk into memory starting at the
+           specified page
+Forms:
+     GET <Address> <ufn>      <-- <Address> in HEX
+Customization Variables:
+     NUMBASE   RAS
+Examples:
+     GET 8000 TEST.80         <-- Load TEST.80 starting at 8000H
+     GEÔ 10° TEST.8° oò GEÔ 100È TEST.8° <-- Loaä TEST.8°      
+                                   starting at 100H
+     GEÔ ° TEST.8°            <-- Loaä TEST.8° startinç aô 000H
+Notes:
+     GEÔ  searcheó foò thå specifieä filå accordinç tï  thå  samå 
+commanä  hierarchù  searcè employeä bù thå ZCPR commanä  scanner®  
+Hence¬  iæ thå useò ió oî B:/1° anä thå filå ió oî A:/° witè  thå 
+currenô  defaulô useò numbeò aô 0¬  GEÔ wilì searcè froí B:/1° tï 
+B:/0 to A:/0 in looking for the file.
+
+
+                       ZCPR Error Messages
+
+     Thå  followinç  arå thå erroò messageó issueä  bù  ZCPR  anä 
+their meanings.
+
+Message   Meaning
+
+?         Printed after a command or an argument means that such
+            was invalid
+
+No File   From DIR, this means that DIR did not locate any files
+          Also from ERA with the same meaning
+
+All?      Issued in response ERA *.*, asks the user is he really
+            wants to erase all the files.  Unlike under the
+            original CP/M 2.2 CCP, single character input is
+            required (Y or y for yes and anything else for no)
+            with NO <CR> to end the line
+
+Full      From SAVE, means that there is not enough space on
+            disk
+          From GET or command load by CPR, means that there
+            is not enough space in memory
+
+Delete File?
+          Froí REÎ oò SAVE¬ meanó thaô thå filå specifieä alreadù 
+            existó oî disë anä thå useò maù typå Ù oò ù tï deletå 
+            it and proceed with the REN or SAVE function
+
+
+
+                             Part C
+             ZCPR Command Levels and How to Use Them
+
+
+     ZCPR  Versioî 1.° anä beyonä supportó threå distincô commanä 
+leveló iî itó implementation®  Eacè leveì constituteó á differenô 
+way to issue a command for ZCPR to process.
+
+     Commanä Leveló ± anä ² arå commoî tï alì implementationó  oæ 
+CP/Í  anä CP/ZÍ froí CP/Í Versioî 1.4®   Commanä Leveì ± ió  thaô 
+commanä leveì iî whicè thå commanä ió issueä bù thå useò froí hió 
+consolå  terminal®   Thå  prompô  'd>§ oò 'du>§  appearó  oî  thå 
+terminal¬  anä  thå  useò  ió alloweä tï enteò thå  commanä  witè 
+editinç froí thå terminal®  Commanä Leveì ² ió thaô commanä leveì 
+in which the command is entered from an executing $$$.SUB file.
+
+     Iî  botè cases¬  thå commanä ió storeä iî thå internaì  ZCPR 
+buffeò calleä CIBUFÆ (Commanä Inpuô BUFFer)®   Undeò botè Commanä 
+Leveló  ±  anä 2¬  thå commanä ió placeä intï  thió  buffer¬  thå 
+characteró oæ thå commanä linå arå capitalized¬ á characteò counô 
+whicè  indicateó thå numbeò oæ characteró iî thå commanä linå  ió 
+storeä iî CBUFÆ (thå bytå beforå CIBUFF)¬  aî endinç binarù °  ió 
+placeä  afteò  thå lasô characteò iî thå commanä  line¬  anä  thå 
+internaì  pointeò CIBPTÒ (Commanä Inpuô Buffeò PoinTeR© ió seô tï 
+point to CIBUFF (the first character of the command line).
+
+     Commanä  Leveì ³ ió aî extendeä concepô tï Commanä Leveló  ± 
+anä  ²  whicè ió specificallù supporteä bù ZCPÒ Versioî  1.°  anä 
+beyond®  Thió commanä leveì allowó á transienô prograí tï placå á 
+commanä  linå intï CIBUFÆ anä thå characteò counô intï CBUFÆ  anä 
+havå thió commanä linå executeä bù ZCPR®   Oncå controì ió trans
+ferreä tï ZCPÒ tï executå thå commanä line¬ thå transienô prograí 
+whicè  placeä  thå commanä linå loseó controì anä thå commanä  ió 
+executeä  exactlù aó thougè iô haä beeî typeä bù thå useò aô  hió 
+consolå terminal.
+
+     Iî  ordeò  foò  á transienô prograí tï utilizå  thå  Commanä 
+Leveì ³ facility¬ thió prograí MUSÔ dï thå following:
+
+          1®  Locatå thå ZCPR®  Sincå thå ZCPÒ ió ALWAYÓ 2Ë byteó 
+iî  sizå anä locateä directlù undeò thå BDOS¬  thå transienô  caî 
+locatå  thå  ZCPÒ  bù examininç thå BDOÓ entrù  pagå  addresó  aô 
+locatioî  ·  anä  subtractinç ¸ froí thió numbeò (¸  pageó  ½  2Ë 
+bytes)®  Thå resultinç numbeò ió thå baså pagå addresó oæ ZCPR.
+
+          2®   Storå thå commanä linå iî CIBUFÆ anä thå characteò 
+counô  iî  CBUFF®   Knowinç thå baså pagå addresó  oæ  ZCPR¬  thå 
+following information is useful in doing this:
+
+
+
+               ORG  CPRLOC    ;Base Address of ZCPR
+               JMP  CPR       ;Enter ZCPR and Execute Default Cmd
+               JMP  CPR1      ;Enter ZCPR and Don't Execute
+     MBUFF:    DB   BUFLEN    ;Size of CIBUFF in bytes
+     CBUFF:    DS   1         ;Number of Bytes in Command Line
+     CIBUFF:   DS   BUFLEN    ;Buffer for Command Line
+               DS   1         ;Buffer for Ending 0 (set by ZCPR)
+     CIBPTR:   DS   2         ;Address of CIBUFF (set by ZCPR)
+
+
+          3®   Obtaiî  thå User/Disë Flag®   Locatioî ´  containó 
+thió number¬  buô thå useò maù selecô á flaç oæ hió choice®  Thió 
+flaç  ió  onå  bytå  long¬  anä thå high-ordeò  nybblå  (´  bits© 
+containó  thå useò numbeò anä thå low-ordeò nybblå  containó  thå 
+disë  numbeò tï procesó thå commanä from®   Thå User/Disë Flaç ió 
+to be passed to ZCPR in the C Register.
+
+          4®  Wheî ready¬ transfeò controì tï ZCPR tï procesó thå 
+commanä bù JMPinç tï thå baså addresó oæ ZCPR®   Thå firsô JMĞ iî 
+thå JMĞ Tablå giveî abovå ió aô thió address®  Aô thió time¬ ZCPR 
+wilì  loç iî thå useò anä disë iî thå User/Disë Flaç anä  procesó 
+the Command Level 3 Command Line.
+
+
+
+     Thå  followinç  ió á samplå prograí  whicè  illustrateó  thå 
+steps outlined above:
+
+;
+;  Demonstration of Command Level 3 Facility by RLC
+;
+udflag	equ	4	;Address of User/Disk Flag
+bdos	equ	5	;Address of BDOS Entry Point
+
+	org	100h
+
+	lxi	d,prmpt	;Print User Prompt
+	mvi	c,9	;PRINT function
+	call	bdos
+
+	lhld	bdos+1	;Get address of BDOS
+	mov	a,h	;High-Order Address in A
+	sui	8	;A=High-Order Address of CPR
+	mov	h,a	;HL=Address of CPR
+	mvi	l,0
+	shld	cpr	;Save address in buffer
+
+	lxi	d,6	;Point to command line buffer
+	dad	d	;HL points to command line buffer
+	xchg		;DE points to command line buffer
+	mvi	c,10	;READLN into this buffer
+	call	bdos
+
+	lhld	cpr	;Get Address of CPR
+	lda	udflag	;Get User/Disk Flag
+	mov	c,a	; ... in C
+	pchl		;Run Command Line
+
+cpr:	ds	2	;CPR Address buffer
+prmpt:	db	'User Command? $'
+
+
+
+
+
+
+     Enjoy using ZCPR!
+                              -- RLC
+

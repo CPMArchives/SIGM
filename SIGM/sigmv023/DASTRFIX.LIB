@@ -1,0 +1,57 @@
+
+{	DASTRFIXED
+
+	Takes an integer date value and returned an eight-character
+	string for month, day and year.
+
+	If SPACES is passed as true, a leading zero will be converted
+	to a space in the month and day positions.
+
+	The separator character is provided as '-' but is declared
+	as a constant so can be changed fairly easily.
+
+	The following global types must be declared:
+		TYPE	string255 = string 255;
+			byte = 0..255;
+
+	The following additional procedures must be declared:
+		PROCEDURE breakdate;
+		PROCEDURE setlength; external;
+}
+
+FUNCTION strbyte (val : byte; withspace : boolean) : string255;
+
+CONST	zero = 48;
+
+VAR	ch : char;
+	str : string255;
+
+begin
+	setlength (str,0);
+	if (val div 10 = 0) and withspace
+		then str := ' '
+		else str := chr (val div 10 + zero);
+	append (str,chr(val mod 10 + zero));
+	strbyte := str
+end;
+
+FUNCTION dastrfixed (days : integer; spaces : boolean) : string255;
+
+CONST	zero = 48;
+	separator = '-';
+
+VAR	day, mo, da, yr : byte;
+	str : string255;
+
+begin
+	brkdate (days,mo,da,yr,day);
+	setlength (str,0);
+	append (str,strbyte(mo,spaces));
+	append (str,separator);
+	append (str,strbyte(da,spaces));
+	append (str,separator);
+	append (str,strbyte(yr,false));
+	dastrfixed := str
+end;
+
+

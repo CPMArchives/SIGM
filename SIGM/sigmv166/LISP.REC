@@ -1,0 +1,225 @@
+
+{[LISP.REC]
+[REC object code from LISP source programs]
+[Harold V. McIntosh, 20 December 1980]
+[Harold V. McIntosh, 22 February 1981]
+[Harold V. McIntosh, 28 December 1983]
+
+[30$ - input FCB]
+[31$ - output FCB]
+
+[LISP is an invention of John McCarthy's dating from the late 1950's
+ at MIT.  LISP is based on Alonzo Church's lambda-calculus, and is
+ fundamentally recursive in nature.  It primarily manipulates text,
+ which leads to the idea of defining it in its own notation, after
+ the fashion of a Universal Turing Machine. The resulting Universal
+ function EVAL gives a self-consistent definition of LISP within LISP.]
+
+[Unfortunately, for practical reasons as well as the influence of the
+ temperment of prospective users of LISP, pure recursion has proved 
+ to be very cumbersome for LISP.  To meet these objections, the "program
+ feature" was introduced into LISP.  The development of REC was a direct
+ consequence of the desire to design an aesthetic substitute for the
+ "program feature," having evolved from the related concept of "operator
+ predicates."]
+
+[The fundamental reference to LISP is
+
+	    John McCarthy
+	    "Recursve Functions of Symbolic Expressions
+	        and their Computation by Machine"
+	    Communications of the ACM 3 184-194 (1960),
+
+  For a long time the only other reference was the user's manual,
+
+	    John McCarthy et al
+	    LISP 1.5 Programmer's Manual
+	    Computation Center and Research Laboratory for Electronics
+	    Massachussets Institute of Technology
+	    August 17, 1962.]
+
+[An important aspect of LISP 1.5 and its successors as implemented at
+ MIT and elsewhere was the physical representation chosen for lists -
+ a binary tree with pointers to list elements and eventually constants
+ such as atoms and numbers. LISP.REC ignores this aspect entirely, so
+ that lists are chains whose parentheses are balanced anew with each
+ operation that is  carried out. This makes no difference whatsoever
+ in the linguistic aspects of the program, but of course renders it
+ entirely impractical for the execution of truly large programs. To
+ preserve the full aspects of LISP, it would only be necessary to make
+ a version of the primitive functions, read, and print, which would use
+ binary trees rather than chains.]
+
+[The program implemented here is EVAL, not EVALQUOTE, APPLY, nor
+ another variant on the theme.  This means that one would present
+ as an example {cons {quote a} {quote {1 2 3}}} rather than the
+ version cons {a {1 2 3}} that EVALQUOTE would expect, or the
+ additional ALIST which which APPLY would require.]
+
+[display w/cursor]		(248%I26%TLJZqt248%FD;;) D
+
+[erase cursors]			(J(248%FD:JZ;);) E
+
+[zero file control block]	($m33cmpw0%(f:;)wnnS;) F
+
+[create input, output FCB's]	('5C'H12wA' 'Ew;B
+    [generate file names]	 9aQpG'REC'|m (Z3b' 'E'LSP';Q;)|m w
+    [open input file]		 n30$rS 30@f
+    [erase, open out file]	 n31$rS 31@g31@e
+				;) G
+
+[close file]			(
+    [clear workspace, in file]	 @p:L@y:(@p:0=;e26%(f:;)@p;;)
+    [close file.REC]		 31$r16k
+				 ;) H
+
+[initialize]			(J@Wj@!;@!;) I
+
+[read, with backspace]		(R26%='';T08%(=2080[sp,bs]TL)(@J|;L@J;);) J
+
+[WS up to cursor to disk]	(jJ<(@p:L;)Zz>;) P
+
+[compile a whole LISP file]	(Jj
+  [change file extension]	  ('.LSP]'FD'.REC]'Iz;;)
+  [find display message]	  ('[['F']]'UQD;'';)
+  [look for code gap]		  ('('Ej;2573Ez2573Ez2573Ez2573Ej2bD;A:;)
+  [insert preface; to disk]	  's'TL@s<'[[]]'FDIZ>z@P
+  [compile each function]	  ('t'TL@tz@P'('Fj:;)
+  [insert postscript]		  'u'TL@q@P
+				;) Q
+
+[read, place in workspace]	(@$@::;) R
+
+[15-line window]		(AB(10%Fz;Zz)qL
+				  15(d(10%FA;L(26%Fj;Z;)):;)Y<;<) W
+
+[next unbalanced right p.]	(')'Ez;'('Ez@a:A:) a
+[find balancing parenthesis]	(A')'E;'('E@b::) b
+[insert required spaces]	(J('('FD' ('Iz:;)J(')'F' 'I:;);) c
+
+[eliminate redundancies]	(J(09%FD:;)J(10%FD:;)J(13%FD:;)
+				 J('  'F' 'FD:;)J('( 'FADB:;)
+				 (J' )'F' 'FD:;);) d
+
+[open file or create it]	(@h$r15K(255=22K;;)LL;) e
+[open file or report absence]	(@h$r15K(255='new file 'T;;)LL;) f
+[delete file if present]	(@h$r19k;) g
+[CP/M's DMA address]		('80'H26k;) h
+[write one record]		(@Ej26%EZD0;128aqL26k31$r21kD'.'TL;) p
+[write LISP postscript]		(2573I'(@!@7@*@8;;)}'I;) q
+
+[LISP subroutines]		(" {
+    [cr,lf]			(2573TL;)&
+    [console input]		(R13%='';T08%(=2080[sp,bs]TL)(@#|;L@#;);)#
+    [logon message]		('[[]]'TL@&;)!
+    [bal paren]			(A')'E;'('E@+::)+
+    [next element]		(A'('E@+JA;j' 'U;')'U;)-
+    [enclose in quotes]		(JZD39%II39%IJQ;)%
+    [car]			(JZDI@-Q;)1
+    [cdr]			(JZDI@-D(' 'ED;;)JZQ;)2
+    [cons]			(JZD('()'='('II')'I;IAjI' 'I;)JZQ;)3
+    [atom]			(JZDI'('E'F';'T';)4
+    [eq]			(='T';L'F';)5
+    [null]			('()'='T';L'F';)6
+    [read]			(@&'read> 'TL(@#;:);)7
+    [print]			(@&'      'TLT;)8
+    [append]			(JZDIjIzABBD' 'IJZQ;)9
+    [not]			('T'='F';'F'='T';;)0
+				"I;) s
+
+[LISP function]			('('FzABQD'('UDZ<@bJ><@c@dJ@u>
+				 ')'FD';)'II2573IJqt;>) t
+
+[EVAL]				(
+				 ' 'ED:
+    [lambda]			 '((lambda 'ED'('F')'UQQmDB
+				  '() 'EDZ<@bJQDn>')'E@w')'ED@x;
+    [primitive]			 @v@w')'EDIz;
+    [quote]			 '(quote 'ED34%I@aBD34%Iz;
+    [if]			 '(if 'ED'('IzZ<@aBjJ><@u"'T'="
+				   Iz@u';L'Iz@u>';)'Iz')'ED;
+    [cond]			 '(cond 'ED'('IzZ<@aBjJ><(ABj
+				   '('VDZ<@aBjJ><@u"'T'="Iz@u';L'I>
+				   z')'ED:;)>';)'Iz')'ED;
+    [and]			 '(and)'ED"'T'"Iz;
+				 '(and 'ED'('IzZ<@aBjJ><(@u
+				   "'T'="IzAB:;)>"'T';;"Iz')'Ez;
+    [or]			 '(or)'ED"'F'"Iz;
+				 '(or 'ED'('IzZ<@aBjJ><(@u
+				   "'T'='T';L"IzAB:;)>"'F';)"
+				   Iz')'ED;
+    [list]			 '(list)'ED"'()'"Iz;
+				 '(list 'EDZ<@aBjJ><@z>z')'ED;
+    [atomic function name]	 '('ED(' 'U;')'U;)Q@w')'ED'@'IIz;
+    [atom]			 jABj(' 'U;Z;)'$ryG'Iz;
+				;) u
+
+[REC code for LISP primitives]	('(car 'E'@1';	  '(cdr 'E'@2';
+				 '(cons 'E'@3';	  '(atom 'E'@4';
+				 '(eq 'E'@5';	  '(null 'E'@6';
+				 '(read)'E5a'@7'; '(print 'E'@8';
+				 '(caar 'E'@1@1'; '(cadr 'E'@2@1';
+				 '(cdar 'E'@1@2'; '(cddr 'E'@2@2';
+				 '(lp)'E3a'40%';  '(bl)'E3a'32%';
+				 '(rp)'E3a'41%';  '(tb)'E3a'09%';
+				 '(cr)'E3a'13%';  '(lf)'E3a'10%';
+				 '(append 'E'@9'; '(rec 'E'pC';
+				 '(not 'E'@0';    '(qu 'E'@%';
+				  ) v
+
+[EVLIS]				(D(' 'ED:;)ABZ<@aBjJ><(@uzAB:;)>;;) w
+
+[auxiliary to lambda]		(<I''m
+    [get variables]		 (ABj(' 'UQD' 'ED;ZQD;)m:;)
+    [insert saves]		 (n''=;pGI'$rmml'II'$S'I:)z>
+    [inner expression]		 I@uz
+    [insert restores]		 <I(ABj(' 'UQD' 'ED;ZQDz;)
+				 'nLn'II'$S'Iz:;)z>;) x
+
+[append a record]		(128(e)L;qL26k30$r20K0=L;DLL@h) y
+[auxiliary to list]		(AB@u@z'@3'I;"'()'"I;) z
+[back to line feed]		(10%Ez;B:j;) 0
+[bracket a line]		(@010%V;Z;) 1
+[back to preceding line]	(@0BB@0;;) 2
+[cr,lf]				(2573TL;) &
+[read w/error correction]	(RT95%=127%;13%=2573;26%(=);) $
+[clear screen]			(26%TL;) !
+[erase on ro, insert others]	(127%=z(B;;)D;I;) :
+[form next window]		(Zz>@W@!;) >
+[cancel line]			(24%TL;) ^
+
+(	'd' [delete] =		(ABD;;);
+	'i' [insert] =		(@D@$@::;)@!;
+	'j' [beginning] =	Jj;
+	'x' [exchange] =	(ABD;;)RTI;
+	'z' [to end] =		Z;
+	127%[delete] =		@1D@!;
+	10% [down arrow] =	(10%FA;J>(10%FA;;)@Wz@!;;);
+	13% [carr ret] =	@0;
+	11% [up arrow] =	(BA@2;J>@2@Wj@!;;);
+	08% [left arrow] =	(Bj;;);
+	'n' [next record] =	>(@p;L;)(@y;;)J(@W;;);
+	'p' [write 1 record] =	>(@p;L;)J(@W;;);
+	'y' [read 1 record] =	>(@y;'eof:'TL;)J(@W;;);
+	'Y' [read whole file] =	>(@y:;)J(@W;;)Jj;
+	' ' [advance] =		(A;;);
+	'>' [next window] =	(@>j;>@I;);
+	'<' [beg window] =	>@I;
+	',' [end of line] =	(2573Fj;Zz;)
+	'.' [refresh screen] =	@!;
+	's' [aux. functions] =	@s@!;
+	't' [cmpile 1 funct] =	>@t(@W;;)Jj@!;
+	) ?
+
+[main program]			(
+    [create FCB's, open files] 	 30@F 31@F @G
+    [sign-on]			 'lisp.rec> 'TL
+    [automatic compilation]	 ('5C'H12wAqt@&3b' 'E(w(@y:;)@Q@H;);w);
+    [wait, initialize, loop]	 RTL @I (@DR
+	[exit at once]		     ';'=@!;
+	[close, exit]		     'e'=>@H;
+	[read menu]		     @?:
+	[ignore unknown]	     L:);)}
+
+[end]
+

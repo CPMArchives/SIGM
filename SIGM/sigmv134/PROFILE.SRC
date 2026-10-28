@@ -1,0 +1,355 @@
+* PROCEDURE profile(VAR x,y   : INT_ARRAY;
+*                   VAR n     : INTEGER;
+*                       dc    : byte;
+*                       maxn  : INTEGER;
+*                   VAR penup : BOOLEAN);
+
+* A PASCAL/Z EXTERNAL ROUTINE TO FILL ARRAYS X AND Y USING A HOUSTON HIPAD
+* DIGITIZER FOR INPUT.ASSUMES THAT THE HIPAD IS IN STREAM MODE AND SETUP 
+* FOR PARALLEL BINARY METRIC TRANSMISSION.
+* POINT COLLECTING STARTS WHEN THE PEN GOES DOWN.(i.e.CONTROL BYTE = 0F4H)
+* A POINT IS REJECTED IF (ABS(dx) + ABS(dy)) IS LESS THAN dc UNITS FROM THE
+* PRECEDING POINT (ONE UNIT = 0.1mm).
+* THE PROCEDURE ENDS IF :
+*                     1 : THE PEN COMES UP ,
+*                     2 : MAXN POINTS HAVE BEEN READ,
+*                OR   3 : MORE THAN min# POINTS HAVE BEEN READ AND A POINT
+*                         IS ACQUIRED CLOSER THAN closed TO THE FIRST POINT.
+* THUS THE ARRAYS WILL HOLD COORDINATES OF POINTS ON THE PERIMETER OF A
+* CLOSED PROFILE.
+
+vbytes	EQU 12	  # OF BYTES ON STACK
+xhi   	EQU 19
+xlo	EQU 18    OFFSETS TO (IX) FOR ADDRESS OF POINTERS
+yhi	EQU 17
+ylo	EQU 16    TO TRANSMITTED VARIABLES.
+nhi	EQU 15
+nlo	EQU 14
+dc	EQU 12
+maxnhi	EQU 11
+maxnlo	EQU 10
+penup	EQU  9
+
+min#	EQU 30
+closed	EQU 5    ( 1 = 0.1mm )
+FALSE	EQU 0
+TRUE	EQU NOT FALSE
+
+STAT_RDY EQU 0F7H  STATUS PORT DATA AVAILABLE CODE
+STAT_PRT EQU 00AH  ADDRESS OF STATUS PORT
+DATA_PRT EQU 008H     "    "   DATA    "
+
+	NAME	profile
+	ENTRY	profile
+
+PASS:	MACRO	ARG		; STORES THE 16BIT NO. IN DE
+				; IN A LOCATION WHOSE BASE
+				; ADDRESS IS CALCULATED FROM ARG.
+				; & WHOSE OFFSET = 2 x IY
+	PUSH	H
+	MOV	H,ARG(IX)	; GET BASE ADDRESS OF
+	MOV	L,ARG-1(IX)	; ARRAY => HL
+	CALL	passxy
+	POP	H
+	ENDMAC
+
+invert:		MACRO	arg
+		PUSH	P
+		MOV	A,arg
+		NEG
+		MOV	arg,A
+		POP	P
+		ENDMAC
+
+profile:
+	ENTR D,2,0
+	JMP START
+old_x:	DS 2
+old_y:	DS 2
+x1:	DS 2
+y1:	DS 2
+start:
+	PUSH Y		 : SAVE IY FOR PASCAL/Z
+	MOV B,maxnhi(IX) : GET VALUE OF
+	MOV C,maxnlo(IX) : MAXN => BC.
+	LXI H,0
+	STC
+	CMC
+	DSBC B		 : MAXN = or > 1 ?
+	JC START2	 : IF YES THEN START
+	PUSH B
+	POP Y
+	CALL PASS_N	 : ELSE MAXN --> N
+	JMP done	 : and RETURN.
+START2:
+	MOV H,penup(ix)	: initialise penup to FALSE
+	MOV L,penup-1(ix)
+	MVI M,FALSE
+	CALL W8_4_PEN	: PEN DOWN YET?
+	CALL FIRST_PR
+LOOP:
+	JMP ANYMORE	: DOES N := MAXN YET ?
+PROCEED:
+	JMP PEN_UP_YET
+STILL_DOWN:
+	JMP NEXT_PR
+done:
+	CALL PASS_N
+	POP Y		: RESTORE ORIGINAL Y FOR PASCAL/Z
+	EXIT D,VBYTES
+
+*********************  SUBROUTINES  ********************************
+
+W8_4_PEN:		* READS DATA PORT UNTIL CONTROL BYTE = F4
+			* i.e. UNTIL THE PEN IS DOWN.
+	CALL STAT_CHK	;WAIT TILL DATA AVAILABLE
+	IN DATA_PRT	;GET IT
+	CPI 0F4H	;PEN DOWN ?
+	JNZ W8_4_PEN	;NO : KEEP WAITING.
+	RET		;YES!
+
+FIRST_PR:			* GETS THE INITIAL X,Y PAIR
+	CALL X_IN		  DISCARD THE FIRST
+	CALL Y_IN		  POINT AS IT CAN
+	CALL W8_4_PEN		  BE GARBAGE.
+	CALL X_IN		  X[1] => DE
+	CALL Y_IN		  Y[1] => HL
+	PUSH H			  SAVE Y[1]
+	MOV B,xhi(IX)	;
+	MOV C,xlo(IX)
+	MOV A,D
+	STA OLD_X		;SAVE IT TO COMPARE WITH NEXT X
+	STA x1
+	STAX B			;& ALSO SEND IT TO PASCAL/Z LAND.
+	DCX B
+	MOV A,E
+	STA OLD_X+1
+	STA x1+1
+	STAX B
+	MOV B,yhi(IX)
+	MOV C,ylo(IX)
+	POP H			Y[1] => HL
+	MOV A,H
+	STA old_y		;SAVE IT TO COMPARE WITH NEXT y
+	STA y1
+	STAX B			;& ALSO SEND IT TO PASCAL/Z LAND.
+	DCX B
+	MOV A,L
+	STA old_y+1
+	STA y1+1
+	STAX B
+	LXI Y,1		: COUNTER FOR POINTS READ.
+	RET
+
+ANYMORE:		* N = MAXN ? (i.e. IS BUFFER FULL ?)
+	PUSH	H	
+	MOV	H,maxnhi(IX)
+	MOV	L,maxnlo(IX)
+	PUSH	D
+	PUSH	Y		;GET COUNT FROM Y
+	POP	D		;TO DE + COMPARE
+	STC
+	CMC
+	DSBC	D		;TO MAXN.
+	POP	D
+	POP	H
+	JZ	done
+	JMP	proceed
+
+PEN_UP_YET:		* READ DATA PORT : IS CONTROL BYTE = F3 ?
+	CALL STAT_CHK	;WAIT FOR DATA
+	IN DATA_PRT	;GET A BYTE
+	CPI 0F4H	;CONTROL BYTE = F4?(PEN STILL DOWN)
+	JZ STILL_DOWN
+	MOV H,penup(ix)	: set penup TRUE
+	MOV L,penup-1(ix)
+	MVI M,TRUE
+	JMP done  	;and EXIT IF PEN NOT DOWN
+
+NEXT_PR:		* GETS ALL POINTS AFTER (X[1],Y[1])
+	CALL X_IN		: GET  NEW X => DE
+	PUSH D			: & SAVE IT
+	LXI H,OLD_X
+	MOV B,M
+	INX H
+	MOV C,M			: GET  OLD_X => BC
+	XCHG			: MOVE NEW X => HL
+	CALL	absdiff		: abs(dx) => A
+	PUSH	p		: save abs(dx) for later
+        LXI	H,old_y		:
+	MOV	B,M		: get last y value
+	INX	H		: into BC
+	MOV	C,M		:
+	CALL	y_in		: new y => HL
+	PUSH	H
+	POP	D		: copy y to DE
+	CALL	absdiff		: abs(dy) => A
+	POP	B		: abs(dx) => B
+	ADD	B		: (abs(dx) + abs(dy)) => A
+	CC	overflow
+	MOV	C,dc(IX)
+	SUB	C		: > dc ?
+	JNC	point_ok
+	POP	D		: if not : too close ! so fix stack
+	JMP	loop
+point_ok:
+	INX	Y		: N := N + 1
+	MOV	A,D		: IF SO  : y => old_y
+	STA	old_y
+	MOV	A,E
+	STA	old_y+1
+	pass	yhi		: and y => y[i]
+	XCHG			: y => HL
+
+	POP	D		: RESTORE X
+	MOV	A,D
+	STA	old_x		: SAVE IT TO COMPARE WITH NEXT X
+	MOV	A,E
+	STA	old_x+1
+	pass	xhi		: x => x[i]
+* n.b. we now have y in HL,X in DE & n in IY: have we >= min# points?
+	PUSH	H		: save y
+	PUSH	IY
+	POP	B		: n => BC
+	LXI	H,min#
+	STC
+	CMC
+	DSBC	B
+	POP	H
+	JNC	loop		: no! so keep going.
+* yes! so see if circle can be closed : i.e.are we close enough to (x1,y1) ?
+	LDA	y1
+	MOV	B,A
+	LDA	y1+1
+	MOV	C,A		:  y[1] => BC
+	CALL	absdiff		: abs(y[1] - y[i]) => A
+	PUSH	p		:   "  "       "   => stack
+	XCHG			: x[i] => HL
+	LDA	x1
+	MOV	B,A
+	LDA	x1+1
+	MOV	C,A		: x[1] => BC
+	CALL	absdiff		: abs(X[1] - Y[i]) => A
+	POP	B		: abs(y[1] - y[i]) => B
+	ADD	B		: abs(distance from (x[1],y[1])) => A
+	CC	overflow
+	MOV	C,A		: into C.
+	MVI	A,closed	: close enough to end?
+	SUB	C
+	JNC	done		: yes!
+	JMP	loop		: no!
+
+absdiff:			* arg1 in HL,arg2 in BC : abs(diff) => A
+	BIT	7,H
+	JNZ	hlneg
+	BIT	7,B
+	JNZ	subtract
+bothpos:
+	PUSH	H
+	STC
+	CMC
+	DSBC	B
+	JC	bcbigger
+	POP	B
+	JMP	subdone
+bcbigger:
+	POP	H
+	CALL	switch
+subtract:
+	STC
+	CMC
+	DSBC	B
+	JMP	subdone
+hlneg:
+	BIT	7,B
+	JNZ	negate
+	CALL	switch
+	JMP	subtract
+negate:
+	invert	H
+	invert	L
+	invert	B
+	invert	C
+	JMP	bothpos
+switch:
+	PUSH	H
+	PUSH	B
+	POP	H
+	POP	B
+	RET
+subdone:
+	MOV	A,H
+	ORA	A
+	JNZ	overflow
+	MOV	A,L
+	RET
+
+overflow:
+	MVI	A,07FH          * largest +ve 8bit #
+	RET
+
+STAT_CHK:			* CHECKS STATUS PORT 
+	IN	STAT_PRT	;DATA IN? 
+	CPI	STAT_RDY 
+	RZ		;IF SO:GO GET IT.
+	JMP	STAT_CHK     ;ELSE TRY AGAIN.
+
+X_IN:				* GET X VALUE FROM HIPAD INTO DE
+	CALL	STAT_CHK	;WAIT FOR DATA
+	IN	DATA_PRT	;GET 1ST BYTE (X7..X13)
+	MOV	D,A		;INTO D
+	PUSH	D
+	CALL	STAT_CHK
+	POP	D
+	IN	DATA_PRT	;2ND BYTE (X0..X6)
+	MOV	E,A		;INTO E
+	SLAR	E		;---|
+	SLAR	D		;   |JUSTIFY
+	SRAR	D		;   | RIGHT 
+	SRAR	D		;   | IN DE
+	RRAR	E		;---|
+	RET
+
+Y_IN:			* GET Y VALUE FROM HIPAD INTO HL
+	XCHG
+	CALL	X_IN
+	XCHG
+	RET
+
+PASS_N:				; PUT CONTENTS OF IY INTO N.
+	PUSH	IY
+	POP	H		; IY => HL.
+	MOV	D,nhi(IX)	: ADDRESS OF N
+	MOV	E,nlo(IX)	: => DE.
+	MOV	A,H
+	STAX	D
+	DCX	D
+	MOV	A,L
+	STAX	D
+	RET
+
+passxy:			* base address in HL ,value in DE ,N in IY.
+	PUSH	D
+	PUSH	B
+	PUSH	Y
+	DCX	Y	;
+	DADY	Y	; OFFSET = 2 * (Y - 1)
+	PUSH	Y
+	POP	B	; OFFSET --> BC
+	stc
+	cmc
+	DSBC	B	; ADDRESS OF ARRAY[N] = HL-OFFSET
+	XCHG		; ADDRESS => DE : value => HL
+	MOV	A,H
+	STAX	D
+	DCX	D
+	MOV	A,L
+	STAX	D
+	POP	Y
+	POP	B
+	POP	D
+	RET
+
+		END profile
+
+

@@ -1,0 +1,40 @@
+
+{	BRKDATE
+
+	Converts days stored as integer and converts into month, day,
+	year and day of week.
+}
+
+PROCEDURE brkdate (days : integer; VAR mo, da, yr, weekday : byte);
+
+CONST	yrbase = 10;
+	yrfix = yrbase - 1;
+
+VAR	data, temp, adjust, yradj : integer;
+
+begin
+	adjust := 1 + yrfix mod 4 + (((yrfix mod 28) div 4) * 5);
+	yradj := (yrbase mod 4) * 365;
+	weekday := (days + adjust) mod 7;
+	data := trunc((days + yradj) / 365.25) - yrbase mod 4;
+	yr := data + yrbase;
+	temp := days - (365 * data) - (data + yrfix mod 4) div 4;
+	mo := 0;
+	data := 0;
+	repeat
+		if (data < temp) then
+			begin
+			mo := mo + 1;
+			temp := temp - data
+			end;
+		case mo of
+			1,3,5,7,8,10,12 : data := 31;
+			4,6,9,11 : data := 30;
+			2 : if (yr mod 4 = 0) then data := 29
+				else data := 28
+			end
+	until (data >= temp) or (mo = 12);
+	da := temp
+end;
+
+

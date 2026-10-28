@@ -1,0 +1,194 @@
+X> % anything following a " % " is a comment(like this!)
+X> % the prompt right now is "X>" as you see:
+X> 
+X> 
+X> 
+X> 
+X> % to place numbers on the stack one just types them:
+X> 
+X> 10 20 30
+3X> 
+3X> % notice how the prompt has changed to "3X>", informing
+3X> % us there are three items now waiting on the stack.
+3X> % To see what they actually are, we type:
+3X> 
+3X> STACK
+(3)  10  20  30
+3X> 
+3X> % the answer shows the stack with the "top" to the right.
+3X> % The number in parenthesis is telling us that there are
+3X> % indeed three items.
+3X> 
+3X> % to remove the top item:
+3X> 
+3X> DROP
+2X> 
+2X> % note that the prompt tells us that there are two items
+2X> % left.  They are:
+2X> 
+2X> STACK
+(2)  10  20
+2X> 
+2X> 
+2X> % suppose we wanted to add these (top) two items on the
+2X> % stack:
+2X> 
+2X> +
+1X> 
+1X> STACK
+(1)  30
+1X> 
+1X> % we see that these items have been replaced by "30",
+1X> % our "answer".  Instead of typing STACK we could do:
+1X> 
+1X> =
+30
+X> 
+X> % the = caused the top of stack to be removed and shown
+X> % at the console instead.
+X> 
+X> % So to perform simple arithmetic like 13 + 24 we could:
+X> 
+X> 13 24 + =
+37
+X> 
+X> % indeed our answer should be "37"; since our prompt is
+X> % "X>", we have a clean stack (good housekeeping!).
+X> 
+X> % Here we calculate (3*4) + (5*6) :
+X> 
+X> 3 4 * 5 6 + =
+11
+1X> % oops, I see I forgot to multiply 5 and 6; their sum has
+1X> % been displayed and the result of multiplying 3 and 4
+1X> % still remains upon the stack:
+1X> 
+1X> STACK
+(1)  12
+1X> 
+1X> % lets try completing it correctly this time:
+1X> 
+1X> 5 6 * =
+30
+1X> % oops, I got 5*6, but forgot to add it to the 3*4 part
+1X> % so we can still try again!:
+1X> 
+1X> 5 6 * + =
+42
+X> % at last... Here is how I should have done it:
+X> 
+X> 3 4 * 5 6 * + =
+42
+X> % in words: first we calculate 3*4, the result will be
+X> % held on the stack. second, we place 5 and 6 on the
+X> % stack and calculate their product.  So far, the pair
+X> % of products are waiting on the stack.  lastly, we
+X> % add (the two products) and display the result.
+X> 
+X> % calculations are done using RPN, Reverse Polish Notation
+X> 
+X> % with a little bit of practice, most people become
+X> % comfortable with that means of writing problems (it
+X> % is the method used on Hewlett-Packard hand calculators
+X> 
+X> % Admittedly, it takes more practice to read; the prompts
+X> % may make the job a little easier!
+X> 
+X> 
+X> % With PISTOL, we don't have to use uppercase for commands
+X> % but I shall use uppercase to make it easier for you to
+X> % read; but here is an example of using lowercase:
+X> 
+X> 10 20 30 stack
+(3)  10  20  30
+3X> 
+3X> 
+3X> drop stack
+(2)  10  20
+2X> 
+2X> 
+2X> drop stack
+(1)  10
+1X> 
+1X> 
+1X> drop stack
+(0)
+X> 
+X> drop stack
+* STACK UNDERFLOW **** PISTOL 1.3 ***
+X> 
+X> 
+X> % We have demostrated using the STACK command and also a
+X> % "new" one, "DROP", whose effect appears to be to throw
+X> % away the top item on the stack.
+X> 
+X> % There are only a few types of error conditions that the
+X> % system detects; one of them is when you try to remove
+X> % an item from an empty stack.  In this case an "underflow"
+X> % occurs, as we see from the "complaint".  An "ABORT" is
+X> % performed (signified by *** PISTOL 1.3 ***).  Any
+X> % remaining actions on that line (such as "STACK") will
+X> % be ignored or bypassed.
+X> 
+X> 4 5 6 STACK DRP STACK
+DRP*** PISTOL 1.3 ***
+X> 
+X> % Here was another example of a mistake; since "DROP"
+X> % was mispelled, PISTOL was unable to figure out the
+X> % line typed in.  Thus it carried out none of it.  It
+X> % did show what it "stumbled" over.
+X> 
+X> % I shall try and avoid more errors in this session and
+X> % concentrate upon demonstrating various stack related
+X> % commands or words:
+X> 
+X> 
+X> 10 20 30 STACK DUP STACK
+(3)  10  20  30
+(4)  10  20  30  30
+4X> 
+4X> DROP STACK
+(3)  10  20  30
+3X> 
+3X> OVER STACK
+(4)  10  20  30  20
+4X> 
+4X> 3OVER STACK
+(5)  10  20  30  20  10
+5X> 
+5X> 
+5X> DROP DROP STACK
+(3)  10  20  30
+3X> 
+3X> 
+3X> DDUP STACK
+(5)  10  20  30  20  30
+5X> 
+5X> DROP DROP STACK
+(3)  10  20  30
+3X> 
+3X> SWAP
+3X> 
+3X> STACK
+(3)  10  30  20
+3X> 
+3X> ABORT
+*** PISTOL 1.3 ***
+X> 
+X> STACK
+(0)
+X> 
+X> % I have demonstrated DUP DROP DDUP OVER 3OVER (there is
+X> % also a 2OVER ) STACK (a "utility") and ABORT.
+X> % I have mentioned before that when PISTOL detects an
+X> % error, it ABORTs, but you can choose to as well. ABORT
+X> % will clear the stack.
+X> 
+X> % This session has lasted long enough.  I shall leave
+X> % PISTOL by usng the word "BYE", which is the "proper"
+X> % thing to do....
+X> 
+X> BYE
+
+ session and
+X> % concentrate upon demonstrating various stac

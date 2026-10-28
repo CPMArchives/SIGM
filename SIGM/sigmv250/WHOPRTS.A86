@@ -1,0 +1,235 @@
+; An article relating to the following code appeared in the Vol 1 No 4
+; issue of Micro/Systems Journal and is presented here with the per-
+; mission of the publisher. The code alone should be sufficient to
+; use the program.  However, back copies of the article are available from
+; Micro/Systems Journal, Box 1192, Mountainside, NJ 07092.
+.cs10
+; WHOPRTS.A86	-  Show Owners of the print devices on CCPM
+;
+;
+;					Alex K.H. Soya - 12/20/84
+;					PO BOX 121
+;					Melbourne Beach
+;					FL. 32951
+;
+;					Goliath Concurrent RCPM
+;					(305) 727-0331
+;
+;					Compuserve [70406,1452]
+;
+;
+;-----------------------------------------------------------------------;
+; WHOPRTS shows which printers on a Concurrent CPM system		;
+; are attached to a process or to a console by ctrl-P.			;
+; Tested under CCPM Vers. 3.1 on a CompuPro. But should work on		;
+; any system including IBM-PC under Concurrent DOS.			;
+;									;
+; This program may be freely copied and used by anyone as long as	;
+; no financial/commercial gain is made. OEMs wishing to include		;
+; this program with their systems software should contact the		;
+; author for permission.						;
+;									;
+;-----------------------------------------------------------------------;
+; 12/20/84  -  Original Version						;
+;   1.0							Alex Soya	;
+;-----------------------------------------------------------------------;
+
+
+Version		equ	1
+Revision	equ	0
+
+
+cr		equ	13	; ASCII carriage return
+lf		equ	10	; ASCII line feed
+
+
+; CCPM	Function calls
+;
+P_TERMCPM	equ	0	; Terminate Job
+C_WRITESTR	equ	9	; Write a string to console
+S_BDOSVER	equ	12	; Return BDOS version number
+S_SYSDAT	equ	154	; Return address of system data segment
+
+
+; Some CCPM offsets
+;
+CMDLINE		equ	80h	; Command line is at 80h in the data segment
+LCBPTR		equ	86h	; Pointer to LCB table in SYSDAT segment
+NLCB		equ	48h	; Number of LCB's in the LCB table
+
+Š
+;  The start of the Program
+;
+	Cseg			; Code segment starts here, using SMALL model
+
+	pushf ! pop bx		; No interrupts during stack switches
+	cli			; under CCPM
+	mov	ax,ds
+	mov	ss,ax
+	mov	sp, offset STACK
+	push bx ! popf		; restore FLAG register
+
+
+	cmp	DS:Byte Ptr .CMDLINE, 0	    ; Did he request an option,
+	jz	verck			    ; nope, go check version.
+	mov	cl,C_WRITESTR		    ; yes, give him a comercial.
+	mov	dx,Offset SECMES
+	int	224
+
+verck:	mov	cl,S_BDOSVER	; make sure we are running CCPM
+	int	224
+.paŠ	cmp	ah,14h		; 8086 cpu and Concurent CP/M ?
+	jz	verok
+	cmp	ah,16h		; 8086 cpu and concurent CP/M w/ networking
+	jz	verok
+
+	mov	dx, offset BADVERMES	; else tell him he is not running what
+	mov	cl, C_WRITESTR		; this is for...
+	int	224
+
+	jmp	exit		; and get out of here.
+
+
+verok:	mov	dx, offset HEADER		; Got good version so go for it
+	mov	cl, C_WRITESTR			; Print header message
+	int	224
+
+	mov	cl,S_SYSDAT			; Get sysdat segment location
+	int	224				; es = sysdat segment on return
+	mov	bx, es:Word Ptr .LCBPTR		; Get LCB offset
+	mov	cl, es:Byte Ptr .NLCB		; Get Number of LCBs in system
+
+	xor	ax,ax				; start with printer 0
+	cmp	cl,0				; make sure we have printers
+	jg	shprtlp				; if No printers then
+	mov	dx, offset NOPMES		; Write " No Printers budy"
+	mov	cl, C_WRITESTR
+	int	224
+	jmp	exit
+
+shprtlp:					; lets go to work....
+	push	ax				; Save current printer number
+	push	cx				; Save Number of LCBs to go
+	push	bx				; Save offset to this LCB
+
+	call	BINASC				; convert to Ascii
+	mov	Word Ptr PRTNUM,ax		; stuff name in string
+	mov	dx, offset PRTNUM		; and print printer number
+	mov	cl, C_WRITESTR
+	int	224
+
+	pop	bx				; restore LCB offset
+	push	bx
+
+	mov	bx, es: Word Ptr [bx]		; get Owner offset
+
+	cmp	bx,0				; If No Owner then
+	jnz	chkcntp
+	mov	dx, offset FREEMESS		;    Write **FREE**
+	mov	cl, C_WRITESTR
+	int	224
+	jmp	nextprt
+
+chkcntp:
+	cmp	bx,-1				; If Cntrl-P then
+	jnz	findpdŠ	mov	dx, offset CPMESS		;    Write ^P
+	mov	cl, C_WRITESTR
+	int	224
+	pop	bx
+	push	bx				;    Get LCB offset back
+	mov	al,es:Byte Ptr .9[bx]
+	call	BINASC				;    convert to Ascii
+	mov	Word Ptr CONNUM,ax		;    stuff name in string
+	mov	dx, offset CONNUM		;    and print console number
+	mov	cl, C_WRITESTR
+	int	224
+	jmp	nextprt
+						; else
+findpd:
+	mov	cl,8				;    copy the name of the
+	mov	si,0				;    process that owns the
+	push	bx				;    printer to PDNAM field
+coplp:	mov	al,es:Byte Ptr .8[bx]
+	mov	Byte Ptr PDNAM[si],al
+	inc	si
+	inc	bx
+	loopnz	coplp
+	pop	bx
+
+	push	bx
+	mov	dx, offset PDNAM		;    Write PDNAME
+	mov	cl, C_WRITESTR
+	int	224
+	pop	bx
+
+	mov	al, es:Byte ptr .20h[bx]	;    Get Console number of PD
+	call	BINASC				;    convert to Ascii
+	mov	Word Ptr CONNUM,ax		;    stuff name in string
+	mov	dx, offset CONNUM		;    and print console number
+	mov	cl, C_WRITESTR
+	int	224
+nextprt:
+	pop	bx
+	pop	cx
+	pop	ax
+	add	bx,10				;    point to next lcb
+	inc	al				;    next printer number
+	loopne	shprtlp				; Do all LCB's
+
+	mov	dx, offset CRLF
+	mov	cl, C_WRITESTR			; send a CR,LF
+	int	224
+
+exit:	mov	cl,P_TERMCPM			; and terminate
+	int	224
+
+
+
+
+ŠBINASC: xor	ah,ah				; convert
+	aam					; AX to ASCII
+	add	ax,3030h
+	xchg	ah,al				; put in right order
+	ret
+
+
+
+
+	DSEG			; Data segment starts here
+
+	org 100h		; we are using the SMALL model
+
+
+BADVERMES db	'+++ Requires Concurent CP/M-86 +++',cr,lf,'$'
+
+HEADER	db	cr,lf
+	db	'Printer   Owner    Console',cr,lf,cr,lf,'$'
+
+NOPMES	db	'+++ No printer found on system +++',cr,lf,'$'
+
+PRTNUM	db	'xx   -    ','$'		; Printer Number
+
+PDNAM	db	'xxxxxxxx    ','$'		; Owners Name
+
+CPMESS	db	'Cntrl-P     ','$'		; Control-P message
+
+FREEMESS db	'**FREE** ',cr,lf,'$'		; Printer is FREE
+
+CONNUM	db	'xx',cr,lf,'$'			; Console Number
+
+CRLF	db	cr,lf,cr,lf,'$'
+
+SECMES	db	'WHOPRTS ',Version+'0','.',Revision+'0',' '
+	db	'- (C) 1984, 1985 Alex K. Soya',cr,lf
+	db	'P.O. Box 121, Melbourne Beach, FL 32951, U.S.A.',cr,lf,cr,lf
+	db	'$'
+
+
+	rw	31
+stack	dw	0		; use DW so GENCMD includes stack space in
+				; the header.
+
+	end			; that's all folks....time for a beer
+
+   
+

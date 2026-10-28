@@ -1,0 +1,145 @@
+
+[DCLRN.REC]
+[CNVRT compiler for "C" Declarations]
+[Harold V. McIntosh, 10 June 1983]
+
+{
+   				{
+    [find/make FCB]		(Jj'TTY:'EQZD;(':'UQD':'ED\64-%;0%;)
+				 ('.'U<(8a;@b;)Q|D>;Z'.DAT'IJj:)
+				  '.'FJDZ(3a;@b;)Q|JZDI
+				 32(dpGm$r0=npGpGd0&$Sm@znpGQ&$rrS0;
+				 r12wQmwnEn;n:)D;) f
+    [blank fill by count]	(Zz(d' 'I:;)JZ;) b
+    [zero fill]			(cmpw0%(f:;)w;) 0
+    [zero FCB & buffer]		($m33@0130@0nn&0||pLnS;) z
+    [set default input file]	(0,30$S'5C'H12wA' 'Ew4@0n0|0|pL31$S
+				 'TTY:'31$rrS; B9aQD(3a'   'E
+				 'DAT';Q;)|mw31@zn31$rrS31@r;) i
+    [open for read]		(@hr15K(255='NO FILE'I;L;)L;) r
+    [open for write]		(@hpGpG4+1&SrpG19k22k^^r128&S;) w
+    [set DMA address]		($rpG^^r^^26k;) h
+    [open]			(m@f0=n@@;nLL;) O
+    [read]			(''(AL@f(0=pG@r;'TTY:'(='T');))
+				 ('T'='';L31pG$rr12w'TTY:'Ew;w)
+				 L@&'> 'TL(@#I;:);
+				 $r(pG^^rpGmr(0=(npGpGm128&S^^26kpGr
+				 20K0=L;LL1npGpGm129+26%&SS;)npGmr;;)
+				 pG130&-n+&dm(u13%=;10%(=)pGI(26%=;
+				 L);ndm:)L^^rn&S;LpG^^r0&S:);) R
+    [write]			(Jj'='U<(A@f'TTY:'(=)(0=pG@w;;))>'='ED
+				 ZqtD; >'='EDZ<@g;) W
+    [write to disk]		($r(pG^^rpGpGmrpGm- 130+n&maQD>Z<nSn^^
+				 26kpGr21kpG^^r128&S:JZQD>nSnSL;);) g
+    [close all files]		(31pGm($r0=;pG4+r(0=L;LJj26%I<npGm@gpG
+				 ^^rpGr127(N^^26kpGr21k;L;)r16k;)ndpGm:)
+				 nL;;) c
+    [PVR]			(pG@&#'= '|TL$r(0='undef';yG;)TL;) _
+    [cr, lf]			(2573TL;)&
+    [insert cr, lf]		(2573I;)|
+    [read console]		(R13%='';T08%(=)(@#|;2080[sp,bs]TLL@#;);)#
+    [type comment]		(@TD;)C
+    [display at logon]		('cnvrt/icuap/1983'TL@&;)D
+    [write workspace]		(@&JZqt;)T
+				(@@;) }%
+    [integer arithmetic]	{(+;)+ (-;)- (*;)* (/&L;)/
+				(pGm/L1=nL1;0=n;n&:)|
+				 ((pGmJj(U);QD(O)I;npGmEDZQD(O)IjnpGmI;
+				 n@@#I)nLJZ;;) } #
+    [save & init variables]	(pGpGm$rm0&$S;) (
+    [reinitialize variable]	(pG$r0=L;LnL0&$S;) :
+    [undefine variable]		($r0=;LnL;) )
+    [compare/define variable]	(pG$r0=ZQzml&$S;&LyGEz;) ]
+    [body of variable search]	(pG$r(0=)yG(E;&L)z&L@=L;pG$r(0=;LL)
+				  Z<((&pGm&n(F;''mZz<)jJQmpGl&$S
+				  zZ<@=>;J>);nLA:0&$SL>)>LL;) >
+    [body of variable search]	(pG$r(0=)yGEz@=L;pG$r(0=;LL)
+				  Z<((jJQmpGl&$S
+				  zZ<@=>;J>);nLA:0&$S>)>L;) <
+    [insert variable]		($ryGI;) [
+				
+[compile declaration]
+{
+  [declaration]	  (@Y [or] Z<(' 'Ez@V; J;>)> [or] ';'Ez;) Z
+  [decl spec]	  ( [or] Z<(@X [or] Z<(' 'Ez@W; J;>)> [or] ; J@W [or] Z<(' 'Ez@X; J;>)> [or] ;>)> [or] ;) Y
+  [s. c. spec]	  ( [or] Z<('char'Ez; J [or] Z<('long 'Ez; J'short 'Ez; J'unsigned 'Ez; J;>)> [or] 'int'Ez; J [or] Z<('long 'Ez; J;>)> [or] 'float'Ez; J'double'Ez; J@H; J'tdefname'Ez;>)> [or] ;) X
+  [type spec]	  ( [or] Z<('auto'Ez; J'static'Ez; J'extern'Ez; J'register'Ez; J'typedef'Ez;>)> [or] ;) W
+  [in dcl lst]	  (@U [or] Z<(', 'Ez@V; J;>)> [or] ;) V
+  [init decl]	  (@M [or] Z<(' 'Ez@6; J;>)> [or] ;) U
+  [d-extender]	  ( [or] Z<('()'Ez; J'['Ez@o']'Ez; J'[]'Ez;>)> [or] ;) Q
+  [d-extender*]	  ( [or] Z<(@Q@S; J;>)> [or] ;) S
+  [declarator]	  ( [or] Z<(@I; J'('Ez@M')'Ez; J'*'Ez@M;>)> [or] @S;) M
+  [s or u spec]	  ( [or] Z<('struct'Ez; J'union'Ez;>)> [or]  [or] Z<(' 'Ez@I; J;>)> [or]  [or] Z<(' {'Ez@G'}'Ez; J;>)> [or] ;) H
+  [st decl lst]	  (@9 [or] Z<(' 'Ez@G; J;>)> [or] ;) G
+  [st decl]	  (@X@8';'Ez;) 9
+  [st dcl list]	  (' 'Ez@7 [or] Z<(','Ez@8; J;>)> [or] ;) 8
+  [str. declr]	  ( [or] Z<(@M':'Ez@o; J@M; J':'Ez@o;>)> [or] ;) 7
+  [initializer]	  ('= 'Ez [or] Z<(@E; J'{'Ez@5 [or] Z<(','Ez; J;>)> [or] '}'Ez;>)> [or] ;) 6
+  [init. list]	  ( [or] Z<(@E; J'{'Ez@5'}'Ez;>)> [or]  [or] Z<(', 'Ez@5; J;>)> [or] ;) 5
+  [type-name]	  (@X@3;) 4
+  [abst. decl]	  ( [or] Z<('('Ez@3')'Ez; J'*'Ez@3;>)> [or] @S','Ez;) 3
+
+  )(0@( 1@( 2@( {(0@: 1@: 2@: ;); (
+
+  [prnt WS]	  @;(J2573TLZqtj(A)JZD;);
+		  @;(J [and] Z<(@Y jJ><0@](A);>)> [and]  [and] Z<( [or] Z<(' 'Ez@V; J;>)> [or]  jJ><1@](A);>)> [and] ';'EzJZD'/definition 'Iz<1@[','I@zZ>' %%% 'I0@['/initialize 'Iz<1@[','I@yZ>;);
+		  @;(J@ZJZD'yes'I;);
+		  @;(JJZD'no'I;);
+  ;)} 0@) 1@) 2@)   nn$S nn$S nn$S;)} w
+
+[token compilation of expressions]
+{(0@( {(0@: ;); (
+		@;(J0@]JZD'/compiled 'I0@[;);
+  ;)} 0@)   nn$S;)} x
+
+[split out initializations]
+{(0@( 1@( 2@( {(0@: 1@: 2@: ;); (
+		@;(J [and] Z<(' 'Ez@M' 'Ez@6','Ez jJ><0@](A);>)> [and] 1@]JZD0@[z<1@[@yZ>;);
+		@;(J' 'Ez@M','Ez0@]JZD0@[;):
+  ;)} 0@) 1@) 2@)   nn$S nn$S nn$S;)} y
+
+[remove initializations leaving definitions]
+{(0@( 1@( 2@( {(0@: 1@: 2@: ;); (
+		@;(J [and] Z<(' 'Ez@M jJ><' 'Ez0@](A);>)> [and]  [or] Z<(' 'Ez@6; J;>)> [or] ','Ez1@]JZD' 'I0@[','Iz<1@[@zZ>;);
+  ;)} 0@) 1@) 2@)   nn$S nn$S nn$S;)} z
+
+[main program including syntactic elements]
+{ 
+  [alfanum]   ( [and] Z<(1(a;L)z jJ><' ''~'Mz(A);>)> [and] ;) a
+  [letter]    ( [and] Z<(1(a;L)z jJ>< [or] Z<('A''Z'Mz; J'a''z'Mz; J'_'Ez;>)> [or] (A);>)> [and] ;) b
+  [odigit]    ( [and] Z<(1(a;L)z jJ><'0''7'Mz(A);>)> [and] ;) c
+  [ddigit]    ( [and] Z<(1(a;L)z jJ><'0''9'Mz(A);>)> [and] ;) d
+  [hdigit]    ( [and] Z<(1(a;L)z jJ>< [or] Z<('0''9'Mz; J'A''F'Mz; J'a''f'Mz;>)> [or] (A);>)> [and] ;) e
+  [astring]   ( [or] Z<( [or] Z<('\'Ez@a; J [and] Z<(@a jJ><[not] (Z<  [or] Z<(34%Ez; J39%Ez; J'\'Ez;>)> [or] J>)J>[not] Zz(A);>)> [and] ;>)> [or] @f; J;>)> [or] ;) f
+  [ostring]   ( [or] Z<(@c@g; J;>)> [or] ;) g
+  [dstring]   ( [or] Z<(@d@h; J;>)> [or] ;) h
+  [hstring]   ( [or] Z<(@e@i; J;>)> [or] ;) i
+  [cconst]    ( [or] Z<('\'Ez@a; J39%Ez@a39%Ez;>)> [or] ;) j
+  [iconst]    ( [or] Z<('0'Ez [or] Z<('X'Ez; J'x'Ez;>)> [or] @i; J'0'Ez@g; J@d@h;>)> [or] ;) k
+  [fconst]    (@h'.'Ez@h [or] Z<( [or] Z<('E'Ez; J'e'Ez;>)> [or]  [or] Z<('+'Ez; J'-'Ez; J;>)> [or] @h; J;>)> [or] ;) l
+  [sconst]    (34%Ez@f34%Ez;) m
+  [cstring]   ( [or] Z<( [or] Z<(@b; J@d;>)> [or] @n; J;>)> [or] ;) n
+  [constant]  ( [or] Z<(@l; J@k; J@j; J@m;>)> [or] ;) o
+  [identifier](@b@n;) I
+  [aoperator] ( [or] Z<('='Ez; J'+='Ez; J'-='Ez; J'*='Ez; J'/='Ez; J'%='Ez; J'>>='Ez; J'<<='Ez; J'&='Ez; J'^='Ez; J'|='Ez;>)> [or] ;) p
+  [boperator] ( [or] Z<('*'Ez; J'/'Ez; J'%'Ez; J'+'Ez; J'-'Ez; J'>>'Ez; J'<<'Ez; J'<='Ez; J'>='Ez; J'<'Ez; J'>'Ez; J'=='Ez; J'!='Ez; J'&&'Ez; J'^'Ez; J'||'Ez; J'&'Ez; J'|'Ez;>)> [or] ;) q
+  [uoperator] ( [or] Z<('*'Ez; J'&'Ez; J'-'Ez; J'!'Ez; J'~'Ez; J'sizeof'Ez; J'(typename)'Ez;>)> [or] ;) r
+  [uoper*]      ( [or] Z<(@r@s; J;>)> [or] ;) s
+  [lvalue]    ( [or] Z<( [and] Z<(@P jJ><(('['(Fz;Zz<)Z<@E']'Ez(A)>;J>);A:)(A);>)> [and] ; J [and] Z<(@P jJ><(('-'(Fz;Zz<)Z<'>'Ez@I(A)>;J>);A:)(A);>)> [and] ; J [and] Z<(@P jJ><(('.'(Fz;Zz<)Z<@I(A)>;J>);A:)(A);>)> [and] ; J@I; J'*'Ez@E; J'('Ez@L')'Ez;>)> [or] ;) L
+  [pexten]    ( [or] Z<('['Ez@E']'Ez; J'('Ez@F')'Ez; J'->'Ez@I; J'.'Ez@I;>)> [or] ;) N
+  [pextn*]    ( [or] Z<(@N@O; J;>)> [or] ;) O
+  [primary]   ( [or] Z<(@I; J@o; J'('Ez@E')'Ez;>)> [or] @O;) P
+  [eroot]     ( [or] Z<(@r@A; J'++'Ez@L; J'--'Ez@L; J@L'++'Ez; J@L'--'Ez; J@P;>)> [or] ;) A
+  [bexpr]     (@A [or] Z<(@q@B; J;>)> [or] ;) B
+  [cexpr]     (@B [or] Z<('?'Ez@K':'Ez@K; J;>)> [or] ;) K
+  [aexpr]     ( [or] Z<(@L@p@D; J@K;>)> [or] ;) D
+  [expression](@D [or] Z<(','Ez@E; J;>)> [or] ;) E
+  [e-list]    ( [or] Z<(@E@F; J;>)> [or] ;) F
+    (0@( {(0@: ;); (  
+	@;(J';'EzJZD'done'I;);
+	@;(J0@]JZDz<z<0@[@wZ>'C'@%Z>z<'R'@%Z>;):
+  ;)} 0@)   nn$S;)} ~
+('i'@%'D'@%'R'@%@~JZqt'c'@%;)  }
+
+[end]
+

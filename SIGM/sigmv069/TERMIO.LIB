@@ -1,0 +1,74 @@
+procedure writes( strng: alpha );
+{ writes writes a string of type alpha to the console
+  device. }
+var	ix: byte;
+begin
+  for ix:=1 to strng[0] do
+    write( chr(strng[ix]) );
+end{ of writes };
+
+
+Procedure gotoxy(x_coord, y_coord: integer);
+var	ix: byte;
+	x_pos: integer;
+begin
+  x_pos := x_coord + X_OFF;
+  IF ( XY=2 ) AND ( x_pos<31 ) THEN x_pos := x_pos + 96;
+  writes( CUR );
+  IF ( XY=1 ) OR ( XY=2 ) THEN
+    write( CHR(x_pos), CHR(y_coord+Y_OFF) )
+  ELSE
+    write( CHR(y_coord+Y_OFF), CHR(x_pos) );
+  for ix:=0 TO DELCUS do {};
+end;
+
+
+FUNCTION INITTERM: BOOLEAN;
+{ RETURNS TRUE IF TERMINAL DATA FILE FOUND  }
+{	  FALSE IF DATA FILE NOT FOUND!     }
+TYPE	BFILE = FILE OF BYTE;
+VAR	bx     : byte;
+	termio : BFILE;
+
+   procedure gets( var fb: BFILE; var strng: alpha );
+   { gets a string of type alpha from the
+     specified file of type BFILE. }
+   var	   ix: byte;
+   begin
+     read( fb, strng[0] );	   { first byte is always length }
+     for ix:=1 to strng[0] do
+       read( fb, strng[ix] )
+   end{ of gets };
+
+begin
+  { OPEN file TERMIO.FIL for READ assign TERMIO }
+  reset('TERMIO.FIL', termio);
+  if eof(termio) then { file does not exist }
+     INITTERM := FALSE
+  else begin
+    INITTERM := TRUE;
+    { first 5 bytes in this sequence }
+    { strings must be read back in same sequence as were written }
+    read( termio,
+	      BX,	 { length byte }
+	      DELMIS, DELCUS, X_OFF, Y_OFF, XY );
+    gets( termio, CLRSCR );
+    gets( termio, CUR );
+    gets( termio, eraeos );
+    gets( termio, eraeol );
+    gets( termio, HOME );
+    gets( termio, LockKbd );
+    gets( termio, UnlockKbd );
+    gets( termio, LINDEL );
+    gets( termio, LININS );
+    gets( termio, INVON );
+    gets( termio, INVOFF );
+    gets( termio, CRSON );
+    gets( termio, CRSOFF );
+  end{else}
+end{ of INITTERM }{ CLOSE(termio); };
+
+
+
+ INVOFF );
+    gets( t

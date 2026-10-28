@@ -1,0 +1,208 @@
+   PISTOL - Portably Implemented STack Oriented Language
+		       (Version 2.0)
+			     by
+		     Ernest E. Bergmann
+		     Physics, Bldg #16
+		     Lehigh University
+		    Bethlehem, Pa. 18015
+		      (215-) 861-3932
+
+	PISTOL 2.0 is being provided  essentially in the
+public domain, not because it isn't good, but to promote
+interest in "FORTH-like" languages.  It may be reproduced
+and distributed for commercial as well as personal use so
+long as the copyright notice is included. (Emulating the
+FORTH INTEREST GROUP ("FIG"), P.O. Box 1105, San Carlos, Ca.
+94070)
+
+	PISTOL 1.3 was previously released about a year ago
+as SIG/M volume 59 and, also, through the BDS 'C' Users'
+Group.  An article on PISTOL appeared in the February 1983
+issue of Dr. Dobb's Journal.  Additional examples and
+documentation on PISTOL are to be found in the earlier
+release.
+
+	The development of PISTOL is based largely upon STOIC
+(STack Oriented Incremental Compiler) that was developed by the
+MIT and Harvard Bio-engineering Center in 1977.  STOIC is
+readily available from the CP/M User's Group as Volume 23A.
+
+	PISTOL was developed with a different philosophy,
+perhaps, than its predecessors, FORTH and STOIC.  It is my
+belief that FORTH-like languages should be available to users
+of large mainframe machines as well as mini- and micro- users.
+I have concentrated upon the following goals.  User
+friendliness, Portability between machines with different word-
+lengths and machine instruction sets, and KISS ("Keep it simple
+stupid"), free of many of the ideosyncrasies that have
+irritated me with FORTH and, to a lesser degree, STOIC.
+Lastly, I wanted PISTOL to be as self-contained and complete as
+possible (and my endurance!).  Obviously, the result is not as
+chintzy about RAM and file space as its predecessors.
+
+	Before the FORTH enthusiast is discouraged from
+examining this language further, I hasten to add that there are
+a number of simplifications that I have introduced which might
+be worth considering.  I shall now detail some of the ways that
+PISTOL differs from classic FORTH.
+
+	Following the lead of STOIC, PISTOL supports strings as
+a fundamental element of the language.  They are manipulated in
+almost the same manner and ease as numbers.  For example, to
+define a word, "DEMO", FORTH starts off with:
+
+	: DEMO . . .
+
+wheras STOIC and PISTOL start off with:
+
+	'DEMO : . . .
+
+This could be very important if the choice of name is to be
+flexible.  How would one write in FORTH the definition for "3"
+depending upon whether the constant "FRENCH" were true or not?:
+
+FRENCH IF
+	'TROIS
+	ELSE
+	'THREE
+	THEN : 3 ;
+
+	Again, following the lead of STOIC, we compile
+everything into a compile buffer.  Thus there is no interpret
+mode as in FORTH.  This change simplifies the language because
+we don't have to code two distinct modes and provide two
+separate sets of rules.  To illustrate this point:
+
+20 0 DO <whatever> LOOP
+
+would work just fine typed in for immediate execution;  it does
+NOT have to be embedded in a definition!
+
+	We differ from STOIC and early forms of FORTH by
+storing the complete name of each definition.  STOIC, for
+example, saves only the first five letters (and a letter
+count).  We found that it simplifies coding the language
+originally, the variable length of the name might actually
+take no more space, and, most importantly, when we use the
+dissassembler and the trace features of PISTOL, we see the
+full, original names of the words used.
+
+	We have "packaged" PISTOL so that the disassembler,
+trace, and editor are always resident (they probably could be
+removed, but why not enjoy the synergism of the complete
+environment at your fingertips!)
+
+	The prompt is much more informative than in other
+languages.  STOIC started this trend by displaying "nesting
+depth" we have continued this trend by displaying the number of
+elements on the parameter stack when it is not empty.  The
+prompt explicity shows the current number base being used.  If
+the nesting depth is not zero, one sees what one is "nested
+into".  This information is used also for more viligent syntax
+checking.  I have worked with the earlier languages that
+fatally "bomb" with such lines as:
+
+IF . . ;
+
+or
+
+DO . . THEN
+
+	We have been able to remove the "arbitrary" restriction
+that a ": ...;" definition can only be made at level 0.  We can
+and do make extensive use of definitions that are nested inside
+of conditional expressions or, even, inside of other
+definitions!
+
+	We do not support "CODE" definitions in the present
+"vanilla PISTOL".  Here are our justifications:  We wish to
+guarantee portability of source code between widely
+differing machines.  In addition, we wish to maintain our
+goal of user friendliness by being able to disassemble
+virtually everything.  Obviously we depart from STOIC
+particularly on this point, but STOIC is not portable to
+non-8080 compatible machines.
+
+	Because the primitives of PISTOL are defined in some
+high level language, such as PASCAL or C, it is expected that
+additional primitives might be added to the "kernel" as the
+need arose.  For example, in order to increase the speed of
+PISTOL for block move operations in editing we might want to
+replace LDDR, a slow, PISTOL language definition.  On a Z80
+machine there is an obvious machine hardware instruction that
+could be used instead.  One could add this word to the KERNEL
+and "generalize" PBASE be replacing:
+
+'LDDR : . . .
+
+by
+
+'LDDR DUP FIND IF
+		DROP
+	       ELSE
+		: . . .
+	       THEN
+
+	To slightly ameliorate the lack of "CODE" definitions
+we have provided an "inline macro" facility.  If one creates a
+word definition using:
+
+$: . . . ;$
+
+instead of:
+
+: . . . ;
+
+then when the word is invoken the contents of the definition
+are compiled into the compile buffer instead of a "call" to the
+definition.
+
+	A number of conveniences are provided which are not
+common to the "competition".  The crude line editor that is
+provided with PISTOL can be used in a BASIC-like fashion.
+In addition to being able to "LOAD" files, one can "LOAD" the
+edit buffer as well, starting at any particular line number.
+For example:
+
+'MYWORK.PIS LOAD
+
+and
+
+3 LOAD
+
+	There are times when it is nice to record the terminal
+session.  Instead of using a printer one can create a disk file
+that will hold the record:
+
+'XYZ LISTFILE
+LIST ON
+.
+.	<this will be recorded>
+.
+LIST OFF
+.
+.	<this will not>
+.
+LIST ON
+.
+.	<this will>
+etc.
+.
+.
+BYE	<this way of exiting PISTOL will properly close
+	 all files that are openned for writing>
+
+	Undoubtedly, there are other important differences that
+I have not discussed;  I hope that you will give PISTOL a try.
+I would be most pleased to receive you comments, constructive
+criticisms, and questions.
+
+
+					March 3, 1982
+					
+					Ernest E. Bergmann
+ the
+definition.
+
+	A number of conveniences are provided which are not
+com

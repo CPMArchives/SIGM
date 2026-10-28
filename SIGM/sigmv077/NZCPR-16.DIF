@@ -1,0 +1,877 @@
+1,16c 0
+	TITLE	'NZCPR V 1.6 OF 08/03/82'
+;
+;  CP/M Z80 Command Processor Replacement (CPR) Version 1.6 in
+; the NZCPR line.
+;
+;	CCPZ CREATED AND CUSTOMIZED FOR ARIES-II BY RLC
+.
+16c 62983
+;	The following individuals also provided a contribution:
+.
+18a 39299
+;  Since RLC has decided that ZCPR V1.0 is the last official version
+; sanctioned by the CCPZ group, changes beyond that point are being
+; called by consensus of a group of new changers "NZCPR Vx.x". The
+; following individuals have put in their code or opinions:
+;
+;		SBB - Steve Bogolub
+;		PST - Paul Traina
+;		HLB - Howard Booker
+;		CAF - Chuck Forsberg
+;		RAF - Bob Fischer
+;		BB  - Ben Bronson
+;		PRG - Paul Grupp
+;		PJH - Paul Homchick
+;		HEW - Hal Walchli
+;
+;   In an attempt to maintain a link to the past, changes between the
+; current version of NZCPR are provided as both a difference file
+; between NZCPR's (NZ14-16.DIF) and as a difference between the current
+; version and the "official" ZCPR V1.0 (NZCPR-16.DIF).  These changes
+; are made and supported by individuals in contact with each other through
+; the Hyde Park RCPM in Chicago. Make comments or complaints there, to
+; SBB or PST or anyone else interested.
+;
+;   The most obvious differences between NZCPR and ZCPR are the security
+; features, controlled by additional conditional assembly flags. Such
+; features restrict access to ZCPR intrinsic commands, add additional
+; levels of .COM file searching, and prevent access to higher drives
+; or user levels, with either internal or external password control of
+; these features. Less obvious differences involve code optimization to
+; gain space, and some minor bug fixes in the TYPE command.
+.
+67c 8490
+;			PRNNF	CMDTBL
+.
+75c 33828
+;			RESETUSR GETUSR	SETUSR	PAGER	UCASE
+;			NOECHO
+.
+79c 14196
+;			SETUD	SETU0D	REDBUF	CNVBUF	CMDSER
+.
+83d 133
+88c 58521
+;     5D		TYPE
+.
+96a 21695
+;     5M		PASS	NORM
+.
+110a 2189
+;    SECURE -  TRUE to conditionally disable potentially-harmful
+;	       commands (GO, ERA, SAVE, REN, DFU, GET, JUMP). Under
+;	       SECURE, if WHEEL contains RESTRCT, do not accept those
+;	       commands, and search for COM files under current user
+;	       then user "DEFUSR" only. If WHEEL does not contain
+;	       RESTRCT (presumably from passworded change), allow
+;	       all commands, and search current user, then last user
+;	       set by DFU (originally "RESUSR"), then user "DEFUSR"
+;	       for COM files, giving access with password to an
+;	       additional level of COM files.
+;
+;	       (Note: WHEEL must point to a safe place in memory that
+;		won't be overlayed)
+;
+;	If you have chosen a SECURE system,  all resident commands may be
+; activated by entering:  PASS <password> <cr>  Where <password> is a sequence
+; of characters placed at PASSID (if INPASS is true, otherwise, see
+; documentation in PST's PASS.ASM).  If the password is incorrect. the system
+; will come back with PASS? as if it was looking for a COM file.
+;	NORM is the reverse of PASS, it will disable the WHEEL mode.
+;
+;    INPASS -  If in the SECURE mode, you wish to use a program similar
+;	       to PST's PASS.ASM, set this false, otherwise, ZCPR will
+;	       handle the PASSword coding with a built in command.
+;
+;    DRUSER -  Set this EQU false if you wish to disable RAF's neat hack
+;	       that allows you the type B: 7 to move to drive B: user area
+;	       seven.  This also removes the USER command.  Basically, set
+;	       this equate false if you want to use USERPW or some other pgm.
+;
+;    RAS    -  Remote-Access System; setting this equate to TRUE disables
+;	       certain CPR commands that are considered harmful in a Remote-
+;	       Access environment; use under Remote-Access Systems (RBBS) for
+;	       security purposes.  Note: SECURE is the direct enemy of RAS,
+;	       DON'T define both equates or you will be VERY sorry.
+;	       The advantage SECURE has over RAS is that by saying a magic
+;	       word, all of the normal commands pop into existance.
+;
+;    MAXDRIV - Maximum legal drive number stored in this location.
+;	       (0 means only A:, etc.)  0000H disables this feature.
+;	       The value MAXDR is stuffed into MAXDRIV at cold boot,
+;	       and presumably will be changed later by a passworded
+;	       program if desired.
+;
+;	       (This code is in addition to BIOS checks. It's needed here
+;	       because X: can hang if X: is off line in some BIOS
+;	       implementations. Personally, I think CAF and others should fix
+;	       their BIOS instead. Mine works right...SBB).
+;
+;    USRMAX -  Maximum legal user # + 1 stored in this location. 0000H
+;	       disables this feature, and uses the value of MAXUSR+1 instead.
+;
+.
+174,177c 45022
+;    EPRMPT - Set TRUE to be prompted "OK?" after seeing what files will
+;	      be erased. No, this is NOT for individual file prompting,
+;	      it is just to confirm deletion of all selected files at once.
+;
+;  Various individuals keep trying to yank out the TYPE, LIST, and DIR
+; commands, either to use the space for other options or just because
+; they prefer replacement COM files. To these individuals, I (SBB) say
+; keep your paws off these commands. For compatibility with the stock
+; CCP, intrinsic DIR and TYPE commands are required. And many users in
+; MY neighborhood find it more convenient to use the intrinsic LIST
+; command than to have a LIST/PRINT program on every disk. If you want
+; to call a transient program by an intrinsic, then CHANGE THE INTRINSIC
+; NAME IN THE TABLE. Even setting the name to blanks is fine to get
+; rid of it. The point is, don't remove features others may want, just
+; because you disagree, then throw it back in our laps. For those who
+; simply MUST be rid of these commands, the following symbols control
+; generation of the code in a CLEAN ACCEPTABLE fashion that allows
+; others to have these features:
+;
+;    CPRTYP -	Set to TRUE to generate code for intrinsic TYPE command.
+;
+;    WSTYPE -	Set to TRUE to generate an extra three lines of code
+;		to correctly interpret the WordStar (tm) internal
+;		end of line hyphen for display, which is the ASCII
+;		NEWLINE code (1FH) and normally non-printing or
+;		troublemaking -- thanks to PJH for this one. CPRTYP
+;		must be TRUE, or this symbol will be ignored.
+;
+;    CPRLST -	Set to TRUE to generate code for intrinsic LIST command.
+;		Since almost all of the LIST code is common to the
+;		TYPE code, CPRTYP must be set TRUE as well, or this
+;		symbol will be ignored.
+;
+;    CPRDIR -	Set to TRUE to generate code for intrinsic DIR command.
+;		Note that unlike the various directory programs, a
+;		restricted DIR command here allows displaying the names
+;		of SYS file ONLY, so many RCPM operators WANT this code.
+;
+;  Remember, you only get a total of 2048 (0800H) bytes of space for
+; ALL of the generated code, or many other areas of your system
+; generation will be affected. For example, to be fully SECURE, you
+; would set SECURE to TRUE, and define MAXDRIV and USRMAX, and maybe
+; use the internal password by setting INPASS to TRUE (external is
+; MUCH recommended for easier modification). Those options absolutely
+; generate too much code unless either CPRTYP or CPRDIR or both are
+; set FALSE. A system with SECURE set to FALSE is right on the edge,
+; and requires a give and take on options to fit, i.e. you can have
+; MAXDRIV and USRMAX with DIR and TYPE if you leave out LIST and
+; querying on ERASE, and so on.
+;
+***************************************************************************
+** Be careful when playing with different combinations of these equates. **
+** You might not have enough memory to some combinations.  Check this    **
+** if you have problems, if they still persist, gripe to me (PST).       **
+***************************************************************************
+.
+242,244c 54642
+MSIZE	EQU	56	;SIZE OF MEM IN K-BYTES
+BIOSEX	EQU	2	;EXTRA # K-BYTES IN BIOS
+CPRLOC	EQU	3400H+(MSIZE-20-BIOSEX)*1024	;CPR ORIGIN
+.
+248,250c 5792
+; to that value as in the following line:
+;
+;CPRLOC	EQU	0DA00H	;FILL IN WITH BDOSLOC SUPPLIED VALUE
+.
+259,260c 25363
+; CCP in YOUR CP/M system; several systems (Morrow Designs, P&T, Heath
+; Org-0 to name a few) have the CCP located at a non-standard address in
+.
+263,264c 35576
+;CPRR	EQU	0E00H-CPRLOC	;DDT LOAD OFFSET FOR APPLE SOFTCARD 56K
+CPRR	EQU	0980H-CPRLOC	;DDT LOAD OFFSET
+;CPRR	EQU	1600H-CPRLOC	;DDT LOAD OFFSET FOR COMPUPRO DISK-1
+;CPRR	EQU	1100H-CPRLOC	;DDT LOAD OFFSET FOR MORROW DESIGNS
+.
+269a 21005
+			;AND YOU DON'T WANT TO RUN SECURE (FOO...)
+;
+USRMAX	EQU	0000H		;LOCATION OF BYTE IN MEMORY CONTAINING
+				; NUMBER OF HIGHEST ALLOWABLE USER CODE + 1
+				; THIS VALUE IS SET BY CPR ON COLD BOOT,
+				; AND PRESUMABLY CONTROLLED AFTER THAT
+				; BY A PASSWORD PROGRAM. IF USRMAX=0, THEN
+				; MAXUSR BELOW IS USED FOR CHECKING ONLY.
+				; 03FH IS RECOMMENDED IF USED  ***
+MAXUSR	EQU	15		;MAX ALLOWED USER NUMBER, THIS + 1 IS STUFFED
+				; INTO USRMAX ON COLD BOOT, OR USED DIRECTLY
+				; IF USRMAX=0
+;
+MAXDRIV	EQU	0000H	;LOCATION THAT HAS MAX LEGAL DRIVE #
+			;SET IT TO ZERO TO DISABLE THIS CHECK
+			;03DH IS RECOMMENDED IF USED ***
+MAXDR	EQU	1	;MAX DRIVE # TO SET INTO MAXDRIV ON COLD BOOT
+;
+SECURE	EQU	FALSE	;SET TRUE FOR SECURE ENVIRONMENT...
+;
+DEFUSR	EQU	0		;DEFAULT USER FOR UNRESTRICTED COM FILES
+;
+	IF	SECURE
+WHEEL	EQU	3EH	;SET TO "RESTRCT" FOR LIMITED ACCESS
+RESTRCT EQU	0	;WHEN (WHEEL)==RESTRCT, LIMIT COMMANDS
+RESUSR	EQU	15	;CHECK HERE FOR RESTRICTED ACCESS COM FILES (LIKE PIP)
+			; UNTIL CHANGED BY DFU OR WARM BOOT
+	ENDIF	;SECURE
+;
+INPASS	EQU	FALSE	;SET TRUE IF RUNNING SECURE AND NOT PASS.COM
+;
+DRUSER	EQU	TRUE	;TRUE TO ALLOW USER COMMAND AND DRIVE/USER HACK
+;
+EPRMPT	EQU	FALSE	;TRUE TO PROMPT BEFORE ERASING ALL FILES
+;
+CPRTYP	EQU	TRUE	;TRUE TO GENERATE TYPE CODE
+WSTYPE	EQU	TRUE	;TRUE TO GENERATE WORDSTAR HYPHEN CHECK (CPRTYP
+			; MUST BE TRUE TOO)
+CPRLST	EQU	TRUE	;TRUE TO GENERATE LIST CODE (CPRTYP MUST BE TRUE TOO)
+CPRDIR	EQU	TRUE	;TRUE TO GENERATE DIR CODE
+;
+;  ***  Note to Apple Softcard Users  ***
+;
+;  In their infinite (?) wisdom (???), Microsoft decided that the way to
+; get a two-column directory display instead of four-column (narrow 40-col
+; screen, remember) was to have their BIOS poke CCP every time it was
+; loaded, if there was no terminal interface card in I/O slot 3.
+; Naturally, that will turn into a random poke on any non-standard
+; CCP, like this one.  The best way to get this CPR up on the Apple is to
+; load it into CPM56.COM, at location 0E00H in the image.  The BIOS code
+; that pokes the CPR can also be modified at that time.  The poke is done
+; by "STA 0C8B2H", found at 24FEH in the CPM56 image.  To keep this
+; feature, change the 0C8B2H address in that instruction by hand to
+; the value generated for the symbol TWOPOK in the DIR routine.  If
+; you have assembled out the DIR code by setting CPRDIR to FALSE, then
+; disable this feature by changing the "STA" to "LDA", i.e. set the
+; contents of location 24FEH from 32H to 3AH. If you wish to force
+; a two-column display in all cases, set the TWOCOL switch below to a
+; value of TRUE, and disable the poke.
+;
+TWOCOL	EQU	FALSE		;TRUE IF TWO COL DIR INSTEAD OF FOUR
+.
+339a 46920
+;
+.
+346a 11745
+;
+.
+349a 8967
+;
+.
+357a 36504
+;
+.
+361a 37881
+;
+.
+365a 39543
+;
+.
+374c 64501
+SUBA	EQU	TRUE 	; Set to TRUE to have $$$.SUB always on A:
+.
+378,379c 61815
+; command lines.  This is for Command Level 3 of ZCPR.  Under the current
+; ZCPR philosophy, three command levels exist:
+;
+.
+384c 19501
+;	    CIBUFF and setting the character count in CBUFF
+;
+.
+394c 12753
+CLEVEL3	EQU	TRUE		;ENABLE COMMAND LEVEL 3 PROCESSING
+.
+407,408d 22087
+413,414d 41275
+425a 559
+FFEED	EQU	0CH
+BEL	EQU	07H
+.
+529a 11442
+;
+.
+535c 23153
+;
+;    NOTE:  Entry into ZCPR in this way is permitted under this version,
+.
+541,549c 60847
+;
+;    Some user programs (such as SYNONYM3) attempt to use the default
+; command facility.  Under the original CCP, it was necessary to initialize
+; the pointer after the reserved space for the command buffer to point to
+; the first byte of the command buffer.  Under current versions, this is
+; no longer the case.  The CIBPTR (Command Input Buffer PoinTeR) is located
+; to be compatible with such programs (provided they determine the buffer
+; length from the byte at MBUFF [CPRLOC + 6]), but under ZCPR this is
+; no longer necessary, since this buffer pointer is automatically
+; initialized in all cases.
+.
+553,555c 65249
+	JMP	CPR	; Process potential default command, and set
+			; USRMAX to MAXUSR default
+	JMP	CPR1	; Do NOT process potential default command
+;	
+.
+560a 22919
+;
+.
+564,569c 3849
+;
+;	(1) by the user entering it through the BDOS READLN function at
+;	    the du> prompt [user input from keyboard]
+;	(2) by the SUBMIT File Facility placing it there from a $$$.SUB
+;	    file
+;	(3) by an external program or user placing the required command
+;	    into this buffer
+;
+.
+582c 61503
+; to have the command processed.  Again, under the current ZCPR, it is not
+.
+584a 52688
+;
+.
+596c 21830
+	DB	'              '	;DEFAULT (COLD BOOT) COMMAND
+;
+;  The copyright notice from Digital Research is genned into the
+; stock CCP at this location. It should be maintained in ZCPR,
+; since Digital Research grants permission for ZCPR to exist.
+;
+	DB	'  COPYRIGHT (C) 1979, DIGITAL RESEARCH  '
+.
+604a 12391
+	DB	'NZCPR V 1.6 of 08/03/82 ' ;ZCPR ID FOR DISK DUMP
+.
+611c 60170
+	DW	CIBUF		;POINTER TO CURR COMMAND FOR
+				; ERROR REPORTING
+.
+645d 28747
+670,705d 64726
+672c 21646
+; CPR STARTING POINTS.  NOTE THAT SOME CP/M IMPLEMENTATIONS
+; REQUIRE THE COLD START ADDRESS TO BE IN THE STARTING PAGE
+; OF THE CPR, FOR DYNAMIC CCP LOADING.  CMDTBL WAS MOVED FOR
+; THIS REASON.
+;
+; SET USRMAX AND/OR MAXDRIV TO DEFAULT VALUES ON COLD BOOT
+; IF REQUIRED. NOTE THAT SOME BIOS IMPLEMENTATIONS WILL END
+; UP HERE INSTEAD OF AT THE WARM BOOT, DEFEATING PASSWORDING
+; OF THESE OPTIONS. RECOMMEND SUCH A BIOS BE FIXED.
+;
+	IF	USRMAX OR MAXDRIV
+CPR:
+	IF	USRMAX
+	MVI	A,MAXUSR+1	;SET USRMAX ON COLD BOOT
+	STA	USRMAX
+	ENDIF	;USRMAX
+;
+	IF	MAXDRIV
+	MVI	A,MAXDR		;SET MAXDRIV ON COLD BOOT
+	STA	MAXDRIV
+	ENDIF	;MAXDRIV
+;
+	JR	CPR2		; THEN PROCEED
+	ENDIF	;USRMAX OR MAXDRIV
+.
+711c 52498
+	IF	USRMAX OR MAXDRIV
+CPR2:
+	ELSE
+CPR:
+	ENDIF	;USRMAX OR MAXDRIV
+;
+.
+836a 62900
+; CPR BUILT-IN COMMAND TABLE
+;
+NCHARS	EQU	4		;NUMBER OF CHARS/COMMAND
+;
+; CPR COMMAND NAME TABLE
+;   EACH TABLE ENTRY IS COMPOSED OF THE 4-BYTE COMMAND AND 2-BYTE ADDRESS
+;
+CMDTBL:
+;
+	IF	INPASS AND SECURE
+	DB	'PASS'			;ENABLE WHEEL (SYSOP) MODE
+	DW	PASS
+	ENDIF	;INPASS AND SECURE
+;
+	IF	DRUSER
+	DB	'USER'			;CHANGE USER AREAS
+	DW	USER
+	ENDIF	;DRUSER
+;
+	IF	CPRTYP
+	DB	'TYPE'			;TYPE A FILE TO CON:
+	DW	TYPE
+	ENDIF	;CPRTYP
+;
+	IF	CPRDIR
+	DB	'DIR '			;PULL A DIRECTORY OF DISK FILES
+	DW	DIR
+	ENDIF	;CPRDIR
+
+NRCMDS	EQU	($-CMDTBL)/(NCHARS+2)	;PUT ANY COMMANDS THAT ARE OK TO
+					;RUN WHEN NOT UNDER WHEEL MODE
+					;IN FRONT OF THIS LABEL
+	IF	CPRLST AND CPRTYP
+	DB	'LIST'			;LIST FILE TO PRINTER
+	DW	LIST
+	ENDIF	;CPRLST AND CPRTYP
+;
+	IF	INPASS AND SECURE
+	DB	'NORM'			;DISABLE WHEEL MODE
+	DW	NORM
+	ENDIF	;INPASS AND SECURE
+;
+	IF	NOT RAS		;FOR NON-RAS
+	DB	'GO  '			;JUMP TO 100H
+	DW	GO
+	DB	'ERA '			;ERASE FILE
+	DW	ERA
+	DB	'SAVE'			;SAVE MEMORY IMAGE TO DISK
+	DW	SAVE
+	DB	'REN '			;RENAME FILE
+	DW	REN
+	DB	'DFU '			;SET DEFAULT USER
+	DW	DFU
+	DB	'GET '			;LOAD FILE INTO MEMORY
+	DW	GET
+	DB	'JUMP'			;JUMP TO LOCATION IN MEMORY
+	DW	JUMP
+	ENDIF	;RAS
+;
+NCMNDS	EQU	($-CMDTBL)/(NCHARS+2)
+;
+.
+914a 51203
+	ANI	7FH	;PREVENT INADVERTANT GRAPHIC OUTPUT
+			; TO EPSON-TYPE PRINTERS
+.
+927,929c 34082
+;
+; CONVERT CHAR IN A TO UPPER CASE
+;
+UCASE:
+	CPI	61H		;LOWER-CASE A
+	RC
+	CPI	7BH		;GREATER THAN LOWER-CASE Z?
+	RNC
+	ANI	5FH		;CAPITALIZE
+	RET
+;
+NOECHO:
+	PUSH	D	;SAVE D
+	MVI	C,6	;DIRECT CONSOLE I/O
+	MVI	E,0FFH	;INPUT
+	CALL	BDOSB
+	POP	D
+	ORA	A	;DID WE GET A CHAR?
+	JRZ	NOECHO	;WAIT FOR IT IF NOT, IT'S EXPECTED
+	RET
+;
+	IF	CPRTYP
+LCOUT:
+	ENDIF	;CPRTYP
+;
+	IF	CPRTYP AND CPRLST
+.
+967a 17482
+	ENDIF	;CPRTYP AND CPRLST
+;
+	IF	CPRTYP
+.
+975,976c 15925
+	RNZ			;DONE IF NOT EOL YET
+;
+;  COUNT DOWN LINES AND PAUSE FOR INPUT (DIRECT) IF COUNT EXPIRES
+;
+	PUSH	H
+	LXI	H,PAGCNT	;COUNT DOWN
+	DCR	M
+	JRNZ	PGBAK		;JUMP IF NOT END OF PAGE
+	MVI	M,NLINES-2	;REFILL COUNTER
+;
+PGFLG	EQU	$+1		;POINTER TO IN-THE-CODE BUFFER PGFLG
+	MVI	A,0		;0 MAY BE CHANGED BY PGFLG EQUATE
+	CPI	PGDFLG		;PAGE DEFAULT OVERRIDE OPTION WANTED?
+;
+	IF	PGDFLT		;IF PAGING IS DEFAULT
+	JRZ	PGBAK		;  PGDFLG MEANS NO PAGING, PLEASE
+	ELSE			;IF PAGING NOT DEFAULT
+	JRNZ	PGBAK		;  PGDFLG MEANS PLEASE PAGINATE
+	ENDIF
+;
+	CALL	NOECHO		;GET CHAR BUT DON'T ECHO TO SCREEN
+	CPI	'C'-'@' 	;^C
+	JZ	RSTCPR		;RESTART CPR
+PGBAK:
+	POP	H		;RESTORE HL
+	RET
+	ENDIF	;CPRTYP
+.
+1017c 57438
+; PRINT STRING ENDING WITH ZERO BYTE OR CHAR WITH HIGH BIT SET
+; PT'ED TO BY RET ADDR, START WITH <CR><LF>
+.
+1033c 30039
+; PRINT STRING ENDING WITH ZERO BYTE OR CHAR WITH HIGH BIT SET
+; PT'ED TO BY HL
+.
+1069c 20763
+	MOV	E,A		;MOVE DESIRED # TO BDOS REG
+;
+	IF	MAXDRIV
+	LDA	MAXDRIV		;CHECK FOR LEGAL DRIVE #
+	CMP	E
+	JC	ERROR		;DON'T DO IT IF TOO HIGH
+	ENDIF	;MAXDRIV
+;
+.
+1161,1170d 5475
+1258,1261c 39484
+USRNUM:		
+	CALL	NUMBER
+;
+	IF	USRMAX
+	LXI	H,USRMAX ;PT TO MAXUSR + 1
+	CMP	M	;NEW VALUE ALLOWED?
+	ELSE
+	CPI	MAXUSR+1 ;NEW VALUE ALLOWED?
+	ENDIF	;USRMAX
+;
+	RC		;RETURN TO CALLER IF SO,
+			; ELSE FLAG AS ERROR
+.
+1619a 52360
+;
+	IF	SECURE
+	MVI	C,NRCMDS
+	LDA	WHEEL		;SEE IF NON-RESTRCTED
+	CPI	RESTRCT
+	JRZ	CMS1		;PASS IF RESTRCTED
+	ENDIF	;SECURE
+;
+.
+1665a 35033
+	IF	CPRDIR
+;
+.
+1698,1699c 62053
+	ENDIF	;CPRDIR
+;
+; DIRECTORY PRINT ROUTINE; ON ENTRY, MSB OF A IS 1 (80H) IF SYSTEM FILES
+; EXCLUDED. THIS ROUTINE IS ALSO USED BY ERA.
+.
+1734c 52533
+;
+	IF	TWOCOL
+	ANI	01H		;OUTPUT <CRLF> IF 2 ENTRIES PRINTED IN LINE
+	ENDIF	;TWOCOL
+;
+	IF	NOT TWOCOL
+TWOPOK	EQU	$+1		;FOR APPLE PATCHING
+	ANI	03H		;OUTPUT <CRLF> IF 4 ENTRIES PRINTED IN LINE
+	ENDIF	;NOT TWOCOL
+;
+.
+1829a 52815
+ERARJ:
+.
+1838,1840c 59149
+;
+	IF	EPRMPT
+;
+;  QUERY USER AFTER FILES ARE SEEN, AND GIVE ONE LAST CHANCE TO BACK OUT
+;
+	MOV	A,E		;HOW MANY FILES DISPLAYED?
+	ORA	A
+	JZ	RESTRT		;IF NONE, DON'T ASK OR DELETE
+	CALL	PRINTC		;PROMPT
+	DB	'Ok','?'+80H
+	CALL	CONIN		;GET REPLY FOLDED
+	CPI	'Y'		;YES?
+	JRNZ	ERARJ		;GET OUT IF NOT
+	ENDIF	;EPRMPT
+;
+	LXI	D,FCBDN 	;DELETE FILE(S) SPECIFIED
+	JMP	DELETE		;RESTART CPR AFTER DELETE
+.
+1863a 59255
+	IF	CPRLST
+.
+1867a 43830
+	ENDIF	;CPRLST
+.
+1877c 16742
+	IF	CPRTYP
+TYPE:
+	ENDIF	;CPRTYP
+;
+	IF	CPRTYP AND CPRLST
+.
+1887a 53321
+	ENDIF	;CPRTYP AND CPRLST
+;
+	IF	CPRTYP
+.
+1931,1943c 54106
+	IF	WSTYPE		;WORDSTAR HYPHEN CHECK
+	CPI	1FH		;IS CHAR WORDSTAR EOL HYPHEN?
+	JRNZ	NOHYPH		;PASS IF NOT
+	MVI	A,'-'		;YES, MAKE IT A REAL HYPHEN
+NOHYPH:
+	ENDIF	;WSTYPE
+;
+	CPI	' '		;IS CHAR CONTROL CODE?
+	JRNC	PRT		;GO BOP CHAR COUNT AND PRINT IF NOT
+	CPI	CR		;IS CHAR A CR?
+	JRZ	YESCR		;IF SO, GO ZERO B THEN PRINT
+	CPI	FFEED		;FORM FEED?
+	JRZ	YESCR		;MANY PRINTERS RETURN CARRIAGE ON THIS
+	CPI	LF		;LINE FEED?
+	JRZ	NOBOP		;PRINT, BUT DON'T BOP B
+	CPI	BEL		;BELL?
+	JRZ	NOBOP		;GO RING BUT DON'T BOP B
+	CPI	TAB		;TAB?
+	JRNZ	TYPE2L		;IF NOT, NO OTHER CHOICES, TOSS CONTROL
+.
+1956a 12864
+	JR	TYPE2L
+;
+YESCR:	MVI	B,0FFH		;COMBINE WITH INC BELOW TO GET ZERO
+;
+PRT:	INR	B		;INCREMENT CHAR COUNT
+NOBOP:	CALL	LCOUT		;PRINT IT
+.
+1965a 58295
+;
+.
+1978,2005c 23034
+	ENDIF	;CPRTYP
+.
+2030,2031c 65371
+	JRZ	SAVE1		;CONTINUE IF NO WRITE ERROR
+	JR	PRNLE		;GO PRINT ERROR AND RESET DMA
+.
+2036,2041c 64352
+	JRNZ	SAVE3		;PASS IF OK
+;
+;  PRNLE IS ALSO USED BY MEMLOAD FOR TPA FULL ERROR
+;
+PRNLE:	CALL	PRINTC		;DISK OR MEM FULL
+	DB	'Ful','l'+80H
+;
+SAVE3:	JMP	DEFDMA		;SET DMA TO 0080 AND RESTART CPR
+				; OR RETURN TO MLERR
+.
+2062c 7499
+	JNZ	RSTCPR		;RESTART IF NO, SP RESET EVENTUALLY
+.
+2126a 24593
+	IF	DRUSER		;IF DRIVE/USER CODE OK...
+.
+2131c 54641
+SUSER:	CALL	SETUSR		;SET SPECIFIED USER
+	ENDIF	;DRUSER
+.
+2139a 40238
+;	    Note: When under SECURE mode, this will select the second
+;	          user area to check for programs (normally user 15).
+;
+.
+2145a 41253
+	IF	NOT RAS		;NOT FOR REMOTE-ACCESS SYSTEM
+.
+2150a 26118
+	ENDIF	;NOT RAS
+.
+2170a 18976
+
+.
+2203a 47073
+;
+	IF	DRUSER		;DRIVE/USER HACKERY OK?
+	CALL	USRNUM		;GET USER #, IF ANY
+	MOV	E,A		;GET IT READY FOR BDOS
+	LDA	FCBFN		;SEE IF # SPECIFIED
+	CPI	' '
+	JRNZ	SUSER		;SELECT IF WANTED
+	ENDIF	;DRUSER
+;
+.
+2225,2226c 31871
+				; (NO RETURN IF ERROR OR TOO BIG)
+	POP	H		;GET EXECUTION ADDRESS
+.
+2229c 63411
+;   PROGRAM. ON ENTRY TO THIS ROUTINE, HL MUST CONTAIN THE EXECUTION
+.
+2251,2252c 61896
+	LXI	H,CIBUFF-1
+COM4:
+	INX	H
+.
+2258,2260c 1077
+	JRNZ	COM4
+.
+2263,2265c 10994
+	MVI	B,-1		;SET CHAR COUNT
+	LXI	D,TBUFF		;PT TO CHAR POS
+	DCX	H
+COM6:
+	INR	B		;INCR CHAR COUNT
+	INX	H		;PT TO NEXT
+	INX	D
+.
+2273,2277c 55943
+	JRNZ	COM6
+.
+2294,2304d 10203
+2308c 20373
+	JNZ	ERROR		;MUST BE UNAMBIGUOUS
+.
+2317,2330c 11336
+;  EXIT BACK TO CALLER IF NO ERROR.  IF COM FILE TOO BIG OR
+; OTHER ERROR, EXIT DIRECTLY TO MLERR.
+;
+MEMLOAD:
+.
+2335,2336c 8949
+	IF	SECURE
+;
+;  IF SECURE ENABLED, SEARCH CURRENT DRIVE, CURRENT USER, THEN
+; IF IN WHEEL MODE, SEARCH UNDER LAST USER SET BY DFU (ORIG
+; "RESUSR" AFTER WARM BOOT) ON CURRENT DRIVE. IF NOT FOUND, OR
+; NOT IN WHEEL MODE, THEN SEARCH ON CURRENT DRIVE, UNDER USER
+; "DEFUSR". IF STILL NOT FOUND, LOOK AT SAME SERIES OF USERS
+; ON DRIVE A.
+;
+DFLAG	EQU	$+1		;MARK IN-THE-CODE VARIABLE
+	MVI	A,0		;HAVE WE CHECKED THIS DRIVE ALREADY?
+	ORA	A
+	JRNZ	MLA0		;PASS IF SO TO GO TO DRIVE A:
+	LDA	WHEEL		;RESTRICTED PROGS ALLOWED?
+	CPI	RESTRCT
+	JRZ	MLA00		;PASS IF NOT
+	PUSH	B		;PUSH BC
+	LDA	DFUSR		;LOAD DEFAULT USER
+	MOV	B,A		;PUT IT IN B
+	LDA	TSELUSR		;CHECK CURR USER
+DFUSR	EQU	$+1		;DEFAULT USER LOCATION
+	CPI	RESUSR		;RESTRICTED USER?
+	MOV	A,B		;ASSUME NOT
+	POP	B		;RESTORE BC
+	JRNZ	SETTSE		;GO TRY IF NOT
+MLA00:				;SS IF NOT
+TSELUSR	EQU	$+1		;MARK IN-THE-CODE VARIABLE
+	MVI	A,0		;GET CURR USER
+	SUI	DEFUSR		;IS IT UNRESTRICTED COM AREA?
+	JRZ	MLA0		;NO MORE CHOICES IF SO
+	STA	DFLAG		;MAKE DFLAG NON-ZERO IF NOT
+	MVI	A,DEFUSR	; AND TRY UNRESTRICTED COM AREA
+SETTSE:
+	ENDIF	;SECURE
+;
+	IF	NOT SECURE
+.
+2374,2376c 298
+	CPI	DEFUSR		;CHECK FOR THE USER AREA..
+	JRZ	MLA0		;..EQUAL DEFAULT, AND JUMP IF SO
+	ENDIF	;NOT SECURE
+;
+	STA	TSELUSR		;PUT DOWN NEW ONE
+.
+2388,2391c 8245
+;
+	IF	SECURE
+	STA	DFLAG		;ALLOW A: SEARCH
+	ENDIF	;SECURE
+;
+	ORA	M
+	JNZ	MLERR		;ERROR IF ALREADY DISK A:
+	MVI	M,1		;SELECT DRIVE A:
+;
+	IF	NOT SECURE
+	JR	MLA
+	ENDIF	;NOT SECURE
+;
+	IF	SECURE
+	LDA	TMPUSR		;GO TO 'CURRENT' USER CODE
+	JR	SETTSE
+	ENDIF	;SECURE
+.
+2409,2410c 6646
+LOADADR	EQU	$+1
+	LXI	H,TPA
+.
+2414c 12366
+	JRC	ML4		;ERROR IF SO
+.
+2428,2437c 63695
+	JZ	RESETUSR	;IF ZERO, OK, GO RESET CORRECT USER #
+				; ON WAY OUT, ELSE FALL THRU TO PRNLE
+;
+;  TPA FULL
+;
+ML4:	CALL	PRNLE		;PRINT MSG AND RESET DEF DMA
+;
+; TRANSIENT LOAD ERROR
+;
+MLERR:
+		;NOTE THAT THERE IS AN EXTRA RETURN ADDRESS ON
+		; THE STACK.  IT WILL BE TOSSED WHEN ERROR EXITS
+		; TO RESTRT, WHICH RELOADS SP.
+	CALL	RESETUSR	;RESET CURRENT USER NUMBER
+				;  RESET MUST BE DONE BEFORE LOGIN
+ERRLOG:
+	CALL	DLOGIN		;LOG IN DEFAULT DISK
+	JMP	ERROR		;FLAG ERROR
+;
+;
+;Section: 5M
+;PASS:  Enable wheel mode.
+;NORM:	Disable wheel mode.
+;
+;  Type PASS <password> <cr> to CP/M prompt to enter wheel mode.
+; This code can be replaced with PST's PASS.ASM which gives many
+; nice little options like no keyboard echo, etc.
+;
+	IF	INPASS		;WE WANT TO USE THIS CODE, NOT PASS.COM
+PASS:
+	LXI	H,PASSWD		;SET UP POINTERS
+	LXI	D,CIBUFF+NCHARS+1
+	MVI	B,PRGEND-PASSWD		;B= LENGTH
+CKPASS:	LDAX	D		;TRIAL PW TO A
+	CMP	M		;CHECK FOR MATCH
+	JNZ	COM		;NOPE.. LOOK FOR PASS.COM
+	INX	H		;INCREMENT COUNTER
+	INX	D
+	DJNZ	CKPASS		;CONTINUE IF MORE
+	MVI	A,NOT RESTRCT	;WHEEL = NOT RESTRCT
+
+PWOUT:	STA	WHEEL
+	JMP	RESTRT
+;
+NORM:
+	MVI	A,RESTRCT
+	JR	PWOUT
+;
+PASSWD:
+	DB	'YOURPW'		;YOUR PASSWORD
+PRGEND:	EQU	$			;END OF PASSWORD
+;
+	ENDIF	;INPASS
+.
+$a 64465
+.
+ WILL BE TOSSED WHEN ERROR EXITS
+		; TO RESTRT, WHICH RELOADS SP.
+	CALL	RESETUSR	;RESET CURRENT USER NUMBER
+				;  RESET MUS

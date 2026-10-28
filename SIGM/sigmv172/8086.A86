@@ -1,0 +1,874 @@
+;This is a simple monitor for an 8086 board
+;It is based on the simple monitor in Byte on Nov 1980 but has been enlarged
+;to have a few extra fetures.  In my system it is in ROM at 0ff800h so that a
+;reset will go to the end of this monitor 0ffff0h and decide if a jump to
+;low ram is req or monitor commands.  The references to a z80 are the z80 
+;board (MASTER/s100) which transferrs control to the 8086 (SLAVE/z80). 
+;Look at the end of this program for the menue and more details
+;
+;		John Monahan		(201) 779- 0635
+;
+ff	equ	0ch
+lf	equ	0ah
+cr	equ	0dh
+bs	equ	0bh
+esc	equ	1bh		;ESC character to abort a command
+bell	equ	07h
+tab	equ	09h
+
+IOBYTE	EQU	0FFH		;IOBYTE (SEE BELOW)
+SDSTAT	EQU	0H		;crt out status port
+SDDATA	EQU	1H		;crt out data port
+KEYSTAT	EQU	0H		;keyboard in status port
+KEYIN	EQU	1H		;keyboard in
+CENTSTAT EQU	5H		;printer status
+CENTOUT	EQU	5H		;printer data
+CENTSTROBE EQU	4H		;strobe for printer
+;
+;	THE FOLLOWING IS FOR RAM STORAGE (YOU CAN PUT IT ANYWHERE)
+flag	equ	0Df9fh		;--- a byte for flag storage in ram
+stackp	equ	0Df9eh		;--- NOTE this is where the stack will start
+				;    the SS will be set to 0h. so 0000:df9eh
+;----------------------------------------------------------------------------
+
+
+	cseg	0F000H		;USE 0000 FOR TESTING PURPOSES WITH PDD.COM
+	org	0F800H		
+
+	pagesize	72
+	pagewidth	132
+;
+begin:	jmp	init			;reset all registrars
+	jmp	ci			;console input
+	jmp	ri			;reader outputr
+conout:	jmp	co			;console output
+	jmp	poo			;punch output
+	jmp	lo			;printer output
+keystaa:jmp	csts			;consol status
+conin:	jmp	cico			;console in with echo
+	jmp	lstat			;printer status
+	jmp	start			;warm start
+;
+;
+init:	cld				;set direction up
+	cli				;disabel interrupts
+	mov	ax,cs			;note cs will be 0f000h
+	mov	ds,ax
+	mov	es,ax
+	mov	ax,0			;must put stack in RAM
+	mov	ss,ax
+	mov	sp,stackp		;<----MUST point to a RAM area
+	mov	bx,(offset SIGNON)
+	call	print
+;
+start:	mov	ax,0
+	mov	ss:.flag,al		;flag used by some routines
+	mov	ax,cs
+	mov	ds,ax			;set ds & es for messages
+	mov	es,ax			;NOTE DS: WILL BE USED FOR ALL MSGS
+	call	crlf			;WITH THIS MONITOR
+	mov	cl,'>'
+	call	conout
+	mov	cl,07h
+	call	conout
+;
+mainloop: call	conin			;get a command
+	mov	ah,0
+	cmp	al,'A'
+	jb	start			;must be A to Z
+	cmp	al,'Z'
+	jg	start
+	sub	al,'A'			;calculate offset
+	shl	al,1			;X 2
+	add	ax,Offset ctable
+	mov	bx,ax
+	mov	ax, [bx]		;get location of routine
+	call	ax
+	jmp	start			;finished 
+;
+;
+fill:	call	setup			;if > 64k segment will be in ds:
+	call	clength
+	push	ds			;because ds is destroyed by getparmal
+	call	getparmal
+	pop	ds
+floop:	mov	[bx],al			;note this is ds:[bx]
+	inc	bx
+	loop	floop
+	ret
+;
+;
+verify:	call	setup
+	push	ds			;save it for below
+	call	clength
+	inc	cx
+	mov	si,bx
+	push	cx
+	mov	cx,0ffffh
+	call	getparmb		;ds has segment info
+	pop	cx
+	mov	ax,ds
+	mov	es,ax
+	pop	ds			;now ds and es are set correctly
+	mov	di,bx
+	call	crlf
+vloop:	
+   repe	cmps	Byte Ptr [di],Byte Ptr [si]
+	cmp	cx,0
+	jne	verr
+	ret
+;
+verr:	push	ds			;must relocate ds
+	mov	ax,cs
+	mov	ds,ax
+	cmp	ss:byte ptr .flag, 0ffh		;flag for heading done
+	jz	verr1
+	mov	ss:byte ptr .flag, 0ffh		;so next time indicates done
+	mov	bx, Offset vhead
+	call	print
+verr1:	pop	ds			;get back ds
+	mov	bx,si
+	dec	bx
+	call	outadd
+	mov	al,[bx]
+	mov	dh,al			;store ah in dh
+	call	hexout
+	call	blank
+	call	blank
+	mov	bx,di
+	dec	bx
+	call	outadd1
+	mov	al,es:[bx]
+	push	ax
+	call	hexout
+	call	blank
+	pop	ax
+	xor	al,dh			;store from above
+	call	binout
+	call	ctlchek
+	jmp	vloop
+;
+;
+move:	call	setup
+	push	ds			;save ds
+	cmp	al,cr
+	jnz	m1
+	jmp	err
+m1:	call	clength
+	push	bx			;save bx
+	call	setup
+	mov	ax,ds
+	mov	es,ax			
+	mov	di,bx
+	pop	bx			;now get back bx
+	pop	ds			;now get back ds
+	mov	si,bx
+  rep	movs	Byte Ptr [di], byte Ptr [si]
+	ret
+;
+;
+dump:	call	setup
+	and	bl,0f0h			;even up printout
+	or	dl,0fh			;also nice ending for Ray G.
+	call	clength
+	call	outadd			;send start address
+dloop1:	mov	al,ds:[bx]
+	call	hexout
+	call	blank
+	mov	al,bl			;test 16 byte boundry
+	and	al,0fh
+	cmp	al,0fh
+	jnz	dnext
+notfst:	push	cx			;now print ascii
+	push	bx
+	push	dx
+	mov	cx,8			;first send 8 spaces
+	call	tabs
+	sub	bx,000fh		;drop back 16 places
+	mov	dl,16
+dloop2:	mov	al,ds:[bx]
+	and	al,7fh
+	cmp	al,' '			;filter out control characters
+	jnc	dloop3
+dloop4:	mov	al,'.'
+dloop3:	cmp	al,'~'
+	jnc	dloop4
+	mov	cl,al
+	call	conout
+	inc	bx
+	dec	dl
+	jnz	dloop2
+	pop	dx
+	pop	bx
+	pop	cx
+	inc	bx
+	call	outadd
+	jmp	dump1
+;
+dnext:	inc	bx			
+dump1:	loop	dloop1
+	ret
+;
+;
+query:	call	conin			;is it input or output
+	cmp	al,'I'
+	jz	input
+	cmp	al,'O'
+	jz	output
+	jmp	err			;if not QI or QO then error
+input:	push	ds			;ds is altered by setup
+	call	setup
+	pop	ds
+	call	crlf
+	mov	dx,bx
+	in	al,dx
+	push	ax
+	call	hexout
+	call	blank
+	pop	ax
+	call	binout
+	ret
+;
+;
+output:	push	ds		;play safe 
+	call	setup
+	pop	ds
+	mov	al,dl
+	mov	dx,bx
+	out	dx,al
+	ret
+;
+;
+goto:	push	ds
+	call	setup
+	pop	ds
+	jmp	bx
+;
+;
+hexmath:push	ds
+	call	setup
+	pop	ds
+	push	bx		;save data for the moment
+	push	dx
+	call	crlf
+	mov	bx, offset mhead
+	call	print
+	call	crlf
+	pop	dx		;get back data
+	pop	bx
+	push	bx		;save them again for below
+	push	dx
+	add	bx,dx
+	call	outbx	
+	mov	cx,2		;skip over 2 spaces
+	call	tabs
+	pop	dx		;get back data one more time
+	pop	bx
+	sub	bx,dx
+	call	outbx
+	ret
+;
+;
+ntest:	call	setup
+	call	clength
+	call	crlf
+mtest1:	push	bx
+	push	cx
+mtloop:	mov	al,ds:[bx]
+	mov	ah,al
+	not	al
+	mov	ds:[bx],al
+	mov	al,ds:[bx]
+	not	al
+	cmp	al,ah
+	jne	terr
+	mov	ds:[bx],ah
+tnext:	inc	bx
+	call	ctlchek
+	loop	mtloop
+	pop	cx
+	pop	bx
+	jmp	mtest1			;test for ever
+;
+terr:	mov	dx,ax			;save data in dx
+	call	outadd
+	mov	ax,dx			;get back data
+	xor	al,ah			;identify bits
+	mov	dx,ax
+	call	hexout
+	call	blank
+	mov	ax,dx
+	call	binout
+	jmp	tnext
+;
+;
+esubst:	call	setup
+nusloop: call	outadd
+	mov	cx,8
+sloop:	call	blank
+	mov	al,ds:[bx]
+	push	cx
+	push	bx
+	push	ax
+	call	hexout
+	mov	cl,'-'
+	call	conout
+	pop	ax
+	pop	bx
+	pop	cx
+	push	ds			;is messed up by getparmal
+	call	getparmal
+	pop	ds
+	cmp	ah,cr
+	je	qtest
+	cmp	ah,' '			;is a skip reqs
+	jne	snext1
+snext:	mov	ds:[bx],al
+snext1:	inc	bx
+	loop	sloop
+	jmp	nusloop
+qtest:	ret
+;
+;
+dispas:	call	setup
+	and	bl,0f0h			;even up printout
+	or	dl,0fh			;also nice ending for Ray G.
+	call	clength			;length in cx
+	call	outadd			;send start address
+aloop1:	mov	dl,64			;dx no longer needed
+	push	cx			;put length on stack
+aloop2:	mov	al,ds:[bx]
+	and	al,7fh
+	cmp	al,' '			;filter out control characters
+	jnc	aloop3
+aloop4:	mov	al,'.'
+aloop3:	cmp	al,'~'
+	jnc	aloop4
+	mov	cl,al
+	call	conout
+	inc	bx
+	dec	dl
+	jnz	aloop2
+	call	outadd
+	pop	cx			;get back length (was on stack)
+	sub	cx,64
+	jnc	aloop1
+	ret
+;
+;
+map:	call	crlf
+	mov	ax,0
+	mov	ds,ax			;must start in first segment
+	mov	dl,64			;character count
+	mov	dh,4			;segment counter(4 lines per segment)
+	mov	bx,ax			;need to reset bx (ds = 0 already)
+	call	outadd			;start with address
+map1:	mov	ax,[bx]			;remember ds is assumed 
+	not	ax			;complement data
+	mov	[bx],ax
+	cmp	ax,[bx]			;did it change
+	jne	not_ram
+	not	ax			;correct data
+	mov	[bx],ax
+	mov	cl,'R'
+	jmp	nextbk			;get next block
+;
+not_ram:cmp	ax,0			;ffff->0  must be rom if not 0
+	jne	prom
+	mov	cl,'.'			;no need to correct data for here
+	jmp	nextbk			;get next block
+;
+prom:	mov	cl,'p'
+;
+nextbk:	call	conout			;send the R,P or "."
+	inc	bh			;move 1000h at a time
+	dec	dl
+	jnz	noline
+	mov	dl,64			;reset counter for next line
+	dec	dh			;segment counter
+	jnz	noseg
+	mov	ax,ds
+	add	ax,1000h
+	jc	mapdone
+	mov	ds,ax
+	mov	dh,4
+noseg:	call	outadd
+noline:	jmp	map1
+mapdone: ret
+;
+;	Note this is dependent on my system you can ignore
+;
+Z80:	in	al,0fdh			;this switches control over to Z80
+	nop
+	nop
+	nop
+	nop
+	nop
+	DB	0EAH,0F0H,0FFH,00H,0F0H	;next time will start here
+;
+;
+;------------------------ SUPPORT ROUTINES ---------------------------
+;
+;   ROUTINE TO PRINT A STRING   BX = START OF STRING  $ = FINISH
+;
+print:	push	cx
+print1:	mov	al, [bx]	
+	inc	bx
+	cmp	al,'$'
+	jnz	print2
+	pop	cx
+	ret
+print2:	mov	cl,al
+	call	conout
+	jmp	print1
+;
+;	CHECK FOR ^S or ESC  AT CONSOL
+ctlchek: call	keystaa
+	cmp	al,0
+	jz	ctlexit
+	call	conin
+	cmp	al,'S'-40h
+	jnz	ctlcchek		;possibly ^C
+wait:	call	csts
+	cmp	al,0
+	jz	wait
+	ret
+ctlcchek: cmp	al,esc
+	jz	err
+ctlexit: ret
+;
+;	SEND CRLF
+crlf:	push	cx
+	call	ctlchek
+	mov	cl,cr
+	call	conout
+	mov	cl,lf
+	call	conout
+	pop	cx
+	ret
+;
+;	PRINT A BLANK SPACE
+blank:	push	cx
+	mov	cx,1
+	call	tabs
+	pop	cx
+	ret
+;
+;	TABS			;[cx] = no of spaces
+tabs:	push	cx
+	mov	cl,' '
+	call	conout
+	pop	cx
+	loop	tabs
+	ret
+;
+;	ERROR ABORT ROUTINE
+err:	mov	cl,'*'
+	call	conout
+	mov	sp,stackp
+	jmp	start
+;
+;	BINARY OUTPUT		;send what is in [al]
+binout:	push	cx
+	mov	cx,8
+binout1: push	cx
+	shl	al,1
+	jb	bout1
+	mov	cl,'0'
+	push	ax
+	call	conout
+	pop	ax
+	jmp	binend
+bout1:	mov	cl,'1'
+	push	ax
+	call	conout
+	pop	ax
+binend:	pop	cx
+	loop	binout1
+	pop	cx
+	ret
+;
+;	HEXOUT			;output the 2 hex digits in [al]
+hexout:	push	cx
+	push	ax
+	mov	cl,4		;first isolate low nibble
+	shr	al,cl
+	call	hexdigout
+	pop	ax
+	call	hexdigout	;get upper nibble
+	pop	cx
+	ret
+;
+hexdigout: and	al,0fh		;convert nibble to ascii
+	add	al,90h
+	daa
+	adc	al,40h
+	daa
+	mov	cl,al
+	call	conout
+	ret
+;
+;	HEXCHK			;check for a valid HEX DIGIT
+hexchk:	sub	al,'0'		;convert to binary if ok set carry if problem
+	jb	hret
+	cmp	al,0ah
+	cmc	
+	jnb	hret
+	sub	al,7
+	cmp	al,10
+	jb	hret
+	cmp	al,16
+	cmc
+hret:	ret
+;
+;	GETPARMB		;get 20 bit parameter 16 bit value to bx. 
+getparmb: mov	bx,0		;if 5 digits first to ds upper nibble
+loopb:	call	conin
+	cmp	al,'0'		;alphanumeric?
+	jb	bexit
+	push	cx
+	push	bx		;force the highest nibble to ds:
+	and	bx,0f000h
+	mov	ds,bx
+	pop	bx
+	mov	cl,4
+	shl	bx,cl		;shift in last addition
+	pop	cx
+	call	hexchk		;convert to binary and check it
+	jb	err
+	add	bl,al
+	loop	loopb
+	ret
+;
+bexit:	cmp	al,' '		;terminate with a sp or cr only
+	je	bgood
+	cmp	al,','
+	je	bgood
+	cmp	al,cr
+	je	bgood
+	jmp	err
+bgood:	mov	ah,al		;save terminator
+	ret
+;
+;
+;	SETUP			;get parameters in bx & dx (cx not altered)
+setup:	push	cx		;bx = dx if only one parameter
+	mov	cx,0ffffh
+	call	getparmb
+	cmp	ah,cr
+	je	set1
+	push	ds		;save first ds
+	mov	dx,bx		;store bx in dx for the moment
+	call	getparmb
+	xchg	bx,dx		;set them in the right order
+	mov	ax,ds		;save second ds
+	pop	cx		;get back first ds put it in cx
+	cmp	ax,cx
+	jz	set2
+	jmp	err
+set1:	mov	dx,bx
+set2:	pop	cx
+	ret
+;
+;	CLENGTH			;cx = (dx-bx)+1	if bx>dx err
+clength: push	dx
+	cmp	dx,bx
+	jnb	cl1
+	jmp	err
+cl1:	sub	dx,bx
+	mov	cx,dx
+	inc	cx		;count = difference +1
+	pop	dx
+	ret
+;
+;	GETPARMAL		;al <--- ascii hex from consol
+getparmal: push	bx		;terminator in ah
+	push	cx
+	push	dx
+	mov	dl,al		;store old value
+	mov	cx,0ffffh
+	call	getparmb
+	cmp	cx,0ffffh
+	jne	gquit		;no change req if 0ffff
+	mov	bl,dl
+gquit:	mov	al,bl
+	pop	dx
+	pop	cx
+	pop	bx
+	ret
+;
+;	OUTBX			;bx output as 4 hex digits
+outbx:	push	ax
+	mov	al,bh
+	call	hexout
+	mov	al,bl
+	call	hexout
+	pop	ax
+	ret
+;	
+;	OUTADD			;send to console a crlf then address ds+bx
+outadd:	call	crlf
+	push	cx
+	mov	ax,ds
+outadd2:mov	cl,12
+	shr	ax,cl		;get high nibble down
+	call	hexdigout
+	call	outbx
+	call	blank
+	pop	cx
+	ret
+;
+outadd1:push	cx		;same but send upper nibble of es reg
+	mov	ax,es
+	jmp	outadd2
+;
+;<<<<<<<<<<<<<<<<<<<<<< MAIN CONSOL OUTPUT ROUTINE >>>>>>>>>>>>>>>>>>>>>>>>>
+;
+CO:	IN	AL,IOBYTE
+	TEST	AL,1H		;BIT 0,A  CHECK IF OUTPUT TO LIST IS ALSO REQ
+	JZ	LOX
+	TEST	AL,10H		;BIT 4,A  KILL LF'S IF THIS IS 0
+	JNZ	SDCONO
+	MOV	AL,CL
+	CMP	AL,LF
+	JZ	SDCON5		;KILL LF'S
+	PUSH	CX		;ALL OTHERE CHARACTERS SEND EOL THEN CHARACTER
+	MOV	CL,']'-40H	;FOR CLEAR TO END OF LINE
+	CALL	SDCONO		;BECAUSE EOL IS SENT FOR EACH CHARACTER THE
+	POP	CX		;TYPE RATE IS NICELY SLOWED DOWN TO ~ 60 BAUD
+	JMPS	SDCONO		;AT NO FURTHER EXPENSE |
+SDCON5:	MOV	AL,CL
+	RET
+;
+LOX:	CALL	SDCONO		;OUTPUT TO BOTH PRINTER & CONSOLE
+	JMP	LO
+;
+SDCONO:	IN	AL,SDSTAT	;SD SYSTEMS VIDIO BOARD PORT
+	AND	AL,4H
+	JZ	SDCONO
+	MOV	AL,CL
+	CMP	AL,07H		;IS IT A BELL
+	JZ	BELL1
+	CMP	AL,0H		;SD BOARD CANNOT TAKE A NULL
+	JNZ	LX2
+	RET
+
+LX2:	OUT	SDDATA,AL
+	IN	AL,IOBYTE
+	TEST	AL,20H		;BIT 5,A SEE IF TIME DELAY REQ WITH CO:
+	JNZ	LX3
+	MOV	AL,20
+	CALL	DELAY
+LX3:	MOV	AL,CL		;MAKE SURE TO RETURN WITH [AL] CONTAINING CHAR
+	RET
+
+;
+BELL1:	MOV	AL,06H		;SEND A BELL
+	OUT	SDDATA,AL
+	MOV	AL,1FH
+	CALL	DELAY
+	MOV	AL,CL
+	OUT	SDDATA,AL
+	RET
+;
+;
+DELAY:	DEC	AL		;GENERAL COUNT DOWN TIME DELAY
+	JNZ	LX4	
+	RET			;LENGTH SET IN [A]
+LX4:	PUSH	AX
+	MOV	AL,05H
+MORE:	DEC	AL
+	PUSH	AX
+	XOR	AL,AL
+MORE2:	DEC	AL
+	JNZ	MORE2
+	POP	AX
+	JNZ	MORE
+	POP	AX
+	JMPS	DELAY
+;
+;--
+; 
+;<<<<<<<<<<<<<<<<<<< MAIN CONSOL STATUS ROUTINE >>>>>>>>>>>>>>>>>>>>>>
+;
+CSTS:	IN	AL,KEYSTAT
+	AND	AL,02H
+	JNZ	CST1
+	RET				;RETURN WITH 0 IN [A] IF NOTHING THERE
+CST1:	DEC	AL
+	RET				;RETURN WITH 0FFH IN [A] IF SOMETHING
+;
+;
+;<<<<<<<<<<<<<<<<<<<< MAIN CONSOL INPUT ROUTINE >>>>>>>>>>>>>>>>>>>>
+;
+CI:	CALL	CSTS		;NEED CONSTAT TO CLEAN UP SHIFT KEYS ETC
+	JZ	CI
+	IN	AL,KEYIN
+	AND	AL,7FH
+	RET
+;
+;<<<<<<<<<<<<<<<<<<<<<< MAIN PRINTER STATUS ROUTINE >>>>>>>>>>>>>>>>>>>>>>>>>
+;
+LSTAT:	IN	AL,CENTSTAT		;FIRST FIND WHICH PRINTER IS SELECTED
+	TEST	AL,2
+	JNZ	CENSTAT
+	TEST	AL,20H
+	JNZ	TRANSTAT
+	XOR	AL,AL			;NONE SELECTED
+	DEC	AL
+	RET
+
+CENSTAT:AND	AL,00001111B	;XXXX0110 IS READY (BIT 3=PAPER BIT 2=FAULT
+	CMP	AL,00000110B		;BIT 1=SELECT  BIT 0=BUSY
+	JZ	LSTAT1
+	XOR	AL,AL
+	RET
+
+TRANSTAT:AND	AL,11110000B	;0110XXX IS READY (BIT 7=ALERT BIT 6=FAULT
+	CMP	AL,01100000B		;BIT 5=SELECT BIT 4=BUSY
+	JZ	LSTAT1
+	XOR	AL,AL
+	RET
+
+LSTAT1:	XOR	AL,AL		;PUT 0FFH IN [A] IF READY & NO ZERO FLAG
+	DEC	AL
+	RET
+;
+;<<<<<<<<<<<<<<<<<<<<<< MAIN PRINTER OUTPUT ROUTINE >>>>>>>>>>>>>>>>>>>>>>>>>
+;
+LO:	CALL	LSTAT
+	JZ	LO
+	MOV	AL,0FFH
+	OUT	CENTSTROBE,AL
+	MOV	AL,CL
+	OUT	CENTOUT,AL
+	IN	AL,CENTSTAT
+	TEST	AL,2
+	JNZ	LCENT
+	TEST	AL,20H
+	JNZ	LTRANS
+	RET				;NO STROBE SINCE NOT SELECTED
+;
+LCENT:	MOV	AL,11111110B		;STROBE FOR CENTRONICS
+	JMPS	OVERLS
+LTRANS:	MOV	AL,11111101B
+OVERLS:	OUT	CENTSTROBE,AL
+	MOV	AL,0FFH
+	OUT	CENTSTROBE,AL
+	RET
+;
+;
+;--
+;
+CICO:	CALL	CI		;CONSOLE INPUT WITH ECHO ON CONSOLE + LC->UC
+	CMP	AL,' '
+	JB	CHECK		;ACCEPT ONLY SP,ESC,CR,LF
+	CMP	AL,'a'
+	JB	CIC1
+	CMP	AL,'z'+1
+	JA	CIC1
+	AND	AL,5FH		;THIS CONVERTS ALL LC->UC
+CIC1:	PUSH	AX
+	PUSH	CX
+	MOV	CL,AL
+	CALL	CO		;DISPLAY ON CONSOLE
+	POP	CX
+	POP	AX
+	RET
+;
+CHECK:	CMP	AL,CR
+	JZ	CIC1
+	CMP	AL,LF
+	JZ	CIC1
+	CMP	AL,ESC
+	JZ	CIC1
+	MOV	AL,BELL		;SEND BELL TO INDICATE BAD DATA
+	JMP	CIC1
+;
+;
+;		PRINT MENU ON CRT
+KCMD:	MOV	BX,offset MSG10
+	JMP	PRINT
+;
+;
+POO:	RET			;NO PUNCH OUTPUT AT THE MOMENT
+RI:	MOV	AL,1AH		;NO READER AT THE MOMENT
+	RET
+;
+finish_code	equ	$
+;
+eject
+;
+	dseg	
+	org	offset	finish_code
+;
+;
+ctable	dw	map		;A	;gives a nice 1 mg byte memory map
+	dw	err		;B
+	dw	err		;C
+	dw	dump		;D
+	dw	err		;E
+	dw	fill		;F
+	dw	goto		;G
+	dw	hexmath		;H
+	dw	err		;I
+	dw	ntest		;J
+	dw	KCMD		;K
+	dw	err		;L
+	dw	move		;M
+	dw	err		;N
+	dw	err		;O
+	dw	err		;P
+	dw	QUERY		;Q
+	dw	err		;R
+	dw	esubst		;S
+	dw	dispas		;T
+	dw	err		;U
+	dw	verify		;V
+	dw	err		;W
+	dw	err		;X
+	dw	err		;Y
+	dw	Z80		;Z
+;
+;
+signon	db	17H,11H,cr,lf,'8086 Monitor V2.1 (J. Monahan) 3/12/1983'
+CLEANUP	DB	1H,10H,11H,17H,07H,'$'
+comhead db	'ADDR  M  T       DIFF$'
+mhead	db	'SUM   DIFF$'
+vhead	db	'SRC   M   DEST  M  DIFF$'
+;
+MSG10	DB   	0DH,0AH
+	DB	'A',09H,'MEMMAP',0DH,0AH
+	DB	'D',09H,'DISPLAY MEMORY',0DH,0AH
+	DB	'F',09H,'FILL MEMORY',0DH,0AH
+	DB	'G',09H,'GOTO ADDRESS',0DH,0AH
+	DB	'H',09H,'HEX MATH',0DH,0AH
+	DB	'J',09H,'TEST MEMORY',0DH,0AH
+	DB	'K',09H,'LIST COMMANDS',0DH,0AH
+	DB	'M',09H,'MOVE MEMORY',0DH,0AH
+	DB	'Q',09H,'QUERY PORT',0DH,0AH
+	DB	'S',09H,'SUBSTITUTE MEMORY',0DH,0AH
+	DB	'T',09H,'TYPE ASCII',0DH,0AH
+	DB	'V',09H,'COMPARE MEMORY',0DH,0AH
+	DB	'Z',09H,'SWITCH IN Z80',0DH,0AH,'$'
+;
+	cseg	
+;		This is a bit tricky. My z80 places a far jump in 
+;		low ram if the monitor is req (ie no cpm86) to the start 
+;		of the monitor before transferring control over to the 
+;		8086. You may want to jump directly to the start of the
+;		monitor.
+
+	ORG	0FFF0H
+	DB	0EAH,00H,05H,00H,00H	;8086 WILL JUMP TO 0000:0500H
+;
+;		note I initilize an 8089 IO coprocessor 
+;
+	ORG	0FFF6H
+	DB	01H,01H			;8089 SET FOR 16 BIT MEMORY
+	DB	00H,04H,00H,00H		;8089 WILL JUMP TO 0000:0400H
+					;WHERE IT WILL FIND ITS SYSTEM
+					;CONFIGURATION BLOCK
+
+
+

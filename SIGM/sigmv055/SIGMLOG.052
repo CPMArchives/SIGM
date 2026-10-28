@@ -1,0 +1,131 @@
+Sig/M	Volume 52	Sig/M-CPMUG Cross Reference
+			Sig/M Regional Distribution Points
+			un'P'rotect MBasic Programs
+
+		-CATALOG.052	contents of Sig/M volume 52
+		ABSTRACT.052	Sig/M volume 52 documentation
+
+index	name		size	crc	description
+
+52.01	CAT     .COM	 1K	26 32	catalog system
+52.02	FMAP    .COM	 2K	8C 9F	 /
+52.03	UCAT    .COM	 2K	50 37	/
+52.04	CATALIST.BAS	 8K	98 84	cross reference system
+52.05	CATALIST.COM	22K	35 54	  /
+52.06	SCATPAD .BAS	 2K	4B EB	 /
+52.07	SCATPAD .COM	15K	D2 6A	/
+52.08	SCAT    .   	69K	9C 35	Sig/M-CPMUG reference data
+52.09	MAST    .CAT	72K	8C CB	/
+52.10	REGIONS .SIG	10K	6B 52	Sig/M distribution points
+52.11	TestProt.BAS	 1K	ED 76	sample 'P'rotected file 
+52.12	UN      .COM	 5K	6B 74	un'P'rotect MBasic program
+
+Copyright (c) 1982 by Sig/M-Amateur Computer Group
+of New Jersey Inc., Box 97, Iselin NJ, 08830-0097 
+
+	Documentation for CATALIST.BAS, SCATPAD.BAS and UN.COM
+
+CATALIST.BAS -  Is used to produce a listing of the contents of
+	the latest CPMUG and SIG/M volumes.  It reads in SCATS,
+	which is a modified version of MAST.CAT ( MAST.CAT is
+	produced by FMAP.COM  and UCAT.COM).  The modifications
+	were:
+	1>  Exclusion filenames (those between parentheses)
+	    were deleted - parentheses too.
+	2>  Volume filenames were deleted.  It's just redundant
+	    information, since -CATALOG.xxx or -SIGMLOG.xxx
+	    are assumed to exist (or there would be no files
+	    of the form 'filename.ext, ????LOG.xxx'.
+	3>  A working copy was made using PIP.COM using the [z]
+	    option, since some programs were inadvertantly
+	    distributed with CP/M file attributes which set
+	    some bits in the filenames that prevent them from
+	    being properly sorted.
+	4>  It was then sorted in ascending sequence on all
+	    fields in the following order:  1, 2, 4, 3.
+
+	If CATALIST.BAS/COM is run, the listing file will be
+	saved on disk and may be printed when convenient.  If
+	you want a listing in your own SCATalogical order, it
+	will be necessary to sort SCAT.  Since a good number of
+	those wishing to do so will have a sort program which
+	handles only fixed length records, a request was made
+	that a simple program be included which will modify
+	SCAT for use by those sort programs. This program is
+	known as...
+
+SCATPAD.BAS - A quick and dirty program (minimal error checks)
+	which will modify a file in one of two ways.
+
+	1>  Make all records fixed length by padding spaces
+	    onto the end of each line. (This extends the size
+	    of the last field only).
+	2>  Make all fields fixed length by padding them with
+	    spaces.  Note that while the input file seperated
+	    the fields with commas, the output will not have
+	    any if you so specify. Just make sure that they are
+	    inserted before using CATALIST.  If field lengths
+	    are stated to be larger the the max. possible, then
+	    the files could look as follows:
+
+
+	SCAT				    OUTPUT
+
+	/,DOC,CATALOG,040        |   /        DOC CATALOG  040
+	15/PUZ,ASC,CATALOG,013   |   15/PUZ   ASC CATALOG  013
+	1500,ASC,CATALOG,013     |   1500     ASC CATALOG  013
+	1CHECK,BAS,CATALOG,054   |   1CHECK   BAS CATALOG  054
+
+	    If the field lengths are stated as being the true
+	    maximum, then the result will look like this:
+
+	SCAT					OUTPUT
+
+	21,ASC,CATALOG,005	|	21      ASCCATALOG005
+	21BIOS,ASM,SIGMLOG,017	|	21BIOS  ASMSIGMLOG017
+	21BIOS,ASM,CATALOG,069	|	21BIOS  ASMCATALOG069
+	21BIOS,DOC,SIGMLOG,017	|	21BIOS  DOCSIGMLOG017
+
+	    If commas were specified with field lengths of
+	    8, 3, 7, and 3 bytes, the result will appear as:
+
+	21BIOS,DOC,SIGMLOG,017   |   21BIOS  ,DOC,SIGMLOG,017
+	21BIOS,DOC,CATALOG,069   |   21BIOS  ,DOC,CATALOG,069
+	21BOOT,ASM,SIGMLOG,017   |   21BOOT  ,ASM,SIGMLOG,017
+	21BOOT,ASM,CATALOG,069   |   21BOOT  ,ASM,CATALOG,069
+
+
+	If you would like to know where to obtain information
+	on how to use Ward Christenson's catalog programs, just
+	use them like so...
+	Type 'CAT CAT??.*' or 'CAT FMAP??.*' and watch the tube.
+
+UN.COM  -   An updated version of the one submitted to the CPMUG
+	    several months ago.  Use it to recover your Basic-80
+	   programs which were saved with the 'P'rotect option.
+	   It is self documenting if you can figure out how, and
+	   running it can be a real 'Adventure'.  This version
+	   works with all version 5.xx MBASICS up to 5.21, but
+	   unfortunately, not with Heath's CP/M.
+
+
+***** Notes *****
+		CATALIST was timed using 8" drives, double
+	    density, single sided.  The source file, SCAT
+	    was kept in drive A:, and the output file was
+	    always written to a empty disk in drive B:. The
+	    interpreter took 12 minutes to finish, while the
+	    compiled program made it in 2:50.  However...
+	    the demo program supplied for UN.COM (TestProt.BAS)
+	    runs much slower when compiled.
+		This will be a do-it-yourself disk for all of
+	    you that want the listing that CATALIST.BAS
+	    produces.  In a previous life, this disk was known
+	    as SIGM Volume 12.  Unlike #12, this disk has no
+	    room for the listing, but by the time you read this
+	    it should be available as part of the NYACC Catalog
+	    of Public Domain Software (Book #2).
+
+		bye,           - b.n. -          12/13/81
+
+

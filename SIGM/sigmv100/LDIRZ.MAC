@@ -1,0 +1,629 @@
+;
+;  PROGRAM:  LDIRZ
+;  VERSION:  2.0
+;  AUTHOR:  RICHARD CONN
+;  DATE:  16 JAN 83
+;  PREVIOUS VERSIONS:  1.0 (12 JAN 83)
+;
+vers	equ	20
+
+;
+;	LDIRZ prints a sorted directory of the default library file
+; (installable via GENINS).  The printout gives file name and size.
+; It is sorted alphabetically by file name and type.  Only one option
+; is permitted, and that is a file spec (wild cards are OK).  Forms
+; of the LDIRZ command are:
+;
+;		LDIRZ		<-- All Files
+;		LDIRZ file.typ	<-- Selected Files
+;		LDIRZ -library file.typ	<-- Selected Files in Library
+;		LDIRZ //	<-- Help Message
+;
+
+;
+;  CP/M Constants
+;
+cpm	equ	0	;base
+bdose	equ	cpm+5
+fcb	equ	cpm+5ch
+tbuff	equ	cpm+80h
+cr	equ	0dh
+lf	equ	0ah
+
+;
+;  SYSLIB Routines
+;
+	ext	zgpins,print,zpfind,initfcb,f$open,f$read
+	ext	sort,moveb,putud,logud,shftrh,phldc,codend
+	ext	hmovb,crlf,cout,fname,cline
+
+;
+;  Branch to Start of Program
+;
+	jmp	start
+
+;
+;******************************************************************
+;
+;  SINSFORM -- ZCPR2 Utility Standard General Purpose Initialization Format
+;
+;	This data block precisely defines the data format for
+; initial features of a ZCPR2 system which are required for proper
+; initialization of the ZCPR2-Specific Routines in SYSLIB.
+;
+
+;
+;  EXTERNAL PATH DATA
+;
+EPAVAIL:
+	DB	0FFH	; IS EXTERNAL PATH AVAILABLE? (0=NO, 0FFH=YES)
+EPADR:
+	DW	40H	; ADDRESS OF EXTERNAL PATH IF AVAILABLE
+
+;
+;  INTERNAL PATH DATA
+;
+INTPATH:
+	DB	0,0	; DISK, USER FOR FIRST PATH ELEMENT
+			; DISK = 1 FOR A, '$' FOR CURRENT
+			; USER = NUMBER, '$' FOR CURRENT
+	DB	0,0
+	DB	0,0
+	DB	0,0
+	DB	0,0
+	DB	0,0
+	DB	0,0
+	DB	0,0	; DISK, USER FOR 8TH PATH ELEMENT
+	DB	0	; END OF PATH
+
+;
+;  MULTIPLE COMMAND LINE BUFFER DATA
+;
+MCAVAIL:
+	DB	0FFH	; IS MULTIPLE COMMAND LINE BUFFER AVAILABLE?
+MCADR:
+	DW	0FF00H	; ADDRESS OF MULTIPLE COMMAND LINE BUFFER IF AVAILABLE
+
+;
+;  DISK/USER LIMITS
+;
+MDISK:
+	DB	4	; MAXIMUM NUMBER OF DISKS
+MUSER:
+	DB	31	; MAXIMUM USER NUMBER
+
+;
+;  FLAGS TO PERMIT LOG IN FOR DIFFERENT USER AREA OR DISK
+;
+DOK:
+	DB	0FFH	; ALLOW DISK CHANGE? (0=NO, 0FFH=YES)
+UOK:
+	DB	0FFH	; ALLOW USER CHANGE? (0=NO, 0FFH=YES)
+
+;
+;  PRIVILEGED USER DATA
+;
+PUSER:
+	DB	10	; BEGINNING OF PRIVILEGED USER AREAS
+PPASS:
+	DB	'chdir',0	; PASSWORD FOR MOVING INTO PRIV USER AREAS
+	DS	41-($-PPASS)	; 40 CHARS MAX IN BUFFER + 1 for ending NULL
+
+;
+;  CURRENT USER/DISK INDICATOR
+;
+CINDIC:
+	DB	'$'	; USUAL VALUE (FOR PATH EXPRESSIONS)
+
+;
+;  DMA ADDRESS FOR DISK TRANSFERS
+;
+DMADR:
+	DW	80H	; TBUFF AREA
+
+;
+;  NAMED DIRECTORY INFORMATION
+;
+NDRADR:
+	DW	00000H	; ADDRESS OF MEMORY-RESIDENT NAMED DIRECTORY
+NDNAMES:
+	DB	64	; MAX NUMBER OF DIRECTORY NAMES
+DNFILE:
+	DB	'NAMES   '	; NAME OF DISK NAME FILE
+	DB	'DIR'		; TYPE OF DISK NAME FILE
+
+;
+;  REQUIREMENTS FLAGS
+;
+EPREQD:
+	DB	0FFH	; EXTERNAL PATH?
+MCREQD:
+	DB	000H	; MULTIPLE COMMAND LINE?
+MXREQD:
+	DB	000H	; MAX USER/DISK?
+UDREQD:
+	DB	000H	; ALLOW USER/DISK CHANGE?
+PUREQD:
+	DB	000H	; PRIVILEGED USER?
+CDREQD:
+	DB	0FFH	; CURRENT INDIC AND DMA?
+NDREQD:
+	DB	000H	; NAMED DIRECTORIES?
+Z2CLASS:
+	DB	5	; CLASS 5
+	DB	'ZCPR2'
+	DS	10	; RESERVED
+
+;
+;  END OF SINSFORM -- STANDARD DEFAULT PARAMETER DATA
+;
+;******************************************************************
+;
+library:
+	DB	'COMMAND ' ; <---change this if you like---
+libtyp:
+	DB	'LBR'
+;
+;  START OF PROGRAM
+;
+start:
+	call	zgpins	; init ZCPR2 buffers
+	call	putud	; save current user/disk
+
+;
+;  Print Banner
+;
+	call	print
+	db	'LDIRZ  Version '
+	db	vers/10+'0','.',(vers mod 10)+'0',0
+
+;
+;  Set Default Library Name
+;
+	lxi	h,library
+	lxi	d,fcb+1	; copy into FCB
+	mvi	b,11	; 11 chars
+	call	moveb
+
+;
+;  Extract Information
+;
+	lxi	h,tbuff	; get command line from buffer
+	call	cline
+	call	sblank	; skip to non-blank
+	ora	a	; EOL?
+	jz	help
+	cpi	'/'	; Help?
+	jnz	start0
+
+;
+;  Print Help Message
+;
+help:
+	call	print
+	db	cr,lf,'	LDIRZ prints a sorted directory of the current'
+	db	cr,lf,'Library File.  It is invoked by one of the forms:'
+	db	cr,lf,'		LDIRZ			<-- All Files'
+	db	cr,lf,'		LDIRZ filename.typ	<-- Selected Files'
+	db	cr,lf,'		LDIRZ -lib filename.typ	<-- Files from LIB'
+	db	cr,lf,'		LDIRZ //		<-- Print Help'
+	db	cr,lf,'	Wild Cards (*,?) are permitted.'
+	db	cr,lf,0
+	ret
+
+;
+;  Check for Library Name and Set it if so
+;
+start0:
+	cpi	'-'	; library follows?
+	jnz	start1
+	inx	h	; pt to library name
+	lxi	d,fcb	; pt to FCB
+	call	fname	; extract library name
+	call	sblank	; skip to non-blank
+	lxi	d,fcb+9	; check file type
+	ldax	d
+	cpi	' '	; none?
+	jnz	start1
+	push	h	; save ptr
+	lxi	h,libtyp	; default type
+	mvi	b,3	; 3 chars
+	call	moveb	; copy it
+	pop	h	; get ptr
+;
+;  Check for File Spec and Set if so
+;
+start1:
+	ora	a	; any chars?
+	jz	start2	; fspec is already wild
+	lxi	d,filesp	; copy into file spec
+	call	fname	; extract file name
+
+;
+;  Find Library
+;
+start2:
+	lxi	d,fcb		; pt to FCB
+	call	initfcb
+	mvi	b,0ffh		; search current
+	call	zpfind		; look for library file
+	jnz	start3
+	call	print
+	db	cr,lf,'Library File ',0
+	lxi	h,fcb+1	; pt to name
+	call	prfn	; print file name
+	call	print
+	db	' Not Found',0
+	ret
+
+;
+;  Read in First Block of Library
+;
+start3:
+	call	logud		; log into directory
+	call	f$open		; open file
+	call	f$read		; read first block
+	ora	a		; ok?
+	jz	readdir		; extract directory info
+	call	print
+	db	cr,lf,'Library File ',0
+	lxi	h,fcb+1
+	call	prfn
+	call	print
+	db	' is Empty',0
+	ret
+readdir:
+	lxi	h,tbuff+14	; pt to dir size
+	mov	a,m
+	inx	h
+	mov	h,m		; HL=size of directory
+	mov	l,a
+	mov	b,h		; BC=number of blocks in dir
+	mov	c,l
+	lxi	h,0		; set file count
+	shld	filecnt
+	call	codend		; pt to spare buffer
+	shld	bufptr		; set buffer ptr
+	shld	ssbstart	; set starting address of first record
+	lxi	h,tbuff+32	; pt to first entry
+	jmp	getentry	; get next entry
+;
+;  Read Next Block
+;
+readblock:
+	push	b		; save count
+	lxi	d,fcb		; pt to FCB
+	call	f$read		; read block
+	pop	b		; restore regs
+	lxi	h,tbuff		; pt to next entry
+	ora	a		; error?
+	jz	getentry	; get next entry
+	call	print
+	db	cr,lf,'Premature End of Library File ',0
+	lxi	h,fcb+1
+	call	prfn
+	call	print
+	db	' -- Aborting',0
+	ret
+;
+;  Get next entry from library directory
+;    On entry, HL pts to entry, BC=count
+;
+getentry:
+	push	h		; save ptr
+	push	b		; save count
+	mov	a,m		; entry present?
+	cpi	0ffh		; none?
+	jz	gete1
+	cpi	0		; deleted?
+	jnz	gete1
+	inx	h		; pt to file name
+	push	h		; save ptr to entry
+	lxi	d,fspec		; pt to file spec
+	mvi	b,11		; check 11 bytes
+getent1:
+	ldax	d		; check for match with wild cards
+	mov	c,m		; get target char
+	inx	h		; pt to next
+	inx	d
+	cpi	'?'		; wild match?
+	jz	getent2
+	cmp	c		; match?
+	jnz	gete0		; skip if not
+getent2:
+	dcr	b		; count down
+	jnz	getent1
+	pop	h		; file matches -- continue
+	push	h		; save ptr
+	lhld	filecnt		; increment file count
+	inx	h
+	shld	filecnt
+	pop	h
+	xchg			; ptr to file name in DE
+	lhld	bufptr		; get buffer ptr
+	mvi	b,11		; 11 bytes
+	xchg			; HL pts to entry
+	call	hmovb		; copy and affect HL and DE
+	inx	h		; skip index
+	inx	h
+	mvi	b,2		; copy size
+	call	hmovb
+	xchg			; get buffer ptr in HL
+	shld	bufptr		; save buffer ptr
+	xchg			; put back in DE
+	lhld	bdose+1		; memory full?
+	mov	a,h		; check pages
+	sui	10		; below CCP
+	cmp	d		; in range?
+	jnz	gete1
+	pop	b
+	pop	h		; clear stack
+	call	print
+	db	cr,lf,'Memory Overflow',0
+	ret
+gete0:
+	pop	h		; clear stack
+gete1:
+	pop	b		; get count
+	pop	h		; get ptr to block
+	lxi	d,32		; pt to next
+	dad	d
+	lxi	d,tbuff+80h	; pt to end of buffer
+	mov	a,e		; new block if low-order is the same
+	cmp	l
+	jnz	getentry
+	dcx	b		; count down
+	mov	a,b		; done?
+	ora	c
+	jnz	readblock	; continue with next block
+;
+;  Done with Buffer Load
+;
+	lhld	filecnt		; set record count
+	shld	ssbcnt
+	lxi	d,ssb		; pt to ssb
+	call	sort		; perform sort
+	mov	a,l		; get low (remainder)
+	ani	3		; select remainder
+	sta	remain
+	call	shftrh		; shift right 2 bits
+	call	shftrh
+	shld	loopcnt		; number of loops
+	xchg			; count in DE
+	lxi	h,0		; compute sum
+	lxi	b,13		; bytes/entry
+col0:
+	mov	a,d		; done?
+	ora	e
+	jz	col1
+	dcx	d		; count down
+	dad	b		; add in size
+	jmp	col0
+col1:
+	xchg			; DE is size of list
+	lhld	ssbstart	; pt to first entry
+	shld	entry1
+	dad	d		; pt to next entry
+	lda	remain		; add 1?
+	ora	a		; no if zero
+	jz	col2
+	dad	b		; add in another entry
+col2:
+	shld	entry2		; set ptr to 2nd entry
+	dad	d		; pt to next entry
+	cpi	2		; remainder >=2?
+	jc	col3
+	dad	b		; add in another entry
+col3:
+	shld	entry3		; set ptr to 3rd entry
+	dad	d		; pt to last entry
+	cpi	3		; add 1?
+	jnz	col4
+	dad	b		; add in another entry
+col4:
+	shld	entry4
+;
+;  Directory Print -- ENTRYn pts to first element in each col, DE is
+;    number of loops, and REMAIN is number of extra entries
+;
+	lxi	h,0	; clear sum
+	shld	sum
+	call	print
+	db	cr,lf
+	db	'Filename.Typ  Size  '
+	db	'Filename.Typ  Size  '
+	db	'Filename.Typ  Size  '
+	db	'Filename.Typ  Size'
+	db	cr,lf
+	db	'-------- --- -----  '
+	db	'-------- --- -----  '
+	db	'-------- --- -----  '
+	db	'-------- --- -----',0
+
+	lhld	loopcnt		; get loop count
+	xchg			; ... in DE
+dirloop:
+	mov	a,d		; Done?
+	ora	e
+	jz	dirdone
+	dcx	d		; count down
+	call	crlf		; new line
+	lhld	entry1		; print entry
+	call	prentry
+	shld	entry1
+	lhld	entry2
+	call	prentry
+	shld	entry2
+	lhld	entry3
+	call	prentry
+	shld	entry3
+	lhld	entry4
+	call	prentry
+	shld	entry4
+	jmp	dirloop
+dirdone:
+	lda	remain		; print last line
+	ora	a		; none?
+	jz	done
+	mov	d,a		; count in D
+	call	crlf		; new line
+	lhld	entry1		; print first col
+	call	prentry
+	dcr	d		; count down
+	jz	done
+	lhld	entry2		; print 2nd col
+	call	prentry
+	dcr	d		; count down
+	jz	done
+	lhld	entry3		; print 3rd col
+	call	prentry
+done:
+	call	crlf		; new line
+	lhld	filecnt		; print number of entries
+	call	phldc
+	call	print
+	db	' Files Selected occupying a Total of ',0
+	lhld	sum		; print sum of sizes
+	call	phldc
+	call	print
+	db	'K Bytes',0
+	ret
+;
+;  Print File Name Entry
+;
+prentry:
+	push	d
+	push	h
+	push	b
+	call	prfn		; print file name
+	lxi	d,11		; pt to size
+	dad	d
+	mov	c,m		; get size in BC
+	inx	h
+	mov	b,m
+	mov	a,c		; part of a K?
+	ani	7
+	sta	kpart
+	mov	h,b		; file size in HL
+	mov	l,c
+	call	shftrh		; move right 3 bits for size in K
+	call	shftrh
+	call	shftrh
+	lda	kpart		; add 1 for overflow?
+	ora	a		; 0=no
+	jz	prent1
+	inx	h		; add 1 K
+prent1:
+	call	phldc		; print as decimal
+	mvi	a,'K'		; print K
+	call	cout
+	mvi	a,' '		; print 2 spaces
+	call	cout
+	call	cout
+	xchg			; size in DE
+	lhld	sum		; add to sum
+	dad	d
+	shld	sum
+	pop	b		; get regs
+	pop	h
+	lxi	d,13		; pt to next entry
+	dad	d
+	pop	d
+	ret
+;
+;  Print file name pted to by HL
+;
+prfn:
+	push	h		; save regs
+	push	b
+	mvi	b,8		; 8 chars
+	call	prfn1
+	mvi	a,'.'
+	call	cout
+	mvi	b,3		; 3 chars
+	call	prfn1
+	pop	b		; get regs
+	pop	h
+	ret
+prfn1:
+	mov	a,m		; print chars
+	inx	h		; pt to next
+	call	cout
+	dcr	b		; count down
+	jnz	prfn1
+	ret
+;
+;  Compare Routine
+;	Compare (DE) to (HL) and Return with Carry if (DE) < (HL)
+;
+compare:
+	push	h		; save regs
+	push	d
+	push	b
+	mvi	b,11		; 11 bytes to compare
+comp:
+	ldax	d		; get byte
+	cmp	m		; compare
+	jnz	compd		; done if not same
+	inx	h		; pt to next
+	inx	d
+	dcr	b		; count down
+	jnz	comp
+compd:
+	pop	b		; restore regs
+	pop	d
+	pop	h
+	ret
+
+;
+;  Skip to Non-Blank
+;
+sblank:
+	mov	a,m	; skip to non-blank
+	inx	h
+	cpi	' '
+	jz	sblank
+	dcx	h
+	ret
+
+;
+;  Buffers
+;
+ssb:				; sort specification block
+ssbstart:
+	ds	2		; ptr to first byte of first record
+ssbcnt:
+	ds	2		; number of records
+	dw	13		; 13 bytes/record
+	dw	compare		; address of compare routine
+	dw	0		; no ptr table
+	db	0,0		; don't use ptrs
+filesp:
+	db	0
+fspec:
+	db	'????????'	; file spec
+	db	'???'
+	ds	24
+remain:
+	ds	1		; column remainder
+kpart:
+	ds	1		; K remainder
+filecnt:
+	ds	2		; number of files
+bufptr:
+	ds	2		; scratch buffer ptr
+sum:
+	ds	2		; sum of file sizes
+loopcnt:
+	ds	2		; number of lines to print
+entry1:
+	ds	2
+entry2:
+	ds	2
+entry3:
+	ds	2
+entry4:
+	ds	2
+
+	end
+

@@ -1,0 +1,189 @@
+	      Execution Profiling in PASCAL/Z
+
+
+A program's "execution profile" is a map showing the number
+of times each statement in the program was executed during a
+trial run.  The profile supplies the central information
+needed to analyze the program's performance.  With a small
+modification of the run-time support package, an execution
+profile can be obtained for any PASCAL/Z program.
+
+Obtaining the Profile.
+
+An execution profile is a dynamic count of statement
+executions.  It can only be obtained while the program is
+actually running.  The steps that must be taken are:
+
+     1. The program must contain an array of integers, one
+	integer for each statement to be counted.
+
+     2. The array must be set to zero when execution begins.
+
+     3. Whenever statement J is executed, ARRAY[J] must be
+	incremented.
+
+     4. At the end of the program, the array must be written
+	to disk for safe-keeping.
+
+     5. The array must be formatted for human use -- a bar-
+	graph is the simplest format.
+
+Steps 1-4 can be accomplished through modifications of the
+Pascal/Z run-time support module, MAIN.SRC.
+
+The assembler source file produced by the compiler contains
+a call on the STMT macro at the beginning of the code for
+each compiled statement.  This macro call contains the
+number of the statement.  The macro is defined by MAIN.SRC.
+It can be modified to accomplish step 3, and to note the
+lowest and highest statement numbers being profiled.
+
+The last line emitted by the compiler is a call on the FINI
+macro, also defined in MAIN.SRC.  That macro has been
+modified to perform step 1 (defining the array of integers)
+and step 4 (writing the array to disk).  MAIN.SRC also
+contains the initialization code for the program, which has
+been modified to perform step 2.
+
+A Pascal program named PROFILE performs the formatting of
+the array.
+
+Creating a Profile.
+
+Do these things in order to create a program's profile:
+
+Edit the Pascal source file and mark the sections to be
+profiled by turning on the Trace option around them
+("{$T+}").  To profile the entire program, just set Trace on
+in the first line.  This is the only change to the program.
+
+Compile the program in the normal way.	Then assemble it
+with PROMAIN rather than with MAIN:
+
+	ASMBL PROMAIN,name/REL
+
+and link it in the normal way.	The program will be a few
+hundred bytes larger than it would ordinarily be.
+
+Execute the program.  It will run somewhat slower than
+usual.	The cost of profiling is about the same as the cost
+of the control-c check option.	At the end of the run, it
+will create a small file named A:PROFILER.DAT.	This must be
+written on the A-drive, so that must be read/write.
+
+Execute the PROFILE command.  It will read A:PROFILER.DAT
+and write a file A:PROFILER.PRN.  This contains the
+execution profile bar-graph; it can be printed or displayed
+at the console.
+
+Using the Profile.
+
+The profile shows the absolute and relative execution
+intensity of the traced statements.  In most programs, this
+will be distributed according to the "80-20" rule -- 20% of
+the statements will account for 80% of the execution counts.
+Once you know which statements dominate the execution time,
+you can usually make a major improvement in the speed of the
+program.  Those are the statements to check for such obvious
+things as real-to-integer conversions, or unneeded array
+subscripting.  Those areas of the program are where space-time
+tradeoffs should be made.  In short, the profile highlights
+the parts of the program where your optimization efforts
+will be rewarded with the largest payoffs in time saved.
+
+The profile can also reveal unsuspected program errors.
+Comparing the counts to the expected behaviour of the
+program might reveal that some statements were never
+executed, or were executed too often, due to incorrect
+logic.
+
+Restrictions and Work Remaining.
+
+The statement counts are kept as 16-bit integers.  The
+PROFILE command adjusts for counts that exceed 32,767 but it
+cannot tell if a count exceeded 65,536.  If the profile
+produces strange numbers, examine the program and the data
+to see if some statements might have been executed more than
+65,536 times.
+
+A profile can only be made for a main program; an external,
+linked module can't be profiled.  A person who
+made extensive use of external modules or of overlay modules
+might examine EMAIN.SRC to see if some similar facility
+could be added to it.
+
+The PROFILE command is very simple.  Much more elaborate
+reports could be derived from the data.  For example, the
+program's .LST file could be read, and the profile bar graph
+merged with it, so that the profile information was
+reflected in the program listing.
+
+An Example.
+
+The following listing is a copy of PROFILER.PRN, showing the
+execution profile of PROFILE.PAS, taken while PROFILE was
+working on its own profile data.  As you can see, the program
+has two extremely hot spots.  Any simplification of those
+statements will be reflected directly in its execution time.
+In the case of PROFILE, total time is largely dominated by
+disk I/O, but in a more compute-bound program such a profile
+would allow an immediate, major, speed-up.
+
+   1	 56|						      |
+   2	 56|						      |
+   3	 56|						      |
+   4	 56|						      |
+   5	  0|						      |
+   6	  0|						      |
+   7	  0|						      |
+   8	 53|						      |
+   9	 53|						      |
+  10	  0|						      |
+  11	 53|						      |
+  12	  1|						      |
+  13	  1|						      |
+  14	 53|						      |
+  15	 53|						      |
+  16	 53|						      |
+  17	 53|						      |
+  18	  1|						      |
+  19	 53|						      |
+  20	 53|						      |
+  21	 53|						      |
+  22	  1|						      |
+  23	  1|						      |
+  24	  1|						      |
+  25	 53|						      |
+  26	 53|						      |
+  27	 53|						      |
+  28	 53|						      |
+  29   2650|********************			      |
+  30	 40|						      |
+  31   2610|********************			      |
+  32	 53|						      |
+  33	 53|						      |
+  34	 53|						      |
+  35	  1|						      |
+  36	  1|						      |
+  37	  1|						      |
+  38	  1|						      |
+  39	  1|						      |
+  40	  1|						      |
+  41	  1|						      |
+  42	  1|						      |
+  43	  1|						      |
+  44	  1|						      |
+  45	  1|						      |
+  46	  1|						      |
+  47	  1|						      |
+  48	  1|						      |
+  49	  1|						      |
+  50	  1|						      |
+  51	  0|						      |
+  52	  0|						      |
+  53	  0|						      |
+    |
+  49	  1|						      |
+  50	  1|						      |
+  51	  0|						      |
+  52

@@ -1,0 +1,184 @@
+* DATE 07/20/84  17:13                         * DATE
+* MENU.SPM
+REST from coname additive
+STOR '?' TO command
+ERAS
+TEXT
+ >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ *                                                                           *
+ >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+ *   Please select one of the above options. You may also leave this menu    *
+ *   by typing 'Q' and get on-line HELP by typing '?'.                       *
+ >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+ENDT
+@ 3,06 SAY CONAME + '  -  MAIN MENU'
+@ 3,65 SAY date()
+@ 7,26 SAY "A.  Accounting Database"
+@ 8,26 SAY "B.  Building Database"
+@ 9,26 SAY "C.  Tenant Database"
+@ 10,26 SAY "D.  Database Maintenance"
+@ 11,26 SAY "E.  Help"
+@ 12,26 SAY "F.  Reports"
+@ 13,26 SAY "G.  Quit to dBASE"
+@ 14,26 SAY "H.  Exit to operating system"
+@ 17,23 SAY "PLEASE SELECT ONE OF THE OPTIONS"
+@ 17,58 GET command PICTURE '!'
+READ
+DO WHIL @(COMMAND, 'ABCDEFGH?Q') = 0
+ STOR '?' TO command
+ @ 17,58 GET command PICTURE '!'
+ READ
+ENDD
+DO CASE
+CASE COMMAND = 'A'
+ STOR 9 TO box
+CASE COMMAND = 'B'
+ STOR 1 TO box
+CASE COMMAND = 'C'
+ STOR 2 TO box
+CASE COMMAND = 'D'
+ STOR 7 TO box
+CASE COMMAND = 'F'
+ STOR 8 TO box
+CASE COMMAND = 'E' .OR. COMMAND = '?'
+ ERAS
+TEXT
+
+               M A I N   M E N U   H E L P   F I L E
+
+We have tried to make this program as  simple and as straight forward as is
+possible. There is no separate documentation - but at any point in the pro-
+gram where a '?' prompt appears we have built in a help menu to explain the
+various options.  You also may want to print out the opening program module
+(a file called 'MANAGE.PRG' or 'MANAGE.CMD' - depending upon your operating
+system).                                    
+
+Remember - HELP is available at any point where there is a question mark.
+Just hit ENTER (or '?') and program information will be displayed on screen.
+In addition, you can leave any menu by typing 'Q'.
+
+The main menu works with a program called 'DBOX.SPM' as the traffic manager
+to get you to the various parts of the property management system. You will
+never see 'DBOX.SPM' on screen  -  for its purpose is to channel you to the
+proper data base.   If you want to add special requirements to this program
+we suggest you access them through the main menu and via 'DBOX.'
+
+                   Please hit any key to continue
+
+ENDT
+ SET CONSOLE OFF
+ WAIT
+ SET CONSOLE ON
+ ERAS
+TEXT
+
+
+There are three main data bases.  BUILDING - which has the basic information 
+about each property. TENANT - which has data on each tenant in each building
+and ACCOUNTING.
+
+The BUILDING and TENANT databases contain information.  Who lives where, how
+much they pay, did they pay, when is the rent due or the lease up.
+
+The ACCOUNTING data base allows you to make journal entries and input cash  
+receipts and cash disbursements. From the report menu in the accounting data
+base you can print out the Cash Receipts Book, the Cash Disbursements Book,
+the General Journal and the General Ledger.  To expedite entry of the items
+into the file, we require that you run an update program to post the entries
+to the ledgers.
+
+The ACCOUNTING data base also allows you to prepare and print a balance sheet
+and profit and loss statement (as well as a cash generated from operatings
+statement.) Each time you request a statement the data is saved in a file so
+that you can always reprint the statement of the date in question.
+
+                           Please hit any key to continue
+ENDT
+ SET CONSOLE OFF
+ WAIT
+ SET CONSOLE ON
+ ERAS
+TEXT
+
+Reports other than accounting reports are handled through the menu you are now
+at. This report function allows you to send out rent bills (but you have to be
+sure you first posted the new month from the ACCOUNTING data base). It also
+prints out a delinquency report, a vacancy report, a lease expiration report 
+and address labels for the tenants.
+
+The Maintenance function on this menu allows you to Reindex the BUILDING and
+TENANT data bases. (A power surge, an improper shutdown, etc. can mess up your
+index - so you may have to reindex. You also can add records without indexing-
+but must later use the index function.) If you delete a building and its units
+you have to run the Purge function on the Maintenance menu. (When you 'delete'
+a file - you do not remove it from the records until you Purge. It merely has
+a sign 'Deleted' on the upper left hand portion of the screen. If for some 
+reason you decide to Edit a deleted file - we assume you want it back and the
+program automatically 'undeletes' it.
+
+A very powerful function tool - Browse - is on the Maintenance menu. It allows
+you to write directly to any file. Display lets you view the records - but not
+change them. The rest is obvious, so enjoy the program.
+
+                  Press any key to return to the menu
+ENDT
+ SET CONSOLE OFF
+ WAIT
+ SET CONSOLE ON
+ ERAS
+TEXT
+
+
+     We have tried to document this program as best we could in the
+     various HELP menus.  We also have tries to give as much guidance
+     as possible in the source code, so that you could make your own
+     changes or fix any problems as they developed. The big problem
+     was space, so we did have to limit source code comments.
+
+     We know that there are bound to be problems.  We have therefore 
+     done what most programs of this type do not do - we have left the
+     ESCape key on most of the time to give you an out.  If you have 
+     a problem, hit ESCape and type quit.  Even if the console is 
+     turned off at that time, you will not see the words being typed,
+     but it will return to the operating system (assuming you have
+     not somehow locked up the machine - in which event you will have 
+     to reboot). (Most programs of this type are also not free.)
+
+     You may want to take out the ESCape sequence. It is part of the
+     program initialization. It can always be changed from either of
+     the maintenance menus.
+
+                            Hit any key to return to the program
+ENDT
+ SET CONSOLE OFF
+ WAIT
+ SET CONSOLE ON
+ STOR 0 TO BOX
+CASE COMMAND = 'G'
+ CLEA
+ RELE ALL
+ CANC
+CASE COMMAND = 'H' .OR. COMMAND = 'Q'
+ ERAS
+ SET CONSOLE OFF
+ QUIT
+ENDC
+RETU
+

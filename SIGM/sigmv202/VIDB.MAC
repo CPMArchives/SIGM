@@ -1,0 +1,41 @@
+;
+; VLIB Module Name:  VIDB
+; Author:  Richard Conn
+; VLIB  Version Number:  1.0
+; Module Version Number:  1.0
+; Module Entry Points:
+;	Z3VINIT	VIDINIT	VIDPTR
+; Module External References:
+;	ENVPTR
+;
+	ext	envptr
+
+;
+;  Z3VINIT - Set ptr to ZCPR3 Environment and Z3TCAP
+;	On input, HL pts to ZCPR3 Environment Descriptor
+;
+z3vinit::
+	push	h	;save HL
+	shld	envptr
+	lxi	d,80H	;80H bytes later ...
+	dad	d
+	shld	vidptr	;set Z3TCAP pointer
+	pop	h	;restore HL
+	ret
+
+;
+;  VIDINIT - Set ptr to Z3TCAP
+;	On input, HL pts to Z3TCAP
+;
+vidinit::
+	shld	vidptr	;set ptr
+	ret
+
+;
+;  Termcap Pointer
+;
+vidptr::
+	ds	2	;first byte of termcap entry
+
+	end
+

@@ -1,0 +1,208 @@
+VOLUME 40
+
+Various utilities, disk cataloging system, modem programs.
+
+NUMBER	SIZE	NAME		COMMENTS
+
+		-CATALOG.040	CONTENTS OF CP/M VOL. 40
+		ABSTRACT.040	Abstract on some of the files.
+40.1	1K	/.COM		Quickie submit; Example:
+40.2	1K	/.DOC		/ asm foo.bbz;load b:foo
+40.3	1K	ALLOC.COM	Prints bit map of disk usage..
+40.4	1K	ALLOC.DOC	..(update of prev 1.3 only one)
+40.5	37K	BOOTER.ASM	Pascal boot for Tarbell & Delta
+40.6	1K	CAT.COM		Part of master cataloging sys.
+40.7	1K	CAT2.COM	Part of master cataloging sys.
+40.8	5K	CATALOG.DOC	Doc on master cataloging system
+40.9	1K	CK-FIX.COM	File checksum program
+40.10	1K	CK-FIX.DOC	DOC on above
+40.11	4K	COMPARE.ASM	See if two files match exactly
+				(Uses MAC and MAC's SEQIO)
+40.12	2K	COMPARE.COM	COM of above 'cause many macros
+40.13	8K	CV.ASM		Split screen VDM 2 file compare
+40.14	1K	CV.COM		..(requires MAC for assembly)
+40.15	1K	CV.DOC		DOC on above
+40.16	1K	D.COM		Shows what files are different
+40.17	1K	D.DOC		..on a disk from some prev time
+40.18	14K	DI.ASM		Directory listing program.
+				(req's MACRO.LIB from disk 38)
+40.19	2K	DI.COM		COM of above
+40.20	26K	DU.ASM		Disk utility: scan, patch, etc.
+40.21	4K	DU.COM		COM of above.
+40.22	1K	DU.DOC		DOC of above
+40.23	1K	EJECT.ASM	"EJECT n" pages on CPM list dev
+40.24	1K	FMAP.COM	File map (standalone, and part
+40.25	1K	FMAP.DOC		of cataloging system)
+40.26	9K	HEXDUMP.ASM	Binary to Hex (RequiresTDL asm)
+40.27	1K	MAST.CAT	Sample master catalog
+40.28	40K	MODEM4.ASM	Checksummed blocked file xfer
+40.29	7K	MODEM4.DOC	DOC on above.  PMMI/Hayes/serl
+40.30	3K	NSBOOT.ASM	Boot for National Semi 8221
+40.31	12K	NSCBIOS.ASM	CBIOS for National Semi 8221
+40.32	3K	PBOOT.ASM	Pascal boot loader for Tarbell
+40.33	5K	PGEN.ASM	Boot mods for 512 long sectors
+40.34	17K	PMMIBYE3.ASM	Dial in remote console prog.
+40.35	7K	SPASCAL.DOC	Sam Singer's PASCAL mods
+40.36	2K	UCAT.COM	Update catalog program
+40.37	3K	VDMSAVE.ASM	Write VDM lines to a file
+
+
+
+-------------------- VOLUME 40 ABSTRACTS ----------------------
+
+TITLE:  UTILITIES, MODEM FILE TRANSFER, ADAPTABLE PASCAL
+
+/.COM by Ward Christensen, is an 'on-line' submit command.  It
+is used to build a command file without having to edit a .SUB
+file.  For example, typing / ED FOO.ASM;ASM FOO.BBZ;LOAD
+B:FOO will cause CP/M to execute ED, ASM, and LOAD.  This
+should be useful to anyone who regularly uses submit.  Source
+code cannot be provided, but documentation is contained in
+/.DOC. Works only with CP/M 1.4. Reviewed by Robert A.
+Van Valzah. 
+
+ALLOC.COM by Ward Christensen is a utility which prints the bit
+map used by CP/M to allocate free space on the disk.  This is a
+revision of a previously released version which worked only
+with CP/M 1.3. The new ALLOC.COM works with CP/M 1.4.  This
+utility would be useful to a hacker was curious how the disk
+space was allocated.  Reviewed by Robert A. Van Valzah. 
+
+BOOTER.ASM, PBOOT.ASM, and PGEN.ASM are source files used to
+adapt UCSD Pascal for use with disks other than standard
+single density IBM format.  Using a disk formatted for 512
+byte sectors can speed up Pascal disk I/O significantly.
+This code is still under development and may contain some
+bugs.  It is provided for use by tinkerers.  What documentation
+there is is in SPASCAL.DOC.  Reviewed by Robert A. Van Valzah.
+
+CLEANUP.COM helps clean up a full disk by typing each
+selected name, and allowing you to erase the file, skip
+the file, type the file, or quit out of CLEANUP.COM.
+Allows ambiguous file names, such as *.ASM.  A generally
+useful utility.  Reviewed by its author, Ward Christensen.
+ 
+FMAP.COM, UCAT.COM, CAT.COM, and CAT2.COM by Ward Christensen,
+comprise a master disk cataloging system.  This system is
+useful if you have a large number of disks and have a hard time
+keeping track of what file you left where.  Earlier versions
+the components of this system have appeared in earlier
+releases.  The complete system is collected here in its current
+version for convienence.  Reviewed by Robert A. Van Valzah.
+
+CV.ASM contains source for a split screen video file 
+comparison utility.  It requires a VDM or SOL like display
+for operation.  One file is displayed on the top 8 lines of the
+screen and the other is displayed on the bottom 8 lines.
+Either half may be independently scrolled 1, 4, or 7 lines,
+or continuously.  A compare mode compares the files byte-by-
+byte while scrolling.  Once a miscomparison is found, each
+half screen can be scrolled independently until the files are
+'in sync' again.  This utility is most useful to those who
+have a tendency to have 5 copies of the same file sitting
+around wondering what is differnt about them.  CV.COM contains
+the assembled object code.  What little documentation there is
+can be found at the start of the .ASM file.  CV requires MAC
+for assembly.  The source code is weak on comments but is
+fairly well structured.  Reviewed by Robert A. Van Valzah.
+
+DI.ASM contains source for a utility which displays the
+directory of a disk in a three column format with the size
+of each file indicated in K bytes.  It is useful to those
+who keep a large number files on a disk or those who have
+a video terminal with a limited number of lines per screen.
+This program currently reads the directory by bypassing
+the BDOS and may not work with some double density 
+or with mini floppy systems.  The file name has been changed
+to DI.ASM from D.ASM so as not to conflict with D.ASM as
+written by Ward Christensen.  DI.ASM requires MAC and the file
+MACRO.LIB for assembly.  The code is well written and should
+be easy to modify.  Reviewed by Robert A. Van Valzah.
+
+D.COM by Ward Christensen is a utility which prints the
+directory of a disk without printing files which are ever
+present (like PIP and STAT).  The idea is that you put D.COM on
+to a disk and type D SET.  It then re-writes itself and thus
+remembers the current directory.  As files are added to and
+removed from the disk, these changes will be shown by executing
+D.COM.  You may individually ADD or DEL names in D.COM, or
+re-set it with D SET.  This is just the thing if you use the
+'system disk' concept and are forever trying to keep it
+'clean'.  Reviewed by Robert A. Van Valzah.  Mod. by WLC
+
+DU.ASM contains the source for a Disk Utility.  It has commands
+to read a disk a sector at a time by track, sector, and group
+number.  It can also search for ASCII strings, map the disk
+(what file occupies what group) etc.  Data may be patched
+in ASCII or hex.  It might almost be said to suffer from
+"rampant-feature-itis".  This is most useful if you have to re-
+create blown directories very often.  DU probably won't work
+correctly if you have anything other than a standard CP/M
+system because it has to do hard I/O calls to the CBIOS.  In
+order to use the utility correctly you would have to be a
+'hacker' and have a fairly good understanding of the directory
+structure used by CP/M.  Documentation is provided at the start
+of the .ASM file (definitly not a tutorial) and there is a good
+'help' function built into the .COM file if you forget any of
+it.  The source code is weak on on-line comments but is well
+structured.  Reviewed by Robert A. Van Valzah. Mod. by WLC
+
+HEXDUMP.ASM contatins source for a transient which takes an
+object file (say .COM) and produces an Intel hex format file
+(.HEX).  Perhaps a more appropriate name would be UNLOAD, as it
+performs the inverse operation of LOAD.COM.  No documentation
+has been provided, but it appears that it can send the hex to
+disk or to the list device.  The source is in TDL macro
+assembler format and does use some Z-80 opcodes.  Comments are
+a bit sparse.  This program is most useful to those who wish
+to send 8-bit object code over the phone lines (say to a
+timesharing service) or other 7-bit medium.  Reviewed by
+Robert A. Van Valzah.
+
+MODEM.ASM (version 4) contains the source for a modem com-
+munications utility.  It has the ability to transfer any CP/M
+file to or from another machine also using MODEM.COM.  The file
+is transfered in a blocked format with checksums and automatic
+retry on block failure.  It is very useful for software
+exchange and also for conversion from CP/M on one media to
+CP/M on another.  Modes are provided for terminal like
+communication with another computer.  This is an extension
+and rewrite of the earlier CP/M U.G. MODEM program.  It
+supports the S-100 modem boards made by PMMI and D. C. Hays
+with variable baud rate and disconnect control.  It can be
+used with modems interfaced with just a serial port too.
+Assembly switches provide for use with Heathkit CP/M.
+Documentation is provided in MODEM.DOC.  The source is well
+written and easy to modify.  Reviewed by Robert A. Van Valzah.
+
+PMMIBYE3.ASM contains source for a utility which allows remote
+access to your CP/M system.  It requires the PMMI modem for
+operation, although it could be adapted for other modems.
+The source is fairly well commented.  BYE requires a small
+amount of memory above the normal CP/M system in which to
+locate itself.  BYE effectively connects the modem as the
+CP/M console device and monitors for loss of carrier etc.
+Reviewed by Robert A. Van Valzah.
+
+NSCBIOS.ASM contains a CBIOS to put CP/M up on the National
+Semiconductor BLC 8221 disk controller.  NSBOOT.ASM contains
+a companion cold boot loader.  Both are based on the equivalent
+software distributed with CP/M and published in the CP/M System
+Alteration Guide.  These files would be useful to anyone with
+the aformentioned disk controller or with a Starplex system
+which, I believe, uses the same controller.  Both files may
+be assembled with ASM.COM.  The code is fairly well written
+and commented and should be fairly easy to adapt as needed.
+Reviewed by Robert A. Van Valzah.
+
+PTSRCNVT is used to convert files that were used
+with Processor Technology Software Package 1 and ALS8
+assemblers to a format that is CP/M assembler compatible.
+Input is read from disk so you must have a way to load the
+PT format source into memory at 0100H and save it.
+Documentation is provided in PTSRCNVT.DOC.  The source code
+is a little light on comments but shouldn't have to be
+modified.  In order to assemble PTSRCNVT.ASM, you will need
+MAC and MACRO.LIB from volume 24.  Reviewed by
+Robert A. Van Valzah.
+

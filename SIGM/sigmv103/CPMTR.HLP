@@ -1,0 +1,552 @@
+CP/M Transient Commands
+CP/M STAT Command
+CP/M PIP Command
+CP/M ED Command
+CP/M ASM Command
+CP/M LOAD Command
+CP/M DDT Command
+CP/M SYSGEN Command
+CP/M BDOS -- Basic I/O Operations
+CP/M BDOS -- Basic Disk Operations
+CP/M File Types
+CP/M BIOS Jump Vector
+:CP/M Transient Commands
+
+     The CP/M transient commands discussed here are --
+
+          STA‘†     LisÙ thÂ numbeÚ oÊ  byteÛ  oÊ storagÂ  and data oÓ† thÂ ç
+                    currentl˘††† logged-iÓ†† disk¨††† providÂ†† statisticaÏ ç
+                    informatioÓ† abouÙ† particulaÚ files¨† an‰† displa˘† oÚ ç
+                    alter device assignment.
+
+          PI–       Loa‰ thÂ PeripheraÏ InterchangÂ PrograÌ foÚ† subsequenÙ ç
+                    disk file and peripheral transfer operations.
+
+          ED        Load and execute the CP/M text editor program.
+
+          ASÕ†      Loa‰† thÂ† CP/Õ assembleÚ an‰  assemblÂ† thÂ† specifie‰ ç
+                    program from disk.
+
+          LOAƒ†     Loa‰  thÂ filÂ iÓ InteÏ "hex¢ machinÂ codÂ† formaÙ† an‰ ç
+                    producÂ† · filÂ iÓ machinÂ executablÂ forÌ whicË caÓ bÂ ç
+                    loade‰ intÔ thÂ TP¡ (thiÛ loade‰ prograÌ becomeÛ ·† ne˜ ç
+                    command under the CCP).
+
+          DDT       Load the CP/M debugger into the TPA and execute it.
+
+          SYSGEN    Create a new CP/M system diskette.
+
+:CP/M STAT Command
+
+     The STAT Command takes any of the following forms --
+
+STA‘      CalculatÂ thÂ storagÂ remaininÁ oÓ alÏ activÂ driveÛ an‰ prinÙ† · ç
+          message like
+               x: R/W, SPACE: nnnK  -- if disk is Read/Write
+               x: R/O, SPACE: nnnK  -- if disk is Read Only
+STAT x:   Calculate the storage remaining on the specified drive and print
+               BYTES REMAINING ON x: nnnK
+
+STAT x:afn [$S]
+          ScaÓ thÂ specifie‰ fileÛ oÓ thÂ specifie‰ drivÂ (x∫ iÛ optional)¨ ç
+          an‰† lisÙ† alÏ fileÛ whicË satisf˘ thÂ unambiguouÛ† referencÂ† iÓ ç
+          alphabeticaÏ† ordeÚ witË storagÂ requirementsÆ†  ¡ tablÂ likÂ thÂ ç
+          following is generated --
+
+               Size Recs Bytes Ext Acc
+              sssss rrrr  nnnk  ee a/b d:pppppppp.sss
+
+          where
+               sssss -- number of virtual 128-byte records in file
+                    This field is display if the optional $S is given
+               rrrr -- number of 128-byte records in each extent of the file
+               nnnK -- number of bytes (in K, K=1024) allocated to the file
+               ee -- number of 16K extensions
+               a/b -- access mode of file; R/O or R/W
+               d:pppppppp.sss -- drive name (d may be A, B, C, D) and file
+                         name
+
+STAT x:=R/O
+          SeÙ thÂ specifie‰ drivÂ tÔ Rea‰ OnlyÆ†  ThiÛ iÛ cleare‰ b˘ · warÌ ç
+          boot.  When a disk is Read Only, the message
+               BDOS ERR ON x: READ ONLY
+          will appear if there is an attempt to write to it.
+STAT VAL:
+          Summarize the status commands.  STAT VAL: will print the list --
+
+               Temp R/O Disk:  d:=R/O
+               Set Indicator:  d:filename.typ $R/O $R/W $SYS $DIR
+               Disk Status  :  DSK: d:DSK:
+               User Status  :  USR:
+               Iobyte Assign:
+               CON: = TTY:  CRT:  BAT:  UC1:
+               RDR: = TTY:  PTR:  UR1:  UR2:
+               PUN: = TTY:  PTP:  UP1:  UP2:
+               LST: = TTY:  CRT:  LPT:  UL1:
+
+STAT DEV:
+          Displa˘† thÂ† currenÙ logicaÏ tÔ physicaÏ† devicÂ† mappingÆ†  FoÚ ç
+          example, the list may appear as --
+
+               CON: = CRT:         PUN: = PTP:
+               RDR: = UR1:         LST: = TTY:
+
+STAT d:afn [$R/O or $R/W or $SYS or $DIR]
+          SeÙ† thÂ† variouÛ† permanenÙ† filÂ† indicatorsÆ††  R/O=Read/Only¨ ç
+          R/W=Read/Write, SYS=System, DIR=Non-System
+
+STAT ld1=pd1, ld2=pd2, ...
+          ChangÂ† thÂ† logicaÏ† tÔ physicaÏ† devicÂ† assignmentsÆ†  LogicaÏ ç
+          devicÂ ld± iÛ assigne‰ tÔ physicaÏ devicÂ pd1¨† etcÆ†  ThÂ† vali‰ ç
+          logical device names are --
+
+               CON:      The system console device
+               RDR:      The paper tape reader device
+               PUN:      The paper tape punch device
+               LST:      The output list device
+
+          The valid physical device names are --
+
+               TTY:      Slow speed output device (teletype)
+               CRT:      High speed output device (cathode ray tube)
+               BAT∫      BatcË processinÁ (CON∫ inpuÙ iÛ RDR:¨† CON∫ outpuÙ ç
+                         is LST:)
+               UC1:      User-defined console
+               PTR:      Paper tape reader
+               PTP:      Paper tape punch
+               UR1:      User-defined reader #1
+               UR2:      User-defined reader #2
+               UP1:      User-defined punch #1
+               UP2:      User-defined punch #2
+               LPT:      Line printer
+               UL1:      User-defined list device #1
+
+
+STAT d:DSK:
+          LisÙ† thÂ characteristicÛ oÊ thÂ disÎ name‰ "d:"ª† iÊ "d:¢ iÛ noÙ ç
+specified, list the characteristics of all active disks.  A sample listing:
+
+               d: Drive Characteristics
+           65536: 128 Byte Record Capacity
+            8192: Kilobyte Drive Capacity
+             128: 32  Byte Directory Entries
+               0: Checked  Directory Entries
+            1024: Records/ Extent
+             128: Records/ Block
+              58: Sectors/ Track
+               2: Reserved Tracks
+
+STAT USR:
+          LisÙ† thÂ† UseÚ† NumbeÚ thÂ useÚ iÛ currentl˘† iÓ† an‰† thÂ† UseÚ ç
+NumberÛ† whicË† havÂ† fileÛ† oÓ thÂ currentl˘† addresse‰† diskÆ†  ¡† samplÂ ç
+listing:
+               Active User : 0
+               Active Files: 0 1 3
+:CP/M PIP Command
+
+     PI–† (PeripheraÏ† InterchangÂ† Program© iÛ thÂ† CP/Õ† transienÙ† whicË ç
+implementÛ thÂ basi„ medi· conversioÓ operationÛ necessar˘ tÔ load¨† print¨ ç
+punch¨† copy¨† an‰† combinÂ† disÎ filesÆ†  PI– iÛ initiate‰ b˘ onÂ† oÊ† thÂ ç
+following forms --
+
+          PI–†           EngagÂ  PIP¨† prompÙ thÂ useÚ witË '*'¨† an‰† rea‰ ç
+                         comman‰ lineÛ directl˘ froÌ thÂ consoleÆ  PI– use‰ ç
+                         iÓ† thiÛ† wa˘ iÛ exite‰ b˘ eitheÚ typinÁ aÓ† empt˘ ç
+                         comman‰ linÂ (jusÙ · carriagÂ return© oÚ ·† Ctrl-√ ç
+                         as the first character of the line.
+          PI–† cmn‰      EngagÂ PIP¨† executÂ  thÂ specifie‰† command¨† an‰ ç
+                         return to CP/M.
+
+     The form of each command line in PIP is --
+
+          destination = source#1, source#2, source#3, ..., source#n
+
+
+     The general forms of PIP command lines are --
+
+          x:=y:afÓ†      Cop˘† alÏ† fileÛ  satisfyinÁ afÓ froÌ drivÂ† ˘† tÔ ç
+                         drivÂ xÆ†  'yß ma˘ bÂ omitted¨† and¨† iÊ† so¨† thÂ ç
+                         currently logged-in drive is selected.
+          x:ufn=y∫†      Cop˘  thÂ filÂ giveÓ b˘ ufÓ froÌ ˘ tÔ xÆ†  'xß ma˘ ç
+                         bÂ omitted¨† and¨† iÊ so¨† thÂ currentl˘ logged-iÓ ç
+                         drive is selected.
+          x:afn=y:afÓ    LikÂ thÂ above¨ buÙ ¯ and/oÚ ˘ ma˘ bÂ omittedª thÂ ç
+                         defaulÙ†† drivÂ† iÛ† selecte‰† foÚ†† thÂ†† omitte‰ ç
+                         drive(s).
+          ld=p‰†         Cop˘† froÌ  thÂ specifie‰ physicaÏ devicÂ† tÔ† thÂ ç
+                         specifie‰† logicaÏ deviceÆ†  Vali‰ logicaÏ deviceÛ ç
+                         are --
+                              CON:, RDR:, PUN:, LST:
+                         Valid physical devices are --
+                              TTY:, CRT:, UC1:, PTR:, PTP:, UR1:, UR2:,
+                              UP1:, UP2:, LPT:, UL1:
+
+
+     Additional device names which may be used in PIP commands are --
+
+          NUL:      Send 40 Nulls (ASCII 0) to the device.
+          EOF:      Send a CP/M End of File character (ASCII Ctrl-Z).
+          INP:      Special PIP input source to be patched (see manual).
+          OUT∫†     SpeciaÏ† PI–† outpuÙ  destinatioÓ tÔ† bÂ† patche‰† (seÂ ç
+                    manual).
+          PRN∫†     SamÂ aÛ LST:¨† buÙ  tabÛ arÂ expande‰ aÙ† ever˘† eightË ç
+                    characteÚ position¨ lineÛ arÂ numbered¨ an‰ pagÂ ejectÛ ç
+                    are inserted every 60 lines with an initial eject.
+
+
+     ThÂ† useÚ† caÓ† alsÔ specif˘ onÂ oÚ morÂ PI–† parameterÛ† enclose‰† iÓ ç
+square brackets separated by zero or more blanks.  These parameters are --
+
+     ¬†   BlocÎ modÂ  transferÆ†  Dat· iÛ buffere‰ b˘ PI– untiÏ aÓ ASCI… X-ç
+          Off character (Ctrl-S) is received from the source device.
+     DÓ†  DeletÂ characterÛ  whicË exten‰ pasÙ columÓ Ó iÓ thÂ transfeÚ† oÊ ç
+          data to the destination from the character source.
+     E    Echo all transfer operations to the console.
+     F    Filter (remove) form feeds from the file.
+     Gn   Get File from User Number n (n in the range 0 - 15)
+     »    He¯ dat· transferÆ  AlÏ dat· iÛ checke‰ foÚ propeÚ InteÏ he¯ filÂ ç
+          format.
+     I    Ignore ':00' records in the transfer of Intel hex format file.
+     L    Translate upper case to lower case alphabetics.
+     N    Add line numbers to each line transferred to the destination.
+     O    Object file (non-ASCII) transfer.  Ignore End of File.
+
+     Pn   Include page ejects at every n lines.
+     Qs^⁄†QuiÙ† copyinÁ  froÌ thÂ sourcÂ devicÂ oÚ filÂ wheÓ thÂ† strinÁ† Û ç
+          (terminated by Ctrl-Z) is encountered.
+     R    Read system files
+     Ss^Z Start copying from the source file when the string s is seen.
+     Tn   Expand tabs to every nth column.
+     U    Translate lower case to upper case alphabetics.
+     V    Verify that data has been copied correctly.
+     W    Write over R/O files without console interrogation
+     Z    Zero the parity bit on input for each ASCII character.
+:CP/M ED Command
+
+     ThÂ† Eƒ† PrograÌ† iÛ thÂ CP/Õ† systeÌ† contexÙ† editor¨† whicË† allowÛ ç
+creatioÓ an‰ alteratioÓ oÊ ASCI… filesÆ†  CompletÂ detailÛ arÂ giveÓ iÓ thÂ ç
+user's manual.
+
+     The following are the error indicators given by ED --
+
+          ?    Unrecognized Command
+          >    Memory buffer full
+          #    Cannot apply command the number of times specified
+          O    Cannot open LIB file in R command
+
+
+     The following are the control characters recognized by ED --
+
+          ^C        System reboot
+          ^E        Physical <CR> <LF> (not entered in command)
+          ^H        Character delete (backspace)
+          ^I        Logical tab
+          ^J        New line (line feed)
+          ^L        Logical <CR> <LF> in search and substitute strings
+          ^M        New line (carriage return)
+          ^U        Line delete
+          ^X        Line delete and backspace
+          ^Z        String terminator
+          Rubout    Character delete
+          Break     Discontinue command
+
+
+     The following are the commands recognized by ED --
+
+          nA        Append lines
+          +/- B     Beginning/Bottom of buffer
+          +/- nC    Move character positions
+          +/- nD    Delete characters
+          E         Exit
+          nFs^Z     Find string
+          H         End edit, close and reopen files
+          Is^Z      Insert characters
+          nJ        Place strings in juxtaposition
+          +/- nK    Kill (delete) lines
+          +/- nL    Move down/up lines
+          nM        Macro definition
+          O         Return to original file
+          +/- nP    Move and print pages
+          Q         Quit with no file changes
+          R         Read library file
+
+          nSs1^Zs2^Z
+                    Substitute s2 for s1
+          +/- nT    Type lines
+          +/- U     Translate lower to upper case if U; none if -U
+          +/- V     Engage/disengage line numbers (verify)
+          0V        Print memory buffer info (free/total usage)
+          nW        Write lines
+          nX        Transfer n lines to X$$$$$$$.LIB
+          0X        Empty X$$$$$$$.LIB
+          nZ        Sleep
+          +/- n     Move and type (+/- nLT)
+          n:        Move to absolute line (V engaged)
+          :n        Process from current line to specified line (V engaged)
+:CP/M ASM Command
+
+     ThÂ ASÕ Comman‰ loadÛ an‰ executeÛ thÂ CP/Õ 808∞ assemblerÆ†  IÙ iÛ oÊ ç
+the form --
+
+          ASM filename.xyz
+
+where
+
+          filename  ... is the name of the file 'filename.ASM' to assemble
+          x         ... designates the disk name which contains the source
+          y         ... designates the disk name to contain the hex file
+                         (y=Z suppresses generation of the hex file)
+          z         ... designates the disk name to contain the print file
+                         (y=X lists on CON:, y=Z suppresses listing)
+
+     Refer to the ASM Manual for further details.
+:CP/M LOAD Command
+
+     ThÂ LOAƒ Comman‰ readÛ thÂ filÂ specified¨ whicË iÛ assume‰ tÔ contaiÓ ç
+InteÏ he¯ formaÙ machinÂ codÂ an‰ produceÛ · memor˘ imagÂ filÂ whicË caÓ bÂ ç
+subsequently executed (converts .HEX to .COM files).  It is of the form --
+
+          LOAD filename
+
+where filename is the name of the file 'filename.HEX'.
+:CP/M DDT Command
+
+     ThÂ† DD‘† PrograÌ allowÛ dynami„ interactivÂ testinÁ an‰ debugginÁ† oÊ ç
+programs generated in the CP/M environment.  It is invoked by --
+
+          DDT
+          DDT filename.HEX
+          DDT filename.COM
+
+where 'filename' is the name of the program to be loaded or tested.
+
+     DDT responds to the normal CP/M input line editing characters.
+
+
+   DDT responds to the following commands --
+
+     As   Perform inline assembly starting at the specified address s.
+     D    Display memory from the current address for 16 display lines.
+     Ds   Display memory from address s for 16 display lines.
+     Ds,f Display memory from address s to address f.
+     Fs,f,c
+          Fill memory from start address s to final address f with byte c.
+
+     G    Start execution at the current value of the PC.
+     Gs   Start execution at the specified address s.
+     Gs,‚†StarÙ executioÓ  aÙ thÂ specifie‰ addresÛ Û an‰ seÙ ·† breakpoinÙ ç
+          at the address b.
+     Gs,b,c
+          Same as above with breakpoints at b and c.
+     G,b  Start execution at the current value of the PC with breakpoint b.
+     G,b,c
+          Same as above with breakpoints at b and c.
+
+
+     If   Insert a file name f into the default FCB.
+
+     L    List 12 lines of disassembled code from the current address.
+     Ls   List 12 lines from the specified address s.
+     Ls,f List lines of disassembled code from s to f.
+
+     Ms,f,d
+          Move the block from address s to f to destination at address d.
+
+     R    Read file in FCB into memory at 100H.
+     Rb   Read file in FCB into memory with offset b from 100H.
+
+     Ss   Set (examine and alter) memory starting at address s.
+
+
+     T    Trace the next instruction.
+     Tn   Trace the next n instructions.
+
+     U    Untrace -- like Trace, but intermediate steps are not displayed.
+
+     X    Examine all registers and flags.
+     Xr   Examine specified registers or flag, where r may be --
+               C    Carry flag
+               Z    Zero flag
+               M    Minus (sign) flag
+               I    Interdigit Carry flag
+               A    Accumulator
+               B    BC Reg pair
+               D    DE Reg pair
+               H    HL Reg pair
+               S    Stack pointer
+               P    PC
+:CP/M SYSGEN Command
+
+     ThÂ† SYSGEŒ transienÙ comman‰ allowÛ generatioÓ oÊ aÓ initialize‰ disÎ ç
+containing the CP/M Operating System.
+
+     It is invoked by typing
+
+          SYSGEN
+
+     OncÂ invoked¨† thÂ useÚ iÛ prompte‰ througË thÂ sessionÆ  RefeÚ tÔ thÂ ç
+CP/M Manual for further details.
+:CP/M BDOS -- Basic I/O Operations
+     Function and Number      Input Parameters    Output Parameters
+
+     System Reset      0      None                None
+     Read Console      1      None                ASCII Char in A
+     Write Console     2      ASCII Char in E     None
+     Read Reader       3      None                ASCII Char in A
+     Write Punch       4      ASCII Char in E     None
+     Write List        5      ASCII Char in E     None
+     Direct Con I/O    6      ASCII Char in E     I/O Status in A if E=0FFH
+     Get I/O Status    7      None                I/O Status in A
+     Put I/O Status    8      I/O Status in E     None
+     Print Buffer      9      Address of string   None
+                               terminated by $
+                               in DE
+     Read Buffer      10      Address of Read     Read Buffer is filled
+                               Buffer in DE
+     Console Ready    11      None                LSB of A is 1 if char
+                                                   ready
+*All function numbers are passed in Reg C.
+
+I/O Status Byte --
+
+     Value     Bits 6&7  Bits 4&5  Bits 2&3  Bits 0&1
+
+       00      CON:=TTY: RDR:=TTY: PUN:=TTY: LST:=TTY:
+       01           CRT:      PTR:      PTP:      CRT:
+       10           BAT:      UR1:      UP1:      LPT:
+       11           UC1:      UR2:      UP2:      UL1:
+
+Read Buffer --
+
+     Byte      Function
+
+       1       Maximum Buffer Length
+       2       Current Buffer Length (returned value)
+     3-n       Data (returned values)
+
+
+:CP/M BIOS -- Basic Disk Operations
+
+     Function and Number      Input Parameters    Output Parameters
+
+     Return Version # 12      None                Version Info in HL
+                                                  H=0 CP/M, H=1 MP/M
+                                                  L=00 CP/M 1.x, 2x 2.x
+     Init BDOS        13      None                None
+     Log-In Disk      14      Value in Reg E      None
+                               A=0, B=1, C=2,
+                               D=3
+     Open File        15      Address of FCB      Byte address of FCB
+                               in DE               if found or 0FFH if not
+     Close File       16      Address of FCB      Byte address of FCB
+                               in DE               if found or 0FFH if not
+     Search for File  17      Address of FCB      Byte address of FCB (0-3)
+                               in DE               if found or 0FFH if not
+     Search for Next  18      Address of FCB      Byte address of next FCB
+                               in DE               if found or 0FFH if not
+     Delete File      19      Address of FCB      Byte address of FCB (0-3)
+                               in DE               if found or 0FFH if not
+
+     Function and Number      Input Parameters    Output Parameters
+
+     Read Next Record 20      Address of FCB      0=successful read
+                               in DE              1=read past EOF
+                                                  2=reading random data
+     Write Next Rec   21      Address of FCB      0=successful write
+                               in DE              1=error in extending
+                                                  2=end of disk data
+                                                  255=no more dir space
+     Make File        22      Address of FCB      Byte address of FCB or
+                               in DE               255 if no more dir space
+     Rename FCB       23      Address of FCB      Byte Address of Dir entry
+                               in DE               or 255 if no match
+     Return Log Code  24      None                Login vector in HL
+     Read Drive No    25      None                Number of logged-in drive
+                                                   (A=0, B=1, C=2, D=3)
+     Set DMA Address  26      Address of 128      None
+                              byte buffer in DE
+
+     Function and Number      Input Parameters    Output Parameters
+
+     GeÙ†Allo„ VecÙ   2∑      NonÂ                AllocatioÓ  VecÙ AddÚ† iÓ ç
+                                                   HL
+     Write Prot Disk  28      None                None
+     Get R/O Vect     29      None                HL=R/O Vect Val
+     Set File Attrib  30      Ptr to FCB in DE    Dir code in A
+     Get Disk Parms   31      None                HL=DPB Address
+     Set/Get Usr Code 32      E=0FFH (get)/Code   A=Current code (get)/no
+                               (set)               value (set)
+     Read Random      33      DE=FCB addr         A=return code
+                                                  1=reading unwritten data
+                                                  2=(not used)
+                                                  3=can't close curr ext
+                                                  4=seek to unwritten ext
+                                                  5=(not used)
+                                                  6=seek past end of disk
+
+     Function and Number      Input Parameters    Output Parameters
+
+     Write Random     34      DE=FCB addr         A=return code
+                                                  1=reading unwritten data
+                                                  2=(not used)
+                                                  3=can't close curr ext
+                                                  4=seek to unwritten ext
+                                                  5=dir overflow
+                                                  6=seek past end of disk
+     Compute File Siz 35      DE=FCB addr         Random Rec Field set
+                                                   to file size
+     Set Random Rec   36      DE=FCB addr         Random Rec Field set
+
+
+*All function numbers are passed in Reg C
+
+:CP/M File Types
+     AIN   ALGOL 60 Intermediate   ALG   ALGOL 60 Source File
+     ASM   Assembler Source File   BAK   Backup File
+     BAS   BASIC Source File       C     C Source File
+     COB   COBOL Source File       COM   "Command" File
+     FOR   FORTRAN IV Source File  HEX   Intel "hex" code file
+     HLP   HELP File               INT   BASIC Intermediate File
+     LST   Listing File            MAC   MACRO-80 Source File
+     PAS   PASCAL Source File      PRN   Assembler Listing File
+     REL   Relocatable Module      SRC   PASCAL/MT Source File
+     SUB   SUBMIT File             SYM   Symbol File
+     TC    Tiny-C Source File      TFS   TFS Source File
+     TXT   Text File               $$$   Temporary File
+:CP/M BIOS Jump Vector
+
+     ThÂ† followinÁ iÛ · tablÂ representinÁ thÂ entr˘ pointÛ intÔ thÂ† CP/Õ ç
+BIOS of the major routines accessable to the user --
+
+
+     Routine   Relative Offset     Comment
+
+     BOOT           00H            Cold Start
+     WBOOT          03H            Warm Start
+     CONST          06H            Console Status
+                                    Reg A = 00 if no char ready
+                                    Reg A = FF if char ready
+     CONIN          09H            Console char in (Reg A)
+     CONOUT         0CH            Console char out (Reg C)
+     LIST           0FH            List out (Reg C)
+     PUNCH          12H            Punch out (Reg C)
+     READER         15H            Reader in (Reg A)
+
+     Routine   Relative Offset     Comment
+
+     HOME           18H            Move to track 00
+     SELDSK         1BH            Select disk given by Reg C (A=0,B=1,...)
+     SETTRÀ†        1E»†           SeÙ† tracÎ† addresÛ† giveÓ† b˘† ReÁ† √ 
+                                      (0...76)
+     SETSE√†        21»†           SeÙ† sectoÚ† addresÛ giveÓ† b˘† ReÁ† √ 
+                                      (1...26)
+     SETDMA         24H            Set subsequent DMA address (RP B&C)
+     READ           27H            Read track/sector (block)
+     WRITE          2AH            Write track/sector (block)
+     LISTST         2DH            List Device Status
+                                    Reg A = 00 if no char ready
+                                    Reg A = FF if char ready
+     SECTRAŒ†       30»            TranslatÂ  sectoÚ numbeÚ iÓ ReÁ √† usinÁ ç
+                                    tablÂ pointe‰ tÔ b˘ DEª physicaÏ sectoÚ ç
+                                    number returned in Reg L
+

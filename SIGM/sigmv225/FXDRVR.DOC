@@ -1,0 +1,589 @@
+
+
+                           FXDRVR.DOC
+
+
+ FXDRVR:  A Special Font Driver for WordStar and the Epson FX-80
+
+                          Version 3.1b
+                        February 20, 1985
+
+
+
+Prograí anä manuaì copyrighô (c© 1982¬ 1983¬ 1984¬ 198µ bù Pauì 
+J® Gans®  Alì rightó reserved®  Releaseä foò non-commerciaì uså 
+only®  Thió prograí maù noô bå solä oò incorporateä intï softwarå 
+oò hardwarå tï bå solä withouô expresó writteî permission.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                            Contents
+
+
+     1.   Introduction .  .  .  .  .  .  .  .  .  .  .  .  2
+     2.   How FXDRVR works.  .  .  .  .  .  .  .  .  .  .  3
+     3.   Configuring WordStar  .  .  .  .  .  .  .  .  .  6
+     4.   The Generation of an Alternate Character Set  .  8
+     5.   Customizing and Assembling FXDRVR .  .  .  .  .  9
+     6.   Appending the Alternate Character Set.  .  .  . 11
+     7.   A User's Guide  .  .  .  .  .  .  .  .  .  .  . 13
+
+.paŠ.pn 2
+.he                FXDRVR - Section 1 - Introduction
+.fo                              = # =
+
+
+
+                        1.   Introduction
+
+
+     FXDRVÒ requireó thå Microsofô M8° assembleò anä runó undeò 
+CP/M-80 version 2.2
+
+     FXDRVÒ ió á speciaì characteò driveò foò WordStar®  Iô al
+lowó thå uså oæ aî alternatå characteò seô iî á WordStaò prepareä 
+documenô oî aî Epsoî FX-8° printer®  Thió ió donå througè thå 
+abilitù oæ thå FX-8° tï downloaä anä uså aî alternatå characteò 
+set®  Á technicaì explanatioî oæ ho÷ FXDRVÒ workó ió giveî iî 
+Sectioî 2¬ buô iô ió noô necessarù tï reaä thió sectioî iî ordeò 
+tï geô FXDRVÒ uğ anä running.
+
+     Beforå FXDRVÒ caî bå useä witè WordStar¬ WordStaò musô bå 
+properlù seô uğ tï matcè thå assumptionó oæ FXDRVR® Instuctionó 
+foò properlù configurinç youò versioî oæ WordStaò arå giveî iî 
+Sectioî 3.
+
+     Afteò WordStaò haó beeî properlù seô up¬ aî alternatå char
+acteò seô musô bå generated®  Aî outlinå oæ whaô musô bå donå ió 
+giveî iî Sectioî 4.
+
+     Witè aî alternatå characteò seô generated¬ FXDRVÒ musô bå 
+seô uğ tï downloaä thå alternatå characteò set®  Tï dï thió twï 
+equateó musô bå altereä iî FXDRVR®  FXDRVÒ musô theî bå reassem
+bled®  Thió ió discusseä iî Sectioî 5.
+
+     Lastlù thå alternatå characteò seô musô bå appendeä tï thå 
+binarù (.COM© versioî oæ FXDRVR®  Directionó foò doinç thió ió 
+giveî iî Sectioî 6.
+
+     Sectioî · containó á brieæ user'ó manuaì witè exampleó takeî 
+froí thå alternatå characteò seô supplieä witè thió program.
+
+.paŠ.he              FXDRVR - Section 2 - How FXDRVR Works
+
+
+
+                      2.   How FXDRVR Works
+
+
+     FXDRVÒ workó bù interceptinç alì BIOÓ calló tï thå prinô 
+routine®  Eacè characteò passeä bù WordStaò tï thå printeò ió 
+examined®  Iæ thå characteò ió "normal"¬ i.e® havinç á numeriã 
+valuå lesó thaî 128¬ iô ió transmitteä unchangeä tï thå BIOÓ 
+prinô routine®  Iæ iô haó á valuå oæ 12¸ oò greater¬ thå char
+acteò ió interpreteä aó á signaì tï FXDRVÒ tï eitheò takå somå 
+actioî oò perforí somå functioî relativå tï thå FX-80®  Sucè 
+actionó includå placinç thå printeò iî double-strikå modå oò 
+printinç á characteò froí thå alternatå characteò set.
+
+     As presently written FXDRVR allows the following functions:
+
+          Enter elite mode
+          Leave elite mode
+          Toggle italic mode on or off
+          Toggle emphasized mode on or off
+          Toggle condensed mode on or off
+          Toggle double-strike mode on or off
+          Use alternate character set for next character
+
+     Wheî WordStaò exits¬ thå calì tï thå warm-booô entrù iî thå 
+BIOÓ ió intercepteä bù FXDRVÒ whicè theî extracateó itselæ froí 
+higè memorù iî sucè á waù aó tï leavå thå BIOÓ anä thå BDOÓ 
+sectionó oæ thå operatinç systeí unchanged®  FXDRVÒ alsï trans
+mitó á masteò reseô strinç (0x1b¬ 0x64© tï thå FX-8° sï iô wilì 
+bå lefô iî á knowî state®  FXDRVÒ theî jumpó tï thå BIOÓ warm-
+booô routine.
+
+
+     FXDRVÒ interceptó BIOÓ calló tï botè thå prinô anä warm-booô 
+routineó bù changinç thå correspondinç addresseó iî thå BIOÓ jumğ 
+table®  Thuó á calì tï eitheò oæ theså routineó resultó iî á jumğ 
+beinç madå tï aî FXDRVÒ routinå whicè then¬ iî turn¬ maù calì thå 
+actuaì BIOÓ prinô oò warm-booô routine®  Tï dï thió iî sucè á waù 
+aó tï bå transparenô tï WordStar¬ FXDRVÒ relocateó itó activå 
+nucleuó tï higè memory¬ changeó thå appropriatå BIOÓ jumğ tablå 
+addresses¬ anä changeó thå appropriatå lo÷ memorù addresseó tï 
+reflecô thå facô thaô thå transienô prograí areá haó beeî shrunë 
+somewhaô througè thå existencå oæ FXDRVR®  Thå currenô versioî oæ 
+FXDRVÒ (3.0© occupieó abouô 44° byteó iî higè memory.
+
+
+     Thå flo÷ oæ controì iî FXDRVÒ ió quitå straight-forward®  
+Wheî initiateä FXDRVÒ dowloadó thå alternatå characteò seô appen
+deä tï it®  Iô theî findó thå toğ oæ memorù anä computeó á relo
+catioî offseô foò itó nucleus®  Addresseó tï bå relocateä arå 
+presenô iî á relocatioî tablå startinç aô addresó RTABLE®  Thå 
+BIOÓ tablå entrieó foò prinô anä warm-booô arå theî gotteî anä 
+storeä foò futurå reference®  Thå BIOÓ tablå entrieó arå alsï Špatcheä tï poinô tï thå appropriatå sectionó oæ FXDRVR®  Lo÷ 
+memorù pointeró arå alsï patched®  Thå nucleuó oæ FXDRVÒ ió theî 
+relocateä tï higè memory.
+
+     Thå FXDRVÒ nucleuó iî higè memorù haó twï componentsº  á 
+transienô sectioî thaô performó initializatioî anä otheò house
+keepinç chores¬ anä á residenô section.
+
+     Thå transienô sectioî oæ thå FXDRVÒ nucleuó examineó itó 
+commanä linå arguments®  Thå firsô argument¬ thå namå oæ thå 
+WordStaò file¬ musô bå present®  Iæ iô ió not¬ FXDRVÒ terminateó 
+witè complaints®  Iæ iô is¬ FXDRVÒ searcheó foò thå correspondinç 
+filå startinç witè thå currentlù logged-iî drivå anä endinç witè 
+thå Á drive®  Thå currenô useò numbeò ió searcheä iî botè cases.
+
+     Iæ WordStaò ió noô found¬ FXDRVÒ complainó anä quits®  Iæ iô 
+is¬ iô ió loadeä intï itó normaì locationó iî lo÷ memory®  Iæ á 
+seconä argumenô tï FXDRVÒ waó present¬ iô ió seô uğ iî thå de
+faulô FCÂ anä thå commanä linå buffeò jusô aó iô woulä havå beeî 
+haä WordStaò beeî invokeä directly®  FXDRVÒ theî jumpó tï memorù 
+locatioî 0x10° tï activatå WordStar.
+
+
+     Durinç thå usuaì non-printinç functionó oæ WordStar¬ thå 
+high-memorù residenô sectionó oæ FXDRVÒ dï nothing®  Onlù wheî 
+printinç ió calleä foò doeó FXDRVÒ becomå active®  Wheî WordStaò 
+outputó á characteò tï bå printed¬ aî eventuaì calì tï thå prinô 
+routinå iî thå BIOÓ jumğ tablå results®  Thió jumğ haó beeî 
+changeä tï go¬ noô tï thå actuaì BIOÓ prinô routine¬ buô tï thå 
+appropriatå sectioî oæ FXDRVÒ instead.
+
+     FXDRVÒ theî examineó thå characteò passeä tï iô foò print
+ing®  Iæ thå character'ó numeriã valuå ió lesó thaî 12¸ iô ió 
+passeä directlù tï thå BIOÓ prinô routine®  Iæ iô ió 12¸ oò 
+greater¬ thå characteò ió examineä iî morå detail®  Á seô oæ 
+valueó (froí 0x8± tï 0x8¶ iî thå presenô version© havå beeî seô 
+asidå aó flagó anä indicatoró tï FXDRVR®  Iæ thå characteò pres
+enô iî FXDRVÒ aô thió poinô ió noô onå oæ theså iô ió ignoreä anä 
+nothinç ió transmitteä tï thå printer.
+
+     Oî thå otheò hand¬ iæ thå characteò passeä tï FXDRVÒ ió iî 
+thå requireä range¬ FXDRVÒ takeó aî actioî baseä upoî thå actuaì 
+value®  Iî mosô caseó thió resultó iî thå FX-8° beinç placeä iî 
+onå oò anotheò oæ itó modeó bù á strinç oæ controì bytes®  Thus¬ 
+foò example¬ iî thå currenô versioî thå receipô oæ á bytå foò 
+printinç witè á valuå oæ 0x8² resultó iî twï thingsº  thå italiã 
+modå flaç ió seô anä thå strinç 0x1â 0x3´ ió senô tï thå FX-80®  
+Thuó alì succeedinç characteró senô tï thå FX-8° wilì bå printeä 
+iî italiã mode®  Wheî thå nexô 0x8² valuå ió detecteä bù FXDRVR¬ 
+thå italiã modå flaç ió reseô anä thå strinç 0x1â 0x3µ ió senô tï 
+thå FX-80¬ turninç ofæ italiã mode.
+
+     Thå otheò modå flagó worë iî aî identicaì manner.
+
+     Thå onå majoò exceptioî ió thå alternatå characteò seô flaç Š(0x8± iî thå currenô version)®  Wheî thió valuå ió recognizeä thå 
+GRAÆ modå flaç (so-calleä foò historicaì reasons© ió set®  Thió 
+flaç ió examineä everù timå á FXDRVÒ processeó á character®  Iæ 
+thå flaç ió reset¬ nï alternatå characteò seô actioî takeó place®  
+Buô iæ thå flaç ió seô wheî á normallù printablå characteò ió 
+beinç examined¬ FXDRVÒ transmitó thå four-bytå sequencå 0x1b¬ 
+0x25¬ 0x01¬ 0x0° tï causå thå Epsoî tï selecô thå alternatå char
+acteò set®  Iô theî transmitó thå actuaì characteò senô tï it®  
+Lastlù iô transmitó thå four-bytå sequencå 0x1b¬ 0x25¬ 0x00¬ 
+0x00¬ whicè placeó thå FX-8° intï itó ROÍ characteò seô mode®  
+Thå GRAÆ modå flaç ió theî reset.
+
+
+     Thió procesó oæ examininç alì characteró tï bå printeä con
+tinueó untiì WordStaò terminates®  Aô thaô timå á calì tï thå 
+warm-booô entrù iî thå BIOÓ ió generated®  Thió entrù toï haó 
+beeî changeä bù FXDRVÒ sï thaô thå terminatioî oæ WordStaò caî bå 
+detected®  Wheî iô ió detected¬ FXDRVÒ extricateó itselæ froí thå 
+BIOÓ bù replacinç alì jumğ tablå entrieó iô changed®  Iô alsï 
+transmitó á masteò reseô tï thå FX-8° tï leavå iô iî á knowî 
+state®  Iô theî calló thå truå warm-booô BIOÓ entry.
+
+.paŠ.he            FXDRVR - Section 3 - Configuring WordStar
+
+
+
+                    3.   Configuring WordStar
+
+
+     Iî ordeò tï producå thå speciaì codeó necessarù foò FXDRVÒ 
+tï geô itó instructions¬ WordStaò musô bå patcheä tï providå 
+them®  Thió ió noô á difficulô task®  However¬ WordStaò musô 
+FIRSÔ bå installeä foò botè thå terminaì anä printeò tï bå used®  
+Thå WordStaò installatioî procesó resetó locationó iî thå ter
+minaì patcè areá anä sï musô bå donå first.
+
+     Thå WordStaò symboló choseî tï generatå thå speciaì FXDRVÒ 
+codeó arå thoså thaô caî bå user-configurablå tï senä anù desireä 
+codeó tï thå printeò anä dï noô themselveó takå uğ anù screeî 
+space®  Thió lasô characteristiã waó deemeä verù important¬ sï 
+thaô spacinç oî á linå wilì noô bå affecteä bù thå uså oæ onå oæ 
+them.
+
+     Nevertheless¬ manù possiblå schemeó caî bå used®  Thå onå 
+giveî belo÷ ió botè feasiblå anä practical®  WordStaò wilì bå 
+patcheä sï that
+
+          ^A   will cause elite mode to be entered
+          ^N   will cause elite mode to be left
+          ^W   will toggle italic mode
+          ^E   will toggle emphasized mode
+          ^R   will toggle condensed mode
+          ^Y   will toggle FX-80 double strike mode
+          ^Ñ   wilì causå thå alternatå characteò seô tï bå useä 
+                 for the next character
+
+     Thå correspondencå betweeî WordStaò keypresseó anä thå 
+numeriã codeó expecteä bù FXDRVÒ are:
+
+          ^Q   0x81      alternate character mode
+          ^W   0x82      italic mode
+          ^E   0x83      emphasized mode
+          ^R   0x84      condensed mode
+          ^A   0x85      elite mode enter
+          ^N   0x85      elite mode exit
+          ^Y   0x86      double strike mode
+
+
+     Thå patchinç ió donå usinç eitheò DDÔ oò thå WordStaò in
+stallatioî program®  Actuaì locationó giveî belo÷ corresponä tï 
+WordStaò versioî 3.° anä wilì bå aô differenô addresseó foò dif
+ferenô versions¬ thougè thå locatioî nameó foò thå installeò 
+shoulä bå thå same.
+
+.paŠ     Patcheó tï generatå thå codeó needeä foò FXDRVR®  Alì loca
+tionó anä valueó belo÷ arå iî hex.
+
+     locn   name  value       comment
+
+     06B5 PALT      01 85     ^A elite (alternate character width)
+     06BA BSTD      01 85     ^N elite (normal character width)
+     06C9 USR1      01 81     ^Q alternate character (user 1)
+     06CE USR2      01 82     ^W italics (user 2)
+     06D3 USR3      01 83     ^E emphasized (user 3)
+     06D8 USR4      01 84     ^R condensed (user 4)
+     06DD RIBBON    01 86     ^Y double strike (alternate color)
+     06E2 RIBOFF    01 86     ^Y double strike (normal color)
+
+Notå thaô ^Á anä ^Î arå seô tï producå thå samå codes®  RIBBOÎ 
+anä RIBOFÆ constitutå aî internaì WordStaò toggle®  Alternatå 
+useó oæ ^Ù resulô iî calló alternatinç betweeî them®  Hencå theù 
+arå seô tï producå thå samå code¬ whicè toggleó FX-8° doublå 
+strikå modå iî FXDRVR.
+
+
+     Foò completeness¬ thå settingó useä iî thå developmenô ver
+sioî oæ FXDRVÒ arå listeä below®  Thå valueó useä iî ROLUĞ anä 
+ROLDO× werå choseî tï givå superscriptó anä subscriptó á (subjec
+tively© decenô placement.
+
+     locn   name  value       comment
+
+     0690 POSMTH    FF        printer overprints by CR
+     0691 BLDSTR    03        number of strikes for ^B
+     0692 DBLSTR    02        number of strikes for ^D
+     0696 PSCRLF    02 0D 0A  advance to next line
+     06A1 PSCR      01 0D     return to start of line
+     06A8 PSHALF    00        no half line for 'scripts
+     06AF PBACKS    01 08     backspace on ^H
+     06BF ROLUP     03 1B 6A 0A    'script roll up 10/216 inch
+     06C4 ROLDOW    03 1B 4A 0A    'script roll down 10/216 inch
+     06E7 PSINIT    01 0D     printer initialization string
+     06F8 PSFINI    00        no printer termination string
+     070B SOCHR     2D        strikeout character
+     070C ULCHR     5F        underline character
+
+
+     Iæ DDÔ ió iî use¬ dï á SAVÅ 6² wsname.coí tï savå thå 
+patcheä version.
+
+.paŠ.heFXDRVÒ - Sectioî ´ - The Generation of aî Alternatå Characteò Set
+
+
+
+        4®   The Generatioî of an Alternatå Characteò Set
+
+
+
+     Althougè aî alternatå characteò seô ió provideä alonç witè 
+FXDRVR¬ useró maù wanô tï generatå theiò owî set®  Thå besô waù 
+tï dï thió ió tï uså á specifiã prograí designeä foò thió pupose®  
+Thå besô oæ theså allo÷ thå useò tï desigî characteró oî thå 
+terminaì screeî anä automaticallù takå carå oæ thå detailó sucè 
+aó thå (required© attributå byte.
+
+     Characteró caî bå designeä manually®  Indeed¬ earlieò ver
+sionó oæ thió program¬ designeä foò thå MØ serieó printeró witè 
+GRAFTRAØ useä sucè á manuallù designeä seô iî graphicó mode®  
+Thoså programó diä noô allo÷ automatiã uså oæ thå alternatå char
+acteò seô iî condenseä oò expandeä modeó oò iî doublå strikå 
+mode¬ thougè emphasizeä modå foò alternatå characteró waó pro
+videä iî software.
+
+     Thå basiã referencå foò characteò desigî ió thå FX-8° manuaì 
+itself®  Therå ió nï poinô iî repeatinç thaô materiaì here®  Suf
+ficå iô tï saù thaô FXDRVÒ expectó á characteò seô filå tï bå á 
+continuouó strinç oæ characteò definitions¬ 1² byteó tï thå char
+acter®  Thå characteò definitionó musô bå iî numeriã ordeò froí 
+lo÷ numeriã valuå tï high®  Thå firsô bytå iî á characteò defi
+nitioî musô bå thå attributå byte¬ thå otheò 1± arå thå characteò 
+definitioî iî normaì ordeò froí lefô tï right.
+
+.paŠ.he     FXDRVÒ - Sectioî 5 - Customizing and Assembling FXDRVR
+
+
+
+             5.   Customizing and Assembling FXDRVR
+
+
+
+     FXDRVÒ ió codeä usinç Z-8° mnemonicó anä sï requireó thå 
+Microsofô M8° oò equivalenô assembler.
+
+     Assuminç thå useò doeó noô wisè tï changå thå "standard¢ 
+configuration¬ customizatioî oæ FXDRVR.MAÃ ió easy®  Onlù twï 
+equateó neeä attention®  Theså definå thå firsô anä lasô char
+acteò iî thå alternatå characteò seô tï bå downloaded®  Iæ á fulì 
+25¶ characteò seô ió tï bå downloaded¬ nï changå aô alì ió needeä 
+iî FXDRVR.MAC.
+
+     Iæ thå alternatå characteò seô wilì havå feweò thaî 25¶ 
+characters¬ thå equateó FFCHAÒ anä LFCHAÒ aô thå heaä oæ thå 
+prograí musô bå changed®  Iæ thå firsô characteò iî thå seô tï bå 
+downloadeä haó thå numeriã valuå xø anä thå lasô characteò thå 
+valuå yy¬ theî thå equateó FFCHAÒ anä LFCHAÒ shoulä read
+
+         FFCHAR    EQU     xx     ;First font character
+         LFCHAR    EQU     yy     ;Last font character
+
+No other changes need be made.
+
+     Iæ thå modå flagó arå tï bå changed¬ oò otheò modeó invokeä 
+instead¬ morå significanô changeó wilì bå needed®  Alì modå flagó 
+arå expecteä tï liå iî á giveî range®  Thå rangå is
+
+                CCBASE < all mode flags < CCLAST
+
+wherå CCBASÅ anä CCLASÔ arå equateó locateä neaò thå bottoí oæ 
+thå equatå lisô iî FXDRVR.MAC.
+
+     Thå codå anä caså statemenô governinç thå associatioî oæ 
+flagá valueó witè actuaì codå iî FXDRVÒ ió locateä followinç thå 
+labeì FXDRVR®  FXDRVÒ itselæ ió á jumğ tï CP/M®  Thå nexô in
+structioî afteò FXDRVÒ ió thå firsô instructioî actuallù executeä 
+wheî FXDRVÒ gainó control®  Thå characteò tï bå printeä ió iî 
+registeò Ã oî entry®  Nï registeró neeä bå preserveä bù FXDRVR.
+
+     Thå stringó senô tï thå FX-8° arå locateä furtheò dowî iî 
+thå code®  Eacè modå optioî haó itó owî seô oæ strings¬ usuallù á 
+strinç tï turî á modå oî anä onå tï turî á modå off®  Thå stringó 
+arå separatelù defined¬ buô arå physicallù locateä neaò thå codå 
+thaô chooseó them®  Foò example¬ thå stringó thaô controì italiã 
+modå arå aô thå enä oæ thå sectioî headeä bù thå labeì ITAÌ anä 
+beforå thå sectioî labelleä EMPH.
+
+     Thå codå thaô contoló thå uså oæ thå alternatå characteò seô 
+ió locateä followinç thå locatioî DOMAP®  Thå correspondinç con
+troì stringó arå ONGÒ anä OFFGR.Š
+     Thå codå strinç senô tï thå printeò aô thå terminatioî oæ 
+WordStaò ió aô thå labeì RESEÔ locateä neaò thå enä oæ thå code.
+
+     Iî ordeò tï makå iô easieò tï appenä aî alternatå characteò 
+seô tï FXDRVR.COM¬ thå codå endó witè 1¶ asterisks®  Theså arå 
+easù tï finä witè DDÔ wheî thå .COÍ filå ió examined®  Theù arå 
+replaceä bù thå alternatå characteò definitions.
+
+
+     To assemble FXDRVR.MAC using M80 type
+
+     >M80 =FXDRVR/L           <== the /L produces a listing
+     >L80 FXDRVR,FXDRVR/N/E
+
+The resulting .COM file should be about 600 (hex) bytes long.
+
+.paŠ.he   FXDRVÒ - Sectioî 6 - Appending the Alternate Character Set
+
+
+
+           6.   Appending the Alternate Character Set
+
+
+
+     Afteò FXDRVR.MAÃ haó beeî assembleä tï producå FXDRVR.COM¬ 
+thå alternatå characteò seô filå musô bå appendeä tï it®  Tï makå 
+thió joâ easier¬ FXDRVÒ endó witè thå fivå bytå controì strinç 
+needeä tï makå thå FX-8° accepô á downloadeä font®  Theså byteó 
+arå followeä bù 1¶ asterisks®  Thå alternatå characteò fonô musô 
+starô immediatelù afteò thå lasô oæ thå fivå controì byteó anä 
+wilì overlaù thå 1¶ asterisks.
+
+     Assuminç no÷ thaô thå alternatå characteò seô filå ió calleä 
+ALTER.FON¬ thå stepó thaô musô bå takeî are:
+
+
+          >DDT FXDRVR.COM
+          -D500,600
+
+Wå arå lookinç foò thå 1¶ asterisks®  Theù shoulä bå easù tï 
+spot®  Wheî founä theù wilì bå precedeä bù thå (hex© string
+
+                     1B 26 00 FFCHAR LFCHAR
+
+wherå FFCHAÒ anä LFCHAÒ arå thå numeriã valueó oæ thå firsô anä 
+lasô characteò tï bå iî thå alternatå characteò set®  NOTÅ THÅ 
+HEØ ADDRESÓ OÆ THÅ FIRSÔ OÆ THÅ ASTERISKS®  Calì thaô addresó 
+zzzz.
+
+     Iæ thå ALTER.FOÎ filå ió headeä bù 1Â 2¶ 0° 0° FÆ (looë aô 
+iô witè DDT)¬ á strinç produceä bù somå characteò seô definitioî 
+programs¬ NOTÅ THÅ ADDRESÓ OÆ THÅ 1Â BYTÅ IÎ THÅ FIVÅ BYTÅ CON
+TROÌ STRINÇ IÎ FXDRVR.COM®  Again¬ calì thaô addresó zzzz.
+
+     Now again in DDT, type
+
+          -IALTER.FON
+
+Theî mentallù subtracô 10° heø froí zzzz®  Calì thió addresó aaaá 
+anä type
+
+          -Raaaa
+
+DDÔ wilì no÷ loaä ALTER.FOÎ aô thå propeò address®  Lastlù type
+
+          -G0
+
+to leave DDT.  When back at the system level type
+
+          >SAVE 17 fx.COM
+
+wherå fx.COÍ ió thå namå yoõ wisè tï uså wheî runninç FXDRVR®  ŠThå numbeò 1· ió presentlù sufficienô tï savå alì oæ FXDRVÒ anä á 
+fulì 25¶ characteò set®  Shoulä thå seô bå significantlù smalleò 
+oò shoulä significanô changeó bå madå tï thå codå iî FXDRVR¬ 
+adjusô thå 1· accordingly.
+
+.paŠ.he               FXDRVÒ - Sectioî 7 - A User's Guide
+
+
+
+                       7.   A User's Guide
+
+
+
+     To use FXDRVR with WordStar type the following:
+
+          >FX WS filename
+
+wherå FØ ió thå namå undeò whicè FXDRVÒ ió storeä iî youò systeí 
+anä WÓ ió thå namå undeò whicè WordStaò ió knowî iî youò system®  
+Filenamå ió aî (optional© filename®  Usinç iô haó exactlù thå 
+same effect as if you had used
+
+          >WS filename
+
+
+     Print control characters have the following meanings:
+
+          ^A   Elite (12 cpi) mode on
+
+          ^B   WordStar boldface toggle (three passes)
+
+          ^D   WordStar double strike toggle (two passes)
+
+          ^E   Emphasized mode toggle
+
+          ^H   Overprint last character
+
+          ^N   Elite (12 cpi) mode off
+
+          ^Ñ   Uså alternatå characteò seô foò thå followinç 
+                 character
+
+          ^R   Condensed (15 cpi) mode toggle
+
+          ^S   WordStar underscore toggle
+
+          ^T   Superscript toggle
+
+          ^V   Subscript toggle
+
+          ^W   Italic character mode toggle
+
+          ^Y   FX-80 double strike mode toggle
+
+.paŠ     Thå alternatå characteò seô supplieä witè thió prograí ió 
+giveî below®  Eacè characteò iî thå firsô column¬ precedeä bù á 
+^Q¬ (generateä bù ^P^Q© wilì producå thå characteò iî thå seconä 
+column.
+
+
+               *         *        degree mark
+               $         $        script capitol F
+               /         /        h-bar
+               6         6        partial derivative
+               I         I        integral sign
+
+               N         N        del (nabla)
+               +         +        plus-minus sign
+               =         =        salt bridge
+               >         >        right arrow
+               <         <        left arrow
+
+               A         A        absolute value
+               _         _        overscore
+
+               D         D        DELTA
+               F         F        PHI
+               G         G        GAMMA
+               L         L        LAMBDA
+               O         O        OMEGA
+
+               P         P        PI
+               Q         Q        THETA
+               S         S        SIGMA
+               X         X        XI
+               Y         Y        PSI
+
+               a         a        alpha
+               b         b        beta
+               d         d        delta
+               e         e        epsilon
+               f         f        phi
+
+               g         g        gamma
+               h         h        eta
+               i         i        iota
+               k         k        kappa
+               l         l        lambda
+
+               m         m        mu
+               n         n        nu
+               o         o        omega
+               p         p        pi
+               q         q        theta
+
+.paŠ
+               r         r        rho
+               s         s        sigma
+               t         t        tau
+               u         u        upsilon
+               x         x        xi
+
+               y         y        psi
+               z         z        zeta
+
+
+           (this is character set 3.1b of 02/20/1985)

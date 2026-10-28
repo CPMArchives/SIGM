@@ -1,0 +1,139 @@
+	title	'ERQ - Selective file erase'
+
+CR	EQU	13
+LF	EQU	10
+ESC	EQU	27
+TFCB	EQU	5CH
+
+	org	100h
+
+erq:	mov	dx,TFCB
+	mov	cl,17	;Search first
+	CALL	BDOS
+	cmp	al,255
+	jnz	FILFND
+	mov	dx,offset NFMSG
+	call	OUTBUF
+	mov	cl,0
+	jmp	BDOS
+OUTBUF:	mov	cl,9	;Print string
+	jmp	BDOS
+FILFND:	mov	bx,offset NAMBUF
+	PUSH	bx
+NXTFIL:
+	mov	cl,5
+	shl	al,cl
+	add	al,81h
+	mov	ah,0
+	mov	si,ax
+	POP	di
+	mov	cx,11
+	rep movs al,al
+	PUSH	di
+	mov	cl,18	;Search next
+	mov	dx,tfcb
+	CALL	BDOS
+	cmp	al,255
+	jnz	NXTFIL
+	POP	bx
+	mov	byte ptr [bx],80H	;End of list indicator
+	mov	bx,offset NAMBUF
+DELCHK:	mov	NBPOS,bx
+				;Output name
+	mov	cx,8
+NXTCR2: mov	al,[bx]
+	AND	al,7FH
+	cmp	al,' '
+	jz	ENDNAM	;End of name
+	PUSH	bx
+	PUSH	cx
+	CALL	CONOUT
+	POP	cx
+	POP	bx
+	INC	bx
+	loop	NXTCR2
+ENDNAM:	mov	ch,0
+	ADD	bx,cx
+	PUSH	bx
+	mov	al,[bx]
+	AND	al,7FH
+	cmp	al,' '
+	jz	ENDTYP	;No filetype
+	mov	al,'.'
+	CALL	CONOUT
+				;Output type
+	mov	cx,3
+	POP	bx
+	PUSH	bx
+NXTCR3: mov	al,[bx]
+	AND	al,7FH
+	cmp	al,' '
+	jz	ENDTYP	;End of type
+	PUSH	bx
+	PUSH	cx
+	CALL	CONOUT
+	POP	cx
+	POP	bx
+	INC	bx
+	loop	NXTCR3
+ENDTYP: mov	dx,offset DFMSG1	;Output rest of the message
+	CALL	OUTBUF
+	POP	bx
+	test	byte ptr [bx],80h
+	jz	NOTR_O	;Check for file R/O
+	mov	dx,offset DFMSG2
+	CALL	OUTBUF
+NOTR_O: mov	dx,offset DFMSG3
+	CALL	OUTBUF
+	mov	cl,1	;Console input
+	CALL	BDOS
+	cmp	al,ESC
+	jnz	$+3
+	RET
+	AND	al,5FH	;Convert lowercase to uppercase
+	cmp	al,'Y'
+	jnz	NXTCHK
+	mov	si,NBPOS
+	mov	di,TFCB+1
+	mov	cx,11
+	rep movs al,al
+	mov	bx,TFCB+9
+	test	byte ptr [bx],80h
+	jz	NTR_O
+	and	byte ptr [bx],7fh
+	mov	dx,TFCB
+	mov	cl,30	;Set file attributes
+	CALL	BDOS
+NTR_O:	mov	dx,TFCB
+	mov	cl,19	;Delete file
+	CALL	BDOS
+NXTCHK:	mov	al,CR
+	CALL	CONOUT
+	mov	al,LF
+	CALL	CONOUT
+	mov	bx,NBPOS
+	add	bx,11
+	test	byte ptr [bx],80h
+	mov	cl,0
+	jnz	bdos
+	jmp	DELCHK
+
+CONOUT: mov	dl,al
+	mov	cl,2	;Console output
+BDOS:
+	push	es
+	int	224
+	pop	es
+	ret
+
+NFMSG	db	'File(s) not found$'
+DFMSG1	db	' exists$'
+DFMSG2	db	' and is R/O$'
+DFMSG3	db	'.  Do you want it deleted?$'
+
+NBPOS	dw	0
+NAMBUF	rs	11*64
+	db	0
+
+	END
+

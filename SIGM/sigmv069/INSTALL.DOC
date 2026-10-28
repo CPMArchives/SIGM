@@ -1,0 +1,80 @@
+
+			INSTALL DOC
+
+
+
+	Install  was  written  because	there  are  so	many good
+programs out there going  begging  because  the program has to be
+rewritten for some specific terminal it can be used.
+
+	INSTALL is very easy to use.  You just chose the terminal
+type  from  a  menu  and INSTALL will write the correct data to a
+file 'TERMIO.FIL'.  If your  terminal  is  not one of those types
+listed or you desire to make changes to any of	the  values  then
+select	the  response 'None of the above'.  You will be presented
+with the name  of  the	string	sequence  to  be  changed and the
+current values, you enter one or more bytes of data [use  decimal
+numbers  not  hex] for the string. e.g. the sequence for erase to
+end of line might be 'escape' followed by 't'.	These codes would
+be entered as -  27  116  carriage  return.    The values will be
+displayed again for editing, if  required.    If  the  codes  are
+correct  as displayed then enter a carriage return and move on to
+the next sequence.
+
+	In INSTALL, terminal specific characteristics are defined
+as short string sequences.  These sequences are placed in a  data
+file,  "TERMIO.FIL", allowing a user program to be configured for
+any terminal  simply  by  reading  the	data  file  and using the
+sequences.  Sounds easy and with INSTALL it can be.
+
+	INSTALL has the definitions  of  12  different	terminals
+built  in,  however,  not  all	of  the  many  functions for each
+terminal are implimented in the  program.   Using the source code
+one can add any additional string sequencs [If you do enhance the
+source code of INSTALL.PAS please send a  copy	to  the  Pascal/Z
+Users' Group. ED].
+
+	The file "TERMIO.PAS" is the complete source code for the
+procedures,    constants,  variables and functions that are to be
+included in  your  Pascal  prgm.    These  may	be  edited out of
+TERMIO.PAS into seperate files:  TERMIO.VAR  and  TERMIO.CST  and
+this  edited  file  should  be named TERMIO.LIB.  It contains the
+procedure 'writes()'  that  writes  the  string  sequences to the
+console; the procedure 'gotoxy()'  that  directly  positions  the
+cursor	and  the  function 'InitTerm' that reads in the data file
+"TERMIO.FIL" returning true if the  data  file is found and false
+if the file is not found.
+
+	Write  your  program  in  the  usual  way  then  add  the
+variables and the procedures required simply by using the include
+facility of Pascal/Z.  e.g. {$iTERMIO.VAR } for the variables and
+{$iTERMIO.LIB } for the procedures and the  function  "InitTerm".
+TERMIO.LIB  contains  the  procedure  'gotoxy()'  that	has  been
+written  specifically  to  be  used  with  INSTALL.  The function
+"InitTerm" reads the  terminal	data  file  to	set up the string
+sequences and so should be the first  or  second  procedure  call
+from the main program.	e.g.
+	BEGIN { MAIN PROGRAM }
+	  GCML(CmdLine); { Read the comand line }
+	  If not InitTerm then
+	    HALT('TERMIO.FIL NOT FOUND. RUN INSTALL');
+	  ...
+
+	The  procedure	writes() must be used to write the string
+sequences.  Suppose you  want  the  string '+++ COMMAND PROCESSOR
++++' highlighted by inverse video at row  12,  column  22.    The
+sequences INVON and INVOFF should be used as follows:
+
+	gotoxy(22,12);
+	writes( INVON );
+	write( '+++ COMMAND PROCESSOR +++' );
+	writes( INVOFF );
+	writeln;
+
+	Since writes() does not do a carriage return/line feed it
+may  be used to continue other sequences on the same line but one
+must issue a writeln to get to the next line.
+
+
+eed it
+may  be used to continue

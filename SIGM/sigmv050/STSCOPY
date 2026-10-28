@@ -1,0 +1,1013 @@
+;Stscopy - Data Technology Corporation CP/M 2.2 Stscopy.
+;
+;	+-----------------------+
+;	|			|
+;	|     S T S C O P Y 	|
+;	|			|
+;	+-----------------------+
+;
+;
+;	Version number:	2.1
+;	Version date:	April 16, 1981
+;
+;	Update date:	May 26, 1981
+;			Clear FCB before OPEN for verify.
+
+;	Update date:	June 16, 1981
+;			Initialize DTCBIOS.
+;
+;	The following code is supplied to customers who
+;	purchase a hard/floppy disk system from DTC.
+;	Type STSCOPY HELP cr for instructions on usage.
+;
+
+
+
+
+VERS:	EQU	21
+
+CR:	EQU	0Dh		;ASCII carrriage return
+LF:	EQU	0Ah		;ASCII line feed
+TAB:	EQU	9		;ASCII HORIZONTAL TAB
+EOS:	EQU	'$'		;BDOS End of string
+ERRCD:	EQU	0FFh		;BDOS error code
+
+
+
+;	BDOS function equates.
+
+PRTSTR:	EQU	09	;Print String    DE = buffer address.
+RDCB:	EQU	10	;Read console buffer   DE = buffer address.
+INIT:	EQU	13	;Initialize BDOS
+SELECT:	EQU	14	;Select disk drive,	DE = drive number
+OPEN:	EQU	15	;Open file   DE = FCB address.
+CLOSE:	EQU	16	;Close file,	DE = FCB
+SFIRST:	EQU	17	;Search for first occurrence,	DE = FCB
+SNEXT:	EQU	18	;Search for next occurrence,	DE = FCB
+DELETE:	EQU	19	;Delete file,	DE = FCB
+READS:	EQU	20	;Read sequential file    DE = FCB.
+WRITES:	EQU	21	;Write sequential file,	DE = FCB.
+CREATE:	EQU	22	;Create file,	DE = FCB.
+RENAME:	EQU	23	;Rename file,	DE = FCB.
+IDRIVE:	EQU	25	;Interrogate drive
+SETDMA:	EQU	26	;Set DMA address    DE = DMA address.
+
+;	Page zero locations.
+
+WBOOT:	EQU	0	;Warm boot jump address.
+BDOSV:	EQU	5	;BDOS jump address.
+CPMFCB:	EQU	005Ch	;Default FCB address.
+DBUF:	EQU	0080h	;Default DMA buffer.
+
+
+
+	
+
+
+
+
+	ORG	100h
+
+STSCOPY:
+	PUSH	PSW
+	PUSH	B
+	PUSH	D
+	PUSH	H
+	LXI	H,0
+	DAD	SP
+	SHLD	SYSTK		;save system stack
+
+
+	LXI	SP,STACK
+	MVI	C,IDRIVE	;Save original drive number
+	CALL	BDOSV
+	STA	ODRIVE
+	CALL	HELPCK		;Check for user help request.
+	CALL	GFILEN		;Get file name
+	CALL	SKIPF		;Skip do not care sectors
+	CALL	RCPM		;Read CP/M
+	CALL	RBIOS		;Read BIOS
+	CALL	SYSINI		;Initialize destination system
+STSCO1:
+	CALL	COMMAND		;Do keyboard commands
+	CALL	COPY		;Copy files
+	JMP	STSCO1
+
+;	Return to system gracefully.
+
+SYSRET:
+	LDA	ODRIVE		;Restore original drive selection
+	MOV	E,A
+	MVI	D,0
+	MVI	C,SELECT
+	CALL	BDOSV
+	LHLD	SYSTK
+	SPHL
+	POP	H
+	POP	D
+	POP	B
+	POP	PSW
+	RET			;return to system
+
+
+
+
+
+;	GFILEN - Get file name and open the file.
+;
+;	ENTRY	loaction 5C = filename.
+
+GFILEN:
+	LXI	D,FCB		;Initialize FCB
+	CALL	INIFCB
+	LXI	H,CPMFCB
+	LXI	D,FCB
+	LXI	B,12
+	CALL	MOVDTA		;Move file name to FCB
+
+	LXI	D,FCB
+	MVI	C,OPEN
+	CALL	BDOSV		;Open the file
+	CPI	ERRCD
+	RNZ			;If no error
+
+	LXI	D,OPNERR
+	MVI	C,PRTSTR
+	CALL	BDOSV
+	JMP	SYSRET
+
+OPNERR:	DB	CR,LF,'Error on file open.',CR,LF,EOS
+
+
+
+;	SKIPF - Skip meaningless sectors and boot sector on file.
+
+
+SKIPF:
+	LXI	D,DBUF
+	MVI	C,SETDMA
+	CALL	BDOSV		;Set DMA address to default buffer
+
+	MVI	A,17		;Skip 17 sectors
+SKPF1:	PUSH	PSW
+	LXI	D,FCB
+	MVI	C,READS
+	CALL	BDOSV		;Read a sector
+	CPI	ERRCD
+	JZ	SKPF2		;If error on read
+	POP	PSW
+	DCR	A
+	JNZ	SKPF1		;If 16 sectors not read
+	RET
+
+SKPF2:	LXI	D,SKERR
+	MVI	C,PRTSTR
+	CALL	BDOSV		;Output error message
+	JMP	SYSRET
+
+SKERR:	DB	CR,LF,'File read error sectors 0 thru 15.'
+	DB	CR,LF,EOS
+
+
+
+;	RCPM - Read CPM sectors.
+
+RCPM:
+	MVI	A,22*2
+	LXI	D,CCP
+RCPM1:	PUSH	PSW
+	PUSH	D		;Save buffer address
+	MVI	C,SETDMA
+	CALL	BDOSV		;Set DMA address to default buffer
+
+	LXI	D,FCB
+	MVI	C,READS
+	CALL	BDOSV		;Read a sector
+	CPI	ERRCD
+	JZ	RCPM2		;If error on read
+	POP	D
+	LXI	H,128
+	DAD	D
+	XCHG
+	POP	PSW
+	DCR	A
+	JNZ	RCPM1		;If 22*2 sectors not read
+	RET
+
+RCPM2:	LXI	D,RCERR
+	MVI	C,PRTSTR
+	CALL	BDOSV		;Output error message
+	JMP	SYSRET
+
+RCERR:	DB	CR,LF,'File read error in CPM sectors (17 thru 60).'
+	DB	CR,LF,EOS
+	RET
+
+
+
+
+;	RBIOS - Read BIOS sectors.
+
+RBIOS:
+	LXI	D,CBIOS
+RBIOS1:	PUSH	D		;Save buffer address
+	MVI	C,SETDMA
+	CALL	BDOSV		;Set DMA address to default buffer
+
+	LXI	D,FCB
+	MVI	C,READS
+	CALL	BDOSV		;Read a sector
+	POP	D
+	LXI	H,128
+	DAD	D
+	XCHG
+	ORA	A
+	JZ	RBIOS1		;If no errors
+
+	RET
+
+
+;	COMMAND - keyboard command processor
+;
+COMMAND:
+	LXI	D,PROMPT	;show prompt
+COM1:	CALL	INFCRT
+	LXI	H,INBUFX+1	;Get count
+	MOV	C,M
+	INX	H		;Point to first character
+	MOV	A,C
+	ORA	A
+	JZ	SYSRET
+	LXI	D,DFCB		;Parse for destination
+	CALL	PARSE
+	CPI	ERRCD		;Valid descriptor?
+	JZ	COM2
+	MOV	A,B		;Yes. Save destination drive
+	STA	DDRIVE
+	MOV	A,C		;End of command?
+	ORA	A
+	JZ	COM2
+	MVI	A,'='		;No. Correct format?
+	CMP	M
+	JNZ	COM2
+	INX	H		;Yes. Skip separator
+	DCR	C
+	JZ	COM2
+	LXI	D,SFCB		;Parse for source
+	CALL	PARSE
+	CPI	ERRCD		;Valid descriptor?
+	JZ	COM2
+	MOV	A,B		;Yes. Save source drive
+	STA	SDRIVE
+	LXI	H,SFCB+1	;Check for wild cards
+	MVI	B,11
+	MVI	A,'?'
+COM3:
+	CMP	M
+	JZ	COM4
+	INX	H
+	DCR	B
+	JNZ	COM3
+COM4:	MOV	A,B		;Set wild card flag
+	STA	WILD
+	RET
+COM2:	LXI	D,INVMSG
+	JMP	COM1
+
+
+INVMSG:	DB	CR,LF,'Invalid command.'
+PROMPT:	DB	CR,LF,'*',EOS
+
+
+
+;	COPY - Copy selected source system files to destination system
+;
+COPY:
+	LXI	D,COPMSG	;If wild cards, print header.
+	MVI	C,PRTSTR
+	LDA	WILD
+	ORA	A
+	CNZ	BDOSV
+	LDA	SDRIVE		;Select source drive
+	CPI	ERRCD		;  if specified.
+	JZ	COPY1
+	MOV	E,A
+	MVI	D,0
+	MVI	C,SELECT
+	CALL	BDOSV
+	CPI	ERRCD
+	JNZ	COPY1
+
+	LXI	D,COPYM1	;Select error
+COPYER:	MVI	C,PRTSTR	;Print error message
+	CALL	BDOSV
+	MVI	A,ERRCD		;Return error code
+	RET
+
+COPY1:				;Search for source file
+	XRA	A		;Initialize search occurrence
+	STA	SRCOCC
+
+COPYS:	MVI	B,0		;Clear search count
+	LDA	SRCOCC
+	MOV	C,A
+	INR	A		;Increment occurrence count
+	STA	SRCOCC
+	PUSH	B		;Save counts
+	LXI	D,SFCB		;Search for first occurrence
+	MVI	C,SFIRST
+	CALL	BDOSV
+	POP	B		;Restore counts
+	CPI	ERRCD
+	JNZ	COPYS1
+	LXI	D,COPYM2	;File not found.
+	JMP	COPYER
+
+COPYS1:	MOV	A,B		;This occurrence?
+	CMP	C
+	JZ	COPYS2
+	INR	B		;No. increment search count
+	PUSH	B		;Save counts
+	LXI	D,SFCB		;Search for next occurrence
+	MVI	C,SNEXT
+	CALL	BDOSV
+	POP	B		;Restore counts
+	CPI	ERRCD
+	MVI	A,0
+	RZ			;Found all occurrences.
+	JMP	COPYS1
+
+COPYS2:	DAD	H		;HL=entry number, DE=end of dir. buffer
+	DAD	H		;*32 for entry offset
+	DAD	H
+	DAD	H
+	DAD	H
+	DAD	D		;Add directory pointer
+	LXI	D,-128		;relative to beginning of dir. buffer
+	DAD	D
+	LXI	D,SFFCB
+	LXI	B,32
+	CALL	MOVDTA
+	XRA	A		;Clear next record number
+	STAX	D
+	LDA	WILD		;If wild cards, print file name.
+	ORA	A
+	JZ	COPYS3
+	LXI	H,SFFCB+1
+	LXI	D,FN
+	LXI	B,8
+	CALL	MOVDTA
+	INX	D		;Skip '.'
+	LXI	B,3
+	CALL	MOVDTA
+	LXI	D,FNMSG
+	MVI	C,PRTSTR
+	CALL	BDOSV
+COPYS3:
+	LXI	D,SFFCB		;Open source file
+	MVI	C,OPEN
+	CALL	BDOSV
+	LXI	D,COPYM3
+	CPI	ERRCD
+	JZ	COPYER
+
+COPYR:	XRA	A		;clear continuation flag
+	STA	CFLAG
+	LXI	D,BUFFER	;Set buffer pointer
+	LXI	B,0		;Clear file record count.
+
+COPYR1:	PUSH	B		;Read a record
+	PUSH	D
+	MVI	C,SETDMA
+	CALL	BDOSV
+	LXI	D,SFFCB
+	MVI	C,READS
+	CALL	BDOSV
+	POP	D		;Restore buffer pointer
+	POP	B		;Restore record count
+	CPI	0		;Done?
+	JNZ	COPYR2
+	INX	B		;No. Increment record count
+	LXI	H,128		;Increment buffer pointer
+	DAD	D
+	XCHG
+	LXI	H,-BUFEND	;Buffer full?
+	DAD	D
+	MOV	A,H
+	ORA	L
+	JNZ	COPYR1
+	LXI	H,CFLAG		;Yes. Set continuation flag.
+	INR	M
+COPYR2:
+	PUSH	B		;Save file record count
+	POP	H
+	SHLD	FCNT
+	MOV	A,H		;Empty file?
+	ORA	L
+	JZ	COPYS
+
+	CALL	SWSD		;No. Switch to destination system.
+	LDA	CFLAG		;On a continuation?
+	CPI	2
+	JNC	COPYW
+	LDA	DDRIVE		;No. Select destination drive
+	CPI	ERRCD		;  if specified
+	JZ	COPYD
+	MOV	E,A
+	MVI	D,0
+	PUSH	D		;Save selection
+	MVI	C,INIT		;Initialize CP/M
+	CALL	BDOSV
+	POP	D
+	MVI	C,SELECT
+	CALL	BDOSV
+	CPI	ERRCD
+	LXI	D,COPYM4
+	JZ	COPYED
+COPYD:				;Initialize destination file.
+	LXI	D,DFFCB
+	CALL	INIFCB
+	LXI	D,DFFCB+1	;Move file name
+	LDA	WILD		;If wild cards, use source name
+	ORA	A
+	JNZ	COPYD0
+	LXI	H,DFCB+1	;Was file name specified?
+	MVI	A,' '
+	CMP	M
+	JNZ	COPYD1
+COPYD0:
+	LXI	H,SFFCB+1	;No. Use source file name.
+COPYD1:
+	LXI	B,8
+	CALL	MOVDTA
+	LXI	H,DOLLAR	;Set file type to $$$.
+	LXI	B,3
+	CALL	MOVDTA
+	LXI	D,DFFCB		;Delete any temporary file of same name
+	MVI	C,DELETE
+	CALL	BDOSV
+	LXI	D,DFFCB		;Create temporary file
+	MVI	C,CREATE
+	CALL	BDOSV
+	LXI	D,COPYM5
+	CPI	ERRCD
+	JZ	COPYED
+	LXI	D,DFFCB		;Open destination file
+	MVI	C,OPEN
+	CALL	BDOSV
+	LXI	D,COPYM6
+	CPI	ERRCD
+	JZ	COPYED
+
+COPYW:				;Write buffer.
+	LXI	D,BUFFER
+	LHLD	FCNT		;Initialize record count
+	PUSH	H		;Save record count
+COPYW1:
+	PUSH	D		;Save buffer pointer
+	MVI	C,SETDMA	;Set dma address
+	CALL	BDOSV
+	LXI	D,DFFCB
+	MVI	C,WRITES	;Write a record
+	CALL	BDOSV
+	POP	D		;Restore buffer pointer
+	POP	H		;Restore record count
+	CPI	0
+	JNZ	COPYW2		;If write error.
+	DCX	H		;Decrement record count
+	MOV	A,H
+	ORA	L
+	JZ	COPYW3
+	PUSH	H		;Save record count
+	LXI	H,128		;Increment buffer pointer
+	DAD	D
+	XCHG
+	JMP	COPYW1
+
+COPYW2:				;Write error
+	LXI	D,COPYM7
+	CPI	1
+	JZ	COPYED
+	LXI	D,COPYM8
+	CPI	2
+	JZ	COPYED
+	LXI	D,COPYM5
+
+COPYED:				;Error on destination system
+	PUSH	D		;Save message pointer
+	CALL	SWDS		;Switch to source system
+	POP	D		;Restore message pointer
+	JMP	COPYER		;Print error and return
+
+COPYW3:				;Close destination and verify.
+	LXI	D,DFFCB
+	MVI	C,CLOSE
+	CALL	BDOSV
+	LXI	D,COPYM9
+	CPI	ERRCD
+	JZ	COPYED
+	LXI	H,DFFCB+12	;CLEAR FCB
+	MVI	B,33-12
+	XRA	A
+COPYV0:
+	MOV	M,A
+	INX	H
+	DCR	B
+	JNZ	COPYV0
+	LXI	D,DFFCB		;Verify
+	MVI	C,OPEN
+	CALL	BDOSV
+	LXI	D,COPYM6
+	CPI	ERRCD
+	JZ	COPYED
+	LXI	D,VBUFF		;Set dma address
+	MVI	C,SETDMA
+	CALL	BDOSV
+	LHLD	FCNT		;Initialize record count
+	MOV	B,H
+	MOV	C,L
+	LXI	H,BUFFER	;Initialize buffer pointer
+
+COPYV:				;Verify record
+	PUSH	H		;Save buffer pointer
+	PUSH	B		;Save record count
+	LXI	D,DFFCB
+	MVI	C,READS		;Get record
+	CALL	BDOSV
+	POP	B		;Restore record count
+	POP	H		;Restore buffer pointer
+	LXI	D,COPYMA
+	CPI	0
+	JNZ	COPYED
+	PUSH	B		;Save record count
+	MVI	B,128		;Set compare count
+	LXI	D,VBUFF		;Set compare buffer pointer
+COPYV1:
+	LDAX	D		;Get destination byte
+	CMP	M		;Are they equal?
+	JZ	COPYV2
+	POP	B		;Remove compare count
+	LXI	D,COPYMA
+	JMP	COPYED
+COPYV2:
+	INX	H		;Yes. Increment buffer pointers
+	INX	D
+	DCR	B		;Decrement compare count
+	JNZ	COPYV1
+	POP	B		;Restore record count
+	DCX	B		;Decrement record count
+	MOV	A,B
+	ORA	C
+	JNZ	COPYV
+	LXI	D,DFFCB		;Close destination file
+	MVI	C,CLOSE
+	CALL	BDOSV
+	LXI	D,COPYM9
+	CPI	ERRCD
+	JZ	COPYED
+	LXI	D,DFFCB+16	;Setup FCB for rename
+	LXI	H,DFFCB
+	LXI	B,9
+	CALL	MOVDTA
+	LXI	H,DFCB+9	;Was type specified?
+	MVI	A,' '
+	CMP	M
+	JNZ	COPYN1
+	LXI	H,SFFCB+9	;No. Use source type.
+COPYN1:
+	LXI	B,3
+	CALL	MOVDTA
+	LXI	D,DFFCB+16	;Delete any file of same name & type
+	MVI	C,DELETE
+	CALL	BDOSV
+	LXI	D,DFFCB		;Rename the destination file
+	MVI	C,RENAME
+	CALL	BDOSV
+	LXI	D,COPYMB
+	CPI	ERRCD
+	JZ	COPYED
+
+COPYL:	CALL	SWDS		;Switch to source system
+	LDA	CFLAG		;Continuation?
+	ORA	A
+	JNZ	COPYR		;Yes
+	JMP	COPYS		;No.  Get next occurrence.
+
+
+DOLLAR:	DB	'$$$'
+
+COPMSG:	DB	CR,LF,LF,'COPYING -',EOS
+COPYM1:	DB	CR,LF,'Source drive not ready.',EOS
+COPYM2:	DB	CR,LF,'File not found.',EOS
+COPYM3:	DB	CR,LF,'Open error on source file.',EOS
+COPYM4:	DB	CR,LF,'Destination drive not ready.',EOS
+COPYM5:	DB	CR,LF,'Destination drive directory is full.',EOS
+COPYM6: DB	CR,LF,'Open error on destination file.',EOS
+COPYM7:	DB	CR,LF,'Error in extending destination file.',EOS
+COPYM8:	DB	CR,LF,'Destination disk is full.',EOS
+COPYM9:	DB	CR,LF,'Close error on destination file.',EOS
+COPYMA:	DB	CR,LF,'Verify error.',EOS
+COPYMB:	DB	CR,LF,'Rename error.',EOS
+
+
+
+
+
+
+;	INFCRT - Output message and input from console.
+;
+;	ENTRY	DE = message address.
+;
+;	EXIT	A = First character entered (upper case).
+
+INFCRT:
+	MVI	C,PRTSTR
+	CALL	BDOSV		;Output message
+	LXI	D,INBUFX
+	MVI	C,RDCB
+	CALL	BDOSV
+	LDA	INBUFX+1
+	ANA	A
+	MVI	A,CR
+	RZ
+	LDA	INBUF
+	CPI	'A'+20h
+	RC			;If upper case
+	CPI	'Z'+20h+1
+	RNC			;If upper case
+	SUI	20h		;Fold to uppercase
+	RET
+
+INBUFX:	DB	40,0
+INBUF:	DS	40
+
+
+;	PARSE - Parse file descriptor
+;
+;	Entry:	HL = address of string buffer
+;		DE = address of FCB
+;		 C = string length
+;	Exit:	A = 0ffh if illegal file descriptor or drive
+;		B = drive code or 0ffh
+;
+PARSE:
+	CALL	INIFCB		;Initialize FCB
+	INX	D		;skip entry type
+	MVI	B,0FFH		;initialize drive code
+	MOV	A,C		;empty string?
+	ORA	A
+	JNZ	PARSE2
+PARSE1:	MVI	A,0FFh		;yes. return error code
+	RET
+
+PARSE2:	MVI	A,1		;drive specified?
+	CMP	C
+	JNC	PARSE3
+	INX	H		;maybe
+	MOV	A,M		;Is second character ':'?
+	DCX	H
+	CPI	':'
+	JNZ	PARSE3
+	CALL	GETFDC		;Yes. Get drive character
+	SUI	'A'		;Legal drive #?
+	JM	PARSE1
+	CPI	16
+	JNC	PARSE1
+	MOV	B,A		;Yes.  Save drive code.
+	INX	H		;Skip to file name
+	DCR	C
+	INX	H
+	DCR	C
+	JNZ	PARSE3
+	XRA	A		;done
+	RET
+PARSE3:
+	PUSH	B		;Save drive code
+	MVI	B,8		;Set maximum length of file name
+	CALL	PARSNT		;parse file name
+	XRA	A		;done?
+	CMP	C
+	JZ	PARSE4
+	MVI	A,'.'		;No. file type?
+	CMP	M
+	JNZ	PARSE4
+	INX	H		;Yes. parse file type
+	DCR	C
+
+	JZ	PARSE5
+	MVI	B,3
+	CALL	PARSNT
+PARSE4:	MOV	A,C		;Save count
+	POP	B		;Restore drive code
+	MOV	C,A
+	XRA	A
+	RET
+PARSE5:
+	MOV	A,C
+	POP	B
+	MOV	C,A
+	MVI	A,0FFh
+	RET
+
+
+;	PARSNT - Parse file name or type
+;
+PARSNT:	MVI	A,'*'		;Wild card?
+	CMP	M
+	JNZ	PARSN3
+PARSN1:	INX	H		;Yes. Skip to terminator.
+	DCR	C
+	JZ	PARSN2
+	CALL	GETFDC
+	JNZ	PARSN1
+PARSN2:	PUSH	B		;Save count
+	MOV	C,B		;Fill with '?'
+	MVI	B,0
+	CALL	PARSEQ
+	POP	B		;Restore count
+	RET
+PARSN3:
+	CALL	GETFDC		;Get character
+	JZ	PARSN5
+	STAX	D		;Store char
+	INX	D		;Incr. FCB pointer
+	INX	H		;Incr. string pointer
+	DCR	B		;Out of space?
+	JZ	PARSN4
+	DCR	C		;Decr. string count.
+	JNZ	PARSN3
+	RET
+PARSN4:
+	CALL	GETFDC		;Skip to terminator.
+	RZ
+	DCR	C
+	JNZ	PARSN4
+	RET
+PARSN5:
+	MOV	A,E		;Adjust FCB pointer to end of field.
+	ADD	B
+	MOV	E,A
+	RNC
+	INR	D
+	RET
+
+;	PARSEQ - Fill field with '?'
+;
+PARSEQ:	PUSH	H		;Save string pointer
+	MOV	H,D
+	MOV	L,E
+	MVI	A,'?'
+	STAX	D
+	INX	D
+	DCX	B
+	CALL	MOVDTA
+	POP	H
+	RET
+
+
+
+
+
+;	GETFDC - Get file descriptor character
+;
+;	Entry:	HL = Address of FD string
+;	Exit:	A = character (upper case)
+;		Z = 1 iff terminator
+;
+GETFDC:	MOV	A,M		;Get character
+	CPI	'A'+20h		;Convert to upper case
+	JC	GETFC1
+	CPI	'Z'+20h
+	JNC	GETFC1
+	SUI	20h
+GETFC1:	CPI	'.'		;Check for terminator
+	RZ
+	CPI	' '
+	RZ
+	CPI	'='
+	RZ
+	CPI	'*'
+	RET
+
+
+
+
+;	INIFCB - Initialize FCB
+;
+;	Entry:	DE = Address of FCB
+;
+INIFCB:	PUSH	H		;Save registers
+	PUSH	D
+	POP	H		;HL = FCB
+	PUSH	H
+	PUSH	B
+	XRA	A		;clear entry type
+	MOV	M,A
+	INX	H
+	INX	D		;set file name & type to spaces
+	INX	D
+	MVI	A,' '
+	MOV	M,A
+	LXI	B,10
+	CALL	MOVDTA
+	INX	H
+	XRA	A		;clear rest of FCB
+	MOV	M,A
+	INX	D
+	LXI	B,20		; and next record number
+	CALL	MOVDTA
+	POP	B
+	POP	D		;restore registers
+	POP	H
+	RET
+
+
+
+
+
+
+;	MOVDTA - Move data utility program.
+;
+;	ENTRY	HL = Source field.
+;		DE = Destination field.
+;		BC = number of bytes.
+
+MOVDTA:
+	MOV	A,M
+	STAX	D
+	INX	H
+	INX	D
+	DCX	B
+	MOV	A,B
+	ORA	C
+	JNZ	MOVDTA
+	RET
+
+
+
+;	SYSINI - Initialize destination system
+;
+SYSINI:	CALL	SWSD		;Switch page 0
+	LXI	H,SYSIN1	;Set BIOS initialization return
+	PUSH	H
+	LHLD	WBOOT+1		;Get warm boot vector address
+	DCX	H		;Get cold boot address
+	MOV	D,M
+	DCX	H
+	MOV	E,M
+	LXI	H,-3		;Point to STSINI entry
+	DAD	D
+	PCHL			;Initialize BIOS
+SYSIN1:
+	CPI	0FFh		;Initialization error?
+	JNZ	SYSIN2
+	CALL	SWDS		;Yes.  Restore source system
+	LXI	D,INIMSG
+	MVI	C,PRTSTR
+	CALL	BDOSV
+	JMP	SYSRET
+SYSIN2:
+	MVI	C,INIT		;Initialize BDOS and select A
+	CALL	BDOSV
+	CALL	SWDS		;Switch page 0
+	RET
+INIMSG:	DB	CR,LF,'BIOS initialization error.', EOS
+
+
+
+;	SWSD - Switch from source to destination system
+;
+SWSD:	LXI	H,0		;Save source page 0 pointers
+	LXI	D,SPZERO
+	LXI	B,8
+	CALL	MOVDTA
+	LXI	H,DPZERO	;Set destination page 0 pointers
+SWDS1:	LXI	D,0
+	LXI	B,8
+	CALL	MOVDTA
+	RET
+
+;	SWDS - Switch from destination to source system
+;
+SWDS:	LXI	H,0		;Save destination page 0 pointers.
+	LXI	D,DPZERO
+	LXI	B,8
+	CALL	MOVDTA
+	LXI	H,SPZERO	;Set source page 0 pointers.
+	JMP	SWDS1
+
+
+;	Destination system page 0 pointers
+;
+DPZERO:	JMP	CBIOS+3		;BIOS entry
+	DB	0		;I/O byte
+	DB	0		;Current disk
+	JMP	BDOS		;BDOS entry
+
+;	Source system page 0 pointers
+;
+SPZERO:	DS	8
+
+
+
+WILD:	DS	1		;Wild card flag
+FNMSG:	DB	CR,LF
+FN:	DS	8
+	DB	'.'
+FT:	DS	3
+	DB	EOS
+
+
+SYSTK:	DS	2		;Hold stack
+
+ODRIVE:	DS	1		;Original drive
+DDRIVE:	DS	1		;Destination drive
+SDRIVE:	DS	1		;Source drive
+
+SRCOCC:	DS	1		;Source file occurrence count
+CFLAG:	DS	1		;Continuation flag
+FCNT:	DS	2		;File record count
+
+
+
+DFCB:	DS	33		;destination command file name
+DFFCB:	DS	33		;destination FCB
+SFCB:	DS	33		;source command file name
+SFFCB:	DS	33		;source file FCB
+FCB:	DS	33		;STSCPM.COM FCB
+
+
+
+	DS	50
+STACK:	DS	1
+
+
+
+
+;
+VBUFF:	DS	128
+BUFFER:	DS	(CCP-$) AND 0FF00H
+BUFSEC:	EQU	($-BUFFER)/128
+BUFEND:	EQU	BUFFER+BUFSEC*128
+;
+	ORG	VBUFF
+;
+;	Check for HELP request
+;
+HELPCK:	LXI	H,HELPNM
+	LXI	D,CPMFCB+1
+	MVI	B,8
+	LDAX	D		;Was file specified?
+	CPI	' '
+	JZ	HELPC2		;No
+HELPC1:	CMP	M		;Yes
+	RNZ
+	INX	D
+	INX	H
+	LDAX	D
+	DCR	B
+	JNZ	HELPC1
+HELPC2:	LXI	D,HELP		;Print HELP message
+	MVI	C,PRTSTR
+	CALL	BDOSV
+	JMP	SYSRET
+
+
+HELPNM:	DB	'HELP    '
+
+HELP:	DB	CR,LF,LF
+	DB	'STSCOPY - System-to-System file copy',CR,LF,LF
+	DB	'This program provides a means of loading files onto',CR,LF
+	DB	'a hard disk from floppy diskette for Data Technology',CR,LF
+	DB	'Corporation customers receiving controllers that do',CR,LF
+	DB	'not include floppy diskette control.  It is assumed',CR,LF
+	DB	'that the customer has an operational CP/M system',CR,LF
+	DB	'running with a non-DTC disk controller.',CR,LF,LF
+	DB	'After FORMATting the hard disk and INSTALLing CP/M',CR,LF
+	DB	'on it, edit the file CONFIG and set MSIZE to a value',CR,LF
+	DB	'just below the CCP of your floppy based CP/M.  Then',CR,LF
+	DB	'execute the SUBMIT file STSCOPY.SUB which will',CR,LF
+	DB	'generate customized copies of STSCOPY.COM and',CR,LF
+	DB	'STSCPM.COM.  (See STSCOPY.SUB for details.)',CR,LF
+	DB	'To execute STSCOPY.COM, type',CR,LF
+	DB	'	STSCOPY STSCPM.COM',CR,LF
+	DB	'The file STSCPM.COM is read into memory and the',CR,LF
+	DB	'keyboard prompt "*" is output to the console.',CR,LF
+	DB	'The form of each command line is',CR,LF,LF
+	DB	'	destination=source cr',CR,LF,LF
+	DB	'where "destination" is the file in the STSCPM',CR,LF
+	DB	'system to receive the data and "source" is the',CR,LF
+	DB	'file in the floppy based CP/M system.  Disk drive',CR,LF
+	DB	'names may be optionally included in the source',CR,LF
+	DB	'and destination.  The destination may be null or',CR,LF
+	DB	'an "unambiguous" (ufn) file reference as defined',CR,LF
+	DB	'in CP/M.  The source may be a ufn or an "ambiguous"',CR,LF
+	DB	'(afn) file reference.  For example',CR,LF,LF
+	DB	'	x:=*.COM',CR,LF,LF
+	DB	'transfers all COM files from the currently selected',CR,LF
+	DB	'drive of the floppy based CP/M system to drive x',CR,LF
+	DB	'of the hard disk system.  All transfers are verified',CR,LF
+	DB	'by reading them back and comparing.',CR,LF,EOS
+
+	END
+

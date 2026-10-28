@@ -1,0 +1,41 @@
+;HEX to DEC routine for 8086/88
+;
+; INPUT:  DX=hex, [BX]=buffer
+; OUTPUT: [BX]=decimal, CX,AL destroyed
+;
+hexdec: mov     cx,-10000
+        call    makdec
+        mov     cx,-1000
+        call    makdec
+        mov     cx,-100
+        call    makdec
+        mov     cx,-10
+        call    makdec
+        mov     cx,-1
+        call    makdec
+        jz      hd1
+        ret
+;
+hd1:    mov     al,'0'
+        mov     [bx],al
+        inc     bx
+        ret
+;
+makdec: mov     ah,-1
+        push    bx
+mdeclp: push    dx
+        inc     ah
+        add     dx,cx
+        jnc     decd
+        pop     bx
+        jmps    mdeclp
+;
+decd:   pop     dx
+        pop     bx
+        mov     al,'0'
+        add     al,ah
+        mov     [bx],al
+        inc     bx
+        ret
+;
+

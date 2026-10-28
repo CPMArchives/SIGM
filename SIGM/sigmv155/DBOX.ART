@@ -1,0 +1,148 @@
+     The  arrival of dBASE 2.4 was a welcome event 
+at  our  office.  We run a  variety  of  different 
+databases  and  2.4 enabled  us  to  significantly 
+improve our programs.
+
+     In one area,  however, 2.4 produced some real 
+problems. We use a number of dual data bases where 
+we transition between them in various parts of the 
+program.  Under  2.3 we would run into a `TOO MANY 
+FILES`  error  every  so  often  and  awaited  2.4 
+eagerly to solve that problem.  As it turned  out, 
+2.4  is  more  insistent upon  a  proper  `RETURN` 
+statement  than  2.3  and it forced  us  to  think 
+through the problem.
+
+     We  did not necessarily want to return to the 
+module that called the module we were running,  so 
+we  created an `invisible box.` This box  contains 
+the `forever loop` for the program and is used for 
+all transfers between the data bases.
+
+     With the box we can go from any point in  the 
+program  modules  for a data base to any point  in 
+the  program modules of any other  data  base.  As 
+long  as  we have no more than two data  bases  on 
+line  at a time,  we can use the box to transition 
+between any number of data bases.  Before we enter 
+the box in a transition between data bases we also 
+save  the common variable.  When we enter the  new 
+data  base  from  the box we do a `FIND`  for  the 
+common variable to bring up the proper record.
+
+     There is,  of course,  a time penalty,  but a 
+rather  minor one in terms of what the box does.   
+
+
+* dBOX.BOX by Steve Leon (201) 886-1658
+* dBOX is a program to switch between data bases 
+* designed for dBASE 2.4 
+ 
+* prior to entry the initilization program has
+* poked the drive number into memory via the
+* command `POKE 063,(64+@(dr,`AB`))`
+
+* set up forever loop for program
+STORE t TO keepitup
+DO WHILE keepitup
+
+* set up alternateive routes
+* the initialization program stores 0 to box
+* moveit is used in this data base to find the 
+* proper file in the other data base via a
+* `SAVE`, `RESTORE` and `FIND`
+* first is used to bring on a fixed screen 
+* matrix for the module
+
+DO CASE 
+
+CASE box = 0   
+        STORE f TO moveit
+        STORE t TO first
+	STORE chr(peek (063)) TO dr
+	USE &dr.:cpb INDEX &dr.:file
+        DO main.cpb
+
+CASE box = 1
+	RELEASE ALL
+        STORE t TO keepitup
+	STORE chr(peek (063)) TO dr
+	USE &dr.:cpb INDEX &dr.:file
+        STORE t TO moveit
+        STORE t TO first
+	DO main.cpb
+
+CASE box = 2  
+	RELEASE ALL
+        STORE t TO keepitup
+	STORE chr(peek (063)) TO dr
+	USE &dr.:cpb1 INDEX &dr.:file1
+        STORE t TO moveit
+        STORE t TO first
+	DO main.ind
+
+CASE box = 3
+ 	RELEASE ALL
+        STORE t TO keepitup
+	STORE chr(peek (063)) TO dr
+	USE &dr.:cpb INDEX &dr.:file 
+        STORE t TO moveit
+        STORE t TO first
+	DO search.cpb
+CASE box = 4
+	RELEASE ALL
+        STORE t TO keepitup
+	STORE chr(peek (063)) TO dr
+	USE &dr.:cpb1 INDEX &dr.:file1
+        STORE t TO moveit
+        STORE t TO first 
+	DO search.ind
+
+CASE box = 5
+        STORE f TO moveit
+        STORE t TO keepitup
+        DO search.cpb
+
+CASE box = 6
+        STORE f TO moveit
+        STORE t TO keepitup
+        DO search.ind
+
+CASE box = 7
+        STORE f TO keepitup
+
+ENDCASE
+ENDDO
+* when we quit eliminate sign-off message
+ERASE
+SET CONSOLE OFF
+QUIT
+
+     The  transition from the various  modules  to 
+the BOX is:
+
+To quit:
+     CASE command = `Q`
+     * prevent sign-off message
+     STORE t TO keepitup
+     STORE 7 TO box
+     RETURN
+
+To transition to other data base:
+     CASE command = `I`
+     STORE !(fl:no) TO linker
+     SAVE to move
+     STORE 2 TO box 
+     RETURN
+
+     There  are other transitions in the  program, 
+but  the above should be sufficient to enable  you 
+to  write  your own `box.` If you come up  with  a 
+better  way,  or  have  some  thoughts,  we  would 
+appreciate them.
+
+
+
+
+
+

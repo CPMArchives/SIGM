@@ -1,0 +1,374 @@
+	
+/********************************************************/
+/*                                                      */
+/*           GENERAL SUPPORT PROCEDURES                 */
+/*                                                      */
+/********************************************************/
+	
+        /* blank - clear delrows in buf from crow and spray */
+blank: procedure;
+    declare
+        row fixed;
+    row = crow;
+        blank_loop:
+        buf_row(row) = '';
+        delrows = delrows-1;
+        row = rmod(row+1);
+        if ^(delrows <= 0 ! row = nextout) then
+            goto blank_loop;
+    call spray(scrlen-2,scrlen-2);
+end blank;
+	
+        /* change - replace len chars. starting at
+                    string(place) by subst */
+change: procedure(string, len, place, subst, error);
+    declare
+        (string, subst) character(linelen) varying,
+        (len, place) fixed,
+        error bit(1);
+    if length(string)+length(subst)-len > linelen then
+        error = true;
+    else
+        do;
+        error = false;
+        string = substr(string,1,place-1) !!
+                 subst !!
+                 substr(string,place+len);
+        end;
+end change;
+	
+        /* compress_up - compress buf upwards and re-fill
+                         from below */
+compress_up: procedure;
+    declare
+        (lf, lt) fixed;
+    lf = crow;
+    do while (lf ^= nextout & length(buf_row(lf)) = 0);
+        lf = rmod(lf+1);
+    end;
+    lt = crow;
+    do while (lf ^= nextout);
+        buf_row(lt) = buf_row(lf);
+        lf = rmod(lf+1);
+        lt = rmod(lt+1);
+    end;
+    do while (lt ^= nextout);
+        call get_row(lt);
+        lt = rmod(lt+1);
+    end;
+end compress_up;
+	
+        /* diag - display diagnostic message on bottom
+                  line of screen */
+diag: procedure(string);
+    declare
+        string character(linelen) varying;
+    call cursor_pos(5,scrlen);
+    call clear_line;
+    call vdu_out(string);
+end diag;
+	
+        /* get_row - get row from input file 
+                     into buf_row(row) */
+get_row: procedure(row);
+    declare
+        row,i fixed;
+    on endfile(edt_in)
+        begin;
+        file_end = true;
+        buf_row(row) = '';
+        goto get_row_exit;
+        end;
+    if file_end then
+        buf_row(row) = '';
+    else
+        do;
+        do while (delrows > 0);
+            inrow = inrow+1;
+            get file(edt_in) edit(buf_row(row))(a);
+            delrows = delrows-1;
+        end;
+        inrow = inrow+1;
+        get file(edt_in) edit(buf_row(row))(a);
+	if length (buf_row(row) = 0 then
+		buf_row(row) = ' ';
+        end;
+    revert endfile(edt_in);
+    get_row_exit: ;
+end get_row;
+	
+        /* input_lines - input keyboard data to crow */
+input_lines: procedure;
+        input_loop:
+        call insert_line;
+        call cursor_pos(1,scrlen-2);
+        call clear_line;
+        call vdu_in(buf_row(crow));
+        if length(buf_row(crow)) ^= 0 then
+            goto input_loop;
+    call compress_up;
+end input_lines;
+	
+        /* insert_line - open up space for input */
+insert_line: procedure;
+    declare
+        (lf, lt) fixed;
+    if length(buf_row(crow)) = 0 then
+        call cursor_pos(1,scrlen-2);
+    else
+        if posn < size & length(buf_row(rmod(crow+1))) = 0 then
+            call roll_up;
+        else
+            do;
+            call put_row(nextout);
+            lt = lastin;
+            lf = nextout;
+            do while (lf ^= crow);
+                lt = lf;
+                lf = rmod(lf+1);
+                buf_row(lt) = buf_row(lf);
+            end;
+            buf_row(crow) = '';
+            if posn < scrlen-1 then
+                do;
+                call cursor_pos(1,scrlen-1-posn);
+                call clear_line;
+                end;
+            call scroll_up;
+            end;
+end insert_line;
+	
+        /* line_change - change all occurences string 
+                         in line */
+line_change: procedure(string, key, subst, error);
+    declare
+        (string, key, subst) character(linelen) varying,
+        (key_len, key_posn, place, str_len) fixed,
+        error bit(1);
+    place = 1;
+    error = false;
+    str_len = length(string);
+    do while (match(string, place, str_len, key,
+                    key_len, key_posn) & ^error);
+        call change(string, key_len, key_posn, subst, error);
+        place = key_posn + length(subst);
+        if length(key) = 0 then
+            place = place + 1;
+        str_len = length(string);
+    end;
+end line_change;
+	
+        /* match - searches string from string(srch_start)
+                   to string(srch_end) for a match to key.
+                   if found, match starts at string(key_posn)
+                   and is key_len long.
+                   key string may include ellipsis ('...').*/
+match: procedure(string, srch_start, srch_end, key, key_len,
+                 key_posn) returns (bit(1));
+    declare
+        (string, key, zz) character(linelen) varying,
+        (srch_start, srch_end, key_len, key_posn, jj) fixed,
+        rtn bit(1);
+    if srch_start > srch_end then
+        do;
+        rtn = false;
+        return(rtn);
+        end;
+    if length(key) = 0 then
+        do;
+        key_len = 0;
+        key_posn = srch_start;
+        rtn = true;
+        end;
+    else
+        if index(key,'...') = 0 then
+            do;   /* no ellipsis in key */
+            zz = substr(string, srch_start);
+            key_posn = index(zz, key)
+                        + srch_start-1;
+            if key_posn >= srch_start & 
+               key_posn <= srch_end then
+                do;
+                key_len = length(key);
+                rtn = true;
+                end;
+            else
+                rtn = false;
+            end;
+        else
+            begin;  /* ellipsis in key */
+            declare
+                (key_front, key_back) character (linelen)
+                                      varying,
+                i fixed;
+            i = index(key,'...');
+            key_front = substr(key, 1, i-1);
+            key_back  = substr(key, i+3);
+            if length(key_front) = 0 then
+                if length(key_back) = 0 then
+                    do;
+                    key_posn = srch_start;
+                    zz = substr(string, srch_start);
+                    key_len = length(zz);
+                    rtn = true;
+                    end;
+                else
+                    do;
+                    key_posn = srch_start;
+                    zz = substr(string, srch_start);
+                    i = index(zz, key_back);
+                    if i > 0 then
+                        do;
+                        key_len = i-1+length(key_back);
+                        rtn = true;
+                        end;
+                    else
+                        rtn = false;
+                    end;
+            else
+                do;
+                zz = substr(string, srch_start);
+                key_posn = index(zz,
+                                 key_front) + srch_start-1;
+                if key_posn >= srch_start &
+                   key_posn <= srch_end then
+                    if length(key_back) = 0 then
+                        do;
+                        zz = substr(string, key_posn);
+                        key_len = length(zz);
+                        rtn = true;
+                        end;
+                    else
+                        do;
+                        jj = length(key_front);
+                        zz = substr(string, key_posn + jj); 
+                        i = index(zz, key_back);
+                        if i > 0 then
+                            do;
+                            key_len = length(key_front) +
+                                      length(key_back) +
+                                      i - 1;
+                            rtn = true;
+                            end;
+                        else
+                            rtn = false;
+                        end;
+                else
+                    rtn = false;
+                end;
+            end;
+    return(rtn);
+end match;
+	
+        /* put_row - write row to edt_out */
+put_row: procedure(row);
+    declare
+        row fixed;
+    if length(buf_row(row)) ^= 0 then
+        do;
+        put file(edt_out) edit(buf_row(row))(a);
+        put file(edt_out) skip;
+        end;
+end put_row;
+	
+        /* roll_down - roll down screen */
+roll_down: procedure;
+    if posn > 1 then
+        do;
+        posn = posn - 1;
+        crow = rmod(crow-1);
+        call scroll_down;
+        if posn > scrlen-2 then
+            call spray(1,1);
+        call cursor_pos(1,scrlen-1);
+        call clear_screen;
+        end;
+end roll_down;
+	
+        /* roll_up - roll screen up */
+roll_up: procedure;
+    if posn = size then
+        call swap;
+    if posn < size then
+        do;
+        call scroll_up;
+        posn = posn + 1;
+        crow = rmod(crow+1);
+        end;
+    call spray(scrlen-2,scrlen-2);
+end roll_up;
+	
+        /* rmod - modulus function to force row address
+                  into range 1 to size */
+rmod: procedure(arg) returns (fixed);
+    declare
+        (arg, rtn) fixed;
+    if arg > size then
+        rtn = arg - size;
+    else if arg < 1 then
+        rtn = arg + size;
+    else
+        rtn = arg;
+    return(rtn);
+end rmod;
+	
+        /* split_string - take string in form
+                          /..key../..subst../ and split
+                          into key and substitute strings */
+split_string: procedure(string, key, subst);
+    declare
+        (string, key, subst) character(linelen) varying,
+        (i,j) fixed;
+    if length(string) = 0 then
+        do;
+        key = '';
+        subst = '';
+        end;
+    else
+        do;
+        i = index(substr(string,2), substr(string,1,1));
+        if i = 0 then
+            do;
+            key = substr(string,2);
+            subst = '';
+            end;
+        else
+            do;
+            key = substr(string,2,i-1);
+            j = i + 2;
+            i = index(substr(string,j), substr(string,1,1));
+            if i = 0 then
+                subst = substr(string,j);
+            else
+                subst = substr(string,j,i-1);
+            end;
+        end;
+end split_string;
+	
+        /* spray - display screen lines sb to se */
+spray: procedure(sb,se);
+    declare
+        (sb, se, line, row) fixed;
+    do line = sb to se;
+        call cursor_pos(1,line);
+        call clear_line();
+        row = rmod(crow - scrlen+2 + line);
+        call vdu_out(buf_row(row));
+    end;
+end spray;
+	
+        /* swap - output from nextout, input to lastin,
+                  adjust pointers */
+swap: procedure;
+    if length(buf_row(lastin)) ^= 0 then
+        do;
+        call put_row(nextout);
+        lastin = nextout;
+        nextout = rmod(nextout+1);
+        posn = posn -1;
+        end;
+    call get_row(lastin);
+end swap;
+	
+/*******************************************************/
+

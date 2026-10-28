@@ -1,0 +1,110 @@
+;************************************************
+;*						*
+;*	NEC 8023 Font switching utility		*
+;*						*
+;************************************************
+;
+;	By	Bill Bolton
+;		NEC Information Systems Australia
+;		99 Nicholson St.,
+;		St. Leonards,
+;		NSW, 2065
+;		Australia
+;
+;		Phone (02) 439-3544 (Australia)
+;		      61-2-439-2544 (International)
+;
+;		Telex AA27411
+;
+;		Fax   (02) 439-6584 (Australia)	
+;		      61-2-439-6584 (International)
+;
+;	VERSION LIST, most recent version first
+;
+;01/Mar/83 Added pick up of pitch from command line and
+;	   version number in signon message. Version 1.1 [BB]
+;
+;14/Jan/83 Initial Version 1.0 [BB]
+;
+FALSE	EQU	0
+TRUE	EQU	NOT FALSE
+;
+BASE	EQU	0
+FCB	EQU	BASE+05CH
+;
+PRINT	EQU	5		;CP/M-86 BDOS list output function
+STRING	EQU	9		;CP/M-86 BDOS string display function
+;
+ALF	EQU	0AH		;ASCII Line feed
+ACR	EQU	0DH		;ASCII Carriage return
+ESC	EQU	01BH		;ASCII escape
+;
+OPTION17 EQU	'Q'
+OPTION12 EQU	'E'
+OPTION10 EQU	'N'
+;
+VER	EQU	11			;Current version number
+;
+	CSEG
+;
+START:
+	MOV	CL,STRING
+	MOV	DX,Offset SIGNON
+	INT	224				;Tell them who we are
+	MOV	AL,Byte Ptr .FCB+1		;Point to command line
+	CMP	AL,' '				;Command present?
+	JE	EREXIT				;No, error
+	CMP	AL,'1'				;Yes, first char '1'?
+	JNE	EREXIT				;No, error
+	MOV	AL,Byte Ptr .FCB+2		;Yes, point to second character
+	CMP	AL,'0'				;10 pitch?
+	MOV	PITCH_MSG,AL			;Stuff char into message
+	MOV	OPTION,OPTION10			;Set up option
+	JE	OK				
+	CMP	AL,'2'				;12 pitch?
+	MOV	OPTION,OPTION12
+	JE	OK
+	CMP	AL,'7'				;17 pitch?
+	MOV	OPTION,OPTION17
+	JNE	EREXIT				;No, error
+OK:
+	MOV	DL,ESC
+	MOV	CL,PRINT
+	INT	224				;Send lead-in character
+	MOV	DL,OPTION
+	MOV	CL,PRINT
+	INT	224				;Send option
+	MOV	DX,Offset DONE_MESSG		;Tell them what we did
+DISPLAY:
+	MOV	CL,STRING
+	INT	224
+	MOV	DL,0
+	MOV	CL,0
+	INT	224				;Back to CP/M-86
+;
+EREXIT:
+	MOV	DX,Offset ERROR_MSG		;Display Usage message
+	JMP	DISPLAY
+
+	DSEG
+	ORG	100H
+
+OPTION		DB	0
+;
+SIGNON		DB	ACR,ALF,'NEC 8023 dot matrix printer pitch setting utility'
+		DB	ACR,ALF,'Version ',VER/10 + '0','.',VER MOD 10 + '0'
+		DB	', By Bill Bolton, NECIS Australia.'
+		DB	ACR,ALF,'$'
+;
+ERROR_MSG	DB	ACR,ALF,'Usage:'
+		DB	ACR,ALF,'	PITCH 10	sets 8023 to 10 pitch'
+		DB	ACR,ALF,'	PITCH 12	sets 8023 to 12 pitch'
+		DB	ACR,ALF,'	PITCH 17	sets 8023 to 17 pitch'
+		DB	ACR,ALF,'$'
+;
+DONE_MESSG	DB	ACR,ALF,'8023 Printer character pitch set to 1'
+PITCH_MSG	DB	'0'
+		DB	' characters per inch.',ACR,ALF,'$'
+;
+	END
+

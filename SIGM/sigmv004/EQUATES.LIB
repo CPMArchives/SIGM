@@ -1,0 +1,80 @@
+;FILE           EQUATES.LIB
+;               * * * *  GENERAL EQUATES  * * * *
+;PURPOSE        THIS SECTION OF CODE PROVIDES GENERAL ASSEMBLER
+;               EQUATES FOR THE CURRENT PROGRAM ENVIRONMENT.
+;PROGRAMMER     ROBERT M. WHITE
+;DATE CODED     JUNE 9, 1979
+;
+;
+;
+EQUATES MACRO
+;;
+;;              * * *  ASSEMBLER EQUATES  * * *
+;;
+TRUE    EQU     0FFFFH          ;;TRUE VALUE
+FALSE   EQU     NOT TRUE        ;;FALSE VALUE
+;;
+;;
+;;
+;;
+;;              * * *  CP/M EQUATES  * * *
+;;
+;;              * *  ADDRESS ASSIGNMENTS  * *
+CPMEXIT EQU     0               ;;WARM START BOOT LOCATION
+BDOS    EQU     5               ;;BDOS ENTRY POINT
+TBUFF   EQU     0080H           ;;DEFAULT BUFFER LOCATION
+TDDN    EQU     0004H           ;;CURRENT DEFAULT DRIVE NUMBER
+TFCB    EQU     005CH           ;;DEFAULT FCB LOCATION 1
+TFCB2   EQU     006CH           ;;DEFAULT FCB LOCATION 2 ( MUST BE MOVED)
+TIOBYTE EQU     0003H           ;;INTEL STANDARD I/O BYTE
+TPABGN  EQU     0100H           ;;TRANSIENT PROGRAM AREA BEGINNING
+;;
+;;              *  FDOS FUNCTIONS  *
+CREAD   EQU     1               ;;**CODE FOR CONSOLE READ
+CWRITE  EQU     2               ;;**CODE FOR CONSOLE WRITE
+CPB     EQU     9               ;;**CODE FOR CONSOLE PRINT BUFFER
+CRB     EQU     10              ;;**CODE FOR CONSOLE READ BUFFER
+CSTAT   EQU     11              ;;**CODE FOR CONSOLE STATUS CHECK
+DLDH    EQU     12              ;;**CODE FOR LIFT DISK HEAD
+DRDS    EQU     13              ;;**CODE FOR RESET DISK SYSTEM
+DSD     EQU     14              ;;**CODE FOR SELECT DISK
+DOF     EQU     15              ;;**CODE FOR OPEN FILE
+DCF     EQU     16              ;;**CODE FOR CLOSE FILE
+DSF     EQU     17              ;;**CODE FOR SEARCH FIRST
+DSN     EQU     18              ;;**CODE FOR SEARCH NEXT
+DDF     EQU     19              ;;**CODE FOR DELETE FILE
+DRR     EQU     20              ;;**CODE FOR READ A RECORD
+DWR     EQU     21              ;;**CODE FOR WRITE A RECORD
+DCRF    EQU     22              ;;**CODE FOR CREATE A FILE
+DREN    EQU     23              ;;**CODE FOR RENAME A FILE
+DINTL   EQU     24              ;;**CODE FOR INTERROGATE LOGIN
+DRINT   EQU     25              ;;**CODE FOR DRIVE INTERROGATE
+DDMA    EQU     26              ;;**CODE FOR SET DMA ADDRESS
+DINTA   EQU     27              ;;**CODE FOR INTERROGATE ALLOCATION
+;;              * FCB EQUATES *
+FCBET   EQU     0               ;;FCB ENTRY TYPE - *NOT USED*ŠFCBFN   EQU     1               ;;FILE NAME, 8 CHARS, PADDED WITH BALNKS
+FCBFT   EQU     9               ;;FILE TYPE, 3 CHARS, PADDED WITH BLANKS
+FCBEX   EQU     12              ;;FILE EXTENT, NORMALLY SET TO ZERO
+;;              13-14           ;;*NOT USED*
+FCBRC   EQU     15              ;;RECORD COUNT IN CURRENT EXTENT (0-128)
+FCBDM   EQU     16              ;;DISK ALLOCATION MAP, USED BY CP/M
+FCBNR   EQU     32              ;;NEXT RECORD NUMBER TO READ OR WRITE
+FCBLEN  EQU     FCBNR-FCBET+1   ;;FCB LENGTH
+;;
+;;
+;;
+;;              * *  DOUBLE REGISTER EQUATES  * *
+BC      EQU     B
+DE      EQU     D
+HL      EQU     H
+;;
+;;
+        ENDM
+;
+;
+;
+;
+;
+;END            EQUATES.LIB
+
+

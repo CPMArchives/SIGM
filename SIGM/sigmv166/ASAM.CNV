@@ -1,0 +1,101 @@
+
+[ASAM.CNV]
+[some sample programs for CNVRT]
+[28 March 1982]
+
+[[
+A demonstration of CNVRT programs. The choices are
+        bsum - sum two strings of binary digits
+        merge - combine two lists into one
+        reverse - reverse a list
+        split - split a list into alternate elements
+        list - recognize typical list elements
+        word - some fancy word forms
+        quit - end the demonstration
+        ? - list the choices
+]]
+
+
+
+[binary sum]
+(()()(0 1 2)(
+	((PWS,b )(or),);
+	(+=0<2>,+=<2>):
+	(+=<2>,<2>);
+	(<0>+=<2>,<0>+0=<2>):
+	(+<1>=<2>,0+<1>=<2>):
+	(<0>+*<2>,<0>+1<2>):
+	(<0>+<1>0*<2>,<0>+<1>1<2>):
+	(<0>+<1>1*<2>,<0>+<1>*0<2>):
+	(<0>0+<1>0=<2>,<0>+<1>=0<2>):
+	(<0>0+<1>1=<2>,<0>+<1>=1<2>):
+	(<0>1+<1>0=<2>,<0>+<1>=1<2>):
+	(<0>1+<1>1=<2>,<0>+<1>*=0<2>):
+  )) b
+
+[merge two strings into a single string]
+(()()(0 1 2 3 4)(
+	([<0> <1>][<2> <3>][<4>],[<1>][<3>][<4> <0> <2>]):
+	([<0> <1>][<2>][<4>],<4> <0> <2> <1>);
+	([<0>][<2>][<4>],<4> <0> <2>);
+  )) m
+
+[reverse a list]
+(()()(0 1 2)(
+	([<0> <1>][<2>],[<1>][<0> <2>]):
+	([<0>][<2>],<0> <2>);
+  )) r
+
+[split a string into evens and odds]
+(()()(0 1 2 3 4)(
+	([<0> <1> <2>][<3>][<4>],[<2>][<0> <3>][<1> <4>]):
+	([<0> <1>][<3>][<4>],<0> <3>(%|)<1> <4>);
+	([][<3>][<4>],<3>(%|)<4>);
+	([<0>][<3>][<4>],<0> <3>(%|)<4>);
+  )) s
+
+[word types]
+( (
+)()(1 2) (
+  (<1><1><1><>,tripled word :<1>:(%|)(w,<1>));
+  (<1><1><>,doubled word :<1>:(%|)(w,<1>));
+  ((and,<[1]>,<1>)<2><1><>,sandwich :<1>:^:<2>:^:<1>:(%|)(w,<2>));
+  (<-->1<-->2<-->3<-->4<-->5<-->,five in order);
+  (<-->(and,<[3]>,<1>)<--><1><--><1><-->,triple triple :<1>:);
+  (<-->(and,<[3]>,<1>)<--><1><-->,repeated triple :<1>:);
+  (<-->(and,<[2]>,<1>)<--><1><-->,repeated pair   :<1>:);
+  (<-->(and,<[1]>,<1>)<--><1><-->,repeated letter :<1>:);
+  (<1>,nothing word: <1>);
+   )) w
+
+[list types]
+( (
+  [letter]	((AND,<[1]>,(NOT,(OR, ,<(>,<)>)))) a
+  [atom]	((OR,<:a:><:b:>,<:a:>)) b
+  [goodparen]	((OR, ,<:b:>,<:e:>)) c
+  [goodseq]	((OR,<:c:><:d:>,)) d
+  [list]	(<(><:d:><)>) e
+   )
+()() (
+  (<:a:><>,letter);
+  (<:b:><>,atom);
+  (<:e:><>,list);
+  (<:d:><>,good sequence);
+  (,not typical);
+   )) x
+
+( ()()() (
+   (word,(%C,(w,(%R)))(%R)):
+   (list,(%C,(x,(%R)))(%R)):
+   (bsum,(%C,(b,(%R)+(%R)=))(%R)):
+   (merge,(%C,(m,[(%R)][(%R)][]))(%R)):
+   (quit,);
+   (reverse,(%C,(r,[(%R)][]))(%R)):
+   (split,(%C,(s,[(%R)][][]))(%R)):
+   (??,(%D)(%R)):
+   (?,(%C, bsum merge reverse split word list quit)(%R)):
+   (,(%C,quit to exit, ? for menu)(%R)):
+   ))
+
+[end]
+

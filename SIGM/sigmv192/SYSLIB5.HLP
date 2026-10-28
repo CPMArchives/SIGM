@@ -1,0 +1,412 @@
+The L, M, P, and S Output Routines
+Sample Outputs
+xA2HC  -- Output A as 2 Hexadecimal Chars
+xA3DC  -- Output A as 3 Decimal Chars
+xADC   -- Output A as Up to 3 Decimal Chars with Leading Spaces
+xAFDC  -- Output A as Up to 3 Decimal Chars
+xHL4HC -- Output HL as 4 Hexadecimal Chars
+xHL5DC -- Output HL as 5 Decimal Chars
+xHLDC  -- Output HL as Up to 5 Decimal Chars with Leading Spaces
+xHLFDC -- Output HL as Up to 5 Decimal Chars
+:The L, M, P, and S Output Routines
+
+     Thå  numeriã outpuô routineó describeä herå arå useä tï 
+outpuô  eitheò thå HÌ registeò paiò oò thå Á registeò  iî  á 
+varietù   oæ   forms®    Theså  formó  arå  aó   hexadecimaì 
+characters¬  aó  decimaì characters¬  aó decimaì  characteró 
+witè  leadinç  spaces¬  anä aó decimaì  characteró  witè  nï 
+leading zeroes or spaces.
+
+     Iî  addition¬  eacè  oæ theså routineó haó á prefiø  tï 
+theiò namesº   L¬ M¬ P¬ oò S®  Theså prefixeó indicatå wherå 
+thå  outpuô ió goinç to®   Ì indicateó thå LSTº  devicå  (oò 
+printer)¬ Í indicateó memory¬ Ğ indicateó thå consolå (prinô 
+thå output)¬  anä Ó indicateó á switcheä outpuô tï  nothing¬ 
+the console, the printer, or both.
+
+     For example,
+
+          PADÃ  sendó  Á aó decimaì characteró witè  leadinç 
+spaceó  tï  thå  console¬  whilå LADÃ  sendó  Á  aó  decimaì 
+characters with leading spaces to the printer.
+
+     Thå  S-serieó  oæ routineó ió differenô froí thå  otheò 
+serieó  iî thaô thå S-serieó useó aî externaì datá  bytå  tï 
+determinå  wherå thå outpuô ió tï bå routed®   Thió bytå  ió 
+referreä  tï aó SCTLFÌ (Ó Controì Flag)¬  anä itó  switchinç 
+functioî ió illustrateä iî thå followinç table:
+
+     ----- SCTLFL -----
+      Binary        Hex       Outputs to
+
+     00000000B      00H       Nothing
+     00000001B      01H       Console
+     10000000B      80H       Printer
+     10000001B      81H       Console and Printer
+
+
+     Iæ  thå  programmeò  doeó  noô  initializå  thå  SCTLFÌ 
+variablå beforå hå useó aî S-routine¬  outpuô wilì gï tï thå 
+consolå (defaulô valuå oæ SCTLFÌ ió 01H).
+
+
+     Aî examplå oæ codå usinç S-routineó is:
+
+          EXT  SCTLFL,SADC    ; SCTLFL flag, SADC routine
+          ...
+          MVI  A,81h     ; enable printer and console
+          STA  SCTLFL
+          ...
+          MVI  A,32      ; print number 32
+          CALL SADC
+          ...
+          MVI  A,80H     ; enable printer only
+          STA  SCTLFL
+          ...
+          MVI  A,150     ; print number 150
+          CALL SADC
+          ...
+
+
+:Sample Outputs
+
+     Thå  followinç  tableó  illustratå ho÷ valueó  wilì  bå 
+outpuô  bù thå variouó routines®   Thå underscorå  characteò 
+(_© indicateó á space.
+
+Value     xA2HC     xA3DC     xADC      xAFDC
+
+   0        00       000       __0       0
+  10        0A       010       _10       10
+ 255        FF       255       255       255
+
+Value     xHL4HC    xHL5DC    xHLDC     xHLFDC
+    0      0000      00000    ____0     0
+   10      000A      00010    ___10     10
+  100      0064      00100    __100     100
+ 1000      03E8      01000    _1000     1000
+65535      FFFF      65535    65535     65535
+
+:LA2HC, MA2HC, PA2HC, SA2HC
+     Routine Names:  LA2HC, PA2HC, SA2HC
+
+     Functionº
+
+     Prinô  Á  aó  twï (2© hexadecimaì  characteró  oî  LSTº 
+(LA2HC)¬ CONº (PA2HC)¬ oò switcheä outpuô (SA2HC).
+
+     Inputs:  A = value to be printed
+
+     Outputs:  -None- (Value is printed)
+
+     Registers Affected:  -None-
+
+     SYSLIÂ  Routineó Calledº  EÎ (foò all)»
+                               LOUÔ (foò LA2HC);
+                               COUT (for PA2HC);Š                               SOUT (for SA2HC)
+
+     Special Error Conditions:  -None-
+
+
+     Routine Name:  MA2HC
+
+     Functionº
+     Storå Á aó twï (2© hexadecimaì characteró iî thå 2-bytå 
+memorù  buffeò pointeä tï bù DE®   Oî return¬  DÅ pointó  tï 
+bytå afteò buffer.
+
+     Inputs:  A = value to be converted and stored
+              DE points to 2-byte buffer
+
+     Outputs:  DE points to byte after this buffer
+
+     Registers Affected:  DE
+
+     SYSLIB Routines Called:  EN
+
+     Special Error Conditions:  -None-
+
+:LA3DC, MA3DC, PA3DC, SA3DC
+     Routine Names:  LA3DC, PA3DC, SA3DC
+
+     Functionº
+
+     Prinô  Á  aó  threå  (3©  decimaì  characteró  oî  LSTº 
+(LA3DC)¬ CONº (PA3DC)¬ oò switcheä outpuô (SA3DC).
+
+     Inputs:  A = value to be printed
+
+     Outputs:  -None- (Value is printed)
+
+     Registers Affected:  -None-
+
+     SYSLIB Routines Called:  LOUT (for LA3DC);
+                              COUT (for PA3DC);
+                              SOUT (for SA3DC)
+
+     Special Error Conditions:  -None-
+
+
+     Routine Name:  MA3DC
+
+     Functionº
+
+     Storå  Á aó threå (3© decimaì characteró iî thå  3-bytå 
+memorù buffeò pointeä tï bù DE®  Oî return¬ DÅ pointó tï thå 
+bytå afteò thå buffer.
+
+     Inputs:  A = value to be converted and stored
+              DE points to the 3-byte buffer
+
+     Outputs:  DE points to the byte after the buffer
+
+     Registers Affected:  DE
+
+     SYSLIB Routines Called:  -None-
+
+     Special Error Conditions:  -None-
+
+:LADC, MADC, PADC, SADC
+     Routine Names:  LADC, PADC, SADC
+
+     Functionº
+
+     Prinô  Á  aó uğ tï threå (3©  decimaì  characteró  witè 
+leadinç  spaceó  (<SP>© oî  LSTº  (LADC)¬  CONº  (PADC)¬  oò 
+switcheä outpuô (SADC).
+
+     Inputs:  A = value to be printed
+
+     Outputs:  -None- (Value is printed)
+
+     Registers Affected:  -None-
+
+     SYSLIB Routines Called:  LOUT (for LADC);
+                              COUT (for PADC);
+                              SOUT (for SADC)
+
+     Special Error Conditions:  -None-
+
+
+     Routine Name:  MADC
+
+     Functionº
+
+     Storå  Á  aó uğ tï threå (3©  decimaì  characteró  witè 
+leadinç spaceó iî thå 3-bytå memorù buffeò pointeä tï bù DE®  
+Oî return¬ DÅ pointó tï thå bytå afteò thå buffer.
+
+     Inputs:  A = value to be converted and stored
+              DE points to the 3-byte memory buffer
+
+     Outputs:  DE points to the byte after the buffer
+
+     Registers Affected:  DE
+
+     SYSLIB Routines Called:  -None-
+
+     Special Error Conditions:  -None-
+
+:LAFDC, MAFDC, PAFDC, SAFDC
+     Routine Names:  LAFDC, PAFDC, SAFDC
+
+     Functionº
+
+     Prinô  Á aó threå uğ tï (3© decimaì characteró witè  nï 
+leadinç spaceó oî LSTº  (LAFDC)¬  CONº  (PAFDC)¬ oò switcheä 
+outpuô (SAFDC).
+
+     Inputs:  A = value to be printed
+
+     Outputs:  -None- (Value is printed)
+
+     Registers Affected:  -None-
+
+     SYSLIB Routines Called:  LOUT (for LAFDC);
+                              COUT (for PAFDC);
+                              SOUT (for SAFDC)
+
+     Special Error Conditions:  -None-
+
+
+     Routine Name:  MAFDC
+
+     Functionº
+
+     Storå Á aó uğ tï threå (3© decimaì characteró iî thå 3-
+bytå memorù buffeò pointeä tï bù DE®   Oî return¬  DÅ pointó 
+tï thå bytå afteò thå lasô decimaì characteò iî thå buffer.
+
+     Inputs:  A = value to be converted and stored
+              DE points to the 3-byte buffer
+
+     Outputs:  DE points to the byte after the buffer
+
+     Registers Affected:  DE
+
+     SYSLIB Routines Called:  -None-
+
+     Special Error Conditions:  -None-
+
+:LHL4HC, MHL4HC, PHL4HC, SHL4HC
+     Routine Names:  LHL4HC, PHL4HC, SHL4HC
+
+     Functionº
+
+     Prinô  HÌ  aó fouò (4© hexadecimaì characteró  oî  LSTº 
+(LHL4HC)¬ CONº (PHL4HC)¬ oò switcheä outpuô (SHL4HC).
+
+     Inputs:  HL = value to be printed
+
+     Outputs:  -None- (Value is printed)
+
+     Registers Affected:  -None-
+
+     SYSLIB Routines Called:  LA2HC (for LHL4HC);
+                              PA2HC (for PHL4HC);
+                              SA2HC (for SHL4HC)
+
+     Special Error Conditions:  -None-
+
+
+     Routine Name:  MHL4HC
+
+     Functionº
+
+          Storå  HÌ aó fouò (4© hexadecimaì characteró iî thå  4-
+bytå memorù buffeò pointeä tï bù DE®  Oî return¬ DÅ pointó tï thå 
+bytå followinç thió buffer.
+
+     Inputs:  HL = value to be converted and stored
+              DE points to 4-byte buffer
+
+     Outputs:  DE points to byte after buffer
+
+     Registers Affected:  DE
+
+     SYSLIB Routines Called:  MA2HC
+
+     Special Error Conditions:  -None-
+
+:LHL5DC, MHL5DC, PHL5DC, SHL5DC
+     Routine Names:  LHL5DC, PHL5DC, SHL5DC
+
+     Functionº
+
+     Prinô  HÌ  aó  fivå  (5©  decimaì  characteró  oî  LSTº 
+(LHL5DC)¬ CONº (PHL5DC)¬ oò switcheä outpuô (SHL5DC).
+
+     Inputs:  HL = value to be printed
+
+     Outputs:  -None- (Value is printed)
+
+     Registers Affected:  -None-
+
+     SYSLIB Routines Called:  LOUT (for LHL5DC);
+                              COUT (for PHL5DC);
+                              SOUT (for SHL5DC)
+
+     Special Error Conditions:  -None-
+
+
+     Routine Name:  MHL5DC
+
+     Functionº
+
+     Storå  HÌ aô fivå (5© decimaì characteró iî  memorù  iî 
+thå 5-bytå buffeò pointeä tï bù DE®  Oî return¬ DÅ pointó tï 
+thå bytå afteò thió buffer.
+
+     Inputs:  HL = value to be converted and stored
+              DE points to a 5-byte buffer
+
+     Outputs:  DE points to the byte following the buffer
+
+     Registers Affected:  DE
+
+     SYSLIB Routines Called:  -None-
+
+     Special Error Conditions:  -None-
+
+:LHLDC, MHLDC, PHLDC, SHLDC
+     Routine Names:  LHLDC, PHLDC, SHLDC
+
+     Functionº
+
+     Prinô  HÌ  aó uğ tï fivå (5©  decimaì  characteró  witè 
+leadinç  spaceó (<SP>© oî LSTº  (LHLDC)¬  CONº  (PHLDC)¬  oò 
+switcheä outpuô (SHLDC).
+
+     Inputs:  HL = value to be printed
+
+     Outputs:  -None- (Value is printed)
+
+     Registers Affected:  -None-
+
+     SYSLIB Routines Called:  LOUT (for LHLDC);
+                              COUT (for PHLDC);
+                              SOUT (for SHLDC)
+
+     Special Error Conditions:  -None-
+
+
+     Routine Name:  MHLDC
+
+     Functionº
+
+     Storå  HÌ  aó uğ tï fivå (5©  decimaì  characteró  witè 
+leadinç spaceó iî thå 5-bytå memorù buffeò pointeä tï bù DE.
+
+     Inputs:  HL = value to be converted and printed
+              DE points to the 5-byte buffer
+
+     Outputs:  DE points to the byte after the buffer
+
+     Registers Affected:  DE
+
+     SYSLIB Routines Called:  -None-
+
+     Special Error Conditions:  -None-
+
+:LHLFDC, MHLFDC, PHLFDC, SHLFDC
+     Routine Names:  LHLFDC, PHLFDC, SHLFDC
+
+     Functionº
+
+     Prinô  HÌ aó uğ tï fivå (5© decimaì characteró witè  nï 
+leadinç spaceó oî LSTº  (LHLFDC)¬ CONº (PHLFDC)¬ oò switcheä 
+outpuô (SHLFDC).
+
+     Inputs:  HL = value to be printed
+
+     Outputs:  -None- (Value is printed)
+
+     Registers Affected:  -None-
+
+     SYSLIB Routines Called:  LOUT (for LHLFDC);
+                              COUT (for PHLFDC);
+                              SOUT (for SHLFDC)
+
+     Special Error Conditions:  -None-
+
+
+     Routine Name:  MHLFDC
+
+     Functionº
+
+     Storå HÌ aô uğ tï fivå (5© decimaì characteró iî memorù 
+iî thå 5-bytå buffeò pointeä tï bù DE®  Oî return¬ DÅ pointó 
+tï thå bytå afteò thå lasô characteò stored.
+
+     Inputs:  HL = value to be converted and stored
+              DE points to a 5-byte buffer
+
+     Outputs:  DE points to the byte following the buffer
+
+     Registers Affected:  DE
+
+     SYSLIB Routines Called:  -None-
+
+     Special Error Conditions:  -None-
+
+

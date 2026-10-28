@@ -1,0 +1,262 @@
+Lets select option New Student from the main menu.  When we add a
+new student we set the flag 'command' to N and call procedure ADD.
+
+procedure ADD
+	 if no space in file
+	    print file full message
+	    exit procedure
+	 else add another record
+	 increment record count
+	 blank ( student )
+	 ChangeAddress ( student, goodstatus )
+	 display ( console, student )
+	 if a valid key field then
+	    insert key field into grades matrix
+	    insert key and record pointer into index list
+	    update name&address data file
+	    set file updated flag to true
+	    update total records on file.
+	    give operator chance to change make changes
+end add
+
+
+It is most important when dealing with strings that they be
+initialized to some value even if that is a zero length string.  If
+strings are not initialized the result will be garbage on the screen
+and the strong possibility that your program will blow up.  Both ADD
+and MODIFY call ChangeAddress.
+
+The basic concept of ChangeAddress is to display each field and
+allow any field to be changed.	If new data is input then it will
+replace the previous data.
+
+It is very difficult to write a generalized procedure for data entry
+since the typing is so strict with Pascal.  I took the easy way out
+and wrote a data entry for each field in the record. As you can see
+this takes a lot of code and in addition makes this procedure very
+specific to this one program.
+
+
+procedure ChangeAddress
+	 set returned status flag to true
+	 print enter message if changing data
+	 if adding new records
+		 enter id number
+		 search index list for match
+		 if already on file
+			 read student record from file
+			 print error message
+			 set returned status flag to false
+			 exit procedure
+	 else print id number
+	 for each field
+		 print title string
+		 request for new inputs
+	 set updated flag to true
+end changeaddress
+
+
+ChangeAddress will allow us to change both a blank record and one
+that is full.  The procedure input() displays a text message and the
+passed string then places the cursor on the next line to await any
+input.	If the string's length is zero then the cursor remains after
+the text message.
+
+
+ChangeGrades is very straight forward.
+
+procedure ChangeGrades
+	 write student's name
+	 for each grade
+	    print the grade and request change
+	    if changed then store new grade
+end changegrades
+
+
+Notice when we say:
+
+	 for g:=exam1 to final do
+	     write ( ord(g):3, grades [ R,g ]:4, ' ?' );
+
+that we are printing the ordinal value of an enumerated type.  The
+enumerated type gradetype was setup so that the ordinal value of id
+= 0; exam1 = 1; exam2 = 2, ...	The ordinal value of exam1 is 1 and
+you will see a 1 printed in a field width of 3.  This is not a trick
+it is perfectly correct Pascal and should be taken advantage of at
+any time.
+
+
+Lets take a look at FIND and CHANGE.  The pseudo-code for FIND is:
+
+	 procedure FIND
+	    input a key to search for
+	    search index tree for key
+	    if match then
+	       read data file at record R
+	       display record
+	    else print no match found
+	 end find
+
+
+and for CHANGE it is:
+
+	 procedure CHANGE
+	    input a key to search for
+	    search index tree for key
+	    if match then
+	       read data file at record R
+	       display record
+	       change 1) address
+		      2) grades
+	    else print no match found
+	 end change
+
+
+The first 5 steps are exactly the same for both procedures and so
+can easily be combined into a single procedure.  We can call this
+procedure MODIFY.
+
+	 procedure MODIFY
+	    input a key to search for
+	    search index tree for key
+	    if match then
+	       read data file at record R
+	       case activity flag of
+		 C: change A(ddress G(rades
+		      A: change address
+		      G: change grades
+		    display record
+		    updata data file
+		 F: display record
+	       end case
+	    else print no match found.
+	 end modify
+
+
+We call upon MODIFY whenever we need to FIND or CHANGE a record.
+The procedure ADD calls MODIFY after inputting a new record in case
+you want to change the address or grades.  If called by ADD we set
+the flag command to 'C' so that changeaddress will operate on the
+current record.
+
+
+procedure list
+	 direct output to console or printer
+	 print the entire tree <recursively>
+end list
+
+Procedure LIST prints the records in order by traversing the index
+list and returning the record pointer from procedure FREAD.  FREAD
+also reads the disk file record R into the record variable student
+which may be displayed on the console or printer.
+
+
+procedure display ( VAR output: TEXT; VAR student: sturec );
+	print student's name and address
+	print student's grades
+end display;
+
+
+Procedure display is very versatile.  We can print to any text
+device
+
+1).	rewrite ( 'LST:', output );
+	display ( output, student );
+
+2).	rewrite ( 'CON:', output );
+	display ( output, student );
+
+3).	rewrite ( 'A:STUDENT.LST', output );
+	display ( output, student );
+
+
+by opening the file as in 1) the output will be directed to the list
+device, as in 2) the output will be directed to the console, and as
+in 3) the output will go to the disk file A:STUDENT.LST.
+
+
+procedure fclose
+   OPEN 'STUDENT.NDX' for WRITE assign StuNdx
+   writeln( StuNdx, rof );
+   writeln( StuNdx, date );
+   OPEN 'STUDENT.GDS' for WRITE assign StuGrades
+   FOR R:=1 TO rof DO
+      write ( StuGrades, grades[R] )
+end fclose
+
+
+The procedure fclose writes out the total number of records and the
+date to file student.ndx and the array grades to file student.gds.
+
+Notice that the procedures fclose, initialize, and list all have
+local file variables.  This allows us to close the files.  Pascal/Z
+has three ways that it can close files: 1) upon exit of a procedure
+in which the file variable was declared, 2) when a file variable is
+reused, and 3) upon termination of the program block.
+
+We will wrap up with a look at the relationships between the file
+'student.dat', the array grades and the index list.
+
+STUDENT.DAT			      GRADES MATRIX	      INDEX
+-----------			      -------------	      -----
+RCD#  id,name,address,city,st,zip     ROW  id,exam1,exam2,    id,RCD#
+1)    100,Jones,...		      1)   100,10, ...	      100,1
+2)    101,Smith,...		      2)   101,90, ...	      101,2
+3)    102,Wilson,...		      3)   102,90, ...	      102,3
+4)    103,Edwards,...		      4)   103,90, ...	      103,4
+
+
+It can be seen from the above that student Edwards will be stored in
+record #4 in student.dat and row 4 in the array grades and that the
+index list will store the student.id and the record pointer.  Also,
+the student.id is stored in the array grades.  This can be used both
+for searching and for verification in that the student.id must equal
+grades[R,id].
+
+
+I hope that this short program has shown you that Pascal is very
+flexible.  We used records, enumerated types, data files, memory
+files, pointers, linked lists, strings, booleans, characters,
+external functions, functions, and procedures, etc.  By starting out
+writing pseudo-code in plain English one can almost translate
+directly into the Pascal language.
+If you enjoy short programs (ones we might fit into our news letter)
+please write and let us know what you would like to see and maybe we
+can make this a premanent feature in the newsletter.
+
+
+
+
+Ray Penley
+
+
+PS.  I have sent Charlie version 2 of STUDENT.PAS and it
+incorporates many additional features and more error handling.
+
+
+REFERENCES:
+
+A. Excellent place to start.
+1) Grogono, P., "Programming in Pascal", (Addison-Wesley, Reading,
+MA.)
+
+2) Findlay & Watt, "Pascal. An Introduction to Methodical
+Programming", (Computer Science Press, Potomac, MD.)
+
+B. Where to go next.
+1) Kernighan & Plauger, "Software Tools in Pascal", (Addison-Wesley,
+Reading, MA.)
+
+2) "Practical Pascal Programs", (OSBORNE/McGraw-Hill, Berkley, CA.)
+
+C. HEAVY STUFF (If you can read and understand these then you should
+be writing another "WordStar", or "dBASE-II", or "MultiPlan").
+1) Wirth, N., "Algorithms + Data Structures = Programs",
+(Prentice-Hall, Englewood Cliffs, NJ.)
+
+2) Tenenbaum & Augenstein, "Data Structures Using Pascal",
+(Prentice-Hall, Englewood Cliffs, NJ.)
+Englewood Cliffs, NJ.)
+
+2) Tenenbaum & Augenstein, "Data Structures Using Pascal",
+(Prentice-Hall, Englewood Cli

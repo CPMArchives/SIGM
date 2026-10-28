@@ -1,0 +1,222 @@
+[ICUAP7.DOC]
+[Harold V. McIntosh, 16 April 1984]
+
+The disk ICUAP7 is a continuation of a series of disks bearing the programming
+languages REC and CNVRT, together with explanations and examples. As with most
+languages, the lack of manuals and descriptive materials is always a severe
+impediment to the propagation of the language. We have so far concentrated on
+an explanation of CNVRT, which is written in REC. If a convincing case can be
+made for the utility of CNVRT, interest in REC must follow because CNVRT is
+entirely written in REC.
+
+ICUAP7 contains three HELP files, destined to be used with the ZCPR2 program
+HELP.COM. They are large, occupying all of the "56K" memory which is left over
+after configuring CP/M 2.2 for a 64K Godbout system based on the 8085/8088 CPU
+board. These three files should be taken in conjunction with the HELP file on
+ICUAP6, giving altogether:
+
+		CNVRT.HLP  (ICUAP6) Summary of the language CNVRT
+		CNVPRG.HLP (ICUAP7) Survey of CNVRT programming
+		8080.HLP   (ICUAP7) Characteristics of Intel 8080
+		8080A.HLP  (ICUAP7) Intel 8080 assembler written in CNVRT
+
+Whereas CNVRT.HLP analyzes the syntax of CNVRT and gives a general introduction
+to the language, it could not cover all its features. CNVPRG.HLP continues the
+exposition of CNVRT by showing how to write a series of simple programs which
+have some practical utility. ICUAP contains all of these examples in separate
+files from which they may be compiled and executed. These programs are:
+
+		SAMPLE.CNV	smallest possible CNVRT program
+		VOWEL.CNV	console interaction - recognize vowels
+		COPY.CNV	copy a file
+		SENTEN.CNV	recognize a sentence (?)
+		PYP.CNV		useful PIP look-alike
+		PAK.CNV		old standby - join many files in one
+		UPAK.CNV	and split them apart again
+		BORRA.CNV	erase files subject to confirmation
+		FIND.CNV	CBBS(R)'s FIND written in CNVRT
+		KWIC.CNV	simple but useful KWIC index
+		BINCOM.CNV	compare two binary files - using CNVRT
+
+The first four are pure textbook exercises, but the remainder are useful to
+some degree. PYP offers the option of copying a file plain, in upper case, in
+lower case, eliminating Wordstar markings, or dumping in hexadecimal.
+
+PAK and UPAK were used already in ICUAP5 as examples - they join and disperse
+	many small files.
+
+BORRA, to do something different, allows the user to view the first line of
+	a file before confirming its erasure.
+
+Find is a CNVRT version of the  FYNDE contained in ICUAP1 - it will search a
+	family of files listing occurrences of a keyword. KWIC does the same
+	thing but displaces the line so as to center the keyword.
+
+Finally, BINCOM compares two binary files to see if they are identical, giving
+	a report of the number of bytes compared and the number of discrepancies
+	found.
+
+While the intention of these programs was to serve as examples of CNVRT program
+formulation, there is no reason that they cannot be embellished to individual
+taste and used as utilities.
+
+-
+
+The next step is the presentation of a CNVRT program of a certain complexity,
+namely an assembler for the Intel 8080. In reality, it comprises the subject
+matter of an undergraduate one semester course on assembler construction. It
+is rather large and fairly slow, so it would hardly compete with a commercial
+program such as Digital Research's ASM.COM. It was worked out in two weeks,
+admittedly on the basis of a considerable previous experience with the Intel
+8080 and assemblers of various forms. Nevertheless, given such a background,
+the existence of such an assembler written in CNVRT allows an evaluation of
+CNVRT's style of expressing programs.
+
+There are three programs which need to be considered together, namely:
+
+		8080.CNV	Assemble Intel 8080 code
+		HEXEH.CNV	Generate an Intel HEX file
+		80T86.CNV	Translate ASM code to ASM86 code
+
+As described, the first is an assembler. Slow and bulky, its merit lies in its
+revealing the assembly process in absolutely explicit detail. Should there be
+a desire to add a "LINK" directive, an "INCLUDE" directive, a file bearing the
+symbol table, or whatever, there is a clearly visible place in the program at
+which to add any of these features.
+
+Thye connoisseur of assembly programs will see quite a few shortcomings in
+8080.CNV - for example, formulas as arguments of org's, ds's or equ's are not
+foreseen, quoted ASCII strings may not be arguments of lxi's, there is no shr
+or shl to jockey two-byte arguments around, and so on. If 8080.CNV were to be
+placed in a situation of practical use, the proper extensions to the program
+to accomodate such usage would readily become apparent. After all, we want to
+leave a student something that can be added to the program.
+
+HEXEH.CNV is separate from 8080.CNV for the sake of convenience. The Intel HEX
+file has mostly historical significance, and would be maintained to provide
+compatibility with the widely prevalent CP/M. It is not the only intermediate
+that an assembler could produce; it is a useful exercise not only to produce
+and load a more convenient intermediate, but to contemplate what kind of CNVRT
+program would be appropriate in each case to map between one style of binary
+or hexidecimal file and another - for example between Intel's HEX files and
+Motorola's.
+
+Some insight into CNVRT's capabilities becomes visible in the final member
+of this triad - 80T86.CNV. It was a day's work to rework 8080.CNV so as to
+create the mnemonics and minor alterations in assembler directives needed to
+generate Intel 8086 code from 8080 source code. The 8086, and particularly the
+mnemonics of its operation codes, was deliberately planned to secure a maximum
+degree of compatibility between these two processors; it is not such a simple
+task to pass over to the Western Digital WD16 or the Motorola 68000.
+
+In reality that day's work was finished in the morning, the afternoon having
+been consumed by the discovery of ASM86's tastes in colons not following
+data declarations, the need to access BDOS through an interrupt, and so on.
+
+However, comparison of 80T86.CNV with Sorcim's TRANS86 shows that BOTH are
+bulky and slow (compared to what would be possible in machine language), the
+latter apparently having been written in Pascal! We doubt that TRANS86 was
+written in a single day.
+
+CNVRT as a language is gradually showing the effects of feedback from the
+programs which it is being used to write. The patronal aspects of the language
+have not changed much, but increased skeletal facilities have been foreseen
+since we started the adaptation of CONVERT to strings and microcomputers. One
+direction of increase consists purely of additions to the runtime library of
+skeleton functions written in REC. These comprise arithmetic functions, format
+changes and representation of characters and numbers, and similar additions.
+
+In another direction, CNVRT is susceptible to the incorporation of phrases such
+as IF, DO, FOR, WHILE, and others familiar from other high level languages. The
+meaning of some of these was clear when CONVERT was written, and were contained
+in the LISP version of the language; others bear some scrutiny in the light of
+the experiences with similar constructs in other languages in past years. Some
+of them will no doubt be incorporated into CNVRT as a logical need for them
+arises.
+
+There are four new constructions which ought to be explained - these are LAM,
+IF, WHILE, and patterned reads:
+
+LAM:  It is possible to transiently introduce one or more variables either in
+	patterns or in skeletons, using the form LAM, which is modelled after
+	the lambda which permeates LISP. Writing (LAM,(0 1 2),pattern) makes
+	the variables 0, 1 and 2 available for use in pattern - for example
+	(LAM,(0),<0>x<0>) would match abcxabc, or any string in which the
+	sequence preceding an x also followed it immediately; however the
+	variable <0> would not be available in any other part of the rule.
+
+IF: The skeleton (IF,(0),S,P,ST,SF) means that we are to form the skeleton
+	S. Then, using the variables listed within the parenthesis, if P
+	matches S, we evaluate the skeleton ST, leaving the result in the
+	workspace. If P does not match S, the skeleton SF is used instead.
+
+	Variants on this theme include:
+		(if,S,P,ST,SF) is the same as (IF,(),S,P,ST,SF)
+		(if,S,P,Q) is the same as (IF,(),S,P,Q,<=>)
+		(nf,S,P,ST,SF) is the same as (if,S,P,SF,ST)
+		(nf,S,P,Q) is the same as (if,S,P,<=>,Q)
+
+WHILE: The skeleton (WHILE,(0 1),S,P,Q,R,F), whose equivalent (while,S,P,Q,R,F)
+	binds no local variables, means that we are to form the skeleton S, then
+	parse it with the pattern P. Then: first the skeleton Q is evaluated and
+	left in the workspace. Next, The skeleton R is evaluated and used in
+	place of the skeleton S while the whole process is repeated. Whenever
+	P does not match, the final skeleton F is evaluated and left in the
+	workspace, completing the work of the WHILE.
+
+%R is a function from the runtime library, not a defined skeleton. It admits
+	several options, which allow a careful tailoring of just what is to
+	be placed in the workspace each time a %R is used. In increasing order
+	of complexity:
+		(%R) reads one line, without CRLF, from the default reader.
+		(%R,D:FILE.EXT) reads a line from the specified disk, file.
+		(%R,FILE,pattern) reads text matching pattern from FILE.
+		(LAM,(0),(%R,FILE,<0>(^MJ),<0>)) = (%R,FILE)
+		(%R,FILE,p,skeleton) reads text matching p, delivers s.
+		(%R,FILE,p,st,sf) reads text matching p, delivers st if the
+			text was read, but sf if such text could not be read.
+		There is risk of filling the workspace and jamming the system
+		if the pattern in a patterned read cannot be fulfilled. The
+		scheme is, "read just text for pattern p;" it is not, "read
+		until text matching pattern p comes along."
+
+<=>: This symbol might be read "let it be." In LISP based CONVERT, it was the
+	symbol *SAME* or =SAME=, which it is not convenient to introduce into
+	CNVRT.REC. The reason for the latter is that we would have to save
+	the whole workspace somewhere, once for each recursive level, on the
+	chance that might be used somewhere else. Thus, the insistence: use it
+	it immediately or forget it! <=> is frequently needed in an IF, or in
+	a patterned read, where for one alternative, the workspace is to be
+	left untouched.
+
+As is our custom, ICUAP7 contains the most recent version of CNVRT.REC, whose
+attributes may be discerned from its change log. It would be required for the
+execution of the programs on this disk.
+
+Our experience since beginning to work intensively with CNVRT has been that
+64K of memory is not sufficient for programs at our current level of interest
+and experience. It is not easy to go beyond 64K with the Intel 8080 - at least
+not without some hardware constructs which most people would not find readily
+available. An obvious choice is to pass REC to a processor with more intrinsic
+addressing capability - but the Intel 8086 has segments to be contended with;
+the Motorola 68000 has entirely different operation codes.
+
+As a compromise, Gerardo Cisneros has reworked the code for RECA86 to give
+distinct code segments to REC, the compile area, the pushdown list, and the
+workspace; if each of the components has its own segment, the code is still
+manageable with sixteen bit addressing, and expands REC to a quarter megabyte -
+four times as much space as it has at present. In due course, we will circulate
+the assembly listing for QMREC. In the meantime, ICUAP7 contains a .CMD file
+for the full 256K bytes, together with a H86 file that can be used to tailor
+REC to a system that has less memory - 128K bytes for example. This should be
+sufficient to execute such programs as FILCOM.REC, 8080.REC, or the forthcoming
+unified "C" compiler.
+
+In spite of our previous intentions, the extension beyond 64K has forced us
+to abandon our decision to support REC on the Intel 8086 through Sorcim's
+ACT86. Although Digital Research's ASM86 has many shortcomings from our point
+of view, it is the only widely used assembler available to us which will handle
+segments and allow us to reach more memory.
+
+[end]
+

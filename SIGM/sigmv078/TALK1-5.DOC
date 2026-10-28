@@ -1,0 +1,43 @@
+Documentation file for TALK program, Version 1.5.
+
+TALK is a program which makes use of Z80 support
+chips to microcommunicate with another computer
+system or terminal via a serial data channel.
+
+The TALK.COM file included has been assembled to
+run on a Ferguson BIG BOARD via its Z80 SIO at ports
+05/07 using 300 baud 8 bits/character. The interrupt
+buffers are set to 4096 bytes and the delay option
+included. It should run unmodified on the Bigboard.
+
+Hopefully it will also serve as a good basis for
+use on those computer cards that make extensive
+use of on board Z80 support chips.
+
+The main problem for some to use this program
+may be the unfamiliar TDL/XITAN/PSA Assembler
+used for the source file. In converting to
+another assembler, the mneumonics for any
+special Z80 instructions should be easy. The
+Z80 library supplied with MAC is very close
+to these. The other strange items seen are:
+	= or == can be replaced by EQU
+	.TITLE,.SBBTL,.IDENT etc can
+			dropped.
+	.IF1 or .IF2  condition test for
+			first or second pass.
+	.IFx arg,[true text]..{[false text]}
+			is the format of a
+		conditional. x can be such
+		things as B(blank),E(zero or
+		blank),N (not zero).
+
+	.printx prints out at assembly time.
+	.byte,.word,.blkb can be changed to
+		db,dw and ds respectively.
+	"." means "here" as "$" is used in ASM.
+	.loc is the same as ORG.
+
+			Tony Nicholson  23/7/82
+			Newcastle Microcomputer Club.
+

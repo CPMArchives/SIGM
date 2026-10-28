@@ -1,0 +1,52 @@
+setkey:
+	proc;
+	/* read key file */
+%include 'attrib.dcl';
+%include 'key.dcl';
+	dcl
+		key file,
+		key_v  char(max_chr),
+		rec_no fixed;
+
+	setfmt:
+		format(skip,column(12),a,skip,a);
+
+	on error(7)
+		begin;
+		/* free space exhausted */
+		put edit('Not Enough Memory for Keys','')
+			(r(setfmt));
+		stop;
+		end;
+
+	on undefinedfile(key)
+		begin;
+		put edit('(No Key File)','')
+			(r(setfmt));
+		go to end_set;
+		end;
+
+	on endfile(key)
+		go to end_read;
+
+	key_hdr = null();
+	open file(key) stream;
+		do rec_no = 0 by 1;
+		get file(key) edit(key_v) (a);
+		allocate key_elt set(key_adr);
+		key_val = key_v;
+		key_loc = rec_no;
+		key_lst = key_hdr;
+		key_hdr = key_adr;
+		end;
+	end_read:
+	close file(key);
+	put skip list('List of Keys:');
+		do key_adr = key_hdr repeat(key_lst)
+			while(key_adr ^= null());
+		put edit(key_val,key_loc)
+			(column(4),a(max_chr),f(6));
+		end;
+	end_set:
+	end setkey;
+

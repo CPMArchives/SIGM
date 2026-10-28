@@ -1,0 +1,70 @@
+This disk contains programs which allow you to bootstrap software from one
+machine to another, accross operating systems, even to different computers.
+For example, write a compiler for the TI 99/4 on an IBM-PC.  For that matter,
+vice versa.  The heart of the system is a macro processor called TINCMP.
+
+TINCMP is described in Dr Dobbs in 1981 as the compiler for Bill Gale's
+system language "PIDGIN".  The focus of the article was that PIDGIN was
+restricted enough so that you could compile it with a macro processor like
+TINCMP if you couldn't get TINCMP up - or didn't want to.  I wrote a compiler
+like TINCMP with STAGE-2, used PIDGIN as the source language and managed to
+get TINCMP up.  On my 2MHz it was slow going using TINCMP so, further work got
+pushed onto the stack until I got my 8085/88 system.  I then resurrected TINCMP
+and used it on my 8085 to bootstrap to the 8088 with a new set of macros.
+These new macros are in the file "TINMACR.TIN" - these generate RELOCATABLE
+code suitable for assembly with RASM86.  LINK86 can be used to link the .OBJ
+programs.
+
+Once TINCMP lives you can compile META4.  This is a compiler-compiler which
+accepts a definition of a language as its input and produces as its output
+instructions for itself in the form of an interpretive program which it
+executes to compile the language that you defined.
+
+The August 1981 issue of DDJ describes the internals of META4 under the title
+"Write Your Own Compiler" (July 81 was the PIDGIN article about TINCMP).
+
+Readers desiring a tutorial will not find it but do not lose heart.  By study
+of Bill Gale's article you can understand it.  You can experiment with my 8086
+package.  I included META4 and TINCMP.  Readers with a clear understanding of
+META-4 may add some features and recompile - I gave you the .OBJ modules to
+recompile and assemble:
+To relink META4:
+	LINK86 META,IOPACK,FSCAN,CONSIO
+To relink TINCMP:
+	LINK86 TINCMP86,IOPACK,FSCAN,CONSIO
+To compile with TINCMP:
+	TINCMP86 DEFINITION-FILE,CODE-FILE,INPUT-FILE
+	For example: compile meta4:
+	TINCMP86 TINMACR.TIN,META.A86,METATERP.PGN
+Meta will be compiled into 8086 code in META.A86
+
+The code that TINCMP produces isn't great but you are not going to recognize
+much speed improvement by cleaning it up.  I don't recommend doing much with
+TINCMP - you really only use it to get META4 running then you retire it to a
+rusty disk somewhere.  (It is a long haul getting a good set of macros
+developed and you will curse TINCMP for being slow at that time).
+
+The version of META-4 on this disk (1.2AX) is a slighly optimized version
+produced by removing some redundant code with my friend ED.  ED really does a
+good job at these tasks and he is pretty fast about doing his job.
+
+I do not recommend hand optimizing META-4.  Use it to write a compiler which
+produces optimized code then recompile it.  You can wait because I'm coming
+out with PIDGIN-2 which is able to generate an intermediate file which can
+be passed thru META-4 again to produce an optimized program for any target
+machine - I am doing this for the 8086 and 68000 but you may want to do this
+on another machine (like the TI-99/4).  PIDGIN-2 is much less restrictive than
+PIDGIN.
+
+The programs in this disk can be freely used by any NON-COMMERCIAL user.  Any
+use in government or private industry requires explicit permission in writing.
+All programs on this disk are Copyright (c) Wm A. Gale, 1981, A. L. Bender,
+1981, 1982, 1984.  ALL RIGHTS RESERVED.
+
+A version of the system, including all relevant code for the IBM-PC is also
+available for a charge to cover handling, disks and mailing.  You can contact
+me at Neurological Services, Inc., 336 Center Ave., Westwood, NJ 07675 USA
+If you write to ask questions please enclose a self addressed, stamped
+envelope.  Do not call, it is easier to write and if necessary I will call you.
+
+

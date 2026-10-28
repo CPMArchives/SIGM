@@ -1,0 +1,171 @@
+
+{ [POST.REC]
+[Compile a set of Post productions into a REC program]
+[Harold V. McIntosh, 7 December 1980]
+[Harold V. McIntosh, 22 February 1981]
+[Harold V. McIntosh, 28 December 1983]
+
+
+[Post productions strongly resemble the proofs that have traditionally
+ characterized high school courses in Euclidean geometry.  Some initial
+ premise - an axiom - is to be transformed by a chain of substitutions
+ into a conclusion - a theorem.  A distinguishing feature of Post's rules
+ of transformation is that the text, or phrases to be manipulated, are
+ not spelled out explicitly.  Rather, they are defined by their context,
+ meaning, by the phrases immediately preceding or following them.]
+
+[Post's ideas are to be found in a couple of journal articles.  A really
+ excellent presentation of his work occupies a great part of Minsky's
+ book, derived from his own lecture notes at MIT:
+
+		Marvin Minsky
+		Finite and Infinite Machines
+		Prentice-Hall Inc.
+		Englewood Cliffs, New Jersey
+		(C) 1967.]
+
+[It is possible to define a system, which does not strictly follow
+ Post's original plan, but which is nevertheless algorithmic and which
+ illustrates many of the ideas and captures much of the spirit behind
+ his formalization of computation.  Such a program was a precursor to
+ CONVERT.  Yet a different approach to a computational scheme led A. A.
+ Markov to his algorithms, which constitute another technique upon which
+ a theory of computation may be based.]
+
+[30$ - input FCB]
+[31$ - output FCB]
+
+[display w/cursor]		(248%I26%TLJZqt248%FD;;) D
+
+[erase cursors]			(J(248%FD:JZ;);) E
+
+[zero file control block]	($m33cmpw0%(f:;)wnnS;) F
+
+[create input, output FCB's]	('5C'H12wA' 'Ew;B
+  [generate file name]		 9aQpG'REC'|m (Z3b' 'E'PST';Q;)|m w
+  [open input file]		 n30$rS 30@f
+  [open output file]		 n31$rS 31@g31@e
+				;) G
+
+[close file]			(
+  [clear wkspace, inp file]	 '.'TL@p:L@y:(@p:0=;e26%(f:;)@p;;)
+  [close fil.REC]		 31$r16k
+				 ;) H
+
+[initialize]			(J@Wj@!;@!;) I
+
+[read, with rubout]		(R26%='';T127%(=)(@J|;L@J;);) J
+
+[WS up to cursor to disk]	(jJ<(@p:L;)Zz>;) P
+
+[compile a POST file]		(Jj
+  [change file extension]	  ('.PST]'FD'.REC]'Iz;;)
+  [find display message]	  ('[['F']]'UQD;'';)
+  [look for code gap]		  ('('Fj;2573Ez2573Ez2573Ez2573Ej2bD;A:;)
+  [insert preface; to disk]	  's'TL@s<'[[]]'FDIZ>@uz@P
+  [compile each function]	  ('t'TL@tz@P'('Fj:;)
+  [insert postscript]		  'u'TL@vz@P
+				;) Q
+
+[read, place in workspace]	(@$@::;) R
+
+[15-line window]		(AB(10%EA:;)qL
+				  15(d(10%FA;L(26%Fj;Z;)):;)Y<;<) W
+
+[parse antecedent]		(j39%I'<'(F;ZD)D39%I'E'I
+				 '>'UQD'>'ED ('<'U;Z;)Qj
+				 (''='@Z';39%II39%I'@U';)II
+				 '$S('I z(@a 'nL;nL)'I;z;);
+				 >','FD')'U<@b';)'I) a
+
+[parse consequent]		(Jj2573I09%I'JZD'I39%I ('<'FD39%I'I'I
+				'>'FD'$ryGI'I39%I:;)Zz39%I'I'I
+				;) b
+
+[open file or create it]	(@h$r15K(255=22K;;)LL;) e
+
+[open file or report absence]	(@h$r15K(255='new file 'T;;)LL;) f
+
+[delete file if present]	(@h$r19k;) g
+
+[CP/M's DMA address]		('80'H26k;) h
+
+[write one record]		(@Ej((26%EZD0;128(a);))qL26k31$r21kD'.'TL;) p
+
+[Post subroutines]		("{
+    [cr, lf]			(2573TL;)&
+    [read console]		(R13%='';T08%(=2080[sp,bs]TL)(@J|;L@J;);)J
+    [logon message]		('[[]]'TL@&'Initial Axiom:'TL@&@JI;:)R
+    [to shorten program]	(UQzml;)U
+    [write workspace]		(JZqt;)W
+    [to shorten program]	(zZQml;)Z
+    [signoff message]		(@&'Theorem:'TL@&JZqt;)X
+				"I;) s
+
+[Post production]		('('FD'JZ'I','U<@a>z')'FD'nL:'I;;) t
+
+[Post preface-stand alone]	('(@R(@&@WRL'I2573I;) u
+
+[Post postscript-s.a.]		(';)@X;)}'I;) v
+
+[Post preface-subroutine]	('(@&JZqt'I;) w
+
+[Post postscript-subr]		(';)=;'I;) x
+
+[append a record]		(128(e)L;qL26k30$r20K0=L@h;DLL@h) y
+
+[back to line feed]		(10%Ez;B:j;) 0
+
+[bracket a line]		(@010%V;Z;) 1
+
+[back to preceding line]	(@0BB@0;;i) 2
+
+[cr,lf]				(2573TL;i) &
+
+[read w/error correction]	(RT95%=127%;13%=2573;26%(=);) $
+
+[clear screen]			(12%TL;) !
+
+[erase on ro, insert others]	(127%=z(B;;)D;I;) :
+
+[form next window]		(Zz>@W@!;) >
+
+[cancel line]			(24%TL;) ^
+
+(	'd' [delete] =		(ABD;;);
+	'i' [insert] =		(@D@$@::;)@!;
+	'j' [beginning] =	Jj;
+	'x' [exchange] =	(ABD;;)RTI;
+	'z' [to end] =		Z;
+	127%[delete] =		@1D@!;
+	124%[ver bar: next] =	(10%FA;J>(10%FA;;)@Wz@!;;);
+	13% [carr ret] =	@0;
+	96% [prime: up line] =	(BA@2;J>@2@Wj@!;;);
+	95% [undrscore: back] =	(Bj;;);
+	'n' [next record] =	>(@p;L;)(@y;;)J(@W;;);
+	'p' [write 1 record] =	>(@p;L;)J(@W;;);
+	'y' [read 1 record] =	>(@y;'eof:'TL;)J(@W;;);
+	' ' [advance] =		(A;;);
+	'>' [next window] =	(@>j;>@I;);
+	'<' [beg window] =	>@I;
+	'.' [refresh screen] =	@!;
+	's'			= @s;
+	't'			= @t;
+	'u'			= @u;
+	'v'			= @v;
+	'U'			= @w;
+	'V'			= @x;
+	) ?
+
+[main program]			(
+    [open FCB's, open files] 	30@F 31@F @G
+    [sign-on]			 'post.rec> 'TL
+    [automatic compilation]	 ('5C'H12wAqt@&3b' 'E(w(@y:;)@Q@H;);w);
+    [wait, initialize, loop]	 RTL @I (@DR
+	[exit at once]		     ';'=@!;
+	[close, exit]		     'e'=>@H;
+	[read menu]		     @?:
+	[ignore unknown]	     L:);)}
+
+[end]
+

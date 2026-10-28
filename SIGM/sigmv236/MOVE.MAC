@@ -1,0 +1,148 @@
+        title 'bank & move module for CP/M3 linked BIOS'
+                                ; use M80 to assemble
+
+true    equ -1
+false   equ 0
+
+banked  equ true                ; banked version
+        .z80
+
+        entry ?move,?xmove,?bank
+                if banked
+        entry ?bank0,?rbank,?trans,@xsp,@xmvst
+        external @cbnk
+                endif
+
+        cseg
+
+
+?move:
+                if banked
+        ld a,(@xmvst)           ; get xmove status
+        and a                   ; set flags
+                endif
+        ex de,hl                ; we are passed source in DE and dest in HL
+                if banked
+        jr nz,ibnk              ; interbank transfer
+                endif
+        ldir                    ; use Z80 block move instruction
+        ex de,hl                ; need next addresses in same regs
+        ret
+
+                if banked
+ibnk:                           ; interbank transfer
+        xor a                   ; clear a
+        ld (@xmvst),a           ; reset xmove status
+        ld (@xsp),sp            ; switch stack
+        ld sp,@xsp
+        ld a,(xmvsou)           ; source bank
+        call ?bank              ; set bank
+        push de                 ; keep destination
+        push bc                 ; keep length
+        ld de,ibuff             ; buffer in common memory
+        ldir                    ; copy to buffer
+        ld a,(xmvdes)           ; destination bank
+        call ?bank              ; set bank
+        pop bc                  ; get length
+        ex (sp),hl              ; dest in hl, end of source in stack
+        ex de,hl                ; destination in de
+        ld hl,ibuff             ; buffer in common memory
+        ldir                    ; copy from buffer
+        ex de,hl                ; end of destination in hl
+        pop de                  ; end of source in de
+        ld a,(@cbnk)            ; bank we started with
+        call ?bank              ; restore bank
+        ld sp,(@xsp)            ; restore stack
+        ret
+
+?bank:
+        out (0feh),a            ; switch board
+        and a                   ; to get flags
+        ld a,0                  ; clear a
+        jr nz,zero              ; disk contr on for bank zero
+        inc a                   ; set a to 1
+zero:   out (40h),a             ; switch disk controller
+        ret
+
+?bank0:                         ; get bank 0
+        pop hl                  ; get return address
+        ld (@xsp),sp            ; store stack pointer
+        ld sp,@xsp              ; use temporary stack in common memory
+        push af
+        xor a                   ; a=0
+        call ?bank              ; set bank
+        pop af
+        jp (hl)                 ; return
+
+?rbank:                         ; restore bank
+        pop hl                  ; get return address
+        push af
+        ld a,(@cbnk)            ; get last bank
+        call ?bank              ; set bank
+        pop af
+        ld sp,(@xsp)            ; restore stack pointer
+        jp (hl)                 ; return
+
+?trans:                         ; transfer a series of 128 byte blocks
+                                ;   from one bank to another
+                                ; a = number of blocks
+                                ; b = destination bank
+                                ; c = source bank
+                                ; de = source initial location
+                                ; hl = destination initial location
+        and a                   ; check a non-zero
+        ret z
+        ex de,hl                ; source in hl, destination in de
+        ld (xtrsou),bc          ; remember bc
+        ld (@xsp),sp            ; set up stack in common memory
+        ld sp,@xsp
+        ld b,a                  ; number of blocks
+tloop:  push bc                 ; keep block count
+        ld a,(xtrsou)           ; source bank
+        call ?bank
+        push de                 ; destination on stack
+        ld de,ibuff             ; 128 byte buffer
+        ld bc,128
+        ldir                    ; copy to common memory
+        ld a,(xtrdes)           ; destination bank
+        call ?bank
+        ex (sp),hl              ; source on stack, destination in hl
+        ex de,hl                ; destination in de
+        ld hl,ibuff             ; 128 byte buffer
+        ld bc,128
+        ldir                    ; copy from common memory
+        pop hl                  ; source on hl
+        pop bc                  ; get back block count
+        djnz tloop              ; loop
+        ex de,hl                ; to conform to DR's convention
+        ld a,(@cbnk)            ; restore bank
+        call ?bank
+        ld sp,(@xsp)            ; restore stack
+        ret
+
+        ds 16                   ; temporary stack
+@xsp:   ds 2                    ; temporary storage for sp
+
+xmvsou: ds 1                    ; source bank
+xmvdes: ds 1                    ; destination bank
+@xmvst: db 0                    ; xmove status (0ffh for interbank mv)
+xtrsou: ds 1                    ; source bank used by transfer
+xtrdes: ds 1                    ; destination bank used by transfer
+ibuff:  ds 128                  ; buffer for interbank move
+
+        dseg
+
+?xmove:                         ; setup interbank move
+        ld (xmvsou),bc          ; load source & destination banks
+        ld a,0ffh
+        ld (@xmvst),a           ; xmove status
+        ret
+
+                else
+?bank:                          ; dummy routines for unbanked system
+?xmove: ret
+                endif 
+        end
+, destination in de
+        ld (xtrsou),bc          ; remember bc
+        l

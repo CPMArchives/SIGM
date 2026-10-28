@@ -1,0 +1,522 @@
+;******************************************************************************
+;				SETBOOT v. 1.0
+;				--------------
+;
+;	This program is used to patch the disk resident autostart command in
+; single and double density Osborne 1 computers.  This program will prompt the
+; user for the disk drive on which the command is to be placed, the command
+; string, and the conditions under which the command should be used.  SETBOOT
+; is as general as I can make it, and is only limited by the capabilities of
+; the Osborne BIOS.
+;
+; Author: Noel J. Bergman
+;
+; (c) Copyright 1983, Noel J. Bergman
+; ALL RIGHTS RESERVED
+;
+; This program may be freely distributed for personal use only.  Any use of
+; of this program for commercial purposes requires prior written approval
+; from the author.  Commercial purposes shall include distribution by any
+; organization affiliated with Lifeboat Associates.  The address to write to
+; for approval is:
+;			Noel J. Bergman
+;			8329 High School Road
+;			Elkins Park, PA 19117
+;------------------------------------------------------------------------------
+;				Modification Log
+;				------------ ---
+;
+; 04/01/83 - Original version.  Uses DPB to determine whether disk is single
+;	     or double density.  Track, sector and sector offset locations are
+;	     hardcoded. BIOS versions 1.4x are known to work.
+;******************************************************************************
+
+;*-	Autostart Information Equates
+
+SCODE	EQU	5		; SINGLE DENSITY disk type code
+STRK	EQU	2		; SINGLE DENSITY track location
+SSEC	EQU	3		; SINGLE DENSITY sector location
+SOFF	EQU	1Ch		; SINGLE DENSITY byte offset
+SMAX	EQU	7		; SINGLE DENSITY maximum command length
+
+DCODE	EQU	0Ch		; DOUBLE DENSITY disk type code
+DTRK	EQU	1		; DOUBLE DENSITY track location
+DSEC	EQU	5		; DOUBLE DENSITY sector location
+DOFF	EQU	1Ch		; DOUBLE DENSITY byte offset
+DMAX	EQU	7		; DOUBLE DENSITY maximum command length
+
+;*-	CP/M 2.2 BDOS and BIOS Entry Point Equates
+
+BDOS	EQU	0005h		; BDOS entry point
+COS	EQU	09h		; BDOS Console Output String
+CIL	EQU	0Ah		; BDOS Console Input Line
+RSTDRV	EQU	25h		; BDOS Reset Selected Drive(s)
+SELDRV	EQU	0Eh		; BDOS Select Drive
+DSKPRM	EQU	1Fh		; BDOS Get Disk Parameters
+
+BIOSE	EQU	0001h		; BIOS pointer to jump table
+SELDSK	EQU	18h		; BIOS Select disk (to get XLAT table address)
+SETTRK	EQU	1Bh		; BIOS Set Track
+SETSEC	EQU	1Eh		; BIOS Set Sector
+SETDMA	EQU	21h		; BIOS Set DMA
+READ	EQU	24h		; BIOS Read Sector
+WRITE	EQU	27h		; BIOS Write Sector
+SECTRN	EQU	2Dh		; BIOS Sector Translation
+
+;*-	BIOS related utility macro
+
+BIOS	MACRO	FUNCTION	; Macro to make BIOS service calls.
+	LOCAL	Lx		; Force assembler to generate unique labeling.
+	LD  	HL,(BIOSE)	; HL ::= address of BIOS warm boot entry. 
+
+	IF	FUNCTION EQ SECTRN
+	PUSH	DE		; DE contains pointer to XLAT table for SECTRN
+	ENDIF
+
+	LD	DE,FUNCTION	; DE ::= offset from BIOS warm boot to desired
+				; entry point.
+	ADD	HL,DE		; HL ::= address of desired BIOS entry point.
+
+	IF	FUNCTION EQ SECTRN
+	POP	DE		; Restore pointer to XLAT table
+	ENDIF
+
+	LD	(Lx+1),HL	; fill in the address field of the BIOS call.
+Lx:	CALL	0000h		; the relocatable call instruction.
+	ENDM
+
+;*-	Miscellaneous Equates
+
+CR	EQU	0Dh		; Carriage Return
+LF	EQU	0Ah		; Line Feed
+
+;******************************************************************************
+;	Print a welcome message.
+;
+	.Z80
+	ASEG
+	ORG	100h
+
+START:	LD	(STACK),SP	; STACK ::= Old SP
+	LD	SP,STACK	; SP ==> STACK
+
+	CALL	QUERY1		; Print startup message
+	DÂ  	CR,LF,'SETBOOÔ [1.0NjB¬ Lasô Modifieä 4/01/83]'
+	DB	CR,LF
+	DB	CR,LF,'Thió versioî oæ SETBOOÔ wilì worë witè botè singlå'
+	DB	CR,LF,'anä doublå densitù Osbornå disks®   Remembeò  thaô'
+	DB	CR,LF,'iæ  yoõ wanô tï modifù á doublå densitù disk¬  yoõ'
+	DB	CR,LF,'musô  bå usinç á doublå densitù machine¬  anä  yoõ'
+	DB	CR,LF,'musô  havå  "booted¢ thå computeò  witè  á  doublå'
+	DB	CR,LF,'densitù disë iî drivå A®  Makå surå thaô eacè disë'
+	DB	CR,LF,'tï  bå modifieä haó á copù oæ CP/Í witè BIOÓ 1.4x®'
+	DB	CR,LF,'Thå  prograí wilì prompô yoõ foò eacè  actioî  yoõ'
+	DB	CR,LF,'musô  perforí  anä eacè questioî yoõ musô  answer®'
+	DB	CR,LF,'Everù attempô haó beeî madå tï makå thió operatioî'
+	DB	CR,LF,'painless¬ sï remembeò thå keù tï computing:'
+	DB	CR,LF
+	DB	CR,LF,'	NO MATTER WHAT GOES WRONG, DON''T PANIC.'
+	DB	CR,LF
+	DB	CR,LF
+	DB	CR,LF
+	DB	CR,LF
+	DB	CR,LF
+	DB	CR,LF
+	DB	CR,LF
+	DB	CR,LF,'Hit any key when ready to continue:','$'
+
+;******************************************************************************
+;	This is the beginning of the main program loop.  Here we tell him to
+; put the disk that he wants to setup into drive B, and then we wait for him
+; to do so.
+;	After he has placed the disk into drive B, we must check to see
+; whether we are dealing with single or double demsity by checking the sector
+; size in the DPB.  Once that is known, the location information for that type
+; of disk is setup, and the correct sector is read into the buffer.
+;
+DODISK:	CALL	QUERY1		; Prompt user for disk change.
+	DB	CR,LF
+	DB	CR,LF,'Pleaså placå thå disë tï bå modifieä iî drivå  B§ 
+	DÂ 	CR,LF,'anä then presó any key.','$'
+
+;*- issue a drive reset so that BDOS will login new disk.
+ 
+	LD	DE,0002h	; DE ::= drive map (only B is set)
+	LD	C,RSTDRV	; C  ::= BDOS code for reset selected drive(s)
+	CALL	BDOS
+
+;*- select the B: drive
+ 
+	LD	E,01h		; E  ::= drive code for B:
+	LD	C,SELDRV	; C  ::= BDOS code for select drive
+	CALL	BDOS
+
+;*- let's take a look at the dpb and see what density disk it defines
+
+	LD	C,DSKPRM	; C  ::= BDOS code for Get Disk Parameters
+	CALL	BDOS		; HL ==> DPB for B:
+	DEC	HL		; HL ==> Osborne code for this disk type
+	LD	A,(HL)		; A  ::= disk type
+
+	CP	SCODE		; Is it a single density disk?
+	JP	NZ,DCHK		; No, see if it is double density
+
+;*- fall through to setup for a single density disk.
+
+	LD	HL,STBL		; HL ==> single density information table
+	LD	BC,DTBL-STBL	; BC ::= number of bytes to copy
+	LD	DE,TRACK	; DE ==> information table for this disk
+	LDIR			; Copy the table
+	JP	READIT		; get the sector with the autostart command
+
+;*- see if it is double density.
+
+DCHK:	CP	DCODE		; Is it a double density disk?
+	JP	NZ,BADDSK	; No, it is neither single nor double
+
+;*- fall through to setup for a double density disk.
+
+	LD	HL,DTBL		; HL ==> double density information table
+	LD	BC,TRACK-DTBL	; BC ::= number of bytes to copy
+	LD	DE,TRACK	; DE ==> information table for this disk
+	LDIR			; Copy the table
+	JP	READIT		; get the sector with the autostart command
+
+;*- tell the jerk that the disk is no good.
+
+BADDSK:	CALL	ILPRT
+	DB	CR,LF
+	DB	CR,LF,'Thió ió noô  aî Osbornå Singlå oò  Doublå  densitù'
+	DB	CR,LF,'disk.  You are welcome to try again,  but you must'
+	DB	CR,LF,'use only Osborne format disks.','$'
+	JP	DONE
+
+;******************************************************************************
+;	Having figured out what type of disk we are dealing with, and having
+; setup a table of information about it, it is now time to read the sector
+; containing the autoboot information.  If the length of the autoboot command
+; is an E5h, we assume that this disk does not have a copy of CP/M on it.
+;
+READIT:	LD	BC,(TRACK)	; BC  ::= track number
+	BIOS	SETTRK		; Call BIOS to set the track
+
+	LD	C,1		; C  ::= code for drive B:
+	BIOS	SELDSK		; Select disk via BIOS so we can find XLAT
+	LD	E,(HL)		; E  ::= byte offset of XLAT table
+	INC	HL		; HL ==> page address of XLAT table
+	LD	D,(HL)		; DE ==> XLAT table
+
+	LD	BC,(SECTOR)	; C  ::= sector number
+
+	LD	A,D		; A  ::= page address of XLAT table
+	OR	E		; A  = 0 if no XLAT table used
+	JP	Z,NXLAT		; so skip the translation
+
+	BIOS	SECTRN		; Call BIOS to get physical sector number
+	LD	B,H
+	LD	C,L		; BC ::= physical sector number
+
+NXLAT:	BIOS	SETSEC		; Call BIOS to set the sector number
+	LD	BC,SECBUF	; BC ==> sector storage area
+	BIOS	SETDMA		; Tell BIOS where to load sector
+
+	BIOS	READ		; Call BIOS to read the sector
+	OR	A		; ((A = 0) ==> good read)
+	CALL	NZ,SYSERR	; no, so abort.
+
+	LD	A,(SECBUF+SOFF+1)	; A ::= byte to be tested
+	CP	0E5h		; Length = format code?
+	JP	NZ,FOUND	; No, there is an autostart command
+
+	CALL	ILPRT		; Tell him that there must be CP/M on the disk
+	DB	CR,LF
+	DB	CR,LF,'Thå disë yoõ havå selecteä doeó noô havå á copù oæ'
+	DB	CR,LF,'CP/Í oî it®   Iæ yoõ wisè tï instalì aî  autostarô'
+	DB	CR,LF,'commanä  oî  thå disk¬  yoõ musô firsô follo÷  thå'
+	DB	CR,LF,'directionó  iî thå Osbornå manuaì foò  placinç  aî'
+	DB	CR,LF,'operatinç systeí oî thå disk®','$'
+
+	JP	DONE		; and prepare to exit.
+
+;******************************************************************************
+;	At this point SECBUF contains a valid autostart sector.  We check to
+; see if there is an autostart command installed, and if there is we tell him
+; what it is and when it is executed.
+; 
+FOUND:	LD	A,(SECBUF+SOFF)	; A  ::= autostart conditions
+	CP	0		; (A =0) ==> ignore autostart
+	JP	NZ,SAUTO	; No, there is an autostart command installed
+
+	CALL	ILPRT		; Show the user that there is no autostart
+	DB	CR,LF
+	DB	CR,LF,'There is no autostart command on this disk.','$'
+
+	JP	CHANGE		; See if he wants to change things.
+
+;*-	There is an autostart command so show it to him
+
+SAUTO:	LD	A,' '		; Prepare to clear space for name of command
+	LD	(ANAME),A	; Clear first byte
+	LD	HL,ANAME	; Copy from first byte
+	LD	DE,ANAME+1	; to rest of command via propogation of spaces
+	LD	BC,ENAME-ANAME-1; Number of spaces to clear
+	LDIR
+
+	LD	HL,SECBUF+SOFF+2; HL ==> autostart command
+	LD	DE,ANAME	; DE ==> place in message for name of command
+	LD	BC,(SECBUF+SOFF+1)	; BC ::= length of autostart command
+	LD	B,0		; Length is only one byte
+	LDIR			; Put the command into the message
+
+	CALL	ILPRT		; Show user the current autostart command
+	DB	CR,LF
+	DB	CR,LF,'Thå currenô autostarô commanä isº  "'
+ANAME:	DB	'       '	; Space for name of command
+ENAME:	DB	'"®  Thå'
+	DB	CR,LF,'autostart conditions are:'
+	DB	CR,LF,'$'
+
+;*-	See it it runs at cold boot time (condtion code <> 2)
+
+	LD	A,(SECBUF+SOFF)	; A  ::= autostart conditions
+	CP	2		; (A <> 2) ==> autostart at cold boot
+	JP	Z,SWARM		; Skip this message  
+
+	CALL	ILPRT		; Show cold boot condition
+	DB	CR,LF,'	* Perform command upon cold boot','$'
+
+;*- 	See if it runs at warm boot time (condition code <> 1)
+ 
+SWARM:	LD	A,(SECBUF+SOFF)	; A  ::= autostart conditions
+	CP	1		; (A <> 1) ==> autostart at warm boot
+	JP	Z,CHANGE	; Skip this message
+
+	CALL	ILPRT		; Show warm boot condition
+	DB	CR,LF,'	* Perform command upon warm boot','$'
+
+;******************************************************************************
+;	Now we want to find out what changes he wants to make.
+; 
+CHANGE:	CALL	QUERY1		; See if he wishes to change the situation
+	DB	CR,LF
+	DÂ 	CR,LF,'Dï yoõ wisè tï changå thió setup¿ (Y/N):','$'
+
+	LD	A,(CIBUF+2)	; A  ::= user response
+	AND	5Fh		; capitalize the response
+	CP	'Y'
+	JP	Z,CHANG2	; Yes, let's change it. 
+	CP	'N'
+	JP	Z,DONE		; No, leave it is it is now.
+	JP	CHANGE		; Accept only yes or no responses
+
+;*-	Maybe he wants to remove the autostart command entirely
+
+CHANG2:	CALL	QUERY1		; See if he wants to remove the autostart
+	DB	CR,LF
+	DB	CR,LF,'Do you want this disk to autostart? (Y/N):','$'
+
+	LD	A,(CIBUF+2)	; A  ::= user response
+	AND	5Fh		; capitalize the response
+	CP	'Y'
+	JP	Z,GETA		; Yes, some get the command
+	CP	'N'
+	JP	NZ,CHANG2	; Accept only yes or no responses
+	XOR	A		; clear A
+	LD	(SECBUF+SOFF),A	; Disable autostart
+	LD	BC,1		; Force BIOS to perfrom immdediate write
+	BIOS	WRITE		; Write the sector to disk
+	OR	A		; Check for write errors
+	CALL	NZ,SYSERR	; oh, shit -- print error message
+	JP	DONE		; and prepare to terminate
+
+GETA:	CALL	QUERY7		; Get the new autostart command
+	DB	CR,LF
+	DB	CR,LF,'Pleaså enteò thå ne÷ autostarô command® Therå ió á'
+	DB	CR,LF,'limiô oæ no more than seveî (7© characters:','$'
+
+	LD	HL,CIBUF+1	; HL ==> length of new command and command
+	LD	BC,(CIBUF+1)	; BC ::= length of new command
+	LD	B,0		; Length is only one byte
+	INC	BC		; Update Byte Count to include command length
+	LD	DE,SECBUF+SOFF+1; DE ==> disk resident autostart command buffer
+	LDIR			; move it
+
+GETC:	CALL	QUERY1		; Get the new autostart conditions
+	DB	CR,LF
+	DB	CR,LF,'Undeò whaô conditionó ió thió autostarô commanä tï'
+	DB	CR,LF,'bå executed¿ Pleaså makå youò selectioî bù chosinç'
+	DB	CR,LF,'the number next to your choice.'
+	DB	CR,LF
+	DB	CR,LF,'	1. Perform command upon cold boot'
+	DB	CR,LF,'	2. Perform command upon warm boot'
+	DB	CR,LF,'	3® Perforí commanä upoî eitheò warí booô'
+	DB	CR,LF,'	   or cold boot.'
+	DB	CR,LF
+	DB	CR,LF,'Selection? (1,2 or 3):','$'
+
+	LD	A,(CIBUF+2)	; A  ::= user response
+	SUB	'1'		; A  ::= A - ord('1'), valid A in 0..2
+	JP	C,GETC		; (A < '1') ==> bad response
+	SUB	3		; A  ::= A - 3, valid A in -3..-1
+	JP	NC,GETC		; (A > '3') ==> bad response
+	ADD	A,4		; bring A back to 1..3
+	LD	(SECBUF+SOFF),A	; install new condition code
+	LD	BC,1		; Force BIOS to perfrom immdediate write
+	BIOS	WRITE		; Write the sector to disk
+	OR	A		; Check for write errors
+	CALL	NZ,SYSERR	; oh, shit -- print error message
+
+DONE:	CALL	QUERY1		; See if he wants to do any more disks.
+	DB	CR,LF
+	DB	CR,LF,'Do you want to do any more disks now? (Y/N):','$'
+	LD	A,(CIBUF+2)	; A  ::= user response
+	AND	5Fh		; capitalize the response
+	CP	'Y'
+	JP	Z,DODISK	; do another disk
+	CP	'N'
+	JP	NZ,DONE		; accept only yes or no response
+	JP	EXIT
+
+;******************************************************************************
+;	This routine assumes that the top of the stack is a pointer to a string
+; to be displayed via the BDOS console output string function.  The catch is
+; that the caller wants this routine to return to the address immediately
+; following the message.  This function provides us with an in-line print
+; facility.
+;
+ILPRTº	POÐ	HÌ		» HÌ ==¾ string
+	PUSH	HL		; TOS ==> string
+	LD	A,'$'		; A  ::= end marker
+	LD	BC,2048 	; Allow maximum string length of 2k (safety)
+	CPIR			; Search for '$' end marker
+	CALL	NZ,SYSERR	; SYSTEM ERROR - we didn't find an end marker
+	POP	DE		; DE ==> string
+	PUSH	HL		; TOS ::= caller's return address
+	LD	C,COS		; C  ::= BDOS code for Console Output String
+	CALL	BDOS		; Output the string
+	RET			; Return to caller
+
+;******************************************************************************
+;	These two routines are used to prompt the user for some input, and
+; to read in the user's response.  Both routines use the BDOS Console Input
+; Line (CIL) function to get their input, and so they are compatible with
+; the SUBMIT facility.  They only differ in the number of characters that
+; the BDOS will accept before returning to the program.
+;
+QUERY1:	LD	A,1
+	LD	(CIBUF),A	; Set maximum length of console input to 1
+	JP	QUERY
+
+QUERY7:	LD	A,7
+	LD	(CIBUF),A	; Set maximum length of console input to 7
+
+QUERY:	POÐ	HÌ		» HÌ ==¾ string
+	PUSH	HL		; TOS ==> string
+	LD	A,'$'		; A  ::= end marker
+	LD	BC,2048 	; Allow maximum string length of 2k (safety)
+	CPIR			; Search for '$' end marker
+	CALL	NZ,SYSERR	; SYSTEM ERROR - we didn't find an end marker
+	POP	DE		; DE ==> string
+	PUSH	HL		; TOS ::= caller's return address
+	LD	C,COS		; C  ::= BDOS code for Console Output String
+	CALL	BDOS		; Output the string
+	LD	C,CIL		; C  ::= BDOS code for Console Input Line
+	LD	DE,CIBUF	; DE ==> console input buffer
+	CALL	BDOS		; Get user input 
+
+	RET
+
+;******************************************************************************
+;	These two routines, SYSERR and EXIT, get control when it is time to
+; return to CP/M.  SYSERR is the error exit routine and EXIT is the normal
+; exit routine.  The difference is that SYSERR prints an error message before
+; terminating.
+;
+SYSERR:	POP	HL		; HL ==> instruction following CALL SYSERR
+	LD	DE,-3		; CALL instruction is 3 bytes long
+	ADD	HL,DE		; HL ==> CALL SYSERR instruction
+	LD	DE,ERRADR	; DE ==> place to put printable hex number
+	LD	C,H		; C  ::= page address of call instruction
+	CALL	PUTHEX		; Put 2 hex digits at (DE) and (DE+1)
+	LD	C,L		; C  ::= page offset of call instruction
+	CALL	PUTHEX		; Put 2 hex digits at (DE) and (DE+1)
+
+	CALL	ILPRT		; Print error message
+	DB	CR,LF
+	DB	CR,LF,'%ERROR - SYSERR called from '
+ERRADR:	DB	'0000'
+	DB	'h.   Please record'
+	DB	CR,LF,'this information  and give  it to  the appropriate'
+	DB	CR,LF,'person(s).  If you cannot get help from some other'
+	DB	CR,LF,'source, you may obtain it by writing (NOT calling)'
+	DB	CR,LF,'to the address below:'
+	DB	CR,LF
+	DB	CR,LF,'	Noel J. Bergman'
+	DB	CR,LF,'	8329 High School Road'
+	DB	CR,LF,'	Elkins Park, PA 19117'
+	DB	CR,LF
+	DB	CR,LF,'Be sure to include  the SETBOOT version number and'
+	DB	CR,LF,'last date modified,  the address SYSERR was called'
+	DB	CR,LF,'from,  the BIOS and ROM revision  numbers of  your'
+	DB	CR,LF,'Osborne, the density of the disks you were working'
+	DB	CR,LF,'with in both  drives,  and a  transcription of the'
+	DB	CR,LF,'entire dialog between you and SETBOOT. Please note'
+	DB	CR,LF,'that this error does not necessarily mean that you'
+	DB	CR,LF,'have a problem with your computer.   If you do not'
+	DB	CR,LF,'have other  problems with  your Osborne,  you need'
+	DB	CR,LF,'not be overly concered about this error.','$'
+
+	JP	EXIT
+
+;*- these are two utility routines for Binary to Hex conversion
+
+PUTHEX:	LD	A,C		; A  ::= byte to be converted
+	RRA
+	RRA
+	RRA
+	RRA
+	CALL	PUT1		; do high order character
+	LD	A,C		; and low order character
+
+PUT1:	AND	0Fh		; drop top nibble
+	ADD	A,90h
+	DAA
+	ADC	A,40h
+	DAA
+	LD	(DE),A		; put printable digit in string
+	INC	DE		; point to next position
+	RET
+
+;*- Restore CP/M's stack and return to CP/M
+
+EXIT:	LD	SP,(STACK)	; Restore CP/M's stack
+	RET			; and return from whence we came
+
+;******************************************************************************
+;			Data Storage Areas
+;
+; The general format of the sector we are dealing with is:
+;
+;	0_____1B_1C_1D_1E_____24_25________80_
+;	|	| A| B|	   C	|	     |
+;	--------------------------------------
+;
+;	A == Autostart conditions
+;	B == Length of autostart command
+;	C == Autostart command
+
+SECBUF:	DS	128		; Storage for the sector
+CIBUF:	DS	9		; Console Input BUFfer
+	DS	128		; Local stack space
+STACK:	DS	2		; + space for CP/M's stack pointer
+
+;*-	Location Information 
+
+STBL:	DW	STRK,SSEC,SOFF	; SINGLE DENSITY information table
+DTBL:	DW	DTRK,DSEC,DOFF	; DOUBLE DENSITY information table
+
+TRACK:	DS	2		; storage for track number to be used
+SECTOR:	DS	2		; storage for sector number to be used
+OFFSET:	DS	2		; storage for offset to be used
+	END
+

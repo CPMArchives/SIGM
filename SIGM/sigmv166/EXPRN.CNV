@@ -1,0 +1,117 @@
+
+[EXPRN.CNV]
+[CNVRT compiler for "C"  Expressions]
+[Harold V. McIntosh, 10 June 1983]
+
+
+
+[compile expression]
+((
+	((or,(<)(<),(>)(>),-(>),(and,<[1]>,(nor,(<),(>))))) 0
+	((or,(<)=,(>)=,(<),(>))<:W:>) 1
+  )(
+	((z,<0>@@<1>)) Z
+	)(0 1 2) (
+
+  [print WS]	((PWS,x )<>,);
+  [assignment]	((and,<:L:>,<0>)(and,<:p:>,<1>)(and,<:D:>,<2>),<<
+		  >>(x,<2>)(x,<0>)/assignment <1>);
+  [binary ||]	(<0>(and,||<:H:><>,<1>),(Z));
+  [binary &&]	(<0>(and,&&<:J:><>,<1>),(Z));
+  [binary |]	(<0>(and,|<:Q:><>,<1>),(Z));
+  [binary ^]	(<0>(and,^<:S:><>,<1>),(Z));
+  [binary &]	(<0>(and,&<:U:><>,<1>),(Z));
+  [binary ==]	(<0>(and,(or,==,!=)<:V:><>,<1>),(Z));
+  [binary .lt.] ((and,<--><:0:>(and,<:1:><>,<1>),<0><1><>),(Z));
+  [binary rot]	(<0>(and,(or,(<)(<),(>)(>))<:X:><>,<1>),(Z));
+  [binary + -]	(<0>(and,(or,+,-)<:Y:><>,<1>),(Z));
+  [binary * / %](<0>(and,(or,*,/,%)<:A:><>,<1>),(Z));
+  [other]	(<0>,(y,<0>));
+  )) x
+
+[compile unary expressions]
+(()()(0 1)(
+		((PWS,y )<>,);
+  [autoinc]	(++(and,<:L:>,<0>),(x,<0>)/preinc);
+  [autoinc]	((and,<:L:>,<0>)++,(x,<0>)/postinc);
+  [autodec]	(--(and,<:L:>,<0>),(x,<0>)/predec);
+  [autodec]	((and,<:L:>,<0>)--,(x,<0>)/postdec);
+  [unary]	((and,<:r:>,<0>)<1>,(y,<1>)/unary <0>);
+  [index]	(<0>(and,[<:E:>]<>,[<1>]<>),(x,<0>)(x,<1>)/index);
+  [subexpr]	((and,<(><:E:><)>,<(><0><)><>),(x,<0>));
+  [function]	(<0>(and,<(><:E:><)><>,<(><1><)><>),(x,<1>)(x,<0>)/function);
+  [structure]	(<0>(and,-(>)<:I:><>,-(>)<1>),(x,<0>)/struct <1>);
+  [dot]		(<0>(and,.<:I:><>,.<1>),(x,<0>)/dot <1>);
+  [primary]	((and,<:P:><>,<0>),/fetch <0>);
+  [unknown]	(<0>,/uy <0>);
+  )) y
+
+[compile binary or coincident unary]
+(()()(0 1 2)(
+		((PWS,z )<>,);
+  [pure unary]	(@@<1>,(y,<1>));
+		((and,<:L:>,<0>)@@++<1>,(x,<(><0>++<)><1>));
+		((and,<:L:>,<0>)@@--<1>,(x,<(><0>--<)><1>));
+		(<0>+@@+<1>,<0>@@++<1>):
+  [l rot]	(<0>(<)@@(<)<1>,<0>@@(<)(<)<1>):
+  [r rot]	(<0>(>)@@(>)<1>,<0>@@(>)(>)<1>):
+  [offside]	(<0>(and,<:r:>,<1>)@@<2>,<0>@@<1><2>):
+  [coincident]	(<0>@@(and,<:q:>,<1>)<2>,(x,<0>)(x,<2>)/binary <1>);
+  [unknown]	(<0>,/uz <0>);
+  )) z
+
+[main program including syntactic elements]
+( (
+  [alfanum]   ((and,<[1]>,(IVL, ,~,))) a
+  [letter]    ((and,<[1]>,(or,(IVL,A,Z,),(IVL,a,z,),_))) b
+  [odigit]    ((and,<[1]>,(IVL,0,7,))) c
+  [ddigit]    ((and,<[1]>,(IVL,0,9,))) d
+  [hdigit]    ((and,<[1]>,(or,(IVL,0,9,),(IVL,A,F,),(IVL,a,f,)))) e
+  [dstring]   ((ITR,<:d:>)) h
+  [cconst]    ((or,\<:a:>,<'><:a:><'>)) j
+  [iconst]    ((or,0(or,X,x)(ITR,<:e:>),0(ITR,<:c:>),<:d:><:h:>)) k
+  [fconst]    (<:h:>.<:h:>(or,(OR,E,e)(OR,+,-,)<:h:>,)) l
+  [sconst]    (<">(ITR,<:a:>)<">) m
+  [constant]  ((or,<:l:>,<:k:>,<:j:>,<:m:>)) o
+  [identifier](<:b:>(ITR,(or,<:b:>,<:d:>))) I
+  [aoperator] ((or,=,+=,-=,*=,/=,%=,(QUO/>>=/),(QUO/<<=/),&=,^=,|=)) p
+  [boperator] ((or,*,/,%,+,-,(QUO/>>/),(QUO/<</),(QUO/<=/),<<
+		>>(QUO/>=/),(<),(>),==,!=,&&,^,||,&,|)) q
+  [uoperator] ((or,*,&,-,!,~,sizeof,<(>typename<)>)) r
+  [lvalue]    ((or,<<
+		>>(and,<:P:>,<-->[<:E:>]<>),<<
+		>>(and,<:P:>,<-->-(>)<:I:><>),<<
+		>>(and,<:P:>,<-->.<:I:><>),<<
+		>><:I:>,<<
+		>>*<:A:>,<<
+		>><(><:L:><)>)) L
+  [pexten]    ((or,[<:E:>],<(>(ITR,<:E:>)<)>,-(>)<:I:>,.<:I:>)) N
+  [primary]   ((or,<:I:>,<:o:>,<(><:E:><)>)(ITR,<:N:>)) P
+  [eroot]     ((or,<<
+		>>++<:L:>,<<
+		>>--<:L:>,<<
+		>><:L:>++,<<
+		>><:L:>--,<<
+		>><:r:><:A:>,<<
+		>><:P:>)) A
+  [bnryexpr]  (<:A:>(ITR,<:q:><:A:>)) B
+  [cndlexpr]  (<:B:>(or,?<:K:>:<:K:>,)) K
+  [asgnexpr]  ((or,<:L:><:p:><:D:>,<:K:>)) D
+  [expression](<:D:>(ITR,<,><:D:>)) E
+  [||expr]    (<:H:>(ITR,||<:H:>)) G
+  [&&expr]    (<:J:>(ITR,&&<:J:>)) H
+  [|expr]     (<:Q:>(ITR,|<:Q:>)) J
+  [^expr]     (<:S:>(ITR,^<:S:>)) Q
+  [&expr]     (<:U:>(ITR,&<:U:>)) S
+  [== !=]     (<:V:>(ITR,(or,==,!=)<:V:>)) U
+  [comparison](<:W:>(ITR,(or,(<)=,(>)=,(<),(>))<:W:>)) V
+  [rotate]    (<:X:>(ITR,(or,(<)(<),(>)(>))<:X:>)) W
+  [+ -]       (<:Y:>(ITR,(or,+,-)<:Y:>)) X
+  [* / %]     (<:A:>(ITR,(or,*,/,%)<:A:>)) Y
+  )  ()(0)(  
+	(;,done);
+	(<0>,(%C,(x,<0>))(%R)):
+  ))
+
+[end]
+

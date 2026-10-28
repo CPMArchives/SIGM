@@ -1,0 +1,404 @@
+{j:a
+{m:1=10,75
+{m:2=18,75
+{m:3=24,75
+{m:4=50,75
+{m:1
+
+
+
+
+
+
+
+{c:The MUSICRAFT Development System
+
+
+
+
+{c:USER'S GUIDE AND OPERATING MANUAL
+
+
+
+{c:by Paul J. Medlock
+{c:Computercraft
+{c:1031 Marlau Dr
+{c:Baltimore MD 21212
+
+
+
+{c:authorized distributor:
+{c:NEWTECH COMPUTER SYSTEMS, Inc.
+{c:230 Clinton St
+{c:Brooklyn NY 11201
+{c:(212)625-6220
+
+
+
+{a:p=1
+{c:Copyright (c) 1980 by Paul J Medlock
+{c:Computercraft
+
+
+{c:All rights reserved.
+
+No part of this publication may be reproduced, transmitted, 
+transcribed, stored in a retrieval system, or translated into any 
+language or computer language, in any form or by any means, 
+electronic, mechanical, magnetic, optical, chemical, manual or 
+otherwise, without the prior written permission of Computercraft, 
+Baltimore, Maryland.
+
+
+
+{c:Disclaimer
+
+Computercraft makes no representations or warranties with respect to 
+the contents hereof and specifically disclaims any implied warranties 
+of merchantability or fitness for any particular purpose. Further, 
+Computercraft reserves the right to revise this publication and to 
+make changes from time to time in the content hereof without 
+obligation of Computercraft to notify any person of such revision or 
+changes.
+
+This publication does not convey to the purchaser any rights to any 
+software not identified by this publication as part of the Musicraft 
+Development System.
+
+CP/M is referred to in this manual. CP/M is a trademark of Digital 
+Research Corporation. No rights of use of CP/M are conveyed to the
+purchaser by any reference to CP/M in this publication.
+{a:p=1
+TABLE OF CONTENTS
+
+{l:I.           INTRODUCTION^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^6
+{l:I.A.             The Music^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^6
+{l:I.B.             The System^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^7
+{l:I.B.1.               The Editor^^^^^^^^^^^^^^^^^^^^^^^^^^9
+{l:I.B.2.               The Compiler^^^^^^^^^^^^^^^^^^^^^^^^9
+{l:I.B.3.               The Waveform Generator^^^^^^^^^^^^^^9
+{l:I.B.4.               The Player^^^^^^^^^^^^^^^^^^^^^^^^^^9
+{l:I.B.5.               Setup^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^10
+{l:I.B.6.               Print^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^10
+{l:I.C.             The Requirements^^^^^^^^^^^^^^^^^^^^^^^10
+
+{l:II.          INITIAL CHECKOUT^^^^^^^^^^^^^^^^^^^^^^^^^^^11
+
+{l:III.         MUSIC NOTATION SYSTEM^^^^^^^^^^^^^^^^^^^^^^15
+{l:III.A.           Song File^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^15
+{l:III.B.           Song Line^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^15
+{l:III.B.1.             Line Number^^^^^^^^^^^^^^^^^^^^^^^^15
+{l:III.B.2.             Duration^^^^^^^^^^^^^^^^^^^^^^^^^^^15
+{l:III.B.3.             Voice^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^16
+{l:III.C.           Microtones^^^^^^^^^^^^^^^^^^^^^^^^^^^^^19
+{l:III.D.           Option Lines^^^^^^^^^^^^^^^^^^^^^^^^^^^19
+
+{l:IV.          PROGRAM DESCRIPTION^^^^^^^^^^^^^^^^^^^^^^^^21
+{l:IV.A.            SETUP^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^21
+{l:IV.A.1.              Command Sequence^^^^^^^^^^^^^^^^^^^21
+{l:IV.A.2.              Discussion^^^^^^^^^^^^^^^^^^^^^^^^^21
+{l:IV.B.            EDIT^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^22
+{l:IV.B.1.              Command Sequence^^^^^^^^^^^^^^^^^^^22
+{l:IV.B.2.              Introduction^^^^^^^^^^^^^^^^^^^^^^^22
+{l:IV.B.3.              Tutorial^^^^^^^^^^^^^^^^^^^^^^^^^^^22
+{l:IV.B.3.a.               Navigation^^^^^^^^^^^^^^^^^^^^^^24
+{l:IV.B.3.a.i.                 The Home Function^^^^^^^^^^^24
+{l:IV.B.3.a.ii.                The Direction Function^^^^^^24
+{l:IV.B.3.a.iii.               The Page Function^^^^^^^^^^^25
+{l:IV.B.3.a.iv.                The Cursor Functions^^^^^^^^25
+{l:IV.B.3.a.v.                 The Space Function^^^^^^^^^^26
+{l:IV.B.3.a.vi.                The Modes of EDIT^^^^^^^^^^^26
+{l:IV.B.3.a.vi.1.                  Edit Mode^^^^^^^^^^^^^^^27
+{l:IV.B.3.a.vi.2.                  Insert Mode^^^^^^^^^^^^^28
+{l:IV.B.3.a.vi.3.                  Excise Mode^^^^^^^^^^^^^28
+{l:IV.B.4.              Reference^^^^^^^^^^^^^^^^^^^^^^^^^^30
+{l:IV.B.4.a.               Quit^^^^^^^^^^^^^^^^^^^^^^^^^^^^30
+{l:IV.B.4.b.               The Modes of EDIT^^^^^^^^^^^^^^^30
+{l:IV.B.4.b.i.                 Edit Mode^^^^^^^^^^^^^^^^^^^31
+{l:IV.B.4.b.i.1.                   Menu^^^^^^^^^^^^^^^^^^^^31
+{l:IV.B.4.b.i.2.                   d(irection^^^^^^^^^^^^^^31
+{l:IV.B.4.b.i.3.                   text^^^^^^^^^^^^^^^^^^^^31
+{l:IV.B.4.b.i.4.                   cursors^^^^^^^^^^^^^^^^^32
+{l:IV.B.4.b.i.5.                   I(nsert^^^^^^^^^^^^^^^^^32
+{l:IV.B.4.b.i.6.                   X(cise^^^^^^^^^^^^^^^^^^33
+{l:IV.B.4.b.i.7.                   O(ptions^^^^^^^^^^^^^^^^33
+{l:IV.B.4.b.i.8.                   M(easure^^^^^^^^^^^^^^^^33
+{l:IV.B.4.b.i.9.                   quit^^^^^^^^^^^^^^^^^^^^33
+{l:IV.B.4.b.ii.                Insert Mode^^^^^^^^^^^^^^^^^33
+{l:IV.B.4.b.ii.1.                  Menu^^^^^^^^^^^^^^^^^^^^33
+{l:IV.B.4.b.ii.2.                  d(irection^^^^^^^^^^^^^^33
+{l:IV.B.4.b.ii.3.                  text^^^^^^^^^^^^^^^^^^^^33
+{l:IV.B.4.b.ii.4.                  cursors^^^^^^^^^^^^^^^^^34
+{l:IV.B.4.b.ii.5.                  M(easure^^^^^^^^^^^^^^^^34
+{l:IV.B.4.b.ii.6.                  quit^^^^^^^^^^^^^^^^^^^^34
+{l:IV.B.4.b.ii.7.                  Discussion^^^^^^^^^^^^^^34
+{l:IV.B.4.b.iii.               Excise Mode^^^^^^^^^^^^^^^^^35
+{l:IV.B.4.b.iii.1.                 Menu^^^^^^^^^^^^^^^^^^^^35
+{l:IV.B.4.b.iii.2.                 d(irection^^^^^^^^^^^^^^35
+{l:IV.B.4.b.iii.3.                 cursors^^^^^^^^^^^^^^^^^35
+{l:IV.B.4.b.iii.4.                 quit^^^^^^^^^^^^^^^^^^^^35
+{l:IV.B.4.b.iv.                Options Mode^^^^^^^^^^^^^^^^36
+{l:IV.B.4.b.iv.1.                  Menu^^^^^^^^^^^^^^^^^^^^36
+{l:IV.B.4.b.iv.2.                  Chorus Call^^^^^^^^^^^^^36
+{l:IV.B.4.b.iv.3.                  Find^^^^^^^^^^^^^^^^^^^^36
+{l:IV.B.4.b.iv.4.                  Label^^^^^^^^^^^^^^^^^^^37
+{l:IV.B.4.b.iv.5.                  Microtones^^^^^^^^^^^^^^38
+{l:IV.B.4.b.iv.6.                  Repeat^^^^^^^^^^^^^^^^^^38
+{l:IV.B.4.b.iv.7.                  Tempo^^^^^^^^^^^^^^^^^^^38
+{l:IV.B.4.b.iv.8.                  Verify^^^^^^^^^^^^^^^^^^38
+{l:IV.B.4.b.iv.9.                  Waveforms^^^^^^^^^^^^^^^38
+{l:IV.B.4.b.iv.10.                 Chorus End^^^^^^^^^^^^^^39
+{l:IV.B.4.b.iv.11.                 Flat Signature^^^^^^^^^^39
+{l:IV.B.4.b.iv.12.                 Sharp Signature^^^^^^^^^39
+{l:IV.C.            COMP^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^40
+{l:IV.C.1.              Command Sequence^^^^^^^^^^^^^^^^^^^40
+{l:IV.C.2.              Discussion^^^^^^^^^^^^^^^^^^^^^^^^^40
+{l:IV.D.            WAVE^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^40
+{l:IV.D.1.              Command Sequence^^^^^^^^^^^^^^^^^^^40
+{l:IV.D.2.              Introduction^^^^^^^^^^^^^^^^^^^^^^^40
+{l:IV.D.3.              The Fundamental^^^^^^^^^^^^^^^^^^^^41
+{l:IV.D.4.              The Second Harmonic^^^^^^^^^^^^^^^^42
+{l:IV.D.5.              The Square Wave^^^^^^^^^^^^^^^^^^^^43
+{l:IV.D.6.              Additional Waveforms^^^^^^^^^^^^^^^44
+{l:IV.E.            PLAY^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^45
+{l:IV.E.1.              Command Sequence^^^^^^^^^^^^^^^^^^^45
+{l:IV.E.2.              Song Load^^^^^^^^^^^^^^^^^^^^^^^^^^45
+{l:IV.E.3.              Waveform Table Load^^^^^^^^^^^^^^^^45
+{l:IV.E.4.              Continuation^^^^^^^^^^^^^^^^^^^^^^^47
+{l:IV.E.5.              Interaction^^^^^^^^^^^^^^^^^^^^^^^^48
+{l:IV.E.5.a.                Rehearsal Mode^^^^^^^^^^^^^^^^^48
+{l:IV.E.5.b.                Modified Performance Mode^^^^^^48
+
+{a:p=1
+{l:V.           OPTION LINE DESCRIPTIONS^^^^^^^^^^^^^^^^^^^51
+{l:V.A.             Chorus Function^^^^^^^^^^^^^^^^^^^^^^^^51
+{l:V.B.             Repeat Function^^^^^^^^^^^^^^^^^^^^^^^^52
+{l:V.C.             Chorus Call Option Line^^^^^^^^^^^^^^^^54
+{l:V.D.             Label Option Line^^^^^^^^^^^^^^^^^^^^^^55
+{l:V.E.             Measure Option Line^^^^^^^^^^^^^^^^^^^^56
+{l:V.F.             Microtone Option Line^^^^^^^^^^^^^^^^^^56
+{l:V.G.             Repeat Option Line^^^^^^^^^^^^^^^^^^^^^57
+{l:V.H.             Tempo Option Line^^^^^^^^^^^^^^^^^^^^^^57
+{l:V.I.             Waveform Option Line^^^^^^^^^^^^^^^^^^^58
+{l:V.J.             Chorus Exit Option Line^^^^^^^^^^^^^^^^58
+
+{l:             APPENDICES
+{l:                 A. SETUP WORKSHEET^^^^^^^^^^^^^^^^^^^^^60
+{l:                 B. ERROR MESSAGES^^^^^^^^^^^^^^^^^^^^^^62
+{l:                 C. FILE TYPES^^^^^^^^^^^^^^^^^^^^^^^^^^67
+{l:                 D. SONG FILE FORMAT^^^^^^^^^^^^^^^^^^^^69
+
+
+{a:p=1
+I. INTRODUCTION
+
+The Musicraft Development System is a sophisticated facility for
+the composition and performance of music operating under CP/M
+(trademark of Digital Research.) It uses a language easily
+understood and used by any person with even a rudimentary ability
+to read music, yet it is capable of a wide spectrum of musical
+techniques and sound effects. Classical, popular and contemporary
+styles can be realized effectively with Musicraft, and its
+interactive nature makes Musicraft attractive to the performing
+musician as well as the composer and listener.
+
+
+I.A. The Music
+
+Songs may contain from one to four voices. Each voice has a full
+seven octave range beginning at 27.5 Hertz. A song may be performed
+using up to 14 different waveforms; each voice can be assigned
+to any waveform. Additionally, as the performance progresses,
+voice-waveform relationships can be varied. The waveforms can
+be drawn from as large a pool of waveform files as you have developed,
+and you can choose different waveforms from performance to performance
+of the same song.
+
+Music can contain measures, repeats, refrains and even microtones.
+Microtones are useful for contemporary sounds, eastern music, and
+especially for slides and glissandi. The octave can be divided into
+as many as 99 intervals. Using, for example, 96 intervals can permit
+a very smooth glissando.
+
+Refrains, or choruses, are a very powerful structural tool in
+Musicraft: your music can call a chorus which, in turn, can call
+a chorus which, in turn, can call a chorus... until you are dizzy
+with structural developments. Chorus nests can be up to 16 deep.
+
+Any song segment can be repeated up to as many as 256 times with a
+single repeat.
+
+Measures serve two important functions. While you are editing your
+song, you can easily locate music using the measure. More interestingly,
+however, measures can be used by the performing musician for practice
+by the "Music Minus One" method. Play your song leaving out a waveform
+table for one voice and play your own instrument. As you
+practice, if you need to restart at a measure, press return, enter
+the measure number, and after a short pause (to allow you to prepare)
+the music will begin at that measure.
+
+All songs and waveform tables, along with backup files where
+appropriate, are maintained on floppy disk, and access by the system
+components is completely automatic. Multiple drive storage is also
+supported by all programs.
+
+
+I.B. The System
+
+Six interrelated machine language programs perform specific tasks
+required in making music.
+{m:3
+
+{i:-8
+Name
+Function
+        
+{i:-8
+EDIT
+Enter music by transcription or composition into the computer
+storage and change music already stored.
+
+{i:-8
+COMP
+Convert (or compile) music from the musical notation into a
+numerical form suitable for performance by PLAY.
+
+{i:-8
+WAVE
+Create and save new sound colors (also called waveforms or
+instruments) to be used by PLAY in the performance of music.
+
+{i:-8
+PLAY
+Bring the music together with the instruments and perform the
+combination.
+
+{m:1
+{l:Two additional programs are provided to support the system.
+{m:3
+
+{i:-8
+SETUP
+Tailor the programs to your system.
+        
+{i:-8
+PRINT
+Obtain a printed "score" of the music once the music has been
+entered into the computer storage.
+
+{m:1
+Study the diagram on the next page. It shows the relationships
+among the six programs and the way in which files are passed from one
+to the other.
+{a:p=2
+I.B.1. The Editor
+
+EDIT is a screen editor knowledgeable in the musical notation used. It
+checks your entries to insure validity and provides complete error
+reporting. Navigation within a song is easy with EDIT, with full cursor
+control as well as page and home functions. You can find
+locations within your song using measures, song lines or labels.
+EDIT supports a powerful form of key signature and remembers
+accidentals within the measure.
+
+You use EDIT in four different modes. Edit, Insert, Excise and
+Option. EDIT always begins in the edit mode while the other
+modes are accessible with a single keystroke. The Edit mode is
+intended for making corrections in already existing music. The
+Insert mode permits you to add new song lines and to enter voice
+and duration data conveniently. Excise mode allows the removal of
+song lines, and the Option mode supports the wide variety of secondary
+musical functions as well as additional edit facilities.
+
+
+I.B.2. The Compiler
+
+After you have entered your song, running the compiler will give you
+a playable song file. To insure adequate precision, floating point
+arithmetic is used for all calculations. As COMP compiles your song,
+you are kept informed of progress by the CRT display.
+
+
+I.B.3. The Waveform Generator
+
+With WAVE, you create different sounds for later use in performance.
+Four techniques are provided. You can use the Fourier series method
+to build waveforms using the sine wave...your waveform may contain
+up to 16 partials, each with its own amplitude and phase. Additionally,
+you can easily construct sawtooth, triangle and square waves.
+
+
+I.B.4. The Player
+
+PLAY allows you to load one or more songs into memory for performance.
+As it loads the songs, it remembers the waveforms requested by
+the different voices and then allows you to fill waveform tables
+with whatever waveforms you would like. The music is then performed.
+
+PLAY offers three methods of performance. You may simply let the
+music play just as you entered it with EDIT. Or if you need a partner
+with whom to practice your own instrument, it can operate in
+a "rehearsal" 
+mode.  Finally, you may interact with
+the performance by using the keyboard of your terminal as a
+programmable interface. Using the Label option of EDIT, you can
+easily associate any musical idea (a single note, chord, or even
+a whole melody line) with any key on your keyboard (excluding
+control keys). As the music is performed, press a key that you
+have related to a song segment. No matter where in the song that
+segment was coded, PLAY will play it. Press another key. Again,
+whatever song segment you related to that key will play.
+
+
+I.B.5. Setup
+
+SETUP is provided because no two computer systems are alike.
+The 8080A, 8085 and Z80 microprocessors are all different in
+subtle ways. Many different terminals are attached to those
+systems, each with different control codes and functions
+that they can support. The clock speed can vary considerably
+from one system to another. SETUP asks questions about your
+system and saves your answers for use by the other components
+of Musicraft.  Musicraft will run on a wide variety of equipment
+because of the flexibility of SETUP.
+
+
+I.B.6. Print
+
+PRINT prints your song so you can file it for later use in the
+event your diskette file is lost.
+
+
+I.C. The Requirements
+
+Musicraft will operate on your microcomputer if you can satisfy
+the following requirements.
+
+{m:2
+{i:-8
+1.
+An 8080A, 8085 or Z80 based microcomputer
+{i:-8
+2.
+24k or more bytes of memory (32k or more bytes for North Star)
+{i:-8
+3.
+A CP/M, CDOS or other compatible operating system
+{i:-8
+4.
+A user's understanding of the operating system
+{i:-8
+5.
+One or more floppy disk drives
+{i:-8
+6.
+A CRT terminal with absolute cursor addressing and at least 64
+characters per line
+{i:-8
+7.
+A digital-to-analog convertor connected to the computer through
+an addressable 6- or 8-bit parallel output port. (A good example
+of this is the Newtech model-6 Music Board)
+{a:p=1
+
+

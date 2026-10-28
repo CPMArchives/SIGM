@@ -1,0 +1,179 @@
+* DATE 08/27/84  12:32
+* main.prg
+* main command program of database
+STOR CHR(PEEK(063)) TO dr
+USE &dr.:acg
+SET INDEX TO &dr.:lastname
+STOR t TO first
+DO WHIL t
+ IF first
+  ERAS
+  STOR '<F>orward, <B>ackward, <D>elete/Recall, <H>elp' TO prompt1
+  STOR '<S>earch, <M>aintenance, <P>rint, <R>ports' TO prompt2
+  STOR '<A>dd, <E>dit, <Q>uit to CP/M' TO prompt3
+  STOR 'Main Module ' TO mode
+  @ 1,25 SAY mode
+  @ 2, 0 SAY "+---------------------------------------"
+  @ 2,39 SAY "---------------------------------------+"
+  @ 3, 3 SAY "Lastname:"
+  @ 3,46 SAY "First & MI:"
+  @ 4, 5 SAY "Spouse:"
+  @ 4,46 SAY "Address as:"
+  @ 6, 6 SAY "Title:"
+  @ 7, 1 SAY "Company #1:"
+  @ 8, 9 SAY "#2:"
+  @ 9, 0 SAY "Co. Address:"
+  @ 9,51 SAY "Suite:"
+  @ 10, 7 SAY "City:"
+  @ 10,36 SAY "ST:"
+  @ 10,53 SAY "Zip:"
+  @ 12, 2 SAY "Home Addr:"
+  @ 12,53 SAY "Apt:"
+  @ 13, 7 SAY "City:"
+  @ 13,36 SAY "ST:"
+  @ 13,53 SAY "Zip:"
+  @ 14, 2 SAY "Telephone  Office:"
+  @ 14,46 SAY "Home phone:"
+  @ 15, 1 SAY "Salutation:"
+  @ 15,42 SAY "Send to office:"
+  @ 16, 4 SAY "Codes 1-"
+  @ 16,21 SAY "2-"
+  @ 16,32 SAY "3-"
+  @ 16,43 SAY "4-"
+  @ 16,55 SAY "5-"
+  @ 16,66 SAY "6-"
+  @ 17,50 SAY "Update:"
+  @ 18, 0 SAY "+---------------------------------------"
+  @ 18,39 SAY "---------------------------------------+"
+  @ 19,12 SAY prompt1
+  @ 20,12 SAY prompt2
+  @ 21,12 SAY prompt3
+ ENDI first
+ STOR f TO first
+ STOR '?' TO command
+ IF *
+  STOR 'Deleted' TO deleted
+ ELSE
+  STOR '       ' TO deleted
+ ENDI
+ @ 1, 0 SAY deleted
+ @ 3,13 SAY lastname
+ @ 3,58 SAY fname
+ @ 4,13 SAY spouse
+ @ 4,58 SAY mr
+ @ 6,13 SAY title
+ @ 7,13 SAY company1
+ @ 8,13 SAY company2
+ @ 9,13 SAY caddress
+ @ 9,58 SAY suite
+ @ 10,13 SAY ccity
+ @ 10,41 SAY cst
+ @ 10,58 SAY czip
+ @ 12,13 SAY address
+ @ 12,58 SAY apt
+ @ 13,13 SAY city
+ @ 13,41 SAY st
+ @ 13,58 SAY zip
+ @ 14,21 SAY ophone
+ @ 14,58 SAY phone
+ @ 15,13 SAY dear
+ @ 15,58 SAY send
+ @ 16,13 SAY cs1
+ @ 16,24 SAY cs2
+ @ 16,35 SAY cs3
+ @ 16,46 SAY cs4
+ @ 16,58 SAY cs5
+ @ 16,69 SAY cs6
+ @ 17,58 SAY update
+ @ 22,46 SAY "WHAT NEXT ?"
+ @ 22,60 GET command PICTURE '!'
+ READ
+ DO CASE
+ CASE command = 'A'
+  DO add.acg
+ CASE (command = 'B' .OR. command = ',')
+  SKIP -1
+ CASE command = 'D'
+  IF *
+   RECA
+  ELSE
+   DELE
+  ENDI
+ CASE command = 'E'
+  DO edit.acg
+ CASE (command = 'F' .OR. command = '.')
+  SKIP
+ CASE (command = 'H' .OR. command = '?')
+  STOR t TO first
+  ERAS
+TEXT
+
+             M A I N    M E N U   H E L P   F I L E 
+
+      Welcome to the Amateur Computer Group of New Jersey Mailing List program.
+      I am here to help and you can call me anytime by entering a ? mark at any
+      place where this program asks for a command. 
+
+      When you go back to the screen you will see two lines    - on top of the 
+      first line it says 'Main Module'    - thus, on top of the first line the 
+      program always tells you where you are! 
+
+      Between the two lines we have the information you or someone else placed
+      in the computer. This information tells you all about a particular file.
+
+      Below th line is the list of things you can do. To look at the next file
+      hit 'F' (or a period).  To go back one record - hit 'B' (or a comma). To
+      delete a record hit 'D' and a sign will appear at the upper left corner.
+      To remove the delete - hit 'D' again. Don't worry -  you cannot delete a
+      record just by hitting 'D'. You must run another program on the Mainten-
+      ance Menu.
+
+                                    Please hit any key to continue............
+ENDT
+  SET CONSOLE OFF
+  WAIT
+  SET CONSOLE ON
+  ERAS
+TEXT
+
+      To find a file - hit 'S' for search.  To edit an entry hit 'E' (although
+      you usually would search for a file - and Edit from the search menu.)
+
+      To add more records you hit 'A'.   Once in add - you enter as many files
+      as you want one at a time, and then can index if you wish.
+
+      To prepare Wordstar data, reports or display records hit 'R'for reports.
+
+      To reindex, purge files, check for duplicates, etc hit 'M' for maintain. 
+
+      ------------------------------------------------------------------------
+      WHATEVER YOU DO -  NEVER SHUT OFF THE MACHINE OR REMOVE A DISK UNTIL YOU 
+      FIRST HIT 'Q' TO QUIT. Get back to the 'A>' (called A prompt) before you 
+      take out the disk.........please, otherwise you will lose data!!!!
+      ------------------------------------------------------------------------
+
+                           please hit any key to return to the data base......
+
+
+
+
+ENDT
+  SET CONSOLE OFF
+  WAIT
+  SET CONSOLE ON
+  ERAS
+ CASE command = 'M'
+  DO maintain.acg
+ CASE command = 'P'
+  DO print.acg
+ CASE command = 'Q'
+  SET CONSOLE OFF
+  ERAS
+  QUIT
+ CASE command = 'R'
+  DO report.acg
+ CASE command = 'S'
+  DO search.acg
+ ENDC
+ENDD
+

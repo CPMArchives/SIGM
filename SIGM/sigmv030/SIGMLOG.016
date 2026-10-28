@@ -1,0 +1,428 @@
+
+SIG/M     volume 16      miscellaneous CP/M utilities  
+
+
+number    name           size      description
+
+16.1      BYE67.ASM      39K       remote console program for PMMI
+16.2      BYE67.DOC      12K       /
+
+16.3      MLIST42.ASM    12K       multiple file list utility
+
+16.4      DU-V75.OBJ      6K       disk utility system
+16.5      DU-V75.DOC      5K        /
+16.6      DU-V75.ASM     40K       /
+
+16.·      FINDBD42.ASÍ   33Ë       createó filå oæ badspotó
+     
+16.8      APLMODEM.ASM   36K       CP/M file transfer for Apple 2
+                                   using DC Hayes Micromodem 2
+
+16.9      COMAND.LIB      7K       console string processor
+
+16.10     COMBINE.ASM     7K       merges multiple files
+
+16.11     FILE-XT2.ASM    8K       system disk utility display
+
+16.1²     MNEMON21.ASÍ   28Ë       multi-pasó CP/M memory tester
+
+
+NOTE:	The major enhancement of version 6.7 of BYE is that a single
+	source file now contains conditional assemblies to control
+	either PMMI or D C Hayes modem cards.  Otherwise, this doc-
+	umentation is essentially the same as that for version 6.3,
+	with the addition of some minor fixes and improvements.
+
+
+		        BYE67.ASM DOCUMENTATION
+
+
+
+	The BYE program for PMMI and D C Hayes modems has undergone three
+significant revisions in recent months, and many features and options
+have been added.  This documentation is intended as a guide for sorting
+through the many additional items.
+	Most of the new features have been added via conditional assembly,
+thereby allowing the program to accomodate users with varying memory re-
+quirements.
+	Note that not all combinations of conditional assembly have been
+tested, so be careful!
+
+
+
+
+		      DOCUMENTATION OF REVISION 6
+		      ===========================
+
+The following features have been added to revision 6:
+
+1) Timed logout-  This feature allows your system to disconnect
+   after a pre-specified time when there is no input from the remote
+   user.
+	==> Set "TIMEOUT" to "true".
+	==> Set "TOVALUE" to the number of minutes to wait before
+	    disconnecting.
+
+   This feature requires that timing now be done in software, instead of
+   using the PMMI timing circuitry, which is tied up with baud rate gen-
+   eration when the system is in use.  Therefore, you must set the equate
+   "FASTCLK" to true if you are running a 4mhz system, and to false if
+   you are using 2Mhz.	You must do this even if you don't use the timed
+   logout feature.
+
+2) Autoload- Setting "COMFILE" to true causes the bye program to auto-
+   matically load and execute a machine language program from the disk.
+   This is useful for remote bulletin-board systems, remote query and
+   data entry, etc.  If you are using cp/m 2.x (equate "CPM2" set true),
+   you must specify which user number to load this file from.  This is
+   done by setting the equate "COMUSR".  Note that this user number will
+   also be the one under which the autoload program is executed.
+
+   The loaded program can prevent the remote user from re-booting the
+   system by changing the byte at 0 (jmp instruction) to a call.  When
+   this is done, the system will trap control-c from the remote user
+   (changing the character to a null), and a branch to location 0 (warm-
+   boot) will terminate the session, as if "bye" had been typed by the
+   user at cp/m command level.	This allows the autoload program to end
+   the session by merely branching to location 0.  
+
+   If it is necessary to give the user full control of cp/m, the auto-
+   load program must replace the call at zero with a jump.  In this case,
+   control-c will no longer be trapped, and "jmp 0" will warm-boot the
+   system.
+
+   NOTE:  The system operator can answer an incoming phone call in
+	  either of two ways:
+
+	    A>BYE /C	;this form causes the bye program to answer the
+			 phone, prompt the user for nulls, then load
+			 and run the autoload program.
+
+	    A>BYE /A	;this form causes the program to answer the
+			 phone, then boot to cp/m command level.
+
+	 Note that either method will, upon termination of the session,
+	 re-load the autoload program before accepting another call.
+
+3)  User and drive number verification- The bye program will now
+    validate the logged-in drive, and, if it exceeds the value set
+    by the equate, "MAX$DRIVE", the system will reset the logged-in
+    drive to 0 and perform a warm-boot.
+
+    If you are using cp/m 2.x ("CPM2" equate set to true), the same
+    verification will be done for the logged-in user number.  The
+    equate in this case is the variable "MAX$USER", which should be
+    set to 0 for cpm 1.x.
+
+4)  Special function keys- You can assign any three key-codes on the local 
+    keyboard for the following special functions (Note that you should also 
+    select the DUAL$IO mode along with these options):
+
+	"TWITKEY"  - This key immediately logs out a user.  This can
+		     be useful to remove system crashers, "explorers",
+		     etc. from the system.
+
+	"MSGKEY"   - This key prints the message: "MESSAGE FROM OPERATOR:",
+                     which can be used to announce operator presence, prior 
+                     to typing a message to the remote user.
+
+	"SYSDKEY"  - This key prints the message: "SYSTEM DOWN IN 5 
+                     MINUTES", which is handy when you want to drop a hint 
+                     to a caller who has worn out his welcome.  (or just 
+                     when you want to politely get the system back for 
+                     yourself).
+
+    Note that the conditional assembly for these keys is set by the
+    equate "FKEYS".  The key-codes can be individually changed.
+
+5)  Decimal user logs - If you use the USRLOG functions (see revision 5 
+    section of this documentation file), setting the "DECIMAL" equate to 
+    true provides a decimal printout of the user log values, instead of the 
+    default hexadecimal printout.
+
+6)  Lower case checking - By setting the "CK$LWC" equate to true, the user 
+    will be asked at sign-on if his terminal can display lower case.  If 
+    the user responds with "N", all output will be converted to upper case 
+    before transmission.
+
+7)  If you have an IMSAI (or any computer with an input port set by
+    switches), setting the "IMSAI" equate to true provides the following
+    capablities:
+
+	switch	   function
+	  0	    turns on the hardcopy log ... this echoes remote
+		    input (not output!) onto the printer.  This provides
+		    a hardcopy logging function with minimal amount
+		    of printout..i.e., only the users' input is echoed.
+
+	  1	    sets up "password mode"...when this switch is up, any-
+		    one trying to log onto the system must provide a pass-
+		    word.  This allows you to reserve the system at times
+		    for special callers.  Note that the "PWRQD" equate
+		    must be set to true for this key to have any affect.
+
+	  2	    blacks out the remote user...this is useful when
+		    you need to enter a password into the machine that
+		    you'd rather the remote user not see. Characters
+		    echo onto the local terminal, but are not sent to
+		    the remote user. Note that the equate "DUAL$IO", which
+		    allows the local terminal to be functional, must be
+		    set to true for this key to have any effect.
+
+	  3	    enables the FKEY's, when the "FKEY" equate is set to
+		    true.  Using this switch, the special function keys
+		    can be used normally when the switch is off, and
+		    as function keys when the switch is up.
+
+   Also: the user log (if USRLOG is set to true) will be displayed
+   on the front panel LED display.
+
+   The port address of the front panel I/O port can be changed using the
+   "SENSE" equate.  It is initially set up for the IMSAI addressing, which
+   is port 0FFH.
+
+8) The console status routine now checks the overrun and framing error
+   bits of the PMMI modem chip, and if either of these bits is set, the
+   character in the modem is cleared.  Thanks to Bruce Ratoff who used
+   this idea in his DC Hayes version of the bye program.
+
+9) Since the WELCOME file may reside on a different user number than the
+   autoload program (if any), the WELUSR equate has been added to indicate
+   the user number under which WELCOME may be found.  Note that if the
+   COMFILE option is not also used, the caller will receive control of the
+   system under user number WELUSR.
+
+Credits: (version 6.3)
+
+Dave Hardy, who implemented the special function keys, and IMSAI functions
+for the Technical CBBS, Dearborn, Mich (313-846-6127 24Hr).
+
+Bruce Ratoff, who provided a lot of this stuff in his DCHBYE54, which I
+lifted and added to the PMMI version.
+
+Keith Petersen, who provided the ideas and suggestions.
+
+				   ====>Ron Fowler
+					Sept 24, 1980
+
+Credits: (version 6.7)
+
+Dave Kozinn, who had the time and patience to merge the D C Hayes code
+into PMMIBY63, creating (at long last) an "universal" BYE.
+
+				   ====>Bruce Ratoff
+					Feb 17, 1981
+
+
+		   DOCUMENTATION OF REVISION 5
+		   ===========================
+	    PMMIBYE5.DOC    (as of 7/20/80)
+
+    The PMMIBYE5.ASM program is out for distribution, but it has not been 
+thoroughly tested in all of the possible modes of operation.  
+    (Please note that version 5.4 is substantially longer than previous 
+PMMIBYE versions.  Because of the great number of conditional switches, the 
+program could require as many as 1060 bytes of RAM, or it could be smaller 
+than the 900 bytes used by the original PMMIBYE.  It all depends on the way 
+you set it up.)
+
+   Basically, several new conditional assembly routines have been added to 
+allow user selection at time of assembly of the following:
+     1. Password access
+     2. User log (counts number of system callers)
+     3. Memory-mapped console I/O
+   Also added to V5.4:
+     1. 710 Baud option for PMMI modem
+     2. Modifications to AUTO-ANSWER routines
+     3. "/R" option to allow reset of user log counters
+
+   Password access was made conditional to allow use with systems that offer 
+unrestricted access.
+   The user log was added to allow the system operators to keep track of the 
+number of people who called the system.  In addition, it can also count the 
+number of unsuccessful log-ons (i.e. didn't know password) and the number of 
+voice calls, and conditionally display both numbers on the system console 
+when the program is exited with a control-C from the system console.  The 
+counters can be initialized with the "/R" option to all zeroes, or preset by 
+using DDT, or SID.  The number of successful log-ons is also conditionally 
+output to port 255 (0FFH) for display on the computer's front panel.
+   The memory-mapped I/O conditionals have been added to allow use of the 
+serial I/O port on the Morrow's 2D controller board as the system console; 
+however, the routines can be used with any memory-mapped system.
+   The 710 Baud option was added for "short-haul" callers, and because 
+operation at 710 Baud with the PMMI modem is "iffy" at best, it will 
+probably be of very little use.
+   The AUTO-ANSWER routines were modified to allow more dependable ringback 
+operation.  Unfortunately, the ringing signal at the caller's end of the 
+phone line does not always correspond exactly with the ringing signal at the 
+system's end.  Although a system-end ring does occur sometime during the 
+caller's ring cycle (ring-no ring), it is possible for the system to receive 
+no or 2 rings in the time that the caller thinks just one ring has occurred 
+(The DIAL program is notorious for this).  The solution chosen for this 
+problem was to check for one or two rings before call-back.  This would 
+allow for the "phase" difference of the caller-system ring signals.  This 
+solution also means that the phone must ring at least three times before the 
+system will assume that the call is voice, and is not to be answered.  The 
+advantage of this arrangement is that it is virtually impossible for the 
+computer to "miss" a call that is intended for it.
+
+			Dave Hardy
+
+
+		    DU-V74.DOC
+	       by Ward Christensen
+	with additional notes by Ron Fowler
+		(revised 1/15/81)
+
+	HOW TO USE DU ver 7.4 DISK UTILITY
+
+INSTALLATION:
+	The 7.0 and later versions of DU are designed to
+  be installed with a minimum of trouble.  In fact, in al-
+  most all cases, no changes to the source file should be
+  necessary to get DU up and running. This is because DU
+  uses the disk paramter block of CP/M to determine the
+  characteristics of the disk environment.  (see the dis-
+  claimer for certain non-standard versions of CP/M 1.4).
+	The only parameter that should need to be changed
+  will be the clock speed flag at 103H.  Leave this byte
+  zero if you have a 2 mhz clock.  Patch it non-zero for
+  4 mhz.  This is only needed for the "Z" (sleep) command.
+
+USE:
+
+Any valid command string may be placed as an
+operand of the original DU command, i.e.:
+
+     A>DU G0;D;G2;=OK<D><A><1A>;D
+
+Functions supported:
+
+	Tnn	Seek to track nn (no read)
+	Snn	Position to sector nn, and read
+	Gnn	Position to group nn and read.
+	G	Shows current position
+	V	Views the current sector.
+		(assumes ASCII data)
+	Vnn	Views nn sectors
+	Fname	print directory for file "name",
+		then positions to it's directory 
+		sector. (Won't position under
+		CP/M 2.x, but see = command below.)
+
+	=string	Ascii search, starting at current
+		sector. <xx> hex may be imbedded,
+		or used alone:  To find "IN 0FEH":
+		=<db><fe>
+		Ignores bit 7 unless <xx> is used.
+
+	L	Re-logs in the current disk. You may pull
+		out a disk, put in a new, and "L" just
+		to log it in.
+
+	Lx	Logs in disk 'x', such as: LB
+
+	Ux	Logs user 'x' for next F command.  Gives
+		'?' error if not CP/M version 2.x.
+
+	D	Dump sector, hex + ASCII
+	A	Dump sector, ASCII only
+	H	Dump sector, hex only
+
+note all dump commands (D, A, H) may be optionally
+	followed by a starting and ending address:
+	D0,7F	is the same as just D
+	D3,5
+	A20,3F
+
+	CHaddr,val,val,val... change hex in sector
+	CAaddr,char string... change ASCII in sector
+		NOTE that <xx> may be hex imbedded
+		in the Ascii:  ca0,OK<d><a><1a>
+
+		----> Use W to write changes to disk.
+		Note that the C command echoes
+		the overlaid data for verification.
+
+	CHaddr-addr,byte
+ or	CAaddr-addr,byte	repeats a change
+
+	+	advance 1 sector (if below track 2,
+		this advances to next numerical, if
+		2 or >, advances based on CP/M's normal
+		sector scrambling algorithm, i.e. so +
+		will get the next logical sector of the file
+
+	-	backs up 1 logical sector
+
+		Note + and - may take an amount:
+		for example, +F steps in 15 sectors.
+
+		Note also that "-" issued at the first logical
+		sector of the disk will wrap back to the last.
+		Further, "+" issued at the last sector will
+		wrap forward to the first.
+
+	?	Gives command summary
+
+	#	Prints the disk parameters
+
+	M	Dumps a map of the group allocations
+		for files.
+	Mn	Shows which file is allocated to
+		group "n".
+
+	N	Resets CP/M via the BDOS.  This may
+		make it possible under some implementations
+		of CP/M to change the disk format (e.g., density,
+		sides, etc)
+
+	R	Reads the sector currently positioned to
+		into memory.  Note R (Read) is implicit in
+		the G, +, and - commands, but N-O-T in the
+		S and T commands (I did it because I was
+		tired of disk reading after T command before
+		I had a chance to issue the S command)
+
+	W	Write back the current sector (N-O-T-E may
+		not be used after an F command, as CP/M was
+		used to find the file in the directory
+
+	X	Exit back to CP/M (Must press return).  Ctl-c
+		was too easy to hit over modem lines, so I
+		decided on 2-byte (X, CR) to exit.
+
+	P	Toggle printer switch on/off
+
+	Z	Sleep - causes the program to pause, such
+		as to look at a dump.  Z is 1 sec.  Znn
+		is nn tenths of a second on a 2 MHz 8080.
+
+	<	Saves current sector in a save buffer
+
+	>	Gets saved buffer.  < and > may be used
+		to move a sector to another place.
+
+	/	Repeats entire command.  Defaults
+ or	/nn	to "forever".  NN may be 2 to 65535
+
+multiple commands may be separated by ";"
+
+Example: the following commands will erase the
+	 b disk directory to all E5's:
+
+	lb		log in b drive
+	g0		position to dir.
+	ch0-7f,e5	fill with e5
+	<		save the sector
+	>;w;+;/16	restore, write, next,
+			repeat 16
+
+----This could be shortened to:
+
+	lb;g0;ch0-7f,e5;<
+	>;w;+;/16
+
+END
+
+ 

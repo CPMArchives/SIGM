@@ -1,0 +1,27 @@
+/********************************************************
+*                   MDBS CALL INTERFACE			*
+*							*
+*	THE FOLLOWING ARE THE CALL INTERFACE ROUTINES	*
+*  FOR THE PARTICULAR FUNCTIONS OF MDBS.  EACH ROUTINE  *
+*  INTERFACES TO THE COMMON ASSEMBLER ROUTINE 'MDBSCL'. *
+********************************************************/
+
+
+/* * *  PUT A MEMBER OF A SET  * * */
+PUTM:	 PROC (SETNAME,DATABLK,DATALEN,RTNCOD);
+	DCL MDBSCL ENTRY(BIN(7),CHAR(8),CHAR(8),CHAR(8),BIN(7),POINTER,
+			 BIN(15));
+	DCL RTNCOD BIN(7);	/* RETURN CODE FROM MDBS CALL */
+	DCL SETNAME CHAR(8);	/* SET NAME */
+	DCL DATABLK POINTER;	/* DATA RECORD PTR */
+	DCL DATALEN BIN(15);	/* DATA RECORD LENGTH */
+	DCL NULPTR POINTER;	/* DUMMY VARIABLES */
+	DCL NULCHR CHAR(8);
+	CALL MDBSCL(39,'',SETNAME,'',RTNCOD,DATABLK,DATALEN);
+	END PUTM;
+
+
+/********************************************************
+*               END OF MDBS CALL INTERFACE		*
+********************************************************/
+

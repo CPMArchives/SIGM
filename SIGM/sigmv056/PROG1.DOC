@@ -1,0 +1,459 @@
+{j:a
+{m:1=10,75
+{m:2=18,75
+{m:3=24,75
+{m:4=50,75
+{m:1
+IV. PROGRAM DESCRIPTIONS
+
+This section of the manual describes the operation and use of each
+program in Musicraft.
+
+
+IV.A. SETUP
+
+
+IV.A.1. Command Sequence
+
+A>^^SETUP^(press^return)
+
+
+IV.A.2. Discussion
+
+You must run SETUP before you attempt to use EDIT. SETUP
+constructs a configuration file which is used by all other
+programs. This file consists of one record which contains
+the following information:
+
+{m:2
+{i:-8
+1.
+CPU type
+{i:-8
+2.
+CPU clock speed
+{i:-8
+3.
+DAC address
+{i:-8
+4.
+Absolute cursor function parameters
+{i:-8
+5.
+CRT clear functions
+{i:-8
+6.
+Keyboard function keys
+{i:-8
+7.
+Printer characteristics
+
+{m:1
+Before attempting to run SETUP, read and fill out the worksheet
+provided in Appendix A. It is recommended that you
+use pencil in filling out the worksheet so that you can make
+corrections or updates as needed. Once you have completed the
+worksheet, run SETUP.
+
+When you run SETUP, you must make sure that the Musicraft System
+diskette is on the default drive to insure that the configuration
+file will be placed on the system diskette.
+
+Unless some aspect of the characteristics of your system changes,
+you will need to run
+SETUP only once for a system diskette.
+
+
+{c:VERY IMPORTANT NOTE
+
+In general, whenever 
+you operate the system, it is necessary to have the system diskette 
+reside on the default drive so that the programs can
+successfully retrieve the configuration file.
+
+
+IV.B. EDIT
+
+
+IV.B.1. Command Sequence
+
+A>^^EDIT^songname^(press^return)
+
+
+IV.B.2. Introduction
+
+The editor is an in-memory editor. If the song named in the calling
+sequence has been stored on floppy disk, EDIT will
+retrieve the song into working storage in main memory. If the
+song is new, EDIT will ask that the number of voices be
+entered. You may enter 1, 2, 3, or 4 followed by a carriage return
+in response. From this moment, the number of voices associated with
+the song is fixed at this number.
+
+Two pseudo_option lines will always appear in conjunction with a 
+song which is displayed for edit. These two lines are not part of the 
+song but are "terminal" lines. EDIT permits you to insert song 
+lines and option lines between the terminal lines but never outside 
+them. EDIT permits no way of placing the cursor beyond either of 
+them. The construction of a song involves inserting the 
+song lines needed to represent the song using the Insert_mode of 
+EDIT. Therefore, even a new song will always have the two terminal 
+lines:
+
+{l:        *da capo
+{l:        *da end
+
+
+IV.B.3. Tutorial
+
+This section will introduce to you some of the characteristics
+of EDIT. We'll assume that you are at your CRT and that you
+have already run SETUP, answering all questions asked by it. Computer
+displays will be shown indented while your responses, where called
+for, will be doubly indented. In the course of the discussion, it
+may prove necessary to rerun SETUP. Whenever this need becomes
+apparent, rerun SETUP and begin the exercise at the top to insure
+that you have run SETUP correctly in all aspects.
+
+Place your work disk in drive A, boot up, if necessary, then type:
+
+A>^^EDIT^INVENT1^(press^return)
+
+INVENT1 is the piece you played when you were checking out the system 
+in the INITIAL CHECKOUT section.
+
+The screen should clear and the following message should appear
+at the top of your screen:
+
+Loading song. Please stand by.
+
+{m:2
+If the screen does not clear, you must rerun SETUP giving it
+the correct answer for the clear screen function for your
+terminal. Also, if only a portion (or none) of the message is 
+displayed, then rerun SETUP specifying a larger number 
+of null characters (control_@) required after the screen clear function.
+Most terminals 
+require about 40 milliseconds to clear the screen and the number
+of null characters  required to 
+fill out that amount of time will depend on the speed at which you 
+are running your terminal. For example, you should be able to use 
+about 40 nulls when 
+the terminal is running at 9600 baud. Null characters are used 
+because they are not displayed and have no effect over the display
+so are ideal to "kill" time in the computer.
+
+{m:1
+After a brief pause, during which the program loads the song
+into memory, the screen will again clear and display
+the first page of the song along with the Edit_mode Menu. The menu 
+will be discussed in the reference section below. Suffice it here to 
+say that the menu reminds you of what mode you are using and what the 
+choices of inputs are available to you. You can compare what you see 
+on the screen with the illustration in the section MUSIC NOTATION 
+SYSTEM. You will note that the first line of the display is missing 
+from the illustration. This, of course is the "da capo" terminal 
+line.
+
+{m:2
+If the display on your screen is not arranged in columns and 
+does not look like the illustration in the MUSIC NOTATION SYSTEM 
+section,  then there is
+probably an error in the information you gave SETUP about the way in 
+which your terminal implements the cursor address function.
+You must rerun SETUP,
+giving the correct information about the cursor address function of your
+terminal. Since the methods used by various terminals for cursor 
+addressing are usually complicated, you may wish to go back to the 
+manual for your terminal to get a good understanding of how the 
+function is performed before you rerun SETUP.
+
+{m:1
+This comment is to apply over the entire tutorial. You will 
+occasionally strike a key which either you did not intend or EDIT 
+will not allow. If this happens, EDIT will display an error message 
+at the top of the screen and will ring the bell if you have one. 
+Don't panic. The message will tell you to press the space key to 
+continue. That is exactly what you should do. EDIT will return the 
+cursor where it was at the moment you struck the key in error and no 
+harm will be done. Just continue as if nothing happened.
+
+It is also possible that you may strike a key which you did not 
+intend but that EDIT WILL ALLOW. A special key is provided to allow 
+you to quit EDIT without updating the song stored on the diskette.
+This will cover any errors you make, so relax. 
+
+
+IV.B.3.a. Navigation
+
+The first exercises are to navigate within the song. That is,
+to move the cursor around within the song.
+
+You use
+the cursor to inform EDIT of the locality of the song in which
+you wish to operate. It is very important that you understand the 
+importance of the cursor. It is your primary way of informing the 
+computer of the meaning of your entries. In other words, if the 
+cursor is in a voice field and you enter a period...which only has 
+meaning when used to adjust the duration...EDIT will consider your 
+entry as an error. This is because EDIT expects input consistent with 
+the area (the voice field in this instance) designated by the cursor.
+
+The cursor can be moved around through the use of several different 
+keys. Which key you use to navigate will depend on the 
+distance the cursor must move to reach its destination. What we will 
+now do is to introduce you to each of the navigational aids so that 
+you can make intelligent choices later.
+
+
+IV.B.3.a.i. The Home Function
+
+This function moves the cursor from one end of the song to the other.
+If you have a home_key, press it. If you do not, press
+control_Y. The screen should clear and display the
+end of the song. You should notice the last line. It should be the 
+terminal line "da end."
+
+{m:2
+If this does not happen, you must rerun SETUP, giving it
+the correct answer for the home_key assignment for your
+terminal and/or the correct information describing the
+cursor addressing function for your terminal.
+
+{m:1
+Now press the home_key again. The screen should look as
+it did before you pressed the home_key the first time. The home 
+function is designed to move the cursor to opposite ends of the song 
+on alternate uses of it. This way, only one key need be assigned to 
+the function.
+
+
+IV.B.3.a.ii. The Direction Function
+
+Note the arrow in the upper left_hand corner of your screen.
+This character tells the direction to be taken by the home
+function. Press the home_key several times and observe what
+happens to the direction arrow. You can control the direction
+manually
+by pressing the direction keys on your keyboard (the
+direction keys are the ones labeled with "<" and ">"). Try this
+and observe the change. The "<" represents the up direction
+while the ">" represents the down direction.
+
+
+IV.B.3.a.iii. The Page Function
+
+The letter "P" has a special use in EDIT. Press the home_key
+once or twice until the "da capo" line appears to tell you that you 
+are at the top of the song. Then press the letter "P" once. The screen
+should display the page following the first page.
+
+By pressing the letter "P", you can "page" through your song at
+the rate of 23 lines per page. Try doing this with the
+direction arrow pointing both ways. The direction arrow
+affects the direction of the page function just as
+it affects the direction of the home function. Notice that when 
+the cursor reaches the top or bottom of the song, the direction arrow 
+reverses and the page function also reverses. Again, only one key 
+need be assigned to the page function as a consequence.
+
+
+IV.B.3.a.iv. The Cursor Functions
+
+While both the home function and the page function affect the 
+movement of the cursor, they are long range operations. Obviously, 
+you need some more delicate operations if you are to get to any point 
+in the song. We will now discuss the short range cursor functions.
+
+If your keyboard has special keys with arrows each
+pointing in the four directions up, down, left and right,
+then you are ready
+to navigate. If your CRT does not have these keys, then use
+control_K for up, control_J for down, control_H for left and
+control_L for right. Also, as an added convenience, you may use 
+the return key (sometimes labeled "enter") or the line_feed key 
+for the down function.
+
+Use these four keys and observe the movement of the cursor.
+It should go down one song line when you press the down_key,
+up one song line when you press the up_key, left one column
+when you press the left_key, and right one column when you
+press the right_key. Note especially that the cursor moves
+from the first character of each column to the first character
+of the next column as you press the left_key or right_key.
+Also note that both keys "wrap around" and you can get to
+the same column by using either key and going in either
+direction.
+
+Normally, the direction arrow is unaffected by the use of the four 
+cursor keys. However, if you move the cursor up to the top of the 
+song with the up_key, the direction arrow will change and the up_key 
+will become ineffective. The same applies to the down_key at the 
+bottom of the song. You can try these special situations and observe 
+the effects.
+
+Place the first page of the song on the screen. (You should now know 
+how to do this with ease.) Press the down_key a number of times
+until the cursor reaches
+the bottom of the screen. Continue pressing the down_key. Note that the
+song scrolls up. This scrolling process can continue until the 
+bottom of the song is reached whereupon the down_key becomes 
+inoperative as we discussed earlier.
+
+Place the bottom of the song on the screen. Then press the up_key
+until the cursor reaches the top of the screen.
+Press it once more. Note that the screen is replaced with the
+cursor on the center line of the screen.
+
+
+IV.B.3.a.v. The Space Function
+
+The space_key is used to move around within a particular column
+whether it be a duration or voice column. Try the space_key
+and observe how it "wraps around" within whatever voice or
+duration the cursor happens to be in at the time. Try it in
+various columns. 
+
+Incidentally, you may notice that the left_key has a strange
+effect whenever the cursor is NOT at the first character of a
+column. It backs up only one character until it reaches the
+first character of the column whereupon it begins jumping whole
+columns. Try this by pressing first the space_key then the
+left_key.
+
+Choose some particular point in the song presently displayed and 
+attempt to use a combination of cursor functions to place the 
+cursor at your chosen point. Choose several other points and repeat 
+the process. Try to get to the accidental at song line 37, voice 2.
+How about the octave number at song line 
+5, voice 1? Just practice awhile until you are confident you can move 
+the cursor to any place in the song. Notice that you can 
+place the cursor even on option lines. When you need to excise a 
+measure line you inadvertantly entered, you will see why you can do 
+this.
+
+
+IV.B.3.a.vi. Modes of Edit
+
+EDIT operates in four modes. Each mode is distinguished by a 
+menu line at the top of the screen whenever EDIT is in that mode.
+EDIT always begins in Edit_mode. To get to any other mode, you must 
+be in Edit_mode, consequently, you can look upon Edit_mode as "home base." The 
+other three modes are Insert_mode, Excise_mode and Option_mode. We 
+will discuss all but Option_mode in the tutorial.
+
+
+IV.B.3.a.vi.1. Edit Mode
+
+Now that you can place the cursor anywhere within the song,
+let's try making changes to the notes in the song.
+Place the cursor at either of the two voice columns.
+
+In the following, be sure that you do NOT press the I, O, M or
+X keys. These are keys which cause EDIT to operate in modes
+different from the basic Edit_mode.
+Each mode will be covered in turn. If you hit one of these keys
+and the menu at the top of the screen no longer has the word EDIT
+in it, then press control_Q one time before attempting to continue.
+This should return you to the Edit mode which you can recognize
+by the word EDIT in the menu at the top of the screen.
+
+Now type a valid note name. Remember, they are A, B, C, D, E, F,
+G and R. Notice that the cursor does not move to the accidental
+position but moves instead to the octave position. This
+characteristic, coupled with the flat and sharp tables (we'll
+discuss these later), will greatly simplify your work in entering
+music. Also, you may note that the accidental is set to a natural
+(or @ symbol.) That's because the key signature is set to C major
+when EDIT is begun. You can change the accidental by first pressing
+the left_key to back up to the accidental position and then typing
+the appropriate accidental. Try different accidentals. Note that
+you can use the numbers 1, 2 and 3 to 
+obtain flat, natural and sharp respectively.
+
+Try pressing a key which is not an accidental while the cursor is
+in the accidental position. An error message will appear at the top 
+of the screen and, if your terminal has a bell, the bell will
+ring. To show that you recognize the error, type a space.
+You can continue by experimenting with changing note names,
+accidentals and octaves. If you need to, refresh your memory by
+re-reading the section about Voices in the MUSIC NOTATION SYSTEM 
+section of the manual.
+
+After you have become comfortable with changing voice information,
+move the cursor over to the duration column and try the same
+experiments with duration information. If you need to refresh
+your memory about the duration codes, reread the section in this
+manual on Duration. Try some dotted and doubly-dotted durations. 
+change a dotted or doubly-dotted duration back to a non-adjusted 
+duration. Note that the adjustment disappears automatically whenever 
+the duration is replaced.
+
+
+IV.B.3.a.vi.2. Insert Mode
+
+You cannot use the Edit_mode
+when you first begin entering a song or when
+you need to add new lines
+to an already existing song. This is because Edit_mode operates only
+on song lines which already exist. Adding new song lines is done
+only when you place EDIT in the Insert_mode. You do this by
+typing the letter "I" when you are in the Edit_mode. Place the cursor at
+a voice column of any song line and type an I. You will note that
+the Insert_mode menu appears at the top of the screen.
+
+For practice, enter the note A@4 by typing first the letter "A", then 
+the number 4. Press return. See how the note
+information
+is carried down to the new song line. Type the letter "B". Again press
+return. Continue entering the scale in the fourth octave.
+Observe that you need to type only the note name and the return
+as long as you remain in the same octave and do not have any
+accidentals. Now return to the Edit_mode by typing a control_Q.
+
+Note that the new song lines precede the song line which was
+under the cursor when you first entered the Insert_mode. All 
+insertions occur between the line
+marked by the cursor and the line above. So make sure that you place 
+the cursor at the proper place when preparing to add new song lines.
+
+Move the cursor up to the second voice column at the first song
+line which you inserted earlier. Again press the letter "I". You
+are back in
+Insert_mode for the next voice. Proceed as you did for the
+first voice. That is, key in some notes.  Attempt to insert
+additional song lines beyond
+the lines you previously entered. You will get a message
+informing you that you must quit Insert_mode. Press space.
+EDIT will return to Edit_mode.
+
+Complete the duration column
+for the insertion using Insert_mode. Note that you cannot
+use the up_key while in Insert_mode. You
+must always return to the Edit_mode to begin at the top of
+another column.
+
+
+IV.B.3.a.vi.3. Excise Mode
+
+Enter Excise_mode from Edit_mode by typing the letter "X". 
+Observe that the cursor is moved to the extreme left of
+the current song line. Press the up_key. The line above should
+disappear. Press
+the up_key again. The same thing happens to the next line above.
+Now press the down_key. The line last excised reappears. Press
+the down_key twice more. The first line reappears and the line
+where the cursor was originally now disappears. You excise
+a line by causing it to disappear while in Excise_mode
+and then pressing the control_Q key to return to Edit_mode.
+Excise a few lines, return to Edit_mode and note how those
+lines have been removed from the song.
+
+This is the end of the tutorial section. Because you have made 
+audacious changes to J. S. Bach's Invention #1, you must return to the 
+operating system without updating the song as it is stored on the 
+diskette. Press control_C to cancel the edit session.
+{a:p=1
+
+
+

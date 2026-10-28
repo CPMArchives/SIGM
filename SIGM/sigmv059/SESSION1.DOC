@@ -1,0 +1,386 @@
+X> % Welcome back to the next PISTOL session!
+X> 
+X> % I shall show in this session how to create things
+X> % specifically, I shall show how to define CONSTANTs
+X> % VARIABLEs, WORDs, and "inline macros".
+X> 
+X> % CONSTANTs
+X> % suppose I wish to define "1K" as 1024 in decimal in
+X> % order to increase the readability and decrease the size
+X> % of the program.  Constants are an important tool to
+X> % simplify future modifications in a program.
+X> 
+X> 1024 '1K CONSTANT
+X> 
+X> % we can test if the definition "took" (really unnecessary)
+X> % but good for demonstration!
+X> 
+X> 1K =
+1024
+X> 
+X> % I shall digress to the question of number bases.  We have bee
+X> % been using "decimal" all along.  We could change, say to
+X> % Hexadecimal (base 16) by the command:
+X> 
+X> HEX
+H> 
+H> % notice how the prompt is now "H>", to indicate we are
+H> % now conversing with PISTOL in hexadecimal.
+H> 
+H> % What is "1K" in hex?:
+H> 
+H> 1K =
+400
+H> 
+H> % here is another demonstration we are in "hex":
+H> 
+H> 8 8 + =
+10
+H> 
+H> % the "10" is sixteen in hex; here's another demo:
+H> 
+H> 100 2 / =
+80
+H> 
+H> 100 2 /
+1H> DECIMAL
+1X> =
+128
+X> % note that the prompt helps to remind us which number base
+X> % we are using.  The value of a CONSTANT is not changing
+X> % when we change number bases, but writing its value "looks"
+X> % different in each number base.  Let's see "1K":
+X> 
+X> BINARY
+B> 1K =
+10000000000
+B> 
+B> OCTAL
+Q> 1K =
+2000
+Q> 
+Q> HEX
+H> 1K =
+400
+H> 
+H> DECIMAL
+X> 1K =
+1024
+X> 
+X> 
+X> % VARIABLEs
+X> % It is possible to store items in named locations like
+X> % most other higher-level languages.  For example,
+X> % " X = Y + Z " is probably understood as " take what is
+X> % stored at location 'X'; take what is stored at location
+X> % 'Y' ; add them; store the result at the location 'Z' "
+X> 
+X> % We must define and allocate space for variables before
+X> % we can use them; we shall define the variables, Y and Z
+X> % with initial values of 3 and 4 initially:
+X> 
+X> 3 'Y variable
+X> 4 'Z VARIABLE
+X> 
+X> % to test the values of variables we use the word "?":
+X> 
+X> Y ?
+3
+X> Z ?
+4
+X> 
+X> % to simulate X=Y+Z we better define X first:
+X> 
+X> 0 'X variable
+X> 
+X> X ?
+0
+X> 
+X> % Here goes:
+X> 
+X> Y W@  Z W@   +    X W!
+X> 
+X> X ?
+7
+X> % we did it.  We can continue to use X,Y, and Z for the
+X> % remainder of the session.  To see what have been the
+X> % ten most recent definitions we can use:
+X> 
+X> TOP10
+25280   X
+25264   Z
+25248   Y
+25234   1K
+25132   FINISH
+25066   WRITE
+25020   READ
+24990   1READ
+24930   DELETES
+24912   REPLACE
+1X> 
+1X> % note this command left an item on the stack. It is
+1X> % used to enable us to find the names of yet earlier
+1X> % definitions:
+1X> 
+1X> NEXT10
+24898   DELETE
+24874   (DELETE)
+24808   INPUT
+24700   LI
+24684   ARG#ERR
+24644   1POSARG?
+24610   LENTER
+24596   MTDN
+24570   OVERWRITE
+24534   MTUP
+1X> 
+1X> NEXT10
+24488   #GETLINE
+24450   LDDR
+24412   LDIR
+24306   LFIND
+24290   ILLEGLIN
+24236   LISTALL
+24202   NEXTLINE
+24164   NEWF
+24148   EOT
+24132   OLDLINE^
+1X> 
+1X> DROP
+X> 
+X> % the DROP is for "good housekeeping".
+X> 
+X> % back to CONTANTs and VARIALEs:
+X> % suppose we want to do:  X = '1K' + Y  :
+X> 
+X> 1K   Y W@   +    X W!
+X> 
+X> X ?
+1027
+X> 
+X> % looks correct.   It's about time I explain the words:
+X> % W@ and W!  The first, "word-at" is used to get the
+X> % contents of a location ( a VARIABLE provides a pointer
+X> % to the location).  The second, "word-store", is used
+X> % to place the item next to the top of stack into the
+X> % location pointed to by the top of stack.
+X> 
+X> % Let's follow the last example using the STACK utility:
+X> 
+X> STACK
+(0)
+X> 1K STACK
+(1)  1024
+1X> Y STACK
+(2)  1024  25254
+2X> W@ STACK
+(2)  1024  3
+2X> + STACK
+(1)  1027
+1X> X STACK
+(2)  1027  25286
+2X> W! STACK
+(0)
+X> 
+X> X STACK
+(1)  25286
+1X> ? STACK
+1027
+(0)
+X> 
+X> % the ? is equivalent to the pair of words:  W@ =
+X> 
+X> % creating new WORDs....
+X> % suppose we didn't have or didn't know the word, "?" ,
+X> % we could invent it: suppose we call our word, "IS" :
+X> 
+X> 'IS :  W@ =  ;
+X> 
+X> % testing this new word:
+X> 
+X> X IS
+1027
+X> 
+X> Y IS
+3
+X> 
+X> Z IS
+4
+X> % it appears to work. Once a word exists, we can define
+X> % newer words yet, for example:
+X> 
+X> 'XYZ? : X IS  SPACE   Y IS  SPACE  Z IS    ;
+X> 
+X> % testing:
+X> 
+X> XYZ?
+1027 3 4
+X> 
+X> % further testing:
+X> 
+X> -15  X W!
+X> XYZ?
+-15 3 4
+X> 
+X> 
+X> % DIS-assembling words:  (very useful if you forgot how
+X> % you created a definition!)
+X> 
+X> 'XYZ?  DIS
+'XYZ? [:]       X       IS      SPACE   Y       IS      SPACE   
+Z       IS      ;
+X> 
+X> 
+X> % Thus DIS shows us more or less the same thing as we typed.
+X> % more examples:
+X> 
+X> 'IS DIS
+'IS [:] W@      =       ;
+X> 
+X> '? DIS
+'? [:]  W@      =       ;
+X> 
+X> 
+X> % So we see that the "?" was originally defined the same
+X> % way we defined "IS".
+X> 
+X> % Sometimes we wish to observe the internal action of a
+X> % definition, say, for debugging.  We use the utility
+X> % "TRACE":
+X> 
+X> 'XYZ?  TRACE
+'XYZ? BEING TRACED:
+(0)                                             X  
+(1)  25286                                      IS  -15
+(0)                                             SPACE   
+(0)                                             Y  
+(1)  25254                                      IS  3
+(0)                                             SPACE   
+(0)                                             Z  
+(1)  25270                                      IS  4
+(0)                                             (;)
+TRACE COMPLETED
+X> 
+X> 
+X> % notice that the STACK utility is interposed in between
+X> % each word that makes up the definition being tested.
+X> % fortunately, however, the individual words, such as
+X> % "IS" are not also "traced"; if TRACE showed every
+X> % step we would have too much clutter.  It is then
+X> % possible to do a TRACE on a suspicious subsidiary word,
+X> % and so on...
+X> 
+X> % inline macros:
+X> % as the last topic of this session we shall show an
+X> % alternate way to define new words:
+X> % we will define "DOUBLE" in two ways:
+X> 
+X> 'DOUBLE1 : DUP + ;
+X> 'DOUBLE2 $: DUP + ;$
+X> 
+X> % testing each:
+X> 3 DOUBLE1 =
+6
+X> 3 DOUBLE2 =
+6
+X> 
+X> % they appear to behave at least similarly.  What about
+X> % disassembling them:
+X> 
+X> 'DOUBLE1 dis
+'DOUBLE1 [:]    DUP     +       ;
+X> 'DOUBLE2 dis
+'DOUBLE2 [$:]   DUP     +       ;
+X> 
+X> % Now I can try to illustrate how they really differ, by
+X> % defining QUADUPLE using both:
+X> 
+X> 'QUADUPLE :
+
+1X:> DOUBLE1
+
+1X:> DOUBLE2
+
+1X:> ;
+X> 
+X> % testing:
+X> 
+X> 3 quaduple =
+12
+X> % seems reasonable (yes, I realize my spelling is bad!)
+X> % let's use DIS:
+X> 
+X> 'QUADUPLE DIS
+'QUADUPLE [:]   DOUBLE1 DUP     +       ;
+X> 
+X> % Where did DOUBLE2 go?  We see that it was repleced by
+X> % " DUP + ", which is the way we defined DOUBLE2 anyway.
+X> 
+X> % the difference between using the : ; pair for defining
+X> % a word and the $: ;$ pair for the definition is the
+X> % the former creates a "subroutine" and the latter defines
+X> % a pattern to be substituted into whereever it will be
+X> % used.  The choice of which to use is that of space
+X> % verses speed.
+X> 
+X> % Let's use TOP10 to see what monsters we have created:
+X> 
+X> TOP10
+25364   QUADUPLE
+25350   DOUBLE2
+25336   DOUBLE1
+25310   XYZ?
+25296   IS
+25280   X
+25264   Z
+25248   Y
+25234   1K
+25132   FINISH
+1X> 
+1X> drop
+X> 
+X> % sooner or later we wish to redo definitions or discard
+X> % them.  The word FORGET is used:
+X> 
+X> 'IS  FORGET
+X> 
+X> % testing:
+X> 
+X> TOP10
+25280   X
+25264   Z
+25248   Y
+25234   1K
+25132   FINISH
+25066   WRITE
+25020   READ
+24990   1READ
+24930   DELETES
+24912   REPLACE
+1X> 
+1X> drop
+X> 
+X> % FORGET not only discards the chosen word (here "IS"), but
+X> % also all more recent definitions.  This behavior is
+X> % following a long tradition that was in FORTH and in
+X> % STOIC.  At times it is convenient, at times inconvenient.
+X> % Consider whether XYZ? would have been useful after IS was
+X> % discarded.
+X> 
+X> % FORGET is a word that causes designers of this kind of
+X> % language sleepless nights.
+X> 
+X> % This session has lasted long enough.... Why don't you
+X> % continue experimenting and learning PISTOL more
+X> % systematically by reading PISTOL.DOC?
+X> 
+X> bye
+80   X
+25264   Z
+25248   Y
+25234   1K
+25132   FINISH
+1X> 
+1X> drop
+X> 
+X> % sooner 

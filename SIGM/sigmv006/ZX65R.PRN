@@ -1,0 +1,2113 @@
+ZXMAIN                                 SD SYSTEMS Z80 ASSEMBLER PAGE 0001 
+ ADDR  CODE      STMT SOURCE STATEMENT
+
+                 0001         NAME    ZXMAIN
+                 0003 ;
+                 0004 ; V 2.1 OF ZX65 IS MODIFIED TO BE LINKED AT ASSEMBLY
+                 0005 ; TIME WITH ZXLD V 2.1.  THIS COMBINATION IS TOTALLY
+                 0006 ; RELOCATABLE, AND WILL FUNCTION UNDER ANY CPM 1.4
+                 0007 ; SYSTEM SIZE.  FORMAT IS FOR SD SYSTEMS ASSEMBLER
+                 0008 ; V 3.3 AND LINKER V 3.0
+                 0009 ;
+                 0010 ; V 2.1 INCLUDES ALL PREVIOUS MODS PLUS CORRECTED
+                 0011 ; JSR/JMP/RTS FUNCTIONS.
+                 0012 ;
+                 0013         GLOBAL  RELBAS
+                 0014 ;
+'>0000           0015 BASE    EQU     $
+'>0F00           0016 HOST    EQU     BASE+0F00H      ; HOST SYSTEM CBIOS
+'>0F00           0017 SYSTK   EQU     HOST            ; SYSTEM STACK
+'>0F03           0018 CPWRM   EQU     HOST+3          ; CP/M COLD ST
+'>0F06           0019 CONST   EQU     HOST+6          ; HOST SYSTEM INPUT TEST
+'>0F09           0020 CONIN   EQU     HOST+9          ; HOST SYSTEM CONS IN
+'>0F0C           0021 CONOUT  EQU     HOST+0CH        ; HOST SYSTEM CONS OUT
+'>0F18           0022 HOME    EQU     HOST+18H        ; DRIV HOME
+'>0F1B           0023 SETDRV  EQU     HOST+1BH        ; SELECT DRVE
+'>0F1E           0024 SETTRK  EQU     HOST+1EH        ; SELECT TRACK
+'>0F21           0025 SETSEC  EQU     HOST+21H        ; SELECT SECTOR
+'>0F24           0026 SETBUF  EQU     HOST+24H        ; SET XFER ADDRESS
+'>0F27           0027 READ    EQU     HOST+27H        ; READ A SECTOR
+'>0F2A           0028 WRITE   EQU     HOST+2AH        ; WRITE A SECTOR
+                 0029 ;
+'0000  31000F'   0030 RELBAS  LD      SP,SYSTK
+'0003  0E01      0031         LD      C,1
+'0005  CD3A0B'   0032         CALL    DRVS            ; ACTIVATE DRV B
+'0008  CD370B'   0033         CALL    HOMB            ; AND INIT IT
+'000B  FD216C0B' 0034         LD      IY,INTRO
+'000F  CDD90A'   0035         CALL    PRTXT           ; PRINT HEADER
+'0012  CD4F0A'   0036         CALL    CRLF
+                 0037 ;
+                 0038 ; COMMAND LEVEL...RETURN HERE FROM ANY POINT IN PGM
+                 0039 ;
+'0015  211500'   0040 CMND    LD      HL,CMND
+'0018  E5        0041         PUSH    HL              ; RET ADDR ON STACK
+'0019  CD4F0A'   0042         CALL    CRLF
+'001C  CD590A'   0043         CALL    PROM
+'001F  CD160B'   0044         CALL    GETCHR          ; GET COMMAND
+'0022  FE45      0045         CP      'E'
+'0024  CAE906'   0046         JP      Z,EXAM          ; EXAM MEMORY
+'0027  FE4D      0047         CP      'M'
+'0029  CA4B07'   0048         JP      Z,SUBM          ; SUB MEMORY
+'002C  DD21630B' 0049         LD      IX,VREG         ; FOR SIMX
+'0030  FE42      0050         CP      'B'
+'0032  2864      0051         JR      Z,BRKP-$        ; RUN TO BREAKPOINT
+'0034  FE43      0052         CP      'C'
+'0036  CACE00'   0053         JP      Z,RGSTR         ; DSPLY/MODIFY CPU REGS
+'0039  FE47      0054         CP      'G'
+'003B  CAC100'   0055         JP      Z,RUN           ; RUN FROM NPC
+'003E  FE54      0056         CP      'T'
+'0040  282D      0057         JR      Z,MULTX-$       ; TRACE/DISPLAY N STEPS
+'0042  FE20      0058         CP      ' '
+'0044  2836      0059         JR      Z,EXONE-$       ; EX ONE INSTR & STOP
+
+
+
+
+
+ZXMAIN ZX65  VER 2.1  8/80  RMK        SD SYSTEMS Z80 ASSEMBLER PAGE 0002 
+ ADDR  CODE      STMT SOURCE STATEMENT
+
+'0046  DD21700C' 0060         LD      IX,BUFFR        ; FOR DOS
+'004A  FE44      0061         CP      'D'
+'004C  CAA807'   0062         JP      Z,PDIR          ; DOS DIR
+'004F  FE49      0063         CP      'I'
+'0051  CACB08'   0064         JP      Z,INIT          ; DOS INITIALIZE
+'0054  FE4B      0065         CP      'K'
+'0056  CAB608'   0066         JP      Z,KILL          ; DOS ERASE
+'0059  FE4C      0067         CP      'L'
+'005B  CAF507'   0068         JP      Z,LOAD          ; DOS LOADER
+'005E  FE52      0069         CP      'R'
+'0060  CAEB07'   0070         JP      Z,LDGO          ; LOAD AND RUN PGM
+'0063  FE53      0071         CP      'S'
+'0065  CA1308'   0072         JP      Z,SAVE          ; DOS SAVER
+'0068  0E3F      0073         LD      C,'?'
+'006A  CD340B'   0074         CALL    PRNC            ; INVALID COMMAND
+'006D  18A6      0075         JR      CMND-$
+                 0076 ;
+                 0077 ; EXECUTE N STEPS
+                 0078 ;
+'006F  FD21250C' 0079 MULTX   LD      IY,MLTMSG
+'0073  CDD90A'   0080         CALL    PRTXT
+'0076  CD630A'   0081         CALL    GETWRD          ; GET N
+'0079  7B        0082         LD      A,E
+'007A  2002      0083         JR      NZ,DOMULT-$
+'007C  3E01      0084 EXONE   LD      A,1             ; EXECUTE 1 STEP
+                 0085 ;
+                 0086 ; EXECUTE # STEPS IN A
+                 0087 ;
+'007E  325D0B'   0088 DOMULT  LD      (NSTEPS),A      ; STORE N IN TEMP
+'0081  CD9601'   0089         CALL    STEP            ; EXEC & DSPLY INSTR
+'0084  CD1101'   0090         CALL    DSPLY
+'0087  3A5D0B'   0091         LD      A,(NSTEPS)
+'008A  3D        0092         DEC     A
+'008B  C8        0093         RET     Z
+'008C  F5        0094         PUSH    AF
+'008D  015F0B'   0095         LD      BC,DLYCON       ; DELAY FOR VIEWING
+'0090  0B        0096 DOLP    DEC     BC
+'0091  78        0097         LD      A,B
+'0092  B1        0098         OR      C
+'0093  20FB      0099         JR      NZ,DOLP-$
+'0095  F1        0100         POP     AF
+'0096  18E6      0101         JR      DOMULT-$
+                 0102 ;
+                 0103 ; RUN WITHOUT DISPLAY TO BREAKPOINT
+                 0104 ;
+'0098  FD21370C' 0105 BRKP    LD      IY,BKPMSG
+'009C  CDD90A'   0106         CALL    PRTXT
+'009F  CD630A'   0107         CALL    GETWRD          ; GET IT
+'00A2  ED53610B' 0108         LD      (BREAK),DE      ; STORE IT IN TEMP
+'00A6  CD9601'   0109 BKLP    CALL    STEP            ; EXEC ONE INSTR
+'00A9  ED5B610B' 0110         LD      DE,(BREAK)
+'00AD  7C        0111         LD      A,H             ; CHECK IF AT BKPT
+'00AE  BA        0112         CP      D
+'00AF  2009      0113         JR      NZ,INTST-$
+'00B1  7D        0114         LD      A,L
+'00B2  BB        0115         CP      E
+'00B3  2005      0116         JR      NZ,INTST-$
+'00B5  CD9601'   0117         CALL    STEP            ; DO ONE MORE
+
+
+
+
+
+ZXMAIN ZX65  VER 2.1  8/80  RMK        SD SYSTEMS Z80 ASSEMBLER PAGE 0003 
+ ADDR  CODE      STMT SOURCE STATEMENT
+
+'00B8  1857      0118         JR      DSPLY-$
+'00BA  CD310B'   0119 INTST   CALL    KBST            ; TEST FOR KBD INP
+'00BD  28E7      0120         JR      Z,BKLP-$        ; CONTINUE IF NONE
+'00BF  1808      0121         JR      QDSP-$
+                 0122 ;
+                 0123 ; RUN ONLY..NO DISPLAY OR BREAKPOINT
+                 0124 ;
+'00C1  CD9601'   0125 RUN     CALL    STEP            ; DO A STEP
+'00C4  CD310B'   0126         CALL    KBST            ; CHECK FOR KB INPUT
+'00C7  28F8      0127         JR      Z,RUN-$         ; IF NONE JUST REPEAT
+                 0128 ;
+                 0129 ; STOP, DISPLAY, & RET TO CMND
+                 0130 ;
+'00C9  CD2E0B'   0131 QDSP    CALL    KBIN            ; CLEAR UART
+'00CC  1843      0132         JR      DSPLY-$         ; DISP CPU & RET
+                 0133 ; 
+                 0134 ; DISPLAY & UPDATE CPU REGISTERS
+                 0135 ;
+'00CE  DDE5      0136 RGSTR   PUSH    IX
+'00D0  CD4F0A'   0137         CALL    CRLF
+'00D3  FD21B00B' 0138         LD      IY,HEADR+42
+'00D7  CD8C01'   0139         CALL    PRN6            ; PRINT RG NAME
+'00DA  ED5B6A0B' 0140         LD      DE,(NPC)        ; NEXT PC TO DE
+'00DE  CDB20A'   0141         CALL    PRTWRD          ; PRINT IT
+'00E1  CD590A'   0142         CALL    PROM            ; PROMPT FOR CHANGE
+'00E4  CD630A'   0143         CALL    GETWRD
+'00E7  2804      0144         JR      Z,AREG-$        ; SPACE = NO CHANGE
+'00E9  ED536A0B' 0145         LD      (NPC),DE        ; PUT IN NEW VALUE
+'00ED  FD21920B' 0146 AREG    LD      IY,HEADR+12
+'00F1  0605      0147         LD      B,5
+'00F3  CD4F0A'   0148 NREG    CALL    CRLF            ; DO REST OF REGS
+'00F6  CD8C01'   0149         CALL    PRN6            ; PRINT NAME
+'00F9  DD5E00    0150         LD      E,(IX+0)
+'00FC  CDB60A'   0151         CALL    PRTBYT          ; PRINT CONTENTS
+'00FF  CD590A'   0152         CALL    PROM            ; PROMPT FOR CHANGE
+'0102  CD630A'   0153         CALL    GETWRD
+'0105  2803      0154         JR      Z,NXTREG-$      ; SPACE = NO CHANGE
+'0107  DD7300    0155         LD      (IX+0),E
+'010A  DD23      0156 NXTREG  INC     IX              ; POINT TO NEXT REG
+'010C  10E5      0157         DJNZ    NREG-$          ; DO AGAIN IF MORE
+'010E  DDE1      0158         POP     IX
+'0110  C9        0159         RET
+                 0160 ;
+                 0161 ; DISPLAY PC, INSTRUCTION, AND ALL REGISTERS
+                 0162 ;
+'0111  DDE5      0163 DSPLY   PUSH    IX              ; SAVE POINTER
+'0113  C5        0164         PUSH    BC              ; SAVE MNEMONIC CODE
+'0114  CD4F0A'   0165         CALL    CRLF
+'0117  FD21860B' 0166         LD      IY,HEADR
+'011B  CD8C01'   0167         CALL    PRN6            ; 'CPC'
+'011E  ED5B680B' 0168         LD      DE,(CPC)
+'0122  CDB20A'   0169         CALL    PRTWRD          ; VALUE
+'0125  CD8C01'   0170         CALL    PRN6            ; 'INS'
+'0128  C1        0171         POP     BC
+'0129  FDE5      0172         PUSH    IY
+'012B  C5        0173         PUSH    BC
+'012C  FD21AE0D' 0174         LD      IY,MNMTBL       ; DET MNEM FROM BC
+'0130  3EFC      0175         LD      A,0FCH
+
+
+
+
+
+ZXMAIN ZX65  VER 2.1  8/80  RMK        SD SYSTEMS Z80 ASSEMBLER PAGE 0004 
+ ADDR  CODE      STMT SOURCE STATEMENT
+
+'0132  A1        0176         AND     C
+'0133  CB3F      0177         SRL     A
+'0135  5F        0178         LD      E,A
+'0136  1600      0179         LD      D,0
+'0138  FD19      0180         ADD     IY,DE
+'013A  FD5E00    0181         LD      E,(IY+0)        ; GET PACKED MNEM
+'013D  FD5601    0182         LD      D,(IY+1)
+'0140  CB23      0183         SLA     E               ; UNPACK IT
+'0142  CB12      0184         RL      D
+'0144  0E03      0185         LD      C,3             ; & PRINT THREE CHRS
+'0146  AF        0186 MNM2    XOR     A
+'0147  0605      0187         LD      B,5
+'0149  CB23      0188 MNM1    SLA     E
+'014B  CB12      0189         RL      D
+'014D  17        0190         RLA
+'014E  10F9      0191         DJNZ    MNM1-$
+'0150  CBF7      0192         SET     6,A
+'0152  C5        0193         PUSH    BC
+'0153  CD270B'   0194         CALL    PRNA
+'0156  C1        0195         POP     BC
+'0157  0D        0196         DEC     C
+'0158  20EC      0197         JR      NZ,MNM2-$
+'015A  C1        0198         POP     BC              ; DECODE ADDR MODE
+'015B  78        0199         LD      A,B
+'015C  CB27      0200         SLA     A
+'015E  CB27      0201         SLA     A
+'0160  CB27      0202         SLA     A
+'0162  5F        0203         LD      E,A
+'0163  1600      0204         LD      D,0
+'0165  FD211E0E' 0205         LD      IY,AMDTBL
+'0169  FD19      0206         ADD     IY,DE
+'016B  CD9101'   0207         CALL    PRN8            ; PRINT ADDR MODE
+'016E  FDE1      0208         POP     IY
+'0170  0605      0209         LD      B,5
+'0172  CD8C01'   0210 DSP1    CALL    PRN6            ; PRINT ALL REGS
+'0175  DD5E00    0211         LD      E,(IX+0)
+'0178  CDB60A'   0212         CALL    PRTBYT
+'017B  DD23      0213         INC     IX
+'017D  10F3      0214         DJNZ    DSP1-$
+'017F  CD8C01'   0215         CALL    PRN6            ; PRINT NEXT PC
+'0182  ED5B6A0B' 0216         LD      DE,(NPC)
+'0186  CDB20A'   0217         CALL    PRTWRD
+'0189  DDE1      0218         POP     IX
+'018B  C9        0219         RET
+                 0220 ;
+'018C  1E06      0221 PRN6    LD      E,6             ; PRINT 6 CHARS PER IY
+'018E  C3DB0A'   0222         JP      PRNLP
+'0191  1E08      0223 PRN8    LD      E,8             ; PRINT 8 CHRS PER IY
+'0193  C3DB0A'   0224         JP      PRNLP
+                 0225 ;
+                 0226 ; CODE FOR DECODING AND EXECUTING ONE INSTRUCTION
+                 0227 ; ENTER WITH HL POINTING TO INSTR TO BE DECODED. EXITS
+                 0228 ; WITH HL POINTING TO NEXT INSTR, B HOLDING ADDRESSING
+                 0229 ; MODE CODE, C HOLDING MNEMONIC CODE
+                 0230 ;
+'0196  2A6A0B'   0231 STEP    LD      HL,(NPC)        ; NEXT PC TO HL
+'0199  22680B'   0232         LD      (CPC),HL        ; BECOMES CURRENT PC
+'019C  7E        0233         LD      A,(HL)          ; OP CODE
+
+
+
+
+
+ZXMAIN ZX65  VER 2.1  8/80  RMK        SD SYSTEMS Z80 ASSEMBLER PAGE 0005 
+ ADDR  CODE      STMT SOURCE STATEMENT
+
+'019D  B7        0234         OR      A               ; ZERO?
+'019E  CAF601'   0235         JP      Z,PBRK          ; IF SO, 'BRK'
+'01A1  CB47      0236         BIT     0,A             ; TEST LSD FOR ODD/EVEN
+'01A3  C21804'   0237         JP      NZ,MLTMOD       ; ODD INSTRS MULTI MODE
+'01A6  E60F      0238         AND     0FH
+'01A8  2018      0239         JR      NZ,FLGTST-$
+'01AA  7E        0240         LD      A,(HL)          ; RESTORE OP CODE
+'01AB  CB67      0241         BIT     4,A             ; MSD ODD/EVEN
+'01AD  C22A02'   0242         JP      NZ,PBRNCH       ; IF ODD, BRANCH
+'01B0  FE20      0243         CP      20H
+'01B2  CA6202'   0244         JP      Z,PJSR          ; PROCESS JSR
+'01B5  FE40      0245         CP      40H
+'01B7  CAAC02'   0246         JP      Z,PRTI          ; PROCESS RTI
+'01BA  FE60      0247         CP      60H
+'01BC  CAA302'   0248         JP      Z,PRTS          ; PROCESS RTS
+'01BF  C31804'   0249         JP      MLTMOD          ; ELSE MULTI MODE
+'01C2  FE08      0250 FLGTST  CP      8
+'01C4  200E      0251         JR      NZ,IMP2-$
+'01C6  7E        0252         LD      A,(HL)          ; RESTORE
+'01C7  CB67      0253         BIT     4,A             ; MSD ODD/EVEN
+'01C9  CA2103'   0254         JP      Z,PIMPL         ; IF EVEN, MST BE IMPLD
+'01CC  FE98      0255         CP      98H             ; MSD = 9?
+'01CE  CADB03'   0256         JP      Z,PTYA          ; YES, PROC TYA SPECIAL
+'01D1  C3E803'   0257         JP      PFLGS           ; ELSE PROCESS FLAG OPS
+'01D4  FE0A      0258 IMP2    CP      0AH
+'01D6  2010      0259         JR      NZ,JMPTST-$     ; MUST BE JUMP
+'01D8  7E        0260         LD      A,(HL)          ; RESTORE
+'01D9  E6F0      0261         AND     0F0H            ; TESTS ON MSD
+'01DB  CB67      0262         BIT     4,A             ; ODD/EVEN
+'01DD  C20603'   0263         JP      NZ,PTSS         ; PROSESS SP OPS SPECIAL
+'01E0  FE70      0264         CP      70H
+'01E2  DA1804'   0265         JP      C,MLTMOD        ; PROCESS ACCUM MODES
+'01E5  C32103'   0266         JP      PIMPL           ; ELSE MORE IMPLIEDS
+'01E8  7E        0267 JMPTST  LD      A,(HL)          ; RESTORE OP CODE
+'01E9  FE4C      0268         CP      4CH
+'01EB  CA8302'   0269         JP      Z,PJABS         ; PROCESS ABS JMP
+'01EE  FE6C      0270         CP      6CH
+'01F0  CA8802'   0271         JP      Z,PJIND         ; PROCESS INDIRECT JMP
+'01F3  C31804'   0272         JP      MLTMOD
+                 0273 ;
+                 0274 ; INSTURCTION PROCESSORS BEGIN HERE.. ENTER WITH
+                 0275 ; HL = PC, IX POINTING TO SIM CPU
+                 0276 ;
+                 0277 ; IF BRK VECTOR (IPOINT) = 0, RETURN TO CMND
+                 0278 ;
+'01F6  DDCB01E6  0279 PBRK    SET     4,(IX+1)        ; SET BRK STATUS BIT
+'01FA  2A5B0B'   0280         LD      HL,(IPOINT)     ; SEE IF RET TO CMND
+'01FD  7C        0281         LD      A,H
+'01FE  B5        0282         OR      L
+'01FF  2007      0283         JR      NZ,BRK1-$
+'0201  C1        0284         POP     BC              ; ADJUST SP
+'0202  012904    0285         LD      BC,429H         ; RET TO CMND
+'0205  C31101'   0286         JP      DSPLY
+'0208  23        0287 BRK1    INC     HL              ; NORMAL BREAK
+'0209  CD0406'   0288         CALL    TSPY            ; SP TO IY
+'020C  FD7400    0289         LD      (IY+0),H        ; 'PUSH' PC
+'020F  FD2B      0290         DEC     IY
+'0211  FD7500    0291         LD      (IY+0),L
+
+
+
+
+
+ZXMAIN ZX65  VER 2.1  8/80  RMK        SD SYSTEMS Z80 ASSEMBLER PAGE 0006 
+ ADDR  CODE      STMT SOURCE STATEMENT
+
+'0214  FD2B      0292         DEC     IY
+'0216  DD7E01    0293         LD      A,(IX+1)        ; 'PUSH' P
+'0219  FD7700    0294         LD      (IY+0),A
+'021C  FD2B      0295         DEC     IY
+'021E  CD0D06'   0296         CALL    TYSP            ; IY TO SP
+'0221  2A5B0B'   0297         LD      HL,(IPOINT)     ; GET INTERRUPT VECTOR
+'0224  012904    0298         LD      BC,429H         ; CODE FOR # BYTES & MNEM
+'0227  C3D705'   0299         JP      END1            ; AND FINISH
+                 0300 ;
+                 0301 ; PROCESS BRANCHES
+                 0302 ;
+'022A  0600      0303 PBRNCH  LD      B,0             ; FORM INDEX INTO MSKTBL
+'022C  4E        0304         LD      C,(HL)          ; INSTR TO C
+'022D  FD21420D' 0305         LD      IY,MSKTBL
+'0231  CB39      0306         SRL     C               ; GET MSD
+'0233  CB39      0307         SRL     C
+'0235  CB39      0308         SRL     C
+'0237  CB39      0309         SRL     C
+'0239  0D        0310         DEC     C
+'023A  FD09      0311         ADD     IY,BC
+'023C  23        0312         INC     HL              ; POINT TO OFFSET
+'023D  CB49      0313         BIT     1,C             ; MSD ODD/EVEN
+'023F  DD7E01    0314         LD      A,(IX+1)        ; P REG TO ACC
+'0242  FD4E00    0315         LD      C,(IY+0)        ; # CODE
+'0245  FD4601    0316         LD      B,(IY+1)        ; FLAG MASK
+'0248  2005      0317         JR      NZ,BRSET-$      ; ODD/EVEN DET SET/CLR
+'024A  A0        0318         AND     B               ; ISOLATE BIT FOR TEST
+'024B  2807      0319         JR      Z,TRUE-$
+'024D  180E      0320         JR      FALSE-$
+'024F  A0        0321 BRSET   AND     B
+'0250  2002      0322         JR      NZ,TRUE-$
+'0252  1809      0323         JR      FALSE-$
+'0254  1600      0324 TRUE    LD      D,0             ; CONDITION MET; BRANCH
+'0256  5E        0325         LD      E,(HL)          ; OFFSET TO E
+'0257  CB7B      0326         BIT     7,E             ; CHECK SIGN OF OFFSET
+'0259  2801      0327         JR      Z,TRU1-$
+'025B  15        0328         DEC     D               ; IF B7 IS SET, DO NEG
+'025C  19        0329 TRU1    ADD      HL,DE          ; ADD OFFSET FOR NEW PC
+'025D  0600      0330 FALSE   LD      B,0             ; COND NOT MET; GO ON
+'025F  C3D605'   0331         JP      END
+                 0332 ;
+                 0333 ; PROCESS JUMPS AND JSR...JMP 0-4 AND JSR 0-4 GO INTO Z80
+                 0334 ; ROUTINES PER JUMP TABLE AT USR0. CONTROL THEN RETURNS
+                 0335 ; TO SIMULATOR UPON Z80 'RET' (C9).. ALL OTHERS PROCESSED
+                 0336 ; NORMALLY.
+                 0337 ;
+'0262  017302    0338 PJSR    LD      BC,273H         ; JSR
+'0265  C5        0339         PUSH    BC
+'0266  CDD002'   0340         CALL    SPCTST          ; TEST FOR USER
+'0269  2006      0341         JR      NZ,PJS2-$
+'026B  CDDE02'   0342         CALL    INUSR           ; GO TO USER SR
+'026E  C1        0343         POP     BC
+'026F  1838      0344         JR      EE0-$
+'0271  CD0406'   0345 PJS2    CALL    TSPY            ; NORMAL JSR
+'0274  FD7400    0346         LD      (IY+0),H        ; PUSH CURRENT PC
+'0277  FD2B      0347         DEC     IY
+'0279  FD7500    0348         LD      (IY+0),L
+'027C  FD2B      0349         DEC     IY
+
+
+
+
+
+ZXMAIN ZX65  VER 2.1  8/80  RMK        SD SYSTEMS Z80 ASSEMBLER PAGE 0007 
+ ADDR  CODE      STMT SOURCE STATEMENT
+
+'027E  CD0D06'   0350         CALL    TYSP
+'0281  181C      0351         JR      DOJ1-$
+'0283  016F02    0352 PJABS   LD      BC,26FH         ; ABS JMP
+'0286  1808      0353         JR      DOJP-$
+'0288  016F0C    0354 PJIND   LD      BC,0C6FH        ; INDIRECT JMP
+'028B  CDD002'   0355         CALL    SPCTST
+'028E  EB        0356         EX      DE,HL
+'028F  2B        0357         DEC     HL
+'0290  C5        0358 DOJP    PUSH    BC
+'0291  CDD002'   0359         CALL    SPCTST          ; TEST FOR SPECIALS
+'0294  2009      0360         JR      NZ,DOJ1-$
+'0296  CDDE02'   0361         CALL    INUSR           ; FOR SPECIALS
+'0299  CDC002'   0362         CALL    PRET            ; DO SR RETURN
+'029C  C1        0363         POP     BC
+'029D  180A      0364         JR      EE0-$           ; GO TO PC+1
+'029F  EB        0365 DOJ1    EX      DE,HL           ; NEW PC
+'02A0  C1        0366         POP     BC
+'02A1  181A      0367         JR      EE1-$
+                 0368 ;
+                 0369 ; PROCESS SR AND INTERRUPT RETURNS
+                 0370 ;
+'02A3  CDC002'   0371 PRTS    CALL    PRET            ; RTS...RESTORE PC
+'02A6  01A904    0372         LD      BC,4A9H
+'02A9  C3D605'   0373 EE0     JP      END             ; GO TO PC+1
+'02AC  CD0406'   0374 PRTI    CALL    TSPY            ; RTI
+'02AF  FD23      0375         INC     IY
+'02B1  FD7E00    0376         LD      A,(IY+0)        ; RESTORE FLAGS
+'02B4  DD7701    0377         LD      (IX+1),A
+'02B7  CDC302'   0378         CALL    PRET1           ; RESTORE PC
+'02BA  01A504    0379         LD      BC,4A5H
+'02BD  C3D705'   0380 EE1     JP      END1
+'02C0  CD0406'   0381 PRET    CALL    TSPY            ; SP TO IY
+'02C3  FD23      0382 PRET1   INC     IY              ; POINT TO LAST ENTRY
+'02C5  FD6E00    0383         LD      L,(IY+0)        ; RESTORE PCL
+'02C8  FD23      0384         INC     IY
+'02CA  FD6600    0385         LD      H,(IY+0)        ; RESTORE PCH
+'02CD  C30D06'   0386         JP      TYSP            ; RESTORE NEW SP
+                 0387 ;
+                 0388 ; TEST FOR USER SUBROUTINE CALLS/JUMPS. IF TARGET
+                 0389 ; ADDRESS < 0005 THEN RET WITH Z FLG SET, ELSE CLR
+                 0390 ;
+'02D0  23        0391 SPCTST  INC     HL              ; TEST FOR USR SR
+'02D1  5E        0392         LD      E,(HL)          ; LO BYTE
+'02D2  23        0393         INC     HL              ; TARGET TO DE
+'02D3  56        0394         LD      D,(HL)          ; HI BYTE
+'02D4  3E00      0395         LD      A,0             ; TARGET < 0005?
+'02D6  B2        0396         OR      D
+'02D7  C0        0397         RET     NZ
+'02D8  3E04      0398         LD      A,4
+'02DA  BB        0399         CP      E
+'02DB  D8        0400         RET     C
+'02DC  AF        0401         XOR     A               ; SET Z FLAG
+'02DD  C9        0402         RET
+                 0403 ;
+                 0404 ; INDEX INTO USER SUBROUTINE TABLE
+                 0405 ; PASS A, X, & Y TO/FROM USER ROUTINE AS A, B, & C.
+                 0406 ;
+'02DE  1600      0407 INUSR   LD      D,0
+
+
+
+
+
+ZXMAIN ZX65  VER 2.1  8/80  RMK        SD SYSTEMS Z80 ASSEMBLER PAGE 0008 
+ ADDR  CODE      STMT SOURCE STATEMENT
+
+'02E0  7B        0408         LD      A,E
+'02E1  83        0409         ADD     A,E
+'02E2  83        0410         ADD     A,E
+'02E3  5F        0411         LD      E,A
+'02E4  FD214C0B' 0412         LD      IY,USR0
+'02E8  01F902'   0413         LD      BC,USRET        ; RETURN ON STACK
+'02EB  C5        0414         PUSH    BC
+'02EC  FD19      0415         ADD     IY,DE
+'02EE  DD7E00    0416         LD      A,(IX+0)        ; PASS A,X, & Y
+'02F1  DD4602    0417         LD      B,(IX+2)
+'02F4  DD4E03    0418         LD      C,(IX+3)
+'02F7  FDE9      0419         JP      (IY)            ; AND GO
+'02F9  DD7700    0420 USRET   LD      (IX+0),A        ; RETURN HERE
+'02FC  DD7002    0421         LD      (IX+2),B        ; RETURN PARAMETERS
+'02FF  DD7103    0422         LD      (IX+3),C
+'0302  C9        0423         RET
+'0303  00        0424         NOP                     ; PAD FOR PATCH
+'0304  00        0425         NOP
+'0305  00        0426         NOP
+                 0427 ;
+                 0428 ; PROCESS SP EXCHANGES
+                 0429 ;
+'0306  FE90      0430 PTSS    CP      90H             ; WHICH ONE IS IT?
+'0308  200C      0431         JR      NZ,PTSX-$
+'030A  DD7E02    0432 PTXS    LD      A,(IX+2)        ; MOVE DATA FROM X...
+'030D  DD7704    0433         LD      (IX+4),A        ; TO SP
+'0310  01D904    0434         LD      BC,4D9H
+'0313  C3D605'   0435         JP      END
+'0316  DD7E04    0436 PTSX    LD      A,(IX+4)        ; MOVE SP
+'0319  DD7702    0437         LD      (IX+2),A        ; TO X REG
+'031C  0ED1      0438         LD      C,0D1H
+'031E  C3E303'   0439         JP      COMPL           ; AND MODIFY FLAGS
+                 0440 ;
+                 0441 ; PROCESS ALL REMAINING IMPLIED INSTRUCTIONS
+                 0442 ;
+'0321  4F        0443 PIMPL   LD      C,A             ; OP CODE
+'0322  CB39      0444         SRL     C               ; GET MSD
+'0324  CB39      0445         SRL     C
+'0326  CB39      0446         SRL     C
+'0328  CB39      0447         SRL     C
+'032A  E60F      0448         AND     0FH             ; CHECK LSD
+'032C  FE08      0449         CP      8
+'032E  FD21620D' 0450         LD      IY,IMPTBL       ; INDEX INTO TABLE
+'0332  CADA06'   0451         JP      Z,JPIB
+'0335  FD216A0D' 0452         LD      IY,IMPTBL+8
+'0339  C3DA06'   0453         JP      JPIB
+                 0454 ;
+                 0455 ; IMPLIED INSTR PROCESSORS
+                 0456 ;
+'033C  DD3402    0457 PINX    INC     (IX+2)          ; INX
+'033F  0E65      0458         LD      C,65H
+'0341  1813      0459         JR      IDEFLG-$
+'0343  DD3403    0460 PINY    INC     (IX+3)          ; INY
+'0346  0E69      0461         LD      C,69H
+'0348  180C      0462         JR      IDEFLG-$
+'034A  DD3502    0463 PDEX    DEC     (IX+2)          ; DEX
+'034D  0E55      0464         LD      C,55H
+'034F  1805      0465         JR      IDEFLG-$
+
+
+
+
+
+ZXMAIN ZX65  VER 2.1  8/80  RMK        SD SYSTEMS Z80 ASSEMBLER PAGE 0009 
+ ADDR  CODE      STMT SOURCE STATEMENT
+
+'0351  DD3503    0466 PDEY    DEC     (IX+3)          ; DEY
+'0354  0E59      0467         LD      C,59H
+'0356  DDCB018E  0468 IDEFLG  RES     1,(IX+1)        ; SET/RES Z FLG
+'035A  2004      0469         JR      NZ,SINTST-$     ; PER Z80 FLAGS
+'035C  DDCB01CE  0470         SET     1,(IX+1)
+'0360  DDCB01BE  0471 SINTST  RES     7,(IX+1)        ; ALSO SIGN FLG
+'0364  F21304'   0472         JP      P,ENDIT
+'0367  DDCB01FE  0473         SET     7,(IX+1)
+'036B  C31304'   0474         JP      ENDIT
+'036E  018504    0475 PNOP    LD      BC,485H         ; NOP
+'0371  C3D605'   0476         JP      END
+'0374  CD0406'   0477 PPHA    CALL    TSPY            ; PHA
+'0377  DD7E00    0478         LD      A,(IX+0)        ; ACCUM
+'037A  0E8D      0479         LD      C,8DH
+'037C  1808      0480         JR      DOPUSH-$        ; PUSH IT
+'037E  CD0406'   0481 PPHP    CALL    TSPY            ; PHP
+'0381  DD7E01    0482         LD      A,(IX+1)        ; P REG
+'0384  0E91      0483         LD      C,91H
+'0386  C5        0484 DOPUSH  PUSH    BC
+'0387  FD7700    0485         LD      (IY+0),A        ; PLACE ON STACK
+'038A  FD2B      0486         DEC     IY              ; BUMP SP DOWN
+'038C  CD0D06'   0487         CALL    TYSP            ; & REPLACE IT
+'038F  C1        0488         POP     BC
+'0390  C31304'   0489         JP      ENDIT
+'0393  CDB403'   0490 PPLA    CALL    DOPULL          ; PLA
+'0396  DD7700    0491         LD      (IX+0),A        ; DATA TO ACC
+'0399  CDED05'   0492         CALL    SINS1           ; SET/RES S,Z FLGS
+'039C  CD0D06'   0493         CALL    TYSP            ; RESTORE SP
+'039F  019504    0494         LD      BC,495H
+'03A2  C3D605'   0495         JP      END
+'03A5  CDB403'   0496 PPLP    CALL    DOPULL          ; PLP
+'03A8  DD7701    0497         LD      (IX+1),A        ; DATA TO P REG
+'03AB  CD0D06'   0498         CALL    TYSP            ; RESTORE SP
+'03AE  019904    0499         LD      BC,499H
+'03B1  C3D605'   0500         JP      END
+'03B4  CD0406'   0501 DOPULL  CALL    TSPY            ; GET SP
+'03B7  FD23      0502         INC     IY              ; BUMP SP
+'03B9  FD7E00    0503         LD      A,(IY+0)        ; GET DATA
+'03BC  C9        0504         RET
+                 0505 ;
+                 0506 ; PROCESS ACC/INDEX TRANSFERS
+                 0507 ;
+'03BD  DD7E00    0508 PTAX    LD      A,(IX+0)        ; TAX
+'03C0  DD7702    0509         LD      (IX+2),A
+'03C3  0EC9      0510         LD      C,0C9H
+'03C5  181C      0511         JR      COMPL-$
+'03C7  DD7E00    0512 PTAY    LD      A,(IX+0)        ; TAY
+'03CA  DD7703    0513         LD      (IX+3),A
+'03CD  0ECD      0514         LD      C,0CDH
+'03CF  1812      0515         JR      COMPL-$
+'03D1  DD7E02    0516 PTXA    LD      A,(IX+2)        ; TXA
+'03D4  DD7700    0517         LD      (IX+0),A
+'03D7  0ED5      0518         LD      C,0D5H
+'03D9  1808      0519         JR      COMPL-$
+'03DB  DD7E03    0520 PTYA    LD      A,(IX+3)        ; TYA
+'03DE  DD7700    0521         LD      (IX+0),A
+'03E1  0EDD      0522         LD      C,0DDH
+'03E3  CDED05'   0523 COMPL   CALL    SINS1           ; SET/RES S,Z FLGS
+
+
+
+
+
+ZXMAIN ZX65  VER 2.1  8/80  RMK        SD SYSTEMS Z80 ASSEMBLER PAGE 0010 
+ ADDR  CODE      STMT SOURCE STATEMENT
+
+'03E6  182B      0524         JR      ENDIT-$
+                 0525 ;
+                 0526 ; PROCESS FLAG SET/RES INSTRUCTIONS
+                 0527 ;
+'03E8  FD21520D' 0528 PFLGS   LD      IY,FLGTBL       ; TABLE START
+'03EC  0600      0529         LD      B,0
+'03EE  FEB8      0530         CP      0B8H            ; CLV SPECIAL
+'03F0  2002      0531         JR      NZ,PFL1-$
+'03F2  CBAF      0532         RES     5,A
+'03F4  1F        0533 PFL1    RRA                     ; CHECK MSD
+'03F5  1F        0534         RRA
+'03F6  1F        0535         RRA
+'03F7  1F        0536         RRA
+'03F8  E60E      0537         AND     0EH             ; MASK MSD + 1
+'03FA  CB4F      0538         BIT     1,A             ; TEST FOR SET/RES
+'03FC  4F        0539         LD      C,A             ; FORM TABLE INDEX
+'03FD  FD09      0540         ADD     IY,BC
+'03FF  FD4E00    0541         LD      C,(IY+0)        ; GET MNEM CODE
+'0402  FD7E01    0542         LD      A,(IY+1)        ; GET MASK
+'0405  2006      0543         JR      NZ,PFL2-$
+'0407  2F        0544         CPL                     ; DO CLEARS
+'0408  DDA601    0545         AND     (IX+1)
+'040B  1803      0546         JR      PFL3-$
+'040D  DDB601    0547 PFL2    OR      (IX+1)          ; DO SETS
+'0410  DD7701    0548 PFL3    LD      (IX+1),A        ; AND STUFF IT
+'0413  0604      0549 ENDIT   LD      B,4
+'0415  C3D605'   0550         JP      END
+                 0551 ;
+                 0552 ; PROCESS ALL INSTRUCTIONS HAVING MULTIPLE ADDRESSING
+                 0553 ;
+'0418  01D405'   0554 MLTMOD  LD      BC,MLTEND       ; PUT RETURN ON STACK
+'041B  C5        0555         PUSH    BC
+'041C  7E        0556         LD      A,(HL)          ; GET INSTR TO A
+'041D  4F        0557         LD      C,A             ; AND TO C
+'041E  CB39      0558         SRL     C               ; TEST EVEN/ODD
+'0420  F5        0559         PUSH    AF
+'0421  CB39      0560         SRL     C               ; ROTATE MSD INTO LSD
+'0423  CB39      0561         SRL     C
+'0425  CB39      0562         SRL     C
+'0427  CB81      0563         RES     0,C             ; MASK LSB
+'0429  F1        0564         POP     AF
+'042A  FD218E0D' 0565         LD      IY,EVNTBL       ; JUMP PER TABLES
+'042E  D2DA06'   0566         JP      NC,JPIB
+'0431  FD219E0D' 0567         LD      IY,ODDTBL
+'0435  C3DA06'   0568         JP      JPIB
+                 0569 ;
+                 0570 ; MULTI-MODE INSTRUCTION PROCESSORS
+                 0571 ;
+'0438  CD1A06'   0572 PASL    CALL    MODBBB          ; GET MODE,ADDR,&DATA
+'043B  CB27      0573         SLA     A               ; ASL
+'043D  CDE305'   0574         CALL    SINSET          ; SET/RES S,Z,C FLGS
+'0440  CDD806'   0575         CALL    PUTDAT          ; RESTORE DATA
+'0443  3E08      0576         LD      A,8
+'0445  C9        0577         RET
+'0446  CB4F      0578 PBTRL   BIT     1,A             ; BIT OR ROL?
+'0448  2810      0579         JR      Z,PBIT-$
+'044A  CD1A06'   0580         CALL    MODBBB          ; ROL
+'044D  CDDB05'   0581         CALL    CARSET          ; SET UP C FLAG
+
+
+
+
+
+ZXMAIN ZX65  VER 2.1  8/80  RMK        SD SYSTEMS Z80 ASSEMBLER PAGE 0011 
+ ADDR  CODE      STMT SOURCE STATEMENT
+
+'0450  17        0582 PROL1   RLA                     ; DO ROTATE
+'0451  CDE305'   0583         CALL    SINSET
+'0454  CDD806'   0584         CALL    PUTDAT
+'0457  3E9C      0585         LD      A,9CH
+'0459  C9        0586         RET
+'045A  DDCB01B6  0587 PBIT    RES     6,(IX+1)        ; BIT
+'045E  CD3206'   0588         CALL    MODBBX
+'0461  C5        0589         PUSH    BC
+'0462  47        0590         LD      B,A             ; SAVE IT IN B
+'0463  DD7E00    0591         LD      A,(IX+0)        ; GET SIM ACC
+'0466  A0        0592         AND     B               ; AND IT
+'0467  CB77      0593         BIT     6,A             ; CHECK V BIT
+'0469  2804      0594         JR      Z,PBIT1-$
+'046B  DDCB01F6  0595         SET     6,(IX+1)        ; SET V BIT IF REQD
+'046F  CDED05'   0596 PBIT1   CALL    SINS1           ; SET/RES S,Z FLGS
+'0472  C1        0597         POP     BC
+'0473  3E18      0598         LD      A,18H
+'0475  C9        0599         RET
+'0476  CD1A06'   0600 PLSR    CALL    MODBBB          ; LSR
+'0479  CB3F      0601         SRL     A
+'047B  CDE305'   0602         CALL    SINSET
+'047E  CDD806'   0603         CALL    PUTDAT
+'0481  3E80      0604         LD      A,80H
+'0483  C9        0605         RET
+'0484  CD1A06'   0606 PROR    CALL    MODBBB          ; ROR
+'0487  CDDB05'   0607         CALL    CARSET          ; SET UP C FLG
+'048A  1F        0608 PROR1   RRA                     ; DO ROTATE
+'048B  CDE305'   0609         CALL    SINSET
+'048E  CDD806'   0610         CALL    PUTDAT
+'0491  3EA0      0611         LD      A,0A0H
+'0493  C9        0612         RET
+'0494  CB4F      0613 PSTXY   BIT     1,A             ; WHICH ONE?
+'0496  280C      0614         JR      Z,PSY-$
+'0498  CD3206'   0615         CALL    MODBBX          ; STX
+'049B  DD7E02    0616         LD      A,(IX+2)
+'049E  CDD806'   0617         CALL    PUTDAT
+'04A1  3EC0      0618         LD      A,0C0H
+'04A3  C9        0619         RET
+'04A4  CD3206'   0620 PSY     CALL    MODBBX          ; STY
+'04A7  DD7E03    0621         LD      A,(IX+3)
+'04AA  CDD806'   0622         CALL    PUTDAT
+'04AD  3EC4      0623         LD      A,0C4H
+'04AF  C9        0624         RET
+'04B0  CB4F      0625 PLDXY   BIT     1,A             ; WHICH ONE?
+'04B2  280C      0626         JR      Z,PLY-$
+'04B4  CD2006'   0627         CALL    MODDDD          ; LDX
+'04B7  DD7702    0628         LD      (IX+2),A
+'04BA  CDED05'   0629         CALL    SINS1
+'04BD  3E78      0630         LD      A,78H
+'04BF  C9        0631         RET
+'04C0  CD2006'   0632 PLY     CALL    MODDDD          ; LDY
+'04C3  DD7703    0633         LD      (IX+3),A
+'04C6  CDED05'   0634         CALL    SINS1
+'04C9  3E7C      0635         LD      A,7CH
+'04CB  C9        0636         RET
+'04CC  CB4F      0637 PDCY    BIT     1,A             ; WHICH ONE?
+'04CE  2827      0638         JR      Z,PCPY-$
+'04D0  CD3206'   0639         CALL    MODBBX          ; DEC
+
+
+
+
+
+ZXMAIN ZX65  VER 2.1  8/80  RMK        SD SYSTEMS Z80 ASSEMBLER PAGE 0012 
+ ADDR  CODE      STMT SOURCE STATEMENT
+
+'04D3  3D        0640         DEC     A
+'04D4  CDED05'   0641         CALL    SINS1
+'04D7  CDD806'   0642         CALL    PUTDAT
+'04DA  3E50      0643         LD      A,50H
+'04DC  C9        0644         RET
+'04DD  CB4F      0645 PICX    BIT     1,A             ; WHICH ONE?
+'04DF  280D      0646         JR      Z,PCPX-$
+'04E1  CD3206'   0647         CALL    MODBBX          ; INC
+'04E4  3C        0648         INC     A
+'04E5  CDED05'   0649         CALL    SINS1
+'04E8  CDD806'   0650         CALL    PUTDAT
+'04EB  3E60      0651         LD      A,60H
+'04ED  C9        0652         RET
+'04EE  CD0405'   0653 PCPX    CALL    CXY             ; CPX
+'04F1  CDE305'   0654         CALL    SINSET
+'04F4  3E48      0655         LD      A,48H
+'04F6  C9        0656         RET
+'04F7  DD23      0657 PCPY    INC     IX
+'04F9  CD0405'   0658         CALL    CXY             ; CPY
+'04FC  DD2B      0659         DEC     IX
+'04FE  CDE305'   0660         CALL    SINSET
+'0501  3E4C      0661         LD      A,4CH
+'0503  C9        0662         RET
+'0504  CD4306'   0663 CXY     CALL    MODCC
+'0507  C5        0664         PUSH    BC
+'0508  47        0665         LD      B,A             ; MEM DAT INTO B
+'0509  DD7E02    0666         LD      A,(IX+2)        ; X (Y) INTO A
+'050C  90        0667         SUB     B
+'050D  3F        0668         CCF                     ; BORROW = 6502 /C
+'050E  C1        0669         POP     BC
+'050F  C9        0670         RET
+'0510  DDCB01B6  0671 PSBC    RES     6,(IX+1)        ; SBC...CLR V FLG
+'0514  CD1406'   0672         CALL    MODAAA
+'0517  C5        0673         PUSH    BC
+'0518  47        0674         LD      B,A             ; DATA TO B
+'0519  DD7E00    0675         LD      A,(IX+0)        ; ACC TO A
+'051C  CDDB05'   0676         CALL    CARSET          ; SET UP C FLAG
+'051F  3F        0677         CCF                     ; AND COMPLEMENT IT
+'0520  DDCB015E  0678 PSBC1   BIT     3,(IX+1)        ; CHECK FOR DEC MODE
+'0524  2003      0679         JR      NZ,PSDEC-$
+'0526  98        0680         SBC     A,B
+'0527  1802      0681         JR      PSBC2-$
+'0529  98        0682 PSDEC   SBC     A,B             ; DECIMAL MODE
+'052A  27        0683         DAA
+'052B  DD7700    0684 PSBC2   LD      (IX+0),A        ; RESULT TO ACCUM
+'052E  3F        0685         CCF                     ; BORROW = 6502 /C
+'052F  CDE305'   0686         CALL    SINSET
+'0532  E6C0      0687         AND     0C0H            ; TEST XOR OF B6 & B7
+'0534  2808      0688         JR      Z,SBC3-$
+'0536  FEC0      0689         CP      0C0H
+'0538  2804      0690         JR      Z,SBC3-$
+'053A  DDCB01F6  0691         SET     6,(IX+1)        ; SET V FLAG IF XOR = 1
+'053E  C1        0692 SBC3    POP     BC
+'053F  3EAC      0693         LD      A,0ACH
+'0541  C9        0694         RET
+'0542  CD1406'   0695 PORA    CALL    MODAAA          ; ORA
+'0545  C5        0696         PUSH    BC
+'0546  47        0697         LD      B,A             ; DATA TO B
+
+
+
+
+
+ZXMAIN ZX65  VER 2.1  8/80  RMK        SD SYSTEMS Z80 ASSEMBLER PAGE 0013 
+ ADDR  CODE      STMT SOURCE STATEMENT
+
+'0547  DD7E00    0698         LD      A,(IX+0)        ; ACC TO A
+'054A  B0        0699         OR      B
+'054B  DD7700    0700         LD      (IX+0),A        ; RESULT TO ACC
+'054E  CDED05'   0701         CALL    SINS1
+'0551  C1        0702         POP     BC
+'0552  3E88      0703         LD      A,88H
+'0554  C9        0704         RET
+'0555  CD1406'   0705 PAND    CALL    MODAAA          ; AND
+'0558  C5        0706         PUSH    BC
+'0559  47        0707         LD      B,A             ; DATA TO B
+'055A  DD7E00    0708         LD      A,(IX+0)        ; ACC TO A
+'055D  A0        0709         AND     B
+'055E  DD7700    0710         LD      (IX+0),A        ; RESULT TO ACC
+'0561  CDED05'   0711         CALL    SINS1
+'0564  C1        0712         POP     BC
+'0565  3E04      0713         LD      A,4
+'0567  C9        0714         RET
+'0568  CD1406'   0715 PEOR    CALL    MODAAA          ; EOR
+'056B  C5        0716         PUSH    BC
+'056C  47        0717         LD      B,A             ; DATA TO B
+'056D  DD7E00    0718         LD      A,(IX+0)        ; ACC TO A
+'0570  A8        0719         XOR     B
+'0571  DD7700    0720         LD      (IX+0),A        ; RESULT TO ACC
+'0574  CDED05'   0721         CALL    SINS1
+'0577  C1        0722         POP     BC
+'0578  3E5C      0723         LD      A,5CH
+'057A  C9        0724         RET
+'057B  DDCB01B6  0725 PADC    RES     6,(IX+1)        ; ADC: CLEAR V FLAG
+'057F  CD1406'   0726         CALL    MODAAA
+'0582  C5        0727         PUSH    BC
+'0583  47        0728         LD      B,A             ; DATA TO B
+'0584  DD7E00    0729         LD      A,(IX+0)        ; ACC TO A
+'0587  CDDB05'   0730         CALL    CARSET          ; SET UP C FLG
+'058A  DDCB015E  0731 PADC1   BIT     3,(IX+1)        ; CHECK FOR DEC MODE
+'058E  2003      0732         JR      NZ,PADEC-$
+'0590  88        0733         ADC     A,B             ; BINARY MODE
+'0591  1802      0734         JR      PADC2-$
+'0593  88        0735 PADEC   ADC     A,B             ; DECIMAL MODE
+'0594  27        0736         DAA
+'0595  DD7700    0737 PADC2   LD      (IX+0),A        ; RESULT TO ACC
+'0598  CDE305'   0738         CALL    SINSET
+'059B  E6C0      0739         AND     0C0H            ; CHECK XOR OF B6 & B7
+'059D  2808      0740         JR      Z,PADC3-$
+'059F  FEC0      0741         CP      0C0H
+'05A1  2804      0742         JR      Z,PADC3-$
+'05A3  DDCB01F6  0743         SET     6,(IX+1)        ; SET V FLG IF XOR = 1
+'05A7  C1        0744 PADC3   POP     BC
+'05A8  3E00      0745         LD      A,0
+'05AA  C9        0746         RET
+'05AB  CD1406'   0747 PSTA    CALL    MODAAA          ; STA
+'05AE  DD7E00    0748         LD      A,(IX+0)        ; ACC TO MEM
+'05B1  CDD806'   0749         CALL    PUTDAT
+'05B4  3EBC      0750         LD      A,0BCH
+'05B6  C9        0751         RET
+'05B7  CD1406'   0752 PLDA    CALL    MODAAA          ; LDA
+'05BA  DD7700    0753         LD      (IX+0),A        ; MEM TO ACC
+'05BD  CDED05'   0754         CALL    SINS1
+'05C0  3E74      0755         LD      A,74H
+
+
+
+
+
+ZXMAIN ZX65  VER 2.1  8/80  RMK        SD SYSTEMS Z80 ASSEMBLER PAGE 0014 
+ ADDR  CODE      STMT SOURCE STATEMENT
+
+'05C2  C9        0756         RET
+'05C3  CD1406'   0757 PCMP    CALL    MODAAA          ; CMP
+'05C6  C5        0758         PUSH    BC
+'05C7  47        0759         LD      B,A             ; DATA TO B
+'05C8  DD7E00    0760         LD      A,(IX+0)        ; ACC TO A
+'05CB  90        0761         SUB     B
+'05CC  3F        0762         CCF                     ; BORROW = 6502 /C
+'05CD  CDE305'   0763         CALL    SINSET
+'05D0  C1        0764         POP     BC
+'05D1  3E44      0765         LD      A,44H
+'05D3  C9        0766         RET
+                 0767 ;
+                 0768 ; END OF ALL MULTI MODE PROCESSORS
+                 0769 ;
+'05D4  81        0770 MLTEND  ADD     A,C             ; FORM MNEM CODE IN C
+'05D5  4F        0771         LD      C,A
+'05D6  23        0772 END     INC     HL              ; POINT TO NXT INSTR
+'05D7  226A0B'   0773 END1    LD      (NPC),HL
+'05DA  C9        0774         RET                     ; BACK TO CMND
+                 0775 ;
+                 0776 ; VARIOUS SUBROUTINES FOR TRANSLATOR
+                 0777 ;
+                 0778 ; SET Z80 C FLAG TO MATCH 6502 C FLG
+                 0779 ;
+'05DB  37        0780 CARSET  SCF
+'05DC  DDCB0146  0781         BIT     0,(IX+1)
+'05E0  C0        0782         RET     NZ
+'05E1  3F        0783         CCF
+'05E2  C9        0784         RET
+                 0785 ;
+                 0786 ; SET SIMULATOR S,Z,C FLAGS PER Z80 RESULTS
+                 0787 ;
+'05E3  DDCB0186  0788 SINSET  RES     0,(IX+1)        ; RESET C FLAG
+'05E7  3004      0789         JR      NC,SINS1-$
+'05E9  DDCB01C6  0790         SET     0,(IX+1)        ; SET C PER Z80 C
+'05ED  DDCB018E  0791 SINS1   RES     1,(IX+1)        ; CLEAR Z FLAG
+'05F1 0   0474         JP      ENDIT
+'036E  018504    0475 PNOP    LD      BC,485H         ; NOP
+'0371  C3D605'   0476         JP   1CE  0794         SET     1,(IX+1)        ; SET Z FLG
+'05F8  DDCB01BE  0795 SINS2   RES     7,(IX+1)        ; CLEAR SIGN FLAG
+'05FC  CB7F      0796         BIT     7,A             ; CHECK SIGN OF ACC
+'05FE  C8        0797         RET     Z
+'05FF  DDCB01FE  0798         SET     7,(IX+1)        ; SET S IF NECESSARY
+'0603  C9        0799         RET
+                 0800 ;
+                 0801 ; TRANSFER SIMULATOR SP TO/FROM IY
+                 0802 ;
+'0604  0601      0803 TSPY    LD      B,1             ; XFER SP TO IY
+'0606  DD4E04    0804         LD      C,(IX+4)
+'0609  C5        0805         PUSH    BC
+'060A  FDE1      0806         POP     IY
+'060C  C9        0807         RET
+'060D  FDE5      0808 TYSP    PUSH    IY              ; XFER IY TO SP
+'060F  C1        0809         POP     BC
+'0610  DD7104    0810         LD      (IX+4),C
+'0613  C9        0811         RET
+                 0812 ;
+                 0813 ; ADDRESS MODE DECODERS...RETURN WITH DATA TO BE MODIFIED
+
+
+
+
+
+ZXMAIN ZX65  VER 2.1  8/80  RMK        SD SYSTEMS Z80 ASSEMBLER PAGE 0015 
+ ADDR  CODE      STMT SOURCE STATEMENT
+
+                 0814 ; IN A, ADDRESS MODE CODE IN B, # BYTES IN C, ADDRESS OF
+                 0815 ; DATA IN DE
+                 0816 ;
+'0614  FD21000D' 0817 MODAAA  LD      IY,AAATBL       ; GROUP 1
+'0618  182D      0818         JR      MOD1-$
+'061A  FD21100D' 0819 MODBBB  LD      IY,BBBTBL       ; GROUP 2
+'061E  1827      0820         JR      MOD1-$
+'0620  FD21200D' 0821 MODDDD  LD      IY,DDDTBL       ; GROUP 3
+'0624  FEB6      0822         CP      0B6H            ; LDX ZPG,Y SPECIAL
+'0626  2002      0823         JR      NZ,DDD1-$
+'0628  3E10      0824         LD      A,10H
+'062A  FEBE      0825 DDD1    CP      0BEH            ; LDX ABS,Y SPECIAL
+'062C  2019      0826         JR      NZ,MOD1-$
+'062E  3E18      0827         LD      A,18H
+'0630  1815      0828         JR      MOD1-$
+'0632  FD21300D' 0829 MODBBX  LD      IY,BBXTBL       ; GROUP 4 & 6
+'0636  FE96      0830         CP      96H             ; STX ZPG,Y SPECIAL
+'0638  2805      0831         JR      Z,BBX-$
+'063A  1F        0832         RRA                     ; EXTRA SHIFT
+'063B  E60C      0833         AND     0CH             ; EXTRA MASK
+'063D  1808      0834         JR      MOD1-$
+'063F  3E10      0835 BBX     LD      A,10H           ; SPECIAL
+'0641  1804      0836         JR      MOD1-$
+'0643  FD213A0D' 0837 MODCC   LD      IY,CCTBL        ; GROUP 5
+'0647  1F        0838 MOD1    RRA                     ; ROTATE MODE INTO LSD
+'0648  E60E      0839         AND     0EH             ; MASK THE REST
+'064A  0600      0840         LD      B,0             ; FORM OFFSET IN BC
+'064C  4F        0841         LD      C,A
+'064D  FD09      0842         ADD     IY,BC           ; ADD TO TABLE START
+'064F  FD4E00    0843         LD      C,(IY+0)        ; MODE OFFSET
+'0652  FD4601    0844         LD      B,(IY+1)        ; # CODE
+'0655  C5        0845         PUSH    BC              ; SAVE FOR LATER
+'0656  FD217A0D' 0846 GETDAT  LD      IY,GETTBL       ; JUMP TABLE
+'065A  C3DA06'   0847         JP      JPIB
+'065D  23        0848 PABY    INC     HL              ; ABS,Y
+'065E  7E        0849         LD      A,(HL)          ; 2ND BYTE INSTR
+'065F  DD8603    0850         ADD     A,(IX+3)        ; PLUS Y INDEX
+'0662  5F        0851         LD      E,A             ; TO E
+'0663  23        0852         INC     HL
+'0664  7E        0853         LD      A,(HL)          ; 3RD BYTE INSTR
+'0665  CE00      0854         ADC     A,0             ; PLUS CARRY
+'0667  57        0855         LD      D,A             ; TO D
+'0668  1861      0856         JR      EXIT-$
+'066A  23        0857 PIMM    INC     HL              ; IMMEDIATE
+'066B  7E        0858         LD      A,(HL)          ; DATA TO ACC
+'066C  185E      0859         JR      EX1-$
+'066E  DD7E00    0860 PACX    LD      A,(IX+0)        ; ACCUM
+'0671  DDE5      0861         PUSH    IX
+'0673  D1        0862         POP     DE
+'0674  1856      0863         JR      EX1-$
+'0676  23        0864 PZPG    INC     HL              ; ZPG
+'0677  5E        0865         LD      E,(HL)          ; ADDRESS TO DE
+'0678  1600      0866         LD      D,0
+'067A  184F      0867         JR      EXIT-$
+'067C  23        0868 PAB     INC     HL              ; ABSOLUTE
+'067D  5E        0869         LD      E,(HL)          ; ADDRESS TO DE
+'067E  23        0870         INC     HL
+'067F  56        0871         LD      D,(HL)
+
+
+
+
+
+ZXMAIN ZX65  VER 2.1  8/80  RMK        SD SYSTEMS Z80 ASSEMBLER PAGE 0016 
+ ADDR  CODE      STMT SOURCE STATEMENT
+
+'0680  1849      0872         JR      EXIT-$
+'0682  DD7E02    0873 PZX     LD      A,(IX+2)        ; ZPG,X...GET X INDEX
+'0685  1803      0874         JR      PZ1-$
+'0687  DD7E03    0875 PZY     LD      A,(IX+3)        ; ZPG,Y...GET Y INDEX
+'068A  23        0876 PZ1     INC     HL
+'068B  86        0877         ADD     A,(HL)          ; ADD BASE ADDRESS
+'068C  5F        0878         LD      E,A             ; PUT IN E
+'068D  1600      0879         LD      D,0             ; ZERO PAGE, NO WRAP
+'068F  183A      0880         JR      EXIT-$
+'0691  23        0881 PZIX    INC     HL              ; (ZPG,X)
+'0692  7E        0882         LD      A,(HL)          ; 2ND BYTE INSTR
+'0693  DD8602    0883         ADD     A,(IX+2)        ; ADD X INDEX
+'0696  5F        0884         LD      E,A             ; TO FORM BASE ADDRESS...
+'0697  1600      0885         LD      D,0             ; IN ZERO PG, NO WRAP
+'0699  FD210000  0886         LD      IY,0
+'069D  FD19      0887         ADD     IY,DE           ; TRANSFER TO IY
+'069F  FD5E00    0888         LD      E,(IY+0)        ; EFF ADDR TO DE
+'06A2  FD5601    0889         LD      D,(IY+1)
+'06A5  1824      0890         JR      EXIT-$
+'06A7  23        0891 PZIY    INC     HL              ; (ZPG),Y
+'06A8  5E        0892         LD      E,(HL)          ; BASE ADDRESS
+'06A9  1600      0893         LD      D,0             ; IN ZERO PAGE
+'06AB  FD210000  0894         LD      IY,0
+'06AF  FD19      0895         ADD     IY,DE           ; TRANSFER TO IY
+'06B1  FD7E00    0896         LD      A,(IY+0)        ; EFF ADDRESS...
+'06B4  DD8603    0897         ADD     A,(IX+3)        ; PLUS Y INDEX...
+'06B7  5F        0898         LD      E,A             ; TO DE
+'06B8  FD7E01    0899         LD      A,(IY+1)
+'06BB  CE00      0900         ADC     A,0
+'06BD  57        0901         LD      D,A
+'06BE  180B      0902         JR      EXIT-$
+'06C0  23        0903 PABX    INC     HL              ; ABS,X
+'06C1  7E        0904         LD      A,(HL)          ; 2ND BYTE INSTR
+'06C2  DD8602    0905         ADD     A,(IX+2)        ; PLUS X INDEX
+'06C5  5F        0906         LD      E,A             ; TO E
+'06C6  23        0907         INC     HL              ; 3RD BYTE INSTR
+'06C7  7E        0908         LD      A,(HL)
+'06C8  CE00      0909         ADC     A,0             ; PLUS CARRY
+'06CA  57        0910         LD      D,A             ; TO E
+'06CB  1A        0911 EXIT    LD      A,(DE)          ; DATA TO ACC
+'06CC  C1        0912 EX1     POP     BC              ; RESTORE # CODE
+'06CD  F5        0913         PUSH    AF              ; SAVE DATA
+'06CE  3E03      0914         LD      A,3
+'06D0  A0        0915         AND     B               ; # BYTES...
+'06D1  4F        0916         LD      C,A             ; TO C
+'06D2  CB38      0917         SRL     B
+'06D4  CB38      0918         SRL     B               ; B=ADDR MODE
+'06D6  F1        0919         POP     AF              ; RESTORE DATA
+'06D7  C9        0920         RET
+                 0921 ;
+                 0922 ; STORE DATA TO ADDRESS FROM GETDAT
+                 0923 ;
+'06D8  12        0924 PUTDAT  LD      (DE),A
+'06D9  C9        0925         RET
+                 0926 ;
+                 0927 ; INDEX INTO JUMP TABLES...ENTER WITH TABLE START
+                 0928 ; ADDRESS IN IY AND OFFSET IN C. CALCULATES TABLE
+                 0929 ; POSITION AND JUMPS TO RESULT
+
+
+
+
+
+ZXMAIN ZX65  VER 2.1  8/80  RMK        SD SYSTEMS Z80 ASSEMBLER PAGE 0017 
+ ADDR  CODE      STMT SOURCE STATEMENT
+
+                 0930 ;
+'06DA  0600      0931 JPIB    LD      B,0             ; INDIRECT JUMP PER TABLE
+'06DC  FD09      0932         ADD     IY,BC           ; TABLE ADDRESS TO IY
+'06DE  FD4E00    0933         LD      C,(IY+0)        ; TABLE ENTRY TO BC
+'06E1  FD4601    0934         LD      B,(IY+1)
+'06E4  C5        0935         PUSH    BC
+'06E5  FDE1      0936         POP     IY              ; ENTRY TO IY
+'06E7  FDE9      0937         JP      (IY)            ; AND GO TO IT
+                 0938 ;
+                 0939 ; ELEMENTARY MONITOR FUNCTIONS TO EXAMINE A BLOCK OF
+                 0940 ; MEMORY LOCATIONS (E) AND TO CHECK AND UPDATE
+                 0941 ; INDIVIDUAL LOCATIONS (M)
+                 0942 ;
+'06E9  11E40B'   0943 EXAM    LD      DE,GETADR       ; EXAM BLOCK OF MEM
+'06EC  CDCE0A'   0944         CALL    PRTDE
+'06EF  CD630A'   0945         CALL    GETWRD          ; GET START ADDR
+'06F2  D5        0946         PUSH    DE
+'06F3  CD540A'   0947         CALL    LINF
+'06F6  11FC0B'   0948         LD      DE,GETN
+'06F9  CDCE0A'   0949         CALL    PRTDE
+'06FC  CD630A'   0950         CALL    GETWRD          ; GET # BYTES
+'06FF  D5        0951         PUSH    DE
+'0700  C1        0952         POP     BC
+'0701  1E04      0953         LD      E,4             ; CHANGE TO # LINES (/16)
+'0703  AF        0954         XOR     A
+'0704  CB38      0955 BYTLN   SRL     B
+'0706  CB19      0956         RR      C
+'0708  3001      0957         JR      NC,XXX-$
+'070A  3C        0958         INC     A
+'070B  1D        0959 XXX     DEC     E
+'070C  20F6      0960         JR      NZ,BYTLN-$
+'070E  B7        0961         OR      A               ; SEE IF PARTIAL LINE
+'070F  2801      0962         JR      Z,YYY-$
+'0711  03        0963         INC     BC
+'0712  E1        0964 YYY     POP     HL              ; HL = START, BC = COUNT
+'0713  0B        0965         DEC     BC              ; ONE LESS LINE
+'0714  C5        0966 EXLP    PUSH    BC              ; LOOP FOR ONE LINE
+'0715  CD4F0A'   0967         CALL    CRLF
+'0718  CD9007'   0968         CALL    LADR            ; PRINT ADDRESS AT START
+'071B  CD9D07'   0969         CALL    TWO             ; INSERT TWO SPACES
+'071E  E5        0970         PUSH    HL              ; SAVE ADDRESS FOR ALPHA
+'071F  1E10      0971         LD      E,16            ; 16 ENTRIES PER LINE
+'0721  7E        0972 LNLP    LD      A,(HL)          ; GET BYTE FROM MEMORY
+'0722  CD9607'   0973         CALL    PACC            ; PRINT IT HEX
+'0725  CDA007'   0974         CALL    ONE             ; SPACE
+'0728  23        0975         INC     HL              ; POINT TO NEXT BYTE
+'0729  1D        0976         DEC     E               ; DONE WITH HEX?
+'072A  20F5      0977         JR      NZ,LNLP-$       ; NO, DO NEXT BYTE
+'072C  CD9D07'   0978         CALL    TWO             ; YES, SET UP FOR ALPHA
+'072F  E1        0979         POP     HL              ; SAME STARTING ADDRESS
+'0730  1E10      0980         LD      E,16
+'0732  7E        0981 ASCII   LD      A,(HL)          ; GET BYTE
+'0733  FE20      0982         CP      20H             ; IS IT PRINTABLE?
+'0735  3804      0983         JR      C,DOT-$
+'0737  FE80      0984         CP      80H
+'0739  3802      0985         JR      C,ASOK-$
+'073B  3E2E      0986 DOT     LD      A,'.'           ; NO, PRINT A DOT
+'073D  CD270B'   0987 ASOK    CALL    PRNA
+
+
+
+
+
+ZXMAIN ZX65  VER 2.1  8/80  RMK        SD SYSTEMS Z80 ASSEMBLER PAGE 0018 
+ ADDR  CODE      STMT SOURCE STATEMENT
+
+'0740  23        0988         INC     HL              ; BUMP POINTER
+'0741  1D        0989         DEC     E               ; DONE WITH LINE?
+'0742  20EE      0990         JR      NZ,ASCII-$
+'0744  C1        0991         POP     BC
+'0745  78        0992         LD      A,B             ; SEE IF ALL DONE
+'0746  B1        0993         OR      C
+'0747  C8        0994         RET     Z               ; YES, RET TO CMND
+'0748  0B        0995         DEC     BC
+'0749  18C9      0996         JR      EXLP-$          ; ELSE DO ANOTHER LINE
+                 0997 ;
+                 0998 ; SUBSTITUTE MEMORY...ENTER BY 'M'
+                 0999 ;
+'074B  11E40B'   1000 SUBM    LD      DE,GETADR       ; ASK FOR ADDRESS
+'074E  CDCE0A'   1001         CALL    PRTDE
+'0751  CD630A'   1002         CALL    GETWRD          ; GET IT
+'0754  EB        1003         EX      DE,HL           ; MOVE IT TO HL
+'0755  CD4F0A'   1004 SULP    CALL    CRLF
+'0758  CD9007'   1005         CALL    LADR            ; PRINT THE ADDRESS
+'075B  CD9D07'   1006         CALL    TWO
+'075E  7E        1007         LD      A,(HL)
+'075F  CD9607'   1008         CALL    PACC            ; PRINT THE CONTENTS
+'0762  CD9D07'   1009         CALL    TWO
+'0765  CD160B'   1010 JLP     CALL    GETCHR          ; GET INPUT
+'0768  FE2E      1011         CP      2EH             ; EXIT ON "."
+'076A  C8        1012         RET     Z
+'076B  FE20      1013         CP      20H
+'076D  281E      1014         JR      Z,FWD-$         ; SKIP AHEAD ON "SPACE"
+'076F  CD890A'   1015         CALL    CONV            ; CONV HEX IF POSSIBLE
+'0772  28F1      1016         JR      Z,JLP-$         ; NOT A HEX NUMBER
+'0774  E5        1017         PUSH    HL              ; SAVE ADDRESS AGAIN
+'0775  210000    1018         LD      HL,0            ; CLEAR FOR ROTATE
+'0778  CDAB0A'   1019 LLP     CALL    ROBYT           ; ROTATE NYBBLE INTO HL
+'077B  CD160B'   1020 KLP     CALL    GETCHR          ; GET ANOTHER CHARACTER
+'077E  FE0D      1021         CP      0DH
+'0780  2807      1022         JR      Z,PUTIN-$       ; IF "CR" STUFF IT
+'0782  CD890A'   1023         CALL    CONV            ; CONV BINARY
+'0785  28F4      1024         JR      Z,KLP-$         ; NOT A HEX NUMBER
+'0787  18EF      1025         JR      LLP-$           ; CONTINUE
+'0789  E5        1026 PUTIN   PUSH    HL              ; DATA TO BC
+'078A  C1        1027         POP     BC
+'078B  E1        1028         POP     HL              ; RETRIEVE ADDRESS
+'078C  71        1029         LD      (HL),C          ; STUFF THE DATA
+'078D  23        1030 FWD     INC     HL              ; BUMP POINTER
+'078E  18C5      1031         JR      SULP-$          ; ...AND CONTINUE
+'0790  EB        1032 LADR    EX      DE,HL           ; PRINT WORD IN HL
+'0791  CDB20A'   1033         CALL    PRTWRD
+'0794  EB        1034         EX      DE,HL
+'0795  C9        1035         RET
+'0796  D5        1036 PACC    PUSH    DE              ; PRINT BYTE IN A
+'0797  5F        1037         LD      E,A
+'0798  CDB60A'   1038         CALL    PRTBYT
+'079B  D1        1039         POP     DE
+'079C  C9        1040         RET
+'079D  CDA007'   1041 TWO     CALL    ONE             ; PRINT 2 SPACES
+'07A0  C5        1042 ONE     PUSH    BC              ; PRINT SPACE
+'07A1  0E20      1043         LD      C,' '
+'07A3  CD340B'   1044         CALL    PRNC
+'07A6  C1        1045         POP     BC
+
+
+
+
+
+ZXMAIN ZX65  VER 2.1  8/80  RMK        SD SYSTEMS Z80 ASSEMBLER PAGE 0019 
+ ADDR  CODE      STMT SOURCE STATEMENT
+
+'07A7  C9        1046         RET
+                 1047 ;
+                 1048 ; ELEMENTARY DOS BEGINS HERE. FILES ARE MAINTAINED ON
+                 1049 ; DRIVE B ONLY AND ARE NOT CP/M COMPATIBLE. FUNCTIONS
+                 1050 ; ARE DIRECTORY LIST (D), SAVE (S), LOAD (L), KILL (K)
+                 1051 ; AND INITIALIZE (I).
+                 1052 ; FILE NAMES CONSIST OF A PRIMARY FILE NAME OF UP TO
+                 1053 ; SIX CHARS AND AN OPTIONAL FILE TYPE OF UP TO THREE.
+                 1054 ;
+                 1055 ; LIST DIRECTORY
+                 1056 ;
+'07A8  CD3A0A'   1057 PDIR    CALL    DIR1            ; SET UP FOR DIR SCH
+'07AB  CD8A09'   1058 PAGLP   CALL    NEWPG           ; NEXT DIR PG TO BUFF
+'07AE  0608      1059         LD      B,8             ; 8 ENTRIES/PAGE
+'07B0  DD7E00    1060 PRPAG   LD      A,(IX+0)        ; STATUS BYTE
+'07B3  3D        1061         DEC     A
+'07B4  C8        1062         RET     Z               ; QUIT IF DONE
+'07B5  3D        1063         DEC     A
+'07B6  202A      1064         JR      NZ,NEXT-$
+'07B8  CD4F0A'   1065         CALL    CRLF
+'07BB  C5        1066 PRLIN   PUSH    BC              ; PRINT NAME FROM DIR
+'07BC  DDE5      1067         PUSH    IX
+'07BE  060A      1068         LD      B,10
+'07C0  DD4E01    1069 PLNLP   LD      C,(IX+1)
+'07C3  CD340B'   1070         CALL    PRNC
+'07C6  DD23      1071         INC     IX
+'07C8  10F6      1072         DJNZ    PLNLP-$
+'07CA  DDE1      1073         POP     IX
+'07CC  CD0A0B'   1074         CALL    SPAC
+'07CF  DD5E0B    1075         LD      E,(IX+11)       ; PRINT ADDRESS
+'07D2  DD560C    1076         LD      D,(IX+12)
+'07D5  CDB20A'   1077         CALL    PRTWRD
+'07D8  CD0A0B'   1078         CALL    SPAC
+'07DB  DD5E0F    1079         LD      E,(IX+15)       ; PRINT # RECORDS
+'07DE  CDB60A'   1080         CALL    PRTBYT
+'07E1  C1        1081         POP     BC
+'07E2  111000    1082 NEXT    LD      DE,10H
+'07E5  DD19      1083         ADD     IX,DE           ; POINT TO NXT ENTRY
+'07E7  10C7      1084         DJNZ    PRPAG-$         ; AND REPEAT
+'07E9  18C0      1085         JR      PAGLP-$
+                 1086 ;
+                 1087 ; LOAD PGM FROM DRIVE B AND RUN FROM START ADDRESS
+                 1088 ;
+'07EB  CDF507'   1089 LDGO    CALL    LOAD            ; GET PGM
+'07EE  DD21630B' 1090         LD      IX,VREG         ; FOR SIMULATOR
+'07F2  C3C100'   1091         JP      RUN
+                 1092 ;
+                 1093 ; SEARCH FOR AND LOAD A FILE AT ADDR PER DIRECTORY
+                 1094 ;
+'07F5  CDF309'   1095 LOAD    CALL    ANAME           ; LOAD A FILE
+'07F8  CD3A09'   1096         CALL    NAMSCH          ; TRY TO MATCH NAME
+'07FB  CA9D09'   1097         JP      Z,NTFND
+'07FE  FD6EFB    1098         LD      L,(IY-5)        ; SAVE START ADDR
+'0801  FD66FC    1099         LD      H,(IY-4)
+'0804  226A0B'   1100         LD      (NPC),HL
+'0807  CDAA09'   1101 LOADLP  CALL    SETDAT          ; SET UP FOR LOAD
+'080A  CD460B'   1102         CALL    RDONE           ; AND READ N SECTORS
+'080D  CDC309'   1103         CALL    INCDAT
+
+
+
+
+
+ZXMAIN ZX65  VER 2.1  8/80  RMK        SD SYSTEMS Z80 ASSEMBLER PAGE 0020 
+ ADDR  CODE      STMT SOURCE STATEMENT
+
+'0810  20F5      1104         JR      NZ,LOADLP-$
+'0812  C9        1105         RET
+                 1106 ;
+                 1107 ; SAVE A FILE AND ADD IT TO DIRECTORY
+                 1108 ;
+'0813  CDF309'   1109 SAVE    CALL    ANAME           ; SAVE # SECTORS
+'0816  CD3A09'   1110         CALL    NAMSCH          ; SEE IF HAVE ALREADY
+'0819  280A      1111         JR      Z,SAV1-$
+'081B  CD540A'   1112         CALL    LINF
+'081E  11C50B'   1113         LD      DE,HAVMSG       ; IF SO, INFORM & QUIT
+'0821  CDCE0A'   1114         CALL    PRTDE
+'0824  C9        1115         RET
+'0825  FD21600C' 1116 SAV1    LD      IY,TEMPS
+'0829  3E02      1117         LD      A,2             ; NEW ACTIVE FILE
+'082B  FD7700    1118         LD      (IY+0),A
+'082E  CD540A'   1119         CALL    LINF
+'0831  11E40B'   1120         LD      DE,GETADR       ; GET RUN ADDR
+'0834  CDCE0A'   1121         CALL    PRTDE
+'0837  CD630A'   1122         CALL    GETWRD
+'083A  FD730B    1123         LD      (IY+11),E
+'083D  FD720C    1124         LD      (IY+12),D
+'0840  CD540A'   1125         CALL    LINF
+'0843  11FC0B'   1126         LD      DE,GETN         ; GET # BYTES
+'0846  CDCE0A'   1127         CALL    PRTDE
+'0849  CD630A'   1128         CALL    GETWRD
+'084C  AF        1129         XOR     A               ; CONVERT TO SECTORS
+'084D  0607      1130         LD      B,7             ; DIV BY 128
+'084F  CB3A      1131 SAVX    SRL     D
+'0851  CB1B      1132         RR      E
+'0853  3001      1133         JR      NC,SAVY-$
+'0855  3C        1134         INC     A
+'0856  10F7      1135 SAVY    DJNZ    SAVX-$
+'0858  B7        1136         OR      A               ; FRACTIONAL SCTR?
+'0859  2801      1137         JR      Z,SAVZ-$
+'085B  1C        1138         INC     E               ; THEN ADD ONE
+'085C  FD730F    1139 SAVZ    LD      (IY+15),E       ; SAVE IT
+'085F  CD3A0A'   1140         CALL    DIR1            ; SET UP FOR DIR SCH
+'0862  CD8A09'   1141 SAV2    CALL    NEWPG           ; SEARCH FOR NAME
+'0865  0608      1142         LD      B,8
+'0867  DD7E00    1143 SAV3    LD      A,(IX+0)        ; STAT BYTE
+'086A  3D        1144         DEC     A
+'086B  281F      1145         JR      Z,SAVNEW-$      ; NEW FILE
+'086D  D602      1146         SUB     2               ; DEAD FILE?
+'086F  2009      1147         JR      NZ,SAV4-$
+'0871  FD7E0F    1148         LD      A,(IY+15)       ; WILL IT FIT?
+'0874  3D        1149         DEC     A
+'0875  DDBE0F    1150         CP      (IX+15)
+'0878  3821      1151         JR      C,SAVOLD-$
+'087A  111000    1152 SAV4    LD      DE,10H          ; CHECK NXT ONE
+'087D  DD19      1153         ADD     IX,DE
+'087F  DD56FD    1154         LD      D,(IX-3)        ; OLD TRACK
+'0882  DD5EFE    1155         LD      E,(IX-2)        ; OLD SECTOR
+'0885  DD4EFF    1156         LD      C,(IX-1)        ; OLD #
+'0888  10DD      1157         DJNZ    SAV3-$
+'088A  18D6      1158         JR      SAV2-$
+'088C  3E1A      1159 SAVNEW  LD      A,26            ; NEW ENTRY
+'088E  0C        1160         INC     C
+'088F  1C        1161 NEWLP   INC     E
+
+
+
+
+
+ZXMAIN ZX65  VER 2.1  8/80  RMK        SD SYSTEMS Z80 ASSEMBLER PAGE 0021 
+ ADDR  CODE      STMT SOURCE STATEMENT
+
+'0890  BB        1162         CP      E               ; >26?
+'0891  3003      1163         JR      NC,NEW1-$
+'0893  14        1164         INC     D               ; IF SO, NXT TRK
+'0894  1E01      1165         LD      E,1
+'0896  0D        1166 NEW1    DEC     C
+'0897  20F6      1167         JR      NZ,NEWLP-$
+'0899  1806      1168         JR      UPDIR-$
+'089B  DD560D    1169 SAVOLD  LD      D,(IX+13)
+'089E  DD5E0E    1170         LD      E,(IX+14)
+'08A1  FD720D    1171 UPDIR   LD      (IY+13),D       ; PUT NEW TRK & SCTR
+'08A4  FD730E    1172         LD      (IY+14),E
+'08A7  CD2809'   1173         CALL    PUTDIR          ; UPDATE DIR
+'08AA  CDAA09'   1174 SAVER   CALL    SETDAT          ; SET UP FOR SAVE
+'08AD  CD490B'   1175         CALL    WRONE           ; & WRITE # SECTORS
+'08B0  CDC309'   1176         CALL    INCDAT
+'08B3  20F5      1177         JR      NZ,SAVER-$
+'08B5  C9        1178         RET
+                 1179 ;
+                 1180 ; KILL A FILE (SET INACTIVE STATUS IN DIRECTORY)
+                 1181 ;
+'08B6  CDF309'   1182 KILL    CALL    ANAME           ; GET NAME
+'08B9  CD3A09'   1183         CALL    NAMSCH          ; FIND IT
+'08BC  CA9D09'   1184         JP      Z,NTFND
+'08BF  FD21600C' 1185         LD      IY,TEMPS
+'08C3  3E03      1186         LD      A,3             ; MAKE STAT = 03
+'08C5  FD360003  1187         LD      (IY+0),3
+'08C9  185D      1188         JR      PUTDIR-$        ; AND UPDATE DIRECTORY
+                 1189 ;
+                 1190 ; INITIALIZE DISK (WRITES BLANK DIRECTORY)
+                 1191 ;
+'08CB  114B0C'   1192 INIT    LD      DE,INIMSG       ; INITIALIZE DISK
+'08CE  CDCE0A'   1193         CALL    PRTDE
+'08D1  CD160B'   1194         CALL    GETCHR          ; ASK YES OR NO
+'08D4  FE59      1195         CP      'Y'
+'08D6  C0        1196         RET     NZ
+'08D7  CD370B'   1197         CALL    HOMB
+'08DA  DD21700C' 1198         LD      IX,BUFFR        ; FILL BUFF W/PATTERN
+'08DE  FD21F00C' 1199         LD      IY,INIMSK       ; STORED AT INIMSK
+'08E2  DDE5      1200         PUSH    IX
+'08E4  0E08      1201         LD      C,8
+'08E6  FDE5      1202 INLP1   PUSH    IY
+'08E8  0610      1203         LD      B,10H
+'08EA  FD7E00    1204 INLP2   LD      A,(IY+0)
+'08ED  DD7700    1205         LD      (IX+0),A
+'08F0  DD23      1206         INC     IX
+'08F2  FD23      1207         INC     IY
+'08F4  10F4      1208         DJNZ    INLP2-$
+'08F6  FDE1      1209         POP     IY
+'08F8  0D        1210         DEC     C
+'08F9  20EB      1211         JR      NZ,INLP1-$
+'08FB  DDE1      1212         POP     IX
+'08FD  3E03      1213         LD      A,3             ; MAKE 1ST ONE DEAD
+'08FF  DD7700    1214         LD      (IX+0),A
+'0902  01700C'   1215         LD      BC,BUFFR
+'0905  CD430B'   1216         CALL    BUFS
+'0908  0E00      1217         LD      C,0
+'090A  CD400B'   1218         CALL    TRKS
+'090D  0C        1219         INC     C
+
+
+
+
+
+ZXMAIN ZX65  VER 2.1  8/80  RMK        SD SYSTEMS Z80 ASSEMBLER PAGE 0022 
+ ADDR  CODE      STMT SOURCE STATEMENT
+
+'090E  CD3D0B'   1220         CALL    SECS
+'0911  CD490B'   1221         CALL    WRONE           ; 1ST DIR PAGE
+'0914  3E01      1222         LD      A,1             ; RESTORE PATTERN
+'0916  DD7700    1223         LD      (IX+0),A
+'0919  010219    1224         LD      BC,1902H
+'091C  C5        1225 WRLP    PUSH    BC              ; WRITE REST OF TRK 0
+'091D  CD3D0B'   1226         CALL    SECS
+'0920  CD490B'   1227         CALL    WRONE
+'0923  C1        1228         POP     BC
+'0924  0C        1229         INC     C
+'0925  10F5      1230         DJNZ    WRLP-$
+'0927  C9        1231         RET
+                 1232 ;
+                 1233 ; OVERWRITE CURRENT DIRECTORY PAGE
+                 1234 ;
+'0928  0610      1235 PUTDIR  LD      B,10H           ; UPDATE DIR
+'092A  FD7E00    1236 UPLP    LD      A,(IY+0)
+'092D  DD7700    1237         LD      (IX+0),A
+'0930  DD23      1238         INC     IX
+'0932  FD23      1239         INC     IY
+'0934  10F4      1240         DJNZ    UPLP-$
+'0936  CD490B'   1241         CALL    WRONE           ; REWRITE DIR PAGE
+'0939  C9        1242         RET
+                 1243 ;
+                 1244 ; SEARCH FOR FILE NAME IN DIRECTORY.. RETURN WITH Z FLG
+                 1245 ; SET IF NOT FOUND, Z CLEAR AND BUFFER FILLED IF FOUND
+                 1246 ;
+'093A  CD3A0A'   1247 NAMSCH  CALL    DIR1            ; SET UP FOR DIR SCH
+'093D  CD8A09'   1248 LDLP    CALL    NEWPG           ; READ PAGE OF NDX
+'0940  0608      1249         LD      B,8
+'0942  DD7E00    1250 LDLP1   LD      A,(IX+0)        ; CHECK STAT
+'0945  3D        1251         DEC     A
+'0946  2001      1252         JR      NZ,LDLP2-$
+'0948  C9        1253         RET
+'0949  3D        1254 LDLP2   DEC     A
+'094A  DDE5      1255         PUSH    IX
+'094C  FDE5      1256         PUSH    IY
+'094E  2013      1257         JR      NZ,LDNXT-$      ; INACTIVE?
+'0950  0E0A      1258         LD      C,10            ; ELSE COMP NAME
+'0952  FD7E01    1259 CMPLP   LD      A,(IY+1)
+'0955  DDBE01    1260         CP      (IX+1)
+'0958  2009      1261         JR      NZ,LDNXT-$
+'095A  DD23      1262         INC     IX
+'095C  FD23      1263         INC     IY
+'095E  0D        1264         DEC     C
+'095F  20F1      1265         JR      NZ,CMPLP-$
+'0961  180D      1266         JR      CMPOK-$         ; SAME NAME
+'0963  FDE1      1267 LDNXT   POP     IY              ; TRY NEXT ONE
+'0965  DDE1      1268         POP     IX
+'0967  111000    1269         LD      DE,10H
+'096A  DD19      1270         ADD     IX,DE
+'096C  10D4      1271         DJNZ    LDLP1-$
+'096E  18CD      1272         JR      LDLP-$          ; NEXT PAGE
+'0970  FDE1      1273 CMPOK   POP     IY              ; NAME MATCHES
+'0972  DDE1      1274         POP     IX
+'0974  0610      1275         LD      B,10H           ; XFER DIR NTRY TO BUFF
+'0976  DD7E00    1276 FILLP   LD      A,(IX+0)
+'0979  FD7700    1277         LD      (IY+0),A
+
+
+
+
+
+ZXMAIN ZX65  VER 2.1  8/80  RMK        SD SYSTEMS Z80 ASSEMBLER PAGE 0023 
+ ADDR  CODE      STMT SOURCE STATEMENT
+
+'097C  DD23      1278         INC     IX
+'097E  FD23      1279         INC     IY
+'0980  10F4      1280         DJNZ    FILLP-$
+'0982  11F0FF    1281         LD      DE,-10H
+'0985  DD19      1282         ADD     IX,DE
+'0987  AF        1283         XOR     A
+'0988  3C        1284         INC     A               ; EXIT A = 1
+'0989  C9        1285         RET
+'098A  D9        1286 NEWPG   EXX                     ; GET NXT DIR PAGE
+'098B  DD21700C' 1287         LD      IX,BUFFR
+'098F  FD340E    1288         INC     (IY+14)         ; NXT SCTR
+'0992  FD4E0E    1289         LD      C,(IY+14)
+'0995  CD3D0B'   1290         CALL    SECS
+'0998  CD460B'   1291         CALL    RDONE           ; READ IT IN
+'099B  D9        1292         EXX
+'099C  C9        1293         RET
+'099D  CD540A'   1294 NTFND   CALL    LINF            ; NOT FOUND
+'09A0  11B60B'   1295         LD      DE,NFMSG
+'09A3  CDCE0A'   1296         CALL    PRTDE
+'09A6  31FE0E'   1297         LD      SP,SYSTK-2      ; RET TO CMND
+'09A9  C9        1298         RET
+                 1299 ;
+                 1300 ; FILL IN DISK DATA. USES SR CALLS IN CBIOS
+                 1301 ;
+'09AA  FD21600C' 1302 SETDAT  LD      IY,TEMPS        ; SET UP FOR DSK DATA
+'09AE  FD4E0B    1303         LD      C,(IY+11)
+'09B1  FD460C    1304         LD      B,(IY+12)
+'09B4  CD430B'   1305         CALL    BUFS            ; XFER ADDR
+'09B7  FD4E0D    1306         LD      C,(IY+13)
+'09BA  CD400B'   1307         CALL    TRKS            ; TRACK
+'09BD  FD4E0E    1308         LD      C,(IY+14)
+'09C0  C33D0B'   1309         JP      SECS            ; SECTOR
+                 1310 ;
+                 1311 ; BUMP SECTOR/TRACK AND XFER ADDRESS FOR MULTI
+                 1312 ; SECTOR READ OR WRITE
+                 1313 ;
+'09C3  FD7E0B    1314 INCDAT  LD      A,(IY+11)       ; BUMP DSK DATA
+'09C6  C680      1315         ADD     A,80H           ; BUMP XFER ADDR
+'09C8  FD770B    1316         LD      (IY+11),A
+'09CB  3003      1317         JR      NC,INC1-$
+'09CD  FD340C    1318         INC     (IY+12)
+'09D0  FD7E0E    1319 INC1    LD      A,(IY+14)
+'09D3  3C        1320         INC     A               ; BUMP SECTOR
+'09D4  FE1B      1321         CP      27
+'09D6  3805      1322         JR      C,INC2-$
+'09D8  3E01      1323         LD      A,1
+'09DA  FD340D    1324         INC     (IY+13)         ; AND TRK IF NEEDED
+'09DD  FD770E    1325 INC2    LD      (IY+14),A
+'09E0  FD7E0D    1326         LD      A,(IY+13)       ; CHECK FOR VALID TRACK
+'09E3  FE4D      1327         CP      77
+'09E5  3808      1328         JR      C,INC3-$
+'09E7  11D10B'   1329         LD      DE,DERMSG       ; ERROR
+'09EA  CDD90A'   1330         CALL    PRTXT
+'09ED  C1        1331         POP     BC              ; RET TO CMND
+'09EE  C9        1332         RET
+'09EF  FD350F    1333 INC3    DEC     (IY+15)
+'09F2  C9        1334         RET
+                 1335 ;
+
+
+
+
+
+ZXMAIN ZX65  VER 2.1  8/80  RMK        SD SYSTEMS Z80 ASSEMBLER PAGE 0024 
+ ADDR  CODE      STMT SOURCE STATEMENT
+
+                 1336 ; GET FILE NAME TO BUFFER
+                 1337 ;
+'09F3  FD21600C' 1338 ANAME   LD      IY,TEMPS
+'09F7  FDE5      1339         PUSH    IY
+'09F9  060A      1340         LD      B,10
+'09FB  3E20      1341         LD      A,' '
+'09FD  FD7701    1342 MPTY    LD      (IY+1),A        ; CLEAR INPUT BUFFER
+'0A00  FD23      1343         INC     IY
+'0A02  10F9      1344         DJNZ    MPTY-$
+'0A04  11100C'   1345         LD      DE,NAMSG        ; PROMPT FOR NAME
+'0A07  CDCE0A'   1346         CALL    PRTDE
+'0A0A  FDE1      1347         POP     IY
+'0A0C  FDE5      1348         PUSH    IY
+'0A0E  CD160B'   1349 NAMLP   CALL    GETCHR
+'0A11  FE0D      1350         CP      0DH             ; END?
+'0A13  2822      1351         JR      Z,NAMIN-$
+'0A15  FE2E      1352         CP      '.'             ; DELIMITER?
+'0A17  2807      1353         JR      Z,FTYP-$
+'0A19  FD7701    1354         LD      (IY+1),A        ; PUT IT IN BUFFER
+'0A1C  FD23      1355         INC     IY
+'0A1E  18EE      1356         JR      NAMLP-$
+'0A20  FDE1      1357 FTYP    POP     IY
+'0A22  FDE5      1358         PUSH    IY
+'0A24  FD7707    1359         LD      (IY+7),A
+'0A27  FD23      1360         INC     IY
+'0A29  CD160B'   1361 TYPLP   CALL    GETCHR
+'0A2C  FE0D      1362         CP      0DH
+'0A2E  2807      1363         JR      Z,NAMIN-$
+'0A30  FD7707    1364         LD      (IY+7),A
+'0A33  FD23      1365         INC     IY
+'0A35  18F2      1366         JR      TYPLP-$
+'0A37  FDE1      1367 NAMIN   POP     IY
+'0A39  C9        1368         RET
+                 1369 ;
+                 1370 ; SET UP FOR DIRECTORY SEARCH
+                 1371 ;
+'0A3A  FD21600C' 1372 DIR1    LD      IY,TEMPS        ; SET UP FOR DIR SCH
+'0A3E  01700C'   1373         LD      BC,BUFFR
+'0A41  CD430B'   1374         CALL    BUFS
+'0A44  0E00      1375         LD      C,0             ; TRACK 0
+'0A46  FD710D    1376         LD      (IY+13),C
+'0A49  FD710E    1377         LD      (IY+14),C
+'0A4C  C3400B'   1378         JP      TRKS
+                 1379 ;
+                 1380 ; VARIOUS ROUTINES USED BY TRANSLATOR, MONITOR, AND DOS
+                 1381 ;
+'0A4F  0E0D      1382 CRLF    LD      C,0DH           ; PRINT CRLF
+'0A51  CD340B'   1383         CALL    PRNC
+'0A54  0E0A      1384 LINF    LD      C,0AH
+'0A56  C3340B'   1385         JP      PRNC
+'0A59  0E20      1386 PROM    LD      C,' '           ; PRINT ' >'
+'0A5B  CD340B'   1387         CALL    PRNC
+'0A5E  0E3E      1388         LD      C,'>'
+'0A60  C3340B'   1389         JP      PRNC
+                 1390 ;
+                 1391 ; GET HEX DATA IN DE. ROTATE CONTINUOUSLY UNTIL A
+                 1392 ; 'CR' IS INPUT. LSB IN E. SET Z FLG AND RET ON 'SPACE'
+                 1393 ;
+
+
+
+
+
+ZXMAIN ZX65  VER 2.1  8/80  RMK        SD SYSTEMS Z80 ASSEMBLER PAGE 0025 
+ ADDR  CODE      STMT SOURCE STATEMENT
+
+'0A63  CD160B'   1394 GETWRD  CALL    GETCHR          ; GET BINARY DATA
+'0A66  FE20      1395         CP      ' '             ; RET Z IF S.ACE
+'0A68  C8        1396         RET     Z
+'0A69  EB        1397         EX      DE,HL
+'0A6A  210000    1398         LD      HL,0            ; CLEAR HODING REG
+'0A6D  CD890A'   1399         CALL    CONV            ; CHANGE TO HEX
+'0A70  28F1      1400         JR      Z,GETWRD-$      ; INVALID CHAR
+'0A72  CDAB0A'   1401         CALL    ROBYT           ; ROTATE INTO HL
+'0A75  CD160B'   1402 WRDLP   CALL    GETCHR          ; GET NEXT CHAR
+'0A78  FE0D      1403         CP      0DH             ; TERMINATOR
+'0A7A  280A      1404         JR      Z,WRDON-$
+'0A7C  CD890A'   1405         CALL    CONV
+'0A7F  28F4      1406         JR      Z,WRDLP-$
+'0A81  CDAB0A'   1407         CALL    ROBYT
+'0A84  18EF      1408         JR      WRDLP-$
+'0A86  B7        1409 WRDON   OR      A               ; CLEAR Z FLAG
+'0A87  EB        1410         EX      DE,HL           ; DATA INTO DE
+'0A88  C9        1411         RET
+                 1412 ;
+                 1413 ; CONVERT ASCII DATA IN A TO HEX. SET Z FLG IF INVALID
+                 1414 ;
+'0A89  FE30      1415 CONV    CP      '0'             ; CONVERT TO BINARY
+'0A8B  380C      1416         JR      C,BAD-$
+'0A8D  FE3A      1417         CP      3AH
+'0A8F  380F      1418         JR      C,GOOD-$
+'0A91  FE41      1419         CP      41H
+'0A93  3804      1420         JR      C,BAD-$
+'0A95  FE47      1421         CP      47H
+'0A97  3807      1422         JR      C,GOOD-$
+'0A99  0E3F      1423 BAD     LD      C,'?'
+'0A9B  CD340B'   1424         CALL    PRNC            ; NOTIFY BAD INPUT
+'0A9E  AF        1425         XOR     A               ; SET Z FLAG
+'0A9F  C9        1426         RET
+'0AA0  D630      1427 GOOD    SUB     30H
+'0AA2  FE0A      1428         CP      10
+'0AA4  3802      1429         JR      C,GOOD1-$
+'0AA6  D607      1430         SUB     7
+'0AA8  FEFF      1431 GOOD1   CP      0FFH            ; CLEAR Z FLAG
+'0AAA  C9        1432         RET
+                 1433 ;
+                 1434 ; ROTATE BYTE IN A INTO HL VIA L
+                 1435 ;
+'0AAB  29        1436 ROBYT   ADD     HL,HL           ; ROTATE A INTO HL
+'0AAC  29        1437         ADD     HL,HL           ; ROTATE HL 4 BITS LEFT
+'0AAD  29        1438         ADD     HL,HL
+'0AAE  29        1439         ADD     HL,HL
+'0AAF  B5        1440         OR      L               ; PUT NEW DIGIT INTO L
+'0AB0  6F        1441         LD      L,A
+'0AB1  C9        1442         RET
+                 1443 ;
+                 1444 ; PRINT FOUR DIGIT VALUE IN DE
+                 1445 ;
+'0AB2  7A        1446 PRTWRD  LD      A,D
+'0AB3  CDB70A'   1447         CALL    PRBIN
+'0AB6  7B        1448 PRTBYT  LD      A,E             ; PRINT VALUE IN E
+'0AB7  F5        1449 PRBIN   PUSH    AF
+'0AB8  CB0F      1450         RRC     A
+'0ABA  CB0F      1451         RRC     A
+
+
+
+
+
+ZXMAIN ZX65  VER 2.1  8/80  RMK        SD SYSTEMS Z80 ASSEMBLER PAGE 0026 
+ ADDR  CODE      STMT SOURCE STATEMENT
+
+'0ABC  CB0F      1452         RRC     A
+'0ABE  CB0F      1453         RRC     A
+'0AC0  CDC40A'   1454         CALL    PRB1
+'0AC3  F1        1455         POP     AF
+'0AC4  E60F      1456 PRB1    AND     0FH
+'0AC6  C690      1457         ADD     A,90H
+'0AC8  27        1458         DAA
+'0AC9  CE40      1459         ADC     A,40H
+'0ACB  27        1460         DAA
+'0ACC  1859      1461         JR      PRNA-$
+                 1462 ;
+                 1463 ; PRINT STRING POINTED TO BY DE. USES PRTXT
+                 1464 ;
+'0ACE  FDE5      1465 PRTDE   PUSH    IY              ; PRNT PER DE
+'0AD0  D5        1466         PUSH    DE
+'0AD1  FDE1      1467         POP     IY
+'0AD3  CDD90A'   1468         CALL    PRTXT
+'0AD6  FDE1      1469         POP     IY
+'0AD8  C9        1470         RET
+                 1471 ;
+                 1472 ; PRINT ASCII STRING POINTED TO BY IY. CHECK FOR
+                 1473 ; SPECIALS: '1' PRINTS AS BYTE POINTED TO BY HL, '2'
+                 1474 ; PRINTS (HL+1), '!' DOES NOT PRINT, '^' TERMINATES.
+                 1475 ;
+'0AD9  1E00      1476 PRTXT   LD      E,0             ; PRNT UP TO 255 CHRSY
+'0ADB  FD7E00    1477 PRNLP   LD      A,(IY+0)
+'0ADE  FE5E      1478         CP      '^'             ; TERMINATOR?
+'0AE0  C8        1479         RET     Z
+'0AE1  FE21      1480         CP      '!'             ; NO PRINT?
+'0AE3  281F      1481         JR      Z,DONXT+1-$
+'0AE5  D5        1482         PUSH    DE
+'0AE6  2A680B'   1483         LD      HL,(CPC)
+'0AE9  23        1484         INC     HL
+'0AEA  FE32      1485         CP      '2'             ; PRINT (HL+1)?
+'0AEC  2007      1486         JR      NZ,PRN1-$
+'0AEE  23        1487         INC     HL
+'0AEF  5E        1488         LD      E,(HL)
+'0AF0  CDB60A'   1489         CALL    PRTBYT
+'0AF3  180E      1490         JR      DONXT-$
+'0AF5  FE31      1491 PRN1    CP      '1'             ; PRINT (HL)?
+'0AF7  2006      1492         JR      NZ,DOALPH-$
+'0AF9  5E        1493         LD      E,(HL)
+'0AFA  CDB60A'   1494         CALL    PRTBYT
+'0AFD  1804      1495         JR      DONXT-$
+'0AFF  4F        1496 DOALPH  LD      C,A             ; ALL OTHER CHARACTERS
+'0B00  CD340B'   1497         CALL    PRNC
+'0B03  D1        1498 DONXT   POP     DE
+'0B04  FD23      1499         INC     IY
+'0B06  1D        1500         DEC     E
+'0B07  20D2      1501         JR      NZ,PRNLP-$
+'0B09  C9        1502         RET
+                 1503 ;
+'0B0A  C5        1504 SPAC    PUSH    BC              ; PRINT 6 SPACES
+'0B0B  0606      1505         LD      B,6
+'0B0D  0E20      1506         LD      C,' '
+'0B0F  CD340B'   1507 SPLP    CALL    PRNC
+'0B12  10FB      1508         DJNZ    SPLP-$
+'0B14  C1        1509         POP     BC
+
+
+
+
+
+ZXMAIN ZX65  VER 2.1  8/80  RMK        SD SYSTEMS Z80 ASSEMBLER PAGE 0027 
+ ADDR  CODE      STMT SOURCE STATEMENT
+
+'0B15  C9        1510         RET
+                 1511 ;
+                 1512 ; CONSOLE I/O
+                 1513 ;
+'0B16  CD2E0B'   1514 GETCHR  CALL    KBIN            ; GET CHAR & TEST
+'0B19  FE03      1515         CP      3               ; ^C....
+'0B1B  CA030F'   1516         JP      Z,CPWRM         ; CPM WARM START
+'0B1E  FE18      1517         CP      18H             ; ^X (CAN)...
+'0B20  2005      1518         JR      NZ,PRNA-$
+'0B22  31FE0E'   1519         LD      SP,SYSTK-2      ; FOR RET TO CMND
+'0B25  3E23      1520         LD      A,'#'
+'0B27  4F        1521 PRNA    LD      C,A             ; PRINT CHAR IN A
+'0B28  F5        1522         PUSH    AF
+'0B29  CD340B'   1523         CALL    PRNC
+'0B2C  F1        1524         POP     AF
+'0B2D  C9        1525         RET
+                 1526 ;
+                 1527 ; JUMPS TO EXTERNAL I/O...MODIFY AS NEEDED
+                 1528 ;
+'0B2E  C3090F'   1529 KBIN    JP      CONIN           ; GET SINGLE CHAR IN A
+'0B31  C3060F'   1530 KBST    JP      CONST           ; TEST INPUT STATUS
+'0B34  C30C0F'   1531 PRNC    JP      CONOUT          ; PRINT CHAR IN C
+'0B37  C3180F'   1532 HOMB    JP      HOME            ; DRIVE HOME
+'0B3A  C31B0F'   1533 DRVS    JP      SETDRV          ; SET DRIVE #
+'0B3D  C3210F'   1534 SECS    JP      SETSEC          ; SET SECTOR #
+'0B40  C31E0F'   1535 TRKS    JP      SETTRK          ; SET TRK #
+'0B43  C3240F'   1536 BUFS    JP      SETBUF          ; SET XFER ADDRESS
+'0B46  C3270F'   1537 RDONE   JP      READ            ; READ A SECTOR
+'0B49  C32A0F'   1538 WRONE   JP      WRITE           ; WRITE A SECTOR
+                 1539 ;
+                 1540 ; JUMP TABLE FOR LINKS TO Z80 ROUTINES...FILL IN AS REQD
+                 1541 ; FIRST TWO INITIALIZED TO CONSOLE I/O VIA ACC
+                 1542 ;
+'0B4C  C32E0B'   1543 USR0    JP      KBIN            ; 6502 USER ROUTINES
+'0B4F  C3270B'   1544 USR1    JP      PRNA
+'0B52  C90000    1545 USR2    DEFB    0C9H,0,0
+'0B55  C90000    1546 USR3    DEFB    0C9H,0,0
+'0B58  C90000    1547 USR4    DEFB    0C9H,0,0
+                 1548 ;
+                 1549 ; 6502 BREAK VECTOR...INIT TO GO TO COMMAND LEVEL
+                 1550 ;
+'0B5B  0000      1551 IPOINT  DEFW    0
+                 1552 ;
+                 1553 ; TEMPORARIES FOR TRANSLATOR
+                 1554 ;
+'0B5D  01        1555 NSTEPS  DEFB    1               ; # STEPS TO EXECUTE
+'0B5E  00        1556 NBYTES  DEFB    0               ; # BYTES IN INSTR
+'0B5F  000A      1557 DLYCON  DEFW    0A00H           ; TIME DELAY FOR # STEP
+'0B61  0000      1558 BREAK   DEFW    0               ; BREAKPOINT ADDRESS
+                 1559 ;
+                 1560 ; SIMULATED 6502 CPU REGISTERS...INIT TO THESE VALUES
+                 1561 ;
+'0B63  00        1562 VREG    DEFB    0               ; ACCUMULATOR
+'0B64  00        1563         DEFB    0               ; STATUS (P) REG
+'0B65  00        1564         DEFB    0               ; X INDEX REG
+'0B66  00        1565         DEFB    0               ; Y INDEX REG
+'0B67  FF        1566         DEFB    0FFH            ; STACK POINTER
+'0B68  0002      1567 CPC     DEFW    200H            ; PROGRAM COUNTER
+
+
+
+
+
+ZXMAIN ZX65  VER 2.1  8/80  RMK        SD SYSTEMS Z80 ASSEMBLER PAGE 0028 
+ ADDR  CODE      STMT SOURCE STATEMENT
+
+'0B6A  0002      1568 NPC     DEFW    200H            ; LOCATION OF NXT INSTR
+                 1569 ;
+                 1570 ; VARIOUS MESSAGES FOR SYSTEM
+                 1571 ;
+'0B6C  2A2A2A2A  1572 INTRO   DEFM    '***** XENTRIX ZX/65 *****^'
+       2A205845
+       4E545249
+       58205A58
+       2F363520
+       2A2A2A2A
+       2A5E
+'0B86  20435043  1573 HEADR   DEFM    ' CPC.. INS.. A.... P....'
+       2E2E2049
+       4E532E2E
+       20412E2E
+       2E2E2050
+       2E2E2E2E
+'0B9E  20582E2E  1574         DEFM    ' X.... Y.... SP... NPC..'
+       2E2E2059
+       2E2E2E2E
+       2053502E
+       2E2E204E
+       50432E2E
+'0BB6  46494C45  1575 NFMSG   DEFM    'FILE NOT FOUND^'
+       204E4F54
+       20464F55
+       4E445E
+'0BC5  46494C45  1576 HAVMSG  DEFM    'FILE EXISTS^'
+       20455849
+       5354535E
+'0BD1  42414420  1577 DERMSG  DEFM    'BAD TRACK/SECTOR #^'
+       54524143
+       4B2F5345
+       43544F52
+       20235E
+'0BE4  2020454E  1578 GETADR  DEFM    '  ENTER START ADDRESS: ^'
+       54455220
+       53544152
+       54204144
+       44524553
+       533A205E
+'0BFC  2020454E  1579 GETN    DEFM    '  ENTER NO. BYTES: ^'
+       54455220
+       4E4F2E20
+       42595445
+       533A205E
+'0C10  2020454E  1580 NAMSG   DEFM    '  ENTER FILNAM.TYP: ^'
+       54455220
+       46494C4E
+       414D2E54
+       59503A20
+       5E
+'0C25  2020454E  1581 MLTMSG  DEFM    '  ENTER # STEPS: ^'
+       54455220
+       23205354
+       4550533A
+       205E
+'0C37  2020454E  1582 BKPMSG  DEFM    '  ENTER BRKP ADDR: ^'
+
+
+
+
+
+ZXMAIN ZX65  VER 2.1  8/80  RMK        SD SYSTEMS Z80 ASSEMBLER PAGE 0029 
+ ADDR  CODE      STMT SOURCE STATEMENT
+
+       54455220
+       42524B50
+       20414444
+       523A205E
+'0C4B  2020494E  1583 INIMSG  DEFM    '  INITIALIZE? (Y/N) ^'
+       49544941
+       4C495A45
+       3F202859
+       2F4E2920
+       5E
+                 1584 ;
+                 1585 ; DOS BUFFERS AND DATA
+                 1586 ;
+ >0C60           1587 TEMPS   DEFS    10H             ; DISK ENTRY BUFFER
+ >0C70           1588 BUFFR   DEFS    80H             ; DIRECTORY PAGE BUFFER
+'0CF0  01202020  1589 INIMSK  DEFB    1,20H,20H,20H,20H,20H,20H,20H
+       20202020
+'0CF8  20202020  1590         DEFB    20H,20H,20H,20H,20H,1,0,0
+       20010000
+                 1591 ;
+                 1592 ; DATA TABLES FOR TRANSLATOR BEGIN HERE
+                 1593 ;
+                 1594 ; ADDRESSING MODE TABLES
+                 1595 ;
+'0D00  0C1A      1596 AAATBL  DEFW    1A0CH           ; (ZPG,X)
+'0D02  040E      1597         DEFW    0E04H           ; ZPG
+'0D04  0006      1598         DEFW    0600H           ; IMM
+'0D06  060B      1599         DEFW    0B06H           ; ABS
+'0D08  0E1E      1600         DEFW    1E0EH           ; (ZPG),Y
+'0D0A  0822      1601         DEFW    2208H           ; ZPG,X
+'0D0C  122F      1602         DEFW    2F12H           ; ABS,Y
+'0D0E  102B      1603         DEFW    2B10H           ; ABS,X
+'0D10  0000      1604 BBBTBL  DEFW    0               ; INVALID
+'0D12  040E      1605         DEFW    0E04H           ; ZPG
+'0D14  0215      1606         DEFW    1502H           ; ACC
+'0D16  060B      1607         DEFW    0B06H           ; ABS
+'0D18  0A26      1608         DEFW    260AH           ; ZPG,Y
+'0D1A  0822      1609         DEFW    2208H           ; ZPG,X
+'0D1C  122F      1610         DEFW    2F12H           ; ABS,Y
+'0D1E  102B      1611         DEFW    2B10H           ; ABS,X
+'0D20  0006      1612 DDDTBL  DEFW    0600H           ; IMM
+'0D22  040E      1613         DEFW    0E04H           ; ZPG
+'0D24  0000      1614         DEFW    0               ; INVALID
+'0D26  060B      1615         DEFW    0B06H           ; ABS
+'0D28  0A26      1616         DEFW    260AH           ; ZPG,Y
+'0D2A  0822      1617         DEFW    2208H           ; ZPG,X
+'0D2C  122F      1618         DEFW    2F12H           ; ABS,Y
+'0D2E  102B      1619         DEFW    2B10H           ; ABS,X
+'0D30  040E      1620 BBXTBL  DEFW    0E04H           ; ZPG
+'0D32  060B      1621         DEFW    0B06H           ; ABS
+'0D34  0822      1622         DEFW    2208H           ; ZPG,X
+'0D36  102B      1623         DEFW    2B10H           ; ABS,X
+'0D38  0A26      1624         DEFW    260AH           ; ZPG,Y
+'0D3A  0006      1625 CCTBL   DEFW    0600H           ; IMM
+'0D3C  040E      1626         DEFW    0E04H           ; ZPG
+'0D3E  0000      1627         DEFW    0               ; INVALID
+'0D40  060B      1628         DEFW    0B06H           ; ABS
+                 1629 ;
+
+
+
+
+
+ZXMAIN ZX65  VER 2.1  8/80  RMK        SD SYSTEMS Z80 ASSEMBLER PAGE 0030 
+ ADDR  CODE      STMT SOURCE STATEMENT
+
+                 1630 ; BRANCH MASK TABLE
+                 1631 ;
+'0D42  2680      1632 MSKTBL  DEFW    8026H           ; BPL
+'0D44  1E80      1633         DEFW    801EH           ; BMI
+'0D46  2E40      1634         DEFW    402EH           ; BVC
+'0D48  3240      1635         DEFW    4032H           ; BVS
+'0D4A  0E01      1636         DEFW    010EH           ; BCC
+'0D4C  1201      1637         DEFW    0112H           ; BCS
+'0D4E  2202      1638         DEFW    0222H           ; BNE
+'0D50  1602      1639         DEFW    0216H           ; BEQ
+                 1640 ;
+                 1641 ; FLAG SET/RESET CODES
+                 1642 ;
+'0D52  3501      1643 FLGTBL  DEFW    0135H           ; CLC
+'0D54  B101      1644         DEFW    01B1H           ; SEC
+'0D56  3D04      1645         DEFW    043DH           ; CLI
+'0D58  B904      1646         DEFW    04B9H           ; SEI
+'0D5A  4140      1647         DEFW    4041H           ; CLV
+'0D5C  0000      1648         DEFW    0000            ; INVALID
+'0D5E  3908      1649         DEFW    0839H           ; CLD
+'0D60  B508      1650         DEFW    08B5H           ; SED
+                 1651 ;
+                 1652 ; JUMP TABLES TO IMPLIED INSTRUCTIONS
+                 1653 ;
+'0D62  7E03'     1654 IMPTBL  DEFW    PPHP            ; IMPLIED INSTR TABLE
+'0D64  A503'     1655         DEFW    PPLP
+'0D66  7403'     1656         DEFW    PPHA
+'0D68  9303'     1657         DEFW    PPLA
+'0D6A  5103'     1658         DEFW    PDEY
+'0D6C  C703'     1659         DEFW    PTAY
+'0D6E  4303'     1660         DEFW    PINY
+'0D70  3C03'     1661         DEFW    PINX
+'0D72  D103'     1662         DEFW    PTXA
+'0D74  BD03'     1663         DEFW    PTAX
+'0D76  4A03'     1664         DEFW    PDEX
+'0D78  6E03'     1665         DEFW    PNOP
+                 1666 ;
+                 1667 ; JUMP TABLE TO ADDR MODE PROCESSORS
+                 1668 ;
+'0D7A  6A06'     1669 GETTBL  DEFW    PIMM            ; INSTR MODE TABLE
+'0D7C  6E06'     1670         DEFW    PACX
+'0D7E  7606'     1671         DEFW    PZPG
+'0D80  7C06'     1672         DEFW    PAB
+'0D82  8206'     1673         DEFW    PZX
+'0D84  8706'     1674         DEFW    PZY
+'0D86  9106'     1675         DEFW    PZIX
+'0D88  A706'     1676         DEFW    PZIY
+'0D8A  C006'     1677         DEFW    PABX
+'0D8C  5D06'     1678         DEFW    PABY
+                 1679 ;
+                 1680 ; JUMP TABLES TO MULTI-MODE PROCESSORS
+                 1681 ;
+'0D8E  3804'     1682 EVNTBL  DEFW    PASL            ; JUMPS TO PROCESSORS
+'0D90  4604'     1683         DEFW    PBTRL
+'0D92  7604'     1684         DEFW    PLSR
+'0D94  8404'     1685         DEFW    PROR
+'0D96  9404'     1686         DEFW    PSTXY
+'0D98  B004'     1687         DEFW    PLDXY
+
+
+
+
+
+ZXMAIN ZX65  VER 2.1  8/80  RMK        SD SYSTEMS Z80 ASSEMBLER PAGE 0031 
+ ADDR  CODE      STMT SOURCE STATEMENT
+
+'0D9A  CC04'     1688         DEFW    PDCY
+'0D9C  DD04'     1689         DEFW    PICX
+'0D9E  4205'     1690 ODDTBL  DEFW    PORA
+'0DA0  5505'     1691         DEFW    PAND
+'0DA2  6805'     1692         DEFW    PEOR
+'0DA4  7B05'     1693         DEFW    PADC
+'0DA6  AB05'     1694         DEFW    PSTA
+'0DA8  B705'     1695         DEFW    PLDA
+'0DAA  C305'     1696         DEFW    PCMP
+'0DAC  1005'     1697         DEFW    PSBC
+                 1698 ;
+                 1699 ; MNEMONIC ASCII CODES (PACKED INTO 2 BYTES)
+                 1700 ;
+'0DAE  8304      1701 MNMTBL  DEFW    0483H           ; MNEMONIC TABLE
+'0DB0  C405      1702         DEFW    05C4H
+'0DB2  6C06      1703         DEFW    066CH
+'0DB4  6308      1704         DEFW    0863H           ; BCC
+'0DB6  7308      1705         DEFW    0873H
+'0DB8  B108      1706         DEFW    08B1H
+'0DBA  3409      1707         DEFW    0934H
+'0DBC  A909      1708         DEFW    09A9H
+'0DBE  C509      1709         DEFW    09C5H
+'0DC0  0C0A      1710         DEFW    0A0CH
+'0DC2  4B0A      1711         DEFW    0A4BH
+'0DC4  C30A      1712         DEFW    0AC3H
+'0DC6  D30A      1713         DEFW    0AD3H
+'0DC8  830D      1714         DEFW    0D83H           ; CLC
+'0DCA  840D      1715         DEFW    0D84H
+'0DCC  890D      1716         DEFW    0D89H
+'0DCE  960D      1717         DEFW    0D96H
+'0DD0  B00D      1718         DEFW    0DB0H
+'0DD2  180E      1719         DEFW    0E18H
+'0DD4  190E      1720         DEFW    0E19H
+'0DD6  A310      1721         DEFW    10A3H           ; DEC
+'0DD8  B810      1722         DEFW    10B8H
+'0DDA  B910      1723         DEFW    10B9H
+'0DDC  F215      1724         DEFW    15F2H           ; EOR
+'0DDE  C325      1725         DEFW    25C3H           ; INC
+'0DE0  D825      1726         DEFW    25D8H
+'0DE2  D925      1727         DEFW    25D9H
+'0DE4  B029      1728         DEFW    29B0H           ; JMP
+'0DE6  722A      1729         DEFW    2A72H
+'0DE8  8130      1730         DEFW    3081H           ; LDA
+'0DEA  9830      1731         DEFW    3098H
+'0DEC  9930      1732         DEFW    3099H
+'0DEE  7232      1733         DEFW    3272H
+'0DF0  F039      1734         DEFW    39F0H           ; NOP
+'0DF2  413E      1735         DEFW    3E41H           ; ORA
+'0DF4  0141      1736         DEFW    4101H           ; PHA
+'0DF6  1041      1737         DEFW    4110H
+'0DF8  8141      1738         DEFW    4181H
+'0DFA  9041      1739         DEFW    4190H
+'0DFC  EC49      1740         DEFW    49ECH           ; ROL
+'0DFE  F249      1741         DEFW    49F2H
+'0E00  894A      1742         DEFW    4A89H
+'0E02  934A      1743         DEFW    4A93H
+'0E04  434C      1744         DEFW    4C43H           ; SBC
+'0E06  A34C      1745         DEFW    4CA3H
+
+
+
+
+
+ZXMAIN ZX65  VER 2.1  8/80  RMK        SD SYSTEMS Z80 ASSEMBLER PAGE 0032 
+ ADDR  CODE      STMT SOURCE STATEMENT
+
+'0E08  A44C      1746         DEFW    4CA4H
+'0E0A  A94C      1747         DEFW    4CA9H
+'0E0C  814E      1748         DEFW    4E81H
+'0E0E  984E      1749         DEFW    4E98H
+'0E10  994E      1750         DEFW    4E99H
+'0E12  3850      1751         DEFW    5038H           ; TAX
+'0E14  3950      1752         DEFW    5039H
+'0E16  7852      1753         DEFW    5278H
+'0E18  0153      1754         DEFW    5301H
+'0E1A  1353      1755         DEFW    5313H
+'0E1C  2153      1756         DEFW    5321H
+                 1757 ;
+                 1758 ; ADDRESS MODE PRINT TABLE
+                 1759 ;
+'0E1E  20243120  1760 AMDTBL  DEFM    ' $1    !'     ; ADDR MODE TABLE...REL
+       20202021
+'0E26  20232431  1761         DEFM    ' #$1   !'     ; IMMEDIATE
+       20202021
+'0E2E  20243231  1762         DEFM    ' $21  !!'     ; ABS
+       20202121
+'0E36  20243120  1763         DEFM    ' $1    !'     ; ZPG
+       20202021
+'0E3E  20202020  1764         DEFM    '        '     ; IMPLIED
+       20202020
+'0E46  20412020  1765         DEFM    ' A      '     ; ACCUM
+       20202020
+'0E4E  20282431  1766         DEFM    ' ($1,X)!'     ; (ZPG,X)
+       2C582921
+'0E56  20282431  1767         DEFM    ' ($1),Y!'     ; (ZPG),Y
+       292C5921
+'0E5E  2024312C  1768         DEFM    ' $1,X  !'     ; ZPG,X
+       58202021
+'0E66  2024312C  1769         DEFM    ' $1,Y  !'     ; ZPG,Y
+       59202021
+'0E6E  20243231  1770         DEFM    ' $21,X!!'     ; ABS,X
+       2C582121
+'0E76  20243231  1771         DEFM    ' $21,Y!!'     ; ABS,Y
+       2C592121
+'0E7E  20282432  1772         DEFM    ' ($21)!!'     ; INDIRECT
+       31292121
+                 1773 ;
+                 1774 ; THAT'S ALL!
+                 1775 ;
+                 1776         END
+
+ERRORS=0000 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+4

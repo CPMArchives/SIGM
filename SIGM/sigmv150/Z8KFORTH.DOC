@@ -1,0 +1,125 @@
+Here is a Z8001 forth adapted from that in Dr Dobbs No 71, Sept 1982, 
+ originally by Lou Odette.
+
+It was developed by John Way (of Way Engineering Inc, 213-245-1480)
+ (to whom should be directed all technical queries)
+
+In addition to all of Lou's basic dictionary he has added SEGMENT, 
+  ?TERMINAL and several others.
+
+He has also cleaned up several bugs, added documentation and written
+  I/O drivers for a polled SIO chip.
+
+For more info see the Dr Dobbs Article...
+
+Bug reports, enhancements to:
+Trevor Marshall, SYSOP, Thousand Oaks Tech RBBS, (805-492-5472),  6/24/83
+
+;-------->
+
+Z8000 COMMENT FILE                                      30 Jun 83
+
+     L.  L.  Odette's  FORTH  ( LLO_FORTH ) does not include  I/O 
+drivers,  hence  we have supplied them for use with a  Z80-SIO  / 
+Z80001 combination.  In this configuration polling of the console 
+rather  than  an  interrupt scheme is used.   These  drivers  are 
+listed only as a guide and are in the public domain.
+     Some  changes  to the source list were  implemented  -partly 
+because  we used a different assembler,  the  Adv.  Micro-Devices 
+MACZ vers. 3.0.
+     See  Ref.  #4 below for a more thoroughly commented  listing 
+and for copyright exclusions on the FORTH portion.
+     In  LLO_FORTH  line 941,  the word OVER was coded in  a  way 
+which  will work only if it is assembled below 8000H.   This  was 
+changed.  LEAVE on line 1302 LLO_FORTH has been changed also.
+     In  MACZ  we  were  unable to assemble  code  using  address 
+offsets,  e.g.  in  the coding of QUIT.   Address constants  were 
+therefore created by assembling or ORG'ing symbols at appropriate 
+origins such as NUM0 or NUM1.  There is probably a better way...
+     Our  MACZ does not support ( at least we couldn't get it  to 
+support ) LDA instructions (e.g.  line 260,  CRLF ) so these were 
+changed  to load immediate instructions wherever  encountered  in 
+LLO_FORTH.   This  is  unimportant unless a Z8001 is operated  in 
+segmented mode.  MACZ is unwilling to generate absolute HEX files 
+when  a  segmented mode Z8001 is specified by the "S"  option  at 
+assembly time.  To do this requires the use of the linker LNKZ on 
+a .REL file which we will not cover here.
+     A  few FORTH words were added after SEMI1 at the end of  the 
+source list to improve usefulness- TICK ( ' ) and an interpretive 
+DUMP.  As there is no FORTH code compiler here, to add a new word 
+to the listing- create it and dump the code.   Then add the  code 
+to the list as is done for FIND,  FORGET, etc.  Of course you may 
+hand  code  it  and add it into the miscellaneous  word  area  or 
+wherever appropriate.
+     To  exit FORTH without pushing the reset  button,  the  null 
+character control-shift-@ is used ( at NECHO:  ).  This character 
+directs  the Z8000 to a utility program if one is resident.   Our 
+utility program uses console interrupts so it is necessary to re-
+enable  interrupt  on character received in  the  Z80-SIO  before 
+exiting.  STARTX: sends an 18H to Reg. 1 in SIO-A.
+     To  re-enter FORTH and retain any new words ( warm  start  ) 
+change  the  JP  INIT  to JP ABORT in the third  line  down  from 
+FORTH:.   When you tire of this, a forth word could be devised or 
+it can be made automatic.   However should you crash you may want 
+to  change  it  back to JP INIT to try  a  cold  recovery  before 
+throwing  in  the towel and re-loading.   P.S.- By loading  BASE: 
+with  a  zero  rather than just allocating space as  is  done  in 
+LLO_FORTH,  the  warm  start  should  be  automatic  since  INIT: 
+examines  BASE  and then initializes it or  ABORTs  depending  on 
+whether it has been set >0.
+
+Known Bugs:
+     This  version  will  not access newly defined  variables  or 
+constants  until  a word has been created.   Then  previously  or 
+subsequently  defined variables or constants  become  accessible.  
+After log-in use : Z ; as a temporary fix.  Something is probably 
+wrong in the initialization process.
+     If  Wordstar 2 is used in modifying the source list prior to 
+assembly  with  MACZ,  be  sure to PIP Z8k.zsc  =  Z8k.zsc[z]  to 
+suppress  control  characters  which  will  otherwise  throw  the 
+resulting code out of registration with its respective mnemonics.  
+You may also try entering Wordstar in the 'N' non-document mode.
+     Some  labels  in  LLO_FORTH  required  changing  because  of 
+conflicts with MACZ reserved pseudo-ops.   The word " HEADER " is 
+an example and generates a warning message from MACZ.
+
+     This  FORTH  on a Z8000 in non-segmented mode with a  4  MHz 
+clock  will  run the "Sieve of Eratosthenes"3 and  will  generate 
+1000 ( base ten ) primes in 13.8 seconds.
+Sieve of Eratosthenes-
+
+( INTERFACE AGE BENCHMARK PROGRAM JUNE, 1980 )
+: BENCH DUP 2 / 1+ SWAP ." Starting " CR
+     1 DO DUP I 1 ROT
+          2 DO DROP DUP I /MOD
+               DUP 0= IF DROP DROP 1 LEAVE
+                    ELSE 1 = IF DROP 1
+                         ELSE DUP 0 > IF DROP 1
+                              ELSE 0= IF 0 LEAVE
+                                   THEN
+                              THEN
+                         THEN
+                    THEN
+               LOOP
+          IF . ELSE DROP THEN
+     LOOP DROP CR ." Finished " ;
+
+( Replace . ELSE above with DROP ELSE to remove I/O time dependence )
+
+
+
+
+     John L. Way
+     2011 Tulip Tree Lane
+     La Canada-Flintridge
+     California 91011
+     ( 213 ) 245-1480
+
+
+-------------
+1. Z80 and Z8000 are copyrights of the Zilog Corp.
+2. Wordstar is a copyright of MicroPro International Corp.
+3. Forth Dimensions Vol II, No. 4, page 112.
+4.  L.  L. Odette, "Z8000 Forth", Dr. Dobb's Journal No. 71,
+    Sept 1982, pp48,63.
+

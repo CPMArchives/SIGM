@@ -1,0 +1,637 @@
+..   !    !    !    !    !    !    !    !    !    !    !        !
+.PO 13                                                 
+.HETOUCHTYPÅ Manuaì                                     Introduction
+.FO                                                                #
+                         TOUCHTYPÅ TUTOÒ
+                  Versioî 2.°  16th April 1982
+                    Direcô Cursoò Addressing
+
+
+
+
+            Concept Bùº Tií Pearcå   · Bannermaî Sô,
+                                     Cremornå, N.S.W®
+   
+           Reworked Byº R® Bertheô   15/5 Cottonwood Cr.
+                                     North Ryde, 2113.
+                                     SYDNEY.
+                                     (61-2)-88-1640
+
+
+     Thió  documenô  ió  entereä intï thå publiã  domaiî  bù  itó 
+     author¬ Richarä Berthet® Pleaså dï noô removå thió notice.
+
+
+.CP 5 
+INTRODUCTION
+
+TTYPÅ  (TOUCHTYPÅ TUTOR© ió aî applicatioî programmå designeä  tï 
+aiä thå useò tï quicklù gaiî toucè typinç skilló usinç thå compu
+teò keyboarä anä thå computer¬ oæ course.
+
+
+
+Some of the features are:
+
+*    Lots of HELP, which you can expand.
+
+ª    Onscreeî  representatioî  oæ  á 'QWERTY§  keyboarä  tï  givå      
+     visuaì feedback.
+
+*    Graduated exercises with prompts (or comments) throughout.
+
+
+
+
+Thå objectivå oæ thió documenô ió tï assisô you¬  thå  programmeò 
+tï  geô  thå programmå uğ anä runninç oî youò systeí aó  fasô  aó 
+possible¬  whereupon¬ iô ió fairlù obviouó whaô iô ió supposeä tï 
+dï anä ho÷ iô ió supposeä tï dï it.
+
+Foò  thå impatient¬  É proposå tï firsô discusó whaô tï alteò  tï 
+makå iô gï straightaway¬  anä foò thoså whï maù wisè tï tinker¬ É 
+wilì launcè intï á discourså abouô thå programmå itselæ .
+.PAŠ.PO 5
+.HETOUCHTYPÅ Manuaì                               Quick Installation
+.CP 5
+                       “QUICK INSTALLATION“ 
+
+
+Hardware  
+
+Thió version¬ (2.0)¬ oæ TTYPÅ ió writteî foò Direcô Cursoò Addre
+ssinç  terminals¬  sï  iæ youró isn't¬  theî yoõ maù eitheò dï  á 
+completå rewritå oò waiô foò thå Non-Cursoò Addressinç version.
+
+Software
+
+Followinç ió á lisô oæ FILEÓ thaô musô accompanù thå maiî progra
+mme®  Iô  ió  necessarù tï havå some“ exerciså files¬  Á tï Ê  arå 
+presentlù included.
+
+
+
+TTYPE   .BAS             MBASIC Source Code 
+
+TTKEYBD .DAT             KEYBOARD Datafile
+TTHELP0 .DAT             HELP File 0
+TTHELP1 .DAT             HELP file 1                   
+TTHELP2 .DAT             HELP file 2                   
+TTHELP3 .DAT             HELP file 3                   
+TTHELP4 .DAT             HELP file 4                   
+TTHELP5 .DAT             HELP file 5                   
+
+TTYPEXA .DAT             |
+ through to              | Present EXERCISE Datafiles
+TTYPEXJ .DAT             |
+
+
+
+Beforå running¬ thå softwarå wilì neeä tï bå altereä tï suiô youò 
+terminaì anä computer® Herå ió á lisô oæ changeó thaô maù neeä tï 
+bå madå tï geô yoõ oî thå road:
+
+
+1®   Refeò tï SECTIOÎ 1º 'ASCIÉ CONTROÌ CODES'“ oæ Maiî Program.
+
+Iî  thió  sectioî  yoõ wilì finä thå functioî  tï  DEFinå  direcô 
+cursoò addressing-
+
+?????     DEF FNCSRLD$(ROW,COLUMN) =
+                            ESC$+"="+CHR$(ROW+31)+CHR$(COLUMN+31)
+.CP 5
+
+
+Thå  constanô '31§ ió thå offseô tï correcô thå argumenô  oæ  thå 
+functioî froí absolutå ASCIÉ valueó tï RO× anä COLUMÎ numberó foò 
+á  2´ linå Ø 8° columî screen®  Iæ youró ió differenô inserô  thå 
+correcô constant® (Á visuaì resulô oæ thå functioî noô havinç thå 
+propeò  valueó  aó  itó argumenô wilì bå "haywire¢  printinç  on-
+screen.)
+
+Š.PO 13
+.CP 5 
+2®   Refeò tï SECTIOÎ ³: 'INITIALISINÇ BLOCK§ oæ Maiî Program.
+
+You may need to change the following constants-
+
+DATAPORT%   = 0               Decimal address of system dataport.
+
+STATUSPORT¥ ½ DATAPORT%+±     Decimaì  addresó   oæ   systeí 
+                              statusport. 
+
+ESCTYPE%    = 127             ASCIÉ  valuå oæ characteò  useä  tï 
+                              escapå    tï   commanä   leveì   oæ 
+                              programme.
+
+ESCCHAR$  = "RUB"             Strinç tï prinô namå oæ keù foò thå 
+                              above character (ESCTYPE%).
+
+
+Thoså fe÷ changeó shoulä aô leasô makå iô looë likå it'ó goinç tï 
+run¬ iæ noô you'lì havå tï reaä thå fulì descriptioî tï ascertaiî 
+wherå youò probleí is.
+.PAŠ.PO 5
+.HETOUCHTYPÅ Manual                         Explanation of the FILES
+.CP 5
+                    EXPLANATION OF THE FILES
+
+
+
+TTYPE.BAS
+
+TTYPE.BAÓ  ió thå MBASIÃ sourcå codå whicè containó  thå bodù  oæ 
+thå programmå anä itó assorteä subroutines®  Thió ió thå onå thaô 
+yoõ  wilì havå tï alteò tï suiô youò system®  (Seå  eitheò  Quicë 
+Installatioî oò Programmå Guide.)
+
+
+
+TTKEYBÄ.DAT
+
+TTKEYBD.DAÔ  containó  thå datá foò thå  onscreeî  representatioî 
+oæ  youò terminaló KEYBOARD®  Iô wilì probablù requirå alteratioî 
+oæ  somå oæ thå minoò keyó thaô alwayó diffeò betweeî  terminals® 
+Yoõ wilì neeä thå aiä oæ á texô editor(i)®  Followinç ió whaô thå 
+filå lookó likå anä aî explanatioî oæ itó format-
+
+
+
+
+
+13,1,2,3,4,5,6,7,8,9,0,-,^,\
+!,,#,$,%,&,',(,),_,=,~,|
+13,Q,W,E,R,T,Y,U,I,O,P,{,}," "
+q,w,e,r,t,y,u,i,o,p,[,]," "
+12,A,S,D,F,G,H,J,K,L,+,*,`
+a,s,d,f,g,h,j,k,l,;,":",@
+10,Z,X,C,V,B,N,M,<,>,?
+z,x,c,v,b,n,m,",",.,/
+1," "," "
+
+
+
+
+.CP 6
+Notice“  thaô  somå oæ thå characteró arå  betweeî  doublå  quoteó 
+(e.g.","©  thió ió becauså MBASIÃ interpretó thå commá  characteò 
+aó á separatoò oæ thå data®  Iæ yoõ forgeô tï puô certaiî charac
+teró  betweeî  quoteó thå REAÄ statemenô getó "ouô oæ  step¢  anä 
+wilì  eventuallù  generatå  aî erroò message®  (Reaä  thå  MBASIÃ  
+manuaì  abouô thå REAÄ statemenô iæ yoõ arå noô sure.©  
+
+
+
+(i)” Avoiä uså oæ thå WORDSTAR(R)” worä processoò iî documenô  mode“ 
+oî  DATAFILES®  Iô  haó  thå nastù habiô oæ  puttinç  'invisible§ 
+controì  characteró  iî wherå yoõ don'ô wanô them¬  foò  itó  owî 
+nefariouó purposes®  Thå neô effecô ió thaô theså controì charac
+teró senä thå programmå berserk¡ (Biô ¸ oæ thå Carriagå Returî ió 
+seô high.)
+.CP 2
+
+Š.PO 13
+.CP 5
+KEYBOARD DATA FILE FORMAT
+
+
+n,D,D,D,D,D,D,D,D
+N,N,N,N,N,N,N,N
+
+WHERE:
+
+     n              =         Numbeò oæ keyó iî thå row.
+
+     D              =         Characteró    DISPLAYEÄ   aó    thå 
+                              keyboard®  (Therå  shoulä bå 'n§ oæ 
+                              these.)
+
+     N              =         NON-DISPLAÙ characteró thaô corres
+                              ponä  tï  DISPLAÙ  characteró  wheî 
+                              shifted.
+                                   i.e® Yoõ maù chooså tï DISPLAÙ 
+                              upper-caså   anä  shifô  tï  lower-
+                              case,whicè  wilì thereforå  bå  thå 
+                              NON-DISPLAÙ characters.
+
+
+     
+.CP 5
+TTYPEX? .DAT
+
+Fileó  oæ thå genrå TTYPEX¿  .DAÔ contaiî exerciseó anä  COMMENTó 
+anä arå calleä bù thå maiî programmå wheî required®  (TTYPEXn.DAÔ 
+wherå 'n§ ió á  letter)
+
+ª    Anù singlå exerciså linå caî bå entereä. 
+
+ª    Anù  linå tï bå repeateä ió precedeä bù  '|n§ wherå  'n§  ió           
+     thå numbeò oæ repeats.
+
+*    Á  COMMENÔ  ió  precedeä bù '!#§ anä therå maù bå uğ  tï  8°                
+     characteró  peò  line®  Foò thå COMMENÔ tï  prinô  correctlù           
+     therå musô µ lineó oæ COMMENT¬ eveî iæ yoõ onlù wanô one.
+     (See example following.)
+
+*    Á  PARAGRAPH  ió specifieä bù '|pn,ll§ oî á linå  bù  itselæ 
+     wherå  'p§ indicateó tï thå prograí thió ió á  PARAGRAPH;'n§ 
+     ió  thå numbeò oæ timeó tï repeaô iô anä 'll§ ió á  ²  digiô 
+     specificatioî oæ thå numbeò oæ lineó iî thå PARAGRAPH.
+
+
+.CP 29Š.PO 5
+EXAMPLE OF EXERCISE DATAFILE
+
+
+!#Exerciså A® 
+!#	
+!#        Lefô hanä oî thå [Aİ [Sİ [Dİ [Fİ keys.
+!#
+!#        Righô hanä oî thå [Jİ [Kİ [Lİ [;İ keys.
+|3fff fff jjj jjj fff jjj ff jj ff jj f j
+|3ddd ddd kkk kkk ddd kkk dd kk dd kk d k
+!#
+!#
+!#        RETURÎ thå carriagå withouô lookinç up.
+!#
+!#
+|3sss sss lll lll sss lll ss ll ss ll s l
+|3aaa aaa ;;; ;;; aaa ;;; aa ;; aa ;; a ;
+|2aaa ddd add add aaa lll all all add all
+|3aaa sss kkk ask jjj aaa lll jal ask jal
+|3ddd aaa aaa dad lll aaa ddd lad dad lad
+|3a as ask asks asks; f fa fal fall falls
+|3a al ala alas alas; f fl fla flas flask
+|3a ad add adds adds; s sa sal sala salad
+!#
+!#
+!#        GOAL: Finish next two lines in one minute.
+!#
+!#
+|2a sad fad; a lass falls; dad asks a lad;
+
+
+.CP 5
+TTHELP? .DAT
+
+
+Agaiî  theså  arå  á familù oæ fileó anä contaiî  thå  HELĞ  texô 
+(TTHELPî .DAÔ wherå 'n§ ió  á number¬ presentlù iî thå rangå ° tï 
+5)®  Theù  arå  designeä witè onå speciaì characteò (#©  iî  theí 
+which¬  wheî  reaä  bù thå programmå haltó  furtheò  inpuô  untiì 
+receipô  oæ  á carriagå returî (Seå SECTIOÎ ¸ Subroutinå [4İ  foò 
+fulì explanation).
+.CP 48Š.PO 13
+This is TTHELP5 .DAT-
+
+
+    <RETURN> - Continuås  witè nexô linå iî thå exercise.    
+
+
+
+    Í - You'vå founä thió one!
+
+
+    
+    Å - Enä thå runninç oæ thió program.
+
+
+
+    Ñ - Quiô tï operatinç system.
+
+    
+
+    
+
+Hit <RETURN> for more HELP.
+#
+
+
+    Î - Starô á NEW exercise.
+
+
+    Ò - REPEAT last linå, wheî yoõ can'ô geô iô right!
+
+
+    S - SKIĞ lineó iî thió exercise® Yoõ wilì bå prompteä foò thå     
+        numbeò oæ lineó tï SKIP®  Notå thaô printeä commentó havå     
+        alreadù beeî skipped.
+
+
+    W - Prinô  thå  numbeò oæ WORDÓ sï faò anä thå  ERROÒ  count®	
+        Theî thå RESEÔ optioî resetó thå ERROÒ COUNÔ tï zero.
+
+    
+    L - Prinô  thå numbeò oæ LINEÓ reaä froí thå currenô exerciså      
+        file® Useä iî combinatioî witè <S¾ thió commanä telló yoõ      
+        roughlù  ho÷ manù lineó tï Skiğ tï restarô iî thå  middlå 
+        oæ aî exercise.
+
+HIT key for MENU selection. 
+.PAŠ.PO 5
+.CP 5
+.HETOUCHTYPÅ Manual                                  Programme Guide
+                         PROGRAMME GUIDE
+
+
+You'vå hearä oæ thå Hitcè Hiker'ó Guidå tï thå Galaxy¬  welì thió 
+ió  thå Programmer'ó Guidå tï Toucè Typing®  Thå Ploô ió tï  takå 
+yoõ sectioî bù borinç sectioî througè thå maiî programme®  Dï noô 
+adjusô youò seat® Wå arå iî completå control® STANDBÙ !
+
+(Oh¬  bù thå way¬  thå programmå listinç ió liberallù dotteä witè 
+remarks¬ sï theså noteó arå á companioî tï them.)
+
+
+
+SECTION 1  TERMINAL ATTRIBUTES
+
+Containeä  hereiî arå alì thå onscreeî  prettù  bits¬  originallù 
+froí á largeò MBASIÃ utilitù calleä UTILSCRN.BAS¬ writteî foò thå  
+Leaò Seigleò ADM-3± terminal® Thå remarkó telì alì (É hopå !).
+
+Things to look out for:
+     
+     ª  Checë  thå ESCAPÅ sequenceó foò youò terminaì  anä  alteò 
+     theí tï suiô it.
+
+     ª   Aó mentioneä earlier¬  FNCSRLD$(ROW,COLUMN© ió thå  fun
+     ctioî  defininç direcô cursoò addressing¬  yoõ wilì probablù 
+     havå tï changå thå offseô foò thå origin.
+
+     ª Thå strinç variableó WRTPRTON¤ anä WRTPRTOFF¤ arå useä  tï 
+     switcè  thå videï betweeî fulì anä halæ amplitude®  Iæ  youò 
+     terminaì  haó aî equivalenô functioî uså it¬  it'lì makå  iô 
+     prettier® 
+
+
+
+SECTIOÎ ²  ALTERATIONÓ LOG
+
+Jusô  á  littlå  biô oæ infï tï keeğ tracë  oæ  thå   programme'ó 
+metamorphosis.
+
+
+
+.CP 16Š.PO 15
+SECTION 3  INITIALISING BLOCK
+
+Ahhhhè no÷ wå comå tï aî importanô bit®  Iî amongsô thió loô  thå 
+numeriã  anä  strinç constantó arå assigneä tï theiò  appropriatå 
+variables.
+
+Things to look out for:
+
+     ª  DATAPORT¥ wilì probablù bå differenô iî youò machine® 
+
+     ª  ESCTYPE¥ setó thå ASCIÉ valuå oæ á keù tï strikå tï enteò 
+     COMMANÄ mode®  É choså á keù whicè ió noô useä ofteî anä waó 
+     readilù available.
+
+     ª ESCCHR¤ assignó á strinç tï prinô thå namå oæ thå keù  yoõ 
+     havå chosen®  (Iî mù caså iô waó "RUB".)
+
+      ª  DELAY¥ setó thå lengtè oæ á timå delay®  Thå uså oæ  thå 
+     timå  delaù ió explaineä iî thå sectioî dealinç witè Subrou
+     tines® Aó á guidå I'vå useä 2µ wheî runninç undeò thå inter
+     preteò anä 50° wheî compiled®  Thå systeí haó á 6MHú  clock® 
+     (Don'ô  forgeô tï changå iô wheî compiling¬  aó É alwayó do¬ 
+     forgeô thaô is»  oò somå texô wilì bå jusô á figtreå oæ youò 
+     imagination.)
+
+     ª Nexô you'lì finä á sub-headinó "SCREEÎ  ADDRESSES"®  Theså 
+     anä  theiò associateä remarkó arå selæ explanatory®  Yoõ caî 
+     fiddlå  witè  theså tï youò heartó contenô iæ  yoõ  wanô  tï 
+     achievå á differenô screeî layout.
+
+
+     
+SECTIOÎ 4  START OF ACTIVE CODE & INPUT MENU
+
+Thió  ió  thå firsô biô oæ codå thaô actuallù doeó somethinç  on
+screen®  Essentially¬  iô  presentó menõ questionó tï  initialiså 
+flagó anä wilì prinô HELĞ iæ iô ió requested® Iô ió brokeî intï ´ 
+sub-sectionó  whicè arå thå ´ questionó thaô thå programmå  seekó 
+answeró to.
+
+
+.CP 22Š.PO 5
+SECTIOÎ 5  SET UP & CHECK EXERCISE FILE 
+
+Mù  firsô  reactioî upoî readinç thió codå  waó  unprintable»  iô 
+stilì  is®  É haven'ô donå mucè tï it¬  aparô  froí  annotations¬ 
+becauså  thå  flo÷  ió sï tortuouó thaô anù changeó causå  iô  tï 
+bomb® Anyway¬ iô works¬ eveî iæ iô ió messù !
+
+Thå  aií ió tï opeî thå exerciså filå anä perforí  thå  followinç 
+checkó tï eacè linå aó iô ió input:
+
+
+     ª Iæ Enä Oæ Filå (EOF)¬  theî gï tï menu.
+
+     ª Iæ iô ió aî EXERCISE¬ ho÷ manù repeató ?
+
+     ª Iæ iô ió á COMMENT¬ theî gï tï COMMENÔ processor.
+
+     ª  Iæ iô ió á PARAGRAPH¬  theî inpuô additionaì lineó oæ thå 
+     paragraph.
+
+Thå programmå loopó bacë througè thió sectioî aô thå enä oæ  eacè 
+exercise¬ startinç belo÷ thå linå wherå thå filå ió opened.
+
+
+.CP 27
+SECTIOÎ 6  KEYBOARD SCAN
+
+You'lì  noticå  thaô  thió ió onå largå FOÒ  NEXÔ looğ  whicè  ió 
+controlleä bù thå numbeò oæ letteró iî eacè exercise®  Á  summarù 
+oæ thå functionó performed:
+
+     ª  Assign¬  froí previouslù storeä array¬  aî addresó oæ thå 
+     exerciså character¬  thaô correspondó tï itó positioî oî thå 
+     onscreeî keyboard.
+
+     ª   Prinô anä highlighô thå exerciså characteò oî  thå  key
+     board.
+
+     ª  Waiô  untiì responså tï exerciså characteò ió typeä  froí 
+     terminaì keyboard.
+
+     ª  Prinô resultanô inpuô oî ECHORO× oò storå iô untiì enä oæ 
+     exerciså iæ ECHÏ OPTIOÎ ió off.
+
+     ª  Checë foò ESCAPÅ characteò oò RETURÎ anä takå appropriatå 
+     action.
+
+     ª Checë inpuô characteò tï seå iæ iô correspondó tï exerciså 
+     character¬ iæ noô incremenô ERRORCOUNÔ  anä CHARCOUNT.
+
+Thaô ió basicallù whaô occurs¬ minuó á fe÷ embellishments.
+
+
+
+
+.CP 05Š.PO 15
+SECTIOÎ 7  ESCAPE OR ALTER PROGRAMME FLOW
+
+Á serieó oæ IÆ THEÎ statementó sorô ouô suitablå actioî iî respo
+nså tï thå characteò inpuô bù thå user¬ afteò he/shå haó reaä thå 
+MENU®  Iæ  nï matcè ió madå thå MENÕ ió presenteä agaiî  untiì  á 
+matcè ió made.
+
+
+
+SECTIOÎ 8 SUBROUTINES
+
+Thå  subroutineó arå numbered»  ± tï 9®  É shalì brieflù describå 
+thå essence whaô eacè does:
+
+
+     1. CAPITAL.
+
+     Iæ  thå characteò falló withiî thå rangå oæ thå  loweò  caså 
+     alphabeô iô ió converteä tï uppeò case.
+
+
+     2. ERROR COUNT.
+
+     Printó thå numbeò oæ erroró iî thå numbeò oæ wordó typeä  sï 
+     far.
+.CP 04
+     3. INSTRUCTION LINE ADDRESS.
+
+     Adjustó  thå  addresó foò instructionó tï bå printeä oî  thå 
+     screeî afteò thå lasô instructioî waó printed®  Noô useä  iî 
+     thió version.
+
+
+     4. PRINT HELP.
+
+     ª Clearó screen.
+
+     * Openó TTHELP¿  .DAT¬ whicè ió checkeä foò enä oæ file(EOF)® 
+
+     ª Iæ (EOF© thå prograí waitó foò anù characteò tï bå  input¬ 
+     oî  characteò inpuô thå filå ió closed¬  thå screeî  cleareä 
+     anä á returî madå tï thå maiî programme.
+
+     ª Iæ iô is'nô (EOF© á linå ió inpuô froí thå file¬ thå left-
+     mosô characteò ió checkeä foò thå pagå de-limiteò (#).
+
+     ª  Iæ  "#¢ ió presenô thå programmå waitó foò á <CR¾  input¬ 
+     whereupoî  thå screeî ió cleareä anä flo÷ returnó  tï  checë 
+     foò enä oæ filå etc.
+
+     ª  Otherwiså thå linå ió printeä anä flo÷ returneä tï  checë 
+     foò enä oæ linå etc.
+
+
+     5. PRINT KEYBOARD.
+Š.PO 5
+     Thå objectivå ió tï prinô oî thå screen¬ á representatioî oæ 
+     thå terminals§ keyboard® Thå methoä maù noô appeaò tï bå toï 
+     clear, but I shall  attempt a description;
+
+     ª Thå filå TTKYBD.DAÔ ió opened® 
+
+     ª Thå array¬  ADDRESS%(X,Y© haó itó contentó initialiseä tï 
+     1® 
+
+     ª Thå looğ JLOOP¥ cycleó througè thå µ lineó iî thå keyboarä 
+     datá thaô contaiî thå NUMbeò OÆ KEYÓ iî thå uppeò anä  loweò 
+     caså rows® 
+.CĞ 10
+     ª  Thå loop(s© ILOOP¥ cyclå througè unshifteä characteró anä 
+     theî thå shifteä characters®  Thå firsô ILOOĞ ió essentiallù 
+     tè samå aó thå second®  Insidå thió firsô looğ thå programmå 
+     readó  á characteò convertó iô tï aî integeò anä assignó  iô 
+     tï  aî  array®  Thå RO× anä COLUMÎ addresseó arå  storeä  iî 
+     ADDDRESS%(X,Y)®  Thå  characteò  ió printeä aô  itó  correcô 
+     positioî  anä  aî intgeò representatioî ió  alsï  storeä  iî 
+     DISPLAYCHAR%(X)®  COLUMN¥  ió  incrementeä bù ´ oò  whateveò 
+     spacinç  yoõ wish®  Insidå thå seconä ILOOĞ thå samå  occuró 
+     excepô witè onå  difference;
+
+
+
+     Thå programmå testó foò  certaiî ILOOĞ anä JLOOĞ valueó thaô 
+     shoulä  corresponä  tï thå positioî oî thå keyboarä  oæ  thå 
+     doublå quotå characteò (")®  Thió characteò cannoô bå puô iî 
+     á  BASIÃ  datá statement®  Iô ió assigneä tï  thå  arraù  bù 
+     CHR$(34)®                                         
+
+
+     6.SKIP LINES.
+
+     ª Thå numbeò oæ exerciså lineó tï skiğ ió inpuô anä thå looğ 
+     inputó  thå requireä numbeò froí thå  exerciså filå anä  enä 
+     oæ filå ió testeä foò iî eacè pass.
+
+
+     7. COMMENT PRINT.
+   
+     Wheî  thå  COMMENÔ indicatoró arå detecteä iî  thå  exerciså 
+     filå  thå programmå brancheó tï here®  Thå nexô ´ lineó  arå 
+     inpuô  froí  thå filå anä storeä iî COMMENT$(X)¬  theså  arå 
+     then printed in the next loop.
+
+
+     8. TIME DELAY.
+
+     Thå  twï loopó jusô givå á predetermineä timå delay®  É  no÷ 
+     havå á morå sophisticateä versioî thaô wilì givå thå  numbeò 
+     oæ  secondó  delaù thaô yoõ inpuô tï thå subroutine¬  tï  bå 
+     addded at a later date.
+
+Š.PO 15
+     9. PRINT HELP MENU.
+
+     Prints a basic help for the input MENU.
+
+
+      
+SECTION 9  ERROR TRAPPING
+
+
+Theså  fe÷ lineó arå thå minimuí oæ erroò trapping¬  á  loô  morå 
+could be done.
+
+Iæ  thå programmå ió oî thå "A¢ drivå anä can'ô finä á file¬  thå 
+filå  ió  closeä anä "B:¢ appendeä tï thå  filenamå  anä  anotheò 
+attempô  ió  madå tï opeî thå file®  Iæ iô ió noô oî thå Â  drivå 
+forgeô iô !®  Iæ thå programmå ió oî thå Â drivå iô does not looë 
+foò files on the A drive if they aren't on the B.
+
+
+                             THE END
+
+
+
+
+
+HINTS, HELP AND APOLOGIES
+
+
+Welì that'ó á loaä of(sic© mù mind®  Don'ô thinë thaô you'lì turî 
+intï  aî acå typisô overnight¬  É typeä thió blurâ iî  usinç  thå 
+"Threå Fingeò Technique"®
+
+Brickbató anä boquetó maù bå addresseä tï thå author¬ (preferablù 
+encloseä witè $5° notes)® 
+
+Mù sinceresô apologieó foò anù erroró iî thå document¬  buô aó wå 
+all know documenting a programme is the PITS!!!!.
+
+
+No÷ aî ideá froí thå programmå originator¬ Mò Tií Pearce;
+
+Iô woulä bå easù tï interfacå á reaì timå clocë tï measurå typinç 
+speed®  (e.g® usinç á SYSTEÍ SUPPORÔ BOARÄ witè á reaì timå clocë 
+etc etc.)
+
+Just a little something for you to work on...................
+............................HAPPY TYPING
+
+
+                                        Richard Berthet.
+.PAŠ

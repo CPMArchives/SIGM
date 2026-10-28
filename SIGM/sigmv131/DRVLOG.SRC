@@ -1,0 +1,28 @@
+***************************************************************
+*                                                             *
+* A PASCAL/Z EXTERNAL ROUTINE TO DETERMINE WHICH DISK-DRIVE   *
+* IS CURRENTLY LOGGED IN.THE CALLING PROGRAM MUST DECLARE     *
+*                                                             *
+*         VAR DRIVE:CHAR;                                     *
+*                                                             *
+*         PROCEDURE DRVLOG( VAR DRIVE : CHAR );EXTERNAL;      *
+*                                                             *
+***************************************************************
+
+                 NAME DRVLOG
+                 ENTRY DRVLOG
+
+VBYTES EQU 02    # OF BYTES ON STACK
+DRVPTR EQU 09    OFFSET TO (IX) FOR HI-BYTE OF ADDRESS OF "DRIVE"
+
+DRVLOG: ENTR D,2,0
+        MVI C,25              ASK CP/M FOR # OF
+        CALL 5                LOGGED-IN DRIVE,
+        ADI 41H               CONVERT TO ASCII,
+        MOV H,DRVPTR(IX)      GET ADDRESS OF "DRIVE"
+        MOV L,DRVPTR-1(IX)    INTO HL REGISTER,
+        MOV M,A               STORE DRIVE# IN "DRIVE",
+        EXIT D,VBYTES
+
+        END DRVLOG
+

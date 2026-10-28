@@ -1,0 +1,57 @@
+
+[PAK.CNV]
+[Harold V. McIntosh, 18 March 1984]
+
+[[Make composite file from many individual files.]]
+
+
+
+[transcribe file]
+(()()(2)(
+  [separator at end]	((^Z),(%W,(P),(^\MJ)));
+  [for debugging]	((PWS,a: )(or),);
+  [write, read line]	(<2>,(%W,(P),<2>(^MJ))(R)):
+  )) a
+
+[main loop - run through files]
+(()(
+((%R,<7>:<8>.<9>)) R
+  )(0 8 9)(
+
+  [avoid selfreference]	(<[9]>PAK<[20]><0>,<0>):
+  [avoid.BAK files]	(<[9]>BAK<[20]><0>,<0>):
+  [parse filename]	(<[1]>(and,<[8]>,<8>)(and,<[3]>,<9>)<[20]><0>,<<
+    [open file]			>>(%Or,<7>:<8>.<9>)<<
+    [insert its name]		>>(%W,(P),[<8>.<9>](^MJ))<<
+    [copy file]				>>(a,(R))<<
+    [close file]			>>(%C,<7>:<8>.<9>)<<
+    [go to next]			>><0>):
+  )) x
+
+[form file list]
+(()()(0)(
+	(Not Found<0>,<0>);
+	(<0>,(%A,(&u,<7>:<1>))<0>):
+  )) y
+
+[choose and open output file]
+(()(
+  (<7>:<6>.PAK) P
+  )(6)(
+  [no more files]	(Not Found,);
+  [avoid .PAK files]	(<[9]>PAK,(%A,(&u,<7>:<1>))):
+  [avoid .BAK files]	(<[9]>BAK,(%A,(&u,<7>:<1>))):
+  [parse filename]	(<[1]>(and,<[8]>,<6>)<[23]>,<<
+    [open .PAK file]		>>(%Ow,(%T,(P)))<<
+    [now process list]		>>(x,(y,(%S,(&u,<7>:<1>))))<<
+    [close .PAK file]		>>(%C,(%T,(P)))<<
+				>>);
+  )) z
+
+[main program]
+(()()(1 7)( (<7>:<1>,(z,(%S,(&u,<7>:<1>)))); (<1>,@:<1>): ))
+
+[end]
+
+
+

@@ -1,0 +1,934 @@
+;
+;
+;
+;	S E L E C T   D I S K   D R I V E
+;
+;	Select the disk drive for subsequent disk transfers and
+;	return the appropriate DPB address.   This routine
+;	diverges from the normal CP/M implementation of just
+;	saving the disk selection value until the transfer is
+;	performed.  This divergence is required because floppy
+;	disks are a removable media and come in more than one
+;	format.  This routine determines the correct format and
+;	initializes the DPH with the appropriate values for the
+;	format type.
+;
+;	ENTRY	C = disk delection value.
+;		DE and 1 = 0, must determine disk type.
+;		         = 1, drive type has been determined.
+;
+;	EXIT	HL = 0, if drive not selectable.
+;		HL = DPH address if drive is selectable.
+;
+;		DPH is intialized for the appropriate floppy
+;		disk format.
+
+SELDSK:
+	MOV	A,C
+	CPI	NDSK
+	JNC	SELD2		;If invalid drive
+	PUSH	D		;Save drive selection mask
+	MVI	B,0
+	PUSH	B		;Save drive number
+	CALL	HOME		;Flush buffers
+	POP	B		;Restore disk selection
+
+	MOV	A,C
+	STA	SEKDSK		;Save disk selection code
+
+	LXI	H,DTYPE
+	DAD	B
+	DAD	B
+	MOV	A,M
+	PUSH	H		;Save pointer to Class 6, op code 0
+
+	MOV	L,C		;Compute DPH address
+	MOV	H,B
+	DAD	H		;*2
+	DAD	H		;*4
+	DAD	H		;*8
+	DAD	H		;*16
+	LXI	D,DPH
+	DAD	D		;HL = DPH address
+
+	STA	SEKTYP		;Save disk type
+	XTHL			;Get pointer to Class 6, op code 0
+				; and save DPH address.
+	ANI	TYPEFPY+TYPEMIN		;Floppy?
+	JZ	SELD1
+SELD0:
+	INX	H		;Yes. Get Class 6, op code 0 type
+	MOV	A,M
+	STA	CIOFS+5
+	LXI	H,DSKMSK	;Get LUN
+	DAD	B
+	MOV	A,M
+	STA	CIOFS+1
+	STA	CIOPB+1		;Set for error handling
+	LXI	H,CIOFS		;Set track format code
+	CALL	EXEC
+	CZ	WAITF
+	CALL	SFINAL		;Check for errors
+	JZ	SELD1
+	POP	H		;Error. Restore stack
+	POP	D
+	JMP	SELD2
+SELD1:
+	POP	H		;Restore DPH address
+	POP	D		;Restore Drive selction mask
+	RET
+
+SELD2:	LXI	H,0
+	LDA	CDISK
+	SUB	C
+	RNZ			;If default drive not in error
+	STA	CDISK
+	RET
+
+CIOFS:	DB	FSCMD,0,0,0,0,0
+;
+;	H O M E
+;
+;	Return disk to home.  This routine sets the track number
+;	to zero.  The current host disk buffer is flushed to the
+;	disk.
+
+HOME:
+	CALL	FLUSH		;Flush host buffer
+	XRA	A
+	STA	HSTACT		;Clear host active flag
+	STA	UNACNT		;Clear sector count
+	STA	SEKTRK
+	STA	SEKTRK+1
+	RET
+;
+;
+;
+;
+;	S E T   T R A C K.
+;
+;	Set track number.  The track number is saved for later
+;	use during a disk transfer operation.
+;
+;	ENTRY	BC = track number.
+
+SETTRK:
+	MOV	L,C
+	MOV	H,B
+	SHLD	SEKTRK
+
+	LHLD	UNATRK
+	MOV	A,L
+	XRA	C
+	MOV	C,A
+	MOV	A,H
+	XRA	B
+	ORA	A
+	RZ			;If same track
+;	JMP	CUNACT
+;
+;
+;
+;
+;
+;
+;
+;
+;	Clear Unallocated block count (force pre-reads).
+
+CUNACT:	XRA	A		;A = 0
+	STA	UNACNT		;Clear unallocated block count
+	RET
+;
+;
+;
+;
+;	Set the sector for later use in the disk transfer.  No
+;	actual disk operations are perfomed.
+;
+;	Entry	BC = sector number.
+
+SETSEC:	MOV	A,C
+	STA	SAVSEC		;sector to seek
+	RET
+;
+;
+;
+;
+;	Set Disk memory address for subsequent disk read or
+;	write routines.  This address is saved in DMAADR until
+;	the disk transfer is performed.
+;
+;	ENTRY	BC = Disk memory address.
+;
+;	EXIT	DMAADR = BC.
+
+SETDMA:
+	MOV	H,B
+	MOV	L,C
+	SHLD	DMAADR
+	RET
+;
+;
+;
+;
+;	Translate sector number from logical to physical.
+;
+;	ENTRY	DE = 0, no translation required.
+;		DE = translation table address.
+;		BC = sector number to translate.
+;
+;	EXIT	HL = translated sector.
+
+SECTRN:
+	LDA	UNASEC
+	CMP	C
+	CNZ	CUNACT		;If sectors do not match
+	MOV	A,C
+	STA	LOGSEC
+	MOV	L,C
+	MOV	H,B
+	MOV	A,D
+	ORA	E
+	RZ			;If no translation
+	DAD	D
+	MOV	L,M
+	MVI	H,0
+	RET
+;	B o o t   C P / M   f r o m   d i s k.
+;
+;	The WBOOT entry point gets control when a warm start
+;	occurs, a ^C from the console, a jump to BDOS (function
+;	0), or a jump to location zero.  The WBOOT routine reads
+;	the CCP and BDOS from the apprpriate Hard disk sectors.
+;	WBOOT must also re-initialize locations 0,1,2 and 5,6,7.
+;	The WBOOT routines exits with the C register set to the
+;	appropriate drive selection value.  The exit address
+;	is to the CCP routine.
+
+
+
+WBOOT:
+	LXI	SP,DBUF
+	LDA	CIOBFS+5	;Floppy?
+	CPI	0FFh
+	JZ	WBOOT1
+	LXI	H,CIOBFS	;Yes.  Select track format
+	CALL	EXEC
+	CZ	WAITF
+	CALL	SFINAL
+	JNZ	WBOOT
+WBOOT1:
+
+	LXI	H,CIOBT
+	LXI	D,CCP
+	CALL	RDISK		;Read data into memory
+
+	MOV	A,C
+	ANI	FERR
+	JNZ	WBOOT		;If errors retry
+
+GOCPM:	LXI	H,DBUF
+	SHLD	DMAADR		;Set default address
+	MVI	A,0C3h		;Store jumps in low memory
+	STA	0
+	STA	5
+	LXI	H,BIOS+3
+	SHLD	1
+	LXI	H,BDOS
+	SHLD	6
+	LDA	CDISK
+	MOV	C,A
+	JMP	CCP		;Go to CPM
+
+
+CIOBFS:	DB	FSCMD,0,0,0,0,0
+CIOBT:	DB	RDCMD		;Command = read
+BTLUN:	DB	0		;Physical drive = hard disk
+	DB	0
+BTSLA0:
+	DB	0
+BTNSEC:	DB	0		;# CCP and BDOS sector
+
+	DB	0
+
+;	Read a CP/M 128 byte sector.
+;
+;	EXIT	A = 0, successful read operation.
+;		A = 1, unsucessful read operation.
+
+READ:	CALL	CHKBKD		;Check for blocked drive
+	JC	FREAD		;If non-blocked transfer
+
+	XRA	A		;Set flag to force a read
+	STA	UNACNT		;Clear sector counter
+	CALL	FILL		;Fill buffer with data
+	POP	H
+	POP	D
+
+	MVI	C,128
+	CALL	MOVDTA		;Move 128 bytes
+	LDA	ERFLAG
+	ORA	A
+	RZ
+	XRA	A
+	STA	HSTACT
+	ORI	001h
+	RET
+;
+;
+;
+;
+;	Write the selected 128 byte CP/M sector.
+;
+;	ENTRY	C = 0, write to a previously allocated block.
+;		C = 1, write to the directory.
+;		C = 2, write to the first sector of unallocated
+;		data block.
+;
+;	EXIT	A = 0, write was successful.
+;		A = 1, write was unsucessful.
+
+WRITE:	CALL	CHKBKD		;Check for blocked drive
+	JC	FWRITE		;If non-blocked transfer
+
+	MOV	A,C		;Move write type
+	STA	WRTYPE
+	CPI	WRUAL
+	JNZ	WRIT1		;If not write to unallocated
+	MVI	A,HSTSIB-1	;Set new unallocated parameters
+	STA	UNACNT
+	LHLD	SEKTRK
+	SHLD	UNATRK		;UNATRK = SEKTRK
+	LDA	LOGSEC
+	INR	A
+	JMP	WRIT2
+
+WRIT1:	LDA	UNACNT
+	ORA	A
+	JZ	WRIT3		;If no sectors left in block
+	DCR	A
+	STA	UNACNT
+	LDA	UNASEC		;Increment unallocated sectors
+	INR	A
+	CPI	CPMSPT
+	JNZ	WRIT3		;If not new track
+	LHLD	UNATRK
+	INX	H
+	SHLD	UNATRK		;UNATRK = UNATRK+1
+	XRA	A		;A = 0
+
+WRIT2:	STA	UNASEC
+	MVI	A,0FFh
+
+WRIT3:	CALL	FILL
+	POP	D
+	POP	H
+
+	MVI	C,128
+	CALL	MOVDTA		;Move 128 bytes
+	MVI	A,1
+	STA	HSTWRT		;HSTWRT = 1
+	LDA	ERFLAG
+	ORA	A
+	RNZ			;If any errors occurred
+
+	LDA	WRTYPE		;write type
+	CPI	WRDIR		;to directory?
+	CZ	FLUSH		;Force write of directory
+	LDA	ERFLAG
+	ORA	A
+	RET
+;
+;
+;
+;
+;	FILL - fill host buffer with approprite host sector.
+;
+;	ENTRY	A = 0, Read required if not in buffer.
+;		0therwise read not required.
+;
+;	EXIT	On exit the stack will contain the following
+;		values:
+;		   POP     x	;x = host record address.
+;		   POP     y	;y = caller's buffer address.
+
+FILL:	STA	RDFLAG		;Save read flag
+	LHLD	DMAADR
+	XTHL			;Set caller's buffer address
+	PUSH	H
+	LDA	ACTTYP		;Get physical sector size
+	ANI	TYPESEC
+	RAR
+	MOV	B,A
+	MOV	C,A
+	XRA	A		;Generate sector mask
+FILL0:
+	STC
+	DCR	B
+	JM	FILL1
+	RAL
+	JMP	FILL0
+FILL1:
+	MOV	B,A
+	LDA	SEKSEC		;Compute relative record number
+	ANA	B
+	LXI	H,HSTBUF	;Compute host record address
+	LXI	D,128
+FILL2:
+	DCR	A
+	JM	FILL3
+	DAD	D
+	JMP	FILL2
+FILL3:
+	XTHL			;Put buffer address of record on stack
+	PUSH	H
+
+	LDA	SEKSEC		;Convert to physical sector numver
+FILL4:
+	DCR	C
+	JM	FILL5
+	ANA	A		;Carry = 0
+	RAR
+	JMP	FILL4
+FILL5:
+	STA	SEKSEC
+
+	LXI	H,HSTACT	;host active flag
+	MOV	A,M
+	MVI	M,1		;always becomes 1
+	ORA	A
+	JZ	FILL6		;If host buffer inactive
+	LXI	H,HSTDSK
+	CALL	CMPSEK		;Compare HST with SEK
+	RZ			;If everything same
+
+	CALL	FLUSH		;Flush host buffer
+
+FILL6:	LHLD	SEKDSK		;Move disk and type
+	SHLD	HSTDSK
+	SHLD	ACTDSK
+	LHLD	SEKTRK
+	SHLD	HSTTRK
+	SHLD	ACTTRK
+	LDA	SEKSEC
+	STA	HSTSEC
+	STA	ACTSEC
+	LDA	RDFLAG
+	ORA	A
+	RNZ			;If no read required
+
+FREAD:	MVI	A,RDCMD		;Set read command
+	LXI	H,RDISK		;Set transfer routine address
+	JMP	FINAL
+;
+;
+;
+;
+;	FLUSH - Write out active host buffer onto disk.
+
+FLUSH:
+	LXI	H,HSTWRT
+	MOV	A,M
+	ORA	A
+	RZ			;If host buffer already on disk
+	MVI	M,0
+	LHLD	HSTDSK		;Move disk and type
+	SHLD	ACTDSK
+	LHLD	HSTTRK
+	SHLD	ACTTRK
+	LDA	HSTSEC
+	STA	ACTSEC
+
+FWRITE:	MVI	A,WTCMD		;Set write command
+	LXI	H,WDISK		;Set transfer routine address
+;	JMP	FINAL
+;
+;
+;
+;
+;	F I N A L   --  Preform final tranfer processing.
+;
+;	ENTRY	A = Command.
+;		HL = transfer routine address.
+
+FINAL:
+	CALL	SETUP
+
+SFINAL:				;Called from SELDSK
+	IF	I696
+	LXI	H,NMSG2		;Set message address
+	ORA	A
+	JNZ	FNL3		;If message byte is non-zero
+	LXI	H,NMSG		;Set message address
+	MOV	A,B
+	ANI	MSSG
+	JZ	FNL3		;If message bit zero
+	ENDIF
+
+	MOV	A,C
+	ANI	FERR		;mask for errors
+	STA	ERFLAG
+	RZ			;If no errors
+
+	MOV	A,C
+	ANI	CERR+TERR
+	LXI	H,CERMSG
+	PUSH	B
+	CNZ	PRINT		;If controller error
+	POP	B
+	LXI	H,TOMSG		;Check for timeout
+	MOV	A,C
+	ANI	TERR
+	JNZ	FNL3
+
+FNL1:	MOV	A,C
+	ANI	PERR
+	JZ	FNL2		;If no parity errors
+	LXI	H,PERMSG
+	JMP	FNL3
+
+FNL2:	LDA	CIOPB+1
+	ANI	0E0H
+	STA	CIOER+1
+	LXI	H,CIOER
+	LXI	D,TEMPBF
+	CALL	RDISK
+
+	LXI	H,TYPMSG	;Issue type message
+	CALL	PRINT
+	LDA	TEMPBF		;Get type
+	RRC
+	RRC
+	RRC
+	RRC
+	ANI	3
+	CALL	OHN		;Output hex nibble
+	LXI	H,CODMSG
+	CALL	PRINT		;Issue code message
+	LDA	TEMPBF		;Get code
+	ANI	0Fh
+	CALL	OHN		;Output hex nibble
+
+	LXI	H,ENDMSG
+FNL3:	CALL	PRINT
+	ORI	1
+	STA	ERFLAG
+	RET
+
+CIOER:	DB	ESCMD,0,0,0,0,0	;Request Error code
+
+CERMSG:	DB	CR,LF,'Controller error',0
+
+TYPMSG:	DB	'    Type <',0
+CODMSG:	DB	'>, Code <',0
+ENDMSG:	DB	'>',CR,LF,0
+TOMSG:	DB	'	Timeout',0
+
+	IF	I696
+NMSG:	DB	CR,LF,'No message bit',0
+
+NMSG2:	DB	CR,LF,'Message byte non-zero',0
+	ENDIF
+
+PERMSG:	DB	CR,LF,'Parity error.',0
+;
+;
+;
+;
+;	S E T U P - Setup the CIOPB area.
+;
+;	ENTRY	A = Command.
+;		HL = transfer routine address.
+
+SETUP:
+	PUSH	H		;Set next phase address
+	STA	CIOPB+0		;Set command
+
+	LXI	D,0
+	LDA	ACTDSK		;Get LUN
+	MOV	E,A
+	LXI	H,DSKMSK	;Get LUN
+	DAD	D
+	MOV	C,M
+	LXI	H,DSKOFF
+	DAD	D
+	DAD	D
+	DAD	D
+	MOV	A,M
+	INX	H
+	MOV	D,M
+	INX	H
+	MOV	E,M
+	ORA	C		;LUN in bits 5-7
+	MOV	C,A
+
+SETP1:	PUSH	B		;Save unit selection
+	LHLD	ACTTRK		;Get track number
+	MOV	B,H		;BC = 1*TRK
+	MOV	C,L
+	DAD	H		;HL = 2*TRK
+	DAD	B		;HL = (2+1)*TRK = 3*TRK
+	DAD	H		;HL = 6*TRK
+	DAD	H		;HL = 12*TRK
+	DAD	B		;HL = (12+1)*TRK = 13*TRK
+	DAD	H		;Hl = 26*TRK
+	LDA	ACTSEC
+	MVI	B,0
+	MOV	C,A
+	DAD	B		;HL = 26*TRK+SEC
+	POP	B		;Restore BC
+	XRA	A		;A = 0
+	DAD	D
+	ADC	C
+	XCHG
+	LXI	H,CIOPB+1
+	MOV	M,A
+	INX	H
+	MOV	M,D
+	INX	H
+	MOV	M,E
+	INX	H
+	MVI	M,1		;Read one sector
+	INX	H
+	MVI	M,00h		;Force ECC correction
+
+	LHLD	BUFADR
+	XCHG
+	LXI	H,CIOPB
+	RET			;Dispatch to routine
+;	Disk I/O Routines
+;
+;
+	IF	I696
+;	E X E C
+
+EXEC:	MVI	B,BUSY		;Wait for not busy.
+	MVI	C,BUSY and (not BUSY)
+	CALL	WAITM
+	RNZ
+	
+
+	MVI	A,SLCT		;Alert controller
+	OUT	DIO+1
+EXEC1:
+	MOV	C,B		;Wait for controller busy
+	CALL	WAITM
+	RNZ
+
+	MVI	A,DODTA		;Enable data in
+	OUT	DIO+1
+
+EXEC2:	IN	DIO+2		;Get status
+	XRI	0FFh
+	JM	EXEC2		;If not requesting next byte
+	ANI	CMND+DIROUT
+	JNZ	EXEC3		;If CMND or DIROUT false
+	MOV	A,M
+	INX	H
+	OUT	DIO		;Send byte from command buffer
+	JMP	EXEC2
+
+EXEC3:	CMP	A		;Z:=1
+	RET
+;
+;
+;
+;
+;	WDISK - Output from memory buffer.
+;	ENTRY:	HL = COMMAND BUFFER ADDRESS
+;		DE = DATA BUFFER ADDRESS
+;
+
+WDISK:	CALL	EXEC		;Output command
+	RNZ			;Return if timeout
+WDISK1:	IN	DIO+2		;Read status
+	ORA	A
+	JP	WDISK1		;If request is present
+	ANI	CMND
+	JNZ	GCMPS		;If done with transfer
+	LDAX	D		;Get the data byte
+	OUT	DIO
+	INX	D		;Advance buffer address
+	JMP	WDISK1
+;
+;
+;
+;
+;	RDISK - Input to memory buffer.
+;
+;	Entry:	HL = command buffer address
+;		DE = data buffer address
+
+RDISK:	CALL	EXEC
+	RNZ			;Return if timeout
+RDISK1:	IN	DIO+2		;Read status
+	ORA	A
+	JP	RDISK1		;If request is present
+	ANI	CMND
+	JNZ	GCMPS
+	IN	DIO
+	STAX	D
+	INX	D
+	JMP	RDISK1
+;
+;
+;
+;
+;	WAITF - Wait for function to complete.
+
+WAITF:	MVI	B,REQ+CMND	;Wait for both REQ and CMND
+	MOV	C,B
+	CALL	WAITM
+	RNZ
+;
+;	Get completion status.
+
+GCMPS:	IN	DIO		;Get completion status
+	MOV	C,A
+
+GCMP1:	IN	DIO+2
+	ORA	A
+	JP	GCMP1		;If REQ not set
+
+	MOV	B,A
+	IN	DIO		;Get message byte
+	RET
+	ENDIF
+;
+
+;
+;
+;
+	IF	I796
+;	EXEC - Output the command
+;
+;	Enter:	HL is the command buffer address
+;		DE - data transfer address.
+
+EXEC:
+	MOV	A,E		;Output DMA address
+	OUT	DIO+2
+	MOV	A,D
+	OUT	DIO+3
+	MOV	A,L
+	OUT	DIO+4
+	MOV	A,H
+	OUT	DIO+5
+	MVI	A,0
+	OUT	DIO+6
+	OUT	DIO+7
+	OUT	DIO
+	CMP	A		;Z:=1
+	RET
+
+
+;	Disk read/write
+;
+;	Entry:	same as EXEC
+;
+RDISK:
+WDISK:	CALL	EXEC
+	RNZ			;Return if timeout
+
+;	WAITF - Wait until transfer done
+;
+;	Enter:	none
+;	Exit:	when transfer completed
+
+WAITF:	MVI	B,CMDDON	;Wait for CMDDON
+	MOV	C,B
+	CALL	WAITM
+	RNZ			;Return if timeout
+;
+
+;	GCMPS - Get completion status
+;
+;	Enter:	none
+;	Exit:	Status in C
+GCMPS:	IN	DIO+1
+	MOV	C,A
+	RET
+	ENDIF
+
+;	WAITM - Wait for controller with timeout
+;
+;	Entry:	B=Status mask
+;		C=Status value
+;	Exit:	Z=1 if OK, else timeout with A=C=TERR
+;
+WAITM:
+	PUSH	D		;Save D
+	PUSH	H
+	LXI	H,138		;Two minute timeout
+	LXI	D,0		;Max wait @4MHZ is 868 ms
+WAITML:
+	IF	I696
+	IN	DIO+2
+	ENDIF
+	IF	I796
+	IN	DIO
+	ENDIF
+	ANA	B		;Mask wait bits
+	CMP	C		;Check value
+	JZ	WAITM1
+	DCX	D		;Not ready.  Decrement time
+	MOV	A,D
+	ORA	E
+	JNZ	WAITML
+	DCX	H
+	MOV	A,H
+	ORA	L
+	JNZ	WAITML
+	MVI	B,0		;Timeout
+	MVI	A,TERR
+	ORA	A
+WAITM1:
+	POP	H
+	POP	D		;Restore D
+	MOV	C,A		;Return status in C
+	RET
+;	MOVDTA	- Move data in memory.
+;
+;	ENTRY	C = number of bytes to move
+;		DE = destination address.
+;		HL = source address.
+
+MOVDTA:
+	MOV	A,M		;source character
+	STAX	D		;to dest
+	INX	H
+	INX	D
+	DCR	C		;loop 128 times
+	JNZ	MOVDTA		;If transfer not complete
+	RET
+;
+;
+;
+;
+;	Check blocked disk transfer.
+;
+;	EXIT	Cbit set, unblocked device.
+;		Cbit clear, blocked device.
+
+CHKBKD:
+	XRA	A
+	STA	ERFLAG		;Clear error flag
+	LDA	SEKTYP
+	MOV	H,A
+	ANI	TYPESEC
+	MOV	A,H
+	JZ	CBKD2		;If not blocked device
+	ANI	TYPEFPY+TYPEMIN
+	MOV	A,H
+	JZ	CBKD1		;If hard disk
+CBKD0:
+	PUSH	H
+	LHLD	SEKTRK
+	MOV	A,H
+	ORA	L
+	POP	H
+	MOV	A,H
+	JNZ	CBKD1
+	ANI	NOT TYPESEC AND 0FFh	;Non-blocked
+	JMP	CBKD2
+CBKD1:
+	STA	ACTTYP
+	LXI	H,HSTBUF
+	SHLD	BUFADR
+	MVI	A,BXADR		;BIOS extended address
+	STA	BUFADE
+	LDA	SAVSEC
+	STA	SEKSEC
+	XRA	A		;Clear carry flag
+	RET
+
+SETACT:	LDA	SEKTYP
+CBKD2:	STA	ACTTYP		;Set actual disk type
+	LHLD	DMAADR
+	SHLD	BUFADR
+	LDA	DMAADE
+	STA	BUFADE
+
+	LDA	SEKDSK
+	STA	ACTDSK
+	LHLD	SEKTRK
+	SHLD	ACTTRK
+	LDA	SAVSEC
+	STA	ACTSEC
+	STC			;Set carry flag
+	RET
+;
+;
+;
+;
+;	Utility subroutine for 16-bit compare
+
+CMPSEK:
+	LXI	D,SEKDSK
+	MVI	C,SEKSEC-SEKDSK+1
+CMPS1:	LDAX	D		;low byte compare
+	CMP	M
+	RNZ			;If not the same
+	INX	D
+	INX	H
+	DCR	C
+	JNZ	CMPS1		;If not all checked
+	RET
+;
+;
+;
+;
+;	Output hex nibble.
+
+OHN:	ADI	90h
+	DAA
+	ACI	40h
+	DAA
+	MOV	C,A
+	JMP	CONOUT
+;
+;
+;
+;
+;	Print message terminated by zero byte.
+;
+;	ENTRY	HL -> message buffer, terminated by zero.
+;
+;	EXIT	HL -> zero byte.
+;		A = 0.
+;		Z bit set.
+;
+;	Destroys only HL, Flags, and A registers.
+
+PRINT:	MOV	A,M		;Get a character
+	ORA	A
+	RZ			;If zero the terminate
+	INX	H
+	PUSH	B
+	MOV	C,A
+	CALL	CONOUT		;Output to the console
+	POP	B
+	JMP	PRINT
+;	Physical data buffer address ((DMAADR) or HSTBUF)
+
+BUFADR:	DW	0		;Lower 16 bits (least, middle)
+BUFADE:	DB	0		;Extended address
+
+;	User data buffer address
+
+DMAADR:	DW	0		;Lower 16 bits (least, middle)
+DMAADE:	DB	0		;Extended address
+;
+;
+;
+;
+;	BIOS blocking / deblocking flags.
+
+HSTACT:	DB	0		;host active flag
+HSTWRT:	DB	0		;host written flag
+UNACNT:	DB	0		;unalloc rec CNT
+UNATRK:	DW	0		;Track
+UNASEC:	DB	CPMSPT+1	;Sector
+LOGSEC	DB	0		;Logical sector
+

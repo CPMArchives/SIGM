@@ -1,0 +1,92 @@
+NOTES ON NESTING OF PREPROCESSOR DIRECTIVES IN BDS C.
+
+
+Versions of the BDS C compiler from 1.45a+ do support
+nesting of the preprocessor directives.
+
+Leor specifies that  #if <exp> compiler directive is
+supported with restrictions on <exp>, and that nesting of
+conditional compile directives is permitted with the
+limitation that #else directives must be followed by a
+matching #endif.  This last point is a little unclear to me
+but 'SEEMS' to say that
+
+#ifdef	A
+
+#ifdef	B
+#else	/*B*/
+#endif	/*B*/
+#endif	/*A*/
+
+    is permitted, but
+
+#ifdef	A
+
+#else	/*A*/
+#ifdef	B
+#endif	/*B*/
+#endif	/*A*/
+
+    is not.???
+
+    He also states that the preprocessor does now generate a
+valid error, rather that wandering off through source.
+
+    Also parameterized #defines are supported as per K & R.
+
+    K & R page 207pp indicates that both forms of the #if...
+nesting above should be legal.	He implies that a
+conditional compile directive (#if...) MUST be followed by
+an #endif, but may have an optional #else before the #endif.
+Where nesting is permitted (no restrictions) and #else's act
+upon the most recently active #if..., #endif's act upon the
+most recently active #if... or #else.
+
+i.e.
+
+#if...	A
+.
+.
+#if...	B
+.
+.
+#else	/*B*/
+.
+#if...	C
+.
+.
+#else	/*C*/
+.
+.
+#endif	/*C*/
+.
+.
+#endif	/*B*/
+.
+.
+#endif	/*A*/
+Š
+
+		is o.k.
+
+
+    On testing of the compiler with (granted) a fairly
+simple test for compiler nesting, the BDS C compiler 1.46 seems
+to behave exactly as K & R describes, and as I would expect
+it to.	When I tried to upset it, it upset me with 'Not in a
+conditional block', or EOF when expecting #endif etc error
+messages.  #defines that exist in an unenabled block of code
+do not get seen at all, so nesting of #defines inside
+#if...'s works as expected as well.
+
+
+    If you know of any examples of nesting that do not work
+in 1.46, or know any other (possibly clearer) descriptions
+on the operation and nesting of these directives in C please
+let me know.
+
+    Hope this helps clear up a little of the confusion.
+
+
+		    John Woolner.
+

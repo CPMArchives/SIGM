@@ -1,0 +1,148 @@
+*****************************************************************
+*		     LL(1) Language Analyzer			*
+*****************************************************************
+
+BY:
+	ROBERT M. WHITE
+	H & W COMPUTER SYSTEMS, INC.
+	P.O. BOX 4173
+	BOISE, ID  83704
+
+DESCRIPTION:
+	Thió  systeí  readó  á  BNÆ  descriptioî  oæ  aî   LL(1© 
+language¬  analyzeó  iô  foò erroró anä generateó thå  selectioî 
+setó foò thå productions®   Variouó intermediatå tableó arå alsï 
+generated to allow better debugging of the language.
+
+SOURCE LANGUAGE:
+	PL/I-8° distributed by DIGITAÌ RESEARCH¬  PACIFIÃ GROVE¬ 
+CALIFORNIA.  Release developed under was 1.3.
+
+SYSTEM REQUIRED:
+    1.  8080/Z80 processor w/60k minimum.
+    3.  2 disk drives (I used Double-Density w/600k capacity.)
+    2.  CP/Í   Release  1.´  or  above  distributed  by  DIGITAÌ 
+RESEARCH, PACIFIC GROVE, CALIFORNIA.
+    3.  PL/I-8° distributed by DIGITAÌ RESEARCH¬  PACIFIÃ GROVE¬ 
+CALIFORNIA.  Release developed under was 1.3.
+
+INSTALLATION:
+	1©  Adjusô LL1ANL.SUÂ tï reflecô thå propeò drivå  whicè 
+            contains the source.
+	2)  Submit the file, LL1ANL.SUB.
+
+SYSTEM EXECUTION:
+	1©   Puô thå BNÆ grammaò intï á filå witè thå  extensioî 
+             oæ GMÒ (i.e®  EXAMPLE.GMR)®   Thió filå ió expecteä 
+             tï bå iî standarä sourcå formaô (i.e®  eacè linå ió 
+             terminateä witè á carriage-return¬ line-feed)®  Thå 
+             format of the BNF must be as follows:
+		<grammar> -> <rule> '<eof>'
+			  ;
+		<rule> -> '<ident>' <alt> ';' <rule>
+		       -> 
+		       ;
+		<alt> -> '->' <rp> <alt>
+		      ->
+		      ;
+		<rp> -> '<string>' <rp>
+		     -> '<ident>' <rp>
+		     ->
+		     ;
+	     Aî  identifieò ió anù 1-¸ characteró surroundeä  bù 
+             <...¾  (i.e®   <grammar>®   Á  strinç  ió  anù  1-¸ Š             characteró   surrounä  bù   quoteó   (i.e®   '->')®  
+             Commentó  maù  bå addeä tï thå enä oæ anù  linå  bù 
+             merelù  codinç á '$ § anä theî thå  comments®   Thå 
+             analyzeò  alsï  haó certaiî switcheó whicè  maù  bå 
+             turneä  oî oò ofæ bù usinç thå '$§ followeä bù  thå 
+             switcè  numbers®    Revie÷  program¬   LL1P10¬  foò 
+             further information.
+	2©   Sincå  thå  programó useó overlays¬  thå  currentlù 
+             loggeä  disë musô bå thå onå containinç thå  objecô 
+             foò LL1ANL.COM®   Tï analyzå á grammar¬  enteò  thå 
+             following:
+			LL1ANL grammar_file_name<return>
+             For example, the example grammar was analyzed with:
+			LL1ANL EXAMPLE<return>
+             The file extension of GMR is always assumed.
+        3)   Prinô  thå  filå  witè thå extensioî oæ  PRÎ  (i.e® 
+             EXAMPLE.PRN)®  Thió wilì prinô thå selectioî seô aó 
+             welì  aó thå intermediatå tableó useä tï  calculatå 
+             thå selectioî set®  Thå lasô reporô wilì onlù exisô 
+             iæ  thå grammaò ió noô LL(1© anä iô  wilì  indicatå 
+             whicè productionó causeä iô noô tï be.
+
+FILES DONATED:
+	EXAMPLE.GMR - First example grammar
+	EXAMPLE2.GMR - Second example grammar
+	LL1ANL.DOC - The file that you are reading.
+	LL1ANL.PLI - Driver program
+	LL1ANL.SUB - Command List to Compile and  Link 
+                     the language analysis programs.
+	LL1CMN.DCL - Common area for all programs
+	LL1LNK.SUB - Command List to Link the language analysis
+		     programs after re-compiling one of them.
+	LL1PRC.DCL - Common Procedures Declarations
+	LL1PRC.PLI - Common Procedures generated in LL1ANL
+	LL1P10.PLI - Language Parser
+	LL1P20.PLI - Language Sort and Print
+	LL1P30.PLÉ - Languagå Analysió - Finä Nullablå 
+                     Productionó anä Non-terminals
+	LL1P40.PLÉ - Languagå Analysió - Calculate the 
+                     Beginning type relationships
+	LL1P50.PLÉ - Languagå Analysió - Calculate the 
+                     Ending type relationships
+	LL1P60.PLÉ - Languagå Analysió - Calculate the 
+                     Follow Set Relationship
+	LL1P70.PLÉ - Languagå Analysió - Calculate the 
+                     Selection Set for all productions
+	LL1P80.PLÉ - Languagå Analysió - Validate that 
+                     the language is LL(1)
+
+REFERENCES:
+	These programs were written from the outline given in:
+		'COMPILER DESIGN THEORY' by P.M. Lewis III,
+		D.J. Rosenkrantz and R.E. Stearns, Addison-
+		Wesley Publishing Company, 1978.
+	If you are going to use this system, it is highly re-
+	commended that you get this book.
+	Other books referenced:
+		1. 'Compiler Design and Construction' by
+		   Arthur Pyster, Van Nostrand Reinhold Co.,
+		   1980.
+		2. 'Structured System Programming' by Jim
+		   Welsh & Michael McKeag, Prentice-Hall
+		   International, Inc., 1980.
+		3. 'Algorithms + Data = Programs', by N.
+		   Wirth, Prentice-Hall International, Inc.,
+		   1976.
+
+FUTURE ENHANCEMENTS:
+	The following is list of items that I may or may not get
+	around to doing.  They represent enhancements or changes
+	for the better (I hope!).
+		1.  Add the following to the input language:
+		    a.  Allow sections of terminals to be sur-
+			rounded by parentheses followed by a
+			'?' for 0 or 1 repetitions, '*' for 0 or
+			more repetitions or '+' for 1 or more
+			repetitions.
+		    b.  Allow lists to be defined as <nt> LIST
+			',' which denotes a list of <nt>'s seperated
+			by commas.
+		2.  Add a phase which checks for left recursion 
+		    since this is the most deadly sin.
+		3.  Add a phase which given the internal language
+		    tables and the selection set produces the outline
+		    of the compiler for all the various rules.
+
+NOTICE OF PUBLIC DOMAIN:
+	The files herein contained and denoted under my controlŠ	arå  herebù  placeä intï thå publiã domaiî  anä  maù  bå 
+        freely distributed for any non-commercial personal use.
+
+
+
+			Robert M. White
+			July 15, 1981
+
+

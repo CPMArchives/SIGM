@@ -1,0 +1,395 @@
+* DATE 07/07/84  07:18
+* journal entry screen
+STOR CHR(PEEK(063)) TO dr
+SET INTENSITY ON
+SELE PRIMARY
+USE &dr.:account
+SET INDEX TO
+STOR 0 TO debit
+STOR 0 TO credit
+IF # = 0
+ STOR 'J001' TO entry
+ STOR t TO firstup
+ELSE
+ GO BOTTOM
+ STOR f TO firstup
+ DO WHIL .NOT. firstup
+  IF $(data,1,1) = 'J'
+   STOR VAL($(data,2,3)) TO entryno
+   STOR entryno + 1001 TO entryno
+   STOR STR(entryno,4) to entry
+   STOR 'J' + $(entry,2,3) TO entry
+   STOR t TO firstup
+  ELSE
+   STOR # TO rec:no
+   SKIP -1
+   IF # = rec:no
+    STOR 'J001' TO entry
+    RELE rec:no
+    STOR t TO firstup
+   ENDI # = rec:no
+  ENDI
+ ENDD WHILE .NOT. firstup
+ENDI # =0
+ERAS
+SET COLON OFF
+STOR '                    ' TO blnks
+STOR $(blnks,1,2) TO mprop
+STOR t TO more
+STOR t TO first
+STOR "When done, leave first amount blank and enter Control 'Q'" TO prompt
+DO WHIL more
+ STOR $(blnks,1,4) TO mbank1
+ STOR $(blnks,1,4) TO mbank2
+ STOR $(blnks,1,4) TO mbank3
+ STOR $(blnks,1,4) TO mbank4
+ STOR $(blnks,1,8) TO mdate1
+ STOR $(blnks,1,8) TO mdate2
+ STOR $(blnks,1,8) TO mdate3
+ STOR $(blnks,1,8) TO mdate4
+ IF firstup
+  STOR entry TO mchk1
+  STOR f TO firstup
+  RELE entry, entryno
+ ELSE
+  STOR $(blnks,1,4) TO mchk1
+ ENDI firstup
+ STOR $(blnks,1,20) TO mpay1
+ STOR $(blnks,1,4) TO macc1
+ STOR 0.00 TO mamt1
+ STOR $(blnks,1,4) TO mchk2
+ STOR $(blnks,1,20) TO mpay2
+ STOR $(blnks,1,4) TO macc2
+ STOR 0.00 TO mamt2
+ STOR $(blnks,1,4) TO mchk3
+ STOR $(blnks,1,20) TO mpay3
+ STOR $(blnks,1,4) TO macc3
+ STOR 0.00 TO mamt3
+ STOR $(blnks,1,4) TO mchk4
+ STOR $(blnks,1,20) TO mpay4
+ STOR $(blnks,1,4) TO macc4
+ STOR 0.00 TO mamt4
+ STOR 'N' TO verify
+ IF first
+  @ 1,15 SAY "Journal Entry Screen  - Posted"
+  @ 1,48 SAY date()
+  @ 3, 8 SAY "Use positive or negative numbers to indicate Debits and Credits"
+  @ 4,19 SAY "DEBITS AND CREDITS MUST BALANCE TO EXIT"
+  @ 6, 4 SAY "Property:"
+  @ 8, 1 SAY "Journal #:"
+  @ 8,37 SAY "Item:"
+  @ 9, 6 SAY "Date:"
+  @ 9,31 SAY "Account No:"
+  @ 9,50 SAY "Amount:"
+  @ 11, 1 SAY "Journal #:"
+  @ 11,37 SAY "Item:"
+  @ 12, 6 SAY "Date:"
+  @ 12,31 SAY "Account No:"
+  @ 12,50 SAY "Amount:"
+  @ 14, 1 SAY "Journal #:"
+  @ 14,37 SAY "Item:"
+  @ 15, 6 SAY "Date:"
+  @ 15,31 SAY "Account No:"
+  @ 15,50 SAY "Amount:"
+  @ 17, 1 SAY "Journal #:"
+  @ 17,37 SAY "Item:"
+  @ 18, 6 SAY "Date:"
+  @ 18,31 SAY "Account No:"
+  @ 18,50 SAY "Amount:"
+  @ 20, 3 SAY "DEBITS:"
+  @ 20,14 SAY debit
+  @ 20,34 SAY "CREDITS:"
+  @ 20,43 SAY credit
+  @ 22,10 SAY prompt
+ ENDI first
+ STOR f TO first
+ @ 6,14 GET mprop PICTURE '99'
+ @ 8,14 GET mchk1 PICTURE 'J999'
+ @ 8,43 GET mpay1
+ @ 9,14 GET mdate1 PICTURE '99/99/99'
+ @ 9,43 GET macc1 PICTURE '9999'
+ @ 9,60 GET mamt1
+ @ 11,14 GET mchk2 PICTURE 'J999'
+ @ 11,43 GET mpay2
+ @ 12,14 GET mdate2 PICTURE '99/99/99'
+ @ 12,43 GET macc2 PICTURE '9999'
+ @ 12,60 GET mamt2
+ @ 14,14 GET mchk3 PICTURE 'J999'
+ @ 14,43 GET mpay3
+ @ 15,14 GET mdate3 PICTURE '99/99/99'
+ @ 15,43 GET macc3 PICTURE '9999'
+ @ 15,60 GET mamt3
+ @ 17,14 GET mchk4 PICTURE 'J999'
+ @ 17,43 GET mpay4
+ @ 18,14 GET mdate4 PICTURE '99/99/99'
+ @ 18,43 GET macc4 PICTURE '9999'
+ @ 18,60 GET mamt4
+ READ
+ IF mamt1 > 0
+  STOR debit + mamt1 TO debit
+ ELSE
+  STOR credit + mamt1 TO credit
+ ENDI
+ IF mamt2 > 0
+  STOR debit + mamt2 TO debit
+ ELSE
+  STOR credit + mamt2 TO credit
+ ENDI
+ IF mamt3 > 0
+  STOR debit + mamt3 TO debit
+ ELSE
+  STOR credit + mamt3 TO credit
+ ENDI
+ IF mamt4 > 0
+  STOR debit + mamt4 TO debit
+ ELSE
+  STOR credit + mamt4 TO credit
+ ENDI
+ CLEA GETS
+ @ 20,14 SAY debit
+ @ 20,43 SAY credit
+ @ 22,00
+ @ 22,20 SAY "DO YOU WANT TO MAKE ANY CHANGES ? [ ]"
+ @ 22,55 GET verify PICTURE '!'
+ READ
+ CLEA GETS
+ IF verify = 'Y'
+  @ 6,14 GET mprop PICTURE '99'
+  @ 8,14 GET mchk1 PICTURE 'J999'
+  @ 8,43 GET mpay1
+  @ 9,14 GET mdate1 PICTURE '99/99/99'
+  @ 9,43 GET macc1 PICTURE '9999'
+  @ 9,60 GET mamt1
+  @ 11,14 GET mchk2 PICTURE 'J999'
+  @ 11,43 GET mpay2
+  @ 12,14 GET mdate2 PICTURE '99/99/99'
+  @ 12,43 GET macc2 PICTURE '9999'
+  @ 12,60 GET mamt2
+  @ 14,14 GET mchk3 PICTURE 'J999'
+  @ 14,43 GET mpay3
+  @ 15,14 GET mdate3 PICTURE '99/99/99'
+  @ 15,43 GET macc3 PICTURE '9999'
+  @ 15,60 GET mamt3
+  @ 17,14 GET mchk4 PICTURE 'J999'
+  @ 17,43 GET mpay4
+  @ 18,14 GET mdate4 PICTURE '99/99/99'
+  @ 18,43 GET macc4 PICTURE '9999'
+  @ 18,60 GET mamt4
+  @ 20,14 SAY debit
+  @ 20,43 SAY credit
+  READ
+  IF mamt1 > 0
+   STOR debit + mamt1 TO debit
+  ELSE
+   STOR credit + mamt1 TO credit
+  ENDI
+  IF mamt2 > 0
+   STOR debit + mamt2 TO debit
+  ELSE
+   STOR credit + mamt2 TO credit
+  ENDI
+  IF mamt3 > 0
+   STOR debit + mamt3 TO debit
+  ELSE
+   STOR credit + mamt3 TO credit
+  ENDI
+  IF mamt4 > 0
+   STOR debit + mamt4 TO debit
+  ELSE
+   STOR credit + mamt4 TO credit
+  ENDI
+  CLEA GETS
+  @ 21,00
+  @ 22,00
+  READ
+  CLEA GETS
+ ENDI verify
+* error checking routine
+* put in all of the other routines you may require
+ STOR t TO validate
+ DO WHIL VALIDATE
+  DO CASE
+  CASE mamt1 <> 0 .AND.($(mprop,2) = ' ')
+   STOR t TO error
+  CASE mamt1 <> 0 .AND.($(mchk1,2) = ' ')
+   STOR t TO error
+  CASE mamt2 <> 0 .AND.($(mchk2,2) = ' ')
+   STOR t TO error
+  CASE mamt3 <> 0 .AND.($(mchk3,2) = ' ')
+   STOR t TO error
+  CASE mamt4 <> 0 .AND.($(mchk4,2) = ' ')
+   STOR t TO error
+  CASE mamt1 <> 0 .AND.(mdate1 = ' ')
+   STOR t TO error
+  CASE mamt2 <> 0 .AND.(mdate2 = ' ')
+   STOR t TO error
+  CASE mamt3 <> 0 .AND.(mdate3 = ' ')
+   STOR t TO error
+  CASE mamt4 <> 0 .AND.(mdate4 = ' ')
+   STOR t TO error
+  CASE mamt1 <> 0 .AND.($(macc1,4) = ' ')
+   STOR t TO error
+  CASE mamt2 <> 0 .AND.($(macc2,4) = ' ')
+   STOR t TO error
+  CASE mamt3 <> 0 .AND.($(macc3,4) = ' ')
+   STOR t TO error
+  CASE mamt4 <> 0 .AND.($(macc4,4) = ' ')
+   STOR t TO error
+  OTHE
+   STOR f TO validate
+   STOR f TO error
+  ENDC
+  IF error
+   @ 21,00
+   @ 22,00
+   @ 21,14 SAY "PLEASE CORRECT THE INDICATED DATA"
+* keep looping till all fields are fixed
+   STOR t TO an:error
+   DO WHIL an:error
+* fix bad ones one at a time
+    DO CASE
+    CASE mamt1 <> 0 .AND.($(mprop,2) = ' ')
+     @ 22,00
+     @ 22,10 SAY "You must have a two number property account or '00'"
+     @ 6,14 GET mprop PICTURE '99'
+     READ
+    CASE mamt1 <> 0 .AND.($(mchk1,2) = ' ')
+     @ 22,00
+     @ 22,10 SAY "You must have a Journal Entry number"
+     @ 8,14 GET mchk1 PICTURE 'J999'
+     READ
+    CASE mamt1 <> 0 .AND.(mdate1 = ' ')
+     @ 22,00
+     @ 22,14 SAY "You must have a transaction date"
+     @ 9,14 GET mdate1 PICTURE '99/99/99'
+     READ
+    CASE mamt1 <> 0 .AND.($(macc1,4) = ' ')
+     @ 22,00
+     @ 22,14 SAY "You must have a four digit  account number"
+     @ 9,43 GET macc1 PICTURE '9999'
+     READ
+    CASE mamt2 <> 0 .AND.($(mchk2,2) = ' ')
+     @ 22,00
+     @ 22,10 SAY "You must have a Journal Entry number"
+     @ 11,14 GET mchk2 PICTURE 'J999'
+     READ
+    CASE mamt2 <> 0 .AND.(mdate2 = ' ')
+     @ 22,00
+     @ 22,14 SAY "You must have a transaction date"
+     @ 12,14 GET mdate2 PICTURE '99/99/99'
+     READ
+    CASE mamt2 <> 0 .AND.($(macc2,4) = ' ')
+     @ 22,00
+     @ 22,14 SAY "You must have a four digit account number"
+     @ 12,43 GET macc2 PICTURE '9999'
+     READ
+    CASE mamt3 <> 0 .AND.($(mchk3,2) = ' ')
+     @ 22,00
+     @ 22,10 SAY "You must have a Journal Entry number"
+     @ 14,14 GET mchk3 PICTURE 'J999'
+     READ
+    CASE mamt3 <> 0 .AND.(mdate3 = ' ')
+     @ 22,00
+     @ 22,14 SAY "You must have a transaction date"
+     @ 15,14 GET mdate3 PICTURE '99/99/99'
+     READ
+    CASE mamt3 <> 0 .AND.($(macc3,4) = ' ')
+     @ 22,00
+     @ 22,14 SAY "You must have a four digit account number"
+     @ 15,43 GET macc3 PICTURE '9999'
+     READ
+    CASE mamt4 <> 0 .AND.($(mchk4,2) = ' ')
+     @ 22,00
+     @ 22,10 SAY "You must have a Journal Entry number"
+     @ 17,14 GET mchk4 PICTURE 'J999'
+     READ
+    CASE mamt4 <> 0 .AND.(mdate4 = ' ')
+     @ 22,00
+     @ 22,14 SAY "You must have a transaction date"
+     @ 18,14 GET mdate4 PICTURE '99/99/99'
+     READ
+    CASE mamt4 <> 0 .AND.($(macc4,4) = ' ')
+     @ 22,00
+     @ 22,14 SAY "You must have a four digit account number"
+     @ 18,43 GET macc4 PICTURE '9999'
+     READ
+    OTHE
+     @ 21,00
+     @ 22,00
+     @ 22,10 SAY prompt
+     STOR F TO validate
+     STOR f TO an:error
+    ENDC
+   ENDD WHILE an:error
+  ENDI error
+ ENDD validate
+ RELE error, an:error, validate
+ IF mamt1 <> 0
+  STOR $(mdate1,7,2) + $(mdate1,1,2) + $(mdate1,4,2) TO mdat1
+  APPE BLANK
+  IF mamt1 > 0
+   STOR 'D' TO ltr
+  ELSE
+   STOR 'C' TO ltr
+  ENDI
+  REPL date WITH mdat1
+  REPL data WITH mchk1+mprop+macc1+ltr+mpay1+date()+'J'
+  REPL amount WITH mamt1
+  IF mamt2 <> 0
+   STOR $(mdate2,7,2) + $(mdate2,1,2) + $(mdate2,4,2) TO mdat2
+   APPE BLANK
+   IF mamt2 > 0
+    STOR 'D' TO ltr
+   ELSE
+    STOR 'C' TO ltr
+   ENDI
+   REPL date WITH mdat2
+   REPL data WITH mchk2+mprop+macc2+ltr+mpay2+date()+'J'
+   REPL amount WITH mamt2
+  ENDI mamt2
+  IF mamt3 <> 0
+   STOR $(mdate3,7,2) + $(mdate3,1,2) + $(mdate3,4,2) TO mdat3
+   APPE BLANK
+   IF mamt3 > 0
+    STOR 'D' TO ltr
+   ELSE
+    STOR 'C' TO ltr
+   ENDI
+   REPL date WITH mdat3
+   REPL data WITH mchk3+mprop+macc3+ltr+mpay3+date()+'J'
+   REPL amount WITH mamt3
+  ENDI mamt3
+  IF mamt4 <> 0
+   STOR $(mdate4,7,2) + $(mdate4,1,2) + $(mdate4,4,2) TO mdat4
+   APPE BLANK
+   IF mamt1 > 0
+    STOR 'D' TO ltr
+   ELSE
+    STOR 'C' TO ltr
+   ENDI
+   REPL date WITH mdat4
+   REPL data WITH mchk4+mprop+macc4+ltr+mpay4+date()+'J'
+   REPL amount with mamt4
+  ENDI mamt4
+  STOR t TO more
+  IF (debit + credit) = 0.00
+   @ 21,00
+  ELSE
+   @ 21,10 SAY 'DEBITS AND CREDITS DO NOT BALANCE - CORRECT BEFORE YOU EXIT'
+  ENDI debit
+ ELSE
+  IF (debit + credit) = 0.00
+   STOR f TO more
+  ENDI debit
+ ENDI mamt1 > 0
+ STOR t TO first
+ENDD WHILE more
+SET COLON ON
+REST from manage.dat
+IF bright = 'I'
+ SET INTENSITY OFF
+ENDI
+RELE ALL
+STOR t TO account
+STOR ' ' TO command
+

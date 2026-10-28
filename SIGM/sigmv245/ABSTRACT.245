@@ -1,0 +1,231 @@
+
+	The disk SIG/M 245, in addition to the usual ancillary files for
+verifying the checksum, unsqueezing files and unpacking libraries, contains
+the following new files:
+
+		FYNDE.COM	search files and libraries of files
+		HJELP.COM	read HELP files, execute sample programs
+		HJELP.LBR	documentation for HJELP.COM
+		MAZE.LBR	maze running example for CONVERT
+		TOUR.LBR	maze examples in assembly language
+
+
+	- - - - - FYNDE.COM - - - - -
+
+
+	Ward Christensen's original FIND.COM has been extended several
+times, by programs which can be found in several SIG/M volumes. Our version
+FYNDE.COM resembles Unix's "grep" in that a regular expression can be used
+as a search pattern. Extended once to allow searching through squeezed as
+well as normal files, it has been extended again to allow searching through
+library files.
+
+	A request had been made to incorporate the name of a default search
+family which would be used when FYNDE was invoked with an empty command line.
+Presumably the attractive feature of this usage was not so much the default
+file specification as the fact that the program would then go into a loop,
+so that the files could be browsed with several search patterns without the
+need to reenter the file name.
+
+	Finally, unless one is searching for only one or two items, has a
+prodigous memory, pencil and paper handy, uses ^P, or has MicroShell in his
+(her) system, one quickly wishes that there were some way to make a permanent
+record of a search. A disk file can now be selected to hold the results of
+browsing through the disk, and is even protected against self-browsing.
+
+	For lack of space, only the object program for FYNDE.COM is included
+in this volume, and only the version for the Intel 8080. More through an
+oversight, library search can only be made in the browsing mode, and not
+from the command line.
+
+	When the simple command line
+
+		FYNDE
+
+is typed, SIG*.CAT will be taken as the default specification of the files
+to be searched, and will respond with a logo and a menu. The menu listing
+can be refreshed anytime that FYNDE is soliciting options by typing carriage
+return. Otherwise a letter is expected followed by parameters. Options are
+
+		H to get a resume of search pattern syntax
+		D FILENAME.EXT to activate an output file
+		S FILENAME.EXT to search a new family of files
+		P LABEL!PATTERN to indicate what to search for
+		Q to quit (^C will not close the output file)
+
+D or S file definitions remain active until superseded by a new use of their
+option. However, D always erases an old file before opening a new one of the
+same name. Thus if one wants to start over again, the earlier file name may
+be repeated, but if not the result may be quite distressing. Any change of
+output file closes the previous file. Q is the only way to quit and ensure
+that an output file which was in use will be closed.
+
+D or S can be followed immediately by their parameter, but there MUST be a
+space between P and its pattern. This is because P does not use delimiters
+and spaces quickly become invisible once written. Thus, P followed by TWO
+spaces will search for text beginning with ONE space. Likewise, spaces at
+the end of the pattern and before the carriage return count even if that
+was not intended. In short, P is not free-form; the other options are.
+
+	Some examples:
+
+		D FOO.FAW	selects FOO.FAW as output file
+		D F*.FAW	gives an error message
+		D (FOO) FAW	gives an error message
+		D		closes output file, stops further output
+
+		S *.ASM		searches assembly sources
+		S (X) *.ASM	assembly sources in X.LBR
+		S (X) *.A?M	sources might be squeezed
+		S (*) *.*	anything that's in a library
+		S (B:X) FOO	FOO, member of X.LBR, on disk B
+		S B:(X) FOO	no, it's library on disk, not disk w/library
+		S FOO.FAW	won't work if FOO.FAW is output file
+		S *.COM		will simply skip all those files
+		S		ought to return to SIG*.CAT but won't
+
+		P {?}		lists everything (good way to read a file)
+		P		(how many spaces was that?)
+		P .		lists ends of all sentences, etc
+		P.		produces an error message
+
+
+	- - - - - HJELP.COM, HJELP.LBR - - - - -
+
+
+	HJELP.COM is an outgrowth of the program HELP.COM, whose variants
+can be found in many SIG/M volumes and elsewhere. The most recent reference
+is SIG/M 206.02, which could access HELP files irrespective of whether they
+were squeezed or embedded in libraries. This new version is a very slight
+but nevertheless extremely useful extension of 206.02, in the sense that
+binary object programs can be included in the HELP tree structure, and
+executed as part of the script.
+
+	Among the many possible applications for this new alternative, we
+can only regret that our disk is so small that a HELP file explaining the
+use of FYNDE could not be included. Had this been possible, all the various
+options, capabilities, and error conditions of FYNDE could be tried out as
+their description was being read. As it is now, one has to first list this
+documentation file on the printer, then load and execute FYNDE while reading
+the listing. That is, if one really bothered to make the listing. Or knew
+that this file existed!
+
+	In order to execute the .COM files that one finds in any CP/M
+system (which means they are all based on an origin 0100H), HJELP must
+move itself out of the way, just as DDT and some other programs must do.
+This in turn means that modifications to HJELP must have the same property.
+The whole process of preparing self-translating programs is cumbersome.
+For this reason, the file HJELP.LBR contains a submit file HJELP.SUB and
+a program to execute it, RUN.COM.  The details are similar to those of
+SIG/M 215.04 in which RUN was first introduced.
+
+	Because of the space reserved to load and execute programs (16K),
+the space reserved for color images (3x8K), and the size of HJELP.COM itself
+(4K), there is little space for HELP files (6K maximum). This means that text
+ought to be quite concise, and that liberal usage of the tree structure of
+HJELP should be made, and that many small overlays should be planned.
+
+	It gradually (maybe even rapidly) becomes apparent that HJELP files
+and their object programs have to be tailored for each other to get the best
+use out of the combination.
+
+	Whatever the intrinsic merit of HJELP.COM, its inclusion in this
+volume allows the file TOUR.LBR to be used interactively to illustrate
+several applications of Convert. It will be readily apparent to those who
+study TOUR.LBR carefully that there will be an extensive evolution of
+programs like HJELP.COM in the presentation of interactive descriptions
+of existing programs, and the evolution of interactive programs illustrating
+existing text.
+
+
+	- - - - - MAZE.LBR - - - - -
+
+
+	The principal motivation for this volume was to present some
+applications for the programming language Convert, for which SIG/M volumes
+213, 214, and 215 are the best current references. Historically, maze
+problems have been more accessible to list processing languages, especially
+those with symbol manipulation characteristics, than to languages based on
+arrays, such as Fortran or its successors. The reason is that only special
+mazes have regular, array-like structures. As it happens our examples have
+such regularity, but it is not essential for the techniques which are to be
+illustrated.
+
+	MAZE.LBR will have to be unpacked to be used. The reason is that
+RUN only intercepts CP/M buffered input calls, but not calls directly to
+BIOS. So that REC programs can generate their own echos to their input,
+and since CP/M (as opposed to MS/DOS) does not permit echo-free input, REC
+uses direct BIOS calls to read characters. Until this awkward inconsistency
+is resolved, REC cannot be RUN from within libraries.
+
+	MAZE.LBR contains a recent version of REC80 (simply called REC)
+and a correspondingly updated CNVRT incorporating a superior treatment of
+CNVRT's runtime library. This deviation from the above mentioned SIG/M
+volumes is necessitated by the fact that the runtime library was otherwise
+too large to use REC80 with the 64K of memory of the Intel 8080. In turn
+our examples feature a CNVRT compiler of Intel 8080 code, which is the
+reason that none of the programs in this volume have been written for the
+Intel 8086.
+
+	Returning to the substantive content of MAZE.LBR, there are two
+versions of a CNVRT example - a maze running program. The program is simple,
+and is explained by documentation within MAZE.LBR, save that the CNVRT
+programs themselves will have to be studied with some care, with reference
+to previously presented HELP files describing CNVRT.
+
+		CNVRT.HLP	SIG/M =
+		CNVPRG.HLP	SIG/M 173.07
+		CNVADV.HLP	SIG/M 203.02
+
+	The first version is MAZE.CNV, which compiles into MAZE.REC and
+can be executed by typing
+
+		REC MAZE
+
+and responding to the moderately cryptic prompt with a list defining the
+maze. It is completely interactive; rather than preparing the connection
+list of the maze with an editor and leaving it on a disk, it has to be
+carefully typed in by hand. This is not the great drawback that it might
+seem, because MAZE is not practical for mazes with a large number (>10)
+of nodes. Nevertheless the CNVRT program is short and elegant.
+
+	The second version, TOUR.CNV, which compiles into TOUR.REC, expects
+to find its data in a disk file, and creates an assembly listing which will
+examine the maze about as efficiently as it is possible to do so using an
+Intel 8080 CPU. It is not possible to HJELP or RUN TOUR either, but HJELP
+can be used to examine some of the mazes produced by TOUR.REC.
+
+	Of course, it would be possible to enter into an enormous digression
+describing the merits of the particular mazes selected, namely Hamilton's
+dodecahedron problem and the knight's tour on some small chessboards.
+Suffice it to say that these are interesting problems in and of themselves,
+and that once the difficulties of programming them are out of the way, it
+is possible to concentrate on some of the aspects of maze theory.
+
+
+	- - - - - TOUR.LBR - - - - -
+
+
+	For someone who wants to play with a few mazes, and is not
+particularly interested in Convert or how the mazes came into existence,
+the best thing to do is to type
+
+		HJELP (TOUR)
+
+which will gain entrance to a fairly elaborate structure of HELP files
+and programs to execute.  Those who have never seen anything like it
+before will be impressed, but those who are accustomed to better things
+(Mammoth Cave and the like --- see SIG/M volume 1 and other early volumes)
+will quickly realize that there are vast opportunities for those who now
+want to write interactive scripts and design programs to be exploited by
+them.  HJELP could develop an internal RUN or evolve into a complete
+operating system without much trouble at all.
+
+	In the meantime, it will be necessary to read the instructions
+which TOUR.LBR will proffer concerning the printing of a map, readying
+pen or pencil, and unlimbering the fingers to have them poised to strike
+^S with appropriate rhythm.
+
+[end]
+[Harold V.McIntosh, 20 July 1985]
+

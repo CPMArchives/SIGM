@@ -1,0 +1,188 @@
+* DATE 08/22/84  22:23
+* Detailed Search program
+STOR CHR(PEEK(063)) TO dr
+SELE SECONDARY
+USE &DR.:tenant.dbf
+SET INDEX TO
+ERAS
+@ 10,20 SAY 'SELECT FIELD NUMBER '
+@ 12,20 SAY 'ENTER SEARCH DATA '
+@ 14,0 SAY ' 1. Tenant      2. Code        3. Unit        4. Address     5. Contact    '
+@ 15,0 SAY ' 6. Phone       7. Alt Mail    8. Alt Addr    9. Alt City   10. Type '
+@ 16,0 SAY '11. Expiration 12. 1st Lease  13. Bank       14. Late Date  15. Last Pmt.'
+@ 17,0 SAY '16. Flag       17. Notes      18. Update     '
+STOR '  ' TO EVAR
+DO WHIL VAL(EVAR) < 1 .OR. VAL(EVAR) > 18
+ @ 10,20 SAY 'SELECT FIELD NUMBER ' GET EVAR PICTURE '99'
+ READ
+ENDD
+STOR '                              ' TO EPART
+@ 12,20 SAY 'ENTER SEARCH DATA ' GET EPART
+READ
+IF VAL(EVAR) = 1
+ STOR 'TENANT' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 2
+ STOR 'BCODE' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 3
+ STOR 'TUNIT' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 4
+ STOR 'BADDR' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 5
+ STOR 'TCONTAC' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 6
+ STOR 'TPHONE' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 7
+ STOR 'ALT' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 8
+ STOR 'ALTAD' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 9
+ STOR 'ALTCTY' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 10
+ STOR 'TTYPE' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 11
+ STOR 'TEXPIR' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 12
+ STOR 'TFIRST' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 13
+ STOR 'TSECB' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 14
+ STOR 'TLATE' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 15
+ STOR 'TRENTPD' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 16
+ STOR 'TFLAG' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 17
+ STOR 'TNOTES' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 18
+ STOR 'TUPDATE' TO PARTFIELD
+ENDI
+STOR TRIM(EPART) TO EPART
+RELE EVAR
+GO BOTTOM
+STOR # TO LASTREC
+GO TOP
+STOR 0 TO RECNO
+STOR T TO PARTSRCH
+STOR ' ' TO EOPTION
+STOR T TO FIRSTLOOP
+DO WHIL PARTSRCH
+ IF EOPTION = 'S'
+  STOR # TO RECNO
+  STOR F TO PARTSRCH
+  LOOP
+ ENDI
+ IF EOPTION = 'R'
+  STOR 0 TO RECNO
+  STOR F TO PARTSRCH
+  LOOP
+ ENDI
+ IF RECNO = LASTREC
+  STOR 'R' TO EOPTION
+  LOOP
+ ENDI
+ IF FIRSTLOOP
+  LOCA FOR !(EPART) $ !(&PARTFIELD)
+ ENDI
+ IF .NOT.FIRSTLOOP
+  CONT
+ ENDI
+ STOR F TO FIRSTLOOP
+ STOR # TO RECNO
+ IF # = LASTREC .AND.(.NOT. EPART $ &PARTFIELD)
+  STOR 'R' TO EOPTION
+  LOOP
+ ENDI
+ ERAS
+ @ 0,26 SAY "Detailed Tenant Search Mode"
+ @ 01,0 SAY ' ------------------------------------------------------------------------------'
+ @ 3,2 SAY 'Tenant:                                            Code:'
+ @ 4,4 SAY 'Unit:                 Building:'
+ @ 5,1 SAY 'Contact:                                           Phone:'
+ @ 6,9 SAY 'Alternate mailing address:'
+ @ 7,1 SAY 'Address:'
+ @ 8,4 SAY 'City:'
+ @ 10,4 SAY 'Type:          Addl Percentage:             1st Lease:'
+ @ 11,4 SAY 'Base:                                      Expiration:'
+ @ 12,0 SAY 'Security:                     Bank:             Late Date:'
+ @ 13,4 SAY 'Rent:                Late Chgs:             Addl Rent:'
+ @ 14,3 SAY 'G & E:               Other Chgs:            Total Rent:'
+ @ 15,0 SAY 'Rent Due:             Last Payment:              Amt Paid:'
+ @ 16,0 SAY 'Total Yr:                     Flag:                 Total:'
+ @ 18,3 SAY 'Notes:'
+ @ 18,51 SAY 'Update:'
+ @ 19,0 SAY ' ------------------------------------------------------------------------------'
+ STOR trent TO trentx
+ IF ttype = 'P'
+  IF (trentpc*(trentpcr/100)/12)>trent
+   STOR (trentpc*(trentpcr/100)/12) TO trentx
+  ENDI (trentpc)
+ ENDI ttype = 'P'
+ IF ttype = 'O'
+  STOR ((trentpc*(trentpcr/100)/12)+trent) TO trentx
+ ENDI ttype = 'O'
+ STOR (trentx + tlatec + taddl + trente + trentm) TO trentxx
+ @ 3,10 SAY TENANT
+ @ 3,59 SAY BCODE
+ @ 4,10 SAY TUNIT
+ @ 4,36 SAY BADDR
+ @ 5,10 SAY TCONTAC
+ @ 5,59 SAY TPHONE
+ @ 6,36 SAY ALT
+ @ 7,10 SAY ALTAD
+ @ 8,10 SAY ALTCTY
+ @ 10,10 SAY TTYPE
+ @ 10,36 SAY TRENTPC USING '99.9999'
+ @ 10,59 SAY TFIRST
+ @ 11,10 SAY TRENTPCR USING '$999,999,999'
+ @ 11,59 SAY TEXPIR
+ @ 12,10 SAY TSEC USING '$9,999.99'
+ @ 12,36 SAY TSECB
+ @ 12,59 SAY TLATE
+ @ 13,10 SAY TRENT USING '$99,999.99'
+ @ 13,36 SAY TLATEC USING '$99,999.99'
+ @ 13,59 SAY TADDL USING '$99,999.99'
+ @ 14,10 SAY TRENTE USING '$99,999.99'
+ @ 14,36 SAY TRENTM USING '$99,999.99'
+ @ 14,59 SAY TRENTXX USING '$99,999.99'
+ @ 15,10 SAY TRENTD USING '$99,999.99'
+ @ 15,36 SAY TRENTPD
+ @ 15,59 SAY TRENTP USING '$99,999.99'
+ @ 16,10 SAY TRENTY USING '99,999.99'
+ @ 16,36 SAY TFLAG
+ @ 16,59 SAY TRENTT USING '$99,999.99'
+ @ 18,10 SAY TNOTES
+ @ 19,59 SAY TUPDATE
+ STOR ' ' TO EOPTION
+ @ 20,7 SAY 'N (NEXT), S (SELECT), R (RETURN)'
+ DO WHIL EOPTION <> 'N' .AND. EOPTION <> 'S' .AND. EOPTION <> 'R'
+  @ 20,40 GET EOPTION PICTURE '!'
+  READ
+ ENDD
+ENDD
+RELE PARTSRCH
+RELE EMETH, EOPTION, EPART, FILESRCH, LASTREC, FIRSTREC
+RELE PARTFIELD, FIRSTLOOP, EKEYOPT, INCREMENT
+STOR TRIM(BCODE) TO name
+STOR t TO first
+STOR CHR(PEEK(063)) TO dr
+SET INDEX TO &dr.:codea
+FIND &name
+RETU
+

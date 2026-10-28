@@ -1,0 +1,75 @@
+
+{	GETDATE with no range limits
+
+	This inputs a date in the format number-char-number-char-number
+	(ie: 1-22-80 or 10/5/77) and returns an integer in the range
+	1..maxint. Yrbase sets the initial year which will be accepted,
+	and yrspan determines the last year. Yrspan cannot exceed 89,
+	in order to remain within range.
+
+	Note that the prompt must be passed to MAKEDATE from the calling
+	program.
+
+	This package requires global declarations
+		TYPE	string255 = string 255;
+			byte = 0..255;
+
+	The following additional procedure must be declared;
+		PROCEDURE prompt;
+}
+
+PROCEDURE getdate (msg : string255; VAR mo, da, yr : byte);
+
+CONST	yrspan = 89;
+	yrbase = 10;
+
+VAR	ch : char;
+	good : boolean;
+	temp : integer;
+
+begin
+  	repeat
+		good := true;
+		prompt (msg);
+		readln (mo,ch,da,ch,temp);
+		temp := temp mod 100 - yrbase;
+		if (da < 1) or (da > 31) or (mo < 1) or (mo >12)
+			or (temp < 0) or (temp > yrspan) then
+			begin
+				good := false;
+				writeln (' *** Bad date ***')
+			end
+	until good;
+	yr := temp
+end;
+
+FUNCTION makedate (msg : string255) : integer;
+
+CONST	yrbase = 10;
+
+VAR	days : integer;
+	da, mo, yr : byte;
+	str : string255;
+
+begin
+	getdate (msg,mo,da,yr);
+	case mo of
+		1 : days := 0;
+		2 : days := 31;
+		3 : days := 59;
+		4 : days := 90;
+		5 : days := 120;
+		6 : days := 151;
+		7 : days := 181;
+		8 : days := 212;
+		9 : days := 243;
+		10 : days := 273;
+		11 : days := 304;
+		12 : days := 334;
+		end;
+	days := days + (yr*365) + (yr div 4) + da;
+	if ((yr + yrbase) mod 4 = 0) and (mo > 2) then days := days + 1;
+	makedate := days
+end;
+
+

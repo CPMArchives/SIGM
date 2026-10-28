@@ -1,0 +1,60 @@
+
+*********************************************************
+*							*
+*		  SIMULATED FUNCTION			*
+*    KEYS WITH CPM IN GENERAL; THE SORCERER COMPUTER	*
+*    IN PARTICULAR, USING KIP.HEX AND KID.COM &  DDT	*
+*							*
+*    AS PUBLISHED IN DR DOBBS JOURNAL, ISSUE 55  MAY	*
+*    1981, BY JOHN B PALMER.				*
+*	   P.O. BOX 23					*
+*	   BOONSVILLE					*
+*	   USA						*
+*							*
+*********************************************************
+
+
+STEP 1 MOVECPM SUCH THAT FRERAM (IN ASSEMBLY OF BOTH
+       KIP & KID) ARE ON TOP OF YOUR CBIOS. 1K BYTES
+       IS USUALLY ENOUGH.
+
+STEP 2 ASSEMBLE KIP.ASM & KID.ASM - MAKE  SURE  THAT
+       YOU CHANGE FRERAM EQU ????H TO WHATEVER SUITS
+       YOU.
+
+STEP 3 LOAD KID.HEX ---> KID.COM
+
+
+STEP 4 DEFINE YOUR SIMULATED FUNCTION KEYS IN A FILE
+       ???????.KID. THE FORMAT IS AS FOLLOWS:-
+       A) USE ED TO CREATE ????.KID
+       B) EXAMPLE - 1"PIP^M" 2"DIR^M" ---WITH QUOTES
+          WHEN CTRL A FOLLOWED BY 1 THE COMMAND  PIP
+          WOULD BE GIVEN; WHEN CTRL A FOLLOWED BY  2
+          THE COMMAND DIR IS GIVEN.
+          NOTE...  THE ^M IS GIVEN AS ^ FOLLOWED BY M
+          IE TWO KEYSTROCKS - CTRL M WOULD FORCE CR<
+          NOTE...  THE COMMAND IS IN QUOTE MARKS AND
+          ANY CONTROL CHARACTERS CAN BE ENTERED   IN
+          THE ABOVE MANNER.
+
+STEP 5 LOAD KIP.HEX USING DDT
+       A>DDT KIP.HEX
+       DDT VERS 2.2
+       NEXT  PC
+       ???? ????      - DEFINED BY FRERAM IN ASSEMBLY
+       -G0
+
+       THIS LOADS KIP.HEX AND RETURNS TO CPM
+
+STEP 6 LOAD KID AND FILE
+       A> KID CPM       -CPM IS CPM.KID CREATED BY ED
+       KID READ OK      -SOMETHING WRONG IF NOT  THIS
+       A>               -AWAY YOU GO: ^A 1 ETC.
+
+
+NOTES 1: IT WILL NOT WORK WITH XSUB.
+      2: IF YOU HAVE FUNCTION KEYS THERE IS ANOTHER 
+         PROCEDURE FOR DEFINING THEM IN THE EDITOR
+         FILE *.KID. LEAVE MESSAGE IN MINIRRBS.
+

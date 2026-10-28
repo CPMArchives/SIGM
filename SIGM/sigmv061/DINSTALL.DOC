@@ -1,0 +1,783 @@
+
+.op
+.he DIMS Installation Notes - Release 1.0                            page #
+.po 13 ..adj margin 
+..----!----!-------!----------------!----------------!-----------------------
+
+
+
+            DIMS INSTALLATION NOTES AND OPERATING INSTRUCTIONS
+
+                               by Dan Dugan
+
+                                Release 1.0
+
+
+                             TABLE OF CONTENTS
+
+INTRODUCTION:  FEATURES AND LIMITATIONS
+
+INSTALLATION -- before you can use it
+
+    BASIC VERSION DIFFERENCES
+
+    MEMORY REQUIREMENTS
+
+    MODIFYING THE PROGRAMS FOR YOUR TERMINAL AND PRINTER
+
+    PLACING THE FILES ON THE APPROPRIATE DRIVES
+
+
+OPERATING INSTRUCTIONS
+
+    NO-FILE MENU
+
+    DEDIT COMMANDS
+
+    TRANSIENT COMMAND PROGRAMS
+
+    FILE STYLES
+
+    DESIGNING AND CREATING SCREEN/PRINTER FORMATS
+
+    CRASH RECOVERY
+
+
+INTERFACE AND MODIFICATION
+
+    FILE COMPATIBILITY
+
+    WRITING YOUR OWN 'TRANSIENT' PROGRAMS
+
+    MODIFICATION GUIDELINES
+
+    KNOWN BUGS AND SUGGESTED IMPROVEMENTS
+
+
+APPENDIX
+
+    HISTORY OF DIMS
+.HE DIMS - Release 1.0 - INTRODUCTION                              PAGE #
+INTRODUCTION - FEATURES AND LIMITATIONS
+
+    DIMS is a set of Basic programs that chain together automatically to 
+create a versatile list-managing system.  It has been proven under pressure 
+to be suitable for serious medium-scale (hundreds to thousands of names) 
+mailing-list operations, inventories, indexes, ledgers, etc.  It must be 
+installed by a Basic-80 programmer and can be used successfully by almost 
+anybody.
+
+    File records can be either 128 bytes long with up to 15 fields or 256 
+bytes long with up to 30 fields.  Within each record the fields are of 
+random length.  An indicator appears to show how much space is left when 
+length limits are being approached.  New records are added to the end of 
+the file.  Records may be deleted, but record numbers stay the same until 
+the "renumber" command is used.  When updating records the old data is 
+shown field by field and may be kept or replaced.  All data files are 
+automatically kept in duplicate on two different disks.  When a record is 
+updated it is automatically updated on both disks.  It is difficult to lose 
+a DIMS file.  The files can be scanned with the CP/M "type" command.  
+Except for temporary files kept during operations like sorting, there are 
+no index files.
+
+    I recommend that besides the distribution master, you keep a set of 
+disks called "Dims Development" which consists of all the release files, 
+the demonstration files, and small samples of the data files you create.  
+Then use this set of disks to create and test formats and your own 
+transient utilities on.  Then have sets of working disks, which will be 
+changed in pairs, with just the dims components you need and plenty of 
+space for data files.  With three disks I use A for everyday program 
+library and B and C for data, B & C getting changed for different sets of 
+files.
+
+    The files can be searched rapidly for a literal substring anywhere in 
+the record, or more slowly for up to 10 selection keys in specific fields 
+and up to 10 rejection keys in fields.  A subset of records so selected may 
+be written out to another DIMS file, or to a standard Basic sequential data 
+file for use by other programs.  A standard Basic sequential data file from 
+any source may be added onto a DIMS file.  A quite flexible multi-key 
+sorting command is included which can sort a whole file or a range of 
+records within it.  The sort output may be overlaid on the original file or 
+sent to a new file.
+    
+    File size is limited only by disk space.  The DIMS "sort" command is 
+limited by the memory space used by its key array, which depends on the 
+size of the desired keys and the number of records.  Where there are 
+thousands of records or long keys an external sorting utility may be 
+needed.
+
+    Complete screen and printer form design is provided for.  Scrolling or 
+stationary (one record per screen) forms may displayed.  More than one form 
+may be designed for a file and you can switch between them with a two-word 
+command.  At any time any fields may be hidden.
+
+.pa
+    Most operations include self-explanatory dialogue.  In the file editor 
+DEDIT.BAS several screens of help text may be displayed with the command 
+"help."  At the pause prompt "Ready>" a list of the options there is shown 
+in response to "h".
+
+
+.he DIMS Installation Notes - Release 1.0 - INSTALLATION             page #
+INSTALLATION
+
+BASIC VERSION DIFFERENCES
+
+    There are two critical differences between Microsoft Basic-80 version 
+4.5 and 5.x.  One is that the CLEAR statement has changed syntax.  This 
+statement is used once, in the main menu program DIMS.  If you are instal
+ling with 4.5 use "CLEAR 1000" which sets string space.  If you are using 
+version 5.x, use "CLEAR,,1000" which sets stack space.  In 5.x string space 
+is used dynamically, but the stack space is determined from an algorithm 
+which will result in DIMS crashing with an "Out of Memory" error which will 
+be puzzling because fre(x) will still show plenty of memory.
+
+    The second difference is that Basic-80 version 5 has the command 
+"INKEY$" which allows checking the keyboard without stopping.  If you need 
+to install DIMS on version 4.5, you will have to either give up the "z" 
+scrolling control command, or write code that looks at your hardware ports.  
+Instead of X$=INKEY$ use X=INP(KEYBD.DATA.PORT).
+
+
+.he DIMS Installation Notes - Release 1.0 - MEMORY REQUIREMENT       PAGE #
+MEMORY REQUIREMENT
+
+    DIMS is currently being developed on a 59K-size CP/M system, actually a 
+62K Morrow hard disk system.  A smaller system may not have room for all of 
+the file editor DEDIT, which is big.  The program STRIP.BAS is provided and 
+may be used to remove comments from DEDIT.  It will then fit on a 54K 
+system.  If your system is smaller and you're adept at Basic, you could 
+shrink DEDIT by taking out all the code relating to the format command and 
+replacing all the complicated positioning code with simple listing in the 
+default format.  If you strip the comments keep your development version 
+with the comments in, and then strip it for running, so you'll have the 
+comments to guide you in making modifications.
+
+.cp 4
+.he DIMS Installation Notes - Release 1.0 - TERMINAL AND PRINTER     PAGE #
+MODIFYING THE PROGRAMS FOR YOUR TERMINAL AND PRINTER
+
+    DIMS uses the clear-screen and cursor positioning functions of your 
+terminal.  Since all terminals are different, ALL the DIMS programs must be 
+modified to suit yours.  In the code (TERM DEP) will appear in comments at 
+each place where customization is necessary, so you can use your text 
+editor to search for these spots.  DEDIT uses the most functions and there
+fore requires the most work.  The supplied transient programs don't use 
+cursor positioning but do use screen clear and keyboard testing.
+
+    Special problems can arise in the case of an upper-case only terminal.  
+Copy all the program AND DATA files with PIP using the [u] option.  Then 
+use a text editor to find all CHR$( occurrences and change those numbers 
+which represent lower-case characters (97 to 122) to upper-case codes 
+(subtract 32).
+
+
+PRINTER
+
+    The DIMS system as delivered is written for a Diablo 1610 or 1620 
+printer, and uses many of its special control sequences, like setting 
+vertical and horizontal pitch for listing in a pre-recorded form, and high 
+speed absolute tabbing.  Use with other printers will require re-writing 
+this code.  Diablo control sequences start with ESCAPE, which is CHR$(27).  
+DIMS will allow you to create a format specification which uses reverse 
+scrolling on the printer; don't do it unless you have a bidirectional forms 
+tractor.
+
+
+.cp 5
+.he DIMS Installation Notes - Release 1.0 - PLACING THE FILES        PAGE #
+PLACING THE FILES ON THE APPROPRIATE DRIVES
+
+    After each program segment is checked over and modified for your termi
+nal, save it in the standard compressed format.  Then the .ASC file may be 
+erased.  Depending on how many drives you have, you must copy the 24 
+"working" files provided on the distribution disk to disks on the appro
+priate drives of your system.  Then change the initial value of the vari
+able NDRIVES near the beginning of DIMS.BAS to the number of drives you are 
+using.
+
+    If you are using a hard disk, comment out the two RESET statements near 
+the top of DIMS.BAS.  They are necessary for changing floppies, which is 
+only allowed at the no-file menu.  DIMS runs much faster on a hard disk.
+
+.cp 21
+IN A TWO DRIVE SYSTEM ... programs are split between A: and B:, attempting 
+to make balanced space for data (.D) and backup (.DD) files.
+
+         Drive A:         Drive B:
+
+         DIMS    .BAS     DCREATE .BAS
+         DEDIT   .BAS     DDOC    .BAS
+         SHORT   .DFO     DSORT   .BAS
+         SHORT1  .DFO     DLABELS .BAS
+         LONGADDR.D       DLETTERS.BAS
+         STANDADD.D       DSTAT   .BAS
+         SHORTADD.D       DCFORM  .BAS
+         ARTICLES.D       DHELP   .BAS
+                          DPUT    .BAS
+                          DGET    .BAS
+                          DHELP   .DOC
+                          ARTICLES.DOC
+                          LONGADDR.DD
+                          STANDADD.DD
+                          SHORTADD.DD
+                          ARTICLES.DD
+
+.cp 22
+IN A THREE DRIVE SYSTEM ... the program library is kept together on A: and 
+B: and C: are saved for large data files.  A data file can be as big as the 
+whole user disk space, and still have 100% backup on the other disk.
+
+         Drive A:         Drive B:         Drive C:
+
+         DIMS    .BAS     LONGADDR.D       LONGADDR.DD
+         DEDIT   .BAS     STANDADD.D       STANDADD.DD
+         DCREATE .BAS     SHORTADD.D       SHORTADD.DD
+         DDOC    .BAS     ARTICLES.D       ARTICLES.DD
+         DSORT   .BAS
+         DLABELS .BAS
+         DLETTERS.BAS
+         DSTAT   .BAS
+         DCFORM  .BAS
+         DHELP   .BAS
+         DPUT    .BAS
+         DGET    .BAS
+         DHELP   .DOC
+         ARTICLES.DOC
+         SHORT   .DFO
+         SHORT1  .DFO
+
+.cp 17
+IN A FOUR DRIVE SYSTEM ... auxiliary files (.DOC, .DFO and temporary .$$$) 
+are kept on the fourth drive.
+
+Drive A:         Drive B:         Drive C:         Drive D:
+
+DIMS    .BAS     LONGADDR.D       LONGADDR.DD      DHELP   .DOC
+DEDIT   .BAS     STANDADD.D       STANDADD.DD      SHORT   .DFO
+DCREATE .BAS     SHORTADD.D       SHORTADD.DD      SHORT1  .DFO
+DDOC    .BAS     ARTICLES.D       ARTICLES.DD      ARTICLES.DOC
+DSORT   .BAS
+DLABELS .BAS
+DLETTERS.BAS
+DSTAT   .BAS
+DCFORM  .BAS
+DHELP   .BAS
+DPUT    .BAS
+DGET    .BAS
+
+.pa
+.he DIMS Installation Notes - Release 1.0 - OPERATING INSTRUCTIONS   PAGE #
+
+
+
+
+
+
+
+
+OPERATING INSTRUCTIONS:  MAIN MENU
+
+    After the files have been put on the appropriate drives, modified for 
+your terminal and drive configuration, and saved in standard compressed 
+format (ASCII files won't CHAIN), the system is started by running DIMS.  
+You should get the no-file menu with a directory of the provided test data 
+files displayed.  If you then hit return, you will get menu choice no. 1, 
+open a file.  Enter the name of one of the existing files, just the main 
+part of the name, skipping the extension.  It may be in either lower or 
+upper case.
+
+    DEDIT should load and display the last record in the file.  Type "help" 
+for a series of screens explaining the available commands.  At the "pause 
+prompt" "Ready>" if you type "h" a menu of pause options will appear.
+
+    When you are editing a file the only safe exit is to type the command 
+"done" (don).  This will return you to the main menu.  Other choices 
+available from the no-file menu include a reset which is intended to show 
+the new directory when data disks have been changed.  If DIMS has been 
+properly installed (two RESET statements enabled), no harm will come if you 
+skip this step and open a file.  There is also a command for changing the 
+number of disks in the system for the current session.  This is for emer
+gency use.  It is necessary to first use PIP to move the files around to 
+the appropriate drives if you intend to do this.
+
+    The no-file menu includes DCREATE, the sub-program that sets up a new 
+file from scratch.  It asks for the name, and choice of size.  128-byte 
+records are just right for mailing lists and most things;  the 256-byte 
+record size is available for records that need more space.  You are asked 
+to give the default 4-character name for each field, and whether it is an 
+alphabetic or numeric field.  You can just hit RETURN for alphabetic.  
+Everywhere in DIMS dialogues just hitting RETURN gives you the first choice 
+in the menu or options.  Enter "stop" when all fields have been defined, 
+and after approval the new file will be opened.
+
+    If you want to make a new file with the same field scheme as an 
+existing one, there's an easier way.  Just open the file and copy one 
+record ("copy 1"), giving the new file name.  Then "done" the old file, 
+open the new file and use "change" to put in the new data.  Then you can 
+start adding.
+
+.he DIMS Operating manual - Release 1.0 - DEDIT commands                PAGE # 
+FILE EDITING COMMANDS
+
+    DEDIT has two prompts, "Edit FILENAME:" and "Ready>".  "Edit FILENAME" 
+is the command level, and accepts a command line.  "Ready>" is the "pause 
+prompt" between records in a sequence being run thru in response to a 
+command line.  The pause prompt "Ready>" takes single-letter instant com
+mands SPACE, z or ESC.  Hitting the space bar will show the next record.  
+Hitting z will set continuous display until space is hit to stop.  The 
+ESCAPE key will always quit the sequence and give you "Edit FILENAME".
+
+    "Edit FILENAME" takes a somewhat free-form command line.  This line is 
+made up of only valid command words.  The sequence can be pretty loose, but 
+after a "final" command everything else will be ignored except for range-
+of-records words and numbers, like "from 10 to 20."
+
+    If there's a record number or a pair of record numbers anywhere in the 
+command line, the command will be done on the specified range of records.
+The words "from" "to" "all" "end" "next" or "last" may be used when talking 
+about record numbers.  "." instead of a number means use the most recently 
+displayed record.  All the built-in commands may be shortened to three 
+letters.
+
+    For example, all the following are valid commands:
+
+                        add
+                        delete from 10 to 20
+                        delete 10 20
+                        print to 75
+                        print select labels
+                        change 57
+                        cha .  (means change last record shown)
+                        10 20
+                        list from 10 to 20 (same result as "10 20"
+                        select copy delete (moves records to another file)
+
+"FINAL" COMMANDS
+
+    These commands are normally the last word in the command sentence, any 
+following words except record numbers will be ignored.
+
+        add     Appends records to the end of the file, prompting field by 
+                field.  In this mode the following commands take effect:
+
+                "stop" alone in any field quits adding.
+                "\"    (backslash) at end of any field skips back 1 field.
+                ";"    alone in the field copies data from last record shown.
+
+        done    Closes the file and returns to the no-file menu.
+
+        goto <filename> Closes the file and opens any named file on the
+                same disk.
+
+        fields  Allows "hiding" fields you don't want to show.  You may un-hide
+                them with the same command.  Controls output of 'put.'
+
+        format 0      Installs default display and print formats.
+        formats       Shows available format definition files.
+        format <name> Installs named format definition for screen and printer.
+
+        backup  Makes complete new backup file from main file.  Rarely used 
+                since backup file is maintained automatically.
+
+        renumber Renumbers all records sequentially from the top in both main 
+                and backup files, closing up holes from deleted records.
+
+
+MISCELLANEOUS COMMANDS
+
+The following commands may be given freely anywhere in the command line:
+
+        change <#> Shows record or records field by field, new data may be 
+                entered for each field or the old data may be kept by just 
+                hitting RETURN.  To erase a field enter just one space then
+                RETURN.  Backslash '\' backs up to previous field.  If a 
+                change command includes more than one record, you will be 
+                given the option to select fields to change, which speeds 
+                up the process of doing something like just adding zipcodes 
+                to an existing file.
+
+        delete <#> Shows record or records and asks approval to erase.
+
+        list    Shows records.  Assumed if no other final command is given.
+
+        find <word> Finds records containing the exact word string.  A phrase 
+                can be found if underlines_are_used_instead_of_spaces.
+
+        select  Finds records containing up to 10 different words or 
+                phrases.  Spaces are OK, but no upper/lower case conversion 
+                is done.  If you hit return when asked what field to look 
+                in the word will be searched for in all fields.  You also 
+                can specify up to 10 words or phrases that will cause the 
+                record to be skipped.  Design your coding system to work 
+                with this. 
+
+        print   Prints on list device rather than screen in the current format.
+
+        copy    Copies data records and adds them on to the end of another
+                DIMS file.  You will be asked for the name.  You may create a 
+                new file this way or add to an existing one, but the field 
+                definitions must be the same.  New records have no auto backup.
+
+        and     Permitted for clarity, ignored.
+
+        page    Sets the page number to start the printout with.
+
+        margin  Sets the printer margin if you don't want the margin that 
+                comes with the form you're using.
+
+        flag    Combined with "add" or "change" to a range of records, asks 
+                you for a string to be added automatically to any (one) 
+                field in the record.
+
+        programs  Shows a directory of available "transient commands," i.e. 
+                  various batch processes than can work on the file.
+
+
+.cp 4
+TRANSIENT COMMANDS                
+
+    Transient commands are sub-programs which do a batch of work and then 
+return you to DEDIT.  Where appropriate, they will take a range of records 
+and selection criteria from the command line.  Example:  "print select 
+labels 100 to 150"
+
+        cform   Process for creating format definition files.  Complicated.
+
+        doc     A "notepad" where you can read or write notes associated with 
+                the data file.  The doc file can be edited later with a 
+                text editor.  Useful for documenting on the spot codes you 
+                invent for your file.
+
+        labels  Prints a batch of mailing labels (use "print labels") with 
+                blank fields closed up.  Works only with three standard 
+                address file formats.  It's not hard to modify if neces
+                sary.  After the labels are aligned, hit space for each one 
+                to check.  Then hit z to cause continuous printing.  Hit 
+                space again to pause, ESC to abort.
+
+       letters  Prints a text file with data from a DIMS file inserted.  
+                A personal salutation line or other data lines may be 
+                included if desired.  DLETTERS.BAS must be modified for 
+                each job.  If you have MailMerge it's easier to use "put" 
+                to make a sequential data file which is a subset of the 
+                DIMS data file and use MailMerge with that.
+
+        sort    Sorts the records into a new sequence in the whole file or 
+                just a range of the file.  Asks questions for set-up. 
+                Alphabetic keys may be truncated and/or blank-filled to a 
+                specified length.  Sorts alphabetically unless all fields 
+                specified for keys are numeric.  May overlay or make a new 
+                file.
+
+        stat    Computes descriptive statistics for a selected field.
+
+        put     Makes an output file in standard Basic sequential form for
+                further processing with other programs.  You may select a
+                range of records in the invoking command line, and selection
+                specifications.  Hidden fields (see "fields") will be 
+                skipped
+
+        get     Stuffs a conventional Basic sequential data file into
+                the DIMS file from which it is called, adding records to
+                the end.  Allows skipping and re-ordering of fields.
+
+
+.HE DIMS Operating Manual -- Release 1.0 -- FILE STYLES 
+FILE STYLES
+
+    It's convenient to use one of three established sets of field names 
+when opening up a new mailing list file.  Look at the example files 
+provided, LONGADDR, STANDADD, and SHORTADD.  The transient command "labels" 
+has code built-in to deal with any of these three forms.  The long form is 
+used for government or academic work where titles and organizations abound.  
+The standard form is for general purposes.  The short form is friendly for 
+short files that won't need to be sorted into last name order.
+
+    To make a special-purpose mailing list such as an organization which 
+would want membership status or other special fields, use the one of the 
+three standard field layouts for everything up to the zip code, then design 
+the layout beyond that point to suit the application.  This way the labels 
+program will work with the file.  The ZIP field is of the numeric type so 
+it will reject un-sortable mistakes like using "l" for "1".  Put European 
+and Canadian postal codes after the province in the C-ST field, and leave 
+the ZIP field blank.
+
+    If code fields are compatibly designed, the limited selection/rejection 
+logic in DIMS can do quite a good job of pulling out a subset.  The 
+technique that I've developed that works real well is to use codes made up 
+of one lower-case letter and one digit, such as a0, a1, b0, c8, etc.  Any 
+number of codes can be jumbled in any order in a single code field.  This 
+makes it easy to add codes to the scheme as it develops - you can use the 
+"doc" command to note their meaning when you think them up.  If this form 
+of coding is strictly adhered to a subset of a single code may be pulled 
+very rapidly using "find," since this combination of letter and digit 
+doesn't occur anywhere else in the fields.
+
+
+.he DIMS Operating Instructions - Release 1.0 - SCREEN & PRINTER FORMATS  PAGE #
+DESIGNING AND CREATING SCREEN/PRINTER FORMATS
+
+    You can create formats, that is, totally designed ways of naming and 
+displaying the data on the screen and on the printer.  Open the example 
+file SHORTADD and try the sample formats out on it.  You can see the 
+formats (.DFO files) provided by typing the command "formats" to see a list 
+of what's available, and then typing "format <name>" to load the desired 
+one.  
+
+    A format is usually designed for use with a particular file, though if 
+the fields are compatible there's no reason why a whole family of files 
+couldn't use the same one.  A format specification includes both the screen 
+and the printer images.  You can design either scrolling or screen-oriented 
+forms.  The designers of commercial data-entry programs (DataStar, The Last 
+One) seem to be preferring screen-oriented displays these days, where the 
+screen shows you just one file record at a time displayed in a designed 
+form.  You can design fixed-position formats for DIMS.  I prefer scrolling 
+data entry because you can orient yourself to what you just did.  I haven't 
+used fixed-position format designs and consequently I must warn you that 
+though provided for in DIMS this mode hasn't been fully tested and there 
+are may be bugs.
+
+    There are two ways of creating the format specification file, 
+<name>.DFO.  The first is to give the command "cform" in DEDIT.  The cform 
+transient allows you to print out a long paper form on which you fill out 
+your design for the screen and printer form.  Screen and/or page headings 
+may be made up to three lines long.  These lines will only be printed if 
+non-blank.  Field names (prompts) may be omitted, the default 4-character 
+field name may be used, or a custom name may be printed anywhere.  In 
+positioning names and data fields, if the line is specified the item will 
+always be printed at that line; if the line is 0 it will be printed wher
+ever the cursor or printhead was left by the last operation.  Similarly, if 
+a column is specified the data will be printed there, and if column 0 is 
+given it will follow the previous operation.  This allows, for example, 
+printing Firstname Lastname by defining the field name prompt for Lastname 
+as a single space, at line 0 and column 0.
+
+    Take care when entering the data from the filled-out form, because 
+cform doesn't back up.  If you make an error start over.  Enter all the 
+specifications and test it on your data file.  When you're debugging a 
+format design, you can take a short cut by using a text editor program on 
+the .DFO file that cform created from the specification entry dialogue.  
+Compare the numbers on the paper form with the file image to figure out 
+where in the format control file you are.  The file is read as a sequential 
+file when it is used by DIMS, so take great care to preserve the exact 
+number of lines and items per line.    
+
+    Trying to make the form creation process easier, I have developed an 
+alternate way to create .DFO files.  A WordStar file is edited to fill in 
+all the desired specifications, then printed to disk to create the control 
+file.  See FORMFORM.DWS for full instructions on this method.
+
+
+.he DIMS Operating Instructions - Release 1.0 - CRASH RECOVERY          PAGE #
+CRASH RECOVERY
+
+    DIMS records every record that you enter or update immediately in two 
+places, the main and backup data files.  Hopefully your system will be set 
+up so that these are on different disks, giving protection against even a 
+crashed file directory on one disk.
+
+    When a disk is bad and you crash to one of CP/M's cryptic "BDOS ERROR" 
+messages, all your data except the last record you were entering is still 
+good.  If you were in the process of adding records all the newly-added 
+records will be in the file but the number of records hasn't been updated 
+in the file header.  If you remember what the highest record number was, 
+skip the next paragraph.
+
+    Use CP/M's stat utility to look at the data file.  Note the number of 
+records shown in the left-hand column.  If your file is 128-byte records, 
+the number of data records (the number you want) is that number minus one.  
+If the file is double-size records, the number of data records is the 
+number of CP/M records divided by two, then minus one.
+
+    Re-start DIMS.  Open the file.  Note that DIMS still thinks that the 
+file has the number of records that it had when you did the last "done."  
+Hit control-C.  Enter "N=986" (use your own number).  Enter "C=1".  Enter 
+"cont" then RETURN and see if the file appears to be normal now.  Do 
+"done."
+
+    If a crash occurs while the sort command is writing its output over the 
+backup file, the backup file is invalid.  Use "backup" to restore it.  
+Should the main or backup file be lost, PIP can be used to copy one or the 
+other, and then the CP/M "ren" command to rename the file.  The main and 
+backup data files are identical.
+
+
+.he DIMS Interface and Modification - Release 1.0 - FILE COMPATIBILITY  PAGE #
+INTERFACE AND MODIFICATION
+
+FILE COMPATIBILITY
+
+    DIMS files are ASCII data in fixed-length random access blocks, and all 
+records are either standard 128 byte length or 256 byte length depending on 
+which was chosen when the file was created.  This has nothing to do with 
+your disks being double or single density.  MBASIC and CP/M pack the re
+cords on the disk with no carriage returns between them and no control-Z at 
+the end.  Within each record the fields are jammed sequentially with the 
+delimiter character "~" (chr$(126)) between the fields and the left-over 
+space filled with blanks.  This character may not be used in data, but 
+commas and quotes may be entered freely.  Here is an example of what a file 
+record looks like on the disk:
+
+(header record - the last item is the number of records in the file.)
+
+LNAM,a~FNAM,a~N2  ,a~ADDR,a~C-ST,a~ZIP ,n~PHON,a~CODE,a~NOTE,a~stop0~ 1~
+
+(data record 1)
+
+Dugan~Dan~Dan Dugan Sound Design~833 14th Street~San Francisco, CA~94114~
+(415) 621-0781~~DIMS~
+
+    The file may be dumped with the CP/M "type" command, or examined and 
+repaired with WordStar version 1 (version 3 will crash) in the non-document 
+mode.  Christensens's DU.COM utility may be used to repair a crashed file 
+with ease.  At the time of this writing SuperSort would not accept DIMS 
+files directly because it insists on comma-delimited or fixed-length field 
+files.
+
+    The DIMS transient programs "DPUT" and "DGET" provide a convenient 
+means for interfacing to other programs.  DPUT outputs a standard Basic 
+sequential file of comma-delimited records.  It can be invoked in a command 
+line with range and selection commands to output a subset file, like 
+"select put."  DGET does the exact reverse, loading a standard sequential 
+file into a DIMS file, and allows stuffing the fields in any combination or 
+order.
+
+    Quotes and commas may be used freely in DIMS files.  To make files 
+compatible with other programs, DPUT automatically puts quotes around 
+fields containing commas.  It encodes existing quotes in the file into the 
+character "~", CHR$(126).  DGET drops the surrounding quotes and converts ~ 
+back to ".
+
+    A DIMS file may be re-designed by using the 'put' command to output the 
+data to a temporary file, using DCREATE (main menu) to create a new DIMS 
+file with the desired field names, and using the 'get' command to stuff the 
+data back in in the desired order.
+
+
+.cp 4
+WRITING YOUR OWN 'TRANSIENT' PROGRAMS
+
+     What I usually do when I want to write a new transient function is 
+load "DLABELS.BAS" and then replace the working section (usually, just the 
+inside of the "I" loop) with new code that does what I want.  Then I save 
+the file with a new name.  Keep the beginning except for the questions and 
+whatever subroutines you need.  Remember that you enter a transient program 
+with the range of records, printing and selection criteria already speci
+fied from the DEDIT command line.
+
+    Cautions -- Don't change the COMMON statement.  All DIMS programs are 
+entered at line 1000 except for the cold-start of DIMS.BAS.  DEDIT 
+automatically recognizes transient programs if they're on the right drive 
+and their names start with D and end with .BAS.
+
+
+MODIFICATION GUIDELINES
+
+    Note that all GOTO's and GOSUB's point to remark lines!  This is the 
+opposite of advice commonly heard.  The speed penalty for this is infini
+tesmal.  The advantages are first you can see what GOSUB nnnn does by 
+typing "list nnnn," and second it's easier to add a line at the beginning 
+of the subroutine, something I seem to need to do often.
+
+    Regarding speed, I read somewhere that Basic searches the whole program 
+from the start for the destinations of branching statements, and that it's 
+supposed to be faster if the subroutines are at the beginning of the 
+program.  I spent a few hours re-organizing DEDIT to try this, and it 
+wasn't worth it, the time for searching 100 records was the same.  I put 
+the subs back where they grew.  I've heard that the same goes for variable 
+storage, that those that are defined earlier in the run are quicker to use.  
+For this reason the common loop indexing variables are included in the 
+COMMON statement, though most of them aren't used for parameter passing.  
+Any can be.
+
+
+DEFINITION OF COMMON VARIABLES
+
+    B$()    Array holds field data of current record
+    C       Flag: = 1 when the file has been added to
+    C()     Controls display and changing of fields, value 0, 1 or 2
+    DD$()   Array holds drive names for five types of files     
+    F$      Current file name
+    FT      Current file type, 1 or 2 - determines 128 or 256 byte recs.
+    FT$     Added to extension of file name, blank or 2
+    I,J,K   Loop index variables.  Be sure they're free before re-using.
+    LOOKFIELD() - Numbers of fields for which select skips are set
+    N       The current number of records in the file
+    N$()    Default names for fields, comma, and "a" or "n" for type
+    NC      The number of fields in the current file
+    P6      Flag, reserved for "write" function not implemented
+    P7      Flag, = 1 when "copy" in effect
+    P8      Flag, reserved
+    P9      Flag, = 1 when "print" in effect     
+    PI      Flag, = 1 when printer is assumed ready
+    R$      Disk data string read/written in main data file
+    S       
+    S$      Disk data string read/written in backup data file
+    SEARCHFIELD () - Numbers of fields for which select keys have been set
+    SEARCHWORD$() - Key words or phrases for record selection
+    SKIPWORD$() - Key words or phrases for record skipping
+    T       Set by some DEDIT commands to control branching
+    T$      Data record string going to or from storage
+    T1      Lowest record number in the batch
+    T2      Highest record number in the batch
+    T1$     Temporary data string
+    X,Y     Local parameter passing variables
+
+
+KNOWN BUGS AND SUGGESTED IMPROVEMENTS
+
+    Display of non-scrolling forms in DEDIT hasn't been debugged.
+
+    A harmless slightly garbled display happens if you use backslash to try 
+to back up from the first field of a record.
+
+    The record selection logic is rudimentary, and could be improved to 
+include AND/OR and greater/less than comparisons.  This would require 
+adding some common variables and updating all programs in the system.
+
+    "Undelete" would be easy to implement by getting data from the backup 
+file.  Lots of things could be added to DEDIT if it weren't so fat already.  
+When it's compiled...
+
+
+.he DIMS Installation Notes - Release 1.0 - HISTORY OF DIMS          PAGE #
+HISTORY OF DIMS
+
+    I started with my S-100 microcomputer at the end of 1977.  At that time 
+there was no generalized data-base management program available.  I studied 
+a full-fledged system written in Basic called RISS which is published as a 
+book (by Meldman et al, Van Nostrand Reinhold Co. '78)  It was too complex 
+for me to understand.  I spun my wheels for a year until I saw an ad for 
+Scelbi Publications' PIMS -- Personal Information Management System.  This 
+is a complete functioning data-base manager for cassette-based computers 
+like TRS-80 or PET.  I bought it for $10, typed it in and got it to work.
+
+    To backstep for a moment, this program was first published as "A 
+People's Data Base System" by Madan Gupta and Brent Lander in 1977.  Then 
+Scelbi published PIMS by Gupta in 1979.
+
+    With PIMS I had a working framework which I converted to disk random-
+access files.  After that the program immediately went to work for me and 
+my clients, and just grew and grew as the pressure of doing real work 
+determined.  I rented machine time to the San Francisco Charter Revision 
+Commission for their mailing lists, and made many improvements to the 
+program as that project grew.  The system of chaining the transient pro
+grams developed when the program got too big to be all in memory at the 
+same time.  I have never changed the variable names, storage format or 
+default listing format from PIMS.  If you're a beginner you could buy PIMS, 
+get that up and then step up to DIMS.
+
+    I've put my large personal address lists onto DIMS, and a very 
+successful system for indexing technical magazine articles.  A book, The 
+Hearts of Space Guide To Cosmic, Transcendent and Innerspace Music started 
+out as a DIMS data file, was transformed (by a purpose-built transient) to 
+WordStar when the data was complete, then sent to the typesetter on a CP/M 
+disk.  I also have parts lists for my products, the membership list and 
+financial records for my neighborhood association, and my financial trans
+action records.  All this activity made me want more real-time availability 
+of my data bases, and in '81 I used all my available credit to install a 
+Morrow M26 hard disk.  DIMS runs with a satisfying speed increase on the 
+hard disk.  In '81-82 pre-release versions were up on two systems in my lab 
+and five other CP/M systems belonging to friends.
+

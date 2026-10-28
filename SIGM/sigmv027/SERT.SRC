@@ -1,0 +1,245 @@
+;    FILE SERTST.SRC     VER. 1.0
+;    CREATED 9-26-80
+;    LAST UPDATE 9-29-80      WRITTEN BY D.A. STEELE
+;
+;    THIS PROCEDURE WILL TEST THE TWO ATS UARTS BY PUTTING THEM
+;    IN LOCAL LOOPBACK MODE AND SENDING DATA, CHECKING RxRDY,
+;    READING DATA, AND CHECKING TxRDY.
+;
+;    IT SHOULD BE DECLARED IN THE PASCAL ROUTINE MONITOR PROGRAM
+;
+;         FUNCTION SERT : INTEGER; EXTERNAL;
+;
+;    AND WILL RETURN THE BIT(S) TURNED ON CORROSPONDING TO THE
+;    TESTS WHICH HAVE FAILED.  IF ALL TESTS PASS 0 IS RETURNED.
+     
+
+          NAME      SERT 
+          ENTRY     SERT
+
+
+U1BASE:        EQU       0
+U2BASE:        EQU       4
+HOLD:          EQU       0
+STAT:          EQU       1
+MODE:          EQU       2
+CMD:           EQU       3
+SPTST1:        EQU       1    ;THE FIRST TEST
+SPTST2:        EQU       2    ;THE SECOND TEST
+
+MODES:         DS        2    ;MODE STORAGE - FOR THE MODE OF THE
+                              ;UART BEING TESTED
+CMDS:          DS        1    ;COMMAND STORAGE - FOR THE COMMAND
+                              ;REGESTER OF THE UART BEING TESTED
+SPERR:         DS        2    ;SERIAL PORT ERROR - THE ERROR FLAG
+                              ;FOR THIS PROCEDURE
+BASE:          DS        1    ;SET TO U1BASE OR U2BASE DEPENDING 
+                              ;ON THE UART BEING TESTED
+SPTST:         DS        1    ;THE TESTING NOW BEING PERFORMED
+;===============================================================
+;    CALCULATES THE OFFSET FOR POUT AND PIN
+;
+OFFSET:   PUSH      PSW
+          LDA       BASE      ;GET THE UART BASE ADDRESS
+          ADD       C         ;ADD THE OFFSET
+          MOV       C,A       ;PUT THE ADDRESS IN C
+          POP       PSW       ;GET BACK THE NUMBER TO BE DONE
+          RET                 ;TO PIN OR POUT
+
+
+;===============================================================
+;    THIS PROCEDURE WILL OUTPUT THE VALUE IN A TO THE PORT
+;    ADDRESS OF (BASE + C).
+;
+POUT:     CALL      OFFSET
+          OUTP      AŠ          RET
+
+;===============================================================
+;    THIS PROCEDURE WILL INPUT THE VALUE IN A TO THE PORT
+;    ADDRESS OF (BASE + C).
+;
+PIN:      CALL      OFFSET
+          INP       A
+          RET
+
+;===============================================================
+;    THIS PROCEDURE WILL SAVE THE CURRENT COMMAND AND STATUS
+;    REGISTERS OF THE UART BEING TESTED
+
+SAVE:     MVI       C,CMD
+          CALL      PIN       ;READ THE COMMAND REGISTER
+          STA       CMDS      ;AND STORE IT
+
+          MVI       C,MODE
+          CALL      PIN       ;READ THE FIRST MODE REGISTER
+          STA       MODES     ;AND STORE IT
+
+          MVI       C,MODE
+          CALL      PIN       ;READ THE SECOND MODE REGISTER
+          STA       MODES+1   ;AND STORE IT
+
+          RET                 ;TO THE BACKGROUND
+
+;===============================================================
+;    THIS PROCEDURE WILL INITIALIZE THE UART TO LOCAL LOOP BACK
+;    MODE WITH A BAUD RATE OF 19200 FOR THE TESTS
+;
+INIT:     MVI       C,CMD
+          CALL      PIN       ;READ THE COMMAND REGISTER TO RESET
+                              ;THE MODE REG. COUNTER
+          MVI       A,10100111B
+                              ;OUTPUT THE NEW COMMAND REG. LOCAL
+          MVI       C,CMD     ;RTS LOW, NORMAL ERROR, ENABLE REC.
+          CALL      POUT      ;DTR LOW, ENABLE
+
+          MVI       C,MODE    ;SET THE NEW MODE - 1 STOP
+          MVI       A,01001110B
+          CALL      POUT      ;PARITY, B BITS, 16X CLOCK
+
+          MVI       A,00111111B
+          MVI       C,MODE    ;INTERNAL CLOCKS, 19200 BAUD
+          CALL      POUT
+
+          RET                 ;TO BACKGROUND
+
+;===============================================================
+;    THIS IS A 1 MILISECOND DELAY TO ALLOW THE UART TIME TO ACT
+;
+DELAY:    PUSH      B
+          MVI       B,222ŠDELAY1:   ORA       A
+          DCR       B
+          JNZ       DELAY1
+          POP       B
+          RET
+
+;===============================================================
+;    ROUTINE TO OR IN NEW ERROR
+;
+ERROR:    
+          LDA       SPERR          ;GET THE ERROR FLAG
+          MOV       D,A
+          LDA       SPTST          ;GET THE TEST NUMBER
+          ORA       D              ;OR THEM TOGETHER
+          STA       SPERR          ;STORE THE NEW ERROR FLAG
+          RET
+
+;===============================================================
+;    THIS PROCEDURE CHECKS FOR THE TRANSMIT READY BIT AND IF NOT
+;    SET THE ERROR ROUTINE IS CALLED
+;
+TXRDY:    CALL      DELAY          ;HO HUM
+          PUSH      B
+          MVI       C,STAT
+          CALL      PIN            ;GET STATUS IN A
+          ANI       1              ;SHOULD BE 1 (IE EMPTY)
+          CZ        ERROR          ;IF TX NOT READY THEN HAVE NO
+                                   ;MERCY
+          POP       B
+          RET
+
+;===============================================================
+;    THIS PROCEDURE CHECKS FOR THE RECEIVER READY BIT AND IF NOT
+;    SET THE ERROR ROUTINE IS CALLED
+;
+RXRDY:    CALL      DELAY          ;GIVE IT TIME TO HAPPEN
+
+          PUSH      B
+          MVI       C,STAT         ;GET THE OFFSET
+          CALL      PIN            ;GET STATUS IN A
+          ANI       2              ;SHOULD BE FULL (IE. 1)
+          CZ        ERROR
+
+          POP       B
+          RET
+
+
+;===============================================================
+;    THIS WILL TEST THE UART WHOES PORT BASE IS AT BASE
+;
+UTST:     MVI       C,HOLD         ;GET HOLDING REGISTER OFFSET
+          CALL      PIN            ;ASSURE THAT UART IS EMPTY
+
+          MVI       C,HOLD
+          CALL      PINŠ
+
+          MVI       B,0            ;WE WILL DO ALL ASCII CHARACTERS
+                                   ;FROM 0 TO 7FH
+UTST1     CALL      TXRDY          ;CHECK STATUS
+          MVI       C,HOLD
+          MOV       A,B            ;LOAD CHARACTER TO OUTPUT
+          CALL      POUT           ;SEND IT TO THE UART
+
+          CALL      RXRDY          ;RECEIVER SHOULD BE READY
+          MVI       C,HOLD
+          CALL      PIN            ;READ THE CHARACTER
+          CMP       B              ;CHECK IT WITH WHAT WAS SENT
+          CNZ       ERROR
+
+          INR       B              ;GET THE NEXT CHARACTER
+          MVI       A,80H          ;STOP IF OVER 7FH
+          CMP       B
+          JNZ       UTST1
+
+          RET                      ;TO THE BACKGROUND
+
+;===============================================================
+;    RESTORE THE UART TO ITS MODE AND COMMAND PRIOR TO THE TEST
+;
+RESTOR:   LDA       CMDS           ;GET THE ORIGIONAL COMMAND REG.
+          MVI       C,CMD
+          CALL      POUT           ;RESTORE THE COMMAND REG.
+
+          MVI       C,CMD          ;RESET THE MODE REG. COUNTER
+          CALL      PIN
+
+          MVI       C,MODE         ;GET THE CORRECT OFFSET
+          LDA       MODES          ;GET THE ORIG. MODE REG. 1
+          CALL      POUT           ;OUTPUT THE FIRST MODE REG.
+          LDA       MODES+1        ;GET THE ORIG. MODE REG. 2
+          MVI       C,MODE
+          CALL      POUT           ;OUTPUT SECOND MODE REG.
+
+          RET                      ;TO BACKGROUND
+
+;================================================================
+;    THIS IS THE MAIN BACKGROUND FOR THE SERIAL I/O PORT TEST
+;================================================================
+;
+SERT:     XRA       A
+          STA       SPERR          ;ZERO THE ERROR FLAG
+          STA       SPERR+1
+
+          MVI       A,SPTST1       ;SET THE TEST BEING DONE
+          STA       SPTST
+          MVI       A,U1BASE       
+          STA       BASE           ;SET THE BASE PORT
+
+SERT1:    CALL      SAVE           ;SAVE THE COMMAND AND MODEŠ                                   ;REG. OF THE UART
+          CALL      INIT           ;INITIALIZE UART TO TEST MODE
+          CALL      UTST           ;DO THE TEST
+          CALL      RESTOR         ;RESTORE THE COMMAND AND
+                                   ;MODE REG. OF THE UART
+          LDA       BASE
+          CPI       U2BASE
+          JNZ       SERT2        ;IF THAT WAS TEST ONE THEN DO 
+                                   ;TEST 2
+          JMP       XIT            ;ELSE EXIT THIS TEST ALTOGETHER
+
+SERT2:    MVI       A,SPTST2
+          STA       SPTST
+          MVI       A,U2BASE
+          STA       BASE
+          JMP       SERT1
+
+XIT:      XRA       A              ;PREPAIR TO RETURN TO PASCAL-Z
+          LXI       H,SPERR        ;GET THE ADDRESS OF ERROR FLAG
+          MOV       E,M  
+          INX       H
+          MOV       D,M
+          RET                      ;SO LONG YOU ARTS !!
+
+
+
+
+
+

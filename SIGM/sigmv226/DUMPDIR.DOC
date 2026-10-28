@@ -1,0 +1,75 @@
+DOC for DUMPDIR v1.10 of 05/11/84
+
+DUMPDIR was styled after North Star CP/M's DIRDUMP, but is a totally
+new program. It will work properly in any CP/M 2.2 system. In CP/M plus
+systems, the program may falsely assume that the displayed information is
+coming from a floppy when it really accesses a hard disk.
+
+Syntax:
+
+A>DUMPDIR [d:]afn[ oo]
+
+(The ambiguous filename MUST be supplied.)
+
+
+DUMPDIR will display the following information:
+
+- whether the disk is hard or floppy
+- the maximum number of directory entries
+- the number of directory entries displayed (if >0)
+- the number of free directory entries 				v1.10
+- the group allocations for all directory entries, sorted
+  alphabetically by filename unless [N]osort option specified	v1.10
+- option to display all directory entries [A]ll			v1.10
+
+A typical display may look like:
+
+A>dumpdir dump*.*
+
+DUMPDIR vX.XX by ESKAY  xx/xx/84
+
+Hard drive directory:
+Capacity:  512 entries,   4 entries displayed,  218 entries free.
+
+E00:DUMPDIR .COM   0322
+E00:DUMPDIR .MAC   0255 0277
+E00:DUMPIT  .TST   0333 0343 0355 0356 0356 0358 0359 035A
+E00:DUMPIT  .TST   035B 035C 035D
+
+The above information indicates the allocation group numbers assigned
+to the filenames on the left. Note that each line can only display
+data for one directory entry. Therefore, as in the case of DUMPIT.TST,
+multiple directory entries are displayed. The group numbers displayed
+are the same numbers you would use under DU's "G" command. So, to use DU
+to display the first sector of the file DUMPDIR.MAC you would enter:
+A>du g255
+
+Smaller disk units and formats use 8-bit group allocation numbers
+(disks with a total of less than 256 disk blocks such as 8" SSSD). In those
+cases, 16 group numbers of 8 bits each are displayed per filename.
+
+
+OPTIONS								v1.10
+
+Currently, two options are supported:
+
+N - option (Nosort):
+	The N option displays the directory as it is on disk rather
+	than sorting it before display.
+A - option (All):
+	The A option displays ALL directory entries on the current
+	drive.
+A and N options can be combined. Example:
+
+A>dumpdir *.* a		;show all entries
+A>dumpdir e:x a		;same (filename irrelevant but necessary)
+A>dumpdir *.mac n	;show all MAC files, unsorted
+A>dumpdir *.* an	;show everything, unsorted
+A>dumpdir *.* na	;same
+
+NOTE:
+The A option also displays erased directory entries. These entries will
+be displayed with "**" in place of the user number. In a sorted
+display, they will always be last.
+o use DU
+to display the first

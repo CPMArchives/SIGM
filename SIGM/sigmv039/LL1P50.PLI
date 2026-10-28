@@ -1,0 +1,147 @@
+LL1P50: PROC;
+/****************************************************************
+*               LL(1) GRAMMAR ANALYZER - PHASE 5		*
+*PURPOSE:                                                       *
+*    THIS PROGRAM ANALYZES A LL(1) GRAMMAR GIVEN IN MODIFIED    *
+*    BNF FORMAT AND FINDS THE RELATION, IS-FOLLOWED-DIRECTLY-   *
+*    BY, IS-DIRECT-END-OF AND IS-END-OF.			*
+*INPUT:                                                         *
+*    1) BASIC GRAMMAR TABLES					*
+*    2) NULLABLE NON-TERMINALS AND PRODUCTIONS TABLES		*
+*OUTPUT:                                                        *
+*    1) FILE, $1.T03, CONTAINS THE IS-FOLLOWED-DIRECTLY-BY	*
+*       RELATION.						*
+*    2) FILE, $1.T04, CONTAINS THE IS-END-OF RELATION.		*
+*OUTLINE:                                                       *
+*REMARKS:                                                       *
+****************************************************************/
+
+/****************************************************************
+* * * * * * * * * * * COMMON DATA DEFINITIONS * * * * * * * * * *
+****************************************************************/
+
+/*	* * *  COMMON REPLACEMENTS  * * *	*/
+%REPLACE TRUE BY '1'B;
+%REPLACE FALSE BY '0'B;
+
+%INCLUDE 'LL1CMN.DCL';	/* GET COMMON AREAS. */
+
+
+/****************************************************************
+* * * * * * * * * * * COMMON PROCUDURES * * * * * * * * * * * * *
+****************************************************************/
+
+
+%INCLUDE 'LL1PRC.DCL';
+
+
+/****************************************************************
+* * * * * * * * * * GRAMMAR ANALYSIS PROCEDURES * * * * * * * * *
+****************************************************************/
+
+
+CALC_IFDB: PROC;
+/*THIS ROUTINE IS RESPONSIBLE FOR CALCULATING THE RELATION*/
+/*IS-FOLLOWED-DIRECTLY-BY.  IF SYMBOL, A, COMES BEFORE THE*/
+/*SYMBOL,B, ON THE RIGTH-HAND-SIDE OF A PRODUCTION OR ALL */
+/*SYMBOLS BETWEEN A AND B ARE NULLABLE. */
+	DCL I BIN(15);		/* INDEXES */
+	DCL J BIN(15);
+	DCL K BIN(15);
+
+/* CALCULATE THE RELATION. */
+	DO I=1 TO NUMPRD;	/* LOOP THRU ALL PRODUCTIONS. */
+	   IF LENGTH(RHS(I))=0 THEN /*EPSILON PRODUCTION*/
+	      ;
+	   ELSE
+	      DO J=1 TO LENGTH(RHS(I))-1;
+		 DO K=J+1 TO LENGTH(RHS(I));
+		    CALL SETBIT(CHRNUM(SUBSTR(RHS(I),J,1)),
+			      CHRNUM(SUBSTR(RHS(I),K,1)),ADDR(ARRAY1));
+	            IF ISNLNT(SUBSTR(RHS(I),K,1)) THEN
+	               ;
+		    ELSE
+		       K=LENGTH(RHS(I));
+		 END;
+	      END;
+	END;
+
+/* RETURN TO CALLER. */
+	END CALC_IFDB;
+
+
+CALC_IDEO: PROC;
+/*THIS ROUTINE IS RESPONSIBLE FOR CALCULATING THE RELATION*/
+/*IS-DIRECTLY-END-OF.  WE SAY THAT IS-DIRECTLY-END-OF IS  */
+/*SIMPLY THE RIGHT TO LEFT VERSION OF THE RELATION,       */
+/*BEGINS-DIRECTLY-WITH. */
+	DCL I BIN(15);		/* INDEXES */
+	DCL J BIN(15);
+
+/* CALCULATE THE RELATION. */
+	DO I=1 TO NUMPRD;	/* LOOP THRU ALL PRODUCTIONS. */
+	   IF LENGTH(RHS(I))=0 THEN /*EPSILON PRODUCTION*/
+	      ;
+	   ELSE
+	      DO J=LENGTH(RHS(I)) TO 1 BY -1;
+		 CALL SETBIT(CHRNUM(SUBSTR(RHS(I),J,1)),
+			      CHRNUM(LHS(I)),ADDR(ARRAY1));
+	         IF ISNLNT(SUBSTR(RHS(I),J,1)) THEN
+	            ;
+		 ELSE
+		    J=1;
+	      END;
+	END;
+
+/* RETURN TO CALLER. */
+	END CALC_IDEO;
+
+
+CALC_IEO: PROC;
+/*THIS ROUTINE IS RESPONSIBLE FOR CALCULATING THE RELATION*/
+/*IS-END-OF.  IS-END-OF IS THE REFLEXIVE TRANSITIVE   */
+/*CLOSURE OF THE RELATION, IS-DIRECTLY-END-OF. */
+
+/* CALCULATE IT. */
+	CALL CLOSUR(ADDR(ARRAY1));
+
+/* RETURN TO CALLER. */
+	END CALC_IEO;
+
+
+/****************************************************************
+* * * * * * * * * * * MAIN LINE PROCEDURE * * * * * * * * * * * *
+****************************************************************/
+
+
+/* ANALYZE THE GRAMMAR. */
+	PUT SKIP LIST('BEGINNING PHASE 5 PROCESSING.');
+
+/* CALCULATE THE RELATION, IS-FOLLOWED-DIRECTLY-BY. */
+	CALL ZEROAR(ADDR(ARRAY1)); 
+	PUT SKIP LIST('CALCULATING IS-FOLLOWED-DIRECTLY-BY...');
+	CALL CALC_IFDB;		/*CALCULATE THE RELATION.*/
+	CALL PRTARY('*** IS-FOLLOWED-DIRECTLY-BY RELATION ***',TRUE,
+			 NUMVOC,NUMVOC,ADDR(ARRAY1));
+	PUT SKIP LIST('SAVING THE RELATION...');
+	CALL SAVARY(ADDR(ARRAY1),'T03');
+
+/* CALCULATE THE RELATION, IS-DIRECT-END-OF. */
+	CALL ZEROAR(ADDR(ARRAY1)); 
+	PUT SKIP LIST('CALCULATING IS-DIRECT-END-OF...');
+	CALL CALC_IDEO;		/*CALCULATE THE RELATION.*/
+	CALL PRTARY('*** IS-DIRECT-END-OF RELATION ***',TRUE,
+			 NUMVOC,NUMVOC,ADDR(ARRAY1));
+
+/* CALCULATE THE RELATION, IS-END-OF. */
+	PUT SKIP LIST('CALCULATING IS-END-OF...');
+	CALL CALC_IEO;		/*CALCULATE THE RELATION.*/
+	CALL PRTARY('*** IS-END-OF RELATION ***',TRUE, 
+			 NUMVOC,NUMVOC,ADDR(ARRAY1));
+	PUT SKIP LIST('SAVING THE RELATION...');
+	CALL SAVARY(ADDR(ARRAY1),'T04');
+
+/* RETURN TO CALLER. */
+	PUT SKIP LIST('PHASE 5 PROCESSING COMPLETE.');
+	END LL1P50;
+

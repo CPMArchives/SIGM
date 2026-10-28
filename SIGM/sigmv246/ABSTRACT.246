@@ -1,0 +1,214 @@
+
+	The disk SIG/M 246, in addition to the usual ancillary files, is
+entirely devoted to the library TORU.LBR. This is a specialized volume,
+which requires familiarity with Conway's game of LIFE and some previous
+knowledge of the programming language Convert.
+
+
+		- - - -  T O R U . L B R  - - - -
+
+
+	The motivation of the disk was to furnish an example of Convert
+programming, but the example is interesting in its own right. We have a
+typical example of programming in higher level languages, in which the
+language is useful for quickly obtaining results, but whose code does not
+deliver the speed and economy of which the CPU is capable. Convert can also
+be used as a macro generator, to produce efficient machine language code.
+
+	Once one has surmounted the novelty of learning the rules of LIFE
+and working with some configurations which come readily to mind, it is
+found that some systematic investigations have to be made. Both the folklore
+and the few published results concerning LIFE show the results of following
+the evolution of all the patterns built up from a few live cells - say up
+to ten or twenty cells.
+
+	Exploring all the configurations possible in a limited region is
+one possible investigation, which quickly turns tedious because of the
+exponentially large number of possibilities which have to be considered.
+Here there are presented three programs,
+
+		TOR4.COM
+		TOR5.COM
+		TORX4.COM
+
+which examine all the states possible in tori of small dimensions - namely
+4 and 5. Since TOR5.COM runs for a day and a half on a 5 MHz Intel 8085,
+it is readily apparent that it will be hard to make an approach to a 6x6
+torus, not to mention any larger ones.
+
+	This brute force approach of working systematically through all the
+possibilities may be somewhat questionable. When it is possible, it certainly
+gives results in a straightforward manner. By analyzing the results which are
+accessible in this form, it may be possible to formulate a more subtle approach
+or even to refine the crude approach quite considerably.
+
+	This refinement is already apparent in the programs here presented.
+Rather than work on a complex macro assembler in Convert, results at first
+were taken from the programs by executing them in HEX form with NDDT, using
+either ^P or NDDT's disk output capabilities to obtain results.
+
+	First, it was found that the program had to do its own writing to
+disk, so that the results could be saved, edited, and reproduced. It was not
+hard to extract this subroutine form another program and incorporate it into
+the torus program.
+
+	Next, it was found that there were too many repeated solutions,
+because of symmetry. The torus not only has the eightfold symmetry of a
+square (four rotations, with or without reflection) but the pattern can be
+moved around on the torus. Forcing the center state to be a live cell is not
+a very adequate solution to the problem. For the 4x4 torus, there are 128
+symmerty variants of a given pattern; for a 5x5 torus there are 200 variants.
+Not only does this produce a pile of paper, they all have to be sorted out.
+So, the assembly language program produced by Convert was modified to reject
+redundancies due to symmetry.
+
+	Then, it is found that it is hard to keep a computer running for
+long hours at a stretch. Power failures are an ever present threat, but
+it also happens that other uses for the computer will be found, with a
+certain impatience to interrupt the long program to get something else
+done. Consequently an interrupt and restart procedure were called for.
+At the same time it is nice to have the program give some reassurance
+that it is still alive and how far it has progressed, when it is running
+for long periods without actually producing output.
+
+	Consequently, while one of these programs is running, one may
+exercise one of the following options, by typing the corresponding key:
+
+		=   Type the current state (console only) as a binary
+		    number to see how far the program has advanced.
+
+		S   Close the output file TORn.DAT, then save a core
+		    image as RTORn.COM.
+
+		^C  Close the output file and exit.
+
+As usual, ^C typed after ^S while console output is in progress will return
+to CP/M, and the output file (at least its current extent) will be lost. To
+restart a program that was saved, simply execute the saved core image. The
+same program may be restarted several times in succession. Since each new
+image uses the same output file, the previous TORn.DAT should be renamed
+before restarting, supposing that its contents should be preserved.
+
+	A word of caution - if TOR4.COM or TORX4.COM (TOR5.COM runs too
+long to make its execution within TORU.HLP reasonable) is to be invoked
+by HJELP from a menu, be sure that there is a little space on the disk to
+hold the .DAT file (10K is sufficient), and that the disk is not write-
+protected.
+
+	As the results of a program begin to accumulate, additional ideas
+begin to form as to what further results could be produced, what shortcuts
+could be taken, and so on. Indeed, if the program is interesting at all it
+will continue to evolve, and may end up with little resemblance to its
+original form.
+
+	For example, the results could be presented in a much more visual form,
+without having to resort to pen and graph paper to truly appreciate them.
+
+	The presence of TORX4.COM in the package is an example of this kind
+of reasoning. Since the area that can be examined in a reasonable time is
+limited to 25 or 30 cells, quite a few more possibilities in LIFE can be
+sampled if they can be spread over different kinds of areas. Thus, some more
+insight could be obtained by using a 4x5 rectangle in addition to the 4x4 and
+5x5 squares. A rectangle can be closed up into a torus in several ways - by
+giving it a slight twist for example. It could be made into a Moebius strip
+or some other topological figure - all these variants imply a periodic pattern
+in the ordinary plane which is used for LIFE. None of the variants replaces
+analyzing an 8x8 torus; while the latter is beyond our reach, they will still
+help in going beyond 4x4.
+
+
+		- - - -  H J E L P . C O M  - - - -
+
+
+	The entire library TORU.LBR is set up as both a SUBMIT file and as
+a HELP file. TORU.SUB can be executed by typing
+
+		RUN (TORU)
+
+but is probably not too interesting to most people because its only function
+is to use LU.COM to gather up TORU.LBR, which should NOT be on the disk prior
+to execution.
+
+	On the other hand, much of TORU.LBR can be browsed by typing
+
+		HJELP (TORU)
+
+and then working through the menus as in any other HELP file. HJELP has been
+slightly modified for this disk, so that it maintains its own private I-O
+area. This is necessary because of the new feature which has been added, that
+.COM files can be incorporated in the menus and executed as part of HJELP. If
+the file under execution also performs I-O to disk, it is essential that this
+not clash with the I-O which HJELP will need to continue offering its menu and
+passing to still further selections.
+
+	It is still work for the future, to adapt embedded programs to the
+format of HJELP. For instance, HJELP works best with 22 line panels, but this
+is not the best format for a printed page. Thus if sample program output is
+simply incorporated without revision into a HELP library, as is done in TORU,
+its display will not be very aesthetic.
+
+	Likewise, if a sample program produces copious output which runs off
+the screen before it can be analyzed, its value is greatly diminished and the
+reader is likely to be greatly annoyed.
+
+
+		- - - -  A N C I . L B R  - - - -
+
+
+	Since most SIG/M volumes contain a fixed set of ancillary programs,
+we have decided to collect them into a library, so that they can be passed
+as a group to a new disk which is under preparation. ANCI.LBR contains:
+
+		USQ.COM		unsqueeze squeezed files
+		REC.COM		recent version of REC80.COM
+		CRC.COM		cyclic redundancy check
+		LU.COM		pack and unpack libraries
+
+	Two further ancillary programs,
+
+		CNVSM.REC	Cnvrt compiler
+		CNVLIB.REC	Cnvrt runtime library
+
+are not included in the library because REC will not run programs from
+the inside of a library, and to spare the user the inconvenience of having
+to unpack them. Those LIFE enthusiasts who merely want to examine some LIFE
+cycles will not need REC or Convert, but those who wish to see how Convert
+is used to transform a protocol into an assembly language program may wish
+to try out the process or to modify it.
+
+	Finally, the programs
+
+		RUN.COM		execute submit files & library programs
+		HJELP.COM	browse through HELP files
+
+were left outside of ANCI.LBR. RUN has to be, of course; HJELP gives the
+most direct access to the main content of the disk and there is no need to
+have to type RUN ((ANCI) HJELP) (TORU).
+
+	For example:
+
+		To run the cyclic redundancy check, type
+
+			RUN  ((ANCI) CRC)
+
+		To extract a library file, type
+
+			RUN  ((ANCI) LU)
+
+		    and follow the normal instructions for LU.
+
+		To unsqueeze FILE.EQT, type
+
+			RUN  ((ANCI) USQ) FILE.EQT
+
+		To see the main feature, type
+
+			RUN (TORU)
+
+
+
+
+
+[end]
+[Harold V. Mcintosh, 9 August 1985]
+

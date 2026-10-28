@@ -1,0 +1,201 @@
+* DATE 08/27/84  12:40
+STOR CHR(PEEK(063)) TO dr
+STOR "Detailed Search" TO mode
+ERAS
+@ 10,20 SAY 'SELECT FIELD NUMBER '
+@ 12,20 SAY 'ENTER SEARCH DATA '
+@ 14,0 SAY ' 1. Lastname    2. Firstname   3. Spouse      4. Mr.         5. Title      '
+@ 15,0 SAY ' 6. Company 1   7. Company 2   8. Co. Address 9. Co. Suite  10. Co. City   '
+@ 16,0 SAY '11. Co. State  12. Co. Zip    13. Home Addr. 14. Apt        15. Home City  '
+@ 17,0 SAY '16. Home State 17. Home Zip   18. Off. Phone 19. Home Phone 20. Salutation '
+@ 18,0 SAY '21. Send Mail  22. Code 1     23. Code 2     24. Code 3     25. Code 4     '
+@ 19,0 SAY '26. Code 5     27. Code 6     28. Update     '
+STOR '  ' TO EVAR
+DO WHIL VAL(EVAR) < 1 .OR. VAL(EVAR) > 28
+ @ 10,20 SAY 'SELECT FIELD NUMBER ' GET EVAR PICTURE '99'
+ READ
+ENDD
+STOR '                              ' TO EPART
+@ 12,20 SAY 'ENTER SEARCH DATA ' GET EPART
+READ
+IF VAL(EVAR) = 1
+ STOR 'LASTNAME' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 2
+ STOR 'FNAME' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 3
+ STOR 'SPOUSE' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 4
+ STOR 'MR' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 5
+ STOR 'TITLE' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 6
+ STOR 'COMPANY1' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 7
+ STOR 'COMPANY2' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 8
+ STOR 'CADDRESS' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 9
+ STOR 'SUITE' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 10
+ STOR 'CCITY' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 11
+ STOR 'CST' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 12
+ STOR 'CZIP' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 13
+ STOR 'ADDRESS' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 14
+ STOR 'APT' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 15
+ STOR 'CITY' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 16
+ STOR 'ST' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 17
+ STOR 'ZIP' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 18
+ STOR 'OPHONE' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 19
+ STOR 'PHONE' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 20
+ STOR 'DEAR' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 21
+ STOR 'SEND' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 22
+ STOR 'CS1' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 23
+ STOR 'CS2' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 24
+ STOR 'CS3' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 25
+ STOR 'CS4' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 26
+ STOR 'CS5' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 27
+ STOR 'CS6' TO PARTFIELD
+ENDI
+IF VAL(EVAR) = 28
+ STOR 'UPDATE' TO PARTFIELD
+ENDI
+USE &DR.:ag.DBF
+STOR TRIM(EPART) TO EPART
+RELE EVAR
+GO BOTTOM
+STOR # TO LASTREC
+GO TOP
+STOR 0 TO RECNO
+STOR T TO PARTSRCH
+STOR ' ' TO EOPTION
+STOR T TO FIRSTLOOP
+DO WHIL PARTSRCH
+ IF EOPTION = 'S'
+  STOR # TO RECNO
+  STOR F TO PARTSRCH
+  LOOP
+ ENDI
+ IF EOPTION = 'R'
+  STOR 0 TO RECNO
+  STOR F TO PARTSRCH
+  LOOP
+ ENDI
+ IF RECNO = LASTREC
+  STOR 'R' TO EOPTION
+  LOOP
+ ENDI
+ IF FIRSTLOOP
+  LOCA FOR !(EPART) $ !(&PARTFIELD)
+ ENDI
+ IF .NOT.FIRSTLOOP
+  CONT
+ ENDI
+ STOR F TO FIRSTLOOP
+ STOR # TO RECNO
+ IF # = LASTREC .AND.(.NOT. EPART $ &PARTFIELD)
+  STOR 'R' TO EOPTION
+  LOOP
+ ENDI
+ ERAS
+ @ 1,25 SAY mode
+ @ 2,0 SAY '+-----------------------------------------------------------------------------+'
+ @ 3,3 SAY 'Lastname:                                  First & MI:'
+ @ 4,5 SAY 'Spouse:                                  Address as:'
+ @ 6,6 SAY 'Title:'
+ @ 7,1 SAY 'Company #1:'
+ @ 8,9 SAY '#2:'
+ @ 9,0 SAY 'Co. Address:                                       Suite:'
+ @ 10,7 SAY 'City:                        ST:              Zip:'
+ @ 12,2 SAY 'Home Addr:                                         Apt:'
+ @ 13,7 SAY 'City:                        ST:              Zip:'
+ @ 14,2 SAY 'Telephone  Office:                          Home Phone:'
+ @ 15,1 SAY 'Salutation:                              Send to office:'
+ @ 16,4 SAY 'Codes 1-         2-         3-         4-          5-         6-'
+ @ 17,50 SAY 'Update:'
+ @ 18,0 SAY '+-----------------------------------------------------------------------------+'
+ @ 3,13 SAY LASTNAME
+ @ 3,58 SAY FNAME
+ @ 4,13 SAY SPOUSE
+ @ 4,58 SAY MR
+ @ 6,13 SAY TITLE
+ @ 7,13 SAY COMPANY1
+ @ 8,13 SAY COMPANY2
+ @ 9,13 SAY CADDRESS
+ @ 9,58 SAY SUITE
+ @ 10,13 SAY CCITY
+ @ 10,41 SAY CST
+ @ 10,58 SAY CZIP
+ @ 12,13 SAY ADDRESS
+ @ 12,58 SAY APT
+ @ 13,13 SAY CITY
+ @ 13,41 SAY ST
+ @ 13,58 SAY ZIP
+ @ 14,21 SAY OPHONE
+ @ 14,58 SAY PHONE
+ @ 15,13 SAY DEAR
+ @ 15,58 SAY SEND
+ @ 16,13 SAY CS1
+ @ 16,24 SAY CS2
+ @ 16,35 SAY CS3
+ @ 16,46 SAY CS4
+ @ 16,58 SAY CS5
+ @ 16,69 SAY CS6
+ @ 17,58 SAY UPDATE
+ STOR ' ' TO EOPTION
+ @ 23,0 SAY 'N (NEXT), S (SELECT), R (RETURN)'
+ DO WHIL EOPTION <> 'N' .AND. EOPTION <> 'S' .AND. EOPTION <> 'R'
+  @ 23,33 GET EOPTION
+  READ
+  STOR !(EOPTION) TO EOPTION
+ ENDD
+ENDD
+RELE PARTSRCH
+RELE EMETH, EOPTION, EPART, FILESRCH, LASTREC, FIRSTREC
+RELE PARTFIELD, FIRSTLOOP, EKEYOPT, INCREMENT
+STOR t TO first
+STOR t TO more
+RETU
+

@@ -1,0 +1,197 @@
+
+
+
+			      "MODEM7-Z"
+
+       A MODEM PROGRAM FOR USE ON THE ZENITH Z100 WITH CP/M 85
+
+                        PROGRAM DOCUMENTATION
+
+
+Terminal Mode  -  'T' Option
+
+^Y      The terminal mode may be called with or without a file name.  If
+        a  file  is  specified  (it should be a new file), then anything
+        received by the modem may be saved in memory and  later  written
+        on  disk.    The save feature is toggled ON/OFF by Control-Y.  A
+        colon (:) will be printed at the beginning  of  each  line  when
+        memory  save  is  active. The colon will not be transmitted over
+        the modem nor will it be saved in memory.   If  a  file  is  not
+        specified, then memory save can not be activated.
+     
+        If the memory buffer is full (the buffer is from the top of  the
+        program  to  the bottom of BDOS), the contents are automatically
+        written to disk (but the file is not yet closed). Communications
+        may  then  continue  with the buffer reinitialized. The computer
+        with which you are communicating must accept the X-ON and  X-OFF
+        (Control-Q and Control-S) conventions or data will be lost.
+
+^E      When communications are over, use Control-E  to  exit  from  the
+WRT     Terminal  mode  and  enter  the Menu.  The file to which you are
+RET     saving  must then be closed by using the 'WRT' command.  If this
+        is  not  done,  all  data  will be lost.  The file is not closed
+        automatically since there will be times when you leave  terminal
+        mode and then decide to re-enter.  This may be done while in the
+        Menu by using the 'RET' command.  You may re-enter Terminal mode
+        and  save  in the same file as many times as you wish as long as
+        you have not closed the file with the 'WRT' command.
+
+^T      While in Terminal mode, Control-T will put you in File  Transfer
+^X      mode.  This will allow you to send the contents of an ASCII file
+        over the modem. This routine does no error  checking  and  there
+        are   no  protocols  specified  between  this  program  and  the
+        receiving computer other than that it should be ready to receive
+        data via the modem.  Control-X will cancel the transfer.
+
+Computer mode - 'E' Option
+
+	This mode echos data received  from other  terminal.   Only  one
+        computer  may  be  in  this  mode at one time.  There is no save
+        feature in this mode. Useful if you  wish  to  communicate  with
+        somebody running the terminal portion of the program.
+
+File transfer - 'S' and 'R' Options
+
+        These features are the same as in the CP/M Modem program written
+        by Ward Christensen except that upon completion of the transfer,
+        control returns to the Menu unless the secondary 'T' option  has
+        been  selected.  In the latter case, control returns to Terminal
+	mode.	 Note that these features are also the same as in CPS by
+	SoftStuff.
+
+
+                                 (1)
+
+
+
+
+
+Return to Menu - 'M' option
+
+        When asked to select an option, 'M' returns to Menu.
+
+The MENU
+
+        If the Modem program is entered with  no  option,  the  Menu  is
+        called.    The  Menu  gives the choice of selecting the standard
+        options as defined by Ward Christensen (T, E,  R,  and  S).  The
+        Terminal mode has been greatly expanded as described above.  The
+        "R" and "S" commands must be called with a filename or you  will
+        be  required  to  enter  the  primary  command  (S or R) and the
+        filename again (but NOT the secondary options).
+
+  RET - You may also enter terminal mode using the 'RET' command, but no
+        data will be saved since a file may not be named with 'RET'. Use
+        the 'RET' command to RE-ENTER Terminal mode after it  has  first
+        been  entered  with  the  'T' option.  If this is done, you will
+        still be able to save the communications if you  were  doing  so
+	before you exitted the terminal mode and have not used the 'WRT'
+	command.
+
+  WRT - The 'WRT' command must be used after leaving Terminal mode. This
+        writes  the last buffer to disk and closes the file.  Failure to
+        use the 'WRT' command results in loss of all data and a file  of
+        length zero.
+
+  DEL - The 'DEL' command  erases  the  most  recent  file  accessed  in
+        Terminal  mode.  Useful  if you decide after communications that
+        you don't want to save information just gathered.
+
+  CPM - The 'CPM' command reboots and returns to CP/M.
+
+  XPR - The 'XPR' command is a  toggle  which  causes  the  menu  to  be
+        printed  or  not  printed.   Initially the menu is on unless the
+        program is called with the "X" option (ie. A>MODEM X ).
+
+  DIR - The 'DIR' command lists the directory of a CP/M disk.   A  drive
+        may  be  specified  (ie.  DIR  B:)  or the default drive will be
+        listed.  After the directory is listed, the  menu  will  not  be
+        printed whether XPR mode is on or off. If XPR mode is on and you
+        wish to see the menu, hit return.
+
+  ^B -  Control-B while in Terminal (or  Echo)  mode  allows  change  ofŠ        baudrate  "on-the-fly."  A  carriage  return gives 300 baud; all
+        other rates (110-38400) must be explicitely stated.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                 (2)
+
+
+
+
+LISTING OF COMMANDS AND OPTIONS
+
+    Primary options  (S, R, T, E, M or X)
+
+        S - send a CP/M file (must specify file)
+        R - receive  a CP/M file (must specify file)
+        T - terminal mode (specify file if memory save wanted)
+        E - terminal mode with echo
+        M - return to menu
+        X - used only when program is called to initially
+            toggle menu off
+
+    Secondary options (T, R, S, V, RT, ST or VT)
+
+        T - return to terminal mode after transfer (memory save off)
+        R - view what is received in file transfer
+        S - view what is being sent in file transfer
+        V - view what is being sent or received in file transfer
+
+EXAMPLES        (fn = filename,  ft = filetype)
+
+        ST fn.ft      Send file and return to Terminal mode.
+
+        S fn.ft       Send another file, same mode.
+
+        RRT B:fn.ft   Receive file  on  B  drive,  view  what  is  being
+                      Received, return to Terminal mode.
+
+        T fn.ft       Terminal mode, save  communication  in  file.  You
+                      must  type  CTRL-Y in Terminal mode to start save,
+                      and you must type "WRT" in Menu to close file.
+
+        RT B:fn.ft    Receive the file on disk B and return to  Terminal
+                      mode when done.
+
+        SVT fn.ft     Send the file from the  default  drive,  View  the
+                      transmission  and  return  to  Terminal  mode when
+                      done.
+
+        SS fn.ft      Send the file from the default drive and view  the
+                      transmission.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+				 (3)
+
+
+

@@ -1,0 +1,158 @@
+MENU of MISCELLANEOUS UTILITIES:
+copyright (C) 1983 by E. E. Bergmann
+COREDUMP and RESTORE
+LISTFILE
+LOAD
+SHOWCODE and NOSHOWCODE
+% ="comments"
+TOP10 and NEXT10
+DIS ="the disassembler"
+to examine STACK and RSTACK
+TRACE of procedures
+HELP
+:
+::
+*********************************************************
+*							*
+* PISTOL-Portably Implemented Stack Oriented Language	*
+*			Version 2.0			*
+* (C) 1983 by	Ernest E. Bergmann			*
+*		Physics, Building #16			*
+*		Lehigh Univerisity			*
+*		Bethlehem, Pa. 18015			*
+*							*
+* Permission is hereby granted for all reproduction and *
+* distribution of this material provided this notice is *
+* included.						*
+*							*
+*********************************************************
+:
+::
+COREDUMP	saves an image of PISTOL's memory as a
+		file named with the string previously
+		placed on top of the stack.  (for an
+		example see "GETTING STARTED", near the
+		start of this documentation).
+
+RESTORE		takes the file whose name is on the top
+		of stack and "restores" the memory image
+		that had been previously saved by a
+		COREDUMP command.  (for an example see
+		"GETTING STARTED", near the start of this
+		documentation).
+
+:
+::
+LISTFILE	opens a new file with the name that was
+		on the top of stack.  This new file can
+		be written into to keep a record of the
+		terminal session (using the boolean:
+		LIST).  For example, to record portions 
+		of the terminal session in a file named
+		"DIALOG":
+
+		X> 'DIALOG LISTFILE
+		X> LIST ON
+			.
+			. (recorded)
+			.
+		X> LIST OFF
+			.
+			. (not recorded)
+			.
+		X> LIST ON
+			.
+			. (recorded)
+			.
+			etc.
+
+:
+::
+LOAD	is used to take a PISTOL source file whose name is
+        pointed to by the top of stack.  If given a line
+	number instead of a filename, it will access the
+	edit buffer instead.
+
+:
+::
+SHOWCODE	makes pistol display the contents of its
+                compile buffer after every compilation.  It is
+                most useful when you are trying to estimate
+                where special patching needs to be done, such
+                as done by ARGPATCH (see the definitions in
+                PBASE for this one!).  To stop showing code you
+                should use:
+
+NOSHOWCODE	turns off the SHOWCODE, described immediately
+                above.
+
+:
+::
+
+%	is the comment delimiter; the compiler ignores
+        remaining text to the end of the current line.  Do not
+        shun its use in creating PISTOL source files;  PISTOL
+        is NOT self documenting!
+:
+::
+	To name the ten most recent definitions one should
+type:  TOP10 .  It will display the information and leave on
+stack the address of the 11th most recent definition.  To name
+further definitions, one can type NEXT10 which takes the
+address off of the stack and names the next ten definitions.
+In turn, it leaves the address of the 21th most recent
+definition on stack.
+
+:
+::
+	One can dis-assemble a definition using the word, DIS .
+For example:
+
+X> 'TOP10 DIS
+
+produces the result:
+
+'TOP10 : CURRENT W@ NEXT10 ;
+
+Not all definitions are disassembled so faithfully.
+
+:
+::
+	To examine the stack in a non-destructive manner, one
+can use the word, STACK.  It will display the number of items
+in the stack and their values.  For testing definitions it is
+useful to check the stack before and after the definition has
+been invoked.
+
+	To examine the contents of the return stack in a
+non-destructive manner, one can use the word, RSTACK .
+
+:
+::
+	If the definition appears to be faulty, it is often
+useful to debug it by tracing the program flow through the
+definition and the state of the stack at intermediate steps.
+This can be accomplished automatically by the use of the word,
+TRACE.  For example, to trace the action of DDUP one can type:
+
+X> 1 2 'DDUP TRACE
+
+:
+::
+HELP	If typed with no parameters placed on the stack
+	it accesses this file (PISTOL.HLP) and permits the
+	user to access various partitions in a menu driven
+	manner.  
+		It may also be used to access other files
+	by the user placing the name of the file on stack.
+	For example, the user can access the file named "io":
+
+	X> 'IO HELP
+
+	The files accessed in this manner should contain
+	partitioning information in the form of lines that
+	start with a variable number of ':'; examine the
+	PISTOL.HLP file for examples of partitioning and
+	subpartitioning.
+:
+	To examine the contents of the

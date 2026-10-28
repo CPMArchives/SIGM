@@ -1,0 +1,35 @@
+hextest: proc options(main);	/* hexbin procedure tester */
+	%replace
+	   TRUE by '1'b,
+	   FALSE by '0'b;
+
+
+	dcl
+	    hexbin entry(char(8) varying) returns(fixed(15));
+
+
+	dcl
+	    p              ptr,
+	    hexbyte        bit(8) based(p),
+	    hexword        bit(16) based(p),
+	    hexvalue       fixed(15),
+	    hexstring      char(8) varying;
+
+
+	dcl
+	    UPPERCASE      char(26) static init('ABCDEFGHIJKLMNOPQRSTUVWXYZ'),
+	    LOWERCASE      char(26) static init('abcdefghijklmnopqrstuvwxyz');
+	
+	p = addr(hexvalue);
+
+	    do while(TRUE);
+	    put skip list('Enter hexadecimal value: ');
+	    get list (hexstring);
+	    hexstring = translate(hexstring,UPPERCASE,LOWERCASE);
+	    hexvalue = hexbin(hexstring);
+	    put edit('=',hexvalue,hexbyte,hexword)
+	            (col(30),a,f(8),x(2),b4,x(2),b4);
+	    end;
+
+	end hextest;
+

@@ -1,0 +1,175 @@
+* DATE 08/27/84  13:02
+* report.cmd
+STOR t TO more
+DO WHIL more
+ STOR CHR(PEEK (063)) TO dr
+ ERAS
+ STOR 'Y' TO printer
+ STOR 'N' TO disk
+ STOR '        ' TO filename
+ STOR '?' TO command
+ @ 2, 0 SAY "--------------------------------------------------------------------------------"
+ @ 2,18 SAY "> > >  R E P O R T  M E N U  < < <"
+ @ 4,18 SAY "1. Print all data on list"
+ @ 6,18 SAY "2. Print all records updated after a set date"
+ @ 8,18 SAY "3. Print Telephone Listing"
+ @ 10,18 SAY "4. Display Records on screen"
+ @ 12,18 SAY "5. Make WordStar-MailMerge File of all records"
+ @ 14,18 SAY "6. Make WordStar-MailMerge File of part of the records"
+ @ 16,18 SAY "7. Return to Main Menu"
+ @ 18, 0 SAY "--------------------------------------------------------------------------------"
+ @ 19,30 SAY "WHAT NEXT"
+ @ 19,40 GET command PICTURE '!'
+ READ
+ IF command  >'0' .AND. command <  '4'
+  @ 19,22 SAY "Send Report to the Printer (Y/N)"
+  @ 19,55 GET printer PICTURE '!'
+  READ
+  @ 21,22 SAY "Send Report to a Disk File (Y/N)"
+  @ 21,55 GET disk PICTURE '!'
+  READ
+  IF disk ='Y'
+   @ 21,00
+   @ 21,22 SAY "Enter Disk File Name"
+   @ 21,44 GET filename PICTURE '!!!!!!!!'
+   @ 21,54 SAY "(.TXT will be added )"
+   READ
+   @ 21,00
+   @ 21,22 SAY 'Select drive to put Files on (A=left B=right) ' GET dr PICTURE '!'
+   READ
+   DO WHIL @(dr,'AB') = 0
+    @ 21,00
+    @ 21,22 SAY 'Select drive to put Files on (A=left B=right) ' GET dr PICTURE '!'
+    READ
+   ENDD
+  ENDI disk
+  IF printer = 'Y'
+   STOR 'Y' TO comm1
+   @ 22,15 SAY 'Are you ready to start printing?'
+   @ 22,50 GET comm1 PICTURE '!'
+   READ
+   CLEA GETS
+   IF comm1 = 'Y'
+    SET print ON
+   ENDI comm1
+  ENDI printer
+  IF disk = 'Y' .AND. filename <> ' '
+   STOR @('.',filename) TO length
+   IF length = 0 .OR. length > 8
+    STOR 9 TO length
+   ENDI
+   STOR $(filename,1,length-1) TO filename
+   STOR '&dr.:'+filename+'.TXT' TO filename
+   SET ALTERNATE TO &filename
+   SET ALTERNATE ON
+  ENDI
+ ENDI
+ CLEA GETS
+ ERAS
+ DO CASE
+ CASE command = '5'
+  DO wsfile.acg
+ CASE command = '6'
+  DO wsfile1.acg
+ CASE command = '1'
+  DO list.acg
+ CASE command = '2'
+  DO list1.acg
+ CASE command = '3'
+  DO phone.acg
+ CASE command = '4'
+  ERAS
+  @ 02,12 SAY 'Records are displayed by Last names'
+  @ 05,12 SAY 'You may choose the first letter'
+  @ 06,12 SAY 'of the starting location of the records'
+  @ 09,12 SAY 'When WAITING hit space bar to'
+  @ 10,12 SAY 'Continue... or ESCape to Quit'
+  @ 11,12 SAY 'The ESCape key is the right top key on the'
+  @ 12,12 SAY 'extreme left bank of keys.'
+  STOR 'A' TO stletter
+  @ 17,12 SAY 'Letter of alphabet at which to start display'
+  @ 17,57 Get stletter PICTURE '!'
+  READ
+  FIND &stletter
+  DO WHIL # = 0
+   STOR 'ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ' TO ALPHABET
+   STOR @(stletter,ALPHABET) + 1 TO NEXL
+   STOR $(ALPHABET,NEXL,1) TO stletter
+   FIND &stletter
+   RELE alphabet
+  ENDD
+  ERAS
+  SET ESCAPE OFF
+  DISP NEXT 65000 lastname,fname, spouse
+  IF eof
+   WAIT
+  ENDI
+  SET ESCAPE ON
+ CASE command = '?'
+  ERAS
+TEXT
+
+
+                      R E P O R T    M E N U   H E L P 
+
+       This program prepares a number of reports from the mailing  list data in
+       addition to preparing WordStar Mailmerge files which you can use to send
+       personalized letters.                        
+
+       The Mailmerge options create two files. One is a '.DAT'  file which con-
+       tains the names and addresses that WordStar will use to personalize  the
+       letter or document you have prepared.    The other file is a '.TXT' file
+       which has the introductory information you need to prepare the letter or
+       document which you are going to merge.
+
+       It is preferable to prepare the draft letter as a separate WordStar doc-
+       ument.  When both it and your data base are finalized,  run the WordStar
+       option on this program and then after you exit the program open the .TXT
+       file as a 'D' file in WordStar and read in the text of your letter. This
+       text file will then become the basic merge file.
+
+ 
+                                   Please hit any key to continue..............
+ENDT
+  SET CONSOLE OFF
+  WAIT
+  SET CONSOLE ON
+TEXT
+
+       Remember too - there are two different types of MailMerge files. By this
+       program we create a file that 'READS' the variable (thus is is calles an
+       '.RV' file). The other  type - used for only a limited number of letters
+       'ASKS' for the information (thus it is called an '.AV' file).
+
+
+ 
+       Display records is handy to look at the data - try it. 
+
+
+
+
+
+
+
+                                  Please press any key to continue............
+
+
+
+
+
+ENDT
+  SET CONSOLE OFF
+  WAIT
+  SET CONSOLE ON
+  ERAS
+ CASE (command = '7' .OR. COMMAND = 'Q')
+  STOR f TO more
+ ENDC
+ SET PRINT OFF
+ SET ALTERNATE OFF
+ENDD while more
+RELE ALL
+STOR t TO more
+STOR '?' TO command
+STOR t TO first
+

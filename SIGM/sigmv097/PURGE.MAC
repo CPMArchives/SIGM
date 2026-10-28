@@ -1,0 +1,190 @@
+title	PURGE, a utility for Pascal/z to delete extraneous files
+; PURGE
+; A utility to erase unnecessary files associtated with test compilations
+; May be conditioned to operate on the Heath/Zenith-19(89/90) terminal.
+;
+; John S. Wilson
+; Synapse Associates, Inc.,
+; PO Box 410, Solomons, Maryland 20688
+; (301) 326-4751
+;
+; Source code to be assembled with Macro-80 (or some other z80 assembler)
+; There are NO macros in this source
+.z80			;assemble z80 code
+	aseg			;this is a main program 
+; Set this constant for use with the Heath/Zenith equipment
+seth19	equ	1		;1=use on Heath/Zenith term. 0=other terminals
+; Set this constant to get a warm boot on exit
+setwmb	equ	1		;1=do a warm boot on exit, 0=don't do one.
+	org	0100h
+;
+; Determine if the file type is SRC 
+; set up the pointers
+	ld	b,3		;the number of bytes in the file extension
+	ld	hl,ftsrc	;address of data string 'SRC'
+	ld	de,flext	;extension location in the fcb
+cmpsrc:	ld	a,(de)
+	sub	(hl)		;destructive compare
+	jp	nz,notsrc	;not equal, stop testing 
+	inc	de		;bump counters
+	inc	hl
+	djnz	cmpsrc		;same so far, keep on looking
+	ld	a,delflg	;put value of delete flag in a
+	ld	(delsrc),a	;store in delsrc (which was preset to 1)
+;
+notsrc:	ift	seth19		;is the term a H/Z?
+	call	wipe		;if yes wipe the screen 
+	call	rvon		;and turn on reverse video
+	endif	
+;
+	ld	de,signon	;load the address of the sign on message
+	call 	dplmsg		;dplmsg writes messages to the console
+	ift	seth19		;announce terminal type on sign-on line
+	call	hzterm
+	endif
+	ld	de,crlfm
+	call	dplmsg
+;
+; CP/M puts the file name in the command line in the file control block
+; check to see if it is exists.
+	call	probe	;
+	cp 	255	;a contains 255 after an error condition
+	jp	nz,chkfil	;skip if open is ok
+;
+; File not found on named or default disk, cease processing
+	ld 	de,errmsg	;load error message
+	call	dplmsg		;display it
+	jp	klenup		;bail out
+; The file was found in the directory, delete selected extensions with the
+; same root file name.
+chkfil:	ld	de,opmsg	;load the file found message
+	call	dplmsg		;display it on the console
+	ld	a,(delsrc)
+	cp	delflg		;
+	jp	nz,ldext0	;not marked for save, no message
+	ld	de,srcmsg	;report results of examination
+	call	dplmsg	
+;
+ldext0:	ld	hl,fthex	;load the address of the first extension type
+				;to be deleted
+; Delete loads the extension type into the correct location of the file
+; control block and then references the CP/M file delete function
+	call	delete		
+	ld	hl,ftbak	;next file extension name address
+	call	delete		
+; run time test for the deletion of <filename>.SRC 
+	ld	a,(delsrc)	;1 = delete, 0 = not delete this file type
+	cp	delflg		;compare with the delete flag
+	jp	z,dotyp
+	ld	hl,ftsrc
+	call	delete
+dotyp:	ld	hl,fttyp
+	call 	delete
+	ld	hl,ftrel
+	call	delete
+	ld	hl,ftsym
+	call	delete
+	ld	hl,ftcrf
+	call	delete
+	ld	hl,ftprn
+	call	delete
+	ld	hl,ftlst
+	call	delete
+klenup:	call	rvoff		;don't forget to turn out the lights
+	ift	setwmb
+	jp	boot		;do a warm boot - ^C to force cache Bios
+	else			;to rewrite the track buffer upon exit
+	ret			;assuming that the write track buffer on warm
+	endif			;boot option is turned on.  Alternatively, one
+				;may simply code a return - ret, providing an 
+				;opportunity to snatch the disk out and prevent
+				;the action of the program from being written
+				;to disk.
+;
+probe:	ld	de,fcb	;file data (including name) in the file control block
+	ld	c,openf	;the open file function for CP/M
+	call 	bdos
+; Don't really care about the results of the open at this point so don't
+; save the results of the condition word in r a
+	ld 	de,fcb	;reload the fcb address into de
+; If the file was existed, it was opened, now close it
+; If it didn't exist, attempting to close it will produce the error code
+	ld	c,closef	; just to keep it safe!!
+	call	bdos
+	ret
+;
+;
+; Delete loads the address of the fcb, the number of byte in the file extension
+; and does a block load to the part of the fcb where the extension is stored.
+; It then calls CP/M to delete the file named in the fcb
+delete:	ld	de,flext	;the address of the file extension in the fcb
+	ld	bc,03h		;the number of bytes to move
+	ldir			;a block move
+	ld	de,fcb		;the address of the file control block
+	ld	c,killf		;the file delete function code
+	call	bdos		;call CP/M
+	ret
+; display any image whose initial address in in rr de
+dplmsg:	ld	c,printf	;print buffer function
+	call	bdos
+	ret
+;
+wipe:	ld	de,wipem
+	call	dplmsg
+	ret
+;
+rvon:	ld	de,rvonm	;reverse video on for heath/zenith-19
+	call	dplmsg
+	ret
+;
+rvoff:	ld	de,rvoffm	;reverse video off for heath/zenith-19
+	call	dplmsg
+	ret
+;
+hzterm:	ld	de,hztmsg	;announce Heath/Zenith gear
+	call	dplmsg	
+	ret
+;
+;	message area
+signon:	db	'File Purge Vers 2.2, 17 July 1982$'
+errmsg:	db	bel,bel,bel,lf,lf,'file NOT found in directory$'
+opmsg:	db	'file found in directory$'
+wipem:	db	esc,'E$'
+rvonm:	db	esc,'p$'
+rvoffm:	db	esc,'q$'
+hztmsg:	db	' - Heath-19 Terminal$'
+srcmsg:	db	cr,lf,'File type ''SRC'' will NOT be deleted$',cr,lf
+crlfm:	db	cr,lf,'$'
+;
+;Declarations of file extensions types to be deleted
+fthex:	db	'HEX'
+ftbak:	db	'BAK'
+ftsrc:	db	'SRC'
+fttyp:	db	'TYP'
+ftrel:	db	'REL'
+ftsym:	db	'SYM'
+ftcrf:	db	'CRF'
+ftprn:	db	'PRN'
+ftlst:	db	'LST'
+delflg	equ	0		;Delete flag reference value 
+delsrc:	db	1		;SRC delete variable
+;
+esc	equ	01bh
+boot	equ	0000h
+bdos	equ	0005h	
+printf	equ	09h	;buffer print entry
+openf	equ	0fh	;open file function
+closef	equ	10h	;close file function
+killf	equ	13h	;delete file function
+fcb	equ	5ch	;file control block address
+cr	equ	0dh	;carriage return
+lf	equ	0ah	;line feed
+bel	equ	07h	;bell
+; location in the file control block
+flext	equ	fcb+9	;file type (3 characters)
+;
+; stack area
+;	ds	64	;The label is at the high end (top) of the stack 
+;locstk:			;because the stack pointer is decremented in use.
+	end	0100h
+

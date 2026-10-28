@@ -1,0 +1,184 @@
+{
+KNUTH Random number generator (subtractive method) :
+
+Definitions and globals required by this library :
+CONST	bigeven#	= MAXINT - 1;
+TYPE	intarray	= ARRAY[1..55] OF INTEGER;
+	byte		= 0..255;
+VAR	randarray	: intarray;
+  	randindex,
+	seed		: INTEGER;
+
+Contents of this library :
+PROCEDURE initknuth(seed : INTEGER);
+FUNCTION  rndknuth  : byte;
+FUNCTION  random#i  : INTEGER;
+FUNCTION  random#r  : REAL;
+FUNCTION  random#sr : REAL;
+FUNCTION  random#n  : REAL;
+Comment:
+	The following routines setup the KNUTH subtractive method
+random number generator , as described by :
+ Knuth,D.E.;The art of computer programming (2nd Edition);
+	     Vol 2 : Seminumerical Algorithms;pp.170-171
+	     Reading,Ma.;Addison-Wesley Publ.Co. (1981)
+Anyone contemplating the use of random numbers is strongly advised to
+read Knuth's analysis of the problems involved.
+Many of the random number generators widely used have serious faults.
+Many of the commonly recommended algorithms , e.g.some of the linear
+congruence method routines ,MAY not work properly when coded in a 
+higher level language such as PASCAL/Z,and some are totally misbehaved.
+The linear congruence technic is dependent on both the proper selection 
+of parameters (modulus , multiplier , and increment ) AND the method
+and range of integer arithmetic of the machine and language used.It is
+often desirable therefore to have alternative generators available , 
+using differring algorithms .
+
+The Knuth generator has the following features :
+	1 : It was designed to be written in a high level language ( the
+original language was FORTRAN ) and transportable.
+	2 : The numbers generated are in a Fibonacci-like sequence but
+corrected for the actual nonrandomness of older Fibonacci method generators.
+
+Note Knuth's extreme caution in accepting any results using Monte Carlo
+programs dependent on random number generators not explicitly tested for
+that application.Such programs should be tried with at least 2 differrent
+random number generators,and all random number generators "will fail in
+at least one application."
+
+Note also that you dont have to turn off Pascal/Z's error checking to
+use this method.
+
+Four random number generators are included below : the first (randomi)
+returns a positive INTEGER in the range 0 .. (MAXINT - 1) , the second
+(randomr) returns a positive REAL in the range 0.0 .. 1.0,and the third
+(randomsr) returns a signed REAL in the range -1.0 .. +1.0.
+(Preferably only one of the above 3 should be used in the one program.)
+The fourth generator (randomn) returns a random REAL numberfrom a NORMAL 
+distribution with mean = zero and variance = 1.This FUNCTION requires
+FUNCTION randomr .
+All 4 generators require the FUNCTION rndknuth,the PROCEDURE initknuth
+and a collection of global definitions as listed above.
+
+Modified for Pascal/Z by G.M.Acland : University of Pennsylvania,1982.
+}
+
+FUNCTION rndknuth : byte;
+{
+comment : fills the array "randarray" with 55 pseudo random INTEGERS in
+	  the range 0..bigeven#. Knuth originally specified 10^9 for
+	  bigeven# . For Pascal/Z the best number = MAXINT - 1.
+	  Requires the following definitions globally :
+ CONST	bigeven#	= MAXINT - 1;
+ TYPE	"intarray"	= ARRAY[1..55] OF INTEGER;
+	"byte"		= 0..255;
+ VAR	"randarray"	: "intarray";
+	   Returns the value 1 ( for reinitializing index to "randarray").
+}
+VAR
+	i,j,k	:  INTEGER;
+BEGIN
+ FOR i := 1 TO 55 DO
+  BEGIN
+    k := I + 31;
+    IF k > 55 THEN k := k - 55;
+    j := randarray[i] - randarray[k];
+    IF j < 0 THEN j := j + bigeven#;
+    randarray[i] := j
+  END;
+ rndknuth := 1;
+END; { of : FUNCTION rndknuth }
+
+PROCEDURE initknuth(seed : INTEGER);
+{
+comment : Initializes the GLOBAL randarray. Has the same requirements as
+          rndknuth, which FUNCTION  is called by initknuth, plus the input
+          value : "seed" : this may be a zero,one or any other positive
+	  INTEGER value.A useful technic when you want to use a "random"
+	  seed is to create an integer from the time of day , if you have
+	  it available to your computer.
+ e.g.: procedure initseed;
+       BEGIN
+        timestring := '  :  :  ';
+        seed := 0;
+        time(timestring);
+        FOR i := 1 TO 8 DO seed := seed + ORD(timestring[i]);
+       END;
+         Note that the GLOBAL randindex is initialized within this routine.
+	This was not initialized in the previous version distributed thru
+	PZUG.
+}
+VAR
+	i,ii,j,k : INTEGER;
+BEGIN
+ randindex	:= 1;
+ randarray[55]	:= seed;
+ j		:= seed;
+ k		:= 1;
+ FOR i := 1 TO 54 DO
+  BEGIN
+   ii := (21 * i) MOD 55;
+   randarray[ii] := k;
+   k := j - k;
+   IF k < 0 THEN k := k + bigeven#;
+   j := randarray[ii]
+  END;
+ i := rndknuth;
+ i := rndknuth;
+ i := rndknuth;
+END; { of : PROCEDURE initknuth }
+
+FUNCTION random#r : REAL;
+{
+comment : Returns a REAL pseudo random number in the range 0.0 .. 1.0.
+	  Requires the definitions needed by rndknuth and  initknuth
+	  plus the following global :
+  VAR	randindex	: INTEGER;
+}
+BEGIN
+ randindex := randindex + 1;
+ IF randindex > 55 THEN randindex := rndknuth;
+ random#r  := randarray[randindex]/bigeven#;
+END; { of : FUNCTION random#r }
+
+FUNCTION random#i : INTEGER;
+{
+comment : Returns an INTEGER pseudo random number in the range 0.. bigeven#.
+	  Requires the definitions needed by rndknuth and  initknuth
+	  plus the following global :
+  VAR	randindex	: INTEGER;
+}
+BEGIN
+ randindex := randindex + 1;
+ IF randindex > 55 THEN randindex := rndknuth;
+ random#i  := randarray[randindex];
+END; { of : FUNCTION random#i }
+
+FUNCTION random#sr : REAL;
+{
+comment : Returns a REAL pseudo random number in the range -1.0 .. +1.0
+	  Requires the definitions needed by rndknuth and  initknuth
+	  plus the following global :
+  VAR	randindex	: INTEGER;
+}
+BEGIN
+ randindex := randindex + 1;
+ IF randindex > 55 THEN randindex := rndknuth;
+ random#sr  := 2.0 * (0.5 - ( randarray[randindex]/bigeven# ));
+END; { of : FUNCTION random#sr }
+
+FUNCTION random#n : REAL;
+{
+comment : Returns a REAL number that is randomly selected from a normally
+distributed population whose mean is zero and variance (and standard dev.)
+is 1.0.
+}
+VAR
+	n	: INTEGER;
+	total	: REAL;
+BEGIN
+ total := -6.0;
+ FOR n := 1 TO 12 DO total := total + random#r;
+ random#n := total;
+END; { of : function randomn }
+

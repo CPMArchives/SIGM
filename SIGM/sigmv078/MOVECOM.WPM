@@ -1,0 +1,77 @@
+;
+l120
+:ss 1 70 70
+:pr "#1/#13/#13/#13/Comment aligning or stripping macro"
+:pr "#13/#13/  Copyright (C) 1982 Claude Almer 10/7/82"
+:pr "#13/#13/"
+t
+:on ?-3  / /+66
+:%1=-1
+:pr "press any key to strip comments or <SPACE> to"
+:pr " align them..."
+:rk  %3
+:%A = ""
+:pr "#12/#6/"
+:sp %A 59
+:on %3-32 /+24 / /+24
+:pr "#2/#6/Align comments to what position ?"
+:in %2
+:%5=0-%2
+:%1=0
+:%C=""
+:sp %C 32
+:%5=%5+1
+:on %5 22
+:%4=175
+:%A=""
+:sp %A %4
+:pr "#0/#6/preliminary work
+sa/\//%A/
+t/f1
+:%A = ""
+:sp %A 59
+:pr "#0/#6/removing spaces round 1
+t/sa/        %A/%A/
+:pr "#0/#6/removing spaces round 2
+t/sa/    %A/%A/
+:pr "#0/#6/removing spaces round 3
+t/sa/  %A/%A/
+:pr "#0/#6/removing spaces round 4
+t/sa/ %A/%A/
+t/f1
+s/%A/?/
+:mc $2-1
+:%0=$2
+:on ?-3   / /+20
+:%B=!<
+:on %1 /+10
+:pr "#0/#6/aligning:#13/#6/%B"
+:mc 0
+:on %0-%2-1 / /+5 /+5
+s/%A//d1/s//%C</
+b1
+:mc %2-1
+d1/s//%B</b0
+:on -1  /-14
+f1
+:on -1  /-16
+:mc %0
+:mc $2-1
+:on $2 / /+2
+:on?-32 / /-3
+:mc $2+1
+d1/s//</
+:pr "#0/#6/deleting:#13/#6/%B"
+:on -1  42
+:on %1 /+5
+:pr "#0/#6/final process"
+t/sa/ </</
+:%A=""
+:sp %A %4
+t/sa/%A/\//
+t
+:cp
+:ec
+:pr "#0/#6/it may be easier if I had something to work on!"
+:rk  %3
+

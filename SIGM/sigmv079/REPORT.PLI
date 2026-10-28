@@ -1,0 +1,37 @@
+report:
+	proc;
+	%replace
+		true  by '1'b,
+		false by '0'b;
+	%include 'attrib.dcl';
+	dcl
+		rec char(max_siz),
+		rec_no fixed;
+	dcl
+		data  file,
+		sysin file;
+	dcl
+		display entry(char(max_siz));
+
+	on undefinedfile(data)
+		begin;
+		put skip list('No Data Base, Use Create(c)');
+		go to end_report;
+		end;
+
+	on endfile(data)
+		go to end_report;
+
+	open file(data) record;
+
+		do rec_no = 0 repeat(rec_no+1);
+		read file(data) into (rec);
+		put edit('Record',Rec_no,'') (skip,a,f(4));
+		call display(rec);
+		end;
+
+	end_report:
+	close file(data);
+	put skip(2) list('End of Report');
+	end report;
+

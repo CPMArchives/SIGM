@@ -1,0 +1,101 @@
+
+       -----------------------------------------------
+
+   MORE THAN TWO SYSTEM TRACKS FOR CP/M 2.2 - A PRACTICAL SOLUTION
+
+                By Donald E. Killen
+
+
+For those of you out there in CP/M-land who want three (or more) system
+tracks but are tired of asking "HOW", here is one way.  It works in
+conjunction with the program "SGEN.COM" which I have provided the Group
+with.  
+
+For openers, when I found myself running out of BIOS space (CP/M 2.2 is
+two sectors WORSE than good ol' 1.4 on this count), I asked myself,
+"Self, how are you going to GET all the nice stuff you write in assembler
+code ON a floppy, using Digital Research's SYSGEN (or a "GETSYS/
+PUTSYS" combination of some sort)?"  And I answered - "with difficulty".
+
+Next, I found myself musing about compatibility with the "two-tracked"
+world once I did manage to build 3 or more system tracks and use the
+thing successfully.  So again I said, "Self, how are you going to get
+out of THAT one?"  And I answered "With difficulty".
+
+Just to show you how unreliable first impressions can be, I looked
+closer at the documentation on CP/M 2.2 (As an avid non-reader of
+most documentation, I did what I usually did, search for the
+pictures, found none of those,and started from the back, reading
+towards the front.)
+
+About three one morning I said "AHA" - I know what I'll do - I'll fool
+the system by defining (in 2.2) TWO sets of logical disk drives, and
+"fold" one set over the other such that there is one set of physical
+drives, each drive of which has two logical definitions, either
+of which can be specified at run time.
+
+I defined eight physical drives, 0 through 7.  Drives 0,1,2, & 3
+are defined just like the others execpt that three (3) tracks are
+"reserved" - i.e. used for the "system", which includes my gigantic
+BIOS.  Drives 4,5,6, & 7 use two (2) system tracks.
+Selecting drive 'A' in my system gets a 3-track drive, selecting 'E'
+gets you the SAME physical drive, only it is known (to CP/M) to
+have only two system tracks.  Thus I can be compatible with certain
+2-tracked worlds with only one drive, if I must.  Or I can use up to
+four drives and mix them any way I want.  One EASY way to tell if you've
+forgotten and selected a two-track drive which has a 3-track floppy
+in it is that DIR gets you a lot of nulls or "NO FILE", depending
+upon whims, etc.This works the other way around also.  
+
+	Physical Drive	0	1	2	3
+	----------------------------------------------
+	3-track drive:	A	B	C	D
+	2-track drive:	E	F	G	H
+	----------------------------------------------
+ŠThe chart above is a handy reference and serves to illustrate the
+functionality of this scheme.  However, one further point has to be
+mentioned.  Your average (e.g. Tarbell) Floppy Disk Interface can
+select one of a maximum of FOUR drives.  Therefore, I had to perform
+minor surgery on the SELDSK routine in BIOS.  Just at the point that
+SELDSK is about to ship off two bits specifying which of four
+drives you want, the third (hi-order, or bit 2) bit gets discarded.
+Up to that point, and for that matter, in RAM until changed, are three
+bits defining the LOGICAL drive requested.  That accesses the tables
+(in CP/M 2.2) which define the disk parameters.  Then, for the purposes
+of limited controllers (like the Tarbell Single Density controller), only
+the least significant two bits are used - hence a 4 looks like a 0,
+a 5 like a 1, and so-forth.
+
+If anyone is really interested in the gory details, Charlie Foster has
+a disk with a copy of my BIOS (KBIOS.MAC/PRN) - which might convey
+the details in more depth.  
+
+Oncå  CP/Í  haó  thió capability¬  É nexô needeä  tï  refinå  thå prograí 
+É  calì  SGEÎ  ®   SGEN.COÍ  wilì  dï  anythinç  Digitaì Research'ó SYSGEÎ 
+wilì do¬ pluó iô ió aî "n-track¢ systeí iî thaô iô  askó yoõ uğ fronô ho÷ 
+manù trackó (systeí tracks© yoõ wanô tï copy®   Iô workó witè 1-¹ trackó 
+(NOTEº   Iæ anyonå comeó uğ witè  á one-tracë system¬ leô må know¬ o.k.)® 
+Iô makeó yoõ saù "y¢ (oò "Y"©  tï  makå doublù sure¬  theî copieó froí 
+memorù oò  disë  tï memorù oò disk - just like SYSGEN. You'll also need 
+the upgraded versions of MACRO.LIB, which, after converting nearly 
+everything to Zilog notation, is called MACROZ.MAC, and I beleive CLIB.MAC 
+is also used.  The latter is a clutter of miscellany which I've put together 
+for assembly development work.
+
+I have no idea what one would do with regard to defining drives "sort of"
+like the above only for CP/M 1.4 - but I'd like to hear any
+comments anyone has.
+
+      ------------------------------------------------
+EDITOR'Ó  NOTEº   Doî Killeî ió willinç tï discusó thió  (oò  anù 
+                  otheò   itemó  oæ  interest©  witè  anyonå  buô 
+                  preferó   á  notå  iî thå  maiì  howeveò he   
+                  doesn't really  mind the phone at all. So----
+Donald Killen
+2101 Hickory Drive            home: (214) 242-4968
+Carrollton, Tx                
+75006
+
+
+
+

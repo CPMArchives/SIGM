@@ -1,0 +1,119 @@
+.MB 4
+.op
+
+FILE: XSYSTEM.DOC
+
+July 15,1983
+
+         Atlanta Data Base Users Society Banking System
+                          Documentation
+                           Version 1.0
+
+
+    P U B L I C   D O M A I N   S O F T W A R E   N O T I C E
+
+This  software has been placed in the public domain by  Keith  R. 
+Plossl  for the Atlanta Data Base Users  Society,  Inc.  Atlanta, 
+Georgia  and  may be copied,  modified or  used  NON-COMMERCIALLY 
+provided  this notice,  the title block and modification  history 
+have  not  been  removed.   The COMMERCIAL sale or  use  of  this 
+program for profit is strictly prohibited.  KRP 7/15/83
+   
+*****************************************************************
+          W A R R A N T Y   O R    G U A R A N T E E
+
+There  is NO warranty or guarantee expressed or implied for  this 
+software.    The   user  assumes  all  responsibility   for   its 
+usefullness, use or damage that may be caused by it.  It has been 
+tested  but bugs or errors may remain to be corrected and  should 
+be assumed to exist.   The ATLANTA DATA BASE USERS SOCIETY,  INC. 
+and the author of the programs may offer updated versions of this 
+software  as  the  spirit  may move them to do  but  the  primary 
+responsibility for this software is YOURS the USER.
+*****************************************************************
+
+How to Use this Program
+
+     1.   Establish the Start of the File
+
+          To  start  the system a starting balance must exist  in 
+          the ABUSBANK.DBF file.   Use the file through dBase  II 
+          in  the manual mode to enter a starting balance.   This 
+          is done by the following commands:
+               1.   . USE ABUSBANK
+               2.   . APPEND
+          Add the Beginning Balance with 0 in the "NUMBER" field, 
+          BEGINNING  BALANCE  in the "TO" field and  the  balance 
+          amount  in  the  "AMOUNT"  field.   Place a  T  in  the 
+          "CANCEL" and in the "PRINTED" fields.
+
+          To exit the append mode depress carriage return at  the 
+          first field of the second record.
+
+     2.   Initialize the Main Index
+
+          To  initialize the Main index (CKNUM.NDX),  at the  "." 
+          type  USE  ABUSBANK.   Follow with INDEX ON  NUMBER  TO 
+          CKNUM.   This  will establish the index with the record 
+          just added to the main records.
+.PA
+Atlanta Data Base Users Society Banking System
+Version 1.0
+Page 2
+
+     3.   Entering data
+
+          Enter checks just as you would do on the check  itself.  
+          The  system  will  prompt you for  the  data  required.  
+          Cancel only those checks that have cleared the bank and 
+          have  been  returned  to you.   A cancelled  check  and 
+          deposit is one that has been recorded by the bank.  You 
+          will  be  prompted  to make sure you want  to  add  the 
+          record  so recheck your data to be sure it is  correct.  
+          The  decimal check number is to be used to  enter  bank 
+          charges and money machine transactions.   Use the check 
+          number  nearest the bank transaction in non-check  form 
+          and  enter with a decimal digit.   Thus,  if  the  last 
+          check written is number 456 and you want to use a money 
+          machine the check number for that transaction should be 
+          456.1  and a subsequent bank charge would be 456.2  and 
+          so  forth.   It would be wise to enter these numbers in 
+          the  checkbook  to keep track of which decimal  to  use 
+          next.
+
+     4.   Cancelling Checks and Deposits
+
+          When  checks are returned and the bank statement  gives 
+          the deposits recorded by the bank it is time to  cancel 
+          the checks and deposits on file.   Checks are cancelled 
+          by  check number and deposits are cancelled by  looking 
+          up those deposits not yet cancelled.   Recheck the data 
+          and  use  the mofify checks or deposits options on  the 
+          main menu to correct mistakes.
+
+     5.   Getting Balances and Reconcillations
+
+          Select the Balance Option on the Main Menu.   This will 
+          yield both the balance on the bank statement and in the 
+          checkbook.   Outstanding  checks and deposits  will  be 
+          totaled  and itemized if the selection is made to get a 
+          Reconcillation.   Reconcillations  go  to  the  printer 
+          automatically so be sure it is on.
+
+     6.   Getting Printed Data
+
+          Select  the  Print Data Option at the main  menu  AFTER 
+          getting  all indexes produced.   You will be unable  to 
+          get printed results without indexes being available.
+
+Note:   These  programs  assume an Epson Dot Matrix  Printer  for 
+printing.  If the printer is not an Epson or doesn't use the same 
+control codes for Double Width and Condensed type these will have 
+to  be  changed in both the file XBALANCE.CMD  and  XPRNTCKS.CMD.  
+Contact   the  Atlanta  Data  Base  Users   Society,   Inc.   for 
+help or additional information.
+
+The Atlanta Data Base Users Society, Inc.
+P.O. Box 19913
+Atlanta, GA 30325
+

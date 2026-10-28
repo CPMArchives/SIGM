@@ -1,0 +1,196 @@
+                            PURGE.DOC
+
+John S. Wilson
+Synapse Associates, Inc.,
+P.O. Box 410,
+Solomons, Maryland 20688
+(310) 326-4751
+
+                         Command Syntax
+
+PURGE d:filename.typ
+
+
+                           Background
+
+     É wrotå PURGÅ aó á utilitù foò uså witè Pascal/Ú anä otheò 
+compilers®  Iô wilì eraså thå numerouó fileó whicè arå nï longeò 
+needeä afteò á successfuì compilation®  PURGÅ takes¬ aó aî 
+argument¬ á filå namå froí thå CP/Í commanä linå anä attemptó tï 
+deletå certaiî pre-designateä fileó whicè havå thå samå rooô namå 
+aó thå argumenô file®  PURGÅ checkó tï seå thaô thå argumenô filå 
+existó oî thå nameä oò defaulô disë anä terminateó witè aî erroò 
+messagå buô nï otheò actioî iæ thió filå ió noô found®  Aó 
+implieä bù thå foregoing¬ á drivå designatioî ió optionaì buô ió 
+accepteä anä honoreä iæ iô supplied®  PURGÅ neveò eraseó thå COÍ 
+filå noò thå PAÓ filå containinç thå sourcå code®  However¬ 
+unlesó instructeä noô to¬ iô wilì eraså thå SRÃ file®  
+
+
+                          Files Erased
+
+A.  File Extension Types Always Erased
+
+     .HEX
+     .BAK
+     .TYP
+     .REL
+     .SYM
+     .CRF
+     .PRN
+     .LST
+
+B.  File Extension Types Erased Conditionally
+
+     .SRC
+
+C.  File Extension Types Always Saved
+
+     .PAS
+     .FOR
+     .ASM
+     .MAC
+     .COM
+     .COB  
+      etc.,Š     
+     Iî actuality¬ alì filå extensioî typeó noô nameä iî eitheò 
+A® oò B® arå neveò erased.
+
+
+              Erasing (and not erasing) .SRC files.
+
+     Á filå oæ typå .SRÃ maù bå saveä bù enterinç .SRÃ aó thå 
+file type iî thå filå namå supplieä aó aî argumenô tï thå 
+program®  Iæ thå argumenô filå namå doeó noô havå .SRÃ aó itó 
+typå anä á .SRÃ filå ió founä witè thå samå rooô name¬ thå .SRÃ 
+filå wilì bå deleted.
+
+For example
+
+                         PURGE NERD.SRC 
+
+will NOT erase the file NERD.SRC but 
+                         
+                         PURGE NERD.PAS 
+
+will erase NERD.SRC.
+
+
+                            Versions
+
+     Thå sourcå codå anä .COÍ filå supplieä tï thå Pascal/Ú 
+User'ó Grouğ ió conditioneä tï ruî oî á Heath-1¹ terminaì anä tï 
+dï á warí booô oî exiô froí thå program®  Equatinç (EQU© thå 
+constanô SETH1¹ tï ° iî thå sourcå filå anä reassemblinç wilì 
+forcå á conditionaì assemblù withouô thå speciaì codå foò thå 
+Heatè terminal®  Useró witè terminaló otheò thaî thå H/Z19(89,90© 
+maù codå theiò terminaló' screeî clear¬ reverså videï oî anä ofæ 
+sequenceó iî thå threå messageó WIPEM¬ RVONM¬ anä RVOFFÍ whicè 
+arå tï bå founä neaò thå enä oæ thå sourcå file®  
+
+     Similarly¬ settinç thå constanô SETWBÔ tï ° anä reassemblinç 
+wilì forcå thå prograí tï exiô withouô doinç á warí boot®  Thå 
+warí booô oî exiô waó includeä tï forcå Intersystemó Cachå Bioó 
+tï writå thå tracë buffeò bacë tï disk®  
+
+
+                            Assembler
+
+     PURGÅ waó assembleä witè Microsoft'ó Macro-8° anä linkeä 
+witè Link-8° buô sincå iô containó nï macroó oò otheò specializeä 
+code¬ iô maù bå assembleä witè anù assembleò capablå oæ handlinç 
+Ziloç Z8° mnemonics®  Iô waó noô writteî iî 808° mnemonicó oî thå 
+assumptioî thaô useró oæ Pascal/ú arå goinç tï havå á Z8° CPÕ 
+machine® 
+
+
+                       Operationaì Example
+
+     Yoõ havå successfullù compileä anä linkeä á Pascal/Ú prograí Šnameä FARKLE.PAS®  Thió meanó that¬ aô minimuí yoõ havå thå 
+followinç fileó oî á disk:
+
+     FARKLE.PAS
+     FARKLE.SRC
+     FARKLE.REL
+     FARKLE.COM
+
+most likely also 
+     
+     FARKLE.BAK
+
+anä possiblù also
+
+     FARKLE.TYP
+     FARKLE.SYM
+
+Entering
+
+                         PURGE FARKLE.PAS
+
+will delete all of the above except FARKLE.PAS and FARKLE.COM.
+
+     Iæ yoõ arå workinç witè Intersystemó ASMBÌ tï develoğ an
+externaì routine foò uså witè Pascal/Ú anä thuó havå a file typeä 
+SRÃ whicè yoõ wisè tï save¬ typå iî 
+
+                         PURGE SPARKLE.SRC
+
+after you have loaded the relocatable into your private library.
+
+ 
+                      Ambiguous File Names
+
+     É haä noô reallù planneä oî PURGÅ dealinç witè ambiguouó 
+filå nameó anä sï É didn'ô makå iô smarô enougè tï handlå thió 
+situation®  PURGÅ wilì usuallù worë properlù oî thå filå typeó 
+foò onå oæ thå matchinç filå nameó buô noô acô oî anù otheò 
+matchinç file®  
+
+     Thå prograí doeó handlå ambiguouó filå extensionó properlù 
+so that a user may enter
+
+                         PURGE FARKLE.*
+instead of
+
+                         PURGE FARKLE.PAS
+
+and get the same results.
+
+
+                         Erroò Recovery
+
+     Oæ course¬ onå caî alwayó uså thå prograí UNERÁ, whicè ió 
+submitteä tï thå user'ó grouğ alonç witè PURGE¬ tï recoveò (un-Šdelete© anù fileó whicè arå PURGE'eä iî error.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,149 @@
+* DATE 12/24/83  19:45
+* duprec.cmd
+SKIP -1
+STOR lastname TO lastname1
+STOR fname TO fname1
+STOR company1 TO company11
+STOR address TO address1
+STOR phone TO phone1
+STOR ophone TO ophone1
+STOR update TO update1
+IF *
+ STOR 'Deleted' TO deleted1
+ELSE
+ STOR '       ' TO deleted1
+ENDI
+SKIP
+STOR lastname TO lastname2
+STOR fname TO fname2
+STOR company1 TO company12
+STOR address TO address2
+STOR phone TO phone2
+STOR ophone TO ophone2
+STOR update TO update2
+IF *
+ STOR 'Deleted' TO deleted2
+ELSE
+ STOR ' ' TO deleted2
+ENDI
+STOR t TO more
+DO WHIL more
+ ERAS
+ STOR '<C>ontinue, <D>elete/Recall, <E>dit, <P>rint, <Q>uit' TO prompt
+ STOR 'Records with duplicate last names' TO mode
+ STOR '?' TO command
+ STOR '?' TO record
+ @ 01,27 SAY mode
+ @ 02,00 SAY '+--------------------'
+ @ 02,20 SAY '---------------------'
+ @ 02,40 SAY '---------------------'
+ @ 02,60 SAY '-------------------+'
+ @ 03,00 SAY 'Lastname: '
+ @ 03,12 SAY lastname1
+ @ 03,40 SAY 'First & MI: '
+ @ 03,55 SAY fname1
+ @ 04,00 SAY 'Company: '
+ @ 04,23 SAY company11
+ @ 05,00 SAY 'Address: '
+ @ 05,20 SAY address1
+ @ 06,00 SAY 'Phone - office: '
+ @ 06,19 SAY ophone1
+ @ 06,38 SAY 'home: '
+ @ 06,44 SAY phone1
+ @ 07,00 SAY 'Last update: '
+ @ 07,20 SAY update1
+ @ 07,50 SAY deleted1
+ @ 08,00 SAY '+--------------------'
+ @ 08,20 SAY '---------------> > > '
+ @ 08,40 SAY 'RECORD-A < < <-------'
+ @ 08,60 SAY '-------------------+'
+ @ 10,00 SAY 'Lastname: '
+ @ 10,12 SAY lastname2
+ @ 10,40 SAY 'First & MI: '
+ @ 10,55 SAY fname2
+ @ 11,00 SAY 'Company: '
+ @ 11,23 SAY company12
+ @ 12,00 SAY 'Address: '
+ @ 12,20 SAY address2
+ @ 13,00 SAY 'Phone - office: '
+ @ 13,19 SAY ophone2
+ @ 13,38 SAY 'home: '
+ @ 13,44 SAY phone2
+ @ 14,00 SAY 'Last update: '
+ @ 14,20 SAY update2
+ @ 14,50 SAY deleted2
+ @ 16,00 SAY '+--------------------'
+ @ 16,20 SAY '---------------> > > '
+ @ 16,40 SAY 'RECORD-B < < <-------'
+ @ 16,60 SAY '-------------------+'
+ @ 18,17 SAY prompt
+ @ 20,24 SAY 'What next?'
+ @ 20,35 GET command picture '!'
+ READ
+ IF command = 'D' .OR. command = 'E' .OR. command = 'P'
+  ?? CHR(11)
+  ?? '                         Which Record ?'
+  SET CONSOLE OFF
+  WAIT TO record
+  SET CONSOLE on
+  STOR !(record) TO record
+  ?? record
+ ENDI
+ IF record = 'A'
+  SKIP -1
+ ENDI
+ DO CASE
+ CASE command = 'C' .OR. command = 'Q'
+  STOR f to more
+ CASE command = 'D'
+  IF *
+   RECA
+  ELSE
+   DELE
+  ENDI
+  IF record = 'A'
+   IF deleted1 = 'Deleted'
+    STOR '       ' TO deleted1
+   ELSE
+    STOR 'Deleted' TO deleted1
+   ENDI
+  ENDI
+  IF record <> 'A'
+   IF deleted2 = 'Deleted'
+    STOR '       ' TO deleted2
+   ELSE
+    STOR 'Deleted' TO deleted2
+   ENDI
+  ENDI
+ CASE command = 'E'
+  SAVE TO temp2
+  RELE ALL
+  REST FROM temp1
+  ? 'Hit RETURN to Continue'
+  SET CONSOLE OFF
+  REST
+  STOR # TO rec:number
+  SET INDEX TO
+  IF rec:number = 0
+   GO 1
+  ELSE
+   GO rec:number
+  ENDI rec:number = 0
+  SET CONSOLE ON
+  DO edit.acg
+  SAVE TO temp1
+  RELE ALL
+  REST FROM temp2
+  STOR CHR(PEEK(063)) TO dr
+  SET INDEX TO &dr.:lastname
+ CASE command = 'P'
+  DO print.acg
+ ENDC
+ IF record = 'A'
+  SKIP
+ ENDI
+ENDD
+IF command = 'C'
+ STOR t TO more
+ENDI
+

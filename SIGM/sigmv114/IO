@@ -1,0 +1,237 @@
+I/O OPERATIONS AND PARAMETERS:
+copyright (C) 1983 by E. E. Bergmann
+definitions in alphabetical (ASCII) order
+:
+::
+*********************************************************
+*							*
+* PISTOL-Portably Implemented Stack Oriented Language   *
+*			Version 2.0			*
+* (C) 1983 by	Ernest E. Bergmann			*
+*		Physics, Building #16			*
+*		Lehigh Univerisity			*
+*		Bethlehem, Pa. 18015			*
+*							*
+* Permission is hereby granted for all reproduction and *
+* distribution of this material provided this notice is *
+* included.						*
+*							*
+*********************************************************
+:
+::
+#LINES		After PISTOL accepts input for compilation, the
+		variable is reset to 0. As each line is output
+		this variable is incremented and compared with
+		the current value of TERMINAL-PAGE; if equal
+		input from the user (typically a carriage
+		return) is used to cause a pause in the output
+		scrolling.  At this point, any input character
+		will cause #LINES to be reset to 0.  If the
+		input character is a 'Q', the current activity
+		is ABORTed.
+
+#TYPE	Prints a set of digit values from the top of stack
+	until a negative (sentinel) is encountered.  (Used
+	to define '= ).
+
+<U#>	It is used to convert the value on the top of stack
+	into separate digits with -1 as sentinel.  Its output
+	on stack can be used by #TYPE (Used in the definition
+	of '= ).
+
+=	type the numerical value of the top of stack;
+	no leading or trailing blanks are supplied.
+
+=PACK	converts signed value on top of stack into a string.
+	It leaves a pointer to this string on stack.
+
+
+?	types the numerical value of the RAM location
+	pointed to by the top of stack; equivalent to
+	" W@ = ".
+
+ASCII	converts a small number (a digit) into its ASCII
+	representation.
+
+BINARY	sets the base for numerical I/O to 2.
+
+COLUMN		Variable that contains the column number that
+		the console is at during output.  It is reset
+		to 0 whenever a NEWLINE character is output.
+		During output to the console if the value of
+		COLUMN becomes equal to the value of
+		TERMINAL-WIDTH then a new line is begun.
+
+CONSOLE		Boolean variable that will prevent output
+		to the user's terminal if it is set to FALSE.
+		Probably would be used in connection with
+		writing lengthy output to the listfile when
+		there is no desire to have this information
+		presented to the user's console as well.
+
+CR	Outputs a carriage return, line-feed sequence.
+
+DECIMAL	 sets the base for numerical I/O to 10.
+
+ECHO		Boolean variable which, when set TRUE, causes
+		whatever PISTOL code that is being LOADed to be
+		listed as it is being compiled.
+
+HEX	sets the base for numerical I/O to 16.
+
+IFCR	does a CR if not in column 0.
+
+INDENT	advances to the coulumn specified by the top of
+	stack unless one is already there or beyond.
+	Trying to indent beyond TERMINAL-WIDTH, causes
+	a new line to be started instead.
+
+INFILE		Does not contain 0 when LOADing from a file
+		or from the edit buffer.  Contains pointer to
+		original (temporary) filename string if
+		inputing from a file.  If input is from the
+		edit buffer, its contents is the current line
+		number.  INFILE contains 0 [false] when
+		interpreting from the console keyboard.
+
+INPUT	takes the line number on the top of stack and allows
+	the user to enter (insert above the old line specified)
+	as many new lines as desired into the edit buffer.
+	Completion of input is signified by supplying an
+	empty line (an immediate carriage return).
+
+INPUTFILE-STATUS
+		Contains the status of the file being input by
+		the editor (opened by OPENR).  If its value is
+		0, the file has just been opened. If positive,
+		it is a count of the number of lines read so
+		far.  If -1, no file has been opened or: if
+		negative, the number of lines read (magnitude)
+		and the file is in an eof condition.
+
+LIST		Boolean variable when true causes the system
+		to output everything that would go to the
+		user's console to the listfile as well.  (see
+		LISTFILE in i/o).
+
+MERR	Prints the error message string that is pointed to by
+	the top of stack; it then ABORTs.
+
+MSG	types a message pointed to by the top of stack;
+	starts a new line if the string is too long to
+	"fit" on current line(tabs not properly estimated).
+
+MSGS	takes the number on top of stack as the number of
+	that are next to the top of stack that are to be
+	output, the BOTTOM-MOST one first.  For example:
+
+	'ONE 'TWO 'THREE 3 MSGS
+
+	produces:
+
+	ONETWOTHREE
+
+	If the combined length of all the strings will
+	not fit on the current line, a new line is started.
+	(tabs not properly estimated).
+
+NEWLINE		Typically ord(<CR>) or ord(<LF>); implemented
+		char value used to separate line of text from
+		next in internal PISTOL representation.  I/O
+		routines must convert external (system file
+		and console i/o conventions) to NEWLINE in
+		PISTOL.
+
+OCTAL	sets the base for numerical I/O to 8.
+
+OPENR	takes a string pointed to by the top of stack and
+	opens that named file for reading.  It is the user's
+	responsibility to make sure that the named file
+	exists already.  If another file was opened for reading
+	previously, it is closed by this new OPENR.
+
+OPENW	takes a string pointed to by the top of stack and
+	opens that named file for writing.
+	(*** It will DESTROY any file that already exists
+	with that name!!!****)
+
+OUTPUT-STATUS	Indicates status of file for editor's output
+		(file opened by OPENW).  If value is +1, no
+		file has been opened yet, or it has been
+		logically closed.  If the value is 0, the file
+		has just been opened, but not yet used.  If
+		negative, it's magnitude is the count of the
+		number of lines written to the file so far.
+
+RADIX		Contains current number base used for i/o
+		number conversions.  For example, it is set to
+		ten for DECIMAL mode.
+
+RAISE		Boolean variable which causes system to convert
+		all word tokens and single-quote strings to
+		upper case.
+
+READ	takes the number of lines specified by the top of
+	stack from the file specified by the last OPENR and
+	appends them to the end of text in the edit buffer.
+
+
+READLINE reads a line of text from the file that has been
+        opened for reading (from OPENR) and places it into
+        the input line buffer, pointed to by LINEBUF. This
+	text will be overwritten by the next input line so
+	it should be used prior to the next input line.
+
+SPACE	outputs a blank.
+
+SPACES	outputs as many blanks as specified by top of stack.
+
+TAB	simulates a tab; tab stops are separated by the
+	size specified by the variable, TAB-SIZE.
+
+TAB-SIZE	Normally set to 8. It determines the space
+		between tab stops.
+
+TABS	outputs as many simulated tabs as is specified
+	by the top of stack.
+
+TERMINAL-PAGE	Determines number of lines output between
+		scrolling pauses.  See #LINES .
+
+TERMINAL-WIDTH	Determines number of characters per line before
+		automatic newlines.  See COLUMN .
+
+TYI	inputs a character from the keyboard and places
+	its ASCII value on the stack.  (Console input is
+        buffered line-by-line). If the current line is empty or
+	exhausted (except) for the end-of-line, the character
+	returned on stack is the NEWLINE character.
+
+TYIL	Inputs next character from console (all console input
+	is buffered line-by-line), places it on stack; the rest
+	of the console line is exhausted so that the next
+	character read from the console will be from the start
+	of the next line.  If the current line is empty or
+	exhausted (except) for the end-of-line, the character
+	returned on stack is the NEWLINE character.
+
+TYO	outputs a character whose ASCII value is on the	stack.
+
+TYPE	types the number of characters of text specified
+	by the top of stack from the string area, starting at
+	the location pointed to by the next to top of stack.
+
+WRITE	takes the number of lines specified by the top of
+	stack from the beginning of the text in the edit
+	buffer and places them at the end of the file
+	specified in the last OPENW.
+
+WRITELINE writes that line that is in STRINGS (usually in
+	the edit buffer) whose pointer is on the top of the
+	stack.  The writing is into the file that was opened
+	for writing by OPENW.
+
+:
+ NEWLINE character.
+
+TYIL	Inputs next character

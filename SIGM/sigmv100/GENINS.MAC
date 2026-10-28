@@ -1,0 +1,2246 @@
+;
+;  PROGRAM:  GENINS -- General ZCPR2 Utility Installation Program
+;  AUTHOR:  RICHARD CONN
+;  VERSION:  2.2
+;  DATE:  29 Jan 83
+;  PREVIOUS VERSIONS:  2.1 (24 Jan 83), 2.0 (15 Jan 83), 1.9 (13 Jan 83)
+;  PREVIOUS VERSIONS:  1.8 (12 Jan 83), 1.7 (11 Jan 83), 1.6 (6 Jan 83)
+;  PREVIOUS VERSIONS:  1.5 (6 Jan 83), 1.4 (5 Jan 83), 1.3 (5 Jan 83)
+;  PREVIOUS VERSIONS:  1.2 (8 Dec 82), 1.1 (24 NOV 82), 1.0 (9 NOV 82)
+;
+vers	equ	22
+
+;
+;	This program is Copyright (c) 1982, 1983 by Richard Conn
+;	All Rights Reserved
+;
+;	ZCPR2 and its utilities, including this one, are released
+; to the public domain.  Anyone who wishes to USE them may do so with
+; no strings attached.  The author assumes no responsibility or
+; liability for the use of ZCPR2 and its utilities.
+;
+;	The author, Richard Conn, has sole rights to this program.
+; ZCPR2 and its utilities may not be sold without the express,
+; written permission of the author.
+;
+
+
+;
+;	GENINS is a program which allows the user to set the default
+; conditions of many of the new ZCPR2 utilities, such as ERASE,
+; without resorting to a reassembly or the use of a patch
+; technique with a debugger like DDT.  It is interactive, and it allows
+; to user to display the defaults and set them.
+;
+;	GENINS is invoked by a command line like the following:
+;		GENINS or GENINS DIR:FILENAME.TYP
+;	The first form will prompt the user for the name of the file to patch,
+; allow him to patch it, and then save the result on disk in the same file
+; or a different file.  The second form automatically prepares the indicated
+; file for patching.
+;
+
+;
+;  Buffer contents
+;
+optbuff	equ	80H	; offset to first byte of buffer
+epavail	equ	optbuff+3
+epadr	equ	optbuff+4
+intpath	equ	optbuff+6
+mcavail	equ	optbuff+17h
+mcadr	equ	optbuff+18h
+mdisk	equ	optbuff+1ah
+muser	equ	optbuff+1bh
+dok	equ	optbuff+1ch
+uok	equ	optbuff+1dh
+puser	equ	optbuff+1eh
+ppass	equ	optbuff+1fh
+cindic	equ	optbuff+48h
+dmadr	equ	optbuff+49h
+ndradr	equ	optbuff+4bh
+ndnames	equ	optbuff+4dh
+dnfile	equ	optbuff+4eh
+
+;  Required features flags
+epreqd	equ	optbuff+59h
+mcreqd	equ	optbuff+5ah
+mxreqd	equ	optbuff+5bh
+udreqd	equ	optbuff+5ch
+pureqd	equ	optbuff+5dh
+cdreqd	equ	optbuff+5eh
+ndreqd	equ	optbuff+5fh
+z2class	equ	optbuff+60h
+z2name	equ	optbuff+61h
+obase	equ	optbuff+70h
+
+;  Size of Buffer to be Saved
+bufsiz	equ	epreqd-epavail	; number of bytes in config buffer
+
+;  Special Files -- DEVICE, IOLOADER, RECORD
+iobase	equ	obase	; I/O Base Address
+
+;  Special Files -- MCOPY
+verflg	equ	obase	; Verify Flag
+insp	equ	obase+1	; Inspect Flag
+quiet	equ	obase+2	; Quiet Flag
+ncopy	equ	obase+3	; Multiple Copy Flag
+ddisk	equ	obase+4	; Default Destination Disk
+duser	equ	obase+5	; Default Destination User
+
+;  Special Files -- XDIR3
+igrp	equ	obase	; Grouping Flag
+ifmt	equ	obase+1	; Vertical Format Flag
+iatt	equ	obase+2	; Default Attributes
+iscn	equ	obase+3	; Default Function
+fenab	equ	obase+4	; Enable F Options
+lenab	equ	obase+5	; Enable FL Option
+asenab	equ	obase+6	; Enable AS option
+
+;  Special Files -- ZEX
+tnuich	equ	obase	; End User Input Command Char
+
+;  Special Files -- LRUNZ, LDIRZ, and HELP
+cfile	equ	obase	; File Name for Default Search File
+
+;  Special Files -- DU2
+pspeed	equ	obase	; Processor Speed
+ssize	equ	obase+1	; Screen Size
+
+;  Special Files -- TINIT
+;pspeed	equ	obase	; Processor Speed (from DU2)
+cfgfile	equ	obase+1	; Config File Name
+
+;  Special Files -- WHEEL
+wheel	equ	obase	; Address of Wheel Byte
+
+;
+;  Constants
+;
+cr	equ	0dh
+lf	equ	0ah
+cpm	equ	0	; Warm Boot Entry
+bentry	equ	cpm+5	; BDOS Entry
+tfcb	equ	cpm+5ch	; ZCPR2 FCB
+tbuff	equ	cpm+80h	; Disk I/O Buffer
+
+;
+;  Externals
+;
+	ext	codend,bbline,eval10,eval16,print,pstr
+	ext	initfcb,fname,moveb,moveb,cin,cout,caps,crlf
+	ext	phl4hc,padc,f$open,f$close,f$read,f$write,f$rename
+	ext	f$delete,f$make,zfname,phldc
+	ext	putud,getud,retud,logud
+	ext	zgpins,compb
+
+;
+;  Branch to Start of Program
+;
+	jmp	start
+
+;
+;******************************************************************
+;
+;  SINSFORM -- ZCPR2 Utility Standard General Purpose Initialization Format
+;
+;	This data block precisely defines the data format for
+; initial features of a ZCPR2 system which are required for proper
+; initialization of the ZCPR2-Specific Routines in SYSLIB.
+;
+
+;
+;  EXTERNAL PATH DATA
+;
+;EPAVAIL:
+	DB	0FFH	; IS EXTERNAL PATH AVAILABLE? (0=NO, 0FFH=YES)
+;EPADR:
+	DW	40H	; ADDRESS OF EXTERNAL PATH IF AVAILABLE
+
+;
+;  INTERNAL PATH DATA
+;
+;INTPATH:
+	DB	0,0	; DISK, USER FOR FIRST PATH ELEMENT
+			; DISK = 1 FOR A, '$' FOR CURRENT
+			; USER = NUMBER, '$' FOR CURRENT
+	DB	0,0
+	DB	0,0
+	DB	0,0
+	DB	0,0
+	DB	0,0
+	DB	0,0
+	DB	0,0	; DISK, USER FOR 8TH PATH ELEMENT
+	DB	0	; END OF PATH
+
+;
+;  MULTIPLE COMMAND LINE BUFFER DATA
+;
+;MCAVAIL:
+	DB	0FFH	; IS MULTIPLE COMMAND LINE BUFFER AVAILABLE?
+;MCADR:
+	DW	0FF00H	; ADDRESS OF MULTIPLE COMMAND LINE BUFFER IF AVAILABLE
+
+;
+;  DISK/USER LIMITS
+;
+;MDISK:
+	DB	4	; MAXIMUM NUMBER OF DISKS
+;MUSER:
+	DB	31	; MAXIMUM USER NUMBER
+
+;
+;  FLAGS TO PERMIT LOG IN FOR DIFFERENT USER AREA OR DISK
+;
+;DOK:
+	DB	0FFH	; ALLOW DISK CHANGE? (0=NO, 0FFH=YES)
+;UOK:
+	DB	0FFH	; ALLOW USER CHANGE? (0=NO, 0FFH=YES)
+
+;
+;  PRIVILEGED USER DATA
+;
+;PUSER:
+	DB	10	; BEGINNING OF PRIVILEGED USER AREAS
+;PPASS:
+tpass:
+	DB	'chdir',0	; PASSWORD FOR MOVING INTO PRIV USER AREAS
+	DS	41-($-tpass)	; 40 CHARS MAX IN BUFFER + 1 for ending NULL
+
+;
+;  CURRENT USER/DISK INDICATOR
+;
+;CINDIC:
+	DB	'$'	; USUAL VALUE (FOR PATH EXPRESSIONS)
+
+;
+;  DMA ADDRESS FOR DISK TRANSFERS
+;
+;DMADR:
+	DW	80H	; TBUFF AREA
+
+;
+;  NAMED DIRECTORY INFORMATION
+;
+;NDRADR:
+	DW	00000H	; ADDRESS OF MEMORY-RESIDENT NAMED DIRECTORY
+;NDNAMES:
+	DB	64	; MAX NUMBER OF DIRECTORY NAMES
+;DNFILE:
+	DB	'NAMES   '	; NAME OF DISK NAME FILE
+	DB	'DIR'		; TYPE OF DISK NAME FILE
+
+;
+;  REQUIREMENTS FLAGS
+;
+;EPREQD:
+	DB	0FFH	; EXTERNAL PATH?
+;MCREQD:
+	DB	0FFH	; MULTIPLE COMMAND LINE?
+;MXREQD:
+	DB	0FFH	; MAX USER/DISK?
+;UDREQD:
+	DB	0FFH	; ALLOW USER/DISK CHANGE?
+;PUREQD:
+	DB	0FFH	; PRIVILEGED USER?
+;CDREQD:
+	DB	0FFH	; CURRENT INDIC AND DMA?
+;NDREQD:
+	DB	0FFH	; NAMED DIRECTORIES?
+;Z2CLASS:
+	DB	0	; CLASS 0
+	DB	'ZCPR2'
+	DS	10	; RESERVED
+
+
+;
+;  END OF SINSFORM -- STANDARD DEFAULT PARAMETER DATA
+;
+;******************************************************************
+;
+
+;
+;  Start of Program
+;
+start:
+	call	zgpins	; general-purpose install
+	call	print
+	db	'GENINS Version '
+	db	(vers/10)+'0','.',(vers mod 10)+'0'
+	db	cr,lf
+	db	'GENINS -- General Installation Program for ZCPR2 Utilities'
+	db	cr,lf
+	db	cr,lf,'The ZCPR2 System, including ZCPR2 itself and the 30+ '
+	db	'utility programs'
+	db	cr,lf,'distributed with ZCPR2 as part of the ZCPR2 System, was'
+	db	' written by'
+	db	cr,lf,'Richard Conn.'
+	db	cr,lf
+	db	cr,lf,'The ZCPR2 System is Copyright (c) 1982, 1983 by Richard'
+	db	' Conn'
+	db	cr,lf,'All Rights Reserved',cr,lf
+	db	0
+
+	call	putud	; save current user/disk for return
+	call	retud	; get current user/disk
+	mov	a,b	; save data
+	sta	cdisk
+	mov	a,c
+	sta	cuser
+	lda	tfcb+1	; check for file name
+	cpi	' '	; none if space
+	jz	openlp
+	lxi	h,tbuff	; pt to input line buffer
+	mov	a,m	; get char count
+	inx	h	; pt to first char
+	push	h	; save ptr to first char
+	add	l	; pt to after last char
+	mov	l,a
+	mov	a,h
+	aci	0
+	mov	h,a	; HL pts to after last chr
+	mvi	m,0
+	pop	h	; HL pts to first char
+	call	gfile	; extract file name
+	jnz	openl1
+	call	print
+	db	cr,lf,'Error in Input File Specification',0
+openlp:
+	lxi	sp,stack	; set stack
+	call	print
+	db	cr,lf,'Please Provide Name of File to Install',0
+	xra	a	; allow abort
+	call	getfile	; get file name and log in user/disk
+	jz	cpm	; abort?
+openl1:
+	lda	user	; save current user/disk
+	sta	users
+	lda	disk
+	sta	disks
+	lxi	d,fcb	; pt to FCB
+	call	f$open	; try to open file
+	jz	openok
+	call	print
+	db	cr,lf,'Error -- File Not Found',0
+	call	getud	; restore current user/disk
+	jmp	openlp
+openok:
+	lxi	h,fcb	; copy FCB to FCBIN
+	lxi	d,fcbin
+	mvi	b,36	; 36 bytes
+	call	moveb
+	lxi	d,fcbin	; input file
+	call	f$read	; read a block in
+	lxi	h,z2tname	; check for ZCPR2 file
+	lxi	d,z2name
+	mvi	b,5	; 5 bytes
+	call	compb	; compare
+	jz	opok1
+	call	print
+	db	cr,lf,'Error -- NOT a ZCPR2 Utility -- Aborting',0
+	jmp	openlp
+opok1:
+	call	print
+	db	cr,lf,'Ready to Set Default Values',cr,lf,0
+	call	setup	; perform function
+	cpi	'Q'	; quit?
+	jz	quit
+exit:
+	call	getud	; restore current user/disk
+	call	print
+	db	cr,lf,'Do you want to save changes',0
+	call	getyn	; get Y or N
+	jz	openlp	; run again if N
+namelp:
+	call	getud	; return home in case of default
+	call	retud	; get current user and disk
+	mov	a,b	; save disk
+	sta	disk
+	mov	a,c	; save user
+	sta	user
+	call	print
+	db	cr,lf,'Please Provide Name of Output File',0
+	mvi	a,0ffh	; do not allow abort
+	call	getfile
+	call	print
+	db	cr,lf,'Name of Output File is ',0
+	lxi	h,fcb+1	; pt to file name
+	call	prfn
+	call	print
+	db	' -- Verify',0
+	call	getyn	; get response
+	jz	namelp	; abort if No
+	lxi	d,fcbout
+	call	initfcb
+	call	f$delete	; delete file if there
+	call	initfcb
+	call	f$make		; create output file
+	cpi	0ffh	; error?
+	jz	derr
+	call	print
+	db	cr,lf,'Writing File ',0
+	lxi	h,fcb+1	; print file name
+	call	prfn
+	call	print
+	db	' to Disk --',cr,lf,0
+	call	f$write		; write first block to it
+	ora	a	; ok?
+	jnz	derr
+exitl:
+	lda	users	; get user number
+	mov	c,a	; ... in C
+	lda	disks	; get disk number
+	mov	b,a	; ... in B
+	call	logud	; log in user/disk for source
+	call	f$rbuf	; read in buffer
+	ora	a	; done?
+	jz	exitd	; done if no blocks read
+	lda	user	; get user number
+	mov	c,a	; ... in C
+	lda	disk	; get disk number
+	mov	b,a	; ... in B
+	call	logud	; log in user/disk for destination
+	call	f$wbuf	; write out a buffer
+	ora	a	; error?
+	jz	exitl
+derr:
+	call	print
+	db	cr,lf,'Disk Write Error -- Abort',0
+	call	getud
+	ret
+exitd:
+	call	f$close	; close input file
+	lda	user	; get dest user/disk
+	mov	c,a
+	lda	disk
+	mov	b,a
+	call	logud
+	lxi	d,fcbout	; close output file
+	call	f$close
+	lxi	d,fcb	; now delete new file if exists
+	call	initfcb	; init fcb
+	call	f$delete
+	call	initfcb	; init fcb again
+	xchg		; HL pts to new name
+	lxi	d,fcbout	; DE pts to old name
+	call	initfcb		; init fcb
+	call	f$rename	; file renamed
+	call	getud	; restore original user/disk
+quit:
+	jmp	openlp
+
+;
+;  Print Name and Class of File
+;
+fdata:
+	call	print
+	db	cr,lf,'File Being Installed: ',0
+	lxi	h,fcbin+1	; pt to file name
+	call	prfn
+	ret
+;
+;  Read In a Buffer from Disk
+;    Return with A<>0 if No Data to Read
+;
+f$rbuf:
+	call	codend	; get address of buffer
+	xchg		; DE is address of buffer
+	lhld	bentry+1	; get address of base of BDOS
+	mvi	l,0
+	mov	a,h	; compute top of TPA
+	sui	10	; 10 pages below base of BDOS
+	sub	d	; compute size of TPA
+	cpi	41h	; greater than 16K?
+	jc	f$rb1
+	mvi	a,40h	; set to 16K max load
+f$rb1:
+	add	a	; double for number of blocks
+	sta	nblocks	; set number of blocks
+	xchg		; HL pts to first block
+	mvi	c,0	; set count to zero
+f$rb2:
+	lxi	d,fcbin	; pt to input FCB
+	call	f$read	; try to read a block
+	ora	a	; error?
+	jnz	f$rb5
+	call	print
+	db	cr,lf,'Reading ',0
+	call	prdoti	; init display
+	jmp	f$rb4
+f$rb3:
+	lxi	d,fcbin	; pt to input FCB
+	call	f$read	; try to read a block
+	ora	a	; error?
+	jnz	f$rb5
+f$rb4:
+	call	prdot	; print dot
+	lxi	d,tbuff	; pt to input buffer
+	xchg		; roles are interchanged
+	mvi	b,128	; copy 128 bytes
+	call	moveb	; copy into memory
+	lxi	h,128	; pt to next buffer entry
+	dad	d	; HL pts to next buffer entry
+	inr	c	; increment block count
+	lda	nblocks	; check for done
+	cmp	c	; done if match
+	jnz	f$rb3
+f$rb5:
+	mov	a,c	; get block count in A (0 if no load or done)
+	sta	nblocks	; set block count
+	ret
+;
+;  Write Buffer to Disk
+;    NBLOCKS contains the number of blocks to write
+;    Return with A=0 if no error
+;
+f$wbuf:
+	call	print
+	db	cr,lf,'Writing ',0
+	call	prdoti	; print new line and reset count
+	lda	nblocks	; get block count
+	call	codend	; get address
+	mov	c,a	; block count in C
+f$wbuf1:
+	call	prdot	; print dot
+	lxi	d,tbuff	; copy into TBUFF
+	mvi	b,128	; 128 bytes
+	call	moveb
+	lxi	d,128	; pt to next block
+	dad	d
+	lxi	d,fcbout	; output FCB
+	call	f$write	; write block to disk
+	ora	a	; OK?
+	rnz		; error if not zero
+	dcr	c	; count down
+	jnz	f$wbuf1	; continue until all written
+	xra	a	; A=0 for OK completion
+	ret
+
+;
+;  Print dot and count down
+;
+prdot:
+	push	h	; save regs
+	push	b
+	lhld	dcount	; increment counter
+	inx	h
+	shld	dcount
+	mvi	b,5	; back up 5 chars
+	mvi	a,8	; back space
+prdot1:
+	call	cout	; back up
+	dcr	b
+	jnz	prdot1
+	call	phldc	; print decimal number
+	pop	b	; restore regs
+	pop	h
+	ret
+prdoti:
+	push	h	; init dot output
+	lxi	h,0	; zero count
+	shld	dcount
+	call	print
+	db	'Block      ',0
+	pop	h
+	ret
+
+;
+;  Get file name from user, and, goto the user/disk he specified (or implied)
+;    Return with Zero Set if Abort; DE pts to FCB
+;
+getfile:
+	sta	gfflag	; save abort flag
+getf0:
+	call	print
+	db	cr,lf,'Name of File (<CR>=',0
+	lda	gfflag
+	ora	a	; 0=abort
+	jnz	getf1
+	call	print
+	db	'Abort)? ',0
+	jmp	getf2
+getf1:
+	lxi	h,fcb+1	; pt to file name
+	call	prfn	; print file name
+	call	print
+	db	')? ',0
+getf2:
+	xra	a	; no caps
+	call	bbline	; get line
+	ora	a	; abort?
+	rz
+gfile:
+	call	sblank	; skip blanks
+	ora	a	; check for end
+	rz		; spaces only?
+	lxi	d,fcb	; pt to fcb
+	call	zfname	; parse and get params
+	jnz	gf0
+	call	print
+	db	cr,lf,'Error -- Invalid User or Disk -- Reenter',0
+	jmp	getf0
+gf0:
+	mov	a,b	; get disk
+	cpi	0ffh	; current?
+	jz	gf1
+	dcr	a	; adjust to 0-15
+	jmp	gf1a
+gf1:
+	lda	cdisk	; set current disk
+gf1a:
+	sta	disk	; set new disk
+	mov	a,c	; get user
+	cpi	0ffh	; current?
+	jz	gf2
+	cpi	'?'	; current if all
+	jnz	gf2a
+gf2:
+	lda	cuser	; set current user
+gf2a:
+	sta	user	; set new user
+	mov	c,a	; set user
+	lda	disk	; set disk
+	mov	b,a
+	call	logud	; go there
+	lxi	h,fcb+9	; check for file type
+	mov	a,m	; any file type?
+	cpi	' '	; <sp> if none
+	jnz	gf3
+	xchg		; set file type
+	lxi	h,comtyp
+	mvi	b,3	; 3 bytes
+	call	moveb
+gf3:
+	mvi	a,0ffh	; set OK
+	ora	a
+	ret
+;
+;  Skip to Non-Blank
+;
+sblank:
+	mov	a,m	; skip to first non-blank
+	inx	h
+	cpi	' '
+	jz	sblank
+	dcx	h	; pt to first non-blank
+	ret
+;
+;  Buffers
+;
+comtyp:	db	'COM'	; default file type
+nblocks:
+	ds	1	; block counter
+dcount:	ds	2	; dot counter
+gfflag:	ds	1	; file abort flag
+cdisk:	ds	1	; current disk number
+cuser:	ds	1	; current user number
+disk:	ds	1	; disk number
+user:	ds	1	; user number
+disks:	ds	1	; source disk number
+users:	ds	1	; source user number
+z2tname:
+	db	'ZCPR2'	; test name to verify right kind of utility
+fcbout:
+	db	0	; temporary output file FCB
+	db	'WORK    $$$'
+	ds	4
+	ds	16
+	ds	4
+dfcb:
+	ds	36	; dummy FCB
+fcb:
+	ds	36	; new file name FCB
+fcbin:
+	ds	36	; input file FCB
+cpyflg:
+	db	0	; no previous copy done
+tmpbuff:
+	ds	bufsiz	; temporary buffer
+	ds	200	; 100 elt stack
+stack:	ds	2
+
+;
+;  Print the current options setting
+;
+propt:
+	call	print
+	db	cr,lf,'**** Default Flag/Value Settings ****',0
+	call	prex	; external paths
+	call	prmc	; multiple commands
+	call	prmdisk	; max disk
+	call	prdok	; disk ok
+	call	prpu	; privileged user
+	call	prcud	; current user/disk indic
+	call	prnd	; named directories
+	lda	z2class	; check class
+	cpi	1	; I/O (DEVICE, IOLOADER, RECORD)?
+	jz	prio
+	cpi	2	; MCOPY?
+	jz	prmcopy
+	cpi	3	; XDIR3?
+	jz	prxdir
+	cpi	4	; ZEX?
+	jz	przex
+	cpi	5	; LRUNZ, LDIRZ, or HELP?
+	jz	prlrunz
+	cpi	6	; DU2?
+	jz	prdu2
+	cpi	7	; TINIT?
+	jz	prtinit
+	cpi	8	; WHEEL?
+	jz	prwheel
+	ret
+;
+;  Print Wheel Byte Address
+;
+prwheel:
+	call	print
+	db	cr,lf,'Address of Wheel Byte: ',0
+	lhld	wheel	; get it
+	call	prhnum	; print as Hex
+	ret
+;
+;  Print LRUNZ file name
+;
+prlrunz:
+	call	print
+	db	cr,lf,'Default Name of Search File: ',0
+	lxi	h,cfile	; pt to file name
+	call	prfn
+	ret
+;
+;  Print TINIT Data
+;
+prtinit:
+	call	print
+	db	cr,lf,'Processor Speed for TINIT: ',0
+	lda	pspeed	;get it
+	call	padc
+	call	print
+	db	' MHz'
+	db	cr,lf,'Default Configuration File: ',0
+	lxi	h,cfgfile	;pt to file name
+	call	prfn	;print file name
+	ret
+;
+;  Print DU2 Data
+;
+prdu2:
+	call	print
+	db	cr,lf,'Processor Speed for DU2: ',0
+	lda	pspeed	;get it
+	call	padc	;decimal
+	call	print
+	db	' MHz'
+	db	cr,lf,'Number of Lines on Screen: ',0
+	lda	ssize	;get it
+	call	padc	;decimal
+	ret
+;
+;  print I/O data
+;
+prio:
+	lhld	iobase	; Get I/O Base Address
+	call	print
+	db	cr,lf,'I/O Base Address: ',0
+	mov	a,h	; Check for definition
+	ora	l
+	jnz	prio1
+	call	print
+	db	'NOT Defined',0
+	ret
+prio1:
+	jmp	prhnum	; print as hex
+
+;
+;  print XDIR3 data
+;
+prxdir:
+	lxi	h,igrp	; pt to first buffer
+	call	print
+	db	cr,lf,'Group by File ',0
+	mov	a,m	; get flag
+	ora	a	; 0=Name and Type
+	jz	prx1
+	call	print
+	db	'Type and Name',0
+	jmp	prx1a
+prx1:
+	call	print
+	db	'Name and Type',0
+prx1a:
+	inx	h	; pt to next
+	mov	a,m	; get flag
+	ora	a	; 0=vertical
+	jnz	prx2
+	call	print
+	db	cr,lf,'Vertical',0
+	jmp	prx2a
+prx2:
+	call	print
+	db	cr,lf,'Horizontal',0
+prx2a:
+	call	print
+	db	' Display Format',0
+	inx	h	; pt to next
+	call	print
+	db	cr,lf,'Attributes of Displayed Files: ',0
+	mov	a,m	; get flag
+	ani	80h	; look for Non-Sys
+	jz	prx3
+	call	print
+	db	'Non-System ',0
+prx3:
+	mov	a,m	; get flag
+	ani	40h	; look for Sys
+	jz	prx4
+	call	print
+	db	'System',0
+prx4:
+	inx	h
+	call	print
+	db	cr,lf,'Default Function: ',0
+	mov	a,m	; get flag
+	ora	a	; 0=dir
+	jnz	prx5
+	call	print
+	db	'Directory Display',0
+	jmp	prx5a
+prx5:
+	call	print
+	db	'Directory File Scan',0
+prx5a:
+	inx	h
+	call	print
+	db	cr,lf,'Enable F Options: ',0
+	call	pryn
+	mov	a,m	; get flag again
+	inx	h
+	ora	a	; 0=no
+	jz	prx6
+	call	print
+	db	'	Enable FL Option: ',0
+	call	pryn
+prx6:
+	inx	h
+	call	print
+	db	cr,lf,'Enable AS Option: ',0
+	call	pryn
+	ret
+;
+;  print MCOPY data
+;
+prmcopy:
+	call	print
+	db	cr,lf,'Verify by Default: ',0
+	lxi	h,verflg	; get flag
+	call	pryn
+	call	print
+	db	cr,lf,'Inspect by Default: ',0
+	lxi	h,insp	; get flag
+	call	pryn
+	call	print
+	db	cr,lf,'Quiet by Default: ',0
+	lxi	h,quiet
+	call	pryn
+	call	print
+	db	cr,lf,'Multiple Run by Default: ',0
+	lxi	h,ncopy
+	call	pryn
+	call	print
+	db	cr,lf,'Default Destination Disk/User: ',0
+	lda	ddisk	; get disk
+	adi	'A'	; convert to letter
+	call	cout
+	lda	duser	; get user
+	call	padc	; print as dec
+	mvi	a,':'
+	call	cout
+	ret
+;
+;  print ZEX data
+;
+przex:
+	call	print
+	db	cr,lf,'ZEX: User Input Termination Character is ',0
+	lda	tnuich	; get char
+	push	psw	; save char
+	ani	7fh	; mask MSB
+	call	cout
+	call	print
+	db	cr,lf,'	MSB is ',0
+	pop	psw	; get char
+	ani	80h	; check MSB
+	jnz	przex1
+	call	print
+	db	'NOT ',0
+przex1:
+	call	print
+	db	'Set',0
+	ret
+;
+;  external paths
+;
+prex:
+	lda	epreqd	; get req'd flag
+	ora	a	; 0=no
+	rz
+	lxi	h,epavail
+	call	print
+	db	cr,lf,'Enable External Paths: ',0
+	call	pryn
+	ora	a	; 0=no
+	jz	prex1	; print internal path if no external paths
+	inx	h
+	mov	a,m	; get low-order address
+	inx	h
+	mov	h,m	; get high-order address
+	mov	l,a	; low in L
+	call	print
+	db	'  External Path Address: ',0
+	call	prhnum	; print hex number
+prex1:
+	call	print
+	db	cr,lf,'   Internal Path is -- ',0
+	lxi	h,intpath	; pt to path
+	mov	a,m	; get first byte
+	ora	a	; any path at all?
+	jnz	prex2
+	call	print
+	db	'Empty',0
+	ret
+prex2:
+	mvi	b,'$'	; assume current element indic is a '$'
+	lda	cdreqd	; current indicator reqd?
+	ora	a	; 0=no
+	jz	prex3
+	lda	cindic	; get current element indicator
+	mov	b,a	; ... in B
+prex3:
+	call	prpelt	; print path element
+	mov	a,m	; end of path?
+	ora	a	; 0=yes
+	rz
+	call	print
+	db	' --> ',0	; print separator
+	jmp	prex2
+prpelt:
+	mov	a,m	; get disk
+	cmp	b	; current?
+	jz	prpe1
+	adi	'@'	; convert to letter
+prpe1:
+	call	cout
+	inx	h	; pt to user
+	mov	a,m	; get user
+	cmp	b	; current?
+	jz	prpe2
+	call	padc	; print user number
+	jmp	prpe3
+prpe2:
+	call	cout	; print current indicator
+prpe3:
+	mvi	a,':'	; colon
+	call	cout
+	inx	h	; pt to next element
+	ret
+
+;
+;  multiple commands
+;
+prmc:
+	lda	mcreqd	; required?
+	ora	a	; 0=no
+	rz
+	lxi	h,mcavail
+	call	print
+	db	cr,lf,'Enable Multiple Command Line Buffer: ',0
+	call	pryn
+	ora	a	; 0=no
+	rz		; done if no multiple command line buffer
+	inx	h
+	mov	a,m	; get low-order address
+	inx	h
+	mov	h,m	; get high-order address
+	mov	l,a	; low in L
+	call	print
+	db	'  Buffer Address: ',0
+	call	prhnum	; print hex number
+	ret
+
+;
+;  max disk
+;
+prmdisk:
+	lda	mxreqd	; reqd?
+	ora	a
+	rz
+	call	print
+	db	cr,lf,'Maximum Disk: ',0
+	lda	mdisk	; get number
+	adi	'@'	; convert to ASCII
+	call	cout
+	call	print
+	db	'   ',0
+;
+;  max user
+;
+prmuser:
+	call	print
+	db	'Maximum User Number: ',0
+	lda	muser	; get number
+	call	padc	; print as decimal
+	ret
+
+;
+;  disk ok
+;
+prdok:
+	lda	udreqd	; reqd?
+	ora	a
+	rz
+	lxi	h,dok
+	call	print
+	db	cr,lf,'Disk Specification Allowed: ',0
+	call	pryn	; Yes or No
+	call	print
+	db	'   ',0
+;
+;  user ok
+;
+pruok:
+	lxi	h,uok
+	call	print
+	db	'User Spec Allowed: ',0
+	call	pryn
+	ret
+
+;
+;  priv user
+;
+prpu:
+	lda	pureqd	; reqd?
+	ora	a
+	rz
+	call	print
+	db	cr,lf,'Base of Privileged User Areas: ',0
+	lda	puser	; get number
+	call	padc
+	call	print
+	db	'   Password: ',0
+	lxi	h,ppass
+	call	pstr
+	ret
+
+;
+;  current user/disk indicator
+;
+prcud:
+	lda	cdreqd	; reqd?
+	ora	a
+	rz
+	call	print
+	db	cr,lf,'Current User/Disk Indicator: ',0
+	lda	cindic	; get char
+	call	cout	; print it
+	call	print
+	db	'   ',0
+;
+;  DMA Address
+;
+prdma:
+	call	print
+	db	'DMA Address for Disk I/O: ',0
+	lhld	dmadr	; get address
+	call	prhnum	; print hex number
+	ret
+
+;
+;  named directories
+;
+prnd:
+	lda	ndreqd	; reqd?
+	ora	a
+	rz
+	lhld	ndradr	; get address
+	mov	a,h	; no memory-resident directory?
+	ora	l
+	jz	prnd0
+	call	print
+	db	cr,lf,'Address of Memory-Resident Named Directory Buffer: ',0
+	call	prhnum	; print hex number
+	jmp	prnd1
+prnd0:
+	call	print
+	db	cr,lf,'No Memory-Resident Named Directory Buffer',0
+prnd1:
+	call	print
+	db	cr,lf,'   Number of Named Dirs Allowed: ',0
+	lda	ndnames	; get count
+	call	padc	; print as dec
+	call	print
+	db	'   Named Dir File: ',0
+	lxi	h,dnfile	; pt to file name
+	call	prfn	; print it
+	ret
+
+;
+;  Print utilities
+;
+prhnum:
+	call	phl4hc	; print hex digits
+	call	print
+	db	' Hex',0
+	ret
+pryn:
+	mov	a,m	; get flag
+	ora	a	; 0=no
+	jz	pryn1
+	call	print
+	db	'Yes',0
+	ret
+pryn1:
+	call	print
+	db	'No',0
+	ret
+
+prfn:
+	mvi	b,8	; 8 chars
+	call	prch
+	mvi	a,'.'
+	call	cout
+	mvi	b,3	; 3 chars
+prch:
+	mov	a,m	; get char
+	call	cout	; print it
+	inx	h	; pt to next
+	dcr	b	; count down
+	jnz	prch
+	ret
+
+;
+;  Set buffer contents
+;
+setup:
+	call	fdata	; print file name
+	call	print
+	db	cr,lf,'** GENINS Flag/Value Setup **'
+	db	cr,lf,'	Select Standard Flags and Values'
+	db	cr,lf,'		(* indicates unnecessary option) --'
+	db	cr,lf
+	db	cr,lf,'	P  Print Flags and Values	'
+	db	'S  Setup ALL Flags and Values'
+	db	cr,lf,'	<  Save All Flags/Values	'
+	db	'>  Restore All Flags/Values'
+	db	cr,lf,'	Q  Quit and Do Not Update	'
+	db	'X  Exit and Optionally Update'
+	db	cr,lf
+	db	cr,lf,'	0',0
+	lda	ndreqd	; named dirs required?
+	call	prast
+	call	print
+	db	' Setup Named Directory Data	'
+	db	'5',0
+	lda	udreqd	; user/disk required?
+	call	prast
+	call	print
+	db	' Set Disk Allowed Flag'
+	db	cr,lf,'	1',0
+	lda	epreqd	; ext path required?
+	call	prast
+	call	print
+	db	' Setup External Path Data	'
+	db	'6',0
+	lda	udreqd	; user/disk required?
+	call	prast
+	call	print
+	db	' Set User Allowed Flag'
+	db	cr,lf,'	2',0
+	lda	mcreqd	; multiple commands required?
+	call	prast
+	call	print
+	db	' Setup Multiple Command Line	'
+	db	'7',0
+	lda	pureqd	; priv user required?
+	call	prast
+	call	print
+	db	' Setup Priv User Data'
+	db	cr,lf,'	3',0
+	lda	mxreqd	; max user/disk required?
+	call	prast
+	call	print
+	db	' Set Max Disk			'
+	db	'8',0
+	lda	cdreqd	; current disk required?
+	call	prast
+	call	print
+	db	' Set Current User/Disk Data'
+	db	cr,lf,'	4',0
+	lda	mxreqd	; max user/disk required?
+	call	prast
+	call	print
+	db	' Set Max User			'
+	db	'9',0
+	lda	cdreqd	; current disk required?
+	call	prast
+	call	print
+	db	' Set File DMA Address'
+	db	0
+	lda	z2class	; check class for ZEX
+	cpi	4
+	jnz	su1
+	call	print
+	db	cr,lf,lf,'	A  Set ZEX User Input Termination Character',0
+	jmp	setcmd
+su1:
+	cpi	2	; check class for MCOPY
+	jnz	su2
+	call	print
+	db	cr,lf,lf,'	A  Set MCOPY Special Default Values',0
+	jmp	setcmd
+su2:
+	cpi	1	; check class for I/O
+	jnz	su3
+	call	print
+	db	cr,lf,lf,'	A  Set I/O Class (DEVICE, IOLOADER, RECORD) '
+	db	'Default Values',0
+	jmp	setcmd
+su3:
+	cpi	3	; check class for XDIR3
+	jnz	su4
+	call	print
+	db	cr,lf,lf,'	A  Set XDIR3 Special Default Values',0
+	jmp	setcmd
+su4:
+	cpi	5	; check class for LRUNZ, LDIRZ, or HELP
+	jnz	su5
+	call	print
+	db	cr,lf,lf,'	A  Set Default Search File Name',0
+	jmp	setcmd
+su5:
+	cpi	6	; check class for DU2
+	jnz	su6
+	call	print
+	db	cr,lf,lf,'	A  Set DU2 Special Default Values',0
+	jmp	setcmd
+su6:
+	cpi	7	; check class for TINIT
+	jnz	su7
+	call	print
+	db	cr,lf,lf,'	A  Set TINIT Special Default Values',0
+	jmp	setcmd
+su7:
+	cpi	8	; check class for WHEEL
+	jnz	su8
+	call	print
+	db	cr,lf,lf,'	A  Set WHEEL Byte Address',0
+	jmp	setcmd
+su8:
+;
+;  Function-Specific Table goes here
+;
+setcmd:
+	call	print
+	db	cr,lf,lf,'Setup Command (? for Menu)? ',0
+	call	capin	; get input
+	cpi	'?'	; menu?
+	jz	setup
+	cpi	'/'	; menu?
+	jz	setup
+	cpi	'<'	; save?
+	jz	setsav
+	cpi	'>'	; restore?
+	jz	setres
+	cpi	'Q'	; abort?
+	rz
+	cpi	'X'	; abort?
+	rz
+	call	stscn0	; scan for defaults
+	jz	run	; if found, run
+	lda	z2class	; check for classes
+	cpi	0	; general?
+	jz	setinv
+	cpi	4	; ZEX?
+	jnz	sc1
+	call	stscnz	; scan for ZEX
+	jz	run
+	jmp	setinv
+sc1:
+	cpi	2	; MCOPY?
+	jnz	sc2
+	call	stscnm	; scan for MCOPY
+	jz	run
+	jmp	setinv
+sc2:
+	cpi	1	; I/O?
+	jnz	sc3
+	call	stscni	; scan for I/O
+	jz	run
+	jmp	setinv
+sc3:
+	cpi	3	; XDIR3?
+	jnz	sc4
+	call	stscnx	; scan for XDIR3
+	jz	run
+	jmp	setinv
+sc4:
+	cpi	5	; LRUNZ, LDIRZ, or HELP2?
+	jnz	sc5
+	call	stscnl
+	jz	run
+	jmp	setinv
+sc5:
+	cpi	6	; DU2?
+	jnz	sc6
+	call	stscnd
+	jz	run
+	jmp	setinv
+sc6:
+	cpi	7	; TINIT?
+	jnz	sc7
+	call	stscnt
+	jz	run
+	jmp	setinv
+sc7:
+	cpi	8	; WHEEL?
+	jnz	sc8
+	call	stscnw
+	jz	run
+	jmp	setinv
+sc8:
+setinv:
+	call	print
+	db	cr,lf,'Invalid Command',0
+	jmp	setup
+;
+;  Print Asterisk if Char in A is 0, else print <SP>
+;
+prast:
+	mvi	b,'*'	; prep to print asterisk
+	ora	a	; zero?
+	jz	prast1
+	mvi	b,' '	; print space
+prast1:
+	mov	a,b	; get char
+	jmp	cout	; print it
+
+;
+;  Save Buffer Contents
+;
+setsav:
+	lxi	h,epavail	; copy buffer
+	lxi	d,tmpbuff	; ... into tmpbuff
+	mvi	b,bufsiz	; size of buffers
+	call	moveb
+	mvi	a,0ffh		; set flag
+	sta	cpyflg
+	jmp	setcmd
+;
+;  Restore Buffer Contents
+;
+setres:
+	lda	cpyflg		; check for previous save
+	ora	a		; 0=no
+	jz	sreserr
+	lxi	d,epavail	; copy into optbuff
+	lxi	h,tmpbuff	; ... from tmpbuff
+	mvi	b,bufsiz	; size of buffers
+	call	moveb
+	jmp	setcmd
+sreserr:
+	call	print
+	db	cr,lf,'Error -- Restore Attempted with Nothing Saved',0
+	jmp	setcmd
+;
+;  Run command whose address is in HL
+;
+run:
+	lxi	d,setcmd	; set up return address
+	push	d
+	pchl		; "call" command
+;
+;  Scan Command Table for Command in B; return with Zero Flag Set and
+;  HL = Address if found, else A unchanged but NZ
+;
+;  On input, DE pts to command table and B=Command
+;
+stscn:
+	ldax	d	; get table entry
+	ora	a	; end of table?
+	jz	stsnf	; not found if so
+	cmp	b	; match?
+	jz	stsfnd	; found if so
+	inx	d	; skip to next
+	inx	d
+	inx	d
+	jmp	stscn
+stsfnd:
+	inx	d	; pt to low
+	ldax	d	; get low
+	mov	l,a
+	inx	d	; pt to high
+	ldax	d	; get high
+	mov	h,a
+	xra	a	; set found flag
+	ret
+stsnf:
+	mvi	a,0ffh	; set not found flag
+	ora	a
+	ret
+;
+;  Scan Default Table
+;
+stscn0:
+	lxi	d,table0	; pt to default table
+	mov	b,a		; command in B
+	jmp	stscn
+;
+;  Scan WHEEL Table
+;
+stscnw:
+	lxi	d,tablew	; pt to WHEEL table
+	jmp	stscn
+;
+;  Scan TINIT Table
+;
+stscnt:
+	lxi	d,tablet	; pt to TINIT table
+	jmp	stscn
+;
+;  Scan ZEX Table
+;
+stscnz:
+	lxi	d,tablez	; pt to ZEX table
+	jmp	stscn
+;
+;  Scan LRUNZ, LDIRZ, or HELP2 Table
+;
+stscnl:
+	lxi	d,tablel	; pt to LRUNZ table
+	jmp	stscn
+;
+;  Scan DU2 Table
+;
+stscnd:
+	lxi	d,tabled	; pt to DU2 table
+	jmp	stscn
+;
+;  Scan XDIR3 Table
+;
+stscnx:
+	lxi	d,tablex	; pt to XDIR3 table
+	jmp	stscn
+;
+;  Scan MCOPY Table
+;
+stscnm:
+	lxi	d,tablem	; pt to MCOPY table
+	jmp	stscn
+;
+;  Scan I/O Table
+;
+stscni:
+	lxi	d,tablei	; pt to I/O table
+	jmp	stscn
+;
+;  Setup Function Tables
+;
+table0:				; default table
+	db	'P'
+	dw	propt
+	db	'S'
+	dw	stall
+	db	'0'
+	dw	stnd
+	db	'1'
+	dw	stex
+	db	'2'
+	dw	stmc
+	db	'3'
+	dw	stmdisk
+	db	'4'
+	dw	stmuser
+	db	'5'
+	dw	stdok
+	db	'6'
+	dw	stuok
+	db	'7'
+	dw	stpu
+	db	'8'
+	dw	stcud
+	db	'9'
+	dw	stdma
+	db	0	; end of table
+tablew:
+	db	'A'	; WHEEL option
+	dw	stwheel
+	db	0
+tablet:
+	db	'A'	; TINIT option
+	dw	sttinit
+	db	0
+tablez:
+	db	'A'	; ZEX option
+	dw	stzex
+	db	0
+tablem:
+	db	'A'	; MCOPY option
+	dw	stmcopy
+	db	0
+tablei:
+	db	'A'	; I/O option
+	dw	stio
+	db	0
+tablex:
+	db	'A'	; XDIR3 option
+	dw	stxdir
+	db	0
+tabled:
+	db	'A'	; DU2 option
+	dw	stdu2
+	db	0
+tablel:
+	db	'A'	; LRUNZ option
+	dw	stlrunz
+	db	0
+;
+;  Set WHEEL Byte Address
+;
+stwheel:
+	call	prwheel	; print data
+	call	print
+	db	cr,lf,'1  Address of Wheel Byte?'
+	db	cr,lf,'	Enter Hex Number or <RETURN> = ',0
+	lhld	wheel	; print value
+	call	prhnum
+	call	print
+	db	'? ',0
+	call	gethnum	; get value
+	rz
+	shld	wheel	; set value
+	ret
+;
+;  Set TINIT Parameters
+;
+sttinit:
+	call	prtinit	; print data
+	call	getpspeed	; get processor speed
+	call	print
+	db	cr,lf,'2  Name of Default Configuration File'
+	db	cr,lf,'	Enter File Name or <RETURN> = ',0
+	lxi	h,cfgfile
+	call	prfn
+	call	print
+	db	'? ',0
+	lxi	d,cfgfile	; pt to file name storage area
+	jmp	getfname
+getpspeed:
+	call	print
+	db	cr,lf,'1  Processor Speed in MHz (<RETURN> = ',0
+	lda	pspeed
+	call	padc
+	call	print
+	db	')? ',0
+	call	getnum	; get number in HL
+	rz		; no change?
+	mov	a,l	; set new speed
+	sta	pspeed
+	ret
+;
+;  Set DU2 Parameters
+;
+stdu2:
+	call	prdu2	; print data
+	call	getpspeed	; get processor speed
+	call	print
+	db	cr,lf,'2  Number of Lines on Your CRT (<RETURN> = ',0
+	lda	ssize	; get size
+	call	padc
+	call	print
+	db	')? ',0
+	call	getnum	; get number in HL
+	rz
+	mov	a,l	; set new screen size
+	sta	ssize
+	ret
+;
+;  Set Search File Name
+;
+stlrunz:
+	call	prlrunz	; print data
+	call	print
+	db	cr,lf,'1  Name of Search File'
+	db	cr,lf,'	Enter File Name or <RETURN> = ',0
+	lxi	h,cfile
+	call	prfn
+	call	print
+	db	'? ',0
+	lxi	d,cfile	; pt to name buffer
+	jmp	getfname	; get file name
+;
+;  Set I/O Parameters
+;
+stio:
+	call	prio	; print option
+	call	print
+	db	cr,lf,'1  I/O Base Address (Hex) (<RETURN> = ',0
+	lhld	iobase	; get current
+	mov	a,h	; any?
+	ora	l
+	jz	stio1
+	call	phl4hc	; print as hex
+	call	print
+	db	' Hex)? ',0
+	jmp	stio2
+stio1:
+	call	print
+	db	'None)? ',0
+stio2:
+	call	gethnum	; get hex number in HL
+	rz
+	shld	iobase	; save it
+	ret
+;
+;  Set XDIR3 Parameters
+;
+stxdir:
+	call	prxdir	; print options
+	lxi	h,igrp	; pt to first param
+	mvi	m,0	; assume no
+	call	print
+	db	cr,lf,'1  Group by File Type and Name [No=Name and Type] ',0
+	call	getyn
+	jz	stx1
+	mvi	m,0ffh	; set yes
+stx1:
+	inx	h	; pt to next
+	mvi	m,0ffh	; assume no
+	call	print
+	db	cr,lf,'2  Vertical Display [No=Horizontal] ',0
+	call	getyn
+	jz	stx2
+	mvi	m,0	; set yes
+stx2:
+	inx	h	; pt to next
+	mvi	b,0	; set no select
+	call	print
+	db	cr,lf,'3a Select Non-System Files',0
+	call	getyn
+	jz	stx2a
+	mvi	a,80h	; select non-sys
+	ora	b
+	mov	b,a	; result in B
+stx2a:
+	call	print
+	db	cr,lf,'3b Select System Files',0
+	call	getyn
+	jz	stx3
+	mvi	a,40h	; select sys
+	ora	b
+	mov	b,a	; result in B
+stx3:
+	mov	m,b	; set flag
+	inx	h	; pt to next
+	mvi	m,0ffh	; assume no
+	call	print
+	db	cr,lf,'4  Display Directory [No=Scan] ',0
+	call	getyn
+	jz	stx4
+	mvi	m,0	; set yes
+stx4:
+	inx	h	; pt to next
+	mvi	m,0	; assume no
+	call	print
+	db	cr,lf,'5  Enable F Options',0
+	call	getyn
+	jz	stx5
+	mvi	m,0ffh	; set yes
+stx5:
+	mov	a,m	; get flag
+	inx	h	; pt to next
+	ora	a	; 0=no
+	jz	stx6
+	mvi	m,0	; assume no
+	call	print
+	db	cr,lf,'5a Enable FL Option',0
+	call	getyn
+	jz	stx6
+	mvi	m,0ffh	; set yes
+stx6:
+	inx	h	; pt to next
+	mvi	m,0	; assume no
+	call	print
+	db	cr,lf,'6  Enable AS Option',0
+	call	getyn
+	rz
+	mvi	m,0ffh	; set yes
+	ret
+;
+;  Set MCOPY Parameters
+;
+stmcopy:
+	call	prmcopy	; print current values
+	lxi	h,verflg	; pt to flag
+	mvi	m,0	; turn verify off
+	call	print
+	db	cr,lf,'1  Enable Verify Default',0
+	call	getyn	; get response
+	jz	stm1
+	mvi	m,0ffh	; turn verify on
+stm1:
+	inx	h	; pt to next
+	mvi	m,0	; turn inspect off
+	call	print
+	db	cr,lf,'2  Enable Inspect Default',0
+	call	getyn	; get response
+	jz	stm2
+	mvi	m,0ffh	; turn inspect on
+stm2:
+	inx	h	; pt to next
+	mvi	m,0	; turn quiet off
+	call	print
+	db	cr,lf,'3  Enable Quiet Default',0
+	call	getyn	; get response
+	jz	stm3
+	mvi	m,0ffh	; turn quiet on
+stm3:
+	inx	h	; pt to next
+	mvi	m,0	; turn multiple run off
+	call	print
+	db	cr,lf,'4  Enable Multiple Run Default',0
+	call	getyn
+	jz	stm4
+	mvi	m,0ffh	; turn multiple run on
+stm4:
+	inx	h
+stm4a:
+	call	print
+	db	cr,lf,'5a Default Destination Disk Letter? ',0
+	call	cin	; get response
+	call	caps
+	call	cout
+	sui	'A'	; convert to number
+	jc	stm4b
+	mov	b,a	; save in B
+	lda	mdisk	; compare to max
+	dcr	a
+	cmp	b
+	jc	stm4b
+	mov	m,b	; store disk number
+	jmp	stm5
+stm4b:
+	call	print
+	db	cr,lf,'	Invalid Disk Letter -- Out of Range of A to ',0
+	lda	mdisk	; get max
+	adi	'@'	; convert to letter
+	call	cout
+	call	print
+	db	' -- Reenter',0
+	jmp	stm4a
+stm5:
+	inx	h	; pt to user
+stm5a:
+	call	print
+	db	cr,lf,'5b Default Destination User Number (<RETURN> = ',0
+	mov	a,m	; get user number
+	call	padc
+	call	print
+	db	')? ',0
+	push	h	; save HL
+	call	getnum	; get number
+	xchg		; number in DE
+	pop	h	; get HL
+	rz		; no change
+	mov	a,d	; check for range
+	ora	a	; must be zero
+	jnz	stm5b
+	lda	muser	; check for max user
+	cmp	e
+	jc	stm5b
+	mov	m,e	; store user number
+	ret
+stm5b:
+	call	print
+	db	cr,lf,'	User Number Out of Range -- Must be Less Than ',0
+	lda	muser	; get max
+	adi	1	; add 1 for LT
+	call	padc
+	call	print
+	db	' -- Reenter',0
+	jmp	stm5a
+
+;
+;  Set ZEX Parameter
+;
+stzex:
+	call	przex	; print data
+	call	print
+	db	cr,lf,'1  New Command Character? ',0
+	call	cin	; get response
+	call	cout	; echo
+	mov	b,a	; save in B
+	call	print
+	db	cr,lf,'1a Set MSB',0
+	call	getyn	; get response
+	jz	stzex1
+	mvi	a,80h	; set MSB
+	ora	b
+	mov	b,a
+stzex1:
+	mov	a,b	; get char
+	sta	tnuich	; save it
+	ret
+;
+;  Set Up All Flags/Values
+;
+stall:
+	call	crlf
+	call	stnd	; named directory data
+	call	crlf
+	call	stex	; configure external path data
+	call	crlf
+	call	stmc	; store multiple command line buffer data
+	call	crlf
+	call	stmdisk	; store max disk number
+	call	crlf
+	call	stmuser	; store max user number
+	call	crlf
+	call	stdok	; set disk allowed
+	call	crlf
+	call	stuok	; set user allowed
+	call	crlf
+	call	stpu	; set privileged user info
+	call	crlf
+	call	stcud	; set current user/disk indicator
+	call	crlf
+	call	stdma	; set DMA address
+	call	crlf
+	lda	z2class	; get class
+	cpi	1	; I/O?
+	jz	stio
+	cpi	2	; MCOPY?
+	jz	stmcopy
+	cpi	3	; XDIR3?
+	jz	stxdir
+	cpi	4	; ZEX?
+	jz	stzex
+	cpi	5	; LRUNZ?
+	jz	stlrunz
+	cpi	6	; DU2?
+	jz	stdu2
+	cpi	7	; TINIT?
+	jz	sttinit
+	cpi	8	; WHEEL?
+	jz	stwheel
+	ret
+
+;
+;  external paths
+;
+stex:
+	lda	epreqd	; get req'd flag
+	ora	a	; 0=no
+	rz
+	call	prex	; print data
+	xra	a	; assume no external paths
+	sta	epavail	; set flag
+	call	pq	; print question prompt
+	call	print
+	db	cr,lf,'1  Enable External Paths',0
+	call	getyn	; get Y/N from user
+	jz	stex1	; if no, continue
+	mvi	a,0ffh	; set external paths on
+	sta	epavail
+	call	print
+	db	cr,lf,'1a Address of External Path in Hex (<RETURN> = ',0
+	lhld	epadr
+	call	phl4hc
+	call	print
+	db	' Hex)? ',0
+	call	gethnum	; get number
+	jz	stex1
+	shld	epadr	; set address of external path
+stex1:
+	lxi	d,intpath	; pt to internal path
+	xra	a	; set empty path
+	stax	d
+	call	print
+	db	cr,lf,'2  Enable Internal Path',0
+	call	getyn	; get Y/N from user
+	rz		; done if no
+	call	print
+	db	cr,lf,'2a Define Internal Path Using Symbolic Notation --',0
+	mvi	b,'0'	; set element number
+stex2:
+	inr	b	; increment count
+stex3:
+	call	crlf	; new line
+	mov	a,b	; get value
+	call	cout	; print value
+	call	print
+	db	'.  Path Element (<CR>=Done)? ',0
+	xra	a	; A=0
+	stax	d	; assume end of path
+	cma		; A=0ffh for capitalize
+	call	bbline	; get line from user
+	ora	a	; empty?
+	rz
+	mov	a,m	; get disk letter
+	cpi	'$'	; current?
+	jz	stex4
+	sui	'A'	; convert to binary
+	jc	peerr	; path element error
+	cpi	16	; range?
+	jnc	peerr
+	inr	a	; adjust to 1-16
+	jmp	stex4
+peerr:
+	call	print
+	db	cr,lf,'Invalid Path Element -- Reenter',0
+	jmp	stex3
+stex4:
+	stax	d	; store it
+	inx	h	; pt to next
+	inx	d	; pt to next
+	mov	a,m	; get character
+	cpi	'$'	; current?
+	jz	stex5
+	push	d	; save DE
+	call	eval10	; convert chars to number in A
+	pop	d
+stex5:
+	stax	d	; store current
+	inx	d	; pt to next
+	mov	a,b	; check for done
+	cpi	'8'	; done if 8 completed
+	jnz	stex2
+	xra	a	; terminate path
+	stax	d	; store binary 0
+	ret
+
+;
+;  multiple commands
+;
+stmc:
+	lda	mcreqd	; required?
+	ora	a	; 0=no
+	rz
+	call	prmc
+	call	pq
+	lxi	d,mcavail	; pt to multiple command line buffer
+	xra	a	; A=0
+	stax	d
+	call	print
+	db	cr,lf,'1  Enable Multiple Command Line Buffer',0
+	call	getyn	; get Y/N
+	rz		; done if no multiple command line buffer
+	mvi	a,0ffh	; turn buffer flag on
+	stax	d
+	call	print
+	db	cr,lf,'1a Address of Multiple Command Line Buffer'
+	db	cr,lf,'	Enter Hex Number or <RETURN> = ',0
+	inx	d
+	ldax	d
+	mov	l,a
+	inx	d
+	ldax	d
+	mov	h,a
+	dcx	d
+	dcx	d
+	call	phl4hc
+	call	print
+	db	' Hex? ',0
+	call	gethnum
+	rz
+	inx	d
+	mov	a,l	; get low-order address
+	stax	d	; set low
+	inx	d
+	mov	a,h	; get high-order address
+	stax	d	; set high
+	ret
+
+;
+;  max disk
+;
+stmdisk:
+	lda	mxreqd	; reqd?
+	ora	a
+	rz
+	call	prmdisk
+	call	pq
+stmd1:
+	call	print
+	db	cr,lf,'1  Maximum Disk Allowed? ',0
+	call	capin	; get response
+	sui	'@'	; convert to 1-n
+	jz	stmder
+	sta	mdisk	; set max disk
+	cpi	17	; range?
+	rc
+stmder:
+	call	print
+	db	cr,lf,'Invalid Disk Letter -- Reenter',0
+	jmp	stmd1
+
+;
+;  max user
+;
+stmuser:
+	lda	mxreqd	; reqd?
+	ora	a
+	rz
+	call	crlf	; new line
+	call	prmuser
+	call	pq
+stmu1:
+	call	print
+	db	cr,lf,'1  Maximum User Number Allowed (<RETURN> = ',0
+	lda	muser
+	call	padc
+	call	print
+	db	')? ',0
+	call	getnum	; get number from user
+	rz
+	mov	a,h	; must be zero
+	ora	a
+	jnz	stmu2
+	mov	a,l	; get low-order
+	sta	muser	; set user number
+	cpi	32	; range?
+	rc
+stmu2:
+	call	print
+	db	cr,lf,'Invalid User Number -- Reenter',0
+	jmp	stmu1
+
+;
+;  disk ok
+;
+stdok:
+	lda	udreqd	; reqd?
+	ora	a
+	rz
+	call	prdok
+	call	pq
+	lxi	h,dok	; pt to flag
+	mvi	m,0	; assume not allowed
+	call	print
+	db	cr,lf,'1  Specification of Disk Allowed',0
+	call	getyn	; get response
+	rz
+	mvi	m,0ffh	; disk allowed
+	ret
+
+;
+;  user ok
+;
+stuok:
+	lda	udreqd	; reqd?
+	ora	a
+	rz
+	call	crlf
+	call	pruok
+	call	pq
+	lxi	h,uok
+	mvi	m,0	; assume not allowed
+	call	print
+	db	cr,lf,'1  Specification of User Allowed',0
+	call	getyn
+	rz
+	mvi	m,0ffh	; set user allowed
+	ret
+
+;
+;  priv user
+;
+stpu:
+	lda	pureqd	; reqd?
+	ora	a
+	rz
+	call	prpu
+	call	pq
+	call	print
+	db	cr,lf,'1  Base of Privileged User Areas (<RETURN> = ',0
+	lda	puser
+	call	padc
+	call	print
+	db	')? ',0
+	call	getnum	; get number
+	jz	stpu0
+	mov	a,l	; get number into A
+	sta	puser	; set number
+stpu0:
+	call	print
+	db	cr,lf,'2  Privileged User Password? ',0
+	lxi	d,ppass	; pt to password
+	xra	a	; don't capitalize
+	stax	d	; set no password
+	call	bbline	; get user response
+	ora	a	; any input?
+	rz
+stpu1:
+	mov	a,m	; copy to end of string
+	stax	d
+	inx	h	; pt to next
+	inx	d
+	ora	a	; done?
+	jnz	stpu1
+	ret
+
+;
+;  current user/disk indicator
+;
+stcud:
+	lda	cdreqd	; reqd?
+	ora	a
+	rz
+	call	prcud
+	call	pq
+	call	print
+	db	cr,lf,'1  Current User/Disk Indicator? ',0
+	call	capin	; get response
+	sta	cindic	; set flag
+	ret
+
+;
+;  DMA Address
+;
+stdma:
+	lda	cdreqd	; reqd?
+	ora	a
+	rz
+	call	crlf
+	call	prdma
+	call	pq
+	call	print
+	db	cr,lf,'1  DMA Address for Disk I/O'
+	db	cr,lf,'	Enter Hex Number or <RETURN> = ',0
+	lhld	dmadr
+	call	phl4hc
+	call	print
+	db	' Hex? ',0
+	call	gethnum	; get number
+	rz
+	shld	dmadr	; set dma address
+	ret
+
+;
+;  named directories
+;
+stnd:
+	lda	ndreqd	; reqd?
+	ora	a
+	rz
+	call	prnd
+	call	pq
+	call	print
+	db	cr,lf,'1  Address of Memory-Resident Named Directory Buffer'
+	db	cr,lf,'	Enter Hex Number or <RETURN> = None? ',0
+	call	gethnum	; get number
+	shld	ndradr	; set address
+stnd0:
+	call	print
+	db	cr,lf,'2  Number of Named Directories Permitted? '
+	db	cr,lf,'	Enter Decimal Number or <RETURN> = ',0
+	lda	ndnames	; get count
+	call	padc
+	call	print
+	db	'? ',0
+	call	getnum	; get number
+	jz	stnd2	; skip if no entry
+	mov	a,h	; must be 8-bit number
+	ora	a	; must be zero
+	jz	stnd1
+	call	print
+	db	cr,lf,'Number is out of range (>255) -- Reenter',0
+	jmp	stnd0
+stnd1:
+	mov	a,l	; get low-order number
+	sta	ndnames	; get count
+stnd2:
+	call	print
+	db	cr,lf,'3  Name of Named Directory File? '
+	db	cr,lf,'	Enter only File Name and Type -- DIR: form will be '
+	db	'ignored'
+	db	cr,lf,'	Directory File Name (<RETURN> = ',0
+	lxi	h,dnfile	; pt to current entry
+	call	prfn
+	call	print
+	db	')? ',0
+	lxi	d,dnfile	; pt to buffer
+	jmp	getfname	; get file name
+;
+;  Supporting Input Routines
+;
+pq:
+	call	print
+	db	cr,lf,'** Setup Questions **',0
+	ret
+getyn:
+	call	print
+	db	' (Y/N/other=Y)? ',0
+	call	capin	; get response and capitalize
+	cpi	'N'	; check for No
+	ret
+capin:
+	call	cin	; get response
+	call	caps	; capitalize
+	call	cout	; echo
+	ret
+getnum:
+	mvi	a,0ffh	; capitalize
+	call	bbline	; input line
+	ora	a	; any input?
+	jz	gnerr	; process error if none
+	push	d	; save DE
+	call	eval10	; evaluate input
+	xchg		; number in HL
+	pop	d
+	mvi	a,0ffh	; ok
+	ora	a
+	ret
+gnerr:
+	lxi	h,0	; return zero
+	xra	a	; no input
+	ret
+gethnum:
+	mvi	a,0ffh	; capitalize
+	call	bbline	; input line
+	ora	a	; any input?
+	jz	gnerr	; process error if none
+	push	d	; save DE
+	call	eval16	; assume hex and evaluate
+	xchg		; number in HL
+	pop	d
+	mvi	a,0ffh	; OK
+	ora	a
+	ret
+
+;
+;  Get File Name into Buffer pted to by DE
+;
+getfname:
+	mvi	a,0ffh	; capitalize
+	call	bbline	; input line
+	ora	a	; noname permitted
+	rz
+	push	d	; save ptr
+	lxi	d,dfcb	; dummy fcb
+	call	fname	; extract file name info
+	jnz	stlrz1
+	pop	d	; get ptr
+	call	print
+	db	cr,lf,'Input Error -- Reenter'
+	db	cr,lf,'File Name? ',0
+	jmp	getfname
+stlrz1:
+	pop	d		; get ptr to buffer
+	lxi	h,dfcb+1	; pt to file name
+	mvi	b,11		; 11 bytes
+	call	moveb		; copy file name into buffer
+	mvi	a,0ffh		; OK
+	ora	a
+	ret
+
+	end
+

@@ -1,0 +1,89 @@
+
+[RECCOM.CNV]
+[CNVRT compiler for REC]
+[a version which compiles "assembler" code]
+[Harold V. McIntosh, 28 April 1982]
+[Harold V. McIntosh, 2 June 1983]
+[Harold V. McIntosh, 28 December 1983]
+
+[[
+Compile a REC expression into a very stylized assembly
+language program, which can nevertheless be assembled
+by a specialized assembler. Either type an expression
+to be compiled, using parentheses and braces, or two
+file names, as =INPUT,OUTPUT. If INPUT.DAT has a REC
+program, it will be compiled and placed in OUTPUT.DAT.
+Only one file may be processed in a given session, but
+several examples may be input from the console. Type a
+single carriage return to quit.
+]]
+
+
+
+[individual cases]
+(()()(0 1)(
+		((PWS,A:)(or),);
+		(<>,);
+  [space, <,>]  ((or, ,<,>)<0>,<0>):
+  [number]	((and,<:c:>,<0>)<1>,/call NU/db   <'><0><'>(A,<1>));
+  [quote]	((and,(or,<:e:>,<:f:>),<0>)<1>,/call QU/db   <0>(A,<1>));
+  [arroba]	(@(and,<[1]>,<0>)<1>,/call AR/db   <'><0><'>(A,<1>));
+  [comment]	(<:d:><0>,<0>):
+  [operator]	((and,<:o:>,<0>)<1>,/call op$<0>(A,<1>));
+  [predicate]	((and,<:p:>,<0>)<1>,/call pr$<0>/jmp  #(A,<1>));
+  [colon]	(:<1>,/jmp  %/#:(A,<1>));
+  [semicolon]	(;<1>,/jmp  $/#:(A,<1>));
+  [parenthesis]	((and,<:i:>,<(><0><)><>)<1>,/%:(A,<0>)/jmp  ##/$:/#:(A,<1>));
+  [brace]	((and,<:j:>,{<0>})<1>,<<
+		  >>/call main/jmp  #/jmp  $(B,[]<0>)(A,<1>)/$:);
+  [more source] (<0>,<0>(C,(R))):
+  )) A
+
+[string of definitions inside braces]
+(()()(0 1 2 3)(
+		((PWS,B:)(or),);
+  [main]	([<0>](and,(or,<:i:>,<:j:>),<1>) (and,<:a:>,<2>) <3>,<<
+		  >>/<2>:(A,<1>)(E)(B,[<0>(p,<2>)]<3>)(q,<2>));
+  [subroutines]	([<0>](and,(or,<:i:>,<:j:>),<1>),<<
+		  >>/pprg:(A,<1>)(E)/main:<0>/call pprg(r));
+  )) B
+
+[exclude the portion of a file following ^Z]
+(()()(0)((<0>(CTL,Z),<0>);)) C
+
+[push macro]
+(()()(0)((<0>,/lhld t$<0>/xthl/push h/lxi  h,<0>:/shld t$<0>);)) p
+
+[pop macro]
+(()()(0)((<0>,/pop  h/xthl/shld t$<0>);)) q
+
+[macro to transfer skip to stack]
+(()()()((,/jmp  $$/xthl/inx  h/inx  h/inx  h/xthl/$$:);)) r
+
+[main program]
+((
+  [alfanum]  ((and,<[1]>,(IVL, ,~,))) a
+  [numeric]  ((and,<[1]>,(IVL,0,9,))) b
+  [number]   ((or,-,)<:b:>(ITR,<:b:>)) c
+  [comment]  ([(ITR,(or,<:d:>,(and,<[1]>,(nor,[,]))))]) d
+  [s-quote]  (<'>(ITR,(or,<:e:>,<:f:>,(and,<[1]>,(nor,<'>,<">))))<'>) e
+  [d-quote]  (<">(ITR,(or,<:e:>,<:f:>,(and,<[1]>,(nor,<'>,<">))))<">) f
+	     ((or,<:c:>,<:d:>,<:e:>,<:f:>,@<[1]>,<:i:>,<:j:>)) g
+	     ((and,<[1]>,(nor,<(>,<)>,{,},[,],@,<'>,<">))) h
+  [paren]    (<(>(ITR,(or,<:g:>,<:h:>))<)>) i
+  [brace]    ({(ITR,(or,<:g:>,<:h:>))}) j
+  [oper]     ((or,!,#,$,%,&,*,+,/,(<),(>),D,G,I,J,K,L,<<
+		>>P,Q,R,S,T,W,X,Z,\,^,_,c,(IVL,g,z,),|,~)) o
+  [pred]     ((or,=,?,A,B,C,E,F,H,M,O,U,V,`,a,b,d,e,f)) p
+
+  )(
+	     ((%R,<8>)) R
+	     (/skip/#:/ret) E
+  )(0 8 9)(
+	((or,<>,;),goodbye);
+	(=<8><,><9>,(%Or,<8>)(%Ow,<9>)(%W,<9>=(%T,(A,(R)(R))(E)))(%E));
+	(<0>,(%C,(A,<0>)(E))(%R)):
+  ))
+
+[end]
+

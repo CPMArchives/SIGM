@@ -1,0 +1,110 @@
+/*
+	fogindex.pli - written by Les Bell, 11/04/82
+
+	Calculates the 'Fog Index' developed by the Gunning-Mueller
+	Clear Writing Institute. The fog index is roughly equal to
+	the number of years of (US) schooling required to read a
+	piece of writing. The fog index is the average sentence length
+	plus the percentage of words having three or more syllables,
+	all multiplied by 0.4.
+
+	Compile using PLI.COM, then assemble FOGASM.ASM using
+	RMAC and link with LINK FOGINDEX,FOGASM.
+
+	To run, type FOGINDEX <filename>.
+*/
+
+fogindex:
+	procedure options(main);
+
+	dcl sourcefile file,
+		buff char (254) varying,
+		bufptr binary (15);
+
+	dcl (c, v, s, lw, ns, nl, nw, nc) fixed binary static init (0);
+	dcl fi fixed decimal (4,2);
+	dcl inword bit (1);
+	dcl eof bit (1) static init ('0'b);
+	dcl vtrue bit (1);
+	dcl word char(4) static initial (' ');
+	dcl thischar char;
+	dcl i fixed binary (4);
+	dcl strip entry (char);
+	dcl vowel entry (char) returns (bit (1));
+	dcl sl entry (char (4));
+
+%replace
+	YES	by '1'b,
+	NO	by '0'b;
+
+put skip list ('Fog Index Calculator, Rev 1.2');
+
+on endfile (sourcefile) eof = '1'b;
+
+on undefinedfile (sourcefile) begin;
+	put skip list ('Usage : fogindex <filename>');
+	stop;
+	end;
+
+on zerodivide (1) begin;
+	put skip list ('No sentences or words in file.');
+	put skip list ('Can''t calculate fog index');
+	stop;
+	end;
+
+open file (sourcefile) stream title ('$1.$1')
+	env(b(1024));
+
+inword = NO;
+do while (~eof);
+	get file (sourcefile) edit (buff) (a);
+	nl = nl + 1;
+	do bufptr = 1 repeat (bufptr + 1) while (bufptr ~> length (buff));
+		thischar = substr(buff,bufptr,1);
+		call strip(thischar);
+		call sl(word);
+		substr(word,4,1) = thischar;
+		nc = nc + 1;
+		if thischar = '.' then ns = ns + 1;
+		if thischar = ' ' | thischar = '^M' |
+			thischar = '^I' then call wordend;
+		else if inword = NO then do	/* beginning of word */
+			inword = YES;
+			nw = nw + 1;
+		end;
+		if vowel (thischar) then do;
+			s = s + 1;	/* count syllables */
+			v = v + 1;	/* count adjacent vowels */
+		end;
+		else v = 0;
+		if v = 2 then do;	/* two vowels adjacent */
+			s = s - 1;	/* count as one syllable */
+			v = 0;		/* reset vowel counter */
+		end;
+			/* detect silent 'E' or 'ED' */
+		if index (word, 'ED') > 0 & ~(index (word, 'DED') > 0 |
+			index (word, 'TED') > 0) then s = s - 1;
+		if (index (word, 'E') > 0 & (index (word, 'LE')) = 0)
+			then s = s -1;
+	end;
+end;
+
+wordend: procedure;
+					/* count long words */
+	if (inword = YES) & (s > 2) then lw = lw + 1;
+	inword = NO;			/* exit word */
+	s = 0;				/* reset syllable counter */
+end wordend;
+
+	put skip list ('Number of sentences  = ',ns);
+	put skip list ('Number of lines      = ',nl);
+	put skip list ('Number of words      = ',nw);
+	put skip list ('Number of characters = ',nc);
+
+	fi = (decimal(nw,7,2) / decimal(ns,7,2) + 100 *
+		decimal(lw,7,2) / decimal(nw,7,2)) * 4 / 10;
+
+	put skip (2) list ('Fog Index = ',fi);
+
+end fogindex;
+

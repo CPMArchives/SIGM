@@ -1,0 +1,259 @@
+
+
+			   MAZE CHASE
+		    (C) 1985 by Tom P Jansing
+
+
+			  INTRODUCTION
+
+MAZE CHASE is an action game designed for any character-mode 
+ASCII terminal that has an addressable cursor and a 24x80 or 
+larger format.  No special graphic capabilities are needed.  
+Complete instructions for customization are provided in this 
+document.  This version requires the CP/M-80 operating system and 
+about 24k of memory.  It is written in Small C and may eventually 
+appear on other operating systems.
+
+Legal stuff:  The compiled code (or any modified versions) of 
+MAZE CHASE for CP/M-80 may be freely distributed subject to the 
+following two restrictions:
+
+-	It shall not be offered for sale without my prior written
+	consent.  Giving it away is OK, however.
+-	The program shall not be distributed without this
+	documentation file and the on-line help file, both in
+	unmodified form.
+
+
+			  INSTALLATION
+
+MAZE CHASE comes distributed as 3 files, as follows:
+
+MCHASE.COM	- The game itself.
+
+MCHASE.HLP	- The on-line instructions.  This file explains
+		  the game play in detail, and should be on the
+		  currently logged disk.
+
+MCHASE.DOC	- You're reading it.
+
+(MCHASE.DAT)	- This file will contain the game's high scores
+		  for posterity.  This file is NOT included, as
+		  it'll simply be created if MAZE CHASE cannot 		  
+		  find one by this name.  To reset the scores
+		  to zero, simply erase this file.
+
+
+			    PATCHING
+
+To accommodate almost any terminal type, MAZE CHASE was designed 
+to allow easy patching of the terminal functions it uses.  The 
+distributed version is configured for the common Lear Siegler 
+ADM-3A codes, so owners of Kaypros, Osbornes, etc. should have 
+little need to patch this program.  For the rest of you, here's 
+what's involved:
+
+
+CURSOR POSITIONING STRING
+
+This is located at 017Fh.  The first byte will be the length of 
+the cursor positioning string, and should be followed immediately 
+by the string itself.  The positions where the X and Y values 
+will be inserted can contain anything for now.  (X is the column 
+number, starting with 0 for the left edge, and Y is the row 
+number, starting with 0 for the top row).  The current settings 
+are:
+
+      Address  Value	Description
+	       (hex)
+
+	017F	04	Length of the following:
+	0180	27	ESC					(1)
+	0181	61	=					(2)
+	0182	00	Y+offset goes here, as defined below.	(3)
+	0183	00	X+offset, ditto.			(4)
+	0184	00	(extra)
+	...
+	0189	00	End of patch string.
+
+
+Y AND X POSITIONS IN THE SEQUENCE
+
+These two bytes tell the program where to insert the Y and X 
+values in the cursor positioning string.
+
+	019A	03	Y position is 3rd in sequence.
+	019B	04	X position is 4th in sequence.
+
+
+Y AND X OFFSETS
+
+Many terminals require a constant value to be added to the Y and 
+X screen addresses.  The following values will be added before 
+insertion into the cursor positioning string:
+
+	01AC	20	Y offset, in hexadecimal (=32 decimal)
+	01AD	20	X offset,	"	"	"
+
+
+
+CLEAR SCREEN STRING
+
+This will be a byte containing the length of the string, followed 
+by the string itself.  If your terminal does not have a clear-
+screen function, you should set the length byte to 0, and code 
+your own subroutine to, possibly, print 48 linefeeds.
+
+	01B8	01	Length of one.
+	01B9	26	CTRL-Z		(1)
+	01BA	00	Extras
+	01BB	00	..
+	01BC	00	..
+
+
+CURSOR-ON AND CURSOR-OFF STRINGS (Optional)
+
+If your terminal allows the cursor to be turned on or off, patch 
+these strings; otherwise leave the length bytes as 0.  For a
+Kaypro, just set the length bytes to 3, as the codes are already 
+in place.
+
+CURSOR ON:
+	01CC	00	Length (0 means currently disabled)
+	01CD	27	ESC	For Kaypro
+	01CE	42	'B'
+	01CF	34	'4'
+	01D0	00	Extra
+
+CURSOR OFF:
+	01E0	00	Length (0 means currently disabled)
+	01E1	27	ESC
+	01E2	43	'C'
+	01E3	34	'4'
+	01E4	00	Extra
+
+
+STRINGS TO INITIALIZE AND DE-INITIALIZE TERMINAL 
+
+The initialize string will be sent to your terminal before any
+other I/O is done.  Likewise, the de-initialize string will be
+the last thing sent when the program terminates.  You probably
+won't need this, especially since there's a separate (and
+preferred) function for controlling the cursor.
+
+INITIALIZE:
+	01F5	00	Length (0 means currently disabled)
+	01F6	00	Up to ten bytes can go here.
+	...
+	01FF	00
+
+DE-INITIALIZE:
+	0212	00	Length (0 means currently disabled)
+	0213	00	Up to 10 bytes again.
+	...
+	021C	00
+
+
+NOISE
+
+If you don't like the sound of your terminal's bell, change the 
+following byte to 0.  This can also be toggled on/off from the 
+game's title page by pressing CTRL-B.
+
+	022F	07	"Bell" character.
+
+
+GAME SPEED
+
+This is the initial speed of the game (which can still be changed 
+on the fly).  This must be in the range of 1 to 9.
+
+	0237	01	Initial speed of 1.
+
+
+CPU SPEED
+
+This should be set to match your CPU's clock speed, in MHz (use 
+the nearest whole number).
+
+	0245	04	4 Mhz.
+
+
+MAZE WALL CHARACTER
+
+This is the character used to draw the walls of the maze.  If 
+your terminal can display a solid-block character, you may prefer 
+to use that instead.
+
+	024C	23	23 hex is the character '#'.
+
+
+EXTRA-LIFE THRESHOLD
+
+Every (this many * 100) points, you get another "p".
+
+	0259	64	= 100 decimal = 10000 points.
+
+
+NUMBER OF LIVES
+
+This is the number of lives you start with every game.
+
+	0265	04	Four to start.	(pppp)
+
+
+GENERAL PURPOSE PATCH AREA
+
+If you can't adapt MAZE CHASE to your terminal with the above 
+patches, you may have to rewrite some of the I/O subroutines (see 
+below).  An area of memory has been set aside for this purpose:
+
+	026E	Start of patch area.
+	...
+	02A6	Last usable byte.
+
+If this is not enough, then you can use all the memory you need 
+above 63A0.  This'll make your .COM file somewhat larger, though.
+
+
+I/O SUBROUTINE ENTRY POINTS
+
+If you need to change any of the following routines (perhaps to 
+support memory-mapped video), just patch a JMP instruction at the 
+address given, and use the patch area mentioned above to hold the 
+custom code.
+
+	06A1	Cursor positioning routine.
+		The parameters are kept on the stack.  To get the 
+                X address into register A, go
+			LXI  H,6
+			DAD  SP
+			MOV  A,M	
+		To get the Y address, use LXI H,4 instead.
+                     
+	0896	Clear screen routine.
+
+	089F	Turn the cursor on.
+
+	08A8	Turn the cursor off.
+
+	08B1	Send the initialize string (first thing).
+
+	08BA	Send the de-initialize string (last thing).
+
+
+			    FEEDBACK
+
+I welcome your criticisms, suggestions, etc. about this program.  
+I can be reached on most Edmonton-area CP/M bulletin boards, or 
+by mail at the following address:
+
+	Tom P Jansing
+	86 Mission Avenue
+	St. Albert, Alberta
+	CANADA
+	T8N 1H8
+
+
+Enjoy!
+

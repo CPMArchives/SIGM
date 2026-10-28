@@ -1,0 +1,417 @@
+                      EDFILE UTILITY USAGE
+                          Jan 10, 1984
+
+by Mike Mosko, K3RL 
+
+EDFILE  is  a  public  domain utility which  allows  display  and 
+editing of data in files.  It has been tested and run under CP/M-
+80  version   2.2 and TurboDOS 1.2 and should run in any  CP/M-80 
+type environment.
+
+EDFILE  is  approximately  11k  in size.  EDFILE  may  be  freely 
+distributed  to whomever desires it.  The date of  this  document 
+should  agree  with  the version date in  EDFILE.  
+
+FEATURES:
+========
+
+     - Hex and ASCII display of record data.
+     - Screen editing of selected record.
+     - Hex or ASCII input when editing file records.
+     - Fully programmable cursor control.
+     - Powerful file search capabilities.
+     - Forward and backward record scrolling.
+     - Address and/or record number referencing.
+     - Decimal or Hex number inputs.
+     - Disk reset on input (prevents Disk R/O error).
+     - Full online abbreviated help AND expanded help menus.
+  
+
+INSTALLATION:
+============
+
+The  following  information  will aid the  user  when  installing 
+EDFILE  on a different terminal.  
+
+The EDFILE original distribution program is originally configured 
+for  an  ADM-3A  type  terminal or equivalent (I  use  a  Digilog 
+S1500).  The  terminal must be able to display 80 columns  by  24 
+rows.  The only absolutely necessary function required for proper 
+use   is  the  cursor  positioning  function.   Other   functions 
+that  can be added merely for visual purposes are the cursor  on, 
+cursor  off and clear to end-of-line functions.  If the clear  to 
+end-of-line  function is not preprogrammed,  it is  performed  in 
+software.  These  functions  are not implemented in the  original 
+distribution version of EDFILE.  For ADM-3A type  terminals,  the 
+following  commands can be patched in EDFILE if these  attributes 
+are desired:
+
+     Clear to end-of-line .... ESC 'Q' (1B,51)
+     Enable Cursor ........... ESC 'X' (1B,58)
+     Disable Cursor .......... ESC 'Y' (1B,59)
+
+For example, to add the clear to end-of-line function, patch a 02 
+for  the string length (2 bytes for the sequence) at address 146. 
+Then patch a 1B in location 147 and a 51 in location 148.
+
+Certain  functions  are programmable for the type of terminal  in 
+use.  Five bytes are reserved for each terminal function  (string 
+sequence).  The  first  byte represents the length of the  string 
+sequence.  For example: the initial cursor positioning string for 
+an  ADM-3A  terminal is 'ESC ='.  This is two  bytes  in  length. 
+Therefore,  the  values  inserted  into  the  cursor  positioning 
+sequence  area  are (in hex):  02,1B,3D.  To complete the  cursor 
+positioning sequence for the terminal, the row and column must be 
+issued  as  well.  The ADM-3A requires an  adjustment  value  (or 
+offset)  of  32 decimal (20 hex) be added to the row and  column. 
+For terminals that require a different offset,  this value can be 
+changed  as  well.  
+
+The row is usually sent before the column,  but if your  terminal 
+is different, i.e., the column must be issued first, then set the 
+high order bit of the cursor offset value.  This flags the cursor 
+positioning  routine  to  send the column before  the  row.   The 
+following  addresses  detail  the  location  of  the   modifiable 
+parameters for the terminal.
+
+Address   Default (hex)    Function
+-------   -------------    --------
+140       02,1B,3D,00,00  *Initial cursor positioning string sequence
+145       20              *Row/column adjustment (set high bit for column/row)
+146       00,00,00,00,00   Clear to end-of-line string sequence 
+14B       00,00,00,00,00   Enable cursor (cursor on) string sequence 
+150       00,00,00,00,00   Disable cursor (cursor off) string sequence 
+155       08               Cursor left (normally CTRL-H)
+156       0C               Cursor right (normally CTRL-L)
+157       0B               Cursor up (normally CTRL-K)
+158       0A               Cursor down (normally CTRL-J)
+159       00..........00   Terminal initialization string (35 bytes)
+
+* - Must be implemented.
+
+If  your  terminal requires some sort of  initialization  string, 
+either to preset it or to program a function key pad, this can be 
+inserted  into the terminal initialization string area  provided. 
+The  first byte represents the length of the string to be  issued 
+to   the  terminal.   There  are  35  bytes  available   for   an 
+initialization string.  Why so many? The Digilog S1500 computer I 
+use allows reprogramming of the numeric keypad.  This requires 28 
+bytes. 
+
+The  actual  control  sequences for positioning the  cursor  (up, 
+down,  left  and  right) can be changed.  This  is  provided  for 
+terminals  that have cursor positioning keypads which don't issue 
+the  same ones programmed here.  For example:  usually  a  CTRL-L 
+moves the cursor one space to the right.  However, if your cursor 
+pad issues some other control character,  like a CTRL-D (WordStar 
+type),  then patch a 04 (hex equivalent of CTRL-D) for the cursor 
+right value.  Note, the help menus will still display the default 
+values for up, down, left and right cursor movements. You'll have 
+to make a note about this or, better yet, use EDFILE to patch the 
+help menus.
+
+All of the above modifications (patches) can be made easily  with 
+EDFILE itself.  Of course, if it won't run at all, you'll have to 
+resort  to  some sort of debugger  such  as  DDT,  SID,  MONITOR, 
+etc...,  or  better  yet,  use  someone  elses  computer  with  a 
+(working) version of EDFILE to modify it for your terminal.
+
+EDFILE  should work on virtually all terminals currently in  use. 
+There  may be some real strange ones out there that I don't  know 
+about, but that's life. 
+
+
+OPERATION:
+=========
+EDFILE  is simple to use especially with the online  help  menus. 
+Therefore, just a few tidbits of information is provided here for 
+operation.  To invoke EDFILE,  simply type EDFILE followed by the 
+name of the file you wish to dump and/or edit.  Example:
+
+          EDFILE EDFILE.COM
+
+The display should look similar to the following:
+
+-------------------------------------------------------------------------------
+Vers: 01-10-84; by: J.C.Kaltwasser & M.J.Mosko, K3RL
+
+File: EDFILE.COM  Record: 00000 (0000H)   LOF: 00086 (0056H)
+        00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F       0123456789ABCDEF
+        -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --       ----------------
+0100  - 31 EA 01 C3 EA 01 0D 0A 56 65 72 73 3A 20 30 31      >1j.Cj...Vers: 01<
+0110  - 2D 31 30 2D 38 34 3B 20 62 79 3A 20 4A 2E 43 2E      >-10-84; by: J.C.<
+0120  - 4B 61 6C 74 77 61 73 73 65 72 20 26 20 4D 2E 4A      >Kaltwasser & M.J<
+0130  - 2E 4D 6F 73 6B 6F 2C 20 4B 33 52 4C 0D 0A 24 1A      >.Mosko, K3RL..$.<
+0140  - 02 1B 3D 00 00 20 00 00 00 00 00 00 00 00 00 00      >..=.............<
+0150  - 00 00 00 00 00 08 0C 0B 0A 00 00 00 00 00 00 00      >................<
+0160  - 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00      >................<
+0170  - 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00      >................<
+?
+-------------------------------------------------------------------------------
+
+EDFILE  performs  an  automatic disk reset  (^C)  when  executed. 
+Therefore,  don't  panic  if you suddenly realized you forgot  to 
+perform a Control-C after making some changes.  This prevents the 
+infamous (and frustrating) Bdos Err on A:  R/O from occuring when 
+writing records.
+
+The  LOF  means the Length-Of-File which is the total  number  of 
+records  in  the  file.  Record  numbers begin  at  0;  the  last 
+displayable record number is actually the LOF - 1.
+
+If  you don't specify a file on the command line,  you'll get  an 
+error:  "No File Specified."; or if the file is not found, you'll 
+get an error telling you this: "<filename> Not Found." Simple.
+
+At the ? prompt, type 'H'. The brief help menu will be displayed:
+
+-------------------------------------------------------------------------------
+Read/Edit File Utility Functions:
+A - Address to dump         B - Dump at beginning       C - Continue Search
+E - Enter Edit Mode         H - This help list          M - Expanded Help list
+O - Set address offset      Q - Quit this program       R - Read & dump record
+S - Search for string       Z - Dump at end of file     CR - (+/=) - Adv record
+(-/_) - Decr record   
+
+Edit Mode Functions:
+^E - Toggle data fields     ^W - Write buffer out       ^X - Abort Edit Mode  
+^J - Cursor Down            ^K - Cursor Up              ^H - Cursor Left      
+^L - Cursor Right     
+-------------------------------------------------------------------------------
+
+Again at the ? prompt, type 'M'. This will display the expanded help menu.
+
+-------------------------------------------------------------------------------
+Read/Edit File Utility Functions:
+    A - Enter relative address to dump 
+    B - Set record to beginning of file and dump data
+    C - Continue search. Restarts search on last entered search string.
+    E - Enter Edit mode on current record
+    H - Brief description of the functions
+    M - This help description
+    O - Enter offset address relative to start of file (.COM = 100h)
+    Q - Quit program
+    R - Enter record number to dump 
+    S - Search for hex or ASCII string in file (starts at current record)
+            '\' = ASCII string delimiters (ex: \Test\)
+            ',' = hex and/or ASCII delimiters (ex: 41,\Test\,4A
+            ';' = select search options
+                    A - Start search from beginning of file
+                    B - Search Backwards
+                    M - Search on certain bits set; use mask xx
+                    O - Stop on xx occurrence of string
+                    U - Translate lower case characters to upper case
+                    Z - Search recognition on least significant 7 bits only
+
+    Z - Set record to end of file and dump data
+    CR - carriage return (or +/= key) - advances record and dumps the data
+    -/_ key - decrements record and dumps the data
+Edit mode: ('^' refers to the Control key)
+    ^[ - (ESC) Accept next char into edit field even if a control char
+    ^E - Toggle between ASCII and hex data fields
+    ^W - Flush record to disk
+    ^X - Abort edit mode without updating record
+
+    ^J - Cursor down            ^K - Cursor up    
+    ^H - Cursor left            ^L - Cursor right    
+Input integers are decimal. Use 'h' suffix for hexadecimal entries.
+-------------------------------------------------------------------------------
+
+Use  the '=' key (which has the '+') or the RETURN key to advance 
+the record. You don't have to use the shift key with the '=' key. 
+EDFILE will wrap around to the start of the file when  attempting 
+to advance beyond the end of the file.
+
+The  following  paragraphs  expand on the features  available  in 
+EDFILE.  Most  of the options are self-explanatory from the  help 
+menus.  However,  some  require additional explanations  and  are 
+provided below.
+
+ADDRESS/OFFSET OPTIONS
+----------------------
+The  address option allows you to specify an address  within  the 
+file. This is useful for patching COM files and the like when the 
+address  of  the patch is known.  Note that when  EDFILE'ing  COM 
+files,  EDFILE automatically sets the offset to 0100h. The offset 
+can  be  changed by typing 'O' at the command level and  entering 
+the  desired  offset.  The  headings  will be  adjusted  for  the 
+different   offset  automatically.   The  address  option  always 
+references  the starting offset so that locations within programs  
+which don't begin at 0100h (overlays,  for example) can be easily 
+referenced  once  the offset has been  properly  programmed.  The 
+Address option also has a wrap-around feature so that  references 
+below the current offset will be readjusted.  This feature can be 
+quite  handy  when tinkering around with COM files.  You have  to 
+experiment a little to pickup the usefulness of these options.
+ 
+SEARCH OPTION
+-------------
+The  'search'  option is the most involved because it  offers  so 
+many different possibilites. The description provided here should 
+provide enough information to effectively use it. 
+
+String  searches  normally  start  from the  current  record  and 
+proceed  until the end of the file (EOF) is encountered.  Certain 
+suboptions can alter this sequence.  If a match is not found, the 
+program  will indicate this and restore the screen to the  record 
+last  displayed.  The search can be aborted at any time by simply 
+striking a key.
+
+If a string match occurs across records,  the search will stop on 
+the  last  record  read into its' local buffer and  position  the 
+cursor  at  the end of the found string.  It  just  wasn't  worth 
+putting in the extra code to handle this wierd situation.
+
+When  using the Occurrence ('O') and Mask ('M')  suboptions,  the 
+program will prompt for the occurrence number and/or search  mask 
+to  be  used.  The suboptions are inserted after a  semicolon  to 
+delimit them from the search string entered.  No spaces should be 
+inserted   between  the  suboptions.   Upper  or  lower  case  is 
+acceptable. Example:
+
+     ?Search String = \This is great\;auo
+     Stop on string occurrence = 3
+
+  This  means to search for the string 'This is  great'  starting   
+  from    the  beginning of the file,  ignoring the case  of  the 
+  string  (i.e.,  translate lower to upper case) and stopping  on 
+  the third occurrence of the string.
+
+ASCII  strings  must  be delimitted  by  backslashes  ('\').  The 
+limitation  here,  of  course,  is  that  you  can't  search  for 
+backslashes in the file.  So use the hex equivalent if necessary: 
+5C.
+
+The  'U'  suboption  (translate lower case to  upper  case)  will 
+translate the search string to upper case automatically,  as well 
+as  converting all lower case characters read from the file.  So, 
+you  don't  have to input the search string in  upper  case  when 
+using the 'U' suboption.
+
+When  inputting hexidecimal values as part of a search key,  they 
+MUST be two-digit HEX (not decimal) numbers. An invalid hex digit 
+entry will cause an error and the string entry must be reentered. 
+Two  digits  must be supplied for each hex number  otherwise  the 
+search  won't  work  properly.   Upper  or  lower  case  for  the 
+hexidecimal letters is acceptable. Example:
+
+     ?Search String = 40,FE,e5,05
+
+You  can  mix hex entries with string entries within  the  search 
+key. Example:
+
+     ?Search String = 40,FE,\help me\,E5,05
+
+The  Backward search suboption (B) will start the search from the 
+current  record and continue towards the start of  the  file.  It 
+DOES  NOT reverse the search string key,  that is,  if you  enter 
+\HELP\ for a search string key,  it will not search backwards for 
+\PLEH\.  It only refers to the direction the records will be read 
+while  searching  for a matching string.  Also,  each  record  is 
+searched from the start of the record.  The search stops when the 
+start of the file (SOF) is encountered.
+
+The  Mask suboption is for those cases where bytes in a file  use 
+certain  bits for special meanings.  The input mask is  logically 
+AND'd  with  each  byte in the file before comparing  it  to  the 
+search string.  Therefore,  some bytes could pass the search test 
+but still may not be exactly what your looking for.
+
+     ?Search String = 03;M
+     Enter string search mask = 0Fh
+
+  This  will  mask all upper nibbles (upper 4 bits of each  byte) 
+  and  then compare it to a 3.  Therefore,  any data bytes  which 
+  have a 3 in the lower nibble will cause a match with the search 
+  key.
+
+When  the  search  string is found in the  file,  the  search  is 
+temporarily  terminated and the cursor is positioned at the start 
+of the found string.  Note,  that the program is NOT in the  edit 
+mode,  so  the next key entered is a command not an edit  control 
+key.  Hit  a space (or any unrecognizable command) to redump  the 
+record and place the cursor on the command line. Hit an 'E' to go 
+into  the  edit mode.  The cursor will remain positioned  at  the 
+start of the found string. 
+
+CONTINUE SEARCH OPTION
+----------------------
+Hitting  a 'C' at the command level will restart the search  from 
+the  current record and cursor position (if previously  defined). 
+The search facility will then look for the NEXT occurrence of the 
+entered  string sequence.  The 'O' suboption is affective only on 
+the  initial  start  of the search.  The  Continue  ('C')  option 
+effectively disables the occurrence value previously entered. The 
+default  string  occurrence  is 1,  i.e.,  the  first  (or  next) 
+occurrence.  The Continue option can be invoked at any time after 
+a search string key has been entered. All other suboptions are in 
+affect when continuing the search.
+
+
+RECORD EDITING
+--------------
+Record  editing is accomplished by typing an 'E' at  the  command 
+level. When in the edit mode, there are two modes of editing. You 
+can  edit  the HEXIDECIMAL field area of the record or the  ASCII 
+field  area.  When  entering  the edit mode the  cursor  will  be 
+positioned at the upper left corner in the HEX data field of  the 
+current record.  To switch to the ASCII data field of the record, 
+simply  enter a CTRL-E.  This will toggle the cursor between  the 
+two  fields.  The  HEX field area will  only  accept  hexidecimal 
+digits  for  inputs.  The ASCII field will accept all key  inputs 
+including control key inputs if they are preceeded by an ESC key.
+For  example:  to input a CTRL-K into the record at  the  current 
+cursor position,  hit the ESC key followed by a CTRL-K.  The  ESC 
+key  simply  means 'put the next input character into the  record 
+even if its' a control character'.  This is only affective in the 
+ASCII  field area.  Non-control characters (i.e.,  regular ASCII) 
+can be typed in directly.
+
+To make the record changes permanently to the file,  they must be 
+flushed to the disk by typing a CTRL-W. Typing a CTRL-X will exit 
+the edit mode without updating the file. 
+
+BUGS:
+====
+There  are  currenly  no  know  bugs.  However,  inputs  are  not 
+completely  validated,  therefore,  some conditions  could  cause 
+different results.  None, however, are know to cause file crashes 
+or  anything catastrophic.  Any reports of bugs will be noted and 
+appreciated. 
+
+USE UNDER TURBODOS:
+==================
+EDFILE  is especially useful under TurboDOS.  Using the  filename 
+$.DSK  or  $.DIR upon entering EDFILE allows editing of the  disk 
+and/or directory.  I use EDFILE in every case when I need to look 
+at the disk directory and make changes to it. The search facility 
+makes this task a breeze.
+
+BACKGROUND INFO:
+===============
+EDFILE   was   written  in  a  language   called   SIL   (Systems 
+Implementation  Language)  which was obtained from DDJ  and  then 
+enhanced and improved at Digilog,  Inc for use in writing systems 
+programs  and  utilities.  SIL is very similar to 'C' but  allows 
+true  inline 8080/Z80 assembly language coding (very useful)  and 
+compiles to actual assembly mnemonics. The output of the compiler 
+is  passed to Digital Research Inc's Relocatable Assembler (RMAC) 
+and then to DRI's Linker (LINK).  No special tricks were used  in 
+this program; that is, no system specific calls or locations were 
+referenced,  therefore,  it should run on any CP/M or  equivalent 
+system.  Of course,  Murphy is lurking around, so don't depend on 
+that assumption.
+
+FUTURE VERSIONS:
+===============
+On  the wish list is to add the capability to read and  edit  the 
+data  off of the disk on a track/sector basis.   Any other  ideas 
+will be seriously considered in future versions of EDFILE.
+Thanks and good EDFILE'ing. 
+
+Problems,  suggestions  or  questions  can be sent to  me  on  my 
+CompuServe number (#72345,1540) or via my home address:
+     Mike Mosko
+     519 E. Station Ave.
+     Coopersburg, PA 18036
+

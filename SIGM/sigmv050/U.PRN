@@ -1,0 +1,134 @@
+
+
+                ;		U.COM - VERSION 1.0
+                ;			BY ROBERT FISHER
+                ;			   November 27, 1981
+                ;
+                ;Select drive and user area with one command.
+                ;
+                ;Usage:
+                ;       U B4
+                ;will select drive B:, user area 4.
+                ;
+                ;The drive may be any valid drive letter in upper or lower case,
+                ;and the user area may be any user area in the range 0-31. 
+                ;(But see the customization area below.)
+                ;Either may be omitted.  If both are omitted, a usage message is printed.
+                ;
+                ;To be useful, this program must be accessable from all drives and
+                ;all user areas.
+                ;This is no problem if you are using one of the modified CCP's, but
+                ;requires some other mechanism for a standare CCP.
+                ;
+                ;Check the public programs: DUPUSR21.ASM and CCPPATCH.ASM or the
+                ;various versions of CCPZ.ASM
+                ;
+                ;One further note.  Your BIOS must be correctly written for this 
+                ;program to work.  Specifically, it must not reset the user area
+                ;to zero on warm boot.  (The California Computer System BIOS
+                ;fails in this respect.)
+                ;
+ 0100           	org 100h
+ 005C =         fcb	equ	5ch
+ 0005 =         bdos	equ	5
+ 0004 =         cdrive	equ	04
+ 0000 =         warmbt	equ	0
+                ;
+ 0009 =         prstr	equ	9
+                ;
+ 0009 =         tab	equ	9
+ 000A =         lf	equ	0ah
+ 000D =         cr	equ	0dh
+                ;
+                ;USER customization parameters
+ 000F =         maxuser	equ	15	;maximum user area   (may be in range 0-31)
+ 0004 =         numdrvs	equ	4	;number of drives in your system
+                ;
+                ;set selected drive
+ 0100 215D00    	lxi	h,fcb+1
+ 0103 7E        	mov	a,m
+ 0104 FE20      	cpi	' '
+ 0106 CA6901    	jz	usage	;no parameters
+ 0109 FE3A      	cpi	'9'+1	
+ 010B DA2B01    	jc	digit	;no drive was specified
+ 010E E65F      	ani	5fh	;make it upper case
+ 0110 D641      	sui	'A'
+ 0112 DA6901    	jc	usage	;illegal character
+ 0115 FE04      	cpi	numdrvs
+ 0117 D26901    	jnc	usage	;too high a drive specified
+ 011A 5F        	mov	e,a
+ 011B 3A0400    	lda	cdrive	;put new drive into lower nibble of cdrive
+ 011E E6F0      	ani	0f0h	;zero out old drive number
+ 0120 B3        	ora	e	;slip the new drive in
+ 0121 320400    	sta	cdrive	;this sets the drive
+                	
+                ;
+                ;set selected user area
+ 0124 23        	inx	h
+ 0125 7E        	mov	a,m
+ 0126 FE20      	cpi	' '
+ 0128 CA0000    	jz	warmbt	;no user area specified
+ 012B D630      digit	sui	'0'
+ 012D DA6901    	jc	usage	;non-digit
+ 0130 FE0A      	cpi	10
+ 0132 D26901    	jnc	usage	;non-digit
+ 0135 5F        	mov	e,a	;move it to e to preserve it
+ 0136 23        	inx	h
+ 0137 7E        	mov	a,m
+ 0138 FE20      	cpi	' '
+ 013A CA5101    	jz	setusr	;one-digit user
+ 013D D630      	sui	'0'
+ 013F DA6901    	jc	usage	;non-digit
+ 0142 FE0A      	cpi	10
+ 0144 D26901    	jnc	usage	;non-digit
+ 0147 4F        	mov	c,a
+ 0148 AF        	xra	a	;clear the carry bit
+ 0149 7B        	mov	a,e	;get first digit back
+ 014A 17        	ral		;x2
+ 014B 5F        	mov	e,a	
+ 014C 17        	ral		;x4
+ 014D 17        	ral		;x8
+ 014E 83        	add	e	;x10
+ 014F 81        	add	c	;add in second digit
+ 0150 5F        	mov	e,a
+                ;
+ 0151 7B        setusr:	mov	a,e	;get it back if it's not there already
+ 0152 FE10      	cpi	maxuser+1
+ 0154 D26901    	jnc	usage
+ 0157 3F        	cmc		;clear the carry bit
+                ;
+                ;User area goes in upper nibble of cdrive.
+ 0158 17        	ral
+ 0159 17        	ral
+ 015A 17        	ral
+ 015B 17        	ral
+ 015C 4F        	mov	c,a
+ 015D 3A0400    	lda	cdrive
+ 0160 E60F      	ani	0fh	;zero out old user number
+ 0162 B1        	ora	c	;slip in new user number
+ 0163 320400    	sta	cdrive
+                ;	
+                ;
+ 0166 C30000    	jmp	warmbt
+                ;Print USAGE message if no parameters provided, or if parameters
+                ;are illegal.
+ 0169 117201    usage:	lxi	d,message
+ 016C 0E09      	mvi	c,prstr
+ 016E CD0500    	call	bdos
+ 0171 C9        	ret
+                
+ 0172 4472697665message	db	'Drive and user selector: U.COM - Version 1.0',cr,lf
+ 01A0 0909090962	db	tab,tab,tab,tab,'by Robert Fisher - November 27, 1981',cr,lf,lf
+ 01CB 53616D706C	db	'Sample usage:',cr,lf,lf
+ 01DB 0909552042	db	tab,tab,'U B4',cr,lf,lf
+ 01E4 73656C6563	db	'selects drive B, user area 4.',cr,lf,lf
+ 0204 0909552031	db	tab,tab,'U 13',cr,lf,lf
+ 020D 73656C6563	db	'selects user area 13 of the current drive.',cr,lf,lf
+ 023A 0909552042	db	tab,tab,'U B',cr,lf,lf
+ 0242 73656C6563	db	'selects drive B, current user area.',cr,lf,lf
+ 0268 4C6F776572	db	'Lower case is acceptable for the drive letter.',cr,lf
+ 0298 5468652064	db	'The drive or the user area may be omitted.',cr,lf,lf
+ 02C5 24        	db	'$'
+                
+ 02C6           	end
+

@@ -1,0 +1,1358 @@
+Introduction.
+8080.CNV - Listing.
+Header.
+The First Pass.
+DB's, DC's, DW's.
+The Second Pass.
+Data on Second Pass.
+Consult Symbol Table.
+Registers and Instructions.
+File Writing Functions.
+Main Program: Patterns.
+Main Program: Skeletons.
+Main Program: Rule Set.
+HEXEH.CNV - Listing.
+HEXEH.CNV - Annotated.
+:Introduction.
+
+This HELP file presents a detailed analysis of 8080.CNV, an assembler for
+the Intel 8080 written in CNVRT. Partly it shows how to write an assembler
+for one of the 8-bit microcomputers, and partly it is intended to explain the
+workings of the CNVRT language through a practical example. Just how practical
+the example might be could be debated after seeing the final binary program,
+or how slowly it runs. All such things are relative, but in size and speed
+it will not soon replace ASM.COM or some similar assembler. That the program
+was written in two weeks and that it is rapidly modifiable to situations that
+were hardly forseen when Digital Research's ASM.COM was written, will cast
+a different light on the evaluation. For instance, it is no trouble to modify
+the program to transform a program written for the Intel 8080 into one suitable
+for the Intel 8086.
+
+The organization of the file is such that 8080.CNV is first reproduced exactly,
+touched up slightly to match it up with the 22 line panels of HELP.COM. Then,
+each subroutine or related group of subroutines is analyzed, both for its part
+in assembly process, and the way it illustrates CNVRT's programming style.
+
+8080.CNV does not produce an Intel HEX file as output so an additional program,
+HEXEH.CNV, is shown which completes the required formatting.
+-
+The knowledgable student of assemblers will detect quite a few refinements
+required to make 8080.CNV fully compatible with, and interchangable with,
+ASM.COM or a similar assembler. These are quite literally left as exercises
+for the user; the purpose of 8080.CNV is to give dual insight into assemblers
+and into CNVRT. Making some extensions of 8080.CNV will allow one to measure
+whether this insight has been acquired.
+- 
+:[8080.CNV]
+[Harold V. McIntosh, 5 April 1984]
+[Assembler for Intel 8080 instruction set]
+[Instructions must be lower case; symbols may be upper
+ or lower case or mixed, but must be consistent. The
+ source file FILE.ASM will produce an unformatted hex
+ file FILE.UFH, and an annotated list file, FILE.PRN.
+ The program HEXEH.REC can be used to transform the
+ unformatted hex file to a normal hex file, FILE.HEX.]
+[Assembler directives recognized include:
+    org, end, equ, db, dc, dw and ds.
+ They should only be written in lower case.]
+[Sums, differences, and negatives may form part of
+ symbolic fields, but references must be complete and
+ may not be circular. Don't use <x equ y>, then later,
+ <y equ x>! Undefined symbols are taken as 0000H.]
+[Exclude CTR DIR RST BIO]
+
+[[Intel 8080 Assembler]]
+
+
+
+[-]
+[first pass]		(()()(0)( (<>,); (<0>,(x,(R))): )) a
+
+(()()(1 2)(
+  [quit at END]		(end,);
+  [quit at EOF]		((^Z),(, (%T,No END line) ));
+  [skip comment]	((or,;,<>),(R)):
+  [equ]			(<:1:>equ<:2:>,(%W,MEM:ST,(%T,<1>:(r,<2>)::))(R)):
+  [record labels]	((and,<:F:>:,<1>:)<2>,(%W,MEM:ST,(%T,<1>:<0>::))<2>):
+  [left white]		(<:H:><1>,<1>):
+  [3-byte inst]		(<:M:><:H:>,(#f,<0>+3));
+  [2-byte inst]		(<:N:><:H:>,(#f,<0>+2));
+  [db]			(db<:H:><1>,(#f,<0>+(y,<1>)));
+  [dc]			(dc<:H:><1>,(#f,<0>+(y,<1>)));
+  [dw]			(dw<:H:><1>,(#f,<0>+(z,<1>)));
+  [ds]			(ds<:2:>,(#+,<0>+(r,<2>)));
+  [org]			(org<:2:>,(r,<2>));
+  [1-byte inst]		((or,<:O:>,<:P:>,<:Q:>,<:U:>,<:V:>),(#f,<0>+1));
+  [other]		(<1>,(, (%T,unknown <1>) )(#f,<0>+3));
+  )) x
+
+
+
+[-]
+[count db] (()()(0 1)(
+	(<'><'><'><1>,(#+,(y,<'><1>)+1));
+	(<'><'><:Y:><1>,<1>):
+	(<'><0><'><1>,(#+,(&!,<0>)+(y,<'><'><1>)));
+	((or,<:F:>,<:E:>,<:C:>)<:Y:><1>,(#+,(y,<1>)+1));
+	(<>,0);
+	(<1>,(, (%T,syntax error in db: <1>) )0); )) y
+
+[count dw] (()()(0)(
+	((or,<:F:>,<:E:>,<:C:>)<:Y:><0>,(#+,(z,<0>)+2)):
+	(<>,0);
+	(<0>,(, (%T,syntax error in dw: <0>) )0); )) z
+
+
+
+
+
+
+
+
+
+
+[-]
+[second pass] (()()(0 4)( (<>,); (<0>,(if,(R),<4>,(u,<4>))): )) b
+
+(()()(1 2 3)(
+  [END w/start]		(end<:2:>,(if,%(&Dh,(c,<2>)),<3>,(X)));
+  [quit at END]		(end,(if,%0000,<3>,(X)));
+  [quit at EOF]		((^Z),(, (%T,No END line) ));
+  [skip comment]	((or,;,<>),(if,  ,<3>,(X))<0>);
+  [ignore equ]		(<:1:>equ<:2:>,(if,  ,<3>,(X))<0>);
+  [discard label]	(<:F:>:<2>,<2>):
+  [left white]		(<:H:><1>,<1>):
+  [db]			(db<:H:><1>,(if,(v,<1>),<3>,(X))(#f,<0>+(y,<1>)));
+  [dc]			(dc<:H:><1>,(if,(o,(v,<1>)),<3>,(X))(#f,<0>+(y,<1>)));
+  [dw]			(dw<:H:><1>,(if,(w,<1>),<3>,(X))(#f,<0>+(z,<1>)));
+  [ds]		(ds<:2:>,(if,(#+,<0>+(c,<2>)),<1>,(if,^(&Dh,<1>),<3>,(X))<1>));
+  [org]		(org<:2:>,(if,(c,<2>),<1>,(if,^(&Dh,<1>),<3>,(X))<1>));
+  [lxi]			(lxi<:H:><1><,><2><:Z:>,<<
+				>>(if,(q,0+(i,<1>)+1)(s,<2>),<3>,(X))<<
+				>>(#f,<0>+3));
+  [3-byte inst]		((and,<:M:>,<1>)<:H:><2><:Z:>,<<
+				>>(if,(l,<1>)(s,<2>),<3>,(X))<<
+				>>(#f,<0>+3));
+
+[-]
+  [mvi]			(mvi<:H:><1><,><2><:Z:>,<<
+				>>(if,(q,0+(e,<1>)+6)(t,<2>),<3>,(X))<<
+				>>(#f,<0>+2));
+  [2-byte inst]		((and,<:N:>,<1>)<:H:><2><:Z:>,<<
+				>>(if,(m,<1>)(t,<2>),<3>,(X))<<
+				>>(#f,<0>+2));
+  [moves]		(mov<:H:><1><,><2><:Z:>,<<
+				>>(if,(q,1+(e,<1>)+(e,<2>)),<3>,(X))<<
+				>>(#f,<0>+1));
+  [arit-logic]		((and,<:P:>,<1>)<:H:><2><:Z:>,<<
+				>>(if,(q,2+(f,<1>)+(e,<2>)),<3>,(X))<<
+				>>(#f,<0>+1));
+  [1-byte w/reg]	((and,<:O:>,<1>)<:H:><2><:Z:>,<<
+				>>(if,(n,<1>),<3>,(X))<<
+				>>(#f,<0>+1));
+  [cndl ret]		(r(and,<:L:>,<1>)<:H:>,<<
+				>>(if,(q,3+(h,<1>)+0),<3>,(X))<<
+				>>(#f,<0>+1));
+  [accumulator]		((and,<:U:>,<1>)<:H:>,<<
+				>>(if,(q,0+(j,<1>)+7),<3>,(X))<<
+				>>(#f,<0>+1));
+
+[-]
+  [1-byte inst]		((and,<:Q:>,<1>)<:H:>,<<
+				>>(if,(k,<1>),<3>,(X))<<
+				>>(#f,<0>+1));
+  [other]		(<1>,<<
+				>>(if,000000,<3>,(X))<<
+				>>(, (%T,unknown <1>) )<<
+				>>(#f,<0>+3));
+  )) u
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[-]
+[compile db] (()()(1 2)(
+	(<'><'><'><1>,(&n,<'>)(v,<'><1>));
+	(<'><'><:Y:><1>,<1>):
+	(<'><1><'><2>,(&n,<1>)(v,<'><'><2>));
+	((and,(or,<:F:>,<:E:>,<:C:>),<1>)<:Y:><2>,(t,<1>)(v,<2>));
+	(<>,);
+	(<1>,(, (%T,syntax error in db: <1>) )); )) v
+
+
+[compile dw]
+(()()(1 2)(((and,(or,<:F:>,<:E:>,<:C:>),<1>)<:Y:><2>,(s,<1>)(w,<2>));(,);)) w
+
+
+[get symbol value] (()()(0 1 2)(
+	((and,(or,<:E:>,<:C:>)<>,<0>),(r,<0>));
+	((and,<:F:>,<0>)<1>,(T)(d,(S))<1>):
+	(<1>+(and,<:F:>,<0>)<2>,<1>+(T)(d,(S))<2>):
+	(<1>-(and,<:F:>,<0>)<2>,<1>-(T)(d,(S))<2>):
+	(<0>,(#f,<0>)); )) c
+
+
+
+[-]
+[search symbol table]
+(()()(1)(((^Z),(, (%T,Undefined <0>) )0);(<0>:<1>::,<1>);(,(S)):)) d
+[register equivalents]
+(()()()((b,0);(c,1);(d,2);(e,3);(h,4);(l,5);(m,6);(a,7);)) e
+[arith-logic equivalents]
+(()()()((add,0);(adc,1);(sub,2);(sbb,3);(ana,4);(xra,5);(ora,6);(cmp,7);)) f
+[immediate equivalents]
+(()()()((adi,0);(aci,1);(sui,2);(sbi,3);(ani,4);(xri,5);(ori,6);(cpi,7);)) g
+[condition equivalents]
+(()()()((nz,0);(z,1);(nc,2);(c,3);(po,4);(pe,5);(p,6);(m,7);)) h
+[register pair equivalents]
+(()()()((b,0);(d,2);(h,4);(sp,6);(psw,6);)) i
+[accumulator instructions]
+(()()()((rlc,0);(rrc,1);(ral,2);(rar,3);(daa,4);(cma,5);(stc,6);(cmc,7);)) j
+[sporadic instructions]
+(()()()((ret,C9);(xchg,EB);(xthl,E3);(pchl,E9);
+	(sphl,F9);(di,F3);(ei,FB);(nop,00);(hlt,76);)) k
+[three-byte instructions except lxi]
+(()()(0)((jmp,C3);(call,CD);(shld,22);(lhld,2A);(sta,32);(lda,3A);
+	(j(and,<:L:>,<0>),(q,3+(h,<0>)+2));
+	(c(and,<:L:>,<0>),(q,3+(h,<0>)+4));)) l
+
+[-]
+[two-byte instructions exceqt mvi]
+(()()(0)((in,DB);(out,D3);(<0>,(q,3+(g,<0>)+6));)) m
+[one-byte instructions with register]
+(()()()((dad,(q,0+(i,<2>)+9));	(ldax,(q,0+(i,<2>)+10));
+	(stax,(q,0+(i,<2>)+2));	(inx,(q,0+(i,<2>)+3));
+	(dcx,(q,0+(i,<2>)+11));	(inr,(q,0+(e,<2>)+4));
+	(dcr,(q,0+(e,<2>)+5));	(pop,(q,3+(i,<2>)+1));
+	(push,(q,3+(i,<2>)+5));	(rst,(q,3+<2>+7));)) n
+[mark last byte] (()()(0 1)((<0>(and,<[1]>,<1>)<>,<0>(&s,<1>));)) o
+[.PRN file] (()()(1 2)(
+	((^I)(and,<[8]>,<1>)<2>,(%W,(W),(%T,      <1>(^MJ)))(^I)<2>):
+	((and,<[8]>,<1>)<2>,(%W,(W),(%T, (&Dh,<0>) <1>(^I)<4>(^MJ)))(^I)<2>):
+	((^I)<1>,(%W,(W),(%T,      <1>)(^MJ)));
+	(<1>,(%W,(W),(%T, (&Dh,<0>) <1>(^I)<4>)(^MJ))); )) p
+[join code fields]
+(()()(0 1 2 3)( (<0>+<1>+<2>,(if,(&Dh,(#f,<0>*64+<1>*8+<2>)),00<3>,<3>)); )) q
+[uniformly decimal] (()()(0)( (<0>H,(&Hd,<0>)); )) r
+[addr fld] (()()(0 1 2)((<0>,(if,(&Dh,(c,<0>)),(and,<[2]>,<1>)<2>,<2><1>));)) s
+
+
+
+
+[-]
+[one byte symbol] (()()(0 1)(
+	(<'><'><'><'>,(&h,<'>));
+	(<'>(and,<[1]>,<0>)<'>,(&h,<0>));
+	((and,(or,<:E:>,<:C:>),<0>),(if,(&Dh,(r,<0>)),00<1>,<1>));
+	((and,<:F:>,<0>),(T)(d,(S))):
+	(<0>,(, (%T,bad byte <0>) )00); )) t
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[-]
+[main program]
+((
+  [alfa]	((and,<[1]>,(or,(IVL,A,Z,),(IVL,a,z,),$,.))) A
+  [num]		((and,<[1]>,(IVL,0,9,))) B
+  [numeral]	(<:B:>(ITR,<:B:>)) C
+  [hex]		((and,<[1]>,(or,(IVL,0,9,),(IVL,A,F,),(IVL,a,f,)))) D
+  [hexmal]	(<:B:>(ITR,<:D:>)H) E
+  [alfanum]	(<:A:>(ITR,(or,<:A:>,<:B:>))) F
+  [white]	((or, ,(^I))) G
+  [whitespace]	((or,<:G:>(ITR,<:G:>),;<-->,<>)) H
+  [registers]	((or,b,c,d,e,h,l,m,a)) I
+  [pairs]	((or,b,d,h,sp)) J
+  [pairs]	((or,b,d,h,psw)) K
+  [condition]	((or,nz,z,nc,c,po,pe,p,m)) L
+  [3-byte]	((or,lhld,shld,lxi,lda,sta,jmp,call,j<:L:>,c<:L:>)) M
+  [2-byte]	((or,mvi,adi,aci,sui,sbi,ani,xri,ori,cpi,in,out)) N
+  [1-byte]	((or,dad,ldax,stax,inx,dcx,inr,dcr,pop,push,rst)) O
+  [ar-logic]	((or,add,adc,sub,sbb,ana,xra,ora,cmp)) P
+  [sporadic]	((or,ret,xchg,xthl,pchl,sphl,di,ei,nop,hlt)) Q
+  [accumulator]	((or,rlc,rrc,ral,rar,daa,cma,stc,cmc)) U
+  [1-byte]	((or,mov,r<:L:>)) V
+  [separator]	((or,<,>,(ITR,<:G:>)(or,;<-->,<>))) Y
+[-]
+  [final]	((ITR,<:G:>)(or,;,<>)) Z
+  [label]	((and,<:F:>,<1>)(or,:,<:G:>)(ITR,<:G:>)) 1
+  [constant]	(<:H:>(and,(or,<:E:>,<:C:>),<2>)) 2
+  )(
+	((%R,<9>.ASM)) R
+	((%R,MEM:ST,<-->::)) S
+	((,(%Or,MEM:ST))) T
+	(<9>.PRN) W
+	((%W,<9>.UFH,<3>)(p,<3>)) X
+
+
+
+
+
+
+
+
+
+
+
+
+
+[-]
+  )(9)(
+	((PWS)(or),);
+	(<9>(or, ,.,<>),<<
+		>>(%Ow,MEM:ST)<<
+		>>(%Or,<9>.ASM)<<
+		>>(a,0)<<
+		>>(, (%T,First Pass concluded) )<<
+		>>(%C,<9>.ASM)<<
+		>>(%Or,<9>.ASM)<<
+		>>(%Ow,<9>.PRN)<<
+		>>(%Ow,<9>.UFH)<<
+		>>(%Or,MEM:ST)<<
+		>>(b,0)<<
+		>>(, (%T,Second Pass concluded) )<<
+		>>(%E));
+  ))
+
+[end]
+-
+:Header.
+
+The header of 8080.CNV contains the required features plus a minimum of
+explanatory comments, namely:
+
+		name of program
+		author, date
+		descriptive comments
+		exclusion of unwanted runtime subroutines
+		startup message
+		three blank lines
+
+The startup message is quite terse because the program is not planned for
+interactive use and therefore will probably not be used by someone sitting
+at the console who does not know what it is for. Anyone could, of course,
+replace it by a message more to their liking.
+
+The introductory comments are also terse, but do warn the user about the most
+likely problems arising from differences between 8080.CNV and ASM.COM. The
+existence of a HELP file such as this one mitigates the absence of further
+details.
+
+-
+:The First Pass.
+
+The first pass of an assembler is required to size up the source code and
+thereby assign values to all the labels which have been marked in the program.
+For a CPU like the Intel 8080, for which instructions do not have alternative
+short and long forms [some jump or branch instructions in other machines are
+like that], the process is quite straightforward. Complications may arise if
+"org" statements or "ds" statements can have symbolic arguments, and depend on
+quantities not yet defined when the scan of the source code reaches them. It
+can be even worse when such arguments can refer back and forth to each other
+and some cycles of iteration are required to resolve their values. An assembler
+is greatly simplified if the restriction is made, that everything needed to
+evaluate a symbolic expression has been defined by the time it is reached while
+running through the first pass; and certainly no later than the first encounter
+during the second pass.
+
+An assembler such as 8080.CNV, which scans the source code line by line without
+retaining any of it in the memory, is limited in its capacity only by the size
+of the symbol table available to it. The memory area MEM:ST has been created to
+hold the symbol table, and is 1K bytes long unless another value is declared in
+the statement (%Ow,MEM:ST) found in the main program.
+
+-
+Since CNVRT is a symbol manipulation language, there is no limitation other
+than common sense and practicality on the length or nature of a label which
+can be entered in the symbol table; likewise almost any formula or expression
+may be associated with the label. That would be the consequence of a symbolic
+"equ" because labels would normally be given the value of the "program counter"
+as they were encountered. Even so the displacement relative to a symbolic value
+could be carried along - say an earlier "org" had had an unresolved value.
+
+The program that we are showing does none of these things; we merely want to
+make clear that it could.
+
+8080.CNV does not recognize a symbol such as "." or "$" signifying the current
+value of the program counter. Such symbols find little favor in the assembly
+language of CPU's which have instructions of variable length. Although all the
+instructions of the Intel 8080 are rigorously one byte long, they may have one
+additional data byte or two additional address (or data) bytes, so that in
+practice there are of variable length ranging from one to three bytes. Rather
+than use the program counter as a symbol, it suffices to place a label at the
+current instruction or at one of the surrounding instructions. While occupying
+space in the symbol table, it eliminates all confusion about which location is
+specified. It also avoids the error of making a change within the scope of a
+program counter reference and not changing the displacement.
+-
+-
+[This panel repeats the first pass of the assembler 8080.CNV.]
+
+[first pass]		(()()(0)( (<>,); (<0>,(x,(R))): )) a
+
+(()()(1 2)(
+  [quit at END]		(end,);
+  [quit at EOF]		((^Z),(, (%T,No END line) ));
+  [skip comment]	((or,;,<>),(R)):
+  [equ]			(<:1:>equ<:2:>,(%W,MEM:ST,(%T,<1>:(r,<2>)::))(R)):
+  [record labels]	((and,<:F:>:,<1>:)<2>,(%W,MEM:ST,(%T,<1>:<0>::))<2>):
+  [left white]		(<:H:><1>,<1>):
+  [3-byte inst]		(<:M:><:H:>,(#f,<0>+3));
+  [2-byte inst]		(<:N:><:H:>,(#f,<0>+2));
+  [db]			(db<:H:><1>,(#f,<0>+(y,<1>)));
+  [dc]			(dc<:H:><1>,(#f,<0>+(y,<1>)));
+  [dw]			(dw<:H:><1>,(#f,<0>+(z,<1>)));
+  [ds]			(ds<:2:>,(#+,<0>+(r,<2>)));
+  [org]			(org<:2:>,(r,<2>));
+  [1-byte inst]		((or,<:O:>,<:P:>,<:Q:>,<:U:>,<:V:>),(#f,<0>+1));
+  [other]		(<1>,(, (%T,unknown <1>) )(#f,<0>+3));
+  )) x
+
+-
+[This panel contains comments on the previous panel]
+
+[first pass]		"a" binds the byte count to <0>, avoiding repetition
+
+(()()(1 2)(		working variables <1> and <2>, <0> is implicit
+  [quit at END]		"end" is the legitimate program terminator
+  [quit at EOF]		picking up EOF is an error, but effective
+  [skip comment]	ignore null lines of full line comments
+  [equ]			equivalences go into symbol table. only decimal
+			or hexadecimal constants allowed
+  [record labels]	record each label as found, remove from line
+  [left white]		ignore leading whitespace
+  [3-byte inst]		<:M:> recognizes all the 3-byte instructions
+  [2-byte inst]		<:N:> recognizes all the 2-byte instructions
+  [db]			"db" must be analyzed further
+  [dc]			"dc" is similar to "db"
+  [dw]			"dw" must be analyzed further
+  [ds]			"ds" with numerical argument increments counter
+  [org]			replace counter by numerical argument of org
+  [1-byte inst]		<:O:>,<:P:>,<:Q:>,<:U:>,<:V:> recognize 1-byte
+  [other]		anything else is an error
+  )) x
+-
+The interposition of the function "a" which calls "x" avoids having to
+include the program counter on each line in the workspace and then parse
+it out again in each rule. Otherwise, "x" would not have been used and
+"a" would have had the argument 0:(R). Each rule would have had to have
+generated some variant of (#+,<0>+n):(R).
+
+There is no reason that the argument of an equ cannot be symbolic. The
+function "d" which searches the symbol table is set up so that it will
+continue searching until all symbolic references are satisfied. Final
+comments and whitespace would have to be stripped off. Since all symbol
+evaluation is postponed until the second pass, the only requirement is
+that the first pass would glean all the informaton which the second pass
+requires. The second pass makes no new definitions.
+
+The label parser requires that a label be alphanumerical, followed by a
+colon. Since equ's are recognized before labels, and equ can have a label
+which is not followed by a colon. This convention is compatible with M80
+(Microsoft's relocating assembler), for which absolute constants must be
+defined without colons. Obviously, a label within a program would not be
+considered a constant, even if it were in an absolute segment.
+
+
+-
+:DB's, DC's, and DW's.
+
+[This panel contains the code to count the length of a DB or a DC]
+
+[count db]
+(()()(0 1)(
+  [two quotes count as 1; we always keep the leading quote]
+  	(<'><'><'><1>,(#+,(y,<'><1>)+1));
+  [contents of a quote pair has been exhausted]
+  	(<'><'><:Y:><1>,<1>):
+  [use &! to count quote-free ASCII string]
+  	(<'><0><'><1>,(#+,(&!,<0>)+(y,<'><'><1>)));
+  [any other argument counts as one byte]
+  	((or,<:F:>,<:E:>,<:C:>)<:Y:><1>,(#+,(y,<1>)+1));
+  [nothing left, put zero bytes to start the count, quit]
+	(<>,0);
+  [unrecognized parameter truncates paramenter list, reports zero]
+	(<1>,(, (%T,syntax error in db: <1>) )0);
+  )) y
+
+
+
+[-]
+[This panel contains the code to calculate the length of a DW]
+
+[count dw]
+(()()(0)(
+
+  [only symbolic, hexadecimal, or decimal is allowed; each is worth 2 bytes]
+	((or,<:F:>,<:E:>,<:C:>)<:Y:><0>,(#+,(z,<0>)+2)):
+
+  [terminate the recursion with a zero]
+	(<>,0);
+
+  [unrecognizable also terminates the sequence, terminal value is zero]
+	(<0>,(, (%T,syntax error in dw: <0>) )0);
+  )) z
+
+
+
+
+
+
+
+
+-
+The code of the previous panel, which counts out the space occupied by DB's,
+DC's, and DW's, originally used the argument <0>:(R) - a combination of the
+program counter and the line of code to which it applied. It was slower because
+the repeated joining and splitting of these two components was time consuming.
+For example, y begins with:
+
+	(<'><'><'><1>,(#+,(y,<'><1>)+1));
+
+while the former code was:
+
+	((<0>:<'><'><'><1>,(#+,<0>+1):<'><1>):
+
+The first of these rules uses one variable instead of two. It also consumes
+less workspace. Dropping one quote at a time while incrementing the program
+counter is tolerable because long strings of quotes are rarely encountered.
+Looking at the analogous rule for ordinary text we find:
+
+	(<'><0><'><1>,(#+,(&!,<0>)+(y,<'><'><1>)));
+
+for which the alternative code was
+
+	(<0>:<'>(and,<[1]>,(NOT,<'>))<1>,(#+,<0>+1):<1>):
+-
+The function &!, whose value is the length of its argument string, is a REC
+runtime function. Still slow compared to machine language, it is much faster
+than a CNVRT rule. The earlier splitting off of one letter at a time, as the
+first rule does with quotes, was rather slow. Using &! is much better.
+
+According to the general form of a db, common to dc and dw, several arguments
+can be placed on the same line, separated by commas; the pattern <:Y:> picks
+out such commas or else a terminal comment or end of line. Each argument, even
+though it is symbolic or involves a formula, counts for one byte. A series of
+ASCII bytes can be quoted, but if quotes themselves are included in the string,
+they are exchanged at the rate of two for one. Thus, 'x''''''y' means there
+are three quotes between x and y.
+
+Three rules account for quotes. Since we always regenerate the leading quote,
+finding three in succession means that the last two are a pair representing
+one single quote; we discard them, increase the count by one, and examine the
+rest of the line.
+
+Two quotes followed by a terminator means that the quoted string is exhausted;
+we go on to what is left.
+
+Anything else enclosed between two quotes can be sized with &!.
+-
+:The Second Pass.
+
+The second pass is more extensive than the first because it is necessary
+to generate the code for each instruction rather than simply ascertaining
+its length. Likewise, data must be expanded and not merely sized. The orderly
+layout of the Intel 8080 instruction set and the selection of a careful set
+of mnemonics allows the second pass to be subdivided into a relatively small
+number of categories. In each of them, the necessary registers, conditions, or
+operation specifications can be transformed into their numerical equivalent,
+and then the byte of code formed. In the case of data bytes or addresses, the
+correct number of bytes has to be generated. If necessary, this will require
+access to the symbol table which was formed on the first pass.
+
+Since the second pass will generate either a hexadecimal object code file or
+an annotated listing file or both, it is necessary to direct this information
+to the corresponding file.
+
+A lead-in is used here with the dual function of preserving the simulated
+program counter in a variable bound at this higher level, and conserving
+the entire assembler line so that it can be echoed in the annotated listing.
+The configuration (if,(R),<4>,(u,<4>)) is a typical way to do the latter.
+
+-
+The second pass is best understood relative to the output which it produces.
+Here we want to generate two separate files - FILE.UFH bearing the precursor
+of the Intel HEX file FILE.HEX - and an annotated reproduction of the source
+file indicating the code that was generated. This file is FILE.PRN.
+
+The .PRN file is most attractive if the generated code is placed on the same
+line as the source code, and if it does not take up too much space. Eleven
+columns are the minimum necessary, but if we choose sixteen we can insert a
+little more information at times, and not disrupt the original tab settings.
+The following format is used, taking AAAA as the current program counter:
+
+ AAAA 			;comment...	comment line
+ AAAA FB	x:	ei		;one-byte instruction
+ AAAA FE42	x:	cpi 'B'		;two-byte instruction
+ AAAA CD0500	x:	call BDOS	;three-byte instruction
+ AAAA 414243	x:	db   'ABC'	;byte data
+ AAAA ^BBBB		org  BBBB	;origin
+ AAAA ^BBBB		ds   N		;BBBB=AAAA+N
+ AAAA %EEEE		end  EEEE	;end line
+
+The use of ^ and % facilitates the generation of the .UFH file by including
+an additional disk output while the .PRN file is being written.
+-
+The "unformatted hexadecimal file," FILE.UFH is simply a byte stream deposited
+on the disk as the second pass procedes. A loader can be constructed to change
+it into a .COM file, or it can be transformed to the traditional .HEX file. It
+is unformatted for simplicity; otherwise a buffer would have to be introduced
+to break up the stream into lines, insert origins, checksums, colons and the
+carriage return-line feed combinations that the .HEX file requires. Deferring
+all this activity to another pass by another program, 8080.CNV is simplified
+somewhat.
+
+Aside form the byte stream, FILE.UFH contains the symbols ^ to indicate an
+origin, blanks from comment lines, and % to indicate the start address found
+in an "end" line.
+
+The rules for all the different instruction formats use the function "q" which
+forms a byte from the three fields of the typical Intel 8080 instruction. The
+byte so formed is bound to the variable <3> where it can be sent to either
+FILE.PRN or FILE.UFH or both. Just as in the first pass, the value of the
+function "u" is the value of the program counter, which is to be bound to the
+variable <0>, from which it may be incorporated into FILE.PRN.
+
+The next 5 panels contain the second pass for the assembler 8080.CNV. Many
+explanatory comments have been interleaved.
+-
+[second pass]
+[the function "b" binds the program counter to <0>, the source line to <4>,
+ using an "if" to keep their passages through the workspace distinct. If
+ "u" returns a null rather than a new program counter, the pass is ended.]
+
+(()()(0 4)(
+	(<>,);
+	(<0>,(if,(R),<4>,(u,<4>))):
+  )) b
+
+["b" is the leadin, "u" does the work, of the second pass.]
+
+(()()(1 2 3)(
+
+  [the end line may have a start address; mark the address with a "%"]
+  [END w/start]		(end<:2:>,(if,%(&Dh,(c,<2>)),<3>,(X)));
+
+  [a simple "end" implies a start address 0000, marked with a %]
+  [quit at END]		(end,(if,%0000,<3>,(X)));
+
+  [EOF should never be encountered by the program; if it is, quit]
+  [quit at EOF]		((^Z),(, (%T,No END line) ));
+[-]
+  [null lines or comments occupying a full line are ignored]
+  [skip comment]	((or,;,<>),(if,  ,<3>,(X))<0>);
+
+  [equ's might be reevaluated; but here they are ignored, their work done]
+  [ignore equ]		(<:1:>equ<:2:>,(if,  ,<3>,(X))<0>);
+
+  [reevaluating a label might expose a phase, or pass, error. We ignore them]
+  [discard label]	(<:F:>:<2>,<2>):
+
+  [left tabs, spaces are ignored, other things (even numbers) are not]
+  [left white]		(<:H:><1>,<1>):
+
+  [recompute space for db for the listing, put bytes in the output]
+  [db]			(db<:H:><1>,(if,(v,<1>),<3>,(X))(#f,<0>+(y,<1>)));
+
+  [dc is same as db, but the last byte has to be flagged]
+  [dc]			(dc<:H:><1>,(if,(o,(v,<1>)),<3>,(X))(#f,<0>+(y,<1>)));
+
+  [dw is similar to db, dc, but each argument counts 2, we don't use quotes]
+  [dw]			(dw<:H:><1>,(if,(w,<1>),<3>,(X))(#f,<0>+(z,<1>)));
+
+
+[-]
+  [ds increments the counter; we mark new counter with "^" for hexfile]
+  [ds]		(ds<:2:>,(if,(#+,<0>+(c,<2>)),<1>,(if,^(&Dh,<1>),<3>,(X))<1>));
+
+  [mark the origin with a "^" to give an origin to the hexfile]
+  [org]		(org<:2:>,(if,(c,<2>),<1>,(if,^(&Dh,<1>),<3>,(X))<1>));
+
+  [lxi needs a register pair, plus two data bytes]
+  [lxi]			(lxi<:H:><1><,><2><:Z:>,<<
+				>>(if,(q,0+(i,<1>)+1)(s,<2>),<3>,(X))<<
+				>>(#f,<0>+3));
+
+  [other three byte instructions also need a two byte address]
+  [3-byte inst]		((and,<:M:>,<1>)<:H:><2><:Z:>,<<
+				>>(if,(l,<1>)(s,<2>),<3>,(X))<<
+				>>(#f,<0>+3));
+
+  [mvi requires a register, plus a data byte]
+  [mvi]			(mvi<:H:><1><,><2><:Z:>,<<
+				>>(if,(q,0+(e,<1>)+6)(t,<2>),<3>,(X))<<
+				>>(#f,<0>+2));
+
+
+[-]
+  [the other two-byte instructions require their data byte]
+  [2-byte inst]		((and,<:N:>,<1>)<:H:><2><:Z:>,<<
+				>>(if,(m,<1>)(t,<2>),<3>,(X))<<
+				>>(#f,<0>+2));
+
+  [moves require two registers]
+  [moves]		(mov<:H:><1><,><2><:Z:>,<<
+				>>(if,(q,1+(e,<1>)+(e,<2>)),<3>,(X))<<
+				>>(#f,<0>+1));
+
+  [arithmetic-logic instructions require operation, register]
+  [arit-logic]		((and,<:P:>,<1>)<:H:><2><:Z:>,<<
+				>>(if,(q,2+(f,<1>)+(e,<2>)),<3>,(X))<<
+				>>(#f,<0>+1));
+
+  [some one-byte instructions require a register]
+  [1-byte w/reg]	((and,<:O:>,<1>)<:H:><2><:Z:>,<<
+				>>(if,(n,<1>),<3>,(X))<<
+				>>(#f,<0>+1));
+
+
+
+[-]
+  [conditional return requires the condition code]
+  [cndl ret]		(r(and,<:L:>,<1>)<:H:>,<<
+				>>(if,(q,3+(h,<1>)+0),<3>,(X))<<
+				>>(#f,<0>+1));
+
+  [there are eight "accumulator" instructions]
+  [accumulator]		((and,<:U:>,<1>)<:H:>,<<
+				>>(if,(q,0+(j,<1>)+7),<3>,(X))<<
+				>>(#f,<0>+1));
+
+  [check for the remnants]
+  [1-byte inst]		((and,<:Q:>,<1>)<:H:>,<<
+				>>(if,(k,<1>),<3>,(X))<<
+				>>(#f,<0>+1));
+
+  [insert 3 NOP's for unclassifiable lines]
+  [other]		(<1>,<<
+				>>(if,000000,<3>,(X))<<
+				>>(, (%T,unknown <1>) )<<
+				>>(#f,<0>+3));
+  )) u
+
+-
+:Data on Second Pass.
+[This panel contains code to evaluate the arguments of a db, dc, or dw]
+
+[compile db]
+(()()(1 2)(
+	(<'><'><'><1>,(&n,<'>)(v,<'><'><1>));
+	(<'><'><:Y:><1>,<1>):
+	(<'><1><'><2>,(&n,<1>)(v,<'><'><2>));
+	((and,(or,<:F:>,<:E:>,<:C:>),<1>)<:Y:><2>,(t,<1>)(v,<2>));
+	(<>,);
+	(<1>,(, (%T,syntax error in db: <1>) ));
+  )) v
+
+[compile dw]
+(()()(1 2)(
+	((and,(or,<:F:>,<:E:>,<:C:>),<1>)<:Y:><2>,(s,<1>)(w,<2>));
+	(<>,);
+	(<1>,(, (%T,syntax error in dw: <1>) ));
+  )) w
+
+
+
+-
+:Consult Symbol Table.
+
+Consultation of the symbol table is straightforward. If the argument is
+either decimal or hexidecimal, it is converted to decimal and returned. If
+it is symbolic, the symbol table is searched, the equivalent extracted, and
+the cycle repeated. Thus, there could be a chain of definitions, which would
+be acceptable provided that it were 1) not circular and 2) complete.
+
+Simple formulas are allowed - that is, a chain of sums and differences.
+Neither parentheses nor other operations are permitted, but a leading unary
+minus is recognized. Since the function #f will parse any algebraic argument,
+it would not be difficult to ensure the evaluation of all symbolic references,
+and thus derive a numerical value for any algebraic expression at all.
+
+Functions S and T, defined as skeletons in the main program, are responsible
+for extracting information from the symbol table. (T) opens the memory area
+for reading. It it checks to see whether the area was previously defined, and
+resets its pointers to zero. An area can be reopened as often as desired.
+
+(S) uses a pattern read according to which the memory area alternates the
+symbol name with its value. Either name or value can be arbitrarily long,
+within the constraint of fixed total area being available.
+-
+[This panel contains "c" and "d," which search the symbol table]
+
+[get symbol value]
+(()()(0 1 2)(
+	((and,(or,<:E:>,<:C:>)<>,<0>),(r,<0>));
+	((and,<:F:>,<0>)<1>,(T)(d,(S))<1>):
+	(<1>+(and,<:F:>,<0>)<2>,<1>+(T)(d,(S))<2>):
+	(<1>-(and,<:F:>,<0>)<2>,<1>-(T)(d,(S))<2>):
+	(<0>,(#f,<0>));
+  )) c
+
+[search symbol table]
+(()()(1)(
+	((^Z),(, (%T,Undefined <0>) )0);
+	(<0>:<1>::,<1>);
+	(,(S)):
+  )) d
+-
+:Registers and Instructions.
+
+The part of an assembler concerned with translating the instructions of a
+given CPU is essentially a table of equivalences for these instructions.
+If, as in the case of the Intel 8080, the mnemonics are grouped into families
+with a simple syntax governing register assignments, condition codes, or
+other parameters, the size of the table can be considerably reduced. Rather
+than 256 distinct possibilities, we have to contend with about eleven. Each
+of these uses the same lists of equivalents, governed by its own requiremenus.
+Even the instructions which do not fit into a particular pattern, of which
+there are not many, can be gathered ioto their own short list and treated
+as special cases.
+
+The organization of CNVRT requires that most of this information be repeated
+twice, once in the form of the lists of alternatives required for pattern
+recognition, and once as a series of programs which translate the symbols
+into their numerical equivalents. The translation programs are shown it the
+following panels, the corresponding patterns are incorporated in the main
+program as a series of pattern definitions.
+
+
+
+-
+
+Index to register, condition, and instruction lists.
+
+		list		pattern	equivalent
+		----		------- -----------
+
+		registers	<:I:>	(e,...)
+		pairs q0	<:J:>	(i,...)
+		pairs q3	<:K:>	(i,...)
+		condition	<:L:>	(h,...)
+		3-byte		<:M:>	(l,...)
+		2-byte		<:N:>	(g,...), (m,...)
+		1-byte		<:O:>	(n,...)
+		ar-logic	<:P:>	(f,...)
+		sporadic	<:Q:>	(k,...)
+		accumulator	<:U:>	(j,...)
+		mov, c-ret	<:V:>
+
+
+
+
+
+-
+[The following panels show the register definitions]
+
+[register equivalents]
+(()()()((b,0);(c,1);(d,2);(e,3);(h,4);(l,5);(m,6);(a,7);)) e
+
+[arith-logic equivalents]
+(()()()((add,0);(adc,1);(sub,2);(sbb,3);(ana,4);(xra,5);(ora,6);(cmp,7);)) f
+
+[immediate equivalents]
+(()()()((adi,0);(aci,1);(sui,2);(sbi,3);(ani,4);(xri,5);(ori,6);(cpi,7);)) g
+
+[condition equivalents]
+(()()()((nz,0);(z,1);(nc,2);(c,3);(po,4);(pe,5);(p,6);(m,7);)) h
+
+[register pair equivalents]
+(()()()((b,0);(d,2);(h,4);(sp,6);(psw,6);)) i
+
+[accumulator instructions]
+(()()()((rlc,0);(rrc,1);(ral,2);(rar,3);(daa,4);(cma,5);(stc,6);(cmc,7);)) j
+
+[sporadic instructions]
+(()()()((ret,C9);(xchg,EB);(xthl,E3);(sphl,F9);(pchl,E9);(di,F3);(ei,FB);)) k
+-
+[three-byte instructions except lxi]
+(()()(0)( (jmp,C3);(call,CD);(shld,22);(lhld,2A);(sta,32);(lda,3A);
+	(j(and,<:L:>,<0>),(q,3+(h,<0>)+2));
+	(c(and,<:L:>,<0>),(q,3+(h,<0>)+4)); )) l
+
+[two-byte instructions exceqt mvi]
+(()()(0)( (in,DB);(out,D3);(<0>,(q,3+(g,<0>)+6)); )) m
+
+[one-byte instructions with register]
+(()()()(
+	(dad,(q,0+(i,<2>)+9));
+	(ldax,(q,0+(i,<2>)+10));
+	(stax,(q,0+(i,<2>)+2));
+	(inx,(q,0+(i,<2>)+3));
+	(dcx,(q,0+(i,<2>)+11));
+	(inr,(q,0+(e,<2>)+4));
+	(dcr,(q,0+(e,<2>)+5));
+	(pop,(q,3+(i,<2>)+1));
+	(push,(q,3+(i,<2>)+5));
+	(rst,(q,3+<2>+7));
+  )) n
+
+-
+:File Writing Functions.
+
+[dc requires flagging the sign in the last byte of its argument]
+[mark last byte]
+(()()(0 1)((<0>(and,<[1]>,<1>)<>,<0>(&s,<1>));)) o
+
+[Generate the line which will be sent to the print file. Insert program
+ counter, hexadecimal value of the instruction, and echo the source line]
+[.PRN file]
+(()()(1 2)(
+	((^I)(and,<[8]>,<1>)<2>,(%W,(W),(%T,      <1>(^MJ)))(^I)<2>):
+	((and,<[8]>,<1>)<2>,(%W,(W),(%T, (&Dh,<0>) <1>(^I)<4>(^MJ)))(^I)<2>):
+	((^I)<1>,(%W,(W),(%T,      <1>)(^MJ)));
+	(<1>,(%W,(W),(%T, (&Dh,<0>) <1>(^I)<4>)(^MJ)));
+  )) p
+
+[Intel 8080 instructions follow the format 2+3+3, signifying "quadrant,"
+ destination, source for each instruction. "q" places them in a byte]
+[join code fields]
+(()()(0 1 2 3)(
+	(<0>+<1>+<2>,(if,(&Dh,(#f,<0>*64+<1>*8+<2>)),00<3>,<3>));
+  )) q
+-
+
+[Make sure that all constants are decimal; convert hexidecimals]
+[uniformly decimal]
+(()()(0)(
+	(<0>H,(&Hd,<0>));
+  )) r
+
+[reverse the bytes of an address field so that low order comes first]
+[addr fld]
+(()()(0 1 2)(
+	(<0>,(if,(&Dh,(c,<0>)),(and,<[2]>,<1>)<2>,<2><1>));
+  )) s
+
+[make sure that a one-byte symbol is just one byte long. Translate quotes]
+[one byte symbol]
+(()()(0 1)((<'><'><'><'>,(&h,<'>));
+	(<'>(and,<[1]>,<0>)<'>,(&h,<0>));
+	((and,(or,<:E:>,<:C:>),<0>),(if,(&Dh,(r,<0>)),00<1>,<1>));
+	((and,<:F:>,<0>),(T)(d,(S))):
+	(<0>,(, (%T,bad byte <0>) )00);
+  )) t
+
+- 
+:Main Program: Patterns.
+
+[The following shows the main program with syntactic definitions]
+[main program]
+((
+  [The ASM alphabet contains upper & lowercase letters, numerals, $ and .]
+  [alfa]	((and,<[1]>,(or,(IVL,A,Z,),(IVL,a,z,),$,.))) A
+
+  [digits are just 0,1,2,3,4,5,6,7,8,9,0]
+  [num]		((and,<[1]>,(IVL,0,9,))) B
+
+  [a numeral is a sequence with at least one digit]
+  [numeral]	(<:B:>(ITR,<:B:>)) C
+
+  [hexadecimals are numerals or a,b,c,d,e,f of either case shift]
+  [hex]		((and,<[1]>,(or,(IVL,0,9,),(IVL,A,F,),(IVL,a,f,)))) D
+
+  [hexadecimal number must begin with a digit and end with an uppercase H]
+  [hexmal]	(<:B:>(ITR,<:D:>)H) E
+
+  [alphanumeric means leading letter followed by letters or digits]
+  [alfanum]	(<:A:>(ITR,(or,<:A:>,<:B:>))) F
+[-]
+
+  ["whitespace" is either a space or a tab]
+  [white]	((or, ,(^I))) G
+
+  [fields end with whitespace, comments, or at the end of the line]
+  [whitespace]	((or,<:G:>(ITR,<:G:>),;<-->,<>)) H
+
+[the preceding was general syntax. The following is specific to the Intel 8080]
+
+  [list of the Intel 8080's eight registers]
+  [registers]	((or,b,c,d,e,h,l,m,a)) I
+
+  [the four register pairs of quadrant 0]
+  [pairs]	((or,b,d,h,sp)) J
+
+  [the four register pairs of quadrant 3]
+  [pairs]	((or,b,d,h,psw)) K
+
+  [the eight conditions recognized by jumps, calls, returns]
+  [condition]	((or,nz,z,nc,c,po,pe,p,m)) L
+
+
+[-]
+
+  [list of the mnemonics for 3-byte instructions]
+  [3-byte]	((or,lhld,shld,lxi,lda,sta,jmp,call,j<:L:>,c<:L:>)) M
+
+  [list of the mnemonics for 2-byte instructions]
+  [2-byte]	((or,mvi,adi,aci,sui,sbi,ani,xri,ori,cpi,in,out)) N
+
+  [list of mnemonics for 1-byte instructions with register or data byte]
+  [1-byte]	((or,dad,ldax,stax,inx,dcx,inr,dcr,pop,push,rst)) O
+
+  [list of mnemonics for arithmetic-logical instructions, 1-byte w/register]
+  [ar-logic]	((or,add,adc,sub,sbb,ana,xra,ora,cmp)) P
+
+  [list of mnemonics for one-byte instructions without parameters]
+  [sporadic]	((or,ret,xchg,xthl,pchl,sphl,di,ei,nop,hlt)) Q
+
+  [list of mnemonics for "accumulator" instructions]
+  [accumulator]	((or,rlc,rrc,ral,rar,daa,cma,stc,cmc)) U
+
+  [mnemonics for moves, conditional returns]
+  [1-byte]	((or,mov,r<:L:>)) V
+
+[-]
+
+[the preceding were lists of instructions. The following are specialized]
+
+  [arguments of db, dc, dw are separated by commas, terminated at comments]
+  [separator]	((or,<,>,(ITR,<:G:>)(or,;<-->,<>))) Y
+
+  [a line of code may have trailing whitespace or comments, or end abruptly]
+  [final]	((ITR,<:G:>)(or,;,<>)) Z
+
+  [a label is alphanumeric, followed by : or whitespace; bind it to <2>]
+  [label]	((and,<:F:>,<1>)(or,:,<:G:>)(ITR,<:G:>)) 1
+
+  [a constant is decimal or hexidecimal preceded by separation; bind it to <2>]
+  [constant]	(<:H:>(and,(or,<:E:>,<:C:>),<2>)) 2
+  )
+[-]
+:Main Program: Skeletons.
+
+(
+  [read one line, consecutively, from the source file]
+	((%R,<9>.ASM)) R
+
+  [read the next pair <symbol:value::> from the symbol table]
+	((%R,MEM:ST,<-->::)) S
+
+  [position the read pointer at the beginning of the symbol table]
+	((,(%Or,MEM:ST))) T
+
+  [send one line to the listing file, simultaneously type it at the console]
+	((%W,<9>.LST,(%T,<0>))) W
+  )
+[-]
+:Main Program: Rule Set.
+
+  (9)(
+  [echo name of the file to be assembled]
+	((PWS)(or),);
+
+  [bind filename to variable <9>, run through program steps]
+	(<9>(or, ,.,<>),<<
+    [open symbol table - beware! only 1024 bytes unless more requested]
+		>>(%Ow,MEM:ST)<<
+
+    [open source file for first pass]
+		>>(%Or,<9>.ASM)<<
+
+    [execute first pass]
+		>>(a,0)<<
+
+    [announce end of first pass]
+		>>(, (%T,First Pass concluded) )<<
+
+    [close source file, recover overhead belonging to it]
+		>>(%C,<9>.ASM)<<
+[-]
+    [open source file again for the second pass]
+		>>(%Or,<9>.ASM)<<
+
+    [open file for the assembly listing]
+		>>(%Ow,<9>.PRN)<<
+
+    [open file for unformated hex]
+		>>(%Ow,<9>.UFH)<<
+
+    [%Or, conserves symbol table area, repositions pointer]
+		>>(%Or,MEM:ST)<<
+
+    [execute the second pass]
+		>>(b,0)<<
+
+    [announce end of second pass]
+		>>(, (%T,Second Pass concluded) )<<
+
+    [close all files]
+		>>(%E));
+  ))
+[end]
+[-]
+:[HEXEH.CNV]
+[Harold V. McIntosh, 7 April 1984]
+
+[Make Intel HEX from UFH]
+[Exclude CTR DIR RST BIO]
+
+[[Intel HEX from UFH]]
+
+
+
+[lines for .HEX file]
+(()()(0 1 2)(
+  [suppress spaces]	(<0>  <1>,<0><1>):
+  [ever filled buffer]	(<0>:(and,<1>,(NOT,<[32]>),(NOT,<-->(^Z))),<0>:<1>(R)):
+  [update new origin]	(<0>:^(and,<[4]>,<1>)<2>,(&Hd,<1>):<2>):
+  [the final line]	(<0>:%(and,<[4]>,<1>),(c,<1>));
+  [^ terminates line]	(<0>:<1>^<2>,(b,<1>)^<2>):
+  [% terminates line]	(<0>:<1>%<2>,(b,<1>)%<2>):
+  [quit at EOF]		(<0>:(^Z),(c,0000));
+  [partial line at ^Z]	(<0>:<1>(^Z),(b,<1>)(^Z)):
+  [full line]		(<0>:(and,<[32]>,<1>)<2>,(b,<1>)<2>):
+  )) a
+[-]
+[punch a row]
+(()()(1 2 3)(
+	((and,<[32]>,<1>)<2>,<<
+		>>(#+,<0>+16):<<
+		>>(if,10(&Dh,<0>)00<1>,<3>,(W))<<
+		>><2>);
+	(<1>,(if,(&Dh,(#/,(&!,<1>)/2)),00<2>,<<
+		>>(#+,<0>+(&Hd,<2>)):<<
+		>>(if,<2>(&Dh,<0>)00<1>,<3>,(W))<<
+		>>));
+  )) b
+
+[punch closing line] (()()(0 3)((<0>,(if,00<0>00,<3>,(W)));)) c
+
+[checksum]
+(()()(0 1 2)(
+	(<0>:(and,<[2]>,<1>)<2>,(#+,<0>+(&Hd,<1>)):<2>):
+	(<0>:,(if,(&Dh,-<0>),<[2]><1>,<1>));
+  )) d
+
+
+
+[-]
+[main program]
+(()(
+	((%R,<9>.UFH,<[32]>)) R
+	((%W,(X),(%T,:<3>(d,0:<3>))(^MJ))) W
+	(<9>.HEX) X
+  )(9)(
+	((PWS)(or),);
+	((or, ,?,<>),<<
+		>>(, (%T,HEXEH.REC will generate FILE.HEX from FILE.UFH) )<<
+		>>(, (%T,Type FILE to be used) )<<
+		>>(&u,(%R,TTY:))):
+	(<9>(or, ,.,<>),<<
+		>>(%Or,<9>.UFH)<<
+		>>(%Ow,<9>.HEX)<<
+		>>(a,0:(R))<<
+		>>(%E));
+  ))
+
+[end]
+[-]
+:HEXEH.CNV - Annotated.
+
+HEXEH.CNV is a program which will transform the unformatted hexadecimal
+file produced by 8080.CNV into the standard file with Intel's assembler
+and PROM programming format. It is not necessary to use this program
+unless the standard format is desired, or a program which produces a
+binary .COM file directly is not available.
+
+The format of FILE.UFH is that it consists of an unpunctuated stream of
+printable ASCII characters, as produced by 8080.REC. Interspersed in this
+stream are
+		spaces		resulting from comment lines
+		^AAAA		resulting from org or ds directives
+		%EEEE		resulting from an end directive
+
+FILE.HEX, which is the output of HEXEH, conforms to an Intel format,
+
+	    :NNAAAA00DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDCC
+
+in which NN is the number of bytes generated by the line, AAAA is their
+initial address, 00 is zero for CP/M usage, DD are hexadecimal bytes in
+ASCII representation, and CC is a checksum modulo 256 giving zero linesum.
+-
+The layout of HEXEH is the following:
+
+
+		a	keep 32 characters on hand, pick prospective
+			HEX lines out of them, maintain a program counter,
+			and detect the end of the UFH file.
+
+		b	generate one line of HEX code, containing not more
+			than 16 bytes of object code, represented in 32
+			ASCII nibbles.
+
+		c	punch the terminal line for the HEX file.
+
+		d	calculate a checksum for the line.
+
+		main	open files, generate HEX file, close files.
+
+
+These programs maintain the program counter as part of the workspace, rather
+than splitting the programs into two levels with the program counter bound
+into a variable at the top level.
+
+-
+Some programming techniques, peculiar to CNVRT, can be perceived in these
+subroutines.
+
+		(if,00<0>00,<3>,(W))
+
+is used for the sole purpose of binding a value to the variable <3>, which
+is used implicitly in W; for this reason <3> must not have been previously
+bound at this level, and likewise the "if" has no skeleton for a false
+alternative. In the skeletons
+
+		(if,(&Dh,(#/,(&!,<1>/2)),00<2>,...)
+		(if,(&Dh,-<0>),<[2]><1>,<1>)
+
+the first uses the pattern 00<2>, to pick out the least significant byte of
+the two byte number which is always the result of an arithmetic operation.
+In the second, <[2]> accomplishes the same separation, but is used instead
+of FF because overflow from one byte can encroach on the FF.
+
+The constant shifting between decimal and hexadecimal, represented by &Dh and
+&Hd, is a consequence of programming CNVRT for decimal arithmetic on ASCII
+character strings.
+
+-
+[The lines in this panel form the usual
+ header for a CNVRT program, plus
+ the header for the subroutine "a"]
+
+
+
+
+
+
+[HEXEH.CNV]
+[Harold V. McIntosh, 7 April 1984]
+
+[Make Intel HEX from UFH]
+[Exclude CTR DIR RST BIO]
+
+[[Intel HEX from UFH]]
+
+
+
+[lines for .HEX file]
+(()()(0 1 2)(
+
+[-]
+  [spaces really shouldn't have been passed on, but get rid of them]
+  [suppress spaces]	(<0>  <1>,<0><1>):
+
+  [make sure that there is always enough data for a line of hexfile]
+  [ever filled buffer]	(<0>:(and,<1>,(NOT,<[32]>),(NOT,<-->(^Z))),<0>:<1>(R)):
+
+  [^ requires a new origin]
+  [update new origin]	(<0>:^(and,<[4]>,<1>)<2>,(&Hd,<1>):<2>):
+
+  [% is the normal file end marker]
+  [the final line]	(<0>:%(and,<[4]>,<1>),(c,<1>));
+
+  [get a line to process, but data cannot extend beyond ^, %, or ^Z]
+  [^ terminates line]	(<0>:<1>^<2>,(b,<1>)^<2>):
+  [% terminates line]	(<0>:<1>%<2>,(b,<1>)%<2>):
+  [quit at EOF]		(<0>:(^Z),(c,0000));
+
+  [process tag end of file]
+  [partial line at ^Z]	(<0>:<1>(^Z),(b,<1>)(^Z)):
+
+  [pure data stream in the buffer, so take 16 bytes (32 nibbles) out of it]
+  [full line]		(<0>:(and,<[32]>,<1>)<2>,(b,<1>)<2>): )) a
+[-]
+
+[punch a row]
+(()()(1 2 3)(
+  [if 16 bytes [32 nibbles] are available, generate a full line]
+	((and,<[32]>,<1>)<2>,<<
+    [increment program counter by 16]
+		>>(#+,<0>+16):<<
+    [bind the line to <3> so W can use it]
+		>>(if,10(&Dh,<0>)00<1>,<3>,(W))<<
+    [repeat if anything is left]
+		>><2>);
+  [given less than a full row, count out its length]
+	(<1>,(if,(&Dh,(#/,(&!,<1>)/2)),00<2>,<<
+    [increment program counter]
+		>>(#+,<0>+(&Hd,<2>)):<<
+    [generate line with program counter and checksum]
+		>>(if,<2>(&Dh,<0>)00<1>,<3>,(W))<<
+		>>));
+  )) b
+
+
+
+[-]
+
+[punch closing line]
+(()()(0 3)(
+  [The closing line has a special format, namely the byte count is zero]
+	(<0>,(if,00<0>00,<3>,(W)));
+  )) c
+
+[checksum]
+(()()(0 1 2)(
+
+  [as long as nibble pairs remain, add them to the checksum]
+	(<0>:(and,<[2]>,<1>)<2>,(#+,<0>+(&Hd,<1>)):<2>):
+
+  [when they are all gone, report the negative of the accumulated sum]
+	(<0>:,(if,(&Dh,-<0>),<[2]><1>,<1>));
+
+  )) d
+
+
+
+
+
+[-]
+[main program] (()(
+  [read 32 characters at a time from the unformatted file]
+	((%R,<9>.UFH,<[32]>)) R
+  [add checksum, CR-LF, to the line, send it to HEX file]
+	((%W,(X),(%T,:<3>(d,0:<3>))(^MJ))) W
+  [avoid repeating file name]
+	(<9>.HEX) X
+  )(9)(
+  [echo filename]
+	((PWS)(or),);
+  [filename can be input from console, type "?"]
+	((or, ,?,<>),<<
+		>>(, (%T,HEXEH.REC will generate FILE.HEX from FILE.UFH) )<<
+		>>(, (%T,Type FILE to be used) )<<
+		>>(&u,(%R,TTY:))):
+  [record filename once established, open files, do the job, then quit]
+	(<9>(or, ,.,<>),<<
+		>>(%Or,<9>.UFH)<<
+		>>(%Ow,<9>.HEX)<<
+		>>(a,0:(R))<<
+		>>(%E));  ))
+[end]
+-
+:[8080.HLP]
+[Harold V. McIntosh, 12 April 1984]
+[end]
+

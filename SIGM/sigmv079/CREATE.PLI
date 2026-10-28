@@ -1,0 +1,59 @@
+create:
+	proc;
+	%replace
+		true  by '1'b,
+		false by '0'b;
+	%include 'attrib.dcl';
+	dcl
+		rec char(max_siz),
+		rec_no fixed;
+	dcl
+		att_len entry(fixed) returns(fixed),
+		accept  entry(char(max_siz));
+	dcl
+		key   file,
+		data  file,
+		sysin file;
+
+	put edit('Creating a New Data Base','')
+		(skip(3),a,skip,a);
+
+	on undefinedfile(data)
+		call no_dir();
+	on undefinedfile(key)
+		call no_dir();
+
+	open file(data) record output;
+	open file(key)  stream output;
+
+	on endfile(sysin)
+		go to end_create;
+
+		do rec_no = 0 by 1;
+		/* add another record */
+		put edit('Record',rec_no,'') (skip,a,f(5));
+		call accept(rec);
+		write file(data) from(rec);
+		put file(key)
+			edit(substr(rec,att_start(1),att_len(1)),'')
+			(a,skip);
+		if rec_no = 32767 then
+			do;
+			put skip list('Data Base is Full');
+			signal endfile(sysin);
+			end;
+		end;
+
+	end_create:
+	close file(data);
+	close file(key);
+	put skip(2) list('Data Base Created');
+	return;
+
+	no_dir:
+		proc;
+		put skip list('No Directory Space');
+		stop;
+		end no_dir;
+	end create;
+

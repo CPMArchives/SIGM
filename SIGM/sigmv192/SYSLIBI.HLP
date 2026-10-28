@@ -1,0 +1,159 @@
+Memory Allocation Concept
+ALLOC  -- Allocate a Block of Memory
+IALLOC -- Initialize Memory Allocation System
+:Memory Allocation Concept
+
+     Thå concepô oæ memorù allocatioî witè theså routineó ió 
+relativelù  simple®   Routineó  arå  provideä  tï  givå  thå 
+programmeò   simplå  memorù  allocatioî   anä   deallocatioî 
+capabilities¬ buô thå programmeò ió stilì iî control.
+
+     Thå  basiã  ideá herå ió tï reservå á buffeò iî  memorù 
+froí  whicè  tï takå bitó anä pieceó froí aô  á  time®   Thå 
+boundinç  addresseó oæ thió buffeò arå specifieä (oò seô  bù 
+default©  bù thå IALLOÃ routine¬  anä thå ALLOÃ  routinå  ió 
+useä  tï obtaiî subbufferó froí thió largeò buffeò froí timå 
+tï time®   ALLOÃ constantlù checkó tï seå iæ thå buffeò  haó 
+enougè spacå lefô tï granô thå requesô foò á subbuffer¬ and¬ 
+if it does, the subbuffer is provided.
+
+     Thå largesô buffeò whicè maù bå reserveä bù thå  IALLOÃ 
+routinå  ió  thaô buffeò whicè extendó froí thå enä  oæ  thå 
+prograí  tï jusô belo÷ thå CCP®   Thió buffeò ió selecteä iæ 
+IALLOÃ ió calleä witè A=0.
+
+
+     Foò example¬  thå followinç illustrateó thå applicatioî 
+using the largest buffer possible:
+
+          XRA  A    ; Select Full Buffer
+          CALL IALLOC
+          ...
+          LXI  D,1024    ; Request 1K
+          CALL ALLOC
+          JZ   MEMOVFL   ; Abort if Memory Overflow
+          SHLD BUF1      ; Set Pointer to First Subbuffer
+          ...
+          LXI  D,36      ; Request 36 bytes
+          CALL ALLOC
+          JZ   MEMOVFL   ; Abort if Memory Overflow
+          SHLD BUF2      ; Set Pointer to 2nd Subbuffer
+          ...
+
+
+     Thió memorù allocatioî schemå alsï permitó thå divisioî 
+oæ  memorù  intï  á grouğ oæ buffers®   Onå  buffeò  maù  bå 
+allocated¬  itó  addresó preserved¬  anotheò buffeò  maù  bå 
+allocated¬  itó addresó preserved¬ anä theî subsequenô calló 
+tï  IALLOÃ  maù bå useä tï selecô onå buffeò oò  thå  other®  
+Eacè  calì tï IALLOÃ freeó thå entirå buffeò area¬  sï  carå 
+should be taken in doing this.  For example:
+
+          ...
+          CALL CODEND    ; Use Codend as First Buffer
+          SHLD BUF1
+          XCHG           ; Address in DE
+          LXI  H,1024    ; 1K for this buffer
+          DAD  D         ; HL pts to after this buffer
+          XCHG           ; HL is start, DE is end
+          MVI  A,3       ; Select Start and End
+          CALL IALLOC
+          ...
+
+
+IALLOC/ALLOC Example, Con't
+
+          ...
+          CALL ALLOC     ; Calls to ALLOC
+          ...
+          LHLD BUF1      ; Pt to 1st Buffer
+          LXI  D,1024    ; Set 2nd Buffer
+          DAD  D         ; Pt to 2nd Buffer
+          SHLD BUF2
+          XCHG
+          DAD  D         ; Pt to end of 2nd Buffer (1K also)
+          XCHG           ; HL is start, DE is end
+          MVI  A,3       ; Select Start and End
+          CALL IALLOC
+          ...
+          CALL ALLOC     ; Calls to ALLOC
+          ...
+
+:Allocate a Block of Memory
+     Routine Name:  ALLOC
+
+     Functionº
+
+     ALLOÃ  allocateó  á blocë oæ memory¬  whicè maù  bå  aó 
+smalì aó onå byte¬ foò thå useò froí thå buffeò pooì boundeä 
+bù  thå valueó seô bù á preceedinç calì tï  IALLOC®   IALLOÃ 
+musô bå calleä beforå ALLOÃ ió used.
+
+     Thå programmeò indicateó thå numbeò oæ byteó hå  wisheó 
+tï uså iî thå DÅ registeò pair®  Hå theî calló ALLOC¬ which¬ 
+iæ  enougè  spacå ió available¬  returnó thå addresó oæ  thå 
+firsô bytå oæ thaô blocë oæ memorù iî HL®  Thå PS× returnó á 
+flaç sayinç iæ thå allocatioî waó donå successfully.
+
+
+     Inputs:  DE = number of bytes requested
+
+     Outputs:  HL = Address of first byte allocated
+               A=° anä Zerï Flaç Seô (Z© iæ noô enougè space;
+               A=0FFH and Zero Flag Reset (NZ) if request
+                    granted
+
+     Registers Affected:  HL, PSW
+
+     SYSLIB Routines Called:  None
+
+     Special Error Conditions:  As indicated by return code
+
+:Initialize Memory Allocation Buffer
+     Routine Name:  IALLOC
+
+     Functionº
+
+     IALLOÃ   initializeó  thå  buffeò  froí  whicè   memorù 
+allocatioî  viá  calló tï thå ALLOÃ routinå ió tï  bå  done®  
+Thå  programmeò maù specifù thå boundó oæ  thió  buffer¬  oò 
+defaulô boundó wilì bå seô bù IALLOÃ iæ nonå arå specified.
+
+     Upoî  callinç  IALLOC¬  HÌ  maù  contaiî  thå  startinç 
+addresó oæ thå buffeò area®  Iæ iô doeó not¬ theî thå enä oæ 
+thå  user'ó  prograí (returneä bù CODEND© ió used®   DÅ  maù 
+contaiî thå endinç addresó oæ thå buffeò area®   Iæ iô  doeó 
+not¬  theî  thå bytå belo÷ thå CCĞ ió used®   Thå Á registeò 
+containó á codeä flaç sayinç whicè boundarù valueó tï use.
+
+
+IALLOC, Con't
+
+     Iæ Biô ° oæ Á ió 1¬ HÌ ió useä tï indicatå thå startinç 
+addresó oæ thå buffer®  Iæ Biô ° ió 0¬ thå valuå returneä bù 
+CODENÄ  ió used®   Iæ Biô ± oæ Á ió 1¬  DÅ ió tï bå useä  tï 
+indicatå thå endinç addresó oæ thå buffer®   Iæ Biô ± ió  0¬ 
+thå bytå belo÷ thå CCĞ ió used.
+
+     Inputs:  HL = Possible Starting Address of Buffer
+              DE = Possible Ending Address of Buffer
+              A = Selection Code:
+                Bit 0 - Use HL as Starting Address if 1
+                        Use CODEND Value if 0
+                Bit 1 - Use DE as Ending Address if 1
+                        Use CCP-1 if 0
+
+     Outputs:  None
+
+     Registers Affected:  None
+
+IALLOC, Con't
+
+     SYSLIB Routines Called:  CODEND
+
+     Special Error Conditions:  None
+
+
+
+
+

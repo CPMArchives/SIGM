@@ -1,0 +1,30 @@
+;**********************************************************************
+
+*                     CHARIN
+
+;**********************************************************************
+
+                     NAME CHARIN
+                     ENTRY CHARIN
+
+
+;FUNCTION: Reads the console,returns with an ASCII code in A.
+
+RCONS equ 1    ;BIOS function code for 'read console'
+BIOS  equ 5    ;address of BIOS
+
+CHARIN:           push h
+                  push d
+                  push b
+                  mvi c,RCONS 
+                  call BIOS
+                  pop b
+                  pop d
+                  pop h
+                  ret
+
+                  END CHARIN
+
+
+;************************************************************
+

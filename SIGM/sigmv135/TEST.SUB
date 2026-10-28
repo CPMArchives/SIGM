@@ -1,0 +1,16 @@
+:Generate a self-relocating version of the TEST$1 program
+:also, generate an ordinary version of the TEST$1 program
+:Run both versions
+M80 test$1=test$1
+L80 reloc,/p:1fe,test$1,org200/n/e:@@relo
+L80 /p:2fe,test$1,org300/n/e
+reloc test$1.com $2
+era org?00.com
+era srp$1.com
+ren srp$1.com=test$1.com
+L80 test$1,test$1/n/e
+:Run the non-relocating test$1
+test$1
+:Now the relocating version, srp$1
+srp$1
+

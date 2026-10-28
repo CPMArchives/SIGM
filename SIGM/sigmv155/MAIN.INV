@@ -1,0 +1,96 @@
+* main.inv 08/18/83
+STORE CHR(PEEK(063))TO dr
+USE &dr.:stock
+STORE t TO more
+STORE t TO first
+* set up forever loop for this data base
+DO WHILE t
+    IF first
+        * set up screen and prompts
+        ERASE
+        STORE '<F>orward, <B>ackward, <A>dd, <E>dit' TO prompt1
+        STORE '<S>earch, <M>aintenance, <P>rint, <R>eports' TO prompt2
+        STORE '<Q>uit to main menu' TO prompt3
+        STORE 'Main Inventory Module ' TO mode
+        @  1,25 SAY mode
+        @  2, 0 SAY "+--------------------------------------"
+        @  2,39 SAY "----------------------------------------+"
+        @  3,26 SAY "SIG/M VOLUME"
+        @  5,14 SAY "Opening Inventory               Description of Volume"
+        @  7,19 SAY "Back Ordered"
+        @  8,15 SAY "Waiting Shipment"
+        @  9,14 SAY "Quantity Received"
+        @ 10,14 SAY "Closing Inventory              Change  in  Inventory: "
+        @ 11,46 SAY "Date:             No: "
+        @ 12,19 SAY "Normal Stock"
+        @ 13,14 SAY "Quantity to Order              Change in  Backorders: "
+        @ 14,15 SAY "Quantity Ordered               Date:             No: "
+        @ 16,10 SAY "Anticipated Inventory"
+        @ 17,51 SAY "Update"
+        @ 19, 0 SAY "+--------------------------------------"
+        @ 19,39 SAY "----------------------------------------+"
+        @ 20,12 SAY prompt1
+        @ 21,12 SAY prompt2
+        @ 22,12 SAY prompt3
+    ENDIF first
+    STORE f TO first
+    STORE '?' TO command
+    @  3,39 SAY disk
+    @  5,34 SAY open:inv
+    @  7,34 SAY back:ord
+    @  7,46 SAY line1
+    @  8,34 SAY wait:ship
+    @  8,46 SAY line2
+    @  9,34 SAY recvd
+    IF change1                       
+        STORE 'Yes' TO mchange1
+    ELSE
+        STORE ' No' TO mchange1
+    ENDIF change1
+    IF change2                             
+        STORE 'Yes' TO mchange2
+    ELSE
+        STORE ' No' TO mchange2
+    ENDIF change2
+    @ 10,70 SAY mchange1
+    @ 10,34 SAY STR(open:inv-back:ord-wait:ship+recvd,3,0)
+    @ 11,53 SAY daych1
+    @ 11,70 SAY ship
+    @ 12,34 SAY norm:stk
+    @ 13,34 SAY order
+    @ 13,70 SAY mchange2
+    @ 14,34 SAY pend
+    @ 14,53 SAY daych2
+    @ 14,70 SAY backship
+    @ 16,34 SAY STR(open:inv -back:ord -wait:ship + recvd + pend,3,0)
+    @ 17,59 SAY dayu
+    @ 22,56 SAY 'WHAT NEXT?'
+    @ 22,70 GET command PICTURE '!'
+    READ
+    DO CASE
+        CASE command = 'A'
+            DO add.inv
+        CASE (command = 'B' .OR. command = ',')
+            * move backwards one record
+            SKIP -1
+        CASE command = 'E'
+            DO edit.inv
+        CASE (command = 'F' .OR. command = '.')
+            * move forward one record
+            SKIP
+        CASE command = 'M'
+            DO maintain.inv
+        CASE command = 'P'
+            DO print.inv
+        CASE command = 'Q'
+            ERASE
+	    STORE t TO forever
+            RETURN
+	CASE command = 'R'
+            DO report.inv
+        CASE command = 'S'
+            DO search.inv
+    ENDCASE
+    * loop back again
+
+ENDDO while t

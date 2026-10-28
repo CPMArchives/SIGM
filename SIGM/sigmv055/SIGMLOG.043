@@ -1,0 +1,457 @@
+Sig/M	volume 43	8080 TINCMP Compiler and
+			Pidgin Programming System
+			CP/M-86 Bios Support
+
+		-CATALOG.043	contents of Sig/M volume 43
+				released November 25, 1981
+		ABSTRACT.043	abstract of Sig/M volume 43
+		ACKLIST.043	acknowledgement file
+		CRCKLIST.043	checksum of Sig/M volume 43
+
+index	name		size	description		
+
+43.01	DESCRIP .DOC	16K	details of TINCMP and PIDGIN
+43.02	IOCMPLX .ASM	19K	PIDGIN programming system
+43.03	IOCMPLX .REL	 2K	     /
+43.04	MACROS  .PGN	 8K	    /
+43.05	PIDGIN  .S2M	10K	   /
+43.06	PIDGINLB.REL	 1K	  /	
+43.07	PIDMATH .ASM	 5K	 /
+43.08	PIDMATH .REL	 1K	/
+43.09	STAGE2  .COM	12K	STAGE2 support system
+43.10	SYSTEM  .ASM	 1K	PIDGIN programming
+43.11	SYSTEM  .REL	 1K	/
+43.12	TINCMP  .COM	17K	TINCMP compiler
+43.13	TINCMP  .MAC	20K	        /
+43.14	TINCMP  .PGN	12K	       /
+43.15	TINCMP  .REL	 5K	      /
+43.16	TINTEST1.PGN	 3K	     /	
+43.17	TINTEST2.PGN	 3K	    /
+43.18	TINTEST3.PGN	 1K	   /
+43.19	TINTEST4.PGN	 3K	  /
+43.20	TINTEST5.PGN	 2K	 /	
+43.21	TINTEST6.PGN	 2K	/
+43.22	WC      .PGN	 2K	TINCMP test program
+43.23	WRNXT   .ASM	 1K	PIDGIN console I/O
+43.24	WRNXT   .REL	 1K	/
+43.25	CBIOS	.A86	17K	CP/M-86 Bios
+43.26	GOCPM86	.ASM	 1K	 /
+43.27	ERQ	.A86	 3K	/
+43.28	SD	.A86	15K	CP/M-86 directory sort
+
+Copyright (C) 1981 by Sig/M-Amateur Computer Group 
+of New Jersey Inc., Box 97, Iselin NJ 08830-0097
+
+READ THIS FIRST - BEFORE USE.
+CALL TINCMP AS FOLLOWS:
+	TINCMP MACROFILE,OUTPUTFILE,INPUTFILE
+MACROFILE: THE MACROS TO BE USED AS TEMPLATES AND INSTRUCTIONS
+OUTPUTFILE: THE OUTPUT OF TINCMP
+INPUTFILE: THE INPUT TO BE EXPANDED BY TINCMP
+
+REFERENCE FOR THIS STUFF:
+	PIDGIN - A SYSTEMS PROGRAMMING LANGUAGE
+	BY WM. A. GALE
+	DOCTOR DOBBS JOURNAL #57 JULY 1981
+
+	STAGE2
+	8080 IMPLEMENTATION (SUPERB!)
+	DICK CURTISS
+	CP/MUG VOLUME 51
+
+	IMPLEMENTING SOFTWARE FOR NON-NUMERIC APPLICATIONS
+	WM. M. WAITE
+	PRENTICE-HALL, INC.
+	ENGLEWOOD CLIFFS, NJ 1973
+	ISBN 0-13-451898-5 (ABOUT $25)
+
+	AN 8080 IMPLEMENTATION OF PIDGIN
+	TO BE PUBLISHED IN DR DOBBS
+	SUBMITTED NOVEMBER 1981
+	A. L. BENDER, M.D.
+
+
+CONTENTS OF TINCMP DISK:
+FILE	CONTENTS
+--------------------------------------------------------------
+MACROS.PGN	THE MACRO FILE USED TO TRANSLATE PIDGIN TO
+		8080 ASSEMBLER CODE
+
+PIDGIN.S2M	THE MACRO FILE USED TO TRANSLATE PIDGIN TO
+		8080 ASSEMBLER CODE WHEN BOOTSTRAPPING FROM
+		STAGE2 (THESE ARE STAGE2 MACROS)
+
+TINCMP.PGN	THE TINCMP COMPILER SOURCE CODE IN PIDGIN.
+
+TINCMP.MAC	THE OUTPUT OF TINCMP WHEN TRANSLATING TINCMP
+		WRITTEN IN PIDGIN USING TINCMP.
+
+TINCMP.REL	THE REL FILE FROM ASSEMBLING ABOVE FILE.
+
+TINCMP.COM	TINCMP COMMAND FILE.
+
+STAGE2.COM	STAGE2 MACRO PROCESSOR WRITTEN IN FLUB
+		BY DICK CURTISS AND DISTRIBUTED HERE WITH
+		HIS PERMISSION.
+
+IOCMPLX.ASM	THE I/O SUBROUTINES FOR PIDGIN INCLUDING
+		THE CP/M FILE CONTROL I/O INTERFACE ROUTINE
+
+WRNXT.ASM	CONSOLE READ/WRITE ROUTINES FOR PIDGIN UNDER
+		CP/M.
+
+SYSTEM.ASM	THE CP/M DEFINITIONS FOR PIDGIN.  ALSO CONTAINS
+		THE UNIVERSAL LOAD DE FROM M (LDEM) ROUTINE
+
+PIDMATH.ASM	16 BIT INTEGER ARITHMETIC ROUTINES WRITTEN
+		BY DICK CURTISS. SLIGHTLY MODIFIED TO BE USED
+		WITH PIDGIN.
+
+PIDGINLB.REL	RELOCATABLE LIBRARY OF WRNXT,SYSTEM AND PIDMATH.
+
+TINTEST THRU
+	TINTEST6 TEST ROUTINES FOR TINCMP.  USE IF YOU DESIGN YOUR
+		OWN MACROS.
+
+WC.PGN		WORD COUNTER.  USED AS A TEST PROGRAM TO CHECK THE
+		TINCMP COMPILER.
+
+SUMMARY FOR STAGE2:
+
+	STAGE2 IS DOCUMENTED IN CPM/UG LIBRARY VOLUME 51.  PLEASE
+READ THAT DOCUMENTATION IF YOU NEED DETAILED INSTRUCTIONS.  YOU
+SHOULD ALSO BUY WAITE'S BOOK.  THIS IS A WELL WRITTEN, BUT COMPLEX
+SUBJECT AND IS NOT CASUAL BED-TIME READING.  YOU WILL NEED TO READ AND
+PROBABLY RE-READ EACH TOPIC SEVERAL TIMES TO MAKE SENSE OUT OF THINGS.
+
+STAGE2 PRODUCES AN OUTPUT FILE FROM ONE OR MORE INPUT FILES.  IF
+YOU WANT TO REGENERATE TINCMP.MAC FROM TINCMP.PGN YOU WILL NEED TO
+DO SEVERAL THINGS.  ONE IS TO INSERT A SPACE IN FRONT OF EACH
+TINCMP.PGN LINE WHICH STARTS WITH A NON-SPACE OR TAB.  INSERT
+A SPACE BETWEEN BEGINMAIN AND ( IN THE SOURCE OR FIX THE S2M MACRO
+
+NEXT, INSERT SPACES BEWEEN PACK AND ( AND UNPACK AND ( OR FIX THE
+MACRO.  INSERT A FINIS STATEMENT AT THE END OF TINCMP.PGN.
+
+	IF YOU CAN AVOID IT, DON'T GO BACK TO STAGE2.  JUST FIX THE
+TINCMP MACRO FILE MACROS.PGN.  STARTING OVER WITH STAGE2 CAN GET
+THE RESULTING COMPILER MESSED UP AND INTRODUCE ERRORS WHICH ARE
+QUITE DIFFICULT TO FIND.  TO ASSEMBLE A NEW TINCMP WITH STAGE2:
+	A>STAGE2  TINCMP.MAC,CON=PIDGIN.S2M,TINCMP.PGN
+THIS PUTS THE BAD STATEMENTS OUT ON THE CONSOLE.  I REALLY CAN'T
+SEE WHAT THIS WILL BUY YOU BUT YOU CAN USE IT IF YOU  WANT.
+
+	WORKING WITH TINCMP CAN GET TO BE A DRAG SO IF YOU MAKE A SUBMIT
+FILE THINGS WILL BE EASIER:
+	1. COMPILATION AND ASSEMBLY TAKE ABOUT 5-7 MINUTES.
+	2. TYPE-IN OF COMMANDS IS ERROR-PRONE BECAUSE OF THE NUMBER
+		OF FILES USED.
+	3. THERE ARE FEWER ERRORS WHEN FILES ARE SUBMITTED.
+
+SUGGESTED SUBMIT FILE:
+A>SUBMIT TINSUB
+	TINCMP MACROS.PGN,$1.ASM,$1.PGN
+	M80 ,=$1.ASM
+	L80 $1,IOCMPLX,PIDGINLB/S,$1/N,/E
+
+STAGE2 HAS MANY OTHER USES.  CONSULTING DICK CURTISS' FILES WILL
+GIVE YOU SOME IDEA OF HOW POWERFUL STAGE2 IS.  UNLIKE TINCMP IT
+HAS BRANCH AND TEST INSTRUCTIONS.  WAITE'S BOOK IS A GOOD EXAMPLE
+OF HOW PRAGMATIC AND THEORETICAL MATERIAL CAN BE PRESENTED.
+
+TO PUT TOGETHER A TINCMP COMPILER FOR SPECIAL PURPOSES:
+	1. IF YOU DON'T HAVE M-80 OR RMAC:
+	YOU NEED TO MERGE THE FOLLOWING:
+		TINCMP.MAC
+		IOCMPLX.ASM
+		PIDMATH.ASM
+		WRNXT.ASM
+		SYSTEM.ASM
+	REMOVE ALL EXTRN AND ENTRY STATEMENTS AS WELL AS DSEG, CSEG
+	AND COMMON STATEMENTS.  REMOVE THE EXTERNAL PROCEDURE, LOCAL
+	VARIABLE, ENDLOCAL STATEMENTS FROM MACROS.PGN
+	REASSEMBLE - GOOD LUCK! YOU WILL NEED TO CHANGE ALL OF THE
+	MACROS TOO.  YOU WILL REALLY NEED THE GOOD LUCK FOR THIS.
+	2. IF YOU HAVE RMAC YOU NEED TO CHANGE THE ENTRY STATEMENTS
+	TO PUBLIC IN ALL LIBRARY MODULES (IOCMPLX,WRNXT,PIDMATH,SYSTEM)
+	3. IF YOU ARE NOT DARING AND HAVE AN ORG 100H SYSTEM YOU CAN
+	JUST LOAD THE COM FILE TINCMP AND USE IT.
+	4. IF YOU HAVE M-80:
+	USE L80 TO LINK PIDGINLB INTO IOCMPLX AND TINCMP.  PIDGINLB
+	IS A LIBRARY OF WRNXT,SYSTEM AND PIDMATH
+	5. IF RUNNING MP/M SYSTEM DEFINES ?BOOT,?BDOS,?TBUF FOR CP/M
+	AND YOU WILL NEED TO CHANGE THIS.
+	6. IF RUNNING CP/M 2.2 EVERYTHING IS COOL.  I DIDN'T TEST THIS
+	WITH CP/M 1.4 BUT I DIDN'T USE ANY WIERD CALLS SO IT SHOULD
+	WORK OK.  THE FCB'S ARE ALL 36 BYTES LONG.
+	7. IN THIS VERSION ALL FILES MUST BE DECLARED IN THE CONTROL
+	STATEMENT AND ONLY THE ASSOCIATE FCB N WITH I$$ WORKS.
+	8. ?ENDING WASN'T TESTED THROUGHLY.
+	9. IOCMPLX IS REALLY WRITTEN FOR A Z-80 AND IF YOU HAVE ONE
+	IT SHOULD BE RECODED.
+	10: AS SUPPLIED, THE TINCMP COMPILER IS THE ACTUAL OUTPUT OF
+	THE PIDGIN VERSION OF TINCMP AS SUPPLIED ON FILE TINCMP.PGN
+	11: IF YOU WANT TO RESTART THE PROCESS LOTS OF LUCK YOU CAN
+	GET A COPY OF TINCMP'S MOTHER STAGE2 IN CP/MUG VOL 51.
+	12: IF YOU HAVE A Z-80 OR THE CDL ASSEMBLER YOU CAN CHANGE
+	THE MACROS IN MACROS.PGN TO USE THEM.
+	13: NOTE! NONE OF THE CODE IS OPTIMIZED.  YOU CAN SAVE ABOUT
+	20-40% SPACE IN THE CSEG SEGMENTS BY HAND OPTIMIZING THE
+	ASSEMBLY LANGUAGE IN TINCMP.MAC
+	14: IF YOU HAVE PROBLEMS YOU CAN WRITE TO ME:
+		A. L. BENDER, M. D.
+		C/O NEUROLOGICAL SERVICES INC.
+		336 CENTER AVE
+		WESTWOOD NJ 07675
+		201-664-4882
+	15: THE MATERIAL HEREIN IS COPYRIGHTED (C) 1981.  MATERIAL
+	IS PRESENTED FOR YOUR PRIVATE, NON-COMMERCIAL USE.  SOME
+	OF THIS MATERIAL IS COPYRIGHT BY DICK CURTISS AND IS 
+	REPRODUCED HERE BY HIS WRITTEN PERMISSION (PIDMATH) AND
+	TINCMP IS COPYRIGHT BY WM GALE.  THE REPRODUCTION OF THIS
+	MATERIAL IN THIS LOCATION DOES NOT IMPLY ANY RIGHTS TO
+	FURTHER PUBLISH, DISTRIBUTE, USE OR SELL ANY MATERIAL
+	HEREIN PRESENTED.  BOTH WM GALE AND DICK CURTISS RETAIN ALL
+	COPYRIGHT TO THEIR MATERIAL.  I RETAIN THE COPYRIGHT TO ALL
+	MODIFICATIONS TO TINCMP AND TO THE CP/M VERSION OF TINCMP.
+	ALTERING THE PROGRAMS BY HAND-OPTIMIZATION DOES NOT ALTER
+	COPYRIGHT PROTECTION NOR DOES EXTENSION VOID THE RIGHTS OF
+	PREVIOUS COPYRIGHT HOLDERS.
+	PERMISSION FOR COMMERCIAL USE MUST BE OBTAINED FROM THE
+	COPYRIGHT OWNERS INDIVIDUALLY.
+
+                 8080/Z80/8085 PIDGIN UNDER CP/M
+
+                   By Andrew L. Bender, M. D.
+
+     PIDGIÎ waó describeä bù itó inventor¬  Bilì Gale¬  aó á "Lo÷ 
+Leveì Programminç Language"®   É supposå thaô itó maiî attractioî 
+tï må wheî É firsô reaä abouô iô waó itó structured¬ "C¢ languagå 
+appearancå anä itó simplicity®  Iô haä onlù onå drawbacë anä thaô 
+waó  thå lacë oæ á suitablå 808° compiler®   Bilì haä presenteä á 
+compileò  foò  thå 650² whicè waó detaileä enougè  tï  starô  thå 
+projecô  goinç oî thió computeò buô waó noô reallù enougè tï  geô 
+thå projecô goinç oî otheò computers®  Mù interesô waó stirreä bù 
+thå promiså oæ á compiler-compileò iî á futurå issuå oæ Dr® Dobbó 
+writteî  iî  PIDGIN®   É  waó  interesteä  iî  compilinç  á  datá 
+definitioî  languagå  foò  anotheò  projecô anä  thå  thoughô  oæ 
+constructinç  á compileò witè thå ratheò primativå tooló É haä aô 
+mù  disposaì  waó disturbing®   É realizeä thaô iæ  therå  waó  á 
+compileò  compileò  availablå  É woulä aô leasô bå  ablå  tï  geô 
+starteä sincå thå fronô enä oæ thå compileò woulä bå completeä aô 
+thå timå thå languagå waó defined.
+     Thå  tasë oæ constructinç á PIDGIÎ compileò seemeä tï  breaë 
+dowî intï threå distincô tasks®  First¬ onå woulä havå tï writå á 
+TINCMĞ  compileò tï procesó PIDGIÎ language®   Second¬  onå woulä 
+havå  tï  writå alì oæ thå supporô routineó sucè aó thå  I/Ï  anä 
+matè  functions®   Last¬  thå  PIDGIÎ prograí woulä  havå  tï  bå 
+adapteä tï interfacå witè thå CP/Í environment®   Oncå TINCMĞ waó 
+uğ  anä  running¬  iô coulä bå useä tï compilå itselæ  anä  otheò 
+programó  aó needed®   Alì threå taskó haä tï bå completeä  firsô 
+before TINCMP could be made to work.
+     Aô  firsô  iô  seemeä thaô codinç TINCMĞ woulä bå  thå  mosô 
+difficulô  tasë  oæ  thå threå anä iô reallù  proveä  tï  bå  thå 
+simplesô  task®   Codinç  thå I/Ï routineó tooë abouô 60¥ oæ  thå 
+developmenô  timå becauså thå thirä task¬  thå CP/M filå  controì 
+interfacå tooë á lonç timå tï desigî anä test®   Aî overalì  plaî 
+waó  madå baseä oî thå I/Ï structurå oæ thå compileò aó presenteä 
+bù Bilì Gale®  É spokå witè Bilì abouô thå I/Ï structurå anä somå 
+changeó whicè É haä proposeä buô botè oæ uó agreeä thaô iô  woulä 
+havå  changeä  thå overalì desigî oæ thå languagå whicè haä  beeî 
+alreadù  published®   É decideä tï keeğ thå  structurå  unchangeä 
+eveî thougè thå uså oæ buffeò areá tï filå associationó seemeä tï 
+be rather unusual constructions.
+     Considerinç  thå  availablå  tooló foò thå  constructioî  oæ 
+TINCMP'ó  firsô  808° realizatioî É discardeä  BASIÃ  becauså  iô 
+woulä havå beeî á difficulô languagå tï geô thingó goinç in®   Iô 
+diä  offeò easå oæ debugginç buô waitinç foò iô tï chuç througè á 
+fe÷ lineó oæ PIDGIÎ seemeä tï bå á biç drawback®   Afteò alì herå 
+waó  aî  interpreteò  (BASIC©  interpretinç  anotheò  interpreteò 
+(TINCMP)®   Thå nexô languagå whicè waó seriouslù considereä  waó 
+FORTRAN®  É didn'ô looë intï thió carefullù becauså É felô thaô É 
+wouldn'ô  learî  mucè doinç iô iî FORTRAÎ anä thå lacë oæ  strinç 
+manipulatioî   anä  automatiã  typå  conversionó  seemeä  tï   bå 
+undesired®   É waó theî thinkinç of á higheò languagå - dï iô  iî 
+PL/I-8°  É thought®   É discardeä thió ideá becuså É reallù  felô 
+thaô  É kne÷ sï littlå abouô PL/É thaô É woulä bå spendinç alì oæ 
+mù  timå educatinç myselæ anä woulä neveò geô thå  joâ  done®   É Štheî  saiä  tï  myselfº  "Self¬  yoõ havå beeî  writinç  assemblù 
+languagå  foò  thå  pasô 2± years¬  whù noô  dï  iô  iî  assemblù 
+language?¢   Sincå nï answeò waó forthcominç É almosô begaî tï dï 
+iô  iî MACRO-8° wheî É wenô tï á locaì computeò cluâ meetinç  anä 
+waó  fortunatå  enougè tï obtaiî á copù oæ thå  CP/Í  Useò  Grouğ 
+Librarù Volumå 51®  É waó woolgatherinç onå afternooî rearranginç 
+alì  oæ mù librarù diskó wheî É camå acrosó thió disë anä noticeä 
+thaô  iô containeä á "powerfuì macrï processor"®   Á smalì  lighô 
+wenô oî anä É printeä ouô alì oæ thå documentation®  Iô waó cleaò 
+thaô  thió  macrï  processoò  waó noô  onlù  powerfuì  enougè  tï 
+directlù procesó PIDGIN¬ iô waó á membeò oæ thå familù froí whicè 
+TINCMĞ  waó  derived®   STAGE²  waó  theî  thå  answer®   STAGE2¬ 
+implementeä  bù Richarä Curtisó anä deriveä froí SIMCMĞ  waó  thå 
+featurå  prograí  oî  CP/MUÇ volumå 51®   É studieä  Mò  Curtiss§ 
+documentatioî  foò severaì dayó theî É raî ouô  tï  Prentice-Halì 
+anä  boughô  Wm®  Waite'ó  Booë "Implementinç Softwarå  foò  Non-
+Numeric Applications".
+     Afteò  á  weeë oò so¬  É haä á seô oæ workinç  macroó  whicè 
+permitteä må tï puô iî PIDGIÎ languagå anä geô ouô code®   É  haä 
+TINCMĞ  uğ  iî assemblù codå iî exactlù ninå days®   Gettinç  thå 
+macroó writteî waó slow®   É figurå thaô É spenô abouô 30¥ oæ thå 
+overalì  timå witè thå STAGE² anä TINCMĞ  macros®  Thå  remaininç 
+timå  waó  spenô  witè  sundrù itemó likå fixinç  thå  linå  feeä 
+probleí iî TINCMP®  TINCMĞ assumeó thaô á ne÷ linå caî bå defineä 
+bù á singlå characteò whilå CP/Í needó á twï characteò  sequenceº 
+Carriagå  return¬  linå  feed®  
+     Bù  usinç Dicë Curtiss§ integeò arithmetiã packagå É  didn'ô 
+neeä tï dï thaô worë oveò again®   É jusô addeä thå propeò  entrù 
+pointó  anä assembleä it®   Unlikå mosô freå librarù programó  iô 
+workeä  aô once®   Whilå É didn'ô neeä alì oæ thå subroutineó  iî 
+thå  package¬  É lefô theí iî therå iî caså anyonå wanteä tï  uså 
+them for other purposes.
+     É trieä tï geô TINCMĞ uğ anä finally¬ afteò á serieó oæ verù 
+strangå  bugs¬  introduceä bù mù pooò macrï code¬  É actuallù goô 
+thå  damî  compileò tï turî ouô á fe÷ lineó oæ  code®   Twï  morå 
+macrï  erroró  fixeä anä TINCMĞ writteî iî STAGE²  coulä  compilå 
+itselæ  iî PIDGIN®   Iô waó quitå thrillinç tï seå  thå  compileò 
+actually work as Bill Gale promised in his July 1981 article.
+     É  waó theî readù foò thå biç problemº  Shoulä É handlå codå 
+generatioî  aó  Bilì diä oò shoulä É turî ouô  assemblù  languagå 
+codå  again¿   É reallù gavå thió questioî somå seriouó  thought®  
+Iæ  É  diä turî ouô assemblù languagå codå iô woulä  havå  tï  bå 
+assembleä  bù  aî assembleò anä É woulä havå tï assumå á morå  oò 
+lesó "standard¢ assembleò whicè everyonå woulä havå or¬  aô leasô 
+mosô peoplå woulä have®   É thoughô oæ turninç ouô ASÍ code®  ASÍ 
+ió   thå   Digitaì  Researcè  assembleò   supplieä   witè   CP/M®  
+Unfortunatly¬  ASÍ doeó noô makå relocatablå codå anä  generatioî 
+oæ absolutå codå didn'ô seeí worthwhilå sincå É wanteä tï bå ablå 
+tï  uså librarù routineó whicè coulä bå loadeä anyplacå iî memorù 
+tï makå uğ foò thoså CP/Í systemó whicè diä noô havå zerï originó 
+oò  theiò  TPÁ beginninç aô 100H®   Iæ É wanteä tï  approacè  thå 
+probleí  aó Bilì Galå diä therå werå otheò  problems®   Thå  808° 
+hardwarå haó nï relativå addressinç aó doeó thå 650² oò 6800®   É 
+decideä  thaô  thå  lacë  oæ thió  hardwarå  facilitù  madå  codå 
+generatioî  witè TINCMĞ difficult®   Microsoft'ó  M-8°  assembleò Šseemeä  fairlù ubiquitouó anä thaô iô was¬  iî alì truå respects¬ 
+compatiblå   witè  thå  RMAÃ  assembleò  oæ   Digitaì   Research®  
+Generatinç  assembleò codå haä severaì otheò problemó  associateä 
+with it.
+     Lookinç  aô thå TINCMĞ compiler¬  onå noticeó thaô therå arå 
+manù possibilitieó foò generatinç labeló whicè looë likå oğ codeó 
+oò  pseudo-operationó iî thå assembler®   808° assembleró  alwayó 
+seeí tï definå thå registeró aó symboló sï thaô iæ yoõ definå  SĞ 
+aó  á  bytå iî á PIDGIÎ prograí therå ió everù reasoî  tï  firmlù 
+beleivå  thaô  iô wilì blo÷ thå assignmenô oæ thå  stacë  pointeò 
+symboì  "SP"®   Alì oæ theså problemó caî bå avoideä bù prefixinç 
+eacè  symboì  iî  thå  outpuô oæ thå  codå  generatoò  witè  somå 
+characteò  whicè doesn'ô looë likå anythinç thå  assembleò  woulä 
+expecô  iî  aî internaì symboì oò op-code®   É chooså á  doô  foò 
+this®   Bù prefixinç almosô everythinç witè á dot¬  conflictó arå 
+avoideä anä thå symboló arå alwayó unique®   Subroutinå nameó arå 
+prefixeä witè twï dotó tï keeğ theí differenô froí variablå nameó 
+iî   caså  therå  arå  intersectionó  betweeî  thå  two®    Theså 
+intersectionó arå noô specificallù prohibiteä bù PIDGIN®   Systeí 
+symboló  anä  jumğ targetó arå labelleä witè á  leadinç  questioî 
+mark®    
+     Becauså TINCMĞ cannoô tesô oò branch¬  certaiî constructionó 
+arå peculiar®   Takå foò examplå thå CHOOSÅ ON/CASÅ construction®  
+eacè  timå á CASÅ ió encountereä iî thå inpuô filå PIDGIÎ  shoulä 
+generatå  á  jumğ tï thå ENDCHOOSÅ labeì buô noô thå  firsô  timå 
+thaô CASÅ ió encountereä afteò thå CHOOSÅ ON®  Sincå therå arå nï 
+tesô facilities¬ thå jumğ ió generateä oî everù occurencå oæ CASÅ 
+buô oî thå firsô occurance¬  aî ORÇ $-³ obliterateó thå generateä 
+JMĞ  ENDCHOOSÅ instruction®   Thió ió donå bù pushinç á ³ oî  thå 
+stacë aô CHOOSÅ OÎ buô zerï thereafteò eacè timå á CASÅ statemenô 
+ió  noted®   Thió valuå ió poppeä ofæ thå stacë anä useä  aó  thå 
+valuå  iî  thå  ORÇ  statemenô resultinç iî aî  ORÇ  $-°  oî  alì 
+subsequenô calló foò CASE®   Therå arå alsï nï reaì possibilitieó 
+foò  codå  optimization®    Perhapó  someonå  caî  writå  á  posô 
+compilatioî optimizeò foò TINCMP - naturally in PIDGIN.
+     Aó aî aiä tï programó operatinç undeò differenô environmentó 
+thå  CP/Í implementatioî oæ PIDGIÎ calló á librarù subroutinå  aô 
+thå  beginninç oæ PIDGIÎ prograí executioî anä aô thå terminatioî 
+oæ PIDGIÎ prograí execution®   Thå beginninç subroutinå ió calleä 
+?INIÔ anä thå concludinç subroutinå ió calleä ?ENDING®   Botè  oæ 
+theså  routineó arå iî thå IOCMPLØ subroutine®   ?INIÔ  transferó 
+filå  nameó  froí  thå  controì statemenô tï á seô  oæ  FCB'ó  iî 
+IOCMPLØ anä storeó thå numbeò oæ theså filå nameó iî AC®  ?ENDINÇ 
+closeó anù opeî fileó anä returnó controì tï thå useò program®  Á 
+jumğ tï ?BOOÔ alwayó followó thå CALÌ ?ENDINÇ statemenô wheî  thå 
+PIDGIÎ statemenô ENDMAIÎ ió encountered®   Iæ youò hearô desires¬ 
+yoõ  caî changå theså routineó tï dï anythinç yoõ feeì  necessarù 
+in your particular system.
+     Variableó  declareä  iî  BYTÅ oò INÔ statementó  arå  alwayó 
+placeä iî blanë commoî storage®   Thió facilitateó theiò uså witè 
+aî  undocumenteä  featurå and¬  beinç  honest¬  totallù  untesteä 
+feature¬   whicè   allowó  independenô  compilatioî  oæ   prograí 
+subroutines®   É  expecô thió featurå tï bå readù iî abouô  threå 
+monthó time®  Iô wilì noô makå previouó PIDGIÎ programó unusable®  
+Á furtheò extensioî tï bå useä iî maiî programó oò subroutineó ió Šthå  LOCAÌ  VARIABLEÓ  statemenô  anä  ENDLOCAÌ  statement®   Anù 
+variableó declareä bù eitheò BYTÅ oò INÔ statementó betweeî theså 
+twï statementó arå noô puô iî commoî anä arå LOCAÌ tï thå currenô 
+compilation.  All other variables are global.
+     Afteò  á  fe÷  discussionó witè  Bilì  Gale¬  thå  PARAMETEÒ 
+statemenô waó born®  Thå PARAMETEÒ statemenô allowó yoõ tï definå 
+iî á singlå locatioî alì oæ thå systeí dependenô variableó foò  á 
+program®    Thå  parameteò  statemenô  haó  thå  followinç  formº 
+PARAMETEÒ K$$=$$$»  K$¤ ió thå symboliã parameteò terí anä $$¤ ió 
+thå numericaì equivalent®  Tï uså thå parametriã variablå K$¤ yoõ 
+neeä thå $$=+K$¤ statemenô oò thå I$$=+K$¤ statement®  Aî examplå 
+oæ  thå  uså  oæ  thió statemenô ió iî TINCMĞ  itselæ  wherå  thå 
+variableó  LÆ (linå feed)¬  NÌ (carriagå return© anä EÆ  arå  alì 
+defined by means of parameter statements.
+     Gettinç  CP/Í  linkeä uğ witè thå internaló oæ PIDGIÎ waó  á 
+ratheò difficulô task®   É diä noô wisè tï makå havoã ouô oæ  thå 
+filå  systeí   useä bù PIDGIÎ yeô CP/Í needeä á filå namå  ratheò 
+thaî  á  blocë  locatioî  tï locatå thå texô  oæ  á  filå  oò  tï 
+determinå  wherå  texô waó tï bå written®   Iî ordeò tï  linë  uğ 
+blocë  numberó witè filå nameó É decideä thaô á fictitiouó  blocë 
+numbeò  waó goinç tï bå useä aó á filå identifieò insidå  PIDGIN®  
+Thió  identifieò  woulä  bå  associateä witè á filå  namå  bù  aî 
+associatå statemenô whicè needeä tï bå designed®   Thå  associatå 
+statemenô  waó borî afteò considerablå thoughô buô iô ió  obviouó 
+thaô  iô  ió  verù  limitinç  iî scopå  anä  probablù  shoulä  bå 
+redesigneä  tï  bå  morå general®   Thå  forí  oæ  thå  associatå 
+statemenô  ió  ASSOCIATÅ FCÂ ¤ WITÈ I$$®   Thió allowó thå  firsô 
+parameteò  whicè  ió thå filå mentioneä iî thaô locatioî  oæ  thå 
+controì statemenô tï bå associateä witè blocë numbeò I$$®  É onlù 
+useä thå loweò seveî bitó oæ I$¤ aó á blocë number/filå numbeò sï 
+onlù  theså bitó neeä bå uniquå foò eacè file®   Thå  eigtè  bit¬ 
+whilå  transcribeä  intï thå I/Ï subroutineó shoulä bå  zerï  foò 
+furtheò expansion®  If you had a control statement:
+     AAB.AAA,BBB.CCC,DDD.EEE
+anä  youò parameteò ¤ iî thå associatå statemenô waó ² thió woulä 
+resulô  iî  thå  associatioî  oæ BBB.CCÃ  witè  thå  filå  numbeò 
+containeä iî thå lo÷ ordeò seveî bitó oæ I$$®   Thió  associatioî 
+requesô  markó thå filå aó "prepared¢ iî aî internaì tablå iî thå 
+I/Ï complex®   Anotheò forí oæ thå associatå statement¬  noô  yeô 
+implementeä iî thå I/Ï compleø subroutineó ió thå formº ASSOCIATÅ 
+FILÅ  $¤  WITÈ I$$®   Thå firsô parameteò ió supposeä tï  bå  thå 
+starô  oæ  1² byteó defininç thå drivå anä theî thå  eleveî  bytå 
+filå namå anä extensioî foò á particulaò file®   Unuseä byteó arå 
+tï  bå  seô tï blanks®   Thió routinå wilì alsï marë thå filå  aó 
+prepared®   Foò  furtheò detailó yoõ shoulä refeò tï thå  IOCMPLØ 
+assembly listing.
+     Specificallù noô implementeä arå thå statementó READBUÆ  anä 
+WRITEBUF®   Althougè  therå  ió  nothinç  difficulô  abouô  theså 
+statementó  theù  werå  noô necessarù foò thå  implementatioî  oæ 
+TINCMĞ anä sï É didn'ô codå them®   Thå statementó  LOMEM¬  HIMEÍ 
+anä REGISTEÒ arå noô implemented®  Theså statementó havå nï placå 
+iî á relocatablå prograí whicè doesn'ô havå á zerï page®   Iæ yoõ 
+wanô  yoõ  caî  puô  theså statementó intï  thå  macrï  templateó 
+without any action occuring when they are recognized.
+     Iî programminç TINCMĞ É firsô wanteä tï geô iô uğ oî aî 808° Šbecauså thaô processoò ió á subseô oæ thå 808µ anä Z-80®  Iæ useò 
+codå  wilì  ruî  oî thå 808° iô wilì probablù ruî  oî  thå  otheò 
+processors®   Mucè codå caî bå optimizeä iæ TINCMĞ ió writteî foò 
+á  Z-80®   Thå I/Ï compleø especiallù wilì bå cleaneò oî  á  Z-8° 
+than it is on the 8080.  
+     808° TINCMĞ anä alì oæ thå associateä routineó arå availablå 
+througè  thå SIG/Í librarù oò bù direcô maiì froí thå author®   É 
+wilì  preparå á singlå density¬  eighô incè CP/Í formaô disë  anä 
+maiì  thå  samå oî receipô oæ á moneù order¬  checë  oò  2°  cenô 
+stampó  foò $25®  UÓ Funds®   Iæ yoõ seå thió afteò 1982¬  betteò 
+writå firsô aó Bilì Galå says®   Iæ yoõ decidå tï implemenô  thió 
+processoò  foò  otheò  machineó  anä feeì  É  coulä  help¬  don'ô 
+hesitatå tï write®   STAGE² ió distributeä witè TINCMĞ bù speciaì 
+arrangemenô  witè  Richarä  Curtiss®   Thå  distributioî  oæ  anù 
+materialó oî thió disë dï noô alteò thå currenô copyrighô  statuó 
+oæ  anù oæ thå material®   Permissioî ió granteä tï distributå oò 
+makå  aó  manù copieó aó desireä  foò  non-commerciaì  use®   Thå 
+remaining rights are retained by the individual authors.  
+

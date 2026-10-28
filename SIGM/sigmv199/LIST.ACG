@@ -1,0 +1,71 @@
+* DATE 08/27/84  13:06
+* list.ag
+STOR CHR(peek (063)) TO dr
+SET INDEX TO &dr.:lastname
+STOR 'A' TO stletter
+@ 17,12 SAY 'Letter of alphabet at which to start report'
+@ 17,57 GET stletter PICTURE '!'
+READ
+STOR 'Z' TO llet
+@ 18,12 SAY 'Letter of alphabet at which to end report'
+@ 18,57 GET llet PICTURE '!'
+READ
+FIND &stletter
+DO WHIL # = 0
+ STOR 'ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ' TO ALPHABET
+ STOR @(stletter,ALPHABET) + 1 TO NEXL
+ STOR $(ALPHABET,NEXL,1) TO stletter
+ FIND &stletter
+ RELE alphabet
+ENDD
+STOR 0 TO pageno
+STOR t TO more
+SET MARGIN TO 10
+DO WHIL more
+ STOR pageno + 1 TO pageno
+ STOR 6 TO lineno
+ ERAS
+ EJEC
+ ? '  '
+ ? '==========================      MAILING LIST  ======================'
+ ? ' '
+ ? '         ' + date() + '                                           PAGE: '+ STR(pageno,3)
+ ? ' '
+ DO WHIL lineno < 55
+  IF .NOT. EOF
+   ? '-------------------------------------------------------------------'
+   IF $(lastname,1,1) <> llet
+    ? '     ' +  "Name: "+ mr + TRIM(fname) +' ' + lastname
+    ? '     ' + "Spouse: " + spouse + "Address as: " + dear
+    ? '     ' + "Title: " + title
+    ? '     ' + "Company: " + company1
+    ? '     ' + "       : " + company2
+    ? '     ' + "Address: " + caddress + "  " + suite
+    ? '     ' + "         " + ccity +', ' + cst + '  ' +czip
+    ? '     ' + "Home address: " + address + "  " + apt
+    ? '     ' + "              " + city +', '+  st + '  ' +zip
+    ? '     ' + 'Phones - office: ' + ophone + ' home: ' + phone
+    ? '     ' + "Codes:  " + cs1 + ' ' + cs2 + ' ' + cs3 + ' ' + cs4 + ' ' + cs5 + ' ' + cs6
+    ? '     ' + "Send to office: " + send
+    ? '     ' + "Date update: " + update
+    STOR lineno +13 TO lineno
+    SKIP
+    IF *
+     SKIP
+    ENDI
+   ELSE
+    SKIP
+   ENDI $(lastname,1,1)
+  ELSE
+   STOR f TO more
+   STOR 60 TO lineno
+  ENDI not EOF
+ ENDD while lineno < 55
+ENDD more
+EJEC
+SET PRINT OFF
+SET ALTERNATE OFF
+RELE pageno, lineno, mname
+STOR t TO more
+STOR t TO first
+

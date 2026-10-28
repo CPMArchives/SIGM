@@ -1,0 +1,92 @@
+ ABSTRACT for SIG/M Volume 130
+=============================
+"SIGNON" SUBSYSTEM FOR RCP/M SYSTEMS (Reviewed by Jim Mills)
+Author: Dick Lieber (voice phone: (312) 326-4014)
+                    (RCP/M phone: (312) 326-4392)
+
+The "SIGNON" system consists of a variety of files intended for a variety of
+purposes and uses, both by users calling the RCP/M system, and by the SYSOP
+himself.  Included are the following:
+
+*.BAS source code files for the main body of programs.
+*.SSB more source code, subroutines.
+*.MAC subroutines to allow things that MBASIC normally won't do.
+*.SUB submit files as guides for various compilations.
+*.DOC documentation on all of the above.
+
+These programs are written for the Microsoft BASIC80 Compiler.  They will not
+easily convert to run under the interpreter, but they have been pretty well
+debugged and should give you little trouble.  (I have been using them on my
+RCP/M for over a year (312-469-2597 at 300/600/1200 baud) and have been quite
+satisfied with the performance).  If you do not have the MBASIC Compiler,
+the recent version with the BRUN.COM module, then you'd better get it,
+or get a friend to compile these programs for you.  You can't run without it.
+The disadvantage of this system (the only one so far as I can determine) is
+that it is programmed in BASIC.  This results in large .COM files that take
+up a lot of disk space.  Maybe we can persuade Dick to rewrite it in "C"?
+
+Other prerequisites: You must use a BYE program that will run a specified
+.COM file on carrier loss (I use BYE 8.1).  (BYE version 2 might be made to
+work, but I think some serious modifications and assembly language programming
+may be required).  This is how the caller is logged off, his time-on-system
+calculated and recorded.  XMODEM and other RCP/M utilities are assumed
+(If you don't have them, check earlier SIG/M releases).
+
+DESCRIPTION: SIGNON Version 1.2		9/29/82
+
+Note, not all of the files are in the distribution package.  Those
+in the standard distribution version are marked with a -.
+
+	SIZE	NAME		COMMENTS
+
+-       2K	1100.SSB	Reads configuration file, "pwds".
+-       2K	1300.SSB	Unpacks user's record.
+-       2K	1400.SSB	Opens user file.
+-       2K	1600.SSB	Gets time & date by calling TMOD.
+-       2K	200.SSB		Pack and put user's records.
+-       2K	2100.SSB	Send comment to SYSOP (by user).
+-       2K	2300.SSB	Set R/O file attribute.
+-       4K	2500.SSB	Display user file.
+-       2K	3000.SSB	Modem control by user.
+-     	2K	3100.SSB	Send string to local terminal.
+-     	2K	3300.SSB	Selector, used with menus.
+-     	2K	400500.SSB	Console input(500) and input(400).
+-     	2K	4900.SSB	Check message subsystem summary.
+-     	2K	600.SSB		Get a password.
+-     	2K	7800.SSB	Jumpout to another module (RUN).
+-     	2K	800.SSB		Print a file.
+-     	2K	8000.SSB	Send comment to SYSOP (by system).
+-     	2K	9100.SSB	Calculate elapsed time.
+-     	16K	BYECMD.BAS	Run by user to disconnect modem.
+-     	8K	CNFG1.BAS	CONFIG overlay.
+-     	24K	COMGR.BAS	Comments manager.
+-     	4K	COMPILE.SUB	Compile one SIGNON Subsystem module.
+-     	22K	CONFIG.BAS	Configure Subsystem.
+-     	2K	CONFIG.CMN	Common block for CONFIG.
+-     	18K	CONVRBB.BAS	Convert old user file for SIGNON.
+-     	4K	CONVRBB.DOC	Documentation for above.
+-     	2K	CRCKLIST.CRC	
+-     	6K	FINISH.BAS	Update user's records. Run by BYE.
+-     	2K	JOB.SUB		Compile entire subsystem.
+-     	2K	MAKELIB.SUB	Build library of SIGNON .REL files.
+-     	2K	MFIL.BAS	Make text files to test subsystem.
+-     	18K	POSYS.BAS	Subsystem manager.
+-     	2K	SELDSK.MAC	Change default drive.
+-     	2K	SETFMD.MAC	Set cp/m 2.2 file attributes.
+-     	14K	SIGNON.BAS	Entry module.
+-     	32K	SIGNON.DOC	Documentation for all but CONVRBB.BAS.
+-     	4K	TMOD.MAC	Read-time clock/calander interface.
+-     	4K	TOS.BAS		Time on system command.
+-     	2K	USERMD.MAC	Change user number.
+
+
+Assuming you are prepared with the necessary prerequisites, what can this
+system of programs do for you?  There are certainly other systems that
+perform similar functions.  SIGNON serves as entry and exit for logging
+a caller onto and off of the RCP/M, keeping track of time-on-system and
+other data.  Other programs do the same, but I personally think that the
+SIGNON system has its advantages.  Check out the DOC files and judge for
+yourself.
+                                   Jim Mills, August 1983
+
+

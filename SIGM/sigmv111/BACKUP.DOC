@@ -1,0 +1,106 @@
+            BACKUP.ASM   USED TO BACKUP HARD DISKS
+        WRITTEN BY G. YOUNG, PO BOX 3218, NO. HOLLYWOOD, CA 91609
+ 
+    The Winchester hard disk offers file storage approaching mainframe
+performance on microcomputers.  The problem of backing up the data is
+a serious drawback, however.  The only option currently available is to
+use PIP to copy one file at a time.  To PIP an entire file type would
+quickly fill a floppy and not copy the rest of the files.  To PIP one
+file at a time would be unbearably time consuming.  Another alternative
+is obviously necessary. 
+     BACKUP is used to copy files from large volume hard disks to low
+volume floppy disks for backup and recovery purposes.  It is intended
+for CP/M files where the entire file will fit on one floppy disk. 
+      There are three phases in BACKUP.  The first phase reads the
+directories of all the hard disks, sorts the file names into alphabetical
+order within file type, and prints a master directory by type on the list
+device.  The program assumes drives A:, B:, and C:.  If there are more
+drives than this, change NODRV to the number of drives, change DRIVE
+to add in the extra drive letters, and reassemble. 
+     Next the program attempts to restrict the files it backs up.  Since
+a twentysix megabyte disk could take up to forty four double density
+floppy disks to completely back up, only essential files are saved.
+Duplicate files are eliminated saving only the file on the lowest
+drive (A: is saved if the file also exists on B: or C:).  The file
+is considered duplicate if the names are the same, the actual contents
+are not compared.  Certain file types are considered unnecessary and
+are not saved.  PRN, BAK, SYM, HEX, and TMP  are eliminated from the
+backup list.  To change this list of skipped file types, simply change
+the variable NOSKIP and SKIPFILES within the program and reassemble.
+Each file type will then be displayed on the console and the program will
+ask if you want to back up all of the files of this type (enter Y), skip
+all of the files of this type (enter N), or select certain files within
+this type (enter S).  If you enter S, each file name within the current
+type will be displayed on the console and the program will ask if you
+want to backup this particular file (enter Y), skip this file (enter N),
+or continue to backup all the rest of the files within this type without
+listing each name (enter C).  This feature is used to restart the backup
+if it was terminated before it completed during a previous run.  At
+this time you can also skip any files that will not fit entirely on  
+one disk.  The program will skip this file also if it encounters it, but
+it will prompt for a blank diskette to try the backup before it discovers
+that it cannot be backed up with this program.  When the list of files
+to backup has been reduced, the list will be printed and the program will
+ask if it should begin the copy procedure or abort.  This allows you to
+rerun if the list of files to backup is not correct. 
+     Finally, the backup procedure will begin.  The program uses all of
+RAM from the end of the file list table to the end of the TPA as the
+buffer for copying files.  As the files are finished being copied, the
+tabled is decreased and the buffer area is increased thereby speeding up
+the copy process.  The program will display a message asking to mount
+a floppy in the first drive (assumed to be D: but changable with the
+program) and enter a three digit disk id or "END" to terminate
+prematurely.  This may happen if you run out of diskettes!!!
+The first file that BACKUP writes on the floppy is a null file.  It
+has zero length so it only takes up one directory entry and no space on
+the disk.  This null file has the name equal to the eight character date
+listed on the reports and the file type is the three character disk id.
+The purpose of this file is to identify the disk against the directory
+listing and to automatically mark the date.  The
+heading line for an index report will then be printed on the list
+device showing the disk id and current date.  As the files are copied,
+the index report is created showing the files copied to each floppy.
+While the file is being copied, the file name will be displayed on the
+console.  When the file has been completely copied, the file name will
+be added to the index report.  If the file will not fit completely on
+the floppy, the file name will be deleted from the floppy directory, a
+new floppy requested, and the file recopied to the new floppy.  This
+process continues until the entire file name table has been processed
+using as many floppy disks as required. 
+     Restoring or recovering can be done with PIP.  You can PIP the
+entire floppy disk to the hard disk, or using the disk id/file name index,
+restore only certain files.
+When using PIP to copy any REL files back to the hard disk, be sure to
+use the OV option in PIP. 
+     The source code is provided in file BACKUP.ASM for your convenience
+in changing certain parameters for your installation.  The variables that
+may need to be changed are all on the first page of the source and are
+the following:  
+NODRV      This is the number of hard disk drives.  Set to 3 if you have
+           one hard disk named A: B: C:
+DRIVES     This is the letters for the drives to search.  Set to ABC if
+           you have one hard disk, and the hard disk is addressed before
+           any floppy disks.
+BACKUPDRV  This is the floppy drive letter that the backup will be copied
+           to.  Set to D if you have hard disk drives A B and C.
+NOSKIP     This is the number of file types in the file skip list.
+SKIPTYPE   This is the list of file types to skip.  It is normally set
+           to PRNHEXSYMBAK$$$TMP to skip those six file types.
+LINESPAGE  This is the number of lines per page and is used to print the
+           various directories.
+RECLINE    This is the number of file names that will appear on one line
+           in the directories.
+ 
+
+    The program uses the COMPUTIME board to get the date, but the code
+is in the program to request the date from the console.  Just remove
+the * in the columns to convert the code from comments if you do not have
+a clock board.
+ 	
+6/23/82...RESTART CAPABILITY ADDED
+BY ENTERING BACKUP FILENAME.TYP THE PROGRAM WILL SKIP THE CROSSREFERENCE
+REPORT AND POSITION THE LIST TO FILENAME.TYP AND REPROMPT FOR FILES TO
+BACKUP FROM THAT POINT.
+    EXAMPLE A>BACKUP LOAD.COM
+
+

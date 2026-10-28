@@ -1,0 +1,232 @@
+Note on Switched Output
+PRINT/EPRINT/LPRINT/SPRINT -- Print String at Return Address
+PSTR/EPSTR/LPSTR/SPSTR     -- Print String at HL
+Overview of File Name Output
+Sample File Name Outputs
+LFNn/PFNn/SFNn             -- Print File Name
+MFNn                       -- Store File Name
+:Note on Switched Output
+
+     Thå  Switcheä  Outpuô serieó oæ routineó  ió  differenô 
+froí  thå  otheò serieó iî thaô thå Switcheä  Outpuô  serieó 
+useó aî externaì datá bytå tï determinå wherå thå outpuô  ió 
+tï bå routed®  Thió bytå ió referreä tï aó SCTLFÌ (Ó Controì 
+Flag)¬ anä itó switchinç functioî ió illustrateä below:
+
+     ----- SCTLFL -----
+      Binary        Hex       Outputs to
+
+     00000000B      00H       Nothing
+     00000001B      01H       Console
+     10000000B      80H       Printer
+     10000001B      81H       Console and Printer
+
+
+     Iæ  thå  programmeò  doeó  noô  initializå  thå  SCTLFÌ 
+variablå beforå hå useó aî S-routine¬  outpuô wilì gï tï thå 
+consolå (defaulô valuå oæ SCTLFÌ ió 01H).
+
+
+     Aî examplå oæ codå usinç S-routineó is:
+
+          EXT  SCTLFL,SADC    ; SCTLFL flag, SADC routine
+          ...
+          MVI  A,81h     ; enable printer and console
+          STA  SCTLFL
+          ...
+          MVI  A,32      ; print number 32
+          CALL SADC
+          ...
+          MVI  A,80H     ; enable printer only
+          STA  SCTLFL
+          ...
+          MVI  A,150     ; print number 150
+          CALL SADC
+          ...
+
+
+:Print String at Return Address
+     Routine Names:  PRINT, EPRINT, LPRINT, SPRINT
+
+     Functionº
+
+     Prinô  strinç pointeä tï bù thå returî addresó oî  CONº 
+(PRINÔ  anä  EPRINT)¬  LSTº  (LPRINT)¬  oò  switcheä  outpuô 
+(SPRINT)®   Strinç ió terminateä bù á binarù 0®   Controì ió 
+returneä  tï  bytå  followinç  string®    PRINÔ  anä  LPRINÔ 
+interpreô controì characters¬  sendinç theí tï thå CON:/LSTº 
+deviceó  aó "^c¢ sequences®   EPRINÔ (foò Exacô Print©  onlù 
+expandó tabs¬ sendinç alì otheò characteró as-is.
+
+     Inputsº  Returî Addresó ½ pointeò tï strinç tï be
+          printed
+
+     Outputs:  HL points to byte after string
+               (string is printed on CON: or LST:)
+
+     Registers Affected:  HL
+
+
+     SYSLIB Routines Called:  PSTR (for PRINT);
+                              EPSTR (for EPRINT);
+                              LPSTR (for LPRINT);
+                              SPSTR (for SPRINT)
+
+     Speciaì Erroò Conditions:
+
+          Thå strinç MUSÔ bå terminateä bù á binarù 0!!!
+
+:Print String Pointed to by HL
+     Routine Names:  PSTR, EPSTR, LPSTR, SPSTR
+
+     Functionº
+
+     Prinô strinç pointeä tï bù HÌ oî CONº (PSTÒ anä EPSTR)¬ 
+LSTº   (LPSTR)¬  oò  switcheä  outpuô  (SPSTR)®   Strinç  ió 
+terminateä  bù  á  binarù 0®   HÌ pointó tï  bytå  followinç 
+strinç   oî  exit®    PSTÒ  anä  LPSTÒ   interpreô   controì 
+characters¬  sendinç  theí tï thå CON:/LSTº  deviceó aó "^c¢ 
+sequences®   EPSTÒ  (foò  Exacô Print©  onlù  expandó  tabs¬ 
+sendinç alì otheò characteró as-is.
+
+     Inputs:  HL = pointer to string to be printed
+
+     Outputs:  HL pts to the byte following the terminating 0
+                (string is printed on CON: or LST:)
+
+     Registers Affected:  HL
+
+
+     SYSLIÂ  Routineó Calledº  CCOUT¬ COUÔ (foò PSTR)»
+                               COUT (for EPSTR);
+                               CLOUT¬ LOUÔ (foò LPSTR);
+                               CSOUT, SOUT (for SPSTR)
+
+     Speciaì Erroò Conditions:
+
+          Thå strinç MUSÔ bå terminateä bù á binarù 0!!!
+
+:Overview of File Name Output
+
+     Thå  filå namå outpuô routineó describeä herå arå  useä 
+tï  outpuô  thå  filå namå anä typå storeä iî aî  FCÂ  iî  á 
+varietù oæ forms®  Theså formó arå illustrateä aó follows:
+
+Ex 1           Ex 2           Comment
+----           ----           -------
+MYFILE__.TYĞ   T_______.T_ß   12-chaò field¬ embeddeä spaces
+MYFILE.TYP__   T.T_________   12-char field, trailing spaces
+MYFILE.TYP     T.T            N-char field, no spaces
+
+
+     Iî  addition¬  eacè  oæ theså routineó haó á prefiø  tï 
+theiò namesº   L¬ M¬ P¬ oò S®  Theså prefixeó indicatå wherå 
+thå  outpuô ió goinç to®   Ì indicateó thå LSTº  devicå  (oò 
+printer)¬ Í indicateó memory¬ Ğ indicateó thå consolå (prinô 
+thå output)¬  anä Ó indicateó á switcheä outpuô tï  nothing¬ 
+the console, the printer, or both.
+
+
+     For example,
+
+          PFN± sendó thå filå namå anä typå pointeä tï bù DÅ 
+iî á 12-characteò fielä witè embeddeä spaceó tï thå console¬ 
+whilå  LFN± sendó thå filå namå anä typå pointeä tï bù DÅ iî 
+á 12-characteò fielä witè embeddeä spaceó tï thå printer.
+
+:Sample File Name Outputs
+     Thå  followinç  tableó  illustratå ho÷ valueó  wilì  bå 
+outpuô  bù thå variouó routines®   Thå underscorå  characteò 
+(_© indicateó á space.
+
+FCB Name/Type   xFN1           xFN2           xFN3
+
+FILENAMETYĞ     FILENAME.TYĞ   FILENAME.TYĞ   FILENAME.TYP
+MYFILE  TXT     MYFILE__.TXT   MYFILE.TXT     MYFILE.TXT__
+R       R       R_______.R__   R.R            R.R_________
+S               S_______.___   S.             S.__________
+        T       ________.T__   .T             .T__________
+
+     "x", as in "xFN1", may be any one of:
+
+     Letter    Example   Outputs To
+
+        L      LFN1      LST: Device (printer)
+        M      MFN1      Memory pted to by HL
+        P      PFN1      CON: Device (console)
+        S      SFN1      Switched Output
+
+:Print File Name Routines
+     Routine Names:  LFNn, PFNn, SFNn
+
+     Functionº
+
+     Prinô FCÂ Filå Namå anä Typå pointeä tï bù DÅ (FCB+± ió 
+addresó  iî DE© tï CONº  (PFNn)¬  LSTº  (LFNn)¬  oò Switcheä 
+Outpuô (SFNn)®   Thå variouó valueó oæ î arå ± tï 3¬ wherå ± 
+outputó witè embeddeä spaces¬  ² outputó witè nï spaces¬ anä 
+³ outputó witè trailinç spaceó (ie¬ PFN1¬ PFN2¬ anä PFN3).
+
+     Inputs:  DE = Address of FCB+1
+
+     Outputs:  -None- (Value is printed)
+
+     Registers Affected:  -None-
+     SYSLIÂ  Routineó Calledº  LOUÔ (foò LFNn);
+                               COUT (for PFNn);
+                               SOUT (for SFNn)
+     Special Error Conditions:  None
+
+:Store File Name Routines
+
+     Routine Name:  MFNn
+Š     Functionº
+
+     Storå appropriatå outpuô intï memorù aô buffeò  pointeä 
+tï bù HL®  FCB+± ió pointeä tï bù DÅ oî input®  Foò MFN± anä 
+MFN3¬  thå  numbeò  oæ characteró storeä wilì alwayó bå  12®  
+Foò MFN2¬  thå numbeò oæ characteró storeä ió  varying¬  buô 
+will never exceed 12.
+
+     Inputs:  DE pts to FCB+1
+              HL pts to memory buffer
+
+     Outputs:  None (Characters are stored in memory buffer)
+
+     Registers Affected:  None
+     SYSLIB Routines Called:  None
+     Special Error Conditions:  None
+
+     Notes:
+
+     1®   Uså  oæ  MFN± anä MFN³ ió  quitå  straight-forwarä 
+sincå   theù  alwayó  filì  exactlù  1²  byteó  oæ   memory®  
+Advancinç  tï  thå  nexô bytå afteò thå lasô bytå  ió  quitå 
+simple, as the following code illustrates:
+
+          ...
+          LXI  D,FCB+1   ; pt to FN field
+          LXI  H,BUFFER  ; pt to buffer
+          CALL MFN1      ; store name
+          LXI  B,12      ; skip to after last byte
+          DAD  B         ;   by adding 12 to HL
+          ...
+
+
+     2®   Uså oæ MFN² ió noô quitå aó straight-forwarä sincå 
+iô  filló aô mosô 1² bytes¬  buô coulä filì lesó thaî  this®  
+Thió probleí caî bå eliminateä bù usinç thå FILLÂ anä  SKNSĞ 
+routines, as illustrated:
+
+          ...
+          LXI  H,BUFFER  ; pt to buffer
+          MVI  B,13      ; fill following 13 bytes with
+          MVI  A,' '     ;   spaces
+          CALL FILLB
+          LXI  D,FCB+1   ; pt to FN field
+          CALL MFN2      ; store name
+          CALL SKNSP     ; skip over non-spaces (HL now
+                         ;   points to after last character)
+          ...
+
+

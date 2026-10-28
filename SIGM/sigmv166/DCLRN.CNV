@@ -1,0 +1,118 @@
+
+[DCLRN.CNV]
+[CNVRT compiler for "C" Declarations]
+[Harold V. McIntosh, 10 June 1983]
+
+
+
+[compile declaration]
+((
+  [declaration]	  (<:Y:>(or, <:V:>,);) Z
+  [decl spec]	  ((or,<:X:>(or, <:W:>,),<:W:>(or, <:X:>,))) Y
+  [s. c. spec]	  ((or,<<
+			>>char,<<
+			>>(or,long ,short ,unsigned ,)int,<<
+	 		>>(or,long ,)float,<<
+			>>double,<<
+			>><:H:>,<<
+			>>tdefname)) X
+  [type spec]	  ((or,<<
+			>>auto,<<
+			>>static,<<
+			>>extern,<<
+			>>register,<<
+			>>typedef)) W
+  [in dcl lst]	  (<:U:>(or,<,> <:V:>,)) V
+  [init decl]	  (<:M:>(or, <:6:>,)) U
+  [d-extender]	  ((or,<(><)>,[<:o:>],[])) Q
+  [d-extender*]	  ((or,<:Q:><:S:>,)) S
+  [declarator]	  ((or,<:I:>,<(><:M:><)>,*<:M:>)<:S:>) M
+  [s or u spec]	  ((or,struct,union)(or, <:I:>,)(or, {<:G:>},)) H
+  [st decl lst]	  (<:9:>(or, <:G:>,)) G
+  [st decl]	  (<:X:><:8:>;) 9
+  [st dcl list]	  ( <:7:>(or,<,><:8:>,)) 8
+  [str. declr]	  ((or,<:M:>:<:o:>,<:M:>,:<:o:>)) 7
+  [initializer]	  (= (or,<:E:>,{<:5:>(or,<,>,)})) 6
+  [init. list]	  ((or,<:E:>,{<:5:>})(or,<,> <:5:>,)) 5
+  [type-name]	  (<:X:><:3:>) 4
+  [abst. decl]	  ((or,<(><:3:><)>,*<:3:>)<:S:>,)) 3
+
+  )()(0 1 2)(
+
+  [prnt WS]	  ((PWS)<>,);
+		  ((and,<:Y:>,<0>)(and,(or, <:V:>,),<1>);,<<
+			>>/definition (z,<1><,>) %%% <0><<
+			>>/initialize (y,<1><,>)<<
+			>>);
+		  (<:Z:>,yes);
+		  (,no);
+  )) w
+
+[token compilation of expressions]
+(()()(0)(
+		(<0>,/compiled <0>);
+  )) x
+
+[split out initializations]
+(()()(0 1 2)(
+		((and, <:M:> <:6:><,>,<0>)<1>,<0>(y,<1>));
+		( <:M:><,><0>,<0>):
+  )) y
+
+[remove initializations leaving definitions]
+(()()(0 1 2)(
+		((and, <:M:>, <0>)(or, <:6:>,)<,><1>, <0><,>(z,<1>));
+  )) z
+
+[main program including syntactic elements]
+( (
+  [alfanum]   ((and,<[1]>,(IVL, ,~,))) a
+  [letter]    ((and,<[1]>,(or,(IVL,A,Z,),(IVL,a,z,),_))) b
+  [odigit]    ((and,<[1]>,(IVL,0,7,))) c
+  [ddigit]    ((and,<[1]>,(IVL,0,9,))) d
+  [hdigit]    ((and,<[1]>,(or,(IVL,0,9,),(IVL,A,F,),(IVL,a,f,)))) e
+  [astring]   ((or,(or,\<:a:>,(and,<:a:>,(NOT,(or,<">,<'>,\))))<:f:>,)) f
+  [ostring]   ((or,<:c:><:g:>,)) g
+  [dstring]   ((or,<:d:><:h:>,)) h
+  [hstring]   ((or,<:e:><:i:>,)) i
+  [cconst]    ((or,\<:a:>,<'><:a:><'>)) j
+  [iconst]    ((or,0(or,X,x)<:i:>,0<:g:>,<:d:><:h:>)) k
+  [fconst]    (<:h:>.<:h:>(or,(or,E,e)(or,+,-,)<:h:>,)) l
+  [sconst]    (<"><:f:><">) m
+  [cstring]   ((or,(or,<:b:>,<:d:>)<:n:>,)) n
+  [constant]  ((or,<:l:>,<:k:>,<:j:>,<:m:>)) o
+  [identifier](<:b:><:n:>) I
+  [aoperator] ((or,=,+=,-=,*=,/=,%=,(QUO/>>=/),(QUO/<<=/),&=,^=,|=)) p
+  [boperator] ((or,*,/,%,+,-,(QUO/>>/),(QUO/<</),(QUO/<=/),<<
+		>>(QUO/>=/),(<),(>),==,!=,&&,^,||,&,|)) q
+  [uoperator] ((or,*,&,-,!,~,sizeof,<(>typename<)>)) r
+  [uoper*]      ((or,<:r:><:s:>,)) s
+  [lvalue]    ((or,<<
+		>>(and,<:P:>,<-->[<:E:>]<>),<<
+		>>(and,<:P:>,<-->-(>)<:I:><>),<<
+		>>(and,<:P:>,<-->.<:I:><>),<<
+		>><:I:>,<<
+		>>*<:E:>,<<
+		>><(><:L:><)>)) L
+  [pexten]    ((or,[<:E:>],<(><:F:><)>,-(>)<:I:>,.<:I:>)) N
+  [pextn*]    ((or,<:N:><:O:>,)) O
+  [primary]   ((or,<:I:>,<:o:>,<(><:E:><)>)<:O:>) P
+  [eroot]     ((or,<<
+		>><:r:><:A:>,<<
+		>>++<:L:>,<<
+		>>--<:L:>,<<
+		>><:L:>++,<<
+		>><:L:>--,<<
+		>><:P:>)) A
+  [bexpr]     (<:A:>(or,<:q:><:B:>,)) B
+  [cexpr]     (<:B:>(or,?<:K:>:<:K:>,)) K
+  [aexpr]     ((or,<:L:><:p:><:D:>,<:K:>)) D
+  [expression](<:D:>(or,<,><:E:>,)) E
+  [e-list]    ((or,<:E:><:F:>,)) F
+  )  ()(0)(  
+	(;,done);
+	(<0>,(%C,(w,<0>))(%R)):
+  ))
+
+[end]
+

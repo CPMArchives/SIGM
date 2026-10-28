@@ -1,0 +1,34 @@
+(*****************************************************
+*	LIBRARY CURSOR CONTROL SUBROUTINE
+*		written by Charlie Foster,Dec 80
+******************************************************)
+
+PROCEDURE CURSOR (X,Y : INTEGER; Z : CHAR );
+(*This subroutine is designed to input the proper series
+of characters to the SD SALES Video Board 8024 to give
+XY Cursor. It needs ESC=XYZ where Z=character to print.
+It has a offset to worry about so this subroutine needs
+to take care everything. X=row, Y=column, Z=character  *)
+
+VAR
+            CODE : STRING 5;	(*gets output to video*)
+  C1,C2,C3,C4,C5 : CHAR;	(*elements of CODE*)
+
+BEGIN
+	Y := Y + 31;		(*add offset*)
+	X := X + 31;		(*add offset*)
+	C1 := CHR(27);		(*ESC character*)
+	C2 := CHR(61);		(* = character*)
+	C3 := CHR(X);		(*integer*)
+	C4 := CHR(Y);		(*integer*)
+	C5 := Z;		(*any ASCII character*)
+	CODE := C1;		(*string it all togeather*)
+	APPEND(CODE,C2);
+	APPEND(CODE,C3);
+	APPEND(CODE,C4);
+	WRITE(CODE);		(*write position to Video*)
+	WRITE(C5);		(*can call anything here*)
+END;
+
+
+

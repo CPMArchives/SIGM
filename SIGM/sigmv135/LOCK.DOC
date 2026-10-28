@@ -1,0 +1,57 @@
+	ÌÏÃË®ÃÏÍ¬ ÕÎÌÏÃË®ÃÏÍ áîä ÍËÅÙ®ÃÏÍ
+
+
+The programs LOCK, UNLOCK and MKEY are for the protection of
+those very private files you might leave in a shared system, or
+that other people might get a chance to copy off one of your
+disks.
+
+Give
+
+	LOCK (filename or filematch) (keyword)
+
+to lock one or more (up to 32) files.  The keyword can be up to
+eight characters (no distinction between lower case and
+capitals).  Once a file is locked, any attempt to read it with
+TYPE, or ED, or a word processor, or to execute it as a .COM
+file, will just give the message
+
+	==<Locked file>==
+
+And if your local spooks get out a debugger such as DDT, or
+whatever, to look into the file itself, they'll find that the
+contents have been fairly thoroughly scrambled.
+
+To reverse the process, give
+
+	UNLOCK (filename or match) (keyword)
+
+- with, of course, the same keyword.
+
+The MKEY program is in case you forget your keyword; you give
+
+	MKEY (filename)
+
+and it tells you what it was.  Naturally, this means you
+shouldn't leave copies of MKEY lying around for spooks to use. 
+If copies of MKEY are to be public at all, they should be
+"locked" (with an unforgettable keyword!). 
+You are not protected from people assiduous enough to
+disassemble the programs and break the code.  But they'll have
+a bit of work to do.
+
+
+Ãõóôïíéóéîç ùïõò ãïğéåó®  Near the end of each of the three
+listings is a table of "mush" - random bytes used in the coding
+process.  You can customise your copies by altering this table.
+ It will usually be sufficient to alter the eight bytes at the
+address "nmush", which are used in coding the keyword.	But
+alter all of it if you wish.  Make the same alterations in all
+three programs.
+
+
+Í¯ĞÍ âõææóº  The lock-unlock system is more flexible in use
+(and more secure) than M/PM password facilities.  Note that,
+for your benefit, LOCK alters a .PRL extension to .LRL, and
+UNLOCK alters it back.
+

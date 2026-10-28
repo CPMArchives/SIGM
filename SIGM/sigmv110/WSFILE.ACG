@@ -1,0 +1,158 @@
+
+* wsfile.cmd  03/14/83 hmvt      
+
+* this program will take data from the main data base
+* it will select the proper mailing address
+* depending upon if the letter is to go to office or home
+* then it will write the Wordstar Data file and a DOC file,
+* which should be placed at the start of the document to be merged.
+* in those cases where an item may not appear, on the merged document
+* (titleline, company1, company2) use &titleline/O&, &company1/O& and
+* &company2/O&. This file automatically creates a ',' for omit data
+* per mailmerge requirements.
+
+ERASE
+?'This Module will make a special MailMerge file for WordStar'
+?
+?' Do you wish to continue (Y/N) ? '
+
+SET CONSOLE OFF
+WAIT TO command
+SET CONSOLE ON
+
+IF command = 'Y' .OR. command = 'y' 
+  STORE t TO continue
+ELSE
+  STORE f TO continue
+ENDIF
+
+DO WHILE continue
+
+ERASE
+ACCEPT 'Enter Name of the WordStar-MailMerge file  ' TO file:dat
+
+* make the proper WordStar file names
+STORE !(file:dat) TO file:dat
+STORE $(file:dat,1,8) TO file:dat
+STORE file:dat+'.DOC'  TO file:doc
+STORE file:dat+'.DAT'  TO file:dat
+
+@ 03,10 SAY  'Creating WordStar-MailMerge Document file:  '+file:doc
+SET CONSOLE OFF
+SET ALTERNATE TO &file:doc
+SET ALTERNATE ON
+
+?'.OP'
+?'.DF '+file:dat
+?'.RV '+' last-name, first-name, mr, dear, title, company1, company2, street, suite-apt, city, state, zip'
+?'.. for title, company1, company2  use &title/O&, &company1/O&, &company2/O&'
+?'.. to automatically omit empty data fields'
+
+SET ALTERNATE OFF
+
+SET CONSOLE ON
+@ 05,10 SAY  ' Creating WordStar-MailMerge Data file:  '+file:dat
+?
+?
+?? 'Writing records '
+SET CONSOLE OFF
+SET ALTERNATE TO &file:dat
+SET ALTERNATE ON
+
+* select database file and start at first record
+GOTO TOP
+
+* repeat until end of file
+DO WHILE .NOT. EOF
+
+
+* if there is a chance of a comma in a field then trim and put in quotes
+
+IF send <> 'Y'
+  * if it is NOT a company address then... 
+  * make blanks for these first 3 variables
+  STORE ' ' TO titleline
+  STORE ' ' TO coname1
+  STORE ' ' TO coname2
+  STORE CHR(34)+TRIM(address)+CHR(34) TO street
+  STORE CHR(34)+TRIM(city)+CHR(34) TO cityto
+  STORE st TO stto
+  STORE zip TO zipto
+
+* if a field is empty then store it as a blank variable...
+* but trim and put quotes around a non-empty field
+
+  IF apt = ' '
+    STORE ' ' TO room
+  ELSE
+    STORE CHR(34)+TRIM(apt)+CHR(34) TO room
+  ENDIF
+ELSE
+* if it is a company address etc do the following...
+  STORE CHR(34)+TRIM(caddress)+CHR(34) TO street
+  STORE CHR(34)+TRIM(ccity)+CHR(34) TO cityto
+  STORE cst TO stto
+  STORE czip TO zipto
+  IF title = ' '
+    STORE ' ' TO titleline
+  ELSE
+    STORE CHR(34)+TRIM(title)+CHR(34) TO titleline
+  ENDIF
+  IF company1 = ' '
+    STORE ' ' TO coname1
+  ELSE
+    STORE CHR(34)+TRIM(company1)+CHR(34) TO coname1
+  ENDIF
+  IF company2 = ' '
+    STORE ' ' TO coname2
+  ELSE
+    STORE CHR(34)+TRIM(company2)+CHR(34) TO coname2
+  ENDIF
+  IF suite = ' '
+    STORE ' ' TO room
+  ELSE
+    STORE CHR(34)+TRIM(suite)+CHR(34) TO room
+  ENDIF
+
+ENDIF send letter to office
+
+* now write data to the WS MailMerge file
+* the first 4 variables are raw field names that must contain data...
+* and can contain commas ; so trim them  and enclose in quotes
+* all other variables have been 'fixed' in the above IF statements
+ 
+ ? 
+ ??  CHR(34)+TRIM(lastname)+CHR(34) +','
+ ??  CHR(34)+TRIM(fname)+CHR(34) +','
+ ??  CHR(34)+TRIM(mr)+CHR(34) +','
+ ??  CHR(34)+TRIM(dear)+CHR(34) +','
+ ??  titleline +','
+ ??  coname1 +','
+ ??  coname2 +','
+ ??  street +','
+ ??  room +','
+ ??  cityto +','
+ ??  stto +','
+ ??  zipto +','
+ SKIP
+* tell em that you are busy 
+SET CONSOLE ON
+?? '*'
+SET CONSOLE OFF
+
+ENDDO while not EOF
+
+STORE f TO continue
+ENDDO continue
+
+SET ALTERNATE OFF
+SET CONSOLE ON
+RELEASE file:dat,file:doc,continue,length
+ 
+* put back the original variables
+STORE '?' TO command
+STORE ' ' TO printer
+STORE ' ' TO disk
+STORE '            ' TO filename
+STORE t TO more
+

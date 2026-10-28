@@ -1,0 +1,459 @@
+; An article relating to the following code appeared in the Vol 1 No 4
+; issue of Micro/Systems Journal and is presented here with the per-
+; mission of the publisher. The code alone should be sufficient to
+; use the program.  However, back copies of the article are available from
+; Micro/Systems Journal, Box 1192, Mountainside, NJ 07092.
+
+.cw10
+.op
+(*LAST COMMAND
+     written by Stephen R. Davis for Borland Turbo Pascal*)
+(*$c-*)
+(*$k-*)
+
+(*this program is a "stay resident" program which allows
+ operator to perform any of last 10 commands
+ which he had entered by entering an AltF10 to get a
+ list of them, followed by a function key F1-F10
+ to select which command to reenter.  Command lines which
+ begin with nonprintable keystrokes are not saved.  This
+ program was written as an example of a Turbo Pascal
+ "interrupt borrower" program*)
+
+(*declare our constants*)
+
+const
+  our_char = 113;      (*this is the scan code for AltF10*)
+  scan_offset = 58;    (*scan code of F1 - 1*)
+  first_row = 5;       (*window size and position*)
+  first_col = 5;         numb_saved = 10;
+                       (*number of command lines saved*)
+  windowwidth = 40;
+  windowlength = 12;   (*='numb_saved' + 2*)
+
+  CR = $D;             (*ascii carriage return*)
+  ESCAPE = $1B;        (*  "   escape*)
+  DEL = $8;            (*  "   delete character*)
+  CntrlC = $3;         (*  "   control C*)
+  Unprintable = $0;    (*nonascii keys generate 0 char*)
+
+  user_int = $68;      (*place to put borrowed interrupt--
+                         may be changed to any available
+                         interrupt user desires*)
+
+  kybrd_int = $16;     (*BIOS keyboard interrupt*)
+                       (*approximate size of program*)
+ (*prog_size = 16000;*) (*when compiled with Turbo 2.0 --*)
+    prog_size = 20000;  (*when compiled with Turbo 3.0 --*)
+                        (*this much space is reserved
+                        by installation procedure.
+                        This number is established
+                        empirically.*)
+
+(*here the global (static type) variables*)
+
+type
+    regtype = record
+                   ax,bx,cx,dx,bp,si,di,ds,es,flags:integer
+              end;
+    halfregtype = record
+                   al,ah,bl,bh,cl,ch,dl,dh:byte
+              end;
+Šconst                        (*put 'regs' in code segment
+                              by making a typed constant*)
+    regs : regtype = (ax:0;bx:0;cx:0;dx:0;bp:0;si:0;di:0;
+                      ds:0;es:0;flags:0);
+    feeding_char   :boolean = FALSE;
+    no_cr          :boolean = FALSE;
+    j              :integer = 1;
+    saveds         :integer = 0;
+
+var
+    savreg         :regtype; (*define a variable for 
+                              register structures...*)
+    halfregs       :halfregtype absolute regs; (*..and for 
+                                           half registers*)
+
+    i              :integer;
+    trash_line     :boolean;
+    last_lines     :array [0..numb_saved] of
+                    array[1..60] of integer;
+    cursorpos      :integer;
+
+
+(*include window manipulation software*)
+(*$i window.pas*)
+
+
+(* following code prints out previous n commands in
+ window previously opened up*)
+
+procedure printchoices;
+var
+   i,j : integer;
+   outchar : byte;
+
+begin
+   for i := 2 to numb_saved+1 do         (*loop thru 
+                                          saved commands*)
+   begin
+      GoToXY(2,i);
+                             (*put up function key*)
+      Write('F');Write(((i-1) mod 10):1);Write(')');
+      j := 1;
+                             (*now saved command*)
+      while ((last_lines[i-1][j] and $FF) <> CR)
+              and (j <> (windowwidth-5)) do
+      begin
+         Write(Chr(last_lines[i-1][j] and $FF));
+         j := j + 1
+      end
+   end
+end;
+
+
+(* following routine saves keystroke in 
+ command push down stack.  If key has some specialŠ meaning, routine attempts to interpret it; e.g.
+ 'del' deletes previous character, etc.  It can only
+ interpret so much, and even then it only knows
+ COMMAND.COM's rules*)
+
+procedure save_key;
+begin
+    last_lines[0][j] := regs.ax;
+    if (j < 60) and not trash_line then
+         j := j + 1;
+    case halfregs.al of   (*if that was a...*)
+    DEL:                  (*...delete then...*)
+         if j > 2 then    (*...delete char*)
+              j := j - 2
+         else
+              j := 1;
+
+    ESCAPE:               (*...escape then...*)
+         j := 1;          (*...delete line*)
+
+    CntrlC:               (*...Cntrl C then...*)
+         j := 1;          (*...delete line*)
+
+    Unprintable:          (*...non ascii characters...*)
+         if (regs.ax = 0) or (*...if its BREAK...*)
+            (regs.ax = $3F00) then  (*...or F5 then...*)
+              j := 1      (*...just clear line; else...*)
+         else
+              trash_line := TRUE; (*...trash remainder*)
+                                  (*of line to next CR*)
+
+    CR:                   (*..if carriage return then..*)
+       begin
+           if trash_line then  (*if trash line flag set..*)
+                j := 1;        (*...dont save line...*)
+           if j > 2 then    (*..and dont save empty lines..*)
+                       (*..else push command on 'stack',..*)
+                for i := numb_saved downto 1 do
+                     last_lines[i] := last_lines[i-1];
+           for i := 1 to 60 do  (*...clear last entry,...*)
+                last_lines[0][i] := $07 shl 8 + CR;
+           j := 1      (*...and reset pointer*)
+       end
+    end;
+
+   if j = 1 then            (*if line becomes empty...*)
+       trash_line := FALSE (*...then stop trashing line*)
+end;
+
+
+(*this code processes interrupts to keyboard BIOS
+      interrupt (16 hex)*)
+
+procedure process_intr;
+begin;Š(*$i savereg.pas*)             (*save input registers*)
+    if halfregs.ah = 0 then  (*if this is char request..*)
+    begin
+                             (*if we were in the middle of
+                              spooling chars...*)
+         if feeding_char then
+         begin               (*...fetch next character from
+                              command stack & return that*)
+              regs.ax := last_lines[i][j];
+              j := j + 1;
+                             (*if this was last char...*)
+              if (halfregs.al = CR) or (j > 60) then
+              begin
+                 feeding_char := false; (*..turn spooling off*)
+                 j := 1;
+                 if no_cr then
+                      regs.ax := $0;
+                 no_cr := false
+              end
+         end
+         else
+         begin     (*(we are not in middle of spooling)*)
+              Intr (user_int, regs);   (*perform the BIOS call
+                                        the caller asked for*)
+                             (*if this wasn't "our" char...*)
+              if halfregs.ah <> our_char then
+                   save_key  (*...save the keystroke...*)
+              else
+              begin
+                   savreg.ax := $0300;   (*fetch current...*)
+                   savreg.bx := $0;      (*..cursor position*)
+                   Intr($10,savreg);
+                   cursorpos := savreg.dx;
+
+                   openwindow;   (*open up display window*)
+                   printchoices; (*now print command stack*)
+                   regs.ax := $0;      (*read a character...*)
+                   Intr(user_int,regs);(*...from keyboard*)
+
+                          (*make F0 maps to 1, F1 to 2, etc.*)
+                   i := halfregs.ah - scan_offset;
+                   if (i > 25) and (i < 37) then
+                   begin   (*shift func keys act like normal
+                           func keys except no return on end*)
+                        i := i - 25;
+                        no_cr := true
+                   end;
+                   if (i > 0) and (i <= 10) then
+                   begin   (*if input was a function key give
+                            him  1st char of his choice...*)
+                      regs.ax := last_lines[i][1];
+                      if halfregs.al <> CR then
+                      begin (*..and set flag to begin feeding
+                             remainder of command every time
+                             he asks for a char from keybd*)Š                           feeding_char := true;
+                           j := 2
+                       end;
+
+                   end
+                   else    (*not function key--just save it*)
+                        save_key;
+                   closewindow;  (*put what was there back*)
+
+                   savreg.ax := $0200; (*replace cursor*)
+                   savreg.bx := $0;
+                   savreg.dx := cursorpos;
+                   Intr($10,savreg)
+              end
+         end
+    end
+    else                  (*he's not trying to read a char*)
+         if feeding_char then (*if he's spooling chars...*)
+                             (*...clear the z-flag*)
+              regs.flags := regs.flags and $FFBF
+         else
+              Intr(user_int,regs);
+
+(*$i restreg.pas*)        (*restore registers from 'reg'*)
+    inline($CA/$02/$00)   (*RETF 02 - return to caller*)
+end;
+
+
+(*this section of code installs the interrupt
+ routine and makes it a permanently
+ resident interrupt borrower*)
+
+(*the following dos calls are used:
+ sys 25- install interrupt address
+   input al = int number, ds:dx = address to install
+
+ sys 35- get interrupt address
+   input al = int number
+   output es:bx = address in interrupt
+
+ int 27- terminate and stay resident
+   input dx = size of resident program
+*)
+begin                                  (***main***)
+    (*initialize the variables which the interrupt
+     service routine will use*)
+
+    for i := 0 to numb_saved do
+         for j := 1 to 60 do
+              last_lines[i][j] := $07 shl 8 + CR;
+    j := 1; trash_line := FALSE;
+    saveds := Dseg;       (*save the data segment locally*)
+
+    (*now install the interrupt routine*)
+Š    savreg.ax := $35 shl 8 + user_int; (*check to make sure
+                                     int not already used*)
+    Intr($21,savreg);
+    if savreg.es <> $00 then
+    begin
+         WriteLn ('Interrupt in use--cant install LASTCOM');
+         Intr($20,savreg)
+    end
+    else
+    begin
+         WriteLn ('Installing LASTCOMMAND --');
+         WriteLn ('     press AltF10 to select last command');
+                            (*get the address that was there*)
+         savreg.ax := $35 shl 8 + kybrd_int;
+         Intr($21,savreg);
+                             (*put the address in the
+                              user interrupt*)
+         savreg.ax := $25 shl 8 + user_int;
+         savreg.ds := savreg.es;
+         savreg.dx := savreg.bx;
+         Intr($21,savreg);
+                          (*install interrupt system call*)
+         savreg.ax := $25 shl 8 + kybrd_int;
+         savreg.ds := cseg;
+                             (*put our routine address*)
+         savreg.dx := Ofs(process_intr);
+         Intr ($21,savreg);
+
+         (*now terminate and stay resident*)
+
+         savreg.dx := prog_size;
+         Intr ($27,savreg)
+    end
+end.
+
+
+------------------------------------------------------------
+
+(*WINDOW.PAS*)
+
+(* following subroutines provide further window
+  capabilities to those offered by Turbo compiler.
+  Note, following constants must be defined:
+
+ first_row = first row # to place window (upper left corner)
+ first_col = first col # to place window
+ windowlength = number of rows long window is to be
+ windowwidth = number of columns wide
+
+ in addition structure savreg must be defined globally
+ and be of register type used by turbo for system calls
+*)
+var
+    savebuf:array [1..windowwidth] of
+            array [1..windowlength] of integer;Š
+(*read/write a char from the screen at the current
+                                    cursor position*)
+
+function GetScreenChar:integer;
+begin
+   savreg.ax := $0800;   (*9 -> get character/attr @ cursor*)
+   savreg.bx := 0;
+   Intr($10,savreg);
+   GetScreenChar := savreg.ax
+end;
+procedure PutScreenChar(input:integer);
+begin
+   savreg.ax := $0900 + (input and $FF); (*a -> put
+                                    char/attr @ cursor*)
+
+   savreg.bx := input shr 8;  (*put the attrib in bl
+                                    and 0 in bh*)
+   savreg.cx := 1;
+   Intr($10,savreg)
+end;
+
+
+(*open a window and save the contents away*)
+
+procedure OpenWindow;
+var
+   i,j: Integer;
+begin
+   (*open up the window area*)
+
+   window (first_col, first_row, first_col+windowwidth,
+           first_row+windowlength);
+
+   (*save off the data in the window*)
+
+   for i := 1 to windowwidth do
+      for j := 1 to windowlength do
+      begin
+         GoToXY(i,j);
+         savebuf[i][j] := GetScreenChar (*get a attrib/char
+                                          at the cursor*)
+      end;
+
+   (*put the frame up around the window and clear that area*)
+
+   GotoXY(1,1);                     the window now*)
+   Write(chr(218));
+   for i:=2 to windowwidth-1 do Write(chr(196));
+   Write(chr(191));
+   for i:=2 to windowlength-1 do
+   begin
+      GotoXY(1, i);  Write(chr(179));
+      for j := 2 to windowwidth-1 do
+         Write(' ');Š      GotoXY(windowwidth, i);  Write(chr(179));
+   end;
+   GotoXY(1, windowlength);
+   Write(chr(192));
+   for i:=2 to windowwidth-1 do Write(chr(196));
+   Write(chr(217));
+end;
+
+(*the following procedure closes the previously 
+                              opened window*)
+
+procedure closewindow;
+var
+   i,j:integer;
+
+begin
+   for i := 1 to windowwidth do
+      for j := 1 to windowlength do
+      begin
+         GoToXY(i,j);
+         PutScreenChar(savebuf[i][j])
+      end
+end;
+
+------------------------------------------------------------
+
+(*SAVEREG.PAS*)
+
+(*when invoked, this procedure saves the registers into the
+  structured constant 'REGS' and restores the ds from the
+  previously saved integer constant 'saveds'*)
+
+    inline(
+    $53/                      (*PUSH BX*)
+    $BB/regs/                 (*MOV BX,OFFSET REGS*)
+    $2E/$89/$47/$00/          (*CS:MOV [BX]0,AX*)
+    $58/                      (*POP AX*)
+    $2E/$89/$47/$02/          (*CS:MOV [BX]2,AX*)
+    $2E/$89/$4F/$04/          (*CS:MOV [BX]4,CX*)
+    $2E/$89/$57/$06/          (*CS:MOV [BX]6,DX*)
+    $2E/$89/$6F/$08/          (*CS:MOV [BX]8,BP*)
+    $2E/$89/$77/$0A/          (*CS:MOV [BX]A,SI*)
+    $2E/$89/$7F/$0C/          (*CS:MOV [BX]C,DI*)
+    $2E/$8C/$5F/$0E/          (*CS:MOV [BX]E,DS*)
+    $2E/$8C/$47/$10/          (*CS:MOV [BX]10,ES*)
+    $9C/                      (*PUSHF*)
+    $58/                      (*POP AX*)
+    $2E/$89/$47/$12/          (*CS:MOV [BX]12,AX*)
+    $2E/$8E/$1E/saveds        (*CS:MOV DS,SAVEDS--PUT PROPER DS*)
+    );
+
+-------------------------------------------------------------
+
+(*RESTREG.PAS*)
+Š(*when invoked this routine restores the registers from the
+  structure constant*)
+
+    inline(
+    $BB/REGS/                (*MOV BX,OFFSET REGS*)
+    $2E/$8E/$47/$10/         (*CS:MOV ES,[BX]10*)
+    $2E/$8E/$5F/$0E/         (*CS:MOV DS,[BX]0E*)
+    $2E/$8B/$7F/$0C/         (*CS:MOV DI,[BX]0C*)
+    $2E/$8B/$77/$0A/         (*CS:MOV SI,[BX]0A*)
+    $2E/$8B/$6F/$08/         (*CS:MOV BP,[BX]08*)
+    $2E/$8B/$57/$06/         (*CS:MOV DX,[BX]06*)
+    $2E/$8B/$4F/$04/         (*CS:MOV CX,[BX]04*)
+    $2E/$8B/$47/$00/         (*CS:MOV AX,[BX]00*)
+    $2E/$FF/$77/$12/         (*CS:PUSH [BX]12*)
+    $9D/                     (*POPF*)
+    $2E/$8B/$5F/$02/         (*CS:MOV BX,[BX]02*)
+    $5D/                     (*POP BP*)  (*restore the SP*)
+    $5D                      (*POP BP*)
+    );
+

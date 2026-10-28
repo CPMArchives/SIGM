@@ -1,0 +1,212 @@
+
+		     DU-V75A.DOC
+	        by Ward Christensen
+  with additional notes by Ron Fowler and Keith Petersen
+		 (revised 7/23/81)
+  and still further revision by H.M. Van Tassell (3/6/84)
+
+
+DU-75A.A86 is a CP/M-86 translation of the CP/M-80 version 7.5 with
+added disk routines which allow operation under CP/M-86 ver 1.1 and 3.1
+and CCP/M-86 version 3.1.  (note: CP/M-86 ver 3.1 has not been released
+by Digital Research as of this date)
+
+This program checks the CP/M version number and will not run unless
+the operating system is one mentioned above.  However, with only minor
+changes, the program can be made to run under MP/M-86 or the original
+version of Concurrent CP/M.  Note that CCP/M-86 ver 3.1 replaces both
+the MP/M-86 and original Concurrent CP/M operating systems.
+
+The starting translation came from the SLICER USER GROUP
+disk #2, via Micro Cornucopia, PO Box 223, Bend, OR
+It did not indicate the name of the translator who should
+be thanked for his work.  That version appeared as DU-75.A86
+
+See original CP/M-80 version 7.5 for history of changes and full
+credits for all contributing authors.
+
+With the exception of my changing the multiple command symbol from ";"
+to "!", which is the CP/M convention for multiple command symbol, the 
+original documentation still applies and is repeated here for easy
+reference.
+
+
+	HOW TO USE DU ver 7.5-A DISK UTILITY
+
+USE:
+
+Any valid command string may be placed as an
+operand of the original DU command, i.e.:
+
+     A>DU G0!D!G2!=OK<D><A><1A>!D  (NOTE: if your operating system allows
+				    multiple commands, don't use "!" in 
+				    the DU command tail)
+Functions supported:
+
+	Tnn	Seek to track nn (no read)
+	Snn	Position to sector nn, and read
+	Gnn	Position to group nn and read.
+	G	Shows current position
+	V	Views the current sector.
+		(assumes ASCII data)
+	Vnn	Views nn sectors
+	Fname	print directory for file "name",
+		and gives group information for 
+		the first extant
+
+	=string	Ascii search, starting at current
+		sector. <xx> hex may be imbedded,
+		or used alone:  To find "IN 0FEH":
+		=<db><fe>
+		Ignores bit 7 unless <xx> is used.
+
+	L	Re-logs in the current disk. You may pull
+		out a disk, put in a new, and "L" just
+		to log it in.
+
+	Lx	Logs in disk 'x', such as: LB
+
+	Ux	Logs user 'x' for next F command.  Gives
+		'?' error if not CP/M version 2.x.
+
+	D	Dump sector, hex + ASCII
+	A	Dump sector, ASCII only
+	H	Dump sector, hex only
+
+note all dump commands (D, A, H) may be optionally
+	followed by a starting and ending address:
+	D0,7F	is the same as just D
+	D3,5
+	A20,3F
+
+	CHaddr,val,val,val... change hex in sector
+	CAaddr,char string... change ASCII in sector
+		NOTE that <xx> may be hex imbedded
+		in the Ascii:  ca0,OK<d><a><1a>
+
+		----> Use W to write changes to disk.
+		Note that the C command echoes
+		the overlaid data for verification.
+
+	CHaddr-addr,byte
+ or	CAaddr-addr,byte	repeats a change
+
+	+	advance 1 sector (if below track 2,
+		this advances to next numerical, if
+		2 or >, advances based on CP/M's normal
+		sector scrambling algorithm, i.e. so +
+		will get the next logical sector of the file
+
+	-	backs up 1 logical sector
+
+		Note + and - may take an amount:
+		for example, +F steps in 15 sectors.
+
+		Note also that "-" issued at the first logical
+		sector of the disk will wrap back to the last.
+		Further, "+" issued at the last sector will
+		wrap forward to the first.
+
+	?	Gives command summary
+
+	#	Prints the disk parameters
+
+	M	Dumps a map of the group allocations
+		for files.
+	Mn	Shows which file is allocated to
+		group "n".
+
+	N	Resets CP/M via the BDOS.  This may
+		make it possible under some implementations
+		of CP/M to change the disk format (e.g., density,
+		sides, etc)
+
+	R	Reads the sector currently positioned to
+		into memory.  Note R (Read) is implicit in
+		the G, +, and - commands, but N-O-T in the
+		S and T commands (I did it because I was
+		tired of disk reading after T command before
+		I had a chance to issue the S command)
+
+	W	Write back the current sector (N-O-T-E may
+		not be used after an F command, as CP/M was
+		used to find the file in the directory
+
+	X	Exit back to CP/M (Must press return).  Ctl-c
+		was too easy to hit over modem lines, so I
+		decided on 2-byte (X, CR) to exit.
+
+	P	Toggle printer switch on/off
+
+	Y       Yanks current sector into sequential memory and
+		prints ending address.  This allows sectors to
+		be written sequentially into memory starting at
+		3000H, for later recovery by DDT, etc.
+
+	Z	Sleep - causes the program to pause, such
+		as to look at a dump.  Z is 1 sec.  Znn
+		is nn tenths of a second, more or less.
+
+	<	Saves current sector in a save buffer
+
+	>	Gets saved buffer.  < and > may be used
+		to move a sector to another place.
+
+	/	Repeats entire command.  Defaults
+ or	/nn	to "forever".  NN may be 2 to 65535
+
+multiple commands may be separated by "!" 
+
+Example: the following commands will erase the
+	 b disk directory to all E5's:
+
+	lb		log in b drive
+	g0		position to dir.
+	ch0-7f,e5	fill with e5
+	<		save the sector
+	>!w!+!/16	restore, write, next,
+			repeat 16
+
+----This could be shortened to:
+
+	lb!g0!ch0-7f,e5!<
+	>!w!+!/16
+
+
+
+INTERPRETATION OF DIRECTORY DATA PRESENTED BY THE DU PROGRAM
+
+
+The following explains the format of a CP/M directory entry
+as shown by DU, using either the "F" (find file) command,
+or just doing "D" (dump) of the directory sectors, which
+are located in groups 0 and 1 on a single density disk.
+		----------------
+Sample result of "FSID.COM" command:
+
+40  00534944 20202020  20434F4D 0000003A  *.SID     COM...:*
+50  33343536 3738393A  00000000 00000000  *3456789:........*
+
+First line -
+
+40  00534944 20202020  20434F4D 0000003A  *.SID     COM...:*
+||  |||                      |  ||    ||    |         |
+||  ||^----hex file name-----^  ||    ||    ^file name^
+||  ||                          ||    ||     in ASCII
+||  ||                   extent-^^    ||
+||  ||                                ||
+||  ||           file size in sectors-^^
+||  ||
+||  ^^-00 = file active
+||     E5 = file erased
+^^-displacement of line in directory sector
+
+Second line -
+
+50  33343536 3738393A  00000000 00000000  *3456789:........*
+    |				       |
+    |				       |
+    ^---allocation group numbers-------^
+
+END
+

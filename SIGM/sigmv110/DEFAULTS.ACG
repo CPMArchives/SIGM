@@ -1,0 +1,27 @@
+* defaults.cmd 02/08/83
+* this will allow the entry of default variables for add.cmd
+
+* save the current memory
+SAVE TO temp
+
+* get old memory variables for adding records
+RESTORE FROM ADD
+
+* set up screens and prompts
+SET FORMAT TO mod-rec
+STORE 'Enter data input into any field' TO prompt1
+STORE 'This data will be used when adding records' TO prompt2
+STORE 'Control Q to end session ' TO prompt3
+STORE 'Create new data entry defaults' TO mode
+
+* get the new defaults
+READ
+
+* store the new variables
+SAVE TO ADD
+
+* get back the original memory
+RESTORE FROM temp
+
+
+

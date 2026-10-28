@@ -1,0 +1,80 @@
+Documentation for COLONS.COM as of 05/06/84
+
+
+So you have M80 but not MAC, but that huge .ASM file gives you headaches
+because none of the labels has a colon, or all those EQUs have colons?
+Until today, the only thing you could do was to carefully edit the file and
+insert the needed colons or delete the unwanted ones. But now, the agony is
+over, COLONS.COM is here!
+
+COLONS.COM will place colons after every label, and strip colons from EQUs
+if necessary. Automatically. Simply enter the command COLONS, and answer the
+program's requests for input- and output filenames. COLONS.COM will display
+the file as it is processed, but without tab expansion.
+
+PECULIARITIES:
+
+COLONS.COM is not very intelligent. If the output file you specify exists,
+you will have a chance to change your mind. it is entirely possible to
+specify the output file to be the same as the input file. If you then tell
+COLONS that you really mean it, the program will go ahead and annihilate
+your input file for good and it will probably crash or hang or catch fire.
+In other words, the output filename MUST be different from the input file
+name, but that's your responsibility.
+
+When processing a program, COLONS does the following:
+
+1. If the first character of a line is a SEMICOLON, the line is
+   copied without change.
+2. If the first character is an ASTERISK, that asterisk is changed to
+   a SEMICOLON and the remainder of the line is copied.
+3. If the first character is a non-printable character (SPACE or lower),
+   the line is copied unchanged.
+4. If the first character is a printable character, it is assumed that
+   it is the start of a LABEL. The line is copied to the first non-printable
+   character. If a COLON is encountered during copying, the remainder of
+   the line is immediately copied. Otherwise, a colon is inserted. If the
+   first non-printing character after the label is a SPACE, it is discarded.
+   If it is a TAB, it is copied.
+5. If the word "EQU" or "equ" is contained anywhere in the line, delimited
+   by any non-printing character (SPACE or below), AND IF the first PRINTABLE
+   character preceeding that EQU is a colon, that colon is replaced with
+   a TAB character or simply removed depending on whether the colon is a
+   delimiter or not.
+6. If the word "EQU" or "equ" is contained inside a label, that line is
+   copied without modifications!
+
+Example:
+
+Before:
+************************
+; test: equ something
+;
+bdos:	equ	5
+longeqts:equ	6
+onequs:	equ	0
+;
+begin	jmp	done
+ mvi a,7
+dad	d
+done	jmp	0
+	end
+
+After:
+;***********************
+; test	 equ something
+;
+bdos	equ	5
+longeqts	equ	6
+onequs:	equ	0
+;
+begin:	jmp	done
+ mvi a,7
+dad:	d
+done:	jmp	0
+	end
+
+As you can see, bad file format results in bad conversion (COLONS can't
+tell whether the "dad" above is an instruction or a label; since it begins
+in column 0, COLONS assumes it is a label!
+a SPACE, 

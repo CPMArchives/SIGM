@@ -1,0 +1,178 @@
+ZCPR2 Resident Commands
+The DIR Command
+The ERA Command
+The REN Command
+The TYPE and LIST Commands
+The SAVE Command
+The GET Command
+The GO Command
+The JUMP Command
+The DU Form for Changing Disk and User
+:ZCPR2 Resident Commands
+
+     Likå thå CP/Í 2.² CCP¬  ZCPR² containó somå commandó  withiî 
+itself®   Iô containó alì oæ thå CCĞ commandó (excepô USER¬ whicè 
+isn'ô  needeä  anymore©  anä á fe÷ more¬  buô alì  oæ  thå  ZCPR² 
+residenô  commandó  arå differenô witè logicaì extensionó tï  thå 
+CCĞ commands.
+
+     Thå   followinç  discussioî  applieó  tï   thå   recommendeä 
+configuratioî oæ ZCPR2®   Therå arå manù wayó tï configurå ZCPR2¬ 
+anä  thió discussioî cannoô possiblù coveò alì oæ them¬  sï É  aí 
+coverinç  thå recommendeä configuratioî wherå alì oæ thå residenô 
+commandó arå enableä witè alì oæ theiò optionó turneä on.
+
+     Iî  thå  followinç  discussion¬  "afn¢ referó  tï  thå  CP/Í 
+ambiguouó  filå namå forí (containinç "?¢ and/oò "*¢  characters© 
+anä "ufn¢ referó tï thå CP/Í unambiguouó filå namå forí (doeó noô 
+contaiî thå ambiguouó characters).
+
+
+     Thå DUº prefiø maù bå useä wheneveò á filå namå ió used®  Bù 
+attachinç  thió prefix¬  thå filå ió identifieä tï residå iî  thå 
+indicateä  directorù  (disë anä useò area)®   Tï revie÷  thå  DUº 
+form¬   iô  ió  á  logicaì  extensioî  tï  thå  Dº  prefiø  undeò 
+conventional CP/M.  The user number is added, however.
+
+     Iæ  á prefiø oæ Dº  ió used¬  iô referó tï thå currenô  useò 
+areá oî thå indicateä disk®  Iæ á prefiø oæ Uº ió used¬ iô referó 
+tï thå indicateä useò areá oî thå currenô disk®   DU:¬ oæ course¬ 
+refers to the indicated user area on the indicated disk.
+
+     Foò example¬ iæ yoõ arå loggeä intï Disë B¬ Useò 1¬ theî thå 
+following is true:
+
+          A:MYFILE.TXÔ  -- referó tï MYFILE.TXÔ oî Disë A¬ Useò 1
+          4:MYFILE.TXT  -- refers to MYFILE.TXT on Disk B, User 4
+         A4:MYFILE.TXT  -- refers to MYFILE.TXT on Disk A, User 4
+            MYFILE.TXT  -- refers to MYFILE.TXT on Disk B, User 1
+
+:The DIR Command
+
+     Thå DIÒ commanä ió useä tï displaù thå nameó oæ thå fileó iî 
+the current directory.  It has three basic forms --
+
+          Display $DIR File Names       DIR DU:afn
+          Display $SYS File Names       DIR DU:afn S
+          Display All File Names        DIR DU:afn A
+
+     Assume you are logged into Disk B, User 1.  Examples:
+
+          DIR 4:              <-- Gives all non-System files
+                                   on B4
+          DIR 4: A            <-- Gives all files on B4
+          DIR A4:*.HLP A      <-- Gives all files of type
+                                   HLP on A4
+          DIR *.* S           <-- Gives all System files on B1
+
+:The ERA Command
+
+     Thå  ERÁ commanä ió useä tï eraså files®   Iô ió noô ablå tï 
+eraså Read/Onlù files¬ buô iô caî eraså Systeí files®  Iô haó twï 
+basic forms --
+
+          Erase Specified Files         ERA DU:afn
+          Erase with Verify             ERA DU:afn V
+
+     ERÁ  printó thå nameó oæ thå fileó iô erases®   Iæ yoõ  havå 
+selecteä thå Verifù option¬  iô alsï promptó yoõ beforå iô eraseó 
+them (or aborts, if you desire).
+
+:The REN Command
+
+     Thå  REÎ commanä ió useä tï changå thå namå oæ onå  filå  tï 
+another®   Again¬ iô caî noô changå thå namå oæ á Read/Onlù file®  ŠIt has only one basic form --
+
+          Renamå Filå                   REÎ DU:ufn1=ufn²
+
+     Like ERA, REN can "see" System files as well as DIR files.
+
+     Iæ ufn± alreadù exists¬ REÎ wilì asë thå useò iæ hå wantó tï 
+Erase it (with the prompt "Erase ufn1?").
+
+:The TYPE and LIST Commands
+
+     TYPÅ  anä LISÔ arå useä tï displaù fileó oî thå consolå  anä 
+printer¬  resp®  TYPÅ pageó bù default¬ stoppinç afteò thå screeî 
+is filled.  These two commands have three basic forms --
+
+          Print File on Console         TYPE DU:ufn P
+            Without Paging
+          Print File on Console         TYPE DU:ufn
+            With Paging
+          Print File on Printer         LIST DU:ufn
+
+     The file may be either System or DIR.
+
+:The SAVE Command
+
+     Thå  SAVÅ  commanä ió useä tï savå thå contentó oæ  thå  TPÁ 
+ontï disë aó á file®   Iô acceptó twï argumentsº   á numbeò anä á 
+filå  name®   Thå  filå  namå maù bå optionallù followeä  bù  thå 
+letteò "S¢ tï indicatå thaô thå numbeò ió thå numbeò oæ  128-bytå 
+Sectoró  (Blocks©  tï bå saved¬  and¬  iæ thió optioî  letteò  ió 
+omitted¬ thå numbeò ió assumeä tï bå thå numbeò oæ 256-bytå Pageó 
+to be saved.  The SAVE command has two basic forms --
+
+          Save Memory into File         SAVE n DU:ufn
+          Save Memory into File         SAVE n DU:ufn S
+            and Specify Number of
+            Blocks
+
+     Iæ thå number¬  n¬ ió followeä bù thå suffiø "H"¬ aó iî "FH¢ 
+oò  "2DH"¬  theî  î ió takeî tï bå á hexadecimaì  value®   Iæ  nï 
+suffiø  ió given¬  î ió assumeä tï bå decimal®   Thió hexadecimaì 
+optioî  eliminateó  thå  neeä  foò  conversioî  froí  thå  valueó 
+supplied by debuggers, like DDT.
+
+
+     Iæ thå indicateä filå alreadù exists¬ SAVÅ wilì asë thå useò 
+if he wishes to erase it with the prompt "Erase ufn?".
+
+:The GET Command
+
+     GEÔ  ió  useä  tï loaä á  filå  anywherå  intï  memory®   Iô 
+requireó twï argumentsº   á numbeò (assumeä tï bå hexadecimal© oæ 
+thå  256-bytå  pagå iî memorù aô whicè tï starô thå loaä anä  thå 
+name of the file.
+
+          Load File Into Memory         GET adr DU:ufn
+
+     Notå  thaô thió "adr¢ ió á pagå number¬  sï adr=± referó  tï 
+100H, adr=2d refers to 2D00H, etc.
+
+:The GO Command
+
+     Thå GÏ commanä ió useä tï reexecutå thå lasô prograí  loadeä 
+into the TPA without having to reload it.
+
+          Reexecute Last Transient      GO params
+            Without Reloading It
+
+     Thå parameteró arå parseä aó witè anù transienô command¬ anä 
+thå  appropriatå bufferó arå loadeä bù ZCPR2®   Aó  usual¬  ZCPR² 
+"calls¢ thå prograí loadeä aô 100È afteò iô haó finisheä witè thå 
+parsing and buffer loading.
+
+:The JUMP Command
+
+     JUMĞ ió useä tï brancè tï anywherå iî memory®  Iô takeó onlù 
+onå  argument¬  whicè  ió  thå addresó aô whicè  tï  jump®   Thió 
+addresó  caî  bå  tï  anù bytå iî memorù (iô  ió  á  fulì  16-biô 
+address), and it is assumed to be a hexadecimal number.
+
+          Call Subroutine Anywhere in   JUMP adr
+            Memory
+
+:The DU Form for Changing Disk and User
+
+     Thå  DÕ forí standinç alonå ió useä tï loç intï á  differenô 
+directory.  There are three basic forms of this command --
+
+          Change Disk                   D:
+          Change User                   U:
+          Change Disk and User at       DU:
+            Same Time
+
+
+

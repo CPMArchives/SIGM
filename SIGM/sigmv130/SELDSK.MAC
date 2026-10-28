@@ -1,0 +1,23 @@
+title	seldsk.mac version 1.0
+
+;	this routine will set the current default drive
+;	drive number is passed as an integer
+
+;	0=A:
+;	1=B:  etc.
+
+seldisk	equ	14
+bdos	equ	5
+	public	seldsk
+;
+;	hl points to parameter
+;
+seldsk:
+	mov	e,m
+	mvi	c,seldisk
+	call	bdos
+	ret
+
+	end
+
+

@@ -1,0 +1,75 @@
+;WILDEX - wildcard expansion module
+; S. Kluger  04/15/84
+;
+; This module, for use with SYSLIB, can be used
+; to expand a wildcard filename into a table of
+; file names as found in current DU:
+;
+; ENTRY:
+; HL = .buffer
+; DE = .afn fcb
+;
+; EXIT:
+; HL = number of files
+; ACC= zero flag set if ok, else error
+; the buffer contains (HL) file names of 16 char each
+; Char 0 contains the user number!
+;
+sfirst	equ	17
+snext	equ	18
+;
+	extrn	bdos
+;
+	public	wildex
+;
+wildex:	shld	bufptr
+	lxi	h,0
+	shld	count
+	mvi	c,sfirst
+	call	bdos
+	cpi	0ffh
+	rz			;nothing found -- error
+	call	moven		;move name
+wloop:	mvi	c,snext		;search for next
+	call	bdos
+	cpi	0ffh
+	jz	done		;finished
+	call	moven
+	jmp	wloop
+;
+done:	ora	a
+	lhld	count
+	ret
+;
+moven:	push	d
+	lhld	bufptr
+	add	a
+	add	a
+	add	a
+	add	a
+	add	a
+	adi	80h
+	mov	c,a
+	mvi	b,0
+	mvi	d,16		;move 16 chars
+movlp:	ldax	b
+	mov	m,a
+	inx	h
+	inx	b
+	dcr	d
+	jnz	movlp
+	shld	bufptr
+	pop	d
+	lhld	count
+	inx	h
+	shld	count
+	ret
+;
+bufptr:	dw	0
+count:	dw	0
+	end
+n module
+; S. Kluger  04/15/84
+;
+; This module, for use with SYSLIB, can be used
+; to expand a wi

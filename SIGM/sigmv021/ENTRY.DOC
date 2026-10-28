@@ -1,0 +1,182 @@
+            Documentation For Program ENTRY.COM
+
+                             by
+                      Robert H. Harsch
+                     ph: (916) 487-2216
+             2362 American River Dr., Suite 311
+                   Sacramento, Ca. 95825.
+                    All rights reserved.
+
+    A utility program to "automatically" insert entry points
+into SRC extenstion files for PASCAL/Z programs; thus, making
+easier the process of linking seperately compilied external
+pascal procedure/functions to main programs.
+
+DIRECTIONS FOR USE OF PROGRAM WITH EXAMPLE:
+
+1. Create the main calling program.  For example
+   file MAINPRG.PAS:
+
+    PROGRAM MAINPRG;
+    TYPE
+	VECTORTYPE = ARRAY [ 1..10 ] OF INTEGER;
+    
+    PROCEDURE SUM( VAR RESULT: INTEGER; VAR V: VECTORTYPE);	EXTERNAL; { external procedure reference, functions
+		    may also be used accordingly }
+    VAR
+	I, RESULT: INTEGER;
+	VEC: VECTORTYPE;
+
+    BEGIN { of main program }
+	FOR I:= 1 TO 10 DO
+		VEC[ I ]:= I; { initialize vector for example }
+	SUM(RESULT, VEC); { call external routine }
+	WRITELN(RESULT) { prints 55 as the answer }
+    END.
+
+
+
+
+2. Create the external routine(s) from the text editor.
+   To continue the above example lets say we create
+   the file EXTERN.PAS:
+
+    PROGRAM EXTERN; { external program procedure }
+    TYPE VECTORTYPE = ARRAY [ 1..10 ] OF INTEGER;
+	{ parameters must be passed through the
+	  procedure/function heading, not through global
+	  variables }
+	PROCEDURE SUM( VAR RESULT: INTEGER; VAR V: VECTORTYPE);
+	VAR I: INTEGER;
+			{$i+ see complier directives, puts
+			     next line of source into file
+			     EXTERN.SRC after compliation }
+			{@SUM -- name of external routine }
+			{$i- turn off complier directive }
+		BEGIN
+			RESULT:= 0;
+			FOR I:= 1 TO 10 DO
+				RESULT:= RESULT + V[I]
+		END; { of procedure sum }
+    BEGIN
+		{ Dummy BEGIN and END exist only
+		for syntax purposes of compilation.
+		Never a main body of statements to execute. }
+    END.
+
+2. Type:
+	PASCAL EXTERN
+   compliation will proceed normally thus creating
+   files EXTERN.SRC, EXTERN.LST, but unfortunatley
+   there will be no entry points created for linking
+   the procedure heading declaration of the main program
+   with the externally called procedure sum.
+
+3. But since we compilied the file with the following inserted 
+   before the BEGIN of procedure sum (the entry point):
+		{$i+ }
+		{@SUM}
+		{$i- }
+   typing:
+	ENTRY EXTERN
+  executes the program and copies file EXTERN.SRC into
+  EXTERN.ZZZ, and adds the needed entry points into the
+  external routine so that assembly and linkage can
+  properly take place.
+
+3. Continuing with the example we type:
+	ERA EXTERN.SRC
+	REN EXTERN.SRC=EXTERN.ZZZ
+
+4. The EXTERN.SRC is now in proper form for assembly
+   (to produce EXTERN.REL) and linkage to produce the
+   executable COM file.
+
+
+
+
+
+
+SUMMARY OF DIRECTIONS USING THE ABOVE EXAMPLE.
+
+1. Create main calling module with declarations, as an example
+   here refered to as file MAINPRG.PAS.
+
+2. Create the external module to be called, as an example
+   here refered to as file EXTERN.PAS.
+
+3. Insert the following before the BEGIN of procedure sum in
+   file EXTERN.PAS:
+		{$i+ }
+		{@SUM}
+		{$i- }
+
+4. Type the following commands while in CP/M monitor or set up
+   a SUBMIT file:
+   A. Compile main calling program and produce files
+      mainprg.rel, mainprg.lst:
+		PASCAL MAINPRG
+		ASMBL MAIN,MAINPRG/REL
+
+   B. Compile the external called program and set up entry
+      points, producing files extern.rel, extern.lst:
+		PASCAL EXTERN
+		ENTRY EXTERN
+		ERA EXTERN.SRC
+		REN EXTERN.SRC=EXTERN.ZZZ
+		ASMBL EMAIN,EXTERN/REL
+
+   C. Link the main program with the external program,
+      producing the executable file mainprg.com:
+		LINK MAINPRG,EXTERN /N:MAINPRG /E
+
+   D. Finally, typing the following will execute the program:
+		MAINPRG
+
+
+
+ALGORITHM FOR ENTRY.COM:
+	1. Create an open file name.ZZZ as a file to write to
+	   (will destroy an existing file name.ZZZ if present).
+	2. Open for reading the file name.SRC.
+	3. Print to monitor the names of files opened.
+	4. Read a line from file name.SRC.
+	5. If the line has the string '{@' followed by an 
+	   identifier (the external procedure name) the
+	   following two lines are written to file name.ZZZ:
+				ENTRY	identifier
+		identifier:
+	   An identifier is a alphabetic letter (a thru z, or
+	   A thru Z) followed by zero or more alphanumeric
+	   characters (a thru z, A thru Z, or 0 thru 9).  If
+	   the identifier is greater than 6 character, the
+	   identifier is then truncated to 6 characters and
+	   convert lower-case characters to upper-case.
+		It is wise to make the external procedure name
+	   (identifier) from one to six characters in length,
+	   in upper-case, to avoid possible confusion.
+	   	Avoid conflict with labels or external libary
+	   routines used by the compilier in the assembling 
+	   process.  (Avoid all labels in the form L<digit(s)>,
+	   e.g. L99, and labels referenced as external library 
+	   routines, e.g. DIVD, by file MAIN.SRC).
+	   The assembler will give you an error diagnostic
+	   when you have made this mistake.
+		The external procedure name should not have the
+	   the characters '_' or '$' in the identifier, even
+	   though the compiler permits this the assembler does
+	   not.  (The assembler will give you an error
+	   diagnostic).
+
+	6. If (4.) true above then print to monitor the
+	   external procedure/function name.
+
+	5. If (4.) above untrue then copy the line from file
+	   name.SRC to file name.ZZZ.
+
+	6. Repeat (2.) thru (5.) above until the label L99 is
+	   found indicating the main body of program statements
+	   between BEGIN END have been found, which we do not
+	   want to copy (assembly with EMAIN will cause
+	   errors).
+

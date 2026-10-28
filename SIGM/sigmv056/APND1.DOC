@@ -1,0 +1,655 @@
+{j:a
+{m:1=10,75
+{m:2=18,75
+{m:3=24,75
+{m:4=50,75
+{m:1
+{c:APPENDIX A
+
+
+
+SETUP WORKSHEET
+
+
+A. CRT Data
+
+The information required in this section can be obtained from the
+operator's guide supplied with your terminal. If you are using a 
+memory mapped terminal controller, this information is likely 
+imbedded in your terminal driver routines.
+
+{l:^^^1. Number of lines displayed on CRT (24)^^^^^^^^^^^_____
+{l:^^^2. Number of characters per line displayed (80)^^^^_____
+{l:^^^3. Cursor Address Data
+{l:^^^^^^a. Command Prefix (if any)^^^^^^^^^^^^^^^^^^^^^^_____
+{l:^^^^^^b. Command Code^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^_____
+{l:^^^^^^c. Address order (check one)
+{l:^^^^^^^^^i.  column-row order^^^^^^^^^^^^^^^^^^^^^^^^^_____
+{l:^^^^^^^^^ii. row-column order^^^^^^^^^^^^^^^^^^^^^^^^^_____
+{l:^^^^^^d. column address description
+{l:^^^^^^^^^i.   first range bound (column following)^^^^_____
+{l:^^^^^^^^^ii.  first range offset^^^^^^^^^^^^^^^^^^^^^^_____
+{l:^^^^^^^^^iii. second range bound (column following)^^^_____
+{l:^^^^^^^^^iv.  second range offset^^^^^^^^^^^^^^^^^^^^^_____
+{l:^^^^^^e. line address description
+{l:^^^^^^^^^i.   first range bound (row following)^^^^^^^_____
+{l:^^^^^^^^^ii.  first range offset^^^^^^^^^^^^^^^^^^^^^^_____
+{l:^^^^^^^^^iii. second range bound (row following)^^^^^^_____
+{l:^^^^^^^^^iv.  second range offset^^^^^^^^^^^^^^^^^^^^^_____
+{l:^^^4. Clear to End of Screen Command^^^^^^^^^^^^^^^^^^_____
+{l:^^^5. Clear to End of Line Command^^^^^^^^^^^^^^^^^^^^_____
+
+{l:B. Microprocessor (check one)
+{l:^^^1. 8080A^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^_____
+{l:^^^2. 8085^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^_____
+{l:^^^3. Z80^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^_____
+
+C. Computer Clock Speed^^^^^^^^^^^^^^^^^^^^^^^^^^__________
+
+D. Music Board I/O Address (38)^^^^^^^^^^^^^^^^^^^^^^^_____
+
+This information is used by PLAY. You can find the required value in
+in your Newtech Music Board documentation. If 
+you are using some other music generation DAC board, such as the 
+Micro Technology Unlimited K-1002 board, then you will have to 
+specify the address of your 8-bit output port feeding the board.
+
+E. Cursor Control Keys
+
+This section allows you to choose keys on the keyboard to 
+implement the EDIT cursor functions named. Make sure that you
+assign keys which are not otherwise required for the operation
+of EDIT.
+
+Warning: If you do not get proper results after assigning these 
+functions, you should know that the BIOS portion of your operating 
+system may contain input "filters" for some characters. This may 
+cause EDIT not to receive your input. You have at least two options:
+change the function assignment with SETUP, or modify your BIOS.
+
+{l:^^^1. Home Function (control_Y)^^^^^^^^^^^^^^^^^^^^^^^_____
+{l:^^^2. Up Cursor Function (control_K)^^^^^^^^^^^^^^^^^^_____
+{l:^^^3. Left Cursor Function (control_H)^^^^^^^^^^^^^^^^_____
+{l:^^^4. Down Cursor Function (control_J)^^^^^^^^^^^^^^^^_____
+{l:^^^5. Right Cursor Function (control_L)^^^^^^^^^^^^^^^_____
+{l:^^^6. Quit Function (control_Q)^^^^^^^^^^^^^^^^^^^^^^^_____
+{l:^^^7. Cancel Function (control_C)^^^^^^^^^^^^^^^^^^^^^_____
+
+F. Printer Data
+   
+If your printer requires more than one character to invoke a page 
+advance, then select some number of spaces instead.
+   
+{l:^^^1. Number of lines to the page (50)^^^^^^^^^^^^^^^^_____
+{l:^^^2. Page advance control character (control_L)^^^^^^_____
+{l:^^^3. Number of spaces between pages (if no 2 above)^^_____
+{a:p=1
+{c:APPENDIX B
+
+
+
+ERRORS
+
+Each program in Musicraft may encounter difficulties either with the
+hardware environment or with the data you input. Below is a list of
+the errors reported by each program and a description of its meaning
+and action to be taken if any.
+
+
+EDIT
+
+{m:2
+{i:-8
+1.
+Must quit insert mode. Type <space> to continue.
+        
+This is not really an error. It means that there are no
+additional empty notes in the current voice/duration
+column while in the insert mode. Typing a space returns
+control to Edit_mode.
+
+{i:-8
+2.
+Input not <up>, <down> or <quit>. Type <space> to continue.
+
+Excise_mode only recognizes the up_key, the down_key (or
+return) and the quit_key. Typing space returns control to
+Excise_mode as things were before you typed the wrong
+key.
+
+{i:-8
+3.
+Cannot excise terminal lines. Type <space> to continue.
+        
+The terminal lines (viz., "da capo" and "da end") must remain
+with the song for internal control. Typing space
+returns control to Excise_mode as things were before
+you attempted to remove a terminal line.
+        
+{i:-8
+4.
+Argument not found. Type <space> to continue.
+
+If you had attempted to find a label, either you misspelled
+the label name or the label name is not present in the song.
+Typing space returns control to Edit_mode.
+
+{i:-8
+5.
+Cannot edit option line. Type <space> to continue.
+
+The cursor was on an option line when an unexpected key was
+typed. This key may have been duration or voice information
+or an incorrect attempt to reach a different mode. Typing
+space returns control to the prevailing mode.
+
+{i:-8
+6.
+Input not note name (A..G, R). Type <space> to continue.
+        
+The cursor was in a voice column and an unexpected key was
+typed. Typing space returns control to the prevailing mode.
+
+{i:-8
+7.
+Input not microtone. Type <space> to continue.
+
+Once a digit is struck when the cursor is in the first position
+of a voice column, EDIT presumes that a microtone is intended.
+Consequently, you must complete the microtone notation. EDIT
+will not accept cursor control input or any other input at this
+point, only a single digit. Type a space to return to the
+prevailing mode, type a digit, and, if this was not the intent,
+move the cursor back to the beginning of the voice column and
+make your correction.
+
+{i:-8
+8.
+Input not accidental (!, @, #). Type <space> to continue.
+        
+When the cursor is in the second position of a voice column,
+EDIT will accept only '!', '1', '@', '"', '2", '#' or '3' or
+cursor control, unless it is in Edit_mode, in which case it
+will also accept mode change input. Typing space will return
+control to the prevailing mode.
+
+{i:-8
+9.
+Input not octave (1..7). Type <space> to continue.
+        
+When the cursor is in the third position of a voice column,
+EDIT will accept only a digit '1' through '7' or cursor control,
+unless it is in Edit_mode, in which case it will also
+accept mode change input. Typing space will return control to the 
+prevailing mode.
+
+{i:-8
+10.
+Input not duration (A..K, Q, S, T, W, X). Type <space> to continue.
+
+When the cursor is in the first position of the duration column,
+EDIT will accept only a valid duration or cursor control,
+unless it is in Edit_mode, in which case it will also
+accept mode change input. Typing space will return control to the
+prevailing mode.
+
+{i:-8
+11.
+Input not duration (. or :). Type <space> to continue.
+
+When the cursor is in the second position of the duration column,
+EDIT will accept only a valid duration or cursor control,
+unless it is in Edit_mode, in which case it will also
+accept mode change input. Typing space will return control to the
+prevailing mode.
+
+{i:-8
+12.
+Number not in range. Reenter  >
+        
+The number entered is either smaller than the acceptable lower
+limit or greater than the acceptable upper limit. Enter a
+value which is within range. The range depends on the nature of the 
+number requested. It may happen that you are someplace
+where you had not intended. To get back to sanity, enter an
+acceptable value (usually '1' will work), then proceed. Check
+the resulting option line and excise it if necessary.
+
+
+
+{m:1
+COMP
+
+{m:2
+{i:-8
+1.
+{l:Song not found on disk.
+{l:Compile cannot continue.
+
+Probably you misspelled the song name. However, check the
+diskette...the song may be elsewhere.
+
+{i:-8
+2.
+{l:No space on disk for song.
+{l:Compile cannot continue.
+        
+The diskette is full. Buy some more.
+        
+{i:-8
+3.
+{l:Number of voices not specified.
+{l:Compile cannot continue.
+        
+{m:1
+This error should never happen if the song was created using
+EDIT. If the song was created using other means, check that
+the first line of the song is a V_opt line and that it is
+in the correct format. See appendix D for further information.
+        
+The next five error messages include the line number of the incorrect
+line in the song represented by the 'LLLL'. This information is useful
+when using the Find option of EDIT. However, except for error 7, these
+errors should never happen if the song was created using EDIT. If the
+song was created using other means, check that program for errors.
+
+{m:2
+{i:-8
+4.
+LLLL: unrecognized duration.
+
+{i:-8
+5.
+LLLL: unrecognized note name (A..G, R).
+
+{i:-8
+6.
+LLLL: unrecognized accidental (!,@,#).
+
+{i:-8
+7.
+LLLL: A!1 below available range.
+
+PLAY performs notes ranging from A@1 to G#7 inclusive.
+EDIT does not check for this note entry, but COMP does.
+Return to EDIT to make the necessary modifications.
+
+{i:-8
+8.
+LLLL: unrecognized octave (1..7).
+
+{i:-8
+9.
+Label not found.
+
+{m:1
+Either a repeat option or chorus call option was encountered
+for which there is no corresponding label option. Either there
+is no label option present or the label name reference is
+misspelled. Return to EDIT to make the necessary corrections.
+
+{m:2
+{i:-8
+10.
+{l:Label table overflow.
+{l:Compile cannot continue.
+        
+{m:1
+Your song has too many labels for COMP to handle it. COMP
+allows 128 labels.
+        
+
+WAVE
+
+{m:2
+{i:-8
+1.
+{l:No space on disk for song.
+{l:Wave cannot continue.
+        
+{i:-8
+2.
+Input not in correct form.
+
+{m:1
+WAVE requires one integer, or two integers separated by a comma,
+and terminated by a carriage return. The first integer must be 
+positive and less than 32,768, the second integer must be positive 
+and less than 360. Rephrase your entry to fit and continue.
+
+
+PLAY
+
+{m:2
+{i:-8
+1.
+{l:Named file not on disk.
+{l:Please try again.
+
+{i:-8
+2.
+{l:Cannot mix voice count.
+
+PLAY cannot perform songs with differing numbers of voices.
+
+{i:-8
+3.
+{l:Unrecognized special function code.
+{l:Player cannout continue.
+
+This error should never happen if the song was created
+using EDIT. If the song was created using other means, check the 
+source.
+
+{i:-8
+4.
+{l:Requested measure not in song.
+{l:Enter starting measure number  >
+
+The number of the last measure (if any) is less than the number you 
+have requested.
+
+{m:1
+There are several conditions which can lead to difficulties and
+can be considered errors but are not detected by the system.
+
+{m:2
+{i:-8
+1.
+Overlapped repeats. See the example in the Repeat Function
+section of the Option Line portion of the manual.
+
+{i:-8
+2.
+Self calling song segments. This is discussed in the Chorus
+Function section of the Option Line portion of the manual.
+
+{i:-8
+3.
+Two exits without intervening label. The song segment between
+the two exits is never performed as there is no way for PLAY
+to get to it without a label.
+        
+{i:-8
+4.
+Wrong notes. Error in the edit person.
+{m:1
+{a:p=1
+{c:APPENDIX C
+
+
+
+FILES:
+
+Musicraft makes distinctions among the different kinds of files used
+to make music by using different file type identifiers along with
+the song_name given to a song.
+
+{m:2
+{i:-8
+1.
+Files with a .SNG type are songs which can be editted
+or compiled. This type of file can be printed using the
+PRINT program provided as part of the Musicraft system
+for later reference or for archival use.
+
+{i:-8
+2.
+Files with a .SBK type are backup copies of .SNG songs
+and are provided in the event your primary .SNG file
+is inadvertently destroyed. You would normally use the
+REN command to convert the .SBK type to the required
+.SNG type for EDIT should that become necessary.
+
+{i:-8
+3.
+Files with a .SCD type are the compiled versions of
+songs which are ready to be played. Files of this type
+cannot be printed because they are stored on floppy
+disk as binary data.
+
+{i:-8
+4.
+Files with a .WAV type are waveform tables which were
+created using the WAVE program and are ready for use
+to play music. Files of this type are also unprintable
+for the same reason as applies to the .SCD type.
+
+{i:-8
+5.
+Files with a .CNF type are configuration files which describe the 
+hardware configuration for various programs in the system. Actually, 
+one such file will exist on the system diskette and its full name is 
+always SONG.CNF.
+
+{m:1
+Thus, if you had entered a song called SONATA into the computer
+storage, and had compiled it, you would find the following files
+on your diskette when you displayed the directory using XDIR.
+
+{m:2
+{l:SONATA.SNG
+{l:SONATA.SBK
+{l:SONATA.SCD
+
+{m:1
+If you had performed the same steps for FUGUE, then the directory
+would also contain the following files.
+
+{m:2
+{l:FUGUE.SNG
+{l:FUGUE.SBK
+{l:FUGUE.SCD
+
+{m:1
+If you had a waveform table called SINE, then the directory would
+show an entry of
+
+{m:2
+{l:SINE.WAV
+{m:1
+{a:p=1
+{c:APPENDIX D
+
+
+
+SONG FILE FORMAT
+
+As you become more proficient in the use of Musicraft, you may wish
+to build songs using your own programs to be compiled and
+performed. This section describes the format of the .SNG type file.
+
+The .SNG file is comprised of a set of 15-byte records, each being
+either a song line or an option line.
+
+Song Line:
+
+A song line contains six fields.
+
+{m:2
+{i:-8
+1.
+A period ('.') to indicate that the record is a song line.
+{i:-8
+2.
+The duration field
+{i:-8
+3.
+Voice 1 field
+{i:-8
+4.
+Voice 2 field
+{i:-8
+5.
+Voice 3 field
+{i:-8
+6.
+Voice 4 field.
+
+{m:1
+The duration field is two bytes long and can contain any of the valid
+duration values as described in the Song Line section of the manual
+(eg., H. for dotted half note).
+
+The voice fields are all three bytes long and can contain any of the
+valid note values (viz., note name and accidental or microtone number
+followed by the octave number; eg., C@4 for middle C). Only the voices
+actually used in the song are filled in since the remaining voices will
+be ignored by COMP.
+
+Option Line:
+
+The format of an option line depends on the option line type. However,
+all option lines begin with an asterisk ('*') followed by a blank.
+The following table describes each option line format.
+
+{m:5=25,53
+{m:5
+{i:-16
+Option^^Field^^^Meaning
+        
+{i:-16
+Call^a^chorus
+{i:-6
+1
+'C' to indicate the function
+{i:-6
+2
+one blank
+{i:-6
+3
+eight byte field containing the label
+name reference.
+{l:ex.     *C LABEL
+
+{i:-16
+Label^a^song^line
+{i:-6
+1
+'L' to indicate the function
+{i:-6
+2
+one blank
+{i:-6
+3
+eight byte field containing the label name
+{i:-6
+4
+one blank
+{i:-6
+5
+one byte label key value.
+{l:ex.     *L LABEL
+
+{i:-16
+Mark^a^measure
+{i:-6
+1
+'M' to indicate the function
+{i:-6
+2
+one blank
+{i:-6
+3
+four byte field containing the measure number
+right justified and zero filled.
+{l:ex.     *M 0034
+
+{i:-16
+Set^or^change^the^number^of^intervals
+in the octave
+{i:-6
+1
+'#' to indicate the function
+{i:-6
+2
+one blank
+{i:-6
+3
+two byte field containing the number of
+intervals in the octave right justified
+and zero filled.
+{l:ex.     *# 48
+
+{i:-16
+Mark^a^repeat^(or^jump)
+{i:-6
+1
+'R' to indicate the function
+{i:-6
+2
+one blank
+{i:-6
+3
+eight byte field containing the label name
+reference
+{i:-6
+4
+one blank
+{i:-6
+5
+three byte field containing the number of
+repeats right justified and zero filled.
+{l:ex.     *R LABEL   005
+
+{i:-16
+Set^or^change^the^tempo
+{i:-6
+1
+'T' to indicate the function
+{i:-6
+2
+one blank
+{i:-6
+3
+three byte field containing the tempo as
+a number right justified and zero filled.
+{l:ex.     *T 144
+
+{i:-16
+Set^the^voice
+{i:-6
+1
+'V' to indicate the function (see note below)
+{i:-6
+2
+one blank
+{i:-6
+3
+one byte field containing the number of
+voices the value of which must be between
+one and four.
+{l:ex.     *V 3
+
+{i:-16
+Mark^the^exit^of^a^chorus^or^song
+{i:-6
+1
+'X' to indicate the function.
+{l:ex.     *X
+
+{m:1
+Note carefully: the first record in any .SNG file MUST be a V_opt line.
+Moreover, only one V_opt line may appear in the song.
+
+Song lines and option lines must obey all rules given in the manual.
+
+While EDIT does not generate carriage returns and line feeds between
+records, it will accept them and eliminate them from the song file.
+If a song file is created using BASIC, it will probably contain
+not only carriage returns and line feeds but also single or double
+quotation marks. Neither EDIT nor COMP will accept quote marks so
+you will need to remove them before you use either of the programs
+to work with the song. This can be done easily using the CP/M editor.
+Use the following dialog.
+
+{l:A>^^ED^songname^(press^return)
+{l:*^^^#A^(press^return)
+{l:*^^^B#S'<control_Z><control_Z>^(press^return)
+{l:*^^^B#S"<control_Z><control_Z>^(press^return)
+{l:*^^^E^(press^return)
+{l:A>
+{a:p=1
+
+
+

@@ -1,0 +1,233 @@
+; How to customize the keyboard codes on WM 1.06
+;
+;	     by Trevor Marshall
+;		26 Mirrelia Way,
+;		Ferndale, West Australia 6155
+;	 phone	(619)4576059
+;
+SUMMARYº   Modificationó   tï  customizå  WordMasteò  1.0¶   arå 
+described®  Thå  RESOURCE.COÍ fileó createä durinç thió  procesó 
+arå  presenô  oî  thå disk¬  anä maù bå useä bù  á  licenceå  oæ 
+WordMaster 1.06 to patch his WordMaster similarly.
+
+
+Aó á useò oæ WordStar(R© É waó noô completelù satisfieä witè thå 
+SCREEÎ editoò provideä witè mù owî CROMEMCÏ baseä system.
+
+Althougè  WordMasteò (R© seemeä tï offeò thå featureó É  felô  É 
+needeä  foò non- wordprocessinç applications¬  versioî 1.0¶  diä 
+noô  offeò á seô oæ keyboarä commandó 'compatible§ witè WordStaò 
+anä  wheneveò É trieä tï uså thå videï commandó É founä  thaô  É 
+waó deletinç wordó whilst tryinç tï shifô thå cursor!
+
+MicroPrï  dï  noô offeò 'customizinç notes§ foò  WordMasteò  anä 
+severaì  attemptó  tï dis-assemblå iô baseä oî mù  knowledgå  oæ 
+WordStar'ó  structurå  werå  unsuccessful®  Wheî  thå  codå  waó 
+finally broken the reason for the difficulty was obvious.
+WordMasteò  haó  á  decodinç  structurå whicè  ió  nothinç  likå 
+WordStar's.
+
+Wheî  á Controì Characteò ió typeä oî thå keyboarä itó valuå  (° 
+tï 1FH© ió useä aó thå offseô intï á tablå whicè containó  jumpó 
+tï  eacè oæ thå operatinç routines®  Thå addresseó iî thió tablå 
+caî bå easilù changeä noô onlù tï re-assigî changeó tï  keyboarä 
+functions but also to enhance the editor's features.
+
+É  likå  tï observå thå effecô oæ globaì substitutionó  usinç  á 
+command such as
+B 999 < ROLD STRING$NEWSTRING$ V >
+Wheî eacè replacemenô ió madå thå videï modå ió entereä tï checë 
+thaô  aî  erroò iî typinç thå stringó diä noô  occur®  Wheî  thå 
+ESCAPÅ  keù ió useä tï exiô thå videï modå thå nexô substitutioî 
+occurs, and so on.
+Unfortunatelù  thå CONTROL-Ã interrupô commanä doeó noô worë  iî 
+thå  videï mode¬  sï iæ yoõ havå madå á mistakå yoõ maù  noô  bå 
+able to interrupt the macro.
+WordStaò useó CONTROL-Õ tï interrupô anù routine® 
+WordMasteò  haó itó CONTROL-Ã interrupô routinå aô 23EB¬  anä aî 
+entrù  iî  thå keyboarä decodinç tablå tï jumğ tï  thió  addresó 
+effectivelù  allowó interruptioî tï thå videï baseä modå (iî  mù 
+case¬ wheî CTL-Õ ió pressed)®   
+
+Witè  WordMasteò no÷ doinç whaô É wanteä iô tï dï É nexô  tackleä 
+thå probleí oæ thå disë drivå motors.
+Cromemcï CDOÓ haó á featurå whicè switcheó ofæ youò drivå motoró 
+wheî  thå diskó arå noô beinç  accessed¬  considerablù  reducinç Šdisk and head wear.
+Thå  motoró arå turneä ofæ bù á 'Turî ofæ Drivå Motors§ calì  tï 
+BDOÓ  (96H©  oò bù anù prograí askinç BDOÓ foò  bufferreä  linå 
+input.
+WordMasteò  accesseó  thå BIOÓ  jumğ  tablå  directly¬  (withouô 
+callinç  viá  BDOS)¬  sï thaô thå drivå motoró continuå  tï  ruî 
+during an edit.
+
+Thå  tasë then¬  waó tï modifù WordStaò sï thaô thå drivå motoró 
+coulä bå turned off during edits.
+
+The BIOS jump table is entered via a routine at 0D4A.
+É  havå  intercepteä  calló tï thå  CONIÎ  routinå  bù  checkinç 
+whetheò  thå accumulatoò (whicè containó aî indeø intï thå  BIOÓ 
+jumğ  tables©  containó  ¶ (CONIN)®  Iæ iô ió á CONIÎ  calì  thå 
+motors are turned off via a call to BDOS.
+Therå  ió enougè rooí iî thå useò patcè areaó tï  implemenô  thå 
+code needed.
+Aó  WordStaò changeó thå addresó aô 0005È whicè pointó tï  BDOS¬ 
+thió addresó musô bå saveä prioò tï enterinç Wordstar®  Thå codå 
+to effect this is listed below.
+
+
+CUSTOMIZING YOUR WORDMASTER
+
+Invoke Ward Christensen's RESOURCE.COM by typing RESOURCE
+it will prompt with ..... 
+
+Memory open to XXXX
+*
+
+type O5000 <RETURN>
+     U7700 <RETURN>
+     RWM.SYM <RETURN>          to read in the symbol file
+     RWM.CTL <RETURN>           "   "         control  "
+     RWM.DOC <RETURN>           "   "         comments "
+     RWM.COM <RETURN>           "   "         program   "
+     ? <RETURN>
+
+resource will reply
+
+SYMTBL=1E00 3A70
+PC    =0100
+OFFSET=5000
+COMNTS=7700 7B46
+CTLTBL=1800 1935
+*
+
+Then try  
+     L11C5 1202
+
+And the jump table, fully commented, should be listed.
+From then on, happy patching! (and Merry Christmas)
+
+Trevor Marshall, 13 Dec '80.Š
+.paŠ
+; The following code was 'fudged' to look like
+;  the display when you use 'Resource'
+; All lowercase comments are added by hand,
+;  all other labels,etc, come from RESOURCE files
+;-----------------------------------------------------
+; The Jump Table at 11C5 is patched to effect
+;   keyboard function changes
+;
+; This was the original jump table in WM 1.06
+CTLTABLE:		;11C5 
+11C5	DW	DORET	;1345H
+11C7	DW	CURSOR-LEFT-WORD	;126DH
+11C9	DW	CURSOR-R-L-LINE	;1289H
+11CB	DW	UP-SCREEN	;142CH
+11CD	DW	CURSOR-RIGHT-WORD	;123FH
+11CF	DW	SCROLL-DOWN	;1409H
+11D1	DW	INSERT-ON-OFF	;150BH
+11D3	DW	DEL-CHAR-RIGHT	;14ECH
+11D5	DW	CURSOR-LEFT-CHAR	;122AH
+11D7	DW	INSERT-TAB	;153AH
+11D9	DW	CURSOR-DOWN-LINE	;12C1H
+11DB	DW	CURSOR-UP-LINE	;1303H
+11DD	DW	CURSOR-RIGHT-CHAR	;1216H
+11DF	DW	DO-CR	;15ABH
+11E1	DW	INSERT-CR	;1594H
+11E3	DW	DEL-WORD-RIGHT	;1476H
+11E5	DW	DEL-LINE-RIGHT	;14DDH
+11E7	DW	HELP	;1954H
+11E9	DW	SCREEN-UP	;1414H
+11EB	DW	DORET	;1345H
+11ED	DW	DOTOPORBOTTOM	;1346H
+11EF	DW	DEL-LINE-LEFT	;14BFH
+11F1	DW	DORET	;1345H
+11F3	DW	DORET	;1345H
+11F5	DW	SCROLL-UP	;137CH
+11F7	DW	DEL-LINE	;14CEH
+11F9	DW	CUR-RIGHT-TAB	;12B6H
+11FB	DW	DOESCAPE	;1205H
+11FD	DW	DEL-WORD-LEFT	;1460H
+11FF	DW	PUT-CHAR-IN-FILE	;151AH
+1201	DW	DOTOPORBOTTOM	;1346H
+	end of table
+;
+; My table was patched to the following functions
+CTLTABLE:		;11C5 
+11C5	DW	DORET	;1345H
+	DW	CURSOR-LEFT-WORD	;126DH
+	DW	CURSOR-R-L-LINE	;1289H
+	DW	UP-SCREEN	;142CH
+	DW	CURSOR-RIGHT-CHAR	;1216H
+	DW	CURSOR-UP-LINE	;1303H
+	DW	CURSOR-RIGHT-WORD	;123FH
+	DW	DEL-CHAR-RIGHT	;14ECH
+	DW	CURSOR-LEFT-CHAR	;122AHŠ	DW	INSERT-TAB	;153AH
+	DW	DORET	;1345H
+	DW	DORET	;1345H
+	DW	DORET	;1345H
+	DW	DO-CR	;15ABH
+	DW	INSERT-CR	;1594H
+	DW	DORET	;1345H
+	DW	PUT-CHAR-IN-FILE	;151AH
+	DW	HELP	;1954H
+	DW	SCREEN-UP	;1414H
+	DW	DORET	;1345H
+	DW	DEL-WORD-RIGHT	;1476H
+	DW	INTERRUPTED	;23EBH
+	DW	INSERT-ON-OFF	;150BH
+	DW	SCROLL-DOWN	;1409H
+	DW	CURSOR-DOWN-LINE	;12C1H
+	DW	DEL-LINE	;14CEH
+	DW	SCROLL-UP	;137CH
+	DW	DOESCAPE	;1205H
+	DW	DORET	;1345H
+	DW	PUT-CHAR-IN-FILE	;151AH
+1201	DW	DOTOPORBOTTOM	;1346H
+.paŠ;
+; To allow a CDOS 'motors off' call, or any other call
+;  to your BDOS you may effect the following changes:
+;---------------------------------------------------------
+; Original code at 0100
+0100	JMP	INIT	;0269H
+; This jump to WMs initialization should be 
+;  patched to cause a call to our routine at 01AD
+;
+; The jump at 0100 is changed to
+	JMP	01ADH
+;
+; where this routine has neen patched
+;NOW SAVE CDOS BASE ADDR BEFORE WM CLOBBERS IT
+01AD	LHLD	CDOS-BASE-ADDR	;at 6
+01B0	SHLD	SAVE-CDOS-BASE	;01B6H
+01B3	JMP	INIT	;0269H
+;
+;
+; Original code calling BIOS table jump routine
+23CE	LHLD	L0001	;1
+;NOW CHANGE CALL TO 0D4A TO CALL OUR PATCH
+23D1	CALL	TBLJUMP	;0D4AH
+23D4	MOV	A,C
+23D5	PCHL
+	etc
+;
+; The CALL 0D4A at 23D1 is changed to CALL 01C4 where
+;  we have put this code:
+; When a call to BIOS occurs this routine intercepts it
+;
+;NOW CALL BDOS VIA OUR PATCH
+01C4	CPI	6
+01C6	JNZ	TBLJUMP	;0D4AH
+;IF IT WAS A 'CONIN' CALL, INTERCEPT IT
+01C9	PUSH	H
+;PUT THE RETURN ADDR ONTO STACK, AND PREPARE INDIRECT CALL
+01CA	LXI	H,01D4H
+01CD	PUSH	H
+01CE	LHLD	SAVE-CDOS-BASE	;01B6H
+;96H CALL TO CDOS TURNS OFF MOTORS
+01D1	MVI	C,96H
+;NOW 'CALL' BDOS
+01D3	PCHL
+01D4	POP	H
+01D5	JMP	TBLJUMP	;0D4AH
+;
+

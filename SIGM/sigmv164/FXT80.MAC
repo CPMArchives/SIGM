@@ -1,0 +1,1031 @@
+
+;	=======================================================
+;	REC module containing RAM storage, I/O programs, main
+;	program, and the directory. The complete set of modules
+;	comprises REC80.MAC, PDL80.MAC, MKV80.MAC, RECLIB.MAC, and
+;	FXT80.MAC.  RECLIB.MAC may be omitted if the operator X
+;	isn't used, and must be substituted by another module
+;	if the collection of subroutines to be called by X is
+;	to be changed.
+;
+;	FXT80.MAC contains the following REC operators and
+;	predicates:
+;
+;		C	compile a REC expression
+;		i	input from designated port
+;		k	call CP/M without residue
+;		K	call CP/M, preserve FCB, return value
+;		o	output from designated port
+;		R	read one character from console
+;		t	type message given header
+;		T	type argument on PDL
+;		W	write argument on LST:
+;		x	execute REC subroutine
+;		`	test if a character waits at keyboard
+;
+;	REC version released during the 1980  Summer School of
+;	the Microcomputer Applications Group of the I.C.U.A.P.
+;
+;		     FXT80  -  Copyright (C) 1980
+;		    Universidad Autonoma de Puebla
+;	      49 Poniente 1102 -  Puebla, Puebla, Mexico
+;			 All Rights Reserved
+;
+;		 [Harold V. McIntosh,  28 August 1980]
+;
+;	1 January 1981 - get address of BIOS vector from rst0
+;	1 January 1981 - protect T with pushes, pops of DE, HL
+;	1 January 1981 - memory reorganization
+;	24 May 1981 - 0000 at bottom of PDL to restrain L
+;	3 March 1982 - rewrite extension as REC - (FGZ)
+;	25 March 1982 - Y is now a predicate
+;	25 April 1982 - C is also a predicate, modified for {}'s
+;	20 May 1983 - N is numerical comparison predicate
+;	20 May 1983 - h has been withdrawn
+;	28 May 1983 - ~ has been redefined
+;	30 May 1983 - cpin: return to CP/M if file won't open
+;	8 July 1983 - C has object program origin as argument
+;	8 July 1983 - C is an operator
+;	8 July 1983 - c0 defined as lower limit compile area
+;	8 July 1983 - x has been moved from RECLIB.MAC
+;	8 July 1983 - x predicate - to call REC subroutines
+;	9 July 1983 - Buffered CP/M input if no disk file given
+;	14 July 1983 - exchange arguments of W
+;	21 July 1983 - partition available memory on entry
+;	=======================================================
+
+;	Absolute program locations used by CP/M.
+
+rst0	equ	0000H
+boot	equ	rst0	;CP/M bootstrap entry point
+bios	equ	rst0+1	;CP/M BIOS reference point
+bdos	equ	rst0+5	;CP/M I-O communication point
+emem	equ	rst0+6	;where effective end of memory is stored
+
+tfcb	equ	005CH	;CP/M file control block
+talt	equ	006CH	;CP/M alternate file name
+fsiz	equ	0010H	;CP/M file name size
+tbuf	equ	0080H	;CP/M disk buffer location
+tsiz	equ	0080H	;CP/M disk buffer size
+
+;	Useful constant.
+
+ze	equ	00H
+
+;	Equivalences to other REC subroutines.
+
+	ext	noop
+	ext	ucl,cucl,narg,oarg
+	ext	miuc,mduc,putw,bcld,deld
+	ext	skp,req,seq,rer,rr2
+	ext	psiz,siz,sng,sing
+	ext	left,recrr,onel
+
+	ext	recre,emce,emcu,emcv,emcx,ar,nar,inre
+
+	ext	twol
+
+;	=======================================================
+;	Programs related to input-output and disk usage.
+;	=======================================================
+
+;	Buffer read routine.
+
+pty:	push	h	;conserve HL
+	lhld	rx	;pointer to read buffer
+	mov	a,m	;fetch byte
+	inx	h	;advance pointer to next byte
+	shld	rx	;update buffer pointer
+	pop	h	;restore HL - preserve all reg pairs
+	ret
+
+;	Console character read routine.  Strict CP/M compatible
+;	version, which has characteristics undesirable for some
+;	applications, such as an automatic echo or preemption
+;	of some of the control characters for editing purposes.
+;	When it is used, programs must forego their own echo,
+;	and do their own editing when required.
+
+;chin:	push	h
+;	push	d
+;	push	b
+;	mvi	c,1		;read from console
+;	call	bdos
+;	pop	b
+;	pop	d
+;	pop	h
+;	ret
+
+;	Version with direct access to CONIN.
+
+chin	equ	conin
+
+;	Buffered console character read routine, which is more
+;	practical for use with CP/M.
+
+buin:	push	h		;save 3 register pairs
+	push	d		;
+	push	b		;
+	lhld	ry		;buffer limit
+	xchg			;
+	lhld	rx		;buffer pointer
+	mov	a,l		;check for exhausted buffer
+	cmp	e		;
+	jnz	bi5		;buffer remnant available
+	mov	a,h		;
+	cmp	d		;
+	jnz	bi5		;buffer remnant available
+	mvi	c,9		;(09) write message
+	lxi	d,bume		;REC80 prompt
+	call	bdos		;
+	mvi	c,10		;(0A) buffered read
+	lxi	d,tbuf		;
+	call	bdos		;
+	mvi	c,9		;(09) write message
+	lxi	d,crlf		;CR,LF
+	call	bdos		;
+	lxi	h,tbuf+2	;where the text begins
+	shld	rx		;buffer pointer
+	dcx	h		;
+	mov	e,m		;get occupancy
+	mvi	d,0		;insert leading zero
+	dad	d		;calculate final address
+	inx	h		;plus one more - that's REC style
+	shld	ry		;buffer limit
+	lhld	rx		;buffer pointer
+bi5:	mov	a,m		;pick up the next character
+	inx	h		;ready for another
+	shld	rx		;buffer pointer
+	pop	b		;restore 3 registers
+	pop	d		;
+	pop	h		;
+	ret
+
+logo:	db	0DH,0AH,'       REC(8080)/ICUAP',0DH,0AH
+	db	'Universidad Autonoma de Puebla',0DH,0AH
+	db	'      November 20, 1983',0DH,0AH,'$'
+bume:	db	0DH,0AH,'REC80> $'
+crlf:	db	0DH,0AH,'$'
+
+;	Define the console buffer as the source code reader.
+
+bure:	lxi	h,tbuf		;the disk won't be using its buffer
+	mvi	m,tsiz-2	;define its maximum length
+	inx	h		;text origin is two bytes on
+	inx	h		;
+	shld	rx		;buffer pointer
+	shld	ry		;buffer limit
+	lxi	h,buin		;buffered source from console
+	shld	re		;REC compiler's I-O linkage
+	ret
+
+;	Console character out routine.  Strict CP/M compatible
+;	version, which unfortunately makes so many tests and
+;	jumps that it is unsuitable for programs such as the
+;	cursor editor which frequently write a full screen.
+
+;chou:	push	h
+;	push	d
+;	push	b
+;	mvi	c,2		;write character at console
+;	mov	e,a
+;	call	bdos
+;	pop	b
+;	pop	d
+;	pop	h
+;	ret
+
+;	Version with fast access to conout.
+
+chou:	push	b
+	mov	c,a
+	call	conou
+	pop	b
+	ret
+
+;	(`)  Test for preesence of waiting character (FALSE if
+;	none waiting).
+;
+;chaw:	mvi	c,11	;<test for waiting character>
+;	call	bdos	;
+;	rrc		;bit 0 holds the relevant information
+;	rnc		;FALSE return if the bit is zero
+;	jmp	skp	;TRUE return if it is set
+
+;	Version with fast access to const.  It is required when
+;	the fast chin is used, because CP/M has some internal
+;	buffers which will otherwise distort the results.
+
+chaw:	call	const
+	rrc
+	rnc
+	jmp	skp
+
+;	Printer output routine.
+
+prou:	push	h
+	push	d
+	push	b
+	mvi	c,5		;output through LST:
+	mov	e,a
+	call	bdos
+	pop	b
+	pop	d
+	pop	h
+	ret
+
+;	(R)  REC read operator.
+
+ucr:	lxi	b,1	;one byte to be inserted
+	call	narg	;close last arg, verify space
+	call	tyin	;get byte from console input
+	mov	m,a	;store on PDL
+	inx	h	;advance pointer
+	shld	py	;save as terminator
+	ret
+
+;	(t) Write indirect operator.  <org,siz,t> prints the
+;	indicated message, leaves no residue.
+
+lct:	lhld	px	;fetch argument pointer
+	call	twol	;move two args to 8080 stack
+	pop	d	;second arg (org) into DE
+	pop	h	;top arg (siz) into HL
+	dad	d	;org+siz=end
+	xchg		;DE=end, HL=org
+	jmp	ut1	;use write cycle in UCT
+
+;	(T)  REC write operator.  <'XXX' T> will write XXX on
+;	the console, leaving it on the PDL.
+
+uct:	lhld	py	;fetch terminal address
+	xchg		;put it in DE
+	lhld	px	;beginning address to HL
+ut1:	mov	a,e	;compare low bytes
+	cmp	l	;
+	jnz	ut2	;don't match, keep writing
+	mov	a,d	;compare high bytes
+	cmp	h	;
+	rz		;they match, we're done
+ut2:	mov	a,m	;get byte out of memory
+	push	h	;the registers DE and HL
+	push	d	;are essential for the loop
+	call	tyou	;send it to typeout
+	pop	d	;recover the saved registers
+	pop	h	;
+	inx	h	;advance pointer
+	jmp	ut1	;repeat
+
+;	(W)  REC print operator.  <org, siz, W> will print the
+;	indicated text on the list device, and then erase its
+;	arguments.
+
+ucw:	lhld	px	;pointer to arguments
+	call	twol	;2 args from PDL to 8080 stack
+	pop	h	;place text origin in HL
+	pop	d	;place length in DE
+uww:	mov	a,e	;check for zero length
+	ora	d	;by superposing length bytes
+	rz		;no more to print
+	mov	a,m	;fetch a byte
+	push	h	;we need to be sure that DE and HL are
+	push	d	;preserved whatever the print routine
+	call	prou	;send it to printer
+	pop	d	;recover HL
+	pop	h	;and DE
+	dcx	d	;diminish count
+	inx	h	;advance pointer
+	jmp	uww	;repeat
+
+;	(i)  Input from designated port.  <port, i> leaves
+;	<port, byte> so that after disposing of <byte>, <port>
+;	can be reused.
+
+lci:	lhld	px	;get pointer to top argument on PDL
+	mov	a,m	;only the low order byte matters
+	sta	qi	;place it in teme IN instruction
+	lxi	b,1	;we're only going to read one byte
+	call	narg	;prepare a place for it on the PDL
+	call	qin	;execute the captive IN instruction
+	mov	m,a	;storing the incoming byte on the PDL
+	inx	h	;always ready for the next byte
+	shld	py	;close off the argument
+	ret		;and we're through
+
+;	(o) Output from designated port  -  <port, byte, o>
+;	leaves <port>, facilitating multiple OUTs through the
+;	same port.
+
+lco:	lhld	px	;pointer to last argument - output byte
+	mov	b,m	;tuck it into register b
+	call	ucl	;erase the top argument
+	mov	a,m	;HL points to next argument - get it
+	sta	qo	;store in tame OUT instruction
+	mov	a,b	;output must be from accumulator
+	jmp	qou	;execute the prepared OUT instruction
+
+;	=======================================================
+;
+;	Communication with CP/M takes two forms:  <FCB, n, K>
+;	which leaves <FCB, coDe> on the pushdown list, or else
+;	<FCB, n, k> which leaves nothing on the pushdown list.
+;	In either case - FCB is a two-byte parameter, usually
+;	the address of the file control block - but it could
+;	also be a DMA address or sometimes even null for the
+;	sake of uniformity.  Approximately thirty options are
+;	available which are numbered serially, indicated by the
+;	argument n.  The difference between K and k is that the
+;	former conserves the parameter FCB for possible use by
+;	a subsequent CP/M call, and reports a result in the
+;	one-byte result <code>.  This could be the character
+;	read by an input routine or an error code for the disk
+;	routines.
+;
+;	The options are:
+;
+;	num	function		"FCB"	"code"
+;	---	--------		-----	------
+;
+;	 0	system reset		-	-
+;	 1	read console		-	char
+;	 2	write console		char	-
+;	 3	read reader		-	char
+;	 4	write punch		char	-
+;	 5	write list		char	-
+;	 6	-			-	-
+;	 7	read i/o stat		-	stat
+;	 8	write i/ stat		stat	-
+;	 9	print buffer		buffer	-
+;	10	read buffer		buffer	-
+;	11	console status	-	stat
+;
+;	12	lift disk head		-	-
+;	13	init disk only		-	-
+;	14	select disk		disk	-
+;	15	open file		fcb	code
+;	16	close file		fcb	code
+;	17	search once		fcb	code
+;	18	search again		fcb	code
+;	19	delete file		fcb	code
+;	20	read 1 record		fcb	code
+;	21	write 1 record		fcb	code
+;	22	create file		fcb	code
+;	23	rename file		fcb	code
+;	24	read login		-	logv
+;	25	read disklog		-	disk
+;	26	set DMA address		dma	-
+;	27	read bitmap		-	-
+;
+;	Fuller details of all the CP/M options and the way they
+;	function can be obtained through consulting Digital
+;	Research's manuals for CP/M, especially their "CP/M
+;	Interface Guide."
+;
+;	=======================================================
+
+;	(K)  Set up communication with CP/M - top into BC,
+;	next into DE.  Preserve next, call BDOS, (Aze) into
+;	top.
+
+cpm:	lhld	px	;fetch pointer to top argument
+	mov	c,m	;load C from low byte
+	inx	h	;next byte
+	mov	b,m	;load B from high byte
+	lhld	px	;pointer to top argument again
+	dcx	h	;high byte, pointer to prev arg
+	mov	d,m	;load up DE with high byte
+	dcx	h	;low byte, pointer to prev arg
+	mov	e,m	;finish loading DE
+	xchg		;pointer into HL
+	mov	e,m	;low byte of under argument
+	inx	h	;advance pointer
+	mov	d,m	;high byte of under argument
+	call	bdos	;call BDOS with args in BC, DE
+	lhld	px	;pointer to top argument again
+	mov	m,a	;save low byte from A
+	inx	h	;on to high byte
+	mvi	m,ze	;make high byte a zero
+	ret
+
+;	(k)  Call to CP/M without any value returned.
+
+cpml:	call	bcld	;load top arg into BC, lift it
+	call	deld	;load next arg into DE, lift it too
+	jmp	bdos	;execute indicated operation
+
+;	-------------------------------------------------------
+;	Disk input-output routine working through CP/M.
+;	-------------------------------------------------------
+
+;	Set up a file control block with a given file name and
+;	the default extension REC.  The pushdown list contains
+;	the disk unit designation, then by the filename without
+;	any extension. No protection is afforded against an
+;	overly long file name, a nonexistent disk, or the like.
+;	Some errors of this type must be caught by CP/M since
+;	REC cannot know such things as the exact number of disk
+;	drives that there will be.
+
+diin:	mvi	b,21H		;FCB requires 33 bytes
+	lxi	h,tfcb		;use CP/M's transient FCB
+	mvi	a,00H		;fill it with zeroes
+di1:	mov	m,a		;loop for block zero
+	inx	h		;advance pointer
+	dcr	b		;reduce count
+	jnz	di1		;repeat until count vanishes
+	mvi	b,8		;filename field is 8 bytes long
+	lxi	h,tfcb+1	;field begins at second byte
+	mvi	a,' '		;fill it with blanks
+di2:	mov	m,a		;loop for block of blanks
+	inx	h		;advance pointer
+	dcr	b		;reduce count
+	jnz	di2		;repeat until count vanishes
+	mvi	m,'R'		;place 'REC' in extension field
+	inx	h		;
+	mvi	m,'E'		;
+	inx	h		;
+	mvi	m,'C'		;
+	lhld	px		;fetch pointer to top argument
+	mov	a,m		;load disk unit designator
+	sui	'@'		;normalize to uppercase letters
+	sta	tfcb		;store it in file control block
+	call	ucl		;pop top argument
+	lhld	px		;fetch pointer to file name
+	xchg			;place it in DE for source
+	lhld	py		;end of file name
+	call	siz		;place py - px in BC
+	lxi	h,tfcb+1	;destination origin
+	call	miuc		;move by increment until count
+cpin:	lda	tfcb+1
+	cpi	' '
+	jz	boot		;no file given, so quit
+	mvi	c,15		;<open file>
+	lxi	d,tfcb		;file control block
+	call	bdos		;
+	cpi	0FFH		;check for error
+	jz	boot		;don't hang system; so quit instead
+	lxi	h,tbuf		;origin of CP/M's sector buffer
+	shld	rx		;initial address of pseudotty
+	shld	ry		;provoke disk read
+	ret
+
+;	Read from disk buffer, replenish buffer when empty.
+
+dire:	push	h		;save 3 8080 register pairs
+	push	d		;
+	push	b		;
+	lhld	ry		;pointer to end of buffer
+	xchg			;place in DE
+	lhld	rx		;pointer to current byte
+	call	seq		;skip if equal
+	jmp	di5		;still have bytes in the buffer
+	mvi	c,20		;<read next record>
+	lxi	d,tfcb		;file control block
+	call	bdos		;
+	lxi	h,tbuf+tsiz	;end of buffer
+	shld	ry		;store it in ry
+	lxi	h,tbuf		;beginning of buffer
+	shld	rx		;store it in rx
+di5:	mov	a,m		;common continuation
+	inx	h		;byte in acc, advance pointer
+	shld	rx		;store position of next byte
+	pop	b		;replace 3 register pairs
+	pop	d		;
+	pop	h		;
+	ret
+
+;	Stack the secondary file name on the 8080's PDL.
+
+pualt:	mvi	b,fsiz		;load size of file name
+	lxi	d,talt		;load origin of secondary name
+	pop	h		;put the return address in HL
+pual:	ldax	d		;load acc from FCB
+	push	psw		;transfer to 8080 stack
+	inx	d		;advance pointer
+	dcr	b		;reduce count
+	jnz	pual		;repeat until count vanishes
+	pchl			;return to addr stored in HL
+
+;	================
+;	= main program =
+;	================
+
+main::	lhld	emem		;BDOS entry point is end of memory
+	sphl			;define stack (end of memory)
+	lxi	d,-800H		;reserve space for stack
+	dad	d		;
+	mvi	m,0		;0000 as barrier for '>'
+	dcx	h		;
+	mvi	m,0		;
+	dcx	h		;
+	shld	p4		;end of workspace
+	xchg			;
+	lxi	h,bmem		;beginning of free memory
+	shld	c0		;compile area lower limit
+	shld	c1		;compile area pointer
+	mov	a,e		;calculate amount of available memory
+	sub	l		;
+	mov	e,a		;
+	mov	a,d		;
+	sbb	h		;
+	mov	d,a		;
+	mvi	b,3		;right shift 3 = divide by 8
+majn:	mov	a,d		;shift loop
+	ora	a		;
+	rar			;
+	mov	d,a		;
+	mov	a,e		;
+	rar			;
+	mov	e,a		;
+	dcr	b		;
+	jnz	majn		;
+	dad	d		;assign 1/2 memory to compile area
+	dad	d		;
+	dad	d		;
+	dad	d		;
+	shld	c2		;compile area upper limit
+	mvi	m,0		;store 0000 as barrier to 'L'
+	inx	h		;
+	mvi	m,0		;
+	inx	h		;
+	shld	px		;beginning of PDL
+	shld	py		;with null argument
+	dad	d		;assign	3/8 of memory to PDL
+	dad	d		;
+	dad	d		;
+	shld	pz		;upper limit of PDL
+	shld	p0		;lower limit of workspace
+	shld	p1		;initially filled with null text
+	shld	p2		;workspace gets 1/8+roundoff of memory
+	shld	p3		;
+
+;	Up to this point the memory has been partitioned between the
+;	compile area, pushdown list, workspace, and 8080 stack. By
+;	changing the distribution, it might be possible to accomodate
+;	the memory balance of a specific application better.
+
+	lxi	d,0003H		;length of one jump instruction
+	lhld	bios		;BIOS vector reference point
+	dad	d		;
+	shld	cnst		;jump to const = bios(1)
+	dad	d		;
+	shld	cnin		;jump to conin = bios(2)
+	dad	d		;
+	shld	cnou		;jmp to conout = bios(3)
+	lda	tfcb+1		;if no disk, source from console
+	cpi	' '		;
+	jz	tylo		;type logo - including version date
+	call	pualt		;save secondary file name
+	call	cpin		;open disk file for REC program
+	lxi	h,dire		;REC input through disk
+	shld	re		;REC compiler's I-O linkage
+	call	inre		;initialize REC compiler RAM
+	call	emcx		;compile the program file
+	mvi	b,fsiz		;length of filename
+	lxi	d,tfcb+fsiz	;end of secondary filename
+	pop	h		;emcx leaves execution addr on stack
+poal:	dcx	d		;restoration loop runs backward
+	pop	psw		;
+	stax	d		;
+	dcr	b		;
+	jnz	poal		;
+	push	h		;put execution address back on stack
+	call	emcu		;execute the program file
+	jmp	boot		;return to CP/M if false
+	jmp	boot		;or even if it was true
+
+tylo:	mvi	c,9		;(09) write message
+	lxi	d,logo		;'UAP ...' logo, version date
+	call	bdos		;
+nodi:	call	bure		;initialize for console buffer
+	call	inre		;initialize REC's RAM area
+	call	emcx		;compile a program
+	call	emcu		;execute it
+	jmp	nodi		;no-disk loop
+	jmp	nodi		;no-disk loop
+
+;	(C) REC compiling operator, which obtains the object code
+;	origin and the source code address from the pushdown list,
+;	in the form <'object', 'source', C>.
+;
+;	<'', 'source', C> will use the current value of c1 for the
+;	object code origin, and would be the alternative normally
+;	selected by someone who did not want to do his own memory
+;	management. If c0 .LE. 'object' .LE. c2, c1 will be set to
+;	'object', very likely disrupting the compile area; thus any
+;	origin must be specified with care. However, if the origin
+;	is taken from a value returned by C, all will work smoothly,
+;	allowing for the automatic erasure of a subroutine once it
+;	has been executed and is no longer needed. Likewise there
+;	will be no conflict if a compile area is taken from the
+;	pushdown list using the operator c.
+;
+;	Ignoring 'object' for the moment, the various options for
+;	just <'source', C> are:
+;
+;	      ''C		input program from console
+;	    'file' 'D' C	take <file.rec> from disk D
+;	       pC		pushdown list
+;	       qC		workspace
+;	    <org,siz,C>		memory from address org onward
+;
+;	In general, if the 'source' argument is of length zero, then
+;	the console is the source, while if it is of length one the
+;	named disk is the source [@=current disk, A, B, ... up to the
+;	system's limit], and finally if the argument has length 2, the
+;	combination of <org, siz> from the memory applies.  It is the
+;	programmer's responsibility to avoid nonexistent memory, disk
+;	units, and the like.
+;
+;	Two values are returned to the pushdown list by C, namely
+;	<'end', 'origin'>, which define the memory occupied by the
+;	subroutine just compiled, and which will be needed for the
+;	subsequent usage of the subroutine. For example, a series
+;	of subroutines can be compiled by using the 'end' of one as
+;	'object' for the next: <'org' 'S1' Cm 'S2' Cm ...> leaving
+;	their execution addresses on the complementary pushdown list,
+;	where they may be recovered by the operator n. In practice,
+;	they would probably be defined as they were compiled using
+;	<... C 'X'$S ... @X>, or perhaps they would be executed and
+;	discarded using <... CxL>. Housekeeping is important when
+;	subroutines are to be discarded during program execution.
+;	If the origin of a subroutine is saved, it may be reused
+;	which implies that the space which it and any following
+;	subroutines occupied may also be reused.
+
+ucc:	call	psiz	;fetch size of top argument
+	mov	a,c	;test for zero bytes
+	ora	b	;by jamming BC into accumulator
+	jz	uc2	;zero means console
+	dcx	b	;test for one byte
+	mov	a,c	;by jamming BC into accumulator
+	ora	b	;
+	jz	uc1	;one means disk designation
+	dcx	b	;verify that we've got two bytes
+	mov	a,c	;again jamming BC into A
+	ora	b	;
+	jnz	rer	;no provision for other than 1, 2 bytes
+	lxi	h,pty	;setup readin from pseudoteletype
+	shld	re	;REC compiler's I-O linkage
+	call	bcld	;size into BC
+	mov	e,m	;HL is uncovered px
+	inx	h	;
+	mov	d,m	;
+	xchg		;
+	shld	rx	;origin of REC source code
+	dad	b	;length of source code
+	shld	ry	;end of source code
+	jmp	uc4
+uc1:	call	diin	;setup the CP/M FCB for given file
+	lxi	h,dire	;setup input from disk reader
+	jmp	uc3
+uc2:	lxi	h,chin	;input from the console
+uc3:	shld	re	;REC compiler's I-O linkage
+uc4:	call	ucl	;expose 'object program origin'
+	call	psiz	;zero or two bytes
+	mov	a,c	;check which
+	ora	b	;
+	jnz	uc5	;not zero may be two
+	lhld	c1	;compile area pointer
+	xchg		;
+	jmp	uc6	;use compile pointer - no checks needed
+uc5:	dcx	b	;verify two
+	dcx	b	;
+	mov	a,c	;
+	ora	b	;
+	jnz	rer	;reject anything else
+	call	deld	;fetch origin into DE
+	lhld	c0	;compile area lower limit
+	mov	a,e	;does it lie in compile area?
+	sub	l	;
+	mov	a,d	;
+	sbb	h	;
+	jc	uc6	;no, it's below c0
+	lhld	c2	;compile area upper limit
+	mov	a,l	;
+	sub	e	;
+	mov	a,h	;
+	sbb	d	;
+	jc	uc6	;no, it's above c2
+	xchg		;
+	shld	c1	;readjust compile area pointer
+	xchg		;
+uc6:	push	d	;execution address
+	call	left	;move up to source code
+	call	recrr	;compile the source code
+	push	d	;byte following compiled subroutine
+	call	putw	;word from 8080 stack to PDL
+	call	putw	;word from 8080 stack to PDL
+	ret		;must be <call, ret>, not <jmp>
+
+;	(x)  Call a subroutine. <'XXXX'Hx> calls the subroutine at
+;	the absolute location XXXX, which will be assumed to be a
+;	REC predicate. If it is not, it will act as though it were
+;	a FALSE predicate, so write ('XXXX'Hx;;) instead, or use (x).
+
+go:	lhld	px	;pointer to top argument
+	call	onel	;move from PDL to 8080 stack
+	ret		;must be <call, ret>, not <jmp>
+
+;	-------------------------------------------------------
+;	Equivalences to subroutines in the REC nucleus.
+;	-------------------------------------------------------
+
+	ext	reclp,recrp,recco,recsc
+	ext	recop,recpr,reco1,recp1
+	ext	recdd,recms,recsq,recdq,reccm
+
+;	-------------------------------------------------------
+;	Equivalences to subroutines outside this overlay.
+;	-------------------------------------------------------
+
+	ext	qu,nu,ns,hs
+	ext	eql,pe
+	ext	ga,gb,gbi,gwi
+	ext	sa,sai
+	ext	gxs,lcq,ind
+	ext	uco,he,hx
+	ext	blok,conc
+	ext	sum,dif,mpy,dvd
+	ext	decr,incr
+	ext	exch,comp
+	ext	lca,uca,lcb,ucb,ucd,lce,uce,lcf,ucf
+	ext	uci,lcj,ucj,lcl,lcm,ucm,ucn,lcn,ucp
+	ext	lcq,ucq,lcs,ucu,ucv,lcw,ucy,lcz,ucz
+	ext	qm,bra,ket,ip
+	ext	vble,libr
+	ext	lbr
+
+ft:	dw	noop	;blank
+	dw	noop
+	dw	recop	; !	binary to hex string
+	dw	hx
+	dw	recdq	; "	quoted expression
+	dw	qu
+	dw	recop	; #	binary to decimal string
+	dw	ns
+	dw	recop	; $	fetch a variable cell
+	dw	vble
+	dw	recop	; %	restrict to one byte
+	dw	pe
+	dw	recop	; &	exchange top numeric pair
+	dw	exch
+	dw	recsq	; '	quoted expression
+	dw	qu
+	dw	reclp	; (
+	dw	noop
+	dw	recrp	; )
+	dw	noop
+	dw	recop	; *	multiply
+	dw	mpy
+	dw	recop	; +	add
+	dw	sum
+	dw	noop	; ,	separator like space
+	dw	noop
+	dw	recms	; -	subtract
+	dw	dif
+	dw	recop	; .
+	dw	noop
+	dw	recop	; /	divide [remainder, quotient]
+	dw	dvd
+	dw	recdd	; 0	number	
+	dw	nu
+	dw	recdd	; 1	number	
+	dw	nu
+	dw	recdd	; 2	number	
+	dw	nu
+	dw	recdd	; 3	number	
+	dw	nu
+	dw	recdd	; 4	number	
+	dw	nu
+	dw	recdd	; 5	number	
+	dw	nu
+	dw	recdd	; 6	number	
+	dw	nu
+	dw	recdd	; 7	number	
+	dw	nu
+	dw	recdd	; 8	number	
+	dw	nu
+	dw	recdd	; 9	number	
+	dw	nu
+	dw	recco	; :
+	dw	noop
+	dw	recsc	; ;
+	dw	noop
+	dw	recop	; <	restrict workspace
+	dw	bra
+	dw	recpr	; =	test equality of top pair
+	dw	eql
+	dw	recop	; >	open workspace
+	dw	ket
+	dw	recpr	; ?	test for error report
+	dw	qm
+	dw	recp1	; @	execute subroutine
+	dw	ar
+	dw	recpr	; A	advance pointer 1
+	dw	uca
+	dw	recpr	; B	retract pointer 1
+	dw	ucb
+	dw	recop	; C	compile
+	dw	ucc
+	dw	recop	; D	delete text
+	dw	ucd
+	dw	recpr	; E	equality between WS and PD
+	dw	uce
+	dw	recpr	; F	find specified text
+	dw	ucf
+	dw	recop	; G	fetch a block from memory
+	dw	ga
+	dw	recpr	; H	ASCII hex to binary
+	dw	he
+	dw	recop	; I	insert
+	dw	uci
+	dw	recop	; J	jump to front
+	dw	ucj
+	dw	recop	; K	call CP/M, keep DE, put value
+	dw	cpm
+	dw	recop	; L	erase top of PDL
+	dw	ucl
+	dw	recpr	; M	compare PDL and workspace
+	dw	ucm
+	dw	recpr	; N	;numerical comparison on PDL
+	dw	ucn
+	dw	recpr	; O	decimal ASCII string to binary
+	dw	uco
+	dw	recop	; P	put block into buffered memory
+	dw	ucp
+	dw	recop	; Q	put workspace segment on PD
+	dw	ucq
+	dw	recop	; R	read from keyboard
+	dw	ucr
+	dw	recop	; S	store block in memory
+	dw	sa
+	dw	recop	; T	write on screen
+	dw	uct
+	dw	recpr	; U	search, yielding interval
+	dw	ucu
+	dw	recpr	; V	U, including endpoints
+	dw	ucv
+	dw	recop	; W	write on printer
+	dw	ucw
+	dw	recop	; X	call library subroutine
+	dw	libr
+	dw	recpr	; Y	recover previous position of p1
+	dw	ucy
+	dw	recop	; Z	pointer 2 to end of text
+	dw	ucz
+	dw	reccm	; [	comment
+	dw	noop
+	dw	recop	; \	insert single byte in pair
+	dw	ip
+	dw	recop	; ]
+	dw	noop
+	dw	recop	; ^	increment top argument
+	dw	incr
+	dw	recop	; _	exit to monitor
+	dw	boot
+	dw	recpr	; `	true for waiting character
+	dw	chaw
+	dw	recpr	; a	segment forward from p1
+	dw	lca
+	dw	recpr	; b	segment backward from p2
+	dw	lcb
+	dw	recop	; c	create block on PDL
+	dw	blok
+	dw	recpr	; d 	decrement but skip on zero
+	dw	decr
+	dw	recpr	; e	extend workspace
+	dw	lce
+	dw	recpr	; f	block fill
+	dw	lcf
+	dw	recop	; g	non-incrementing byte fetch
+	dw	gb
+	dw	recop	; h
+	dw	noop
+	dw	recop	; i	input from designated port
+	dw	lci
+	dw	recop	; j	null interval at p1
+	dw	lcj
+	dw	recop	; k	call CP/M: no returned values
+	dw	cpml
+	dw	recop	; l	put pz on PDL
+	dw	lcl
+	dw	recop	; m	set aside top argument
+	dw	lcm
+	dw	recop	; n	recover set-aside argument
+	dw	lcn
+	dw	recop	; o	output from designated port
+	dw	lco
+	dw	recop	; p	put px, py-px on PDL
+	dw	gxs
+	dw	recop	; q	put p1, p2-p1 on PDL
+	dw	lcq
+	dw	recop	; r	indirect replacement of address
+	dw	ind
+	dw	recop	; s	store block in memory wrt limit
+	dw	lcs
+	dw	recop	; t	type out indicated interval
+	dw	lct
+	dw	recop	; u	incrementing byte fetch
+	dw	gbi
+	dw	recop	; v	incrementing byte store
+	dw	sai
+	dw	recop	; w	store workspace header
+	dw	lcw
+	dw	recpr	; x	subroutine call  - no arguments
+	dw	go
+	dw	recop	; y	fetch byte pair to PDL incr org
+	dw	gwi
+	dw	recop	; z	null interval at p2
+	dw	lcz
+	dw	lbr	; {	;start a definition string
+	dw	noop
+	dw	recop	; |	concatinate top two arguments
+	dw	conc
+	dw	noop	; }	end of definition set
+	dw	noop
+	dw	recop	; ~	complement or negate top arg
+	dw	comp
+	dw	recop	; del
+	dw	noop
+
+;	-----------------------------------------------------
+;	RAM memory which is required for the operation of REC
+;	-----------------------------------------------------
+
+;	Relay area for input and output subroutines.
+
+const:	db	(jmp)
+cnst:	dw	0000H
+conin:	db	(jmp)
+cnin:	dw	0000H
+conou:	db	(jmp)
+cnou:	dw	0000H
+read::	db	(jmp)	;character input for REC compiler
+re::	dw	chin
+tyin::	db	(jmp)	;single character input for R
+ti::	dw	chin
+tyou::	db	(jmp)	;single character output for T
+to::	dw	chou
+
+;	Temporary storage used by the REC compiler.
+
+xpd::	dw	0000	;colon jump back to left parenthesis
+ypd::	dw	0000	;false predicate jump chain
+zpd::	dw	0000	;semicolon exit chain
+
+;	Pointers to the directories.
+
+fxt::	dw	ft	;pointer to fixed operator directory
+vrt::	dw	vt	;pointer to subroutine directory
+
+;	Pointers to the area of compiled subroutines.
+
+c0::	dw	0000H	;beginning of compiling area
+c1::	dw	0000H	;beginning of present compilation
+c2::	dw	0000H	;final location of present compilation
+
+;	Pointers to REC/MARKOV pushdown list.
+
+px::	dw	0000H	;beginning of pushdown text
+py::	dw	0000H	;end of pushdown text
+pz::	dw	0000H	;end of available pushdown space
+
+;	Workspace pointers.
+
+p0::	dw	0000H	;beginning of workspace
+p1::	dw	0000H	;beginning of marked segment
+p2::	dw	0000H	;end of marked segment
+p3::	dw	0000H	;end of text
+p4::	dw	0000H	;end of workspace
+
+;	I-O pointers.
+
+rx::	dw	0000
+ry::	dw	0000
+
+;	Linkage to input-output through ports.
+
+qin::	db	(in)
+qi::	db	00H
+	ret
+
+qou::	db	(out)
+qo::	db	00H
+	ret
+
+;	Temporary storage.
+
+pt::	dw	0000
+
+;	Error flag.
+
+er::	dw	0000
+
+vt:	ds	100H		;directory for programs compiled by REC
+
+bmem:	ds	0		;end of REC, begin free memory.
+
+	end	main
+
+

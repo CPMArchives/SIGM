@@ -1,0 +1,34 @@
+;
+; svc.lib - supervisor call macro library for sysmon
+;
+; invocation - simply put the line SVC nn in your program,
+; where nn is the supervisor call number (call #'s / functions
+; may be found in the SYSMON.ASM file).
+;
+; obviously, you will need MAC or M80 to use this macro definition
+;
+false	equ	0		;logical false value
+true	equ	not false	;logical true value
+;
+testing	equ	true		;if testing (must match testing in sysmon)
+;
+	if	testing
+svcloc	equ	02002h		;supervisor call location
+super	equ	103h		;supervisor entry point
+	endif
+;
+	if	not testing
+svcloc	equ	0bf02h		;supervisor call location
+super	equ	0e003h		;supervisor entry point
+	endif
+;
+svc	macro	scall		;;supervisor call
+	push	psw		;;save state
+	mvi	a,&scall	;;store call number
+	sta	svcloc
+	pop	psw		;;restore state
+	call	super		;;do physical supervisor call
+	endm
+;
+;	(eof)
+

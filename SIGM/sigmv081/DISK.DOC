@@ -1,0 +1,248 @@
+
+
+
+
+     
+
+
+
+     Disk Information
+
+          This disk contains five Pascal/Z programs: two general
+     purpose utilities: PRINT and FF; two Pascal development aids: PP
+     and XREF; and a text processor: TP.  The assembly language and
+     other Pascal/Z files on the disk contain procedures used by
+     these programs.  The file that you are now reading exists in two
+     forms on the disk: DISK.DOC is obtained by running TP with
+     DISK.TEX as input.
+
+          These programs have been donated to the Z User's Group.
+     They are guaranteed only to do what Iwant them to do on my
+     system.  Use them, alter them, and give them away to friends,
+     but please do not attempt to market them.  If they were saleable
+     products, I would have sold them.  If you make substantial
+     improvements to them or discover substantial bugs in them,
+     please let me know.
+
+
+     General Description
+
+          These notes are intended to help you get the programs
+     running.  When you have got TP working, you should be able to
+     obtain specifications for them by processing SYSTEM.TEX.
+
+          Everybody writes their own print utility; mine, PRINT, is
+     written for a specific printer, the I.D.S. 460G "Paper Tiger",
+     but the printer-dependent code is localized (and documented!) to
+     simplify changes.  PRINT will not send and strange codes to the
+     printer unless you select fancy options, such as boldface
+     printing or proportional spacing.
+
+          FF is also written specifically for the I.D.S. 460; it
+     transmits all the codes necessary to straighten the printer out
+     when it has got into a muddle, and it also sends as many
+     form-feeds as you want.
+
+          PP is a Pascal/Z pretty-printer.  It accepts a Pascal
+     source program (a .PAS file, not a .LST file) and produces a                                  ___
+     .PPP file containing an equivalent program with improved layout.
+     The idea is that you work with a .PAS file and generate a .PPP
+     file only when you want a fancy listing.  The .PAS files on this
+     disk are all squashed up and unreadable, but you can use PP to
+     massage them into a more presentable form.
+
+          XREF is a cross-reference generator that reads the output
+     of PP and produces a .XRT file containing a cross-reference
+     table of user identifiers.  (It is really an index of user
+     identifiers, but I am not going to try and change accepted
+     terminology.)  The cross-reference table includes identifiers
+     that start with a lower case letter, are not part of a quoted
+     string, and are not inside a comment of the form { ... }.  I
+
+
+
+     Disk Information                                                    Page 1
+
+     
+
+
+
+     write my programs entirely in lower case and PP converts Pascal
+     reserved words to upper case, and so this arrangement suits me
+     very well; if you don't like it, it is not difficult to modify
+     XREF to your own requirements.
+
+          The submit file PRETTY.SUB shows how PP and XREF are used
+     together.
+
+          If you use one of the flashy new "what you see is all
+     you've got" style text processors, you will find that TP is
+     something of a dinosaur.  I wrote it because none of the text
+     processors available at a reasonable price satisfied my somewhat
+     eccentric requirements.  (I use a small set of relatively
+     high-level commands suited to my work but I do not require high
+     quality final output, because I usually send the material to
+     someone with better typesetting equipment than mine.  TP does
+     several things automatically, including section numbering and
+     cross-referencing, and this makes reorganizing text
+     straightforward.  It does not do certain "basic" things, such as
+     justify text, because these are not part of my requirement.)  TP
+     is not yet complete, but it is still largely device independent.
+     The only assumption that it makes is that the printer can handle
+     a carriage-return that is not followed by a line-feed.  The next
+     revision will probably contain code for special character sets,
+     etc, which will be device dependent, so now seems a good time to
+     give it to ZUG.  The best way to learn about TP is to use it to
+     format the file SYSTEM.TEX, and then compare SYSTEM.TEX with
+     SYSTEM.DOC.  If you like TP and want to be informed of future
+     developments, let me know.
+
+
+     Implementation Notes
+
+          The disk contains a .SUB file for each Pascal program.
+     Note that all of the programs except FF require CONSTS.PAS,
+     TYPES.PAS, GETFILES.PAS, and PROCS.PAS during compilation, and
+     that PRINT, XREF, and TP also require assembly language
+     subroutines.  The following suggestions may help to get you
+     started.
+
+          (1)   Compile the programs by executing FF.SUB, PRINT.SUB,
+                PP.SUB, XREF.SUB, and TP.SUB.  The .SUB files assume
+                that everything happens on the current system disk,
+                which must of course contain the compiler, assembler,
+                linker, MAIN.SRC, etc.
+
+          (2)   Use PRETTY.SUB to obtain a pretty-printed listing of
+                each program.  This procedure requires the name of a
+                Pascal source file as a parameter.  For example:
+
+                          SUBMIT PRETTY FF
+
+
+
+
+     Disk Information                                                    Page 2
+
+     
+
+
+
+                PRETTY uses PRINT to print a listing of the
+                pretty-printed program and its cross-reference table.
+                By default, PRINT assumes 11" paper and 6 lines/inch;
+                it prints 60 lines of text on each page, printing
+                page headings and using form-feed characters for
+                pagination.  It does not truncate or wrap long lines.
+
+          (3)   Test TP by formatting this file with it.  The command
+
+                          TP DISK
+
+                should create a file DISK.DOC identical to the file
+                DISK.DOC on this disk.  If it does, use TP to format
+                the documentation contained in the files SYSTEM.TEX,
+                SYSUT.TEX, and SYSTP.TEX.  The command
+
+                          TP SYSTEM
+
+                does this, creating the formatted manual SYSTEM.DOC,
+                the table of contents file SYSTEM.CON, and the file
+                of cross-references SYSTEM.REF, which is of no great
+                interest to the user.
+
+          Computers being what they are, you will probably get stuck
+     at some point in the proceedings.  Unfortunately, I cannot
+     predict what will go wrong, but here are some possibly alarming
+     symptoms.
+
+          (1)   All of the programs work with Version 4.0 of the
+                compiler and I believe that all except PP also work
+                with Version 3.0.  The problems with PP under Version
+                3.0 concern passing one-byte integers by reference.
+
+          (2)   Some of the operations are quite slow.  My system
+                requires about 15 minutes to compile TP.
+                Furthermore, TP will require at least 7 minutes to
+                process SYSTEM -- it runs at about 1200 words per
+                minute under Cache BIOS with floppy disks.
+
+          (3)   Large intermediate files will be created.  Check the
+                amount of free disk space before each compilation,
+                especially before when compiling TP.  The submit
+                procedures delete files as soon as they are no longer
+                required.
+
+          (4)   I have had no memory problems running Cache BIOS in
+                128K.  I do not know whether TP can be compiled on a
+                48K machine.  It should run on a 48K machine, but                                        ___
+                there will be less space for cross-references and
+                "keeps".  The simplest way to reduce the memory
+                requirements of TP would be to split it in two: part
+                1 would initialize the global tables and chain to
+
+
+
+     Disk Information                                                    Page 3
+
+     
+
+
+
+                part 2 which would do the work.
+
+          (5)   Some of the cross-references in SYSTEM.DOC will be
+                unsatisfied (there will be statements like "see
+                Section 0.0.0").  There are two reasons for this: one
+                is that TP requires two passes to satisfy forward
+                references, and the other is that there are
+                references to sections of the manual that are not on
+                this disk.
+
+          (6)   TP assumes 12 characters/inch by default.  Each line
+                is preceded by 6 blanks (0.5"), and contains at most
+                78 characters (6.5") of text.  Thus the text fits
+                onto 8.5"x11" paper with 1" margins.  If your printer
+                prints 10 characters/inch and you use 8.5" paper, the
+                lines will be too long.  (They will also be too long
+                to display on an 80-column screen.)  You can tell TP
+                to print shorter lines by inserting the command
+
+                           \HL 5 65
+
+                at the front of the file: look at DISK.TEX to see
+                where it goes.
+
+          (7)   PRINT has a "T" option for printing .DOC files
+                produced by TP.  You can say, for example:
+
+                          PRINT SYSTEM.DOC T1,5
+
+                This is supposed to print the first 5 pages of
+                SYSTEM.DOC.  Unfortunately this option does not work
+                on my system.  When the "T" option is selected, the
+                printer seems to ignore the ETX/ACK protocol.
+                Please let me know if you manage to fix the bug.
+                In the meantime, use
+
+                          PIP LST:=SYSTEM.DOC
+
+                instead.
+
+     Good luck!
+
+
+     
+                                             Peter Grogono
+                                             Metonymy Productions
+                                             4125 Beaconsfield Avenue
+                                             Montreal, Quebec H4A 2H4
+     
+                       
+     
+
+
+
+
+     Disk Information                                                    Page 4
+

@@ -1,0 +1,176 @@
+                   DOCUMENTATION FOR MEMRS.COM
+
+Introduction
+------------
+
+     MEMRS   is  an  exhaustive  memory  test  program  for  CP/M 
+environments.  It  tests from the top of itself to the bottom  of 
+the CP/M BIOS or alternatively, the BDOS.
+
+Usage
+-----
+
+     MEMRS  [-R][-B]
+
+Where
+
+     [-R]           is  an optional "Random  number  only"  test 
+                    specifier
+
+     [-B]           is an optional "Test to BDOS" specifier
+
+
+Examples
+--------
+
+     MEMRS
+
+          This will invoke the program with no special options.
+
+     MEMRS -R
+
+          This will invoke the program for the random number test 
+          only.
+
+     MEMRS -B
+
+          This will invoke the program for default testing to the 
+          bottom of the BDOS and use the BDOS for I/O rather than 
+          default test to the bottom of the BIOS and use the BIOS 
+          for I/O.
+
+     MEMRS -BR  or  MEMRS -RB  or  MEMRS -B -R  or  MEMRS -R -B
+
+          This will invoke the program for default testing to the 
+          bottom  of  the  BDOS as above AND random  number  only 
+          test.
+
+Error Messages
+--------------
+
+     If  any memory location fails any of the component parts  of 
+the memory test an error message will be displayed as follows:-
+
+LOCATION  SHOULD BE           WAS
+6000    00  0000 0000     FF  1111 1111     
+
+     If there are multiple bad memory locations up to 18 will  be 
+displayed  before the display halts and prompts for a keypress to 
+display further errors.
+
+LOCATION  SHOULD BE           WAS
+7000    00  0000 0000     FF  1111 1111     
+7001    00  0000 0000     FF  1111 1111     
+7002    00  0000 0000     FF  1111 1111     
+7003    00  0000 0000     FF  1111 1111     
+7004    00  0000 0000     FF  1111 1111     
+7005    00  0000 0000     FF  1111 1111     
+7006    00  0000 0000     FF  1111 1111     
+7007    00  0000 0000     FF  1111 1111     
+7008    00  0000 0000     FF  1111 1111     
+7009    00  0000 0000     FF  1111 1111     
+700A    00  0000 0000     FF  1111 1111     
+700B    00  0000 0000     FF  1111 1111     
+700C    00  0000 0000     FF  1111 1111     
+700D    00  0000 0000     FF  1111 1111     
+700E    00  0000 0000     FF  1111 1111     
+700F    00  0000 0000     FF  1111 1111     
+7010    00  0000 0000     FF  1111 1111     
+7011    00  0000 0000     FF  1111 1111     
+"CR" to continue test - "SP", "^C" to quit, "^X" to restart.
+
+
+Internal Prompts
+----------------
+
+     The program prompts for the starting and ending addresses of 
+the block of memory to be tested and offers default values  which 
+will  test the largest possible block of memory.  The default top 
+of  the block to be tested depends on whether the -B  option  was 
+specified.  If  the default values are chosen,  the actual  value 
+determined  by the program is displayed next to the prompt as  if 
+the user had entered the value.
+
+     When specific values are entered by the user a valid 4 digit 
+hexadecimal  address  must be given or an error message  will  be 
+displayed and the prompt issued again.
+
+     The program may be aborted at any time by hitting any of the 
+keys specified in the abort prompt.
+
+     The program prompts as follows:-
+
+MEMRS Memory Test - Version 1.9
+
+BDOS located at D300     Top of memory at FFFF    
+Press "SP" or "^C" to warm boot at any time
+or "^X" to restart test from beginning. 
+Response of "CR" gives default test range
+which starts above this program and ends at BDOS
+
+Starting address (Hex or "CR") 08F7    
+Ending address   (Hex or "CR") D3F9    
+"CR" to continue test - "SP", "^C" to quit, "^X" to restart.
+
+
+Tutorial on Memory Testing
+--------------------------
+
+     There  is no practical way to do a thorough test on all of a 
+computers memory in one pass. The memory test program itself will 
+occupy  some  memory  which it  cannot  thoroughly  test.  It  is 
+possible  to write simple memory tests which are able to test the 
+memory  that the reside in but these tests will not  detect  many 
+types of memory errors.
+
+     Memory  faults can be fairly simple gross errors where a bit 
+is permanently stuck (high or low) or they may be  timing/pattern 
+sensitive  where  the  fault  is  only  evident  with  a  certain 
+combination  of  data  in surrounding bits.  To attempt  to  test 
+memory as thoroughly as possible several different types of tests 
+need to be performed.  MEMRS has a wide variety of tests and  has 
+proven   particularly   effective  in  locating  bad  memory   in 
+comparison  to  large number of other memory test  programs  with 
+which  it has been compared.  It does not perform any  long  term 
+memory retention testing or any "burn in" testing,  however these 
+types  of tests are best performed over long periods of time  and 
+require  highly  optimised programs to execute in realistic  time 
+spans.
+
+     MEMRS  is intended as a relatively fast but thorough test to 
+quickly  establish whether any of the more common  memory  errors 
+has  occured.   In  practical terms,  the whole of  a  computer's 
+memory  rarely  fails simultaneously.  Memory failures  generally 
+occur in individual memory chips which usually cover no more than 
+16K of memory space (though this will change as 64K chips  become 
+readily available).  In this case it is usually possible in  CP/M 
+systems  to readdress memory so that the suspected bad memory  is 
+located  in  an area that can be tested with MEMRS.  If  the  bad 
+memory  is  located in any of the CP/M system areas it is  highly 
+unlikely  that you will be able to reliably load any programs  at 
+all from disk so there is not a great deal of point in  designing 
+memory tests for these addresses.
+
+     If  an error is suspected in the CP/M BIOS memory  area  the 
+best  move  is to build a smaller size CP/M system that does  not 
+use  the  suspected bad memory and the load MEMRS  and  test  the 
+suspect  memory.  MEMRS will test any address explicitly given to 
+it. It does not test to see if you will kill CP/M or itself.
+
+     The  random  number  only test is  useful  for  longer  term 
+testing of memory.  If an intermittent fault is suspected and the 
+memory  has  passed  several "full" test cycles  it  is  probably 
+worthwhile stopping the test and restarting it as a random number 
+only test which will cycle much faster.
+
+     The  normal default ending address of the bottom of the BIOS 
+gives the largest possible block of memory to test. It also means 
+that all console input and output from the program goes  directly 
+to the BIOS jump table so it is not possible to log the output on 
+the  printer  using  Control P.  Specifying the  BDOS  option  at 
+invokation  directs all console output via the BDOS  which  means 
+that  it  is  possible to log the test output on the  printer  by 
+typing Control P before the program is invoked.
+ 
+END OF MEMRS.DOC
+

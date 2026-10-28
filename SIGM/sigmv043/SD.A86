@@ -1,0 +1,643 @@
+;
+;			SD.A86
+;		  (revised 05/05/81)
+;
+;		SUPER DIRECTORY PROGRAM
+;		  by Bruce R. Ratoff
+;
+;Displays the directory of a CP/M disk, sorted alphabetically,
+;with the file size in K, rounded to the nearest CP/M block size.
+;
+;This latest variation on a common theme will automatically adjust
+;itself for any block size and directory length under CP/M 1.4 or 2.x
+;or MP/M (any version).  If the screen fills, program will pause until
+;a key is struck (see NPL and LPS equates below).  Total space used
+;and number of files are printed at end.
+;
+;Command: SD FILENAME.FILETYPE or just SD
+;
+;Allows '*' or '?' type specifications.  Drive name may also be
+;specified.  Ignores "SYS" files unless SOPT is TRUE and 'S' option
+;is given (i.e., SD *.* S will print all files).
+;
+;05/03/81 First 8086 version. (Bruce R. Ratoff)
+;
+;01/21/81 Fixed print abort test so it would work like "DIR"
+;  	  [aborts on any character, or on ^S, ^C].
+;	  (ASB)
+;
+;
+;01/06/81 Made output go through BDOS so if the printer was on,
+;	  you could get the output on it. The ^S test was rendered
+;	  useless, as was the ^C test, as BDOS buffers one character
+;	  ahead when it is writing out to the console. [You now need
+;	  to do a ^S ^C combonation to abort, and the size message
+;	  is not printed, but I don't think that is a major problem.]
+;	  (Andrew S. Beals)
+;
+;01/06/81 Added conditional assembly to print user number when in CP/M
+;	  2.x. (ASB)
+;
+;12/15/80 Added space suppression when printing file
+;	  totals.  (KBP)
+;
+;12/14/80 Added logic to print space remaining on disk.
+;	  Changed ^C test so that interrupting character is
+;	  not echoed (makes remote use cleaner).  (BRR)
+;
+;12/02/80 Fixed bug in print routine which compared last file
+;	  against garbage before printing. (BRR)
+;
+;11/29/80 Changed to allow printing 4 file names. (Ben Bronson
+;	  and Keith Petersen)
+;
+;11/22/80 Fixed bug in handling >256 files.  Changed abort test in
+;	  print routine to only abort on control-c.  (brr)
+;
+;Based on 'DIRS' by Keith Petersen, W8SDZ
+;
+;Set 'RMAC' TRUE to assemble with relocating assembler (requires
+;link with PAGE 0 equates in separate file).
+;
+FALSE	EQU	0		;DEFINE LOGICAL FALSE
+TRUE	EQU	NOT FALSE	;DEFINE LOGICAL TRUE
+;
+SOPT	EQU	TRUE 	;PUT TRUE TO ALLOW 'DIR *.* S' FORM
+WIDE	EQU	true 	;PUT TRUE TO ALLOW 4 NAMES ACROSS
+user	equ	true	;print user numbers for cp/m 2.x also?
+;
+;
+;
+BASE	EQU	0
+TPA	EQU	100H
+;
+FCB	EQU	5CH
+;
+	IF	WIDE
+NPL	EQU	4	;NUMBER OF NAMES PER LINE
+	ENDIF
+;
+	IF	NOT WIDE
+NPL	EQU	3	;NUMBER OF NAMES PER LINE
+	ENDIF
+;
+LPS	EQU	23	;NUMBER OF LINES PER SCREEN
+DELIM	EQU	':'	;FENCE (DELIMITER) CHARACTER
+;
+	org	TPA
+;
+START:
+	cld
+;
+	IF	SOPT
+	mov	al,byte ptr .FCB+17	 ;SAVE S OPTION FLAG
+	mov	SOPFLG,al	 ;(BLANK OR LETTER S)
+	ENDIF
+;
+	mov	USERNO,0	 ;DEFAULT TO USER 0
+	mov	LINCNT,0	 ;CLEAR COUNT OF LINES ON SCREEN
+	mov	cl,12
+	CALL	BDOS	 ;CHECK CP/M VERSION
+	mov	word ptr VERFLG,bx  ;LO ORD >0 IF 2.X, HI ORD>0 IF MP/M
+	mov	dl,0FFH
+	mov	cl,CURUSR ;INTERROGATE USER NUMBER
+	CALL	BDOS
+	mov	USERNO,al
+;
+	if	not user
+	mov	al,MPMFLG	 ;MP/M?
+	test	al,al	 ;IF SO, TYPC HEADING LINE
+	JZ	CHKDRV	 ; ELSE SKIP IT
+	endif
+;
+	mov	dx,offset USRMSG ;DISPLAY IT
+	mov	cl,PRINT
+	CALL	BDOS	 ;FIRST PART OF MESSAGE
+	mov	al,USERNO
+	cmp	al,10	 ;IF USER NO. > 9 PRINT LEADING 1
+	JB	DUX
+	mov	al,'1'
+	CALL	TYPC
+	mov	al,USERNO	 ;PRINT LOW DIGIT OF USER NO.
+	sub	al,10
+;
+DUX:	add	al,'0'
+	CALL	TYPC
+	mov	dx,offset USRMS2 ;PRINT TAIL OF MESSAGE
+	mov	cl,PRINT
+	CALL	BDOS
+	mov	LINCNT,1	;WE USED A LINE
+;
+CHKDRV:	mov	si,offset FCB
+	lods	al	;get drive name
+	test	al,al	;ANY SPECIFIED?
+	JNZ	START2	;YES SKIP NEXT ROUTINE
+	mov	cl,CURDSK
+	CALL	BDOS	;GET CURRENT DISK NR
+	inc	al	;MAKE A:=1
+	mov	byte ptr .FCB,al
+;
+START2:	add	al,'A'-1	;MAKE IT PRINTABLE
+	mov	DRNAM,al	;SAVE FOR LATER
+	mov	di,offset FCB+1	;POINT TO NAME
+	mov	al,[di]	;ANY SPECIFIED?
+	cmp	al,' '
+	JNZ	GOTFCB
+;No FCB - make FCB all '?'
+	mov	cx,11	;FN+FT COUNT
+	mov	al,'?'
+;
+	rep stos al	;fill fcb with '?'
+;
+GOTFCB:
+	mov	byte ptr .FCB+12,'?'	;FORCE WILD EXTENT
+	mov	al,byte ptr .FCB	;CHECK FOR EXPLICIT DRIVE
+	dec	al
+	mov	dl,al	;SELECT SPECIFIED DRIVE
+	mov	cl,SELDSK
+	CALL	BDOS
+	mov	byte ptr .FCB,0
+;
+	mov	cl,CURDPB;IT'S 2.X OR MP/M...REQUEST DPB
+	push	es	;save current extra segment
+	int	224	;return bx=offset dpb, es=segment dpb
+	add	bx,2
+	mov	al,es: [bx]
+	mov	BLKSHF,al	;GET BLOCK SHIFT
+	inc	bx	;BUMP TO BLOCK MASK
+	mov	al,es: [bx]
+	mov	BLKMSK,al
+	add	bx,2
+	mov	ax,es: [bx]
+	mov	BLKMAX,ax
+	add	bx,2
+	mov	ax,es: [bx]
+	mov	DIRMAX,ax	;SAVE IT
+	pop	es		;restore our extra segment
+;
+SETTBL:	inc	ax	;DIRECTORY SIZE IS DIRMAX+1
+	shl	ax,1	;DOUBLE DIRECTORY SIZE
+	add	ax,offset ORDER	;TO GET SIZE OF ORDER TABLE
+	mov	TBLOC,ax ;NAME TABLE BEGINS WHERE ORDER TABLE ENDS
+	mov	NEXTT,ax
+	mov	bx,word ptr .BASE+6	;MAKE SURE WE HAVE ROOM TO CONTINUE
+	cmp	ax,bx
+	jb	SFIRST
+	JMP	OUTMEM
+;
+;Look up the FCB in the directory
+;
+SFIRST:	mov	cl,FSRCHF ;GET 'SEARCH FIRST' FNC
+	mov	dx,offset FCB
+	CALL	BDOS	;READ FIRST
+	inc	al	;WERE THERE ANY?
+	JNZ	SOME	;GOT SOME
+;
+NONE:	mov	dx,offset FNF	;PREPARE MP/M ERROR MESSAGE
+	mov	al,MPMFLG
+	test	al,al	;USE IT IF REALLY MP/M
+	jz	NOFILE
+	JMP	ERXIT1
+NOFILE:	CALL	ERXIT	;ELSE USE CP/M ERROR MESSAGE
+	DB	'NO FILE$'
+FNF	DB	'File not found.$'
+;
+USRMSG	DB	'Directory for user $'
+USRMS2	DB	':',13,10,'$'
+;
+;Read more directory entries
+;
+MORDIR:	mov	cl,FSRCHN ;SEARCH NEXT
+	mov	dx,offset FCB
+	CALL	BDOS	;READ DIR ENTRY
+	inc	al	;CHECK FOR END (0FFH)
+	JZ	SPRINT	;NO MORE - SORT & PRINT
+;
+;Point to directory entry 
+;
+SOME:	dec	al	;UNDO PREV 'INR A'
+	mov	cl,5
+	shl	al,cl	;entry no. times 32
+	mov	ah,0
+	add	al,80h
+	mov	bx,ax ;POINT TO BUFFER
+			;(SKIP TO FN/FT)
+;
+	IF	SOPT
+	mov	al,SOPFLG	;DID USER REQUEST SYS FILES?
+	cmp	al,'S'
+	JZ	SYSFOK
+	ENDIF
+;
+	test	byte ptr 10[bx],80H	;check bit 7 of SYS byte
+	JNZ	MORDIR	;SKIP THAT FILE
+;
+SYSFOK:	mov	al,USERNO	;GET CURRENT USER
+	cmp	al,[bx]
+	JNZ	MORDIR	;IGNORE IF DIFFERENT
+	inc	bx
+;
+;Move entry to table
+;
+	mov	si,bx	;si points to name
+	mov	di,NEXTT	;NEXT TABLE ENTRY TO di
+	mov	cx,12	;ENTRY LENGTH (NAME, TYPC, EXTENT)
+;
+TMOVE:	lods	al	;GET ENTRY CHAR
+	and	al,7FH	;REMOVE ATTRIBUTES
+	stos	al	;store in table
+	loop	TMOVE
+	mov	al,2[si]	;get sector count
+	MOV	[di],al	;STORE IN TABLE
+	inc	di
+	mov	NEXTT,di	;SAVE UPDATED TABLE ADDR
+	inc	COUNT
+	add	di,13	;SIZE OF NEXT ENTRY
+	sub	di,word ptr .BASE+6	;PICK UP TPA END
+	JB	MORDIR	;IF TPA END>NEXTT THEN LOOP BACK FOR MORE
+;
+OUTMEM:	CALL	ERXIT
+	DB	'Out of memory.',13,10,'$'
+;
+;Sort and print
+;
+SPRINT:	mov	cx,COUNT	;GET FILE NAME COUNT
+	test	cx,cx
+	jnz	SPRINI
+	jmp	NONE	;NONE, EXIT
+;Init the order table
+SPRINI:	mov	ax,TBLOC	;GET START OF NAME TABLE
+	mov	di,offset ORDER	;POINT TO ORDER TABLE
+;
+BLDORD:	stos	ax
+	add	ax,13
+	loop	BLDORD
+	mov	bx,COUNT	;GET COUNT
+	mov	SCOUNT,bx	;SAVE AS # TO SORT
+	dec	bx	;only 1 entry?
+	JZ	DONE	;..YES, SO SKIP SORT
+;
+SORT:	mov	SWITCH,0	;SHOW NONE SWITCHED
+	mov	bx,SCOUNT	;GET COUNT
+	dec	bx		;use 1 less
+	mov	word ptr TEMP,bx	;SAVE # TO COMPARE
+	mov	SCOUNT,bx	;SAVE HIGHEST ENTRY
+	JZ	DONE	;EXIT IF NO MORE
+	mov	bx,offset ORDER ;POINT TO ORDER TABLE
+;
+SORTLP:	mov	cx,12	;# BYTES TO COMPARE
+	CALL	COMPR	;COMPARE 2 ENTRIES
+	jbe	NOSWAP
+	CALL	SWAP	;SWAP IF NOT IN ORDER
+NOSWAP:	add	bx,2	;bump order table ptr
+	dec	TEMP	;BUMP COUNT
+	JNZ	SORTLP	;CONTINUE
+;One pass of sort done
+	mov	al,SWITCH	;ANY SWAPS DONE?
+	test	al,al
+	JNZ	SORT
+;
+;Sort is all done - print entries
+;
+DONE:	mov	bx,offset ORDER
+	mov	NEXTT,bx
+;
+;Print an entry
+;
+	IF	NOT WIDE
+	CALL	DRPRNT	;PRINT DRIVE NAME
+	ENDIF
+	mov	cx,NPL	;NR. OF NAMES PER LINE
+	mov	TOTSIZ,0	; TOTAL K USED
+	mov	TOTFIL,0	; AND TOTAL FILES
+;
+ENTRY:	mov	bx,COUNT	; CHECK COUNT OF REMAINING FILES
+	dec	bx	; skip compare if only 1 left
+	JZ	OKPRNT
+	PUSH	cx
+;
+	mov	cl,dconio	;get console status
+	mov	dl,0ffh
+	call	bdos
+	test	al,al	;char?
+	jz	nobrk	;no char, bypass the other stuff
+	jmp	exit	;abort
+;
+NOBRK:	mov	bx,NEXTT
+	mov	cx,11
+	CALL	COMPR	;DOES THIS ENTRY MATCH NEXT ONE?
+	pop	cx
+	JNE	OKPRNT	;NO, PRINT IT
+	add	bx,2	;SKIP, SINCE HIGHEST EXTENT COMES LAST IN LIST
+	mov	NEXTT,bx
+	dec	COUNT	;COUNT DOWN
+	JMP	ENTRY	;GO GET NEXT
+;
+OKPRNT:
+	push	cx
+;
+	IF	NOT WIDE
+	CALL	FENCE	;PRINT FENCE CHAR AND SPACE
+	ENDIF
+;
+	mov	bx,NEXTT	;GET ORDER TABLE POINTER
+	mov	si,[bx]
+	add	bx,2
+	mov	NEXTT,bx	;SAVE UPDATED TABLE POINTER
+	mov	cx,8	;FILE NAME LENGTH
+	CALL	TYPCIT	;TYPC FILENAME
+	mov	al,'.'	;PERIOD AFTER FN
+	CALL	TYPC
+	mov	cx,3	;GET THE FILETYPC
+	CALL	TYPCIT
+	mov	dl,[si]
+	mov	dh,0
+	inc	si
+	mov	al,[si]	;GET SECTOR COUNT OF LAST EXTENT
+	mov	cl,4	;# OF EXTENTS TIMES 16K
+	shl	dx,cl
+	ADD	al,BLKMSK	;ROUND LAST EXTENT TO BLOCK SIZE
+	mov	cl,3
+	shr	al,cl		;CONVERT FROM SECTORS TO K
+	mov	ah,0
+	add	dx,ax	;add to total K
+	mov	al,BLKMSK	;GET SECTORS/BLK-1
+	mov	cl,3
+	shr	ax,cl		;CONVERT TO K/BLK
+	not	ax		;USE TO FINISH ROUNDING
+	and	dx,ax
+	add	TOTSIZ,dx	;add to total used
+	inc	TOTFIL	;INCREMENT FILE COUNT
+	mov	ax,dx		;GET BACK FILE SIZE
+	CALL	DECPRT	; AND PRINT IT
+	mov	al,'k'	;FOLLOW WITH K
+	CALL	TYPC
+;
+	IF	NOT WIDE
+	CALL	SPACE
+	ENDIF
+;
+;See if more entries
+;
+	dec	COUNT	;COUNT DOWN ENTRIES
+	pop	cx
+	JZ	PRTOTL	;IF OUT OF FILES, PRINT TOTALS
+	DEC	CX	;ONE LESS ON THIS LINE
+	jz	DOCRLF
+;
+	IF	WIDE
+	CALL	FENCE	;NO CR-LF NEEDED, DO FENCE
+	ENDIF
+;
+	jmps	NOCRLF
+;
+DOCRLF:	CALL	CRLF	;CR-LF NEEDED
+NOCRLF:	JMP	ENTRY
+;
+;Print HL in decimal with leading zero suppression
+;
+DECPRT:			;CLEAR LEADING ZERO FLAG
+	mov	LZFLG,0
+	mov	bx,1000	;PRINT 1000'S DIGIT
+	CALL	DIGIT
+	mov	bx,100	;ETC
+	CALL	DIGIT
+	mov	bx,10
+	CALL	DIGIT
+	add	al,'0'	;GET 1'S DIGIT
+	JMP	TYPC
+;
+DIGIT:	mov	dx,0	;init hi order dividend
+	div	bx	;divide ax by digit value (dx gets rmdr)
+	add	al,'0'	;convert to ASCII digit
+;
+	cmp	al,'0'	;ZERO DIGIT?
+	JNZ	DIGNZ	;NO, TYPC IT
+	mov	al,LZFLG	;LEADING ZERO?
+	test	al,al
+	mov	al,'0'
+	JNZ	DIGPR	;PRINT DIGIT
+	mov	al,SUPSPC	;GET SPACE SUPPRESSION FLAG
+	test	al,al	;SEE IF PRINTING FILE TOTALS
+	jz	DIGNP		;YES, DON'T GIVE LEADING SPACES
+	mov	al,' '
+	JMPS	DIGPR	;LEADING ZERO...PRINT SPACE
+;
+DIGNZ:	mov	LZFLG,0ffh ;SET LEADING ZERO FLAG SO NEXT ZERO PRINTS
+DIGPR:	call	TYPC	;AND PRINT DIGIT
+DIGNP:	mov	ax,dx	;set up remainder for next digit
+	ret
+;
+;Show total space and files used
+;
+PRTOTL:	mov	SUPSPC,0	;SUPPRESS LEADING SPACES IN TOTALS
+	CALL	CRLF	;NEW LINE (WITH PAUSE IF NECESSARY)
+;
+	IF	WIDE
+	mov	dx,offset TOTMS1 ;PRINT FIRST PART OF TOTAL MESSAGE
+	ENDIF
+;
+	IF	NOT WIDE
+	mov	dx,offset TOTMS1+1 ;PRINT FIRST PART OF TOTAL MESSAGE
+	ENDIF
+;
+	mov	cl,PRINT
+	CALL	BDOS
+	mov	ax,TOTSIZ	;PRINT TOTAL K USED
+	CALL	DECPRT
+	mov	dx,offset TOTMS2;NEXT PART OF MESSAGE
+	mov	cl,PRINT
+	CALL	BDOS
+	mov	ax,TOTFIL	;PRINT COUNT OF FILES
+	CALL	DECPRT
+	mov	dx,offset TOTMS3;TAIL OF MESSAGE
+	mov	cl,PRINT
+	CALL	BDOS
+	mov	cl,GALLOC	;GET ADDRESS OF ALLOCATION VECTOR
+	push	es	;save our ES
+	int	224	;return bx=offset ALV, es=segment ALV
+	mov	dx,BLKMAX	;GET ITS LENGTH
+	inc	dx
+	mov	cx,0	;INIT BLOCK COUNT TO 0
+;
+GSPBYT:	PUSH	bx	;SAVE ALLOC ADDRESS
+	mov	al,es: [bx]
+	mov	bl,8	;SET TO PROCESS 8 BLOCKS
+;
+GSPLUP:	shl	al,1		;TEST BIT
+	JB	NOTFRE
+	inc	cx
+;
+NOTFRE:	dec	dx	;COUNT DOWN BLOCKS
+	JZ	ENDALC	;QUIT IF OUT OF BLOCKS
+	dec	bl	;COUNT DOWN 8 BITS
+	JNZ	GSPLUP	;DO ANOTHER BIT
+	POP	bx	;BUMP TO NEXT BYTE
+	INC	bx	;OF ALLOC. VECTOR
+	JMPS	GSPBYT	;PROCESS IT
+;
+ENDALC:	pop	es	;restore our es
+	mov	ax,cx
+	mov	cl,BLKSHF	;GET BLOCK SHIFT FACTOR
+	sub	cl,3	;CONVERT FROM SECTORS TO K
+	JZ	PRTFRE	;SKIP SHIFTS IF 1K BLOCKS
+;
+	shl	ax,cl	;mult blks by k/blk
+;
+PRTFRE:	CALL	DECPRT	;PRINT K FREE
+	mov	dx,offset TOTMS4
+	mov	cl,PRINT
+	CALL	BDOS
+	JMP	EXIT	;ALL DONE...RETURN TO CP/M
+;
+TOTMS1	DB	' : Total of $'
+DRNAM	equ	TOTMS1
+TOTMS2	DB	'k in $'
+TOTMS3	DB	' files with $'
+TOTMS4	DB	'k space remaining.$'
+;
+FENCE:
+	IF	WIDE
+	CALL	SPACE
+	ENDIF
+	mov	al,DELIM	;FENCE CHARACTER
+	CALL	TYPC	;PRINT IT, FALL INTO SPACE
+;
+SPACE:	mov	al,' '
+;
+;Type character in A
+;
+TYPC:	PUSH	cx
+	PUSH	dx
+	push	bx
+	push	si
+	mov	dl,al	;use bdos calls, that's what they're there for
+	mov	cl,dconio
+	call	bdos
+	pop	si
+	POP	bx
+	POP 	dx
+	POP	cx
+	RET
+;
+TYPCIT:	lods	al
+	CALL	TYPC
+	loop	TYPCIT
+	RET
+;
+;Fetch character from console (without echo)
+;
+CINPUT:	mov	cl,dconio
+	mov	al,0ffh
+	call	BDOS
+	and	al,7FH
+	jz	CINPUT
+	RET
+;
+CRLF:	mov	al,LINCNT	;CHECK FOR END OF SCREEN
+	inc	al
+	cmp	al,LPS
+	JB	NOTEOS	;SKIP MESSAGE IF MORE LINES LEFT ON SCREEN
+	mov	dx,offset EOSMSG;SAY WE'RE PAUSING FOR INPUT
+	mov	cl,PRINT
+	CALL	BDOS
+	CALL	CINPUT	;WAIT FOR CHAR.
+	mov	al,0	;SET UP TO ZERO LINE COUNT
+;
+NOTEOS:	mov	LINCNT,al	;SAVE NEW LINE COUNT
+	mov	al,13	;print cr
+	call	TYPC
+	mov	al,10	;lf
+	call	TYPC
+;
+	IF	NOT WIDE
+	CALL	DRPRNT	;DRIVE NAME
+	ENDIF
+;
+	mov	cx,NPL	;RESET NUMBER OF NAMES PER LINE
+	RET
+;
+EOSMSG	DB	13,10,'(Strike any key to continue)$'
+;
+	IF	NOT WIDE
+DRPRNT:	mov	al,DRNAM
+	JMP	TYPC
+	ENDIF
+;
+;Compare routine for sort
+;
+COMPR:	mov	si,[bx]
+	mov	di,2[bx]
+	repe cmps al,al
+	ret
+;
+;
+;Swap entries in the order table
+;
+SWAP:	mov	SWITCH,1	;SHOW A SWAP WAS MADE
+	mov	dx,[bx]
+	xchg	dx,2[bx]
+	mov	[bx],dx
+	ret
+;
+;Error exit
+;
+ERXIT:	POP	dx	;GET MSG
+;
+ERXIT1:	mov	cl,PRINT
+;
+CALLB:	CALL	BDOS	;PERFORM REQUESTED FUNCTION
+;
+;(fall into exit)
+;Exit - all done, restore stack
+;
+EXIT:	mov	cl,0	;exit is via BDOS call 0
+;
+BDOS:	push	es	;preserve es thru bdos call
+	int	224	;call bdos 8086 style
+	pop	es
+	ret
+;
+;Temporary storage area
+;
+BLKSHF	DB	0	;# SHIFTS TO MULT BY SEC/BLK
+BLKMSK	DB	0	;SEC/BLK - 1
+BLKMAX	DW	0	;HIGHEST BLOCK # ON DRIVE
+DIRMAX	DW	0	;HIGHEST FILE # IN DIRECTORY
+TOTSIZ	DW	0	;TOTAL SIZE OF ALL FILES
+TOTFIL	DW	0	;TOTAL NUMBER OF FILES
+LINCNT	DB	0	;COUNT OF LINES ON SCREEN
+TBLOC	DW	0	;POINTER TO START OF NAME TABLE
+NEXTT	DW	0	;NEXT TABLE ENTRY
+COUNT	DW	0	;ENTRY COUNT
+SCOUNT	DW	0	;# TO SORT
+SWITCH	DB	0	;SWAP SWITCH FOR SORT
+SUPSPC	DB	0FFH	;LEADING SPACE FLAG FOR DECIMAL RTN.
+BUFAD	DW	BASE+80H ;OUTPUT ADDR
+SOPFLG	db	0	;SET TO 'S' TO ALLOW SYS FILES TO PRINT
+USERNO	db	0	;CONTAINS CURRENT USER NUMBER
+TEMP	dw	0	;SAVE DIR ENTRY
+VERFLG	db	0	;VERSION FLAG
+MPMFLG	db	0	;MP/M FLAG
+LZFLG	db	0	;0 WHEN PRINTING LEADING ZEROS
+ORDER	EQU	$	;ORDER TABLE STARTS HERE
+;
+;BDOS equates
+;
+RDCHR	EQU	1	;READ CHAR FROM CONSOLE
+WRCHR	EQU	2	;WRITE CHR TO CONSOLE
+DCONIO	EQU	6	;direct console i/o
+PRINT	EQU	9	;PRINT CONSOLE BUFF
+CONST	EQU	11	;CHECK CONS STAT
+SELDSK	EQU	14	;SELECT DISK
+FOPEN	EQU	15	;0FFH=NOT FOUND
+FCLOSE	EQU	16	;   "	"
+FSRCHF	EQU	17	;   "	"
+FSRCHN	EQU	18	;   "	"
+CURDSK	EQU	25	;GET CURRENTLY LOGGED DISK NAME
+GALLOC	EQU	27	;GET ADDRESS OF ALLOCATION VECTOR
+CURDPB	EQU	31	;GET CURRENT DISK PARAMETERS
+CURUSR	EQU	32	;GET CURRENTLY LOGGED USER NUMBER (2.x ONLY)
+;
+	END
+

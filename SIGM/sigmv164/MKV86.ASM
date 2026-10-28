@@ -1,0 +1,637 @@
+
+;	=======================================================
+;
+;
+;	Module composed of workspace operators for REC/MARKOV.
+;	These are specialized subroutines for manipulating a
+;	"workspace,"  which is an array together with five
+;	pointers.  The workspace will probably (but not always)
+;	hold text, subdivisions of which are marked off by the
+;	pointers.  They in turn are:
+;
+;	    p0  the beginning of both space and text
+;	    p1  the beginning of a specific segment
+;	    p2  the end of a specific segment
+;	    p3  the end of the entire text
+;	    p4  the physical end of the available space
+;
+;	The uniform method to designate intervals is that the
+;	beginning is inclusive, while the end is exclusive.  In
+;	that way a null interval can be represented through two
+;	equal pointers.  The workspace operators and predicates
+;	move data around and compare it with the help of these
+;	pointers.  Other operators move data between the work-
+;	space and the pushdown list.
+;
+;	The complete list of operators and predicates is:
+;
+;	    A	advance pointer 1 if possible
+;	    B	retract pointer 1 if possible
+;	    D	delete interval between p1 and p2
+;	    E	test equality between workspace and PDL
+;	    F	find a specified segment in the workspace
+;	    I	insert in the workspacve following p2
+;	    J	move p1 to beginning
+;	    M	test workspace for lexicographically larger
+;	    Q	move interval between p1 and p2 to PDL
+;	    U	find segment between delimiters
+;	    V	find segment including delimiters
+;	    Y   restore pointer 1 to previous value
+;	    Z	move p2 to end
+;	    a	extend interval from p1 if possible
+;	    b	extend interval to p2 if possiblle
+;	    e	extend limit of text if possible
+;	    f	fill if space is available
+;	    h	fetch workspace header for PDL
+;	    j	null interval at front of segment
+;	    q	place p1, p2-p1 on PDL
+;	    w	store (or possibly exchange) workspace header
+;	    z	null interval at end of segment
+;	    <	restrict workspace to segment p1-p2
+;	    >	open workspace to previous span
+;
+;	Version released during the Summer School, 1980.
+;
+;		  MKV86 - Copyright (C) 1980
+;		Universidad Autonoma de Puebla
+;		     All Rights Reserved
+;
+;	     [Harold V. McIntosh, 25 April 1982]
+;
+;	May 1, 1982 - M tests for an interval rather than making
+;		a simple comparison.  <a,'',M> should be used
+;		where <a,M> was formerly written.  In general,
+;		<a,b,M> tests for a .LE. WS .LE. b and leaves
+;		P1 and P2 surrounding such a segment.  Both a
+;		and b are always lifted.
+;	May 29, 1983 - h discontinued; use ''w instead
+;	=======================================================
+
+;	=======================================================
+;	Workspace subroutines for REC/MARKOV.
+;	=======================================================
+
+;	(a)  Generate a segment of length n forward from p1 if
+;	possible.  A predicate which, when FALSE, leaves the
+;	deficit by which the segment could not be formed on the
+;	pushdown list.
+
+LCA:	call	CXLD		;load n into (cx)
+	add	cx,P1
+	cmp	P3,cx
+	jc	LAF
+	sto	cx,P2
+	jmp	SKP		;return with the value TRUE
+LAF:	sub	cx,P3
+	push	cx		;argument to putw must be on 8080 stack
+	call	PUTW		;record deficit
+	ret			;FALSE return: <jmp putw> won't do
+
+;	(A)  Pointer 1 advances by one byte, if possible.
+
+UCA:	ld	ax,P1		;fetch pointer 1
+	inc	ax		;advance by 1
+	cmp	P3,ax
+	jc	UAF		;forget it, return FALSE if past limit
+	sto	ax,P1		;we can safely store pointer 1
+	cmp	P2,ax		;but it still must not pass pointer 2
+	jnc	UA2		;but it still must not pass pointer 2
+	sto	ax,P2		;if it did, pointer 2 = pointer 1
+UA2:	jmp	SKP		;but in either event, return TRUE
+UAF:	ret
+
+;	(b)  Generate a segment of length n backward from p2,
+;	if possible.
+
+LCB:	call	CXLD		;load top argument into (cx), erase it
+	ld	ax,P2		;fetch pointer 2 into (HL)
+	sub	ax,cx		;calculate difference
+	cmp	ax,P0
+	jc	LBF		;low limit passed, abandon the attempt
+	sto	ax,P1		;record it
+	jmp	SKP		;generate TRUE return for the predicate
+LBF:	ret
+
+;	(B)  Pointer 1 retreats by one byte, if possible.
+
+UCB:	ld	ax,P1		;fetch pointer
+	dec	ax		;move backwards one byte
+	cmp	ax,P0		;
+	jc	UBF
+	sto	ax,P1		;otherwise store new position
+	jmp	SKP		;and return with value TRUE
+UBF:	ret			;return false as NOP if passed
+
+;	(D) Delete text between pointers 1 and 2.
+
+UCD:	ld	si,P2		;fetch end of deleted text
+	ld	di,P1		;fetch beginning of deleted text
+	cmp	si,di
+	jz	UD2		;null interval to delete
+	sto	di,P2		;after deletion, interval is null
+	ld	cx,P3
+	sub	cx,si		;length of string to move
+	jz	UD1
+	cld
+	mov	ax,ds
+	mov	es,ax
+	rep
+	movsb
+UD1:	sto	di,P3		;destination limit is new end of text
+UD2:	ret
+
+;	(e)  Attempt to move pointer 3 forward. If insufficient
+;	space remains, this predicate is false and places the
+;	amount of remaining space [p4-p3] on the pushdown list.
+;	If the extension is possible, P1 and P2 will surround it.
+
+LCE:	call	CXLD		;load argument into (cx), pop it
+	add	cx,P3
+	cmp	P4,cx
+	jc	LEF		;skip if increment not greater
+	ld	ax,P3
+	sto	cx,P2
+	sto	cx,P3
+	sto	ax,P1		;make it the beginning of new interval
+	jmp	SKP		;TRUE return
+LEF:	sub	cx,P4
+	push	cx		;putw requires argument on 8080 stack
+	call	PUTW		;insert balance on pushdown list
+	ret			;TRUE return: <jmp putw> won't work
+
+;	(E) Check equality between the pushdown list and the
+;	workspace.  The top argument will be erased whatever
+;	the outcome of the test, a characteristic common to
+;	E, F, M, U, and V.  If there is a segment originating
+;	at p1 which is equal to the argument, p2 will move to
+;	delimit it, otherwise p2 remains unchanged.
+
+UCE:	ld	cx,PY		;end of top argument
+	ld	si,PX		;beginning of top argument
+	ld	di,P1		;beginning of workspace segment in (HL)
+	sub	cx,si
+	jcxz	UEN		;''E is TRUE, sets P2=P1
+	cld
+	mov	ax,ds
+	mov	es,ax
+	repz
+	cmpsb
+	jnz	UEF		;mismatch terminated scan
+	cmp	P3,di		;see whether we've run over
+	jc	UEF
+UEN:	sto	di,P2
+	jmp	CUCL		;skip for TRUE
+UEF:	jmp	UCL		;FALSE for one reason or another
+
+;	(f)  Fill. <'XXX' f> will replace the text following
+;	pointer 1 by XXX if pointer 2 does not conflict,
+;	whereupon pointers 1 and 2 delimit what remains of
+;	the interval they originally encompassed, making this
+;	predicate TRUE.  Otherwise it will be FALSE, with the
+;	pointers unaltered.  When f fails, its argument is
+;	erased, otherwise the insert is conserved for repeated
+;	use in a block fill.  f is true even if its argument
+;	completely fills the available space, since it reports
+;	whether or not an insertion took place rather than
+;	whether any space remains.
+
+LCF:	ld	si,PX
+	ld	cx,PY
+	sub	cx,si
+	ld	di,P1		;load p2
+	ld	dx,P2		;now load p1
+	sub	dx,di
+	cmp	dx,cx		;compare this to p2
+	jnc	LFT
+	jmp	UCL		;insert too big, FALSE and erase insert
+LFT:	cld
+	mov	ax,ds
+	mov	es,ax
+	rep
+	movsb
+	sto	di,P1		;final destination location is new p1
+	jmp	SKP		;keep insert, generate TRUE return
+
+;	(F)  Search for text.  The text in the workspace is
+;	examined from left to right beginning at pointer 1 to
+;	see if the object of comparison on the pushdown list
+;	can be found.  If so, its replica in the workspace is
+;	bracketed by pointers 1 and 2, while the model itself
+;	is discarded.  Even if no replica is found, the model
+;	is still discarded, but then the value is FALSE and the
+;	pointers 1 and 2 retain their original sites.  Should
+;	several replicas exist, only the first is taken; if
+;	consecutive searches for the same object are made, the
+;	same replica will be found repeatedly.  This permits
+;	nested fragments of the same object to be found on
+;	successive searches, but requires an intermediate
+;	collapse of the interval p1-p2 in favor of p2 [say by
+;	using ''I] to scan multiple occurrences of the same
+;	object.
+
+UCF:	ld	dx,PY
+	ld	bx,PX
+	ld	di,P1
+	sub	dx,bx		;length of comparison object
+	jz	UFX		;fast exit for null object
+	ld	cx,P3
+	sub	cx,di		;length of search field
+	cmp	cx,dx
+	jc	UFF		;useless to even try
+	cld			;searches go forward
+	mov	ax,ds
+	mov	es,ax		;CP/M might derange ES
+	dec	dx
+	jz	UFS		;look for single byte
+UF1:	mov	si,bx
+	lodsb
+	repnz			;search by increment until limit
+	scasb
+	jnz	UFF		;end without even 1st word
+	cmp	cx,dx		;are there enough chars left
+	jc	UFF		;can't possibly fit it in
+	push	cx
+	push	di
+	mov	cx,dx
+	repz
+	cmpsb
+	jz	UFT
+	pop	di		;comparison failed
+	pop	cx
+	jmp	UF1		;go on where we left off
+UFT:	pop	ax		;comparison accomplished
+	pop	cx
+UFV:	dec	ax
+	sto	ax,P1
+UFX:	sto	di,p2
+	jmp	CUCL
+UFS:	ld	al,[bx]
+	repnz
+	scasb
+	jnz	UFF
+	mov	ax,di
+	jmp	UFV
+UFF:	jmp	UCL
+
+;	(I)  Insert text following pointer 2; upon completion
+;	pointers bracket inserted material.  If the proposed
+;	insertion will not fit, an error indicator is generated
+;	and the attempt is abandoned.  An F followed by an I
+;	will insert material after the found text, but if an
+;	intermediate ''F is given, insertion will be made at
+;	the front of the text.  A ''I may be used to form null
+;	intervals, if they are desired at the end of a segment.
+
+UCI:	ld	ax,P2		;point where insertion will be made
+	sto	ax,P1		;pointer 1 to precede inserted material
+	ld	dx,PY		;source origin
+	sub	dx,PX		;source end
+	jz	UIN		;null insert
+	ld	si,P3
+	ld	cx,P4
+	sub	cx,si
+	cmp	cx,dx
+	jc	UIE		;insufficient space for insert
+	mov	cx,si
+	sub	cx,P2
+	add	P2,dx
+	add	P3,dx
+	mov	ax,ds
+	mov	es,ax
+	jcxz	UIA
+	ld	di,P3
+	dec	si
+	dec	di
+	std
+	rep
+	movsb
+UIA:	mov	cx,dx
+	ld	si,PX		;source origin into (DE)
+	ld	di,P1		;new p1 is destination origin, in (HL)
+	cld
+	rep
+	movsb
+UIN:	jmp	UCL		;I removes its argument upon completion
+UIE:	call	RER
+
+;	(j)  Null interval at p1.  Equivalent to ''F or ''E.
+
+LCJ:	ld	ax,P1		;pointer to beginning of interval
+	sto	ax,P2		;make end of interval the same
+	ret
+
+;	(J) Back to beginning of workspace.  Extends whatsoever
+;	 interval back to the beginning of the entire text.
+
+UCJ:	ld	ax,P0		;fetch pointer to beginning of text
+	sto	ax,P1		;make it the beginning of the interval
+	ret
+
+;	(M)  Compare inequality between the pushdown list and
+;	the workspace.  M is TRUE if there is a segment in the
+;	workspace beginning at p1 which is lexicographically
+;	larger than the argument on the pushdown list.  In that
+;	event, p2 marks the "larger" interval, which terminates
+;	after the first byte in the workspace which is larger -
+;	by unsigned integer comparison - than the argument.  M
+;	is also TRUE if an equal segment lies in the workspace.
+;	According to the common style of E, F, I, M, U, and V,
+;	the argument is erased whatever might be the outcome of
+;	the comparison.  Likewise, FALSE results in no pointer
+;	changes.
+
+UCM:	ld	cx,PY
+	ld	si,PX
+	sub	cx,si
+	push	cx
+	push	si
+	call	UCL
+	ld	cx,PY		;pointer to argument to be compared
+	ld	si,PX		;pointer to workspace under comparison
+	sub	cx,si
+	call	UCL
+	ld	bp,P1
+	jcxz	UMT		;trivial comparison to be made
+	cld
+	mov	ax,ds
+	mov	es,ax
+	mov	di,bp
+UML:	cmpsb			;(SI) - (DI) sets flags
+	jc	UMM		;decided if WS > PD
+	jnz	UMF		;failure if WS < PD
+	loop	UML		;repeat for WS = PD
+UMM:	xchg	di,bp
+	cmp	P3,bp
+	jc	UMF		;fail if we run over
+	pop	si
+	pop	cx
+	jcxz	UMT		;treat '' as 'no comparison'
+	mov	ax,cx
+	mov	cx,bp
+	sub	cx,di
+	cmp	ax,cx		;set flags by l(PD) - l(WS)
+	sbb	dx,dx		;(nc) when l(WS) .LE. l(PD)
+	jz	UMN		;(z): workspace is shorter, equal
+	xchg	ax,cx		;check only common segment
+UMN:	cmpsb			;set flags from PD - WS
+	jc	UMG		;WS > PD means outside inclusive bound
+	jnz	UMT		;WS < PD means bound is satisfied
+	loop	UMN		;WS = PD means keep testing
+	or	dx,dx
+	jnz	UMG		;(z): workspace fulfils 'short before long'
+UMT:	sto	bp,P2
+	jmp	SKP
+UMF:	add	sp,#4
+UMG:	ret
+
+;	(q)  Put p1, p2-p1 on PDL.
+
+LCQ:	ld	ax,P2
+	sub	ax,P1
+	push	ax		;stash P2-P1 on 8086's PDK
+	push	P1		;and then P1 on top of that
+	call	PUTW		;one argument from top of 8080 stack
+	call	PUTW		;then another so we've got both
+	ret			;cannot use jmp putw for call putw, ret
+
+;	(Q)  Copy workspace to pushdown.  The interval between
+;	p1 and p2 is placed on the pushdown list.
+
+UCQ:	ld	si,P1		;fetch beginning of interval
+	ld	cx,P2		;fetch end of interval
+	sub	cx,si		;length of interval into (cx)
+	call	NARG		;close old arg, check space, def new
+	ld	di,PX		;fetch destination origin for (HL)
+	cld
+	mov	ax,ds
+	mov	es,ax
+	rep
+	movsb
+	sto	di,PY		;destination end is argument end
+	ret
+
+;	(w)  Store workspace header.  There are two forms of
+;	this operator which are available: the argument may be
+;	either a single block of ten bytes, or else the pair
+;	<org, siz>.  The distinction is implicit, according to
+;	whether the top argument has two bytes or ten bytes.
+;	The first case arises from a previous usage of h (or
+;	perhaps deliberate construction), while the second is
+;	more likely in the initial allocation of a workspace. A
+;	single block is erased after use, while it is supposed
+;	that a previous definition existed when the pair form
+;	is used.  In such a case, the old block of bytes would
+;	be substituted for the two arguments in case it needed
+;	to be restored later.  When a workspace is generated
+;	from its specifications, pointers 1 and 2 as well as 3
+;	are set to encompass the entire space. Many other forms
+;	can be arranged by a subsequent use of j, D, and so on.
+
+LCW:	ld	si,PX
+	ld	cx,PY
+	sub	cx,si		;determine size of argument
+	cmp	cx,#10		;ten for comparison
+	jnz	LWW		;if length not 10, suppose it was 2
+	cmp	cx,#0
+	jnz	LWX
+	call	UCL
+LWH:	ld	cx,#10		;10 bytes required from PDL
+	call	NARG		;verify space, new px into (HL)
+	ld	si,#P0		;source is pointer block itself
+	cld
+	mov	di,bx
+	mov	ax,ds
+	mov	es,ax
+	rep
+	movsb
+	sto	di,PY		;final destination is arg end
+	ret
+LWX:	ld	di,#P0		;p0 is destination origin
+	cld
+	mov	ax,ds
+	mov	es,ax
+	rep
+	movsb
+	jmp	UCL		;erase the argument
+LWW:	ld	bx,PX		;create p0...p4 from org,siz
+	call	TWOL		;trnsfr two args from PDL to 8080 stack
+	call	LWH		;place existing header on PDL
+	pop	bx		;recover under arg, namely org
+	pop	cx		;recover upper arg, namely siz
+	sto	bx,P0		;origin of workspace
+	sto	bx,P1		;segment at front of workspace
+	add	bx,cx		;add size
+	sto	bx,P2		;segment traverses whole workspace
+	sto	bx,P3		;which defines end of occupied text
+	sto	bx,P4		;as well as physical end
+	ret
+
+;	(U)  Search for interval, excluding limits.  The object
+;	of the search is defined by its delimiters: thus if the
+;	text YYY is to be found, it must be specified as the
+;	one sandwiched between XXX and ZZZ.  Then by executing
+;	'XXX'F followed by 'ZZZ'U pointers 1 and 2 will bracket
+;	YYY.  U erases its argument, whether TRUE or FALSE, by
+;	a custom common to all search or comparison predicates.
+;	By the same custom, pointers 1 and 2 remain unmoved if
+;	the search fails. ''U generates a null interval at the
+;	end of the last interval that was created.
+
+UCU:	push	P1		;fetch beginning of last interval
+	ld	ax,P2		;fetch end of last interval
+	sto	ax,P1		;search begins at end of p1-p2 interval
+	push	ax
+	call	UCF		;use the search subroutine
+	jmp	UUF		;search failed [MUST be 3-byte jmp] <===
+	ld	ax,P1		;beginning of found interval
+	sto	ax,P2		;is end of result interval
+	pop	P1		;recover end of last interval
+	pop	ax		;discard beginning of last interval
+	jmp	SKP		;TRUE return from predicate
+UUF:	pop	ax		;discard end of last interval-it's same
+	pop	P1		;recover beginning of last interval
+	ret			;FALSE return from predicate
+
+;	(V)  Search for interval, including limits.  This
+;	predicate is similar to U, the difference being that
+;	after a successful search, p1 and p2 bracket both the
+;	delimiters as well as the text which they define,
+;	whereas U merely brackets the intervening text.
+
+UCV:	push	P1		;pointer to beginning of last interval
+	ld	ax,P2
+	sto	ax,P1		;pointer to end of last interval
+	call	UCF		;predicate F always makes the search
+	jmp	UVF		;search failed, F was FALSE
+	pop	P1		;recover the old p1
+	jmp	SKP		;TRUE return with old p1, new p2
+UVF:	pop	P1		;recover original p1
+	ret			;FALSE return with p1 and p2 unchanged
+
+;	(Y)  Recover pointer 1.  There are those times when it
+;	is desirable to note a spot in the workspace, through
+;	qL for example, and then be able to return to it later
+;	on.  However intervening deletions, insertions or even
+;	workspace openings and closings may have rendered it
+;	invalid so a check is made to ensure the preservation
+;	of the relative order of p0, p1, and p3.  If p2 lies
+;	in an acceptable range, it is untouched; otherwise it
+;	is set to define a null interval at p1.
+
+UCY:	ld	bx,PX
+	ld	cx,PY
+	sub	cx,bx
+	cmp	cx,#4
+	jz	UYI
+	ld	bx,[bx]		;fetch low byte of pointer
+	cmp	bx,P0		;check that p1 will be greater or equal
+	jnc	UYM		;if less, store p0 instead
+	ld	bx,P0
+	jmp	UYZ
+UYM:	cmp	P3,bx		;check that p1 will be less or equal
+	jnc	UYN		;if not, make p2 = p1 = p3
+	ld	bx,P3
+	jmp	UYY
+UYN:	cmp	P2,bx		;check that p1 less or equal to p2
+	jnc	UYZ
+UYY:	sto	bx,P2		;record null interval between p1 and p2
+UYZ:	sto	bx,P1		;give p1 whatever value it'll have
+	jmp	CUCL		;pop the argument
+UYI:	ld	cx,[bx]
+	ld	bx,[bx+2]
+	cmp	cx,P0
+	jc	UYF
+	add	bx,cx
+	cmp	P3,bx
+	jc	UYF
+	sto	cx,P1
+	sto	bx,P2
+	jmp	CUCL
+UYF:	jmp	UCL
+
+;	(z)  Null interval at end of segment.  Equivalent to
+;	''I, ''U, or 0b.
+
+LCZ:	ld	ax,P2		;pointer to end of interval
+	sto	ax,P1		;make beginning of interval the same
+	ret
+
+;	(Z)  Move p2 to the end of the workspace, thereby
+;	extending whatever interval on to the end of the text.
+
+UCZ:	ld	ax,P3		;pointer to the end of text
+	sto	ax,P2		;make end of interval the same
+	ret
+
+;	(<)  Close down workspace. The workspace is confined to
+;	the interval between pointers 1 and 2.  The reason for
+;	this could be to restrict the editing operations to a
+;	smaller range, or it could be to have absolute freedom
+;	to work over some material before incorporating it into
+;	the main text.  As a practical matter, the text between
+;	pointers 2 and 3 is displaced to the far end of the
+;	workspace and the original values of pointers 0 and 4
+;	are recorded before setting up the new values of the
+;	pointers. Subsequent insertions and deletions then have
+;	much less material to move.
+
+BRA:	ld	di,P4
+	ld	si,P3
+	mov	cx,di
+	sub	cx,si
+	sub	cx,#4
+	jc	BRE
+	mov	cx,si
+	sub	cx,P2
+	dec	di
+	dec	si
+	std
+	mov	ax,ds
+	mov	es,ax
+	rep
+	movsb
+	dec	di
+	ld	ax,P4
+	stos
+	sto	di,P4
+	ld	ax,P0
+	stos
+	ld	ax,P2
+	sto	ax,P3
+	ld	ax,P1
+	sto	ax,P0		;store it as new beginning of text
+	ret			;p2 remains at end of newly made text
+BRE:	call	RER
+
+;	(>)  Open up the workspace.  This is the complementary
+;	operator to <, which is used to return the scope of the
+;	pointers p0 and p4 to their original range.  The text
+;	forming the restricted workspace is incorporated in its
+;	entirity in place of the material originally lying in
+;	the interval p1-p2.  An error condition can arise from
+;	opening a workspace that was never closed, but it will
+;	be anulled if a zero address was placed at the pointer
+;	4 during initialization of the workspace.
+
+KET:	ld	bx,P4		;load the end of the universe
+	ld	cx,[bx]
+	jcxz	KEE		;zero means opening too many times
+	sto	cx,P0		;restore it
+	ld	cx,[bx+2]
+	sto	cx,P4
+	add	bx,#4
+	sub	cx,bx
+	mov	si,bx
+	ld	di,P3		;end of txt is dest to replace old tail
+	cld
+	mov	ax,ds
+	mov	es,ax
+	rep
+	movsb
+	sto	di,P3		;destination end is new end of text
+	ret
+KEE:	call	RER		;note error and abandon attempt
+
+	LINK	FXT86.ASM
+
+

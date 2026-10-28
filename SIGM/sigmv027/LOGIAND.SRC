@@ -1,0 +1,25 @@
+;File  LOGIAND.SRC   Created  14-Nov-80
+;
+;    This procedure will do a logical or of two operands passed to it
+;    by a PascalZ program and then return the result
+;
+          NAME LOGIAND
+          ENTRY LOGIAND
+
+LOGIAND:  POP       H    ;Save the return address
+          POP       D    ;Get first operand
+          POP       B    ;Get second operand
+          PUSH      H    ;Put back return vector
+
+          MOV       A,D  ;AND the high byte
+          ANA       B    ;of the two numbers
+          MOV       D,A
+
+          MOV       A,E  ;AND the low byte
+          ANA       C    ;of the two numbers
+          MOV       E,A
+
+          XRA       A    ;Get ready for return to PascalZ
+          RET            ;And return
+
+

@@ -1,0 +1,210 @@
+;	CompuPro Interfacer board equates.
+
+GBP0:	EQU	0		;Serial port zero
+GBP1:	EQU	2		;Serial port one
+GBDATA:	EQU	0		;Data on even I/O unit
+GBSTAT:	EQU	1		;Status on odd I/O unit
+
+GBTBMT:	EQU	00000001b	;Transmit buffer empty
+GBDAV:	EQU	00000010b	;Data available
+GBOPT:	EQU	00000100b	;Optional status line
+GBPE:	EQU	00001000b	;Parity error
+GBOR:	EQU	00010000b	;Overrun error
+GBFE:	EQU	00100000b	;Framing error
+GBCC:	EQU	01000000b	;RS 232 CC input
+GBCB:	EQU	10000000b	;RS 232 CB input
+
+GBRIE:	EQU	00000001b	;Receiver interrupt enable
+GBTIE:	EQU	00000010b	;Transmitter interrupt enable
+GBCD:	EQU	00000100b	;RS 232 CD output
+GBCA:	EQU	00001000b	;RS 232 CA output
+GBTSB:	EQU	00010000b	;Number of stop bits
+GBNP:	EQU	00100000b	;No parity
+GBEPS:	EQU	01000000b	;Even parity
+GBNBI:	EQU	10000000b	;number of bits/character
+;	C O N S O L   S T A T U S
+;
+;	This routine samples the Console status and returns the
+;	following values in the A register.
+;
+;	EXIT	A = 0 (zero), means no character
+;		currently ready to read.
+;
+;		A = FFh (255), means character
+;		currently ready to read.
+
+CONST:	IN	GBP0+GBSTAT	;Input from port
+	ANI	GBDAV		;Mask data available
+	RZ			;If data not available
+	ORI	0FFh
+	RET
+;
+;
+;
+;
+;	C O N S O L   I N P U T
+;
+;	Read the next character into the A register, clearing
+;	the high order bit.  If no character currently ready to
+;	read then wait for a character to arrive before returning.
+;
+;	EXIT	A = character read from terminal.
+
+CONIN:	IN	GBP0+GBSTAT
+	ANI	GBDAV
+	JZ	CONIN		;If data not available
+	IN	GBP0+GBDATA
+	ANI	7Fh
+	RET
+;
+;
+;
+;
+;	C O N S O L   O U T P U T
+;
+;	Send a character to the console.  If the console
+;	is not ready to receive a character wait until
+;	the console is ready.
+;
+;	ENTRY	C = ASCII character to output to console.
+
+CONOUT:	IN	GBP0+GBSTAT
+	ANI	GBTBMT
+	JZ	CONOUT		;If transmit buffer not empty
+	MOV	A,C
+	OUT	GBP0+GBDATA
+	RET
+;
+;
+;
+;
+;	P u n c h   O u t p u t.
+;
+;	Send a character to the punch device.  If no punch
+;	device exists then immediately return.
+;
+;	ENTRY	C = ASCII character to output.
+
+PUNCH:	IN	GBP1+GBSTAT
+	ANI	GBTBMT
+	JZ	PUNCH		;If transmit buffer full
+	MOV	A,C
+	OUT	GBP1+GBDATA
+	RET
+;
+;
+;
+;
+;	R e a d e r   I n p u t.
+;
+;	Read the next character from the currently assigned
+;	reader device into the A register.
+;
+;	EXIT	A = character read from the reader device.
+
+READER:	IN	GBP1+GBSTAT	;Input from port
+	ANI	GBDAV		;Mask data available
+	JZ	READER		;If data not available
+	IN	GBP1+GBDATA
+	RET
+;
+;
+;
+;
+;	L i s t   O u t p u t.
+;
+;	Send a character to the list device.  If the list
+;	device is not ready to receive a character wait
+;	until the device is ready.
+;
+;	ENTRY	C = ASCII character to be output.
+
+LIST:	IN	GBP1+GBSTAT	;Get status
+	ANI	GBCC+GBTBMT
+	SUI	GBTBMT
+	JNZ	LIST
+	MOV	A,C
+	OUT	GBP1+GBDATA
+	RET
+;
+;
+;
+;
+;	L i s t   S t a t u s.
+;
+;	Return the ready status for the list device.
+;
+;	EXIT	A = 0 (zero), list device is not ready to
+;		accept another character.
+;		A = FFh (255), list device is ready to accept
+;		a character.
+
+LISTST:
+	IN	GBP1+GBSTAT
+	ANI	GBCC+GBTBMT
+	SUI	GBTBMT
+	RZ			;If ready
+	ORI	0FFh
+	RET
+;
+;
+;
+;	M P / M   F U N C T I O N S
+;
+;
+;
+SELMEMORY:
+POLLDEVICE:
+STARTCLOCK:
+STOPCLOCK:
+EXITREGION:
+MAXCONSOLE:
+SYSTEMINIT:
+IDLE:
+	RET
+;
+;
+;
+;	O P T I O N A L   N O N - S T A N D A R D   F U N C T I O N S
+;
+;
+;
+;
+;
+;	S E T   S E C T O R   C O U N T
+;
+;	Set the number of continuous sectors to transfer.
+;
+;	ENTRY	C = Number of sectors to transfer.
+;
+;	EXIT	NUMSEC = C
+
+SETNUM:
+	MOV	A,C
+	STA	NUMSEC
+	RET
+;
+;
+;
+;
+;	S E T   E X T E N D E D   B A N K
+;
+;	Set the extended bank data tranfer address.
+;
+;	ENTRY	C = Extended address bank.
+;
+;	EXIT	DMAADE = C.
+
+SETXAD:
+	MOV	A,C
+	STA	DMAADE
+	RET
+;
+;	COLD boot initialization
+;
+;Note:	The label URINIT defines the beginning of data storage
+;
+URINIT:	RET
+;
+;
+

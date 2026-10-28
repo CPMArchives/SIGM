@@ -1,0 +1,265 @@
+* DATE 08/26/84  16:12
+* main command program of database
+IF moveit
+ REST from move additive
+ FIND &linker
+ IF # = 0
+  ERAS
+  @ 10,10 SAY "Unable to locate - hit any key to return to building database."
+  SET CONSOLE OFF
+  WAIT
+  SET CONSOLE ON
+  STOR $(linker,1,2) TO linker
+  SAVE TO move
+  STOR 3 TO BOX
+  STOR t TO moveit
+  RETU
+ ENDI # = 0
+ RELE linker
+ STOR t TO keepitup
+ STOR f TO moveit
+ENDI
+* set up screen
+STOR t TO first
+* set up the loop
+DO WHIL t
+* if first time this trip
+ IF first
+  ERAS
+  STOR '<B>ackward, <D>elete/Recall, <E>dit, <F>orward, <H>elp,' TO prompt1
+  STOR '<P>rint, <S>earch, b<U>ilding records or <Q>uit to main menu' TO prompt2
+  STOR 'Main Tenant Database Menu' TO mode
+* show the current record
+  @ 0,26 SAY mode
+  @ 1, 0 SAY " -------------------------------------------------"
+  @ 1,50 SAY "----------------------------"
+  @ 3, 2 SAY "Tenant:"
+  @ 3,53 SAY "Code:"
+  @ 4, 4 SAY "Unit:"
+  @ 4,26 SAY "Building:"
+  @ 5, 1 SAY "Contact:"
+  @ 5,52 SAY "Phone:"
+  @ 6,09 SAY "Alternate mailing address: "
+  @ 7, 1 SAY "Address:"
+  @ 8, 4 SAY "City:"
+  @ 10, 4 SAY "Type:"
+  @ 10,19 SAY "Addl Percentage:"
+  @ 10,48 SAY "1st Lease:"
+  @ 11,04 SAY "Base:"
+  @ 11,47 SAY "Expiration:"
+  @ 12, 0 SAY "Security:"
+  @ 12,30 SAY "Bank:"
+  @ 12,48 SAY "Late Date:"
+  @ 13, 4 SAY "Rent:"
+  @ 13,25 SAY "Late Chgs:"
+  @ 13,48 SAY "Addl Rent:"
+  @ 14, 3 SAY "G & E:"
+  @ 14,24 SAY "Other Chgs:"
+  @ 14,47 SAY "Total Rent:"
+  @ 15, 0 SAY "Rent Due:"
+  @ 15,22 SAY "Last Payment:"
+  @ 15,49 SAY "Amt Paid:"
+  @ 16,00 SAY "Total Yr:"
+  @ 16,30 SAY "Flag:"
+  @ 16,52 SAY "Total:"
+  @ 18, 3 SAY "Notes:"
+  @ 18,51 SAY "Update:"
+  @ 19, 0 SAY " -------------------------------------------------"
+  @ 19,50 SAY "-----------------------------"
+  @ 20, 7 SAY prompt1
+  @ 21, 7 SAY prompt2
+ ENDI first
+ STOR f TO first
+ STOR '?' TO command
+* find out if the current record is marked for deletion
+ IF *
+  STOR 'Deleted' TO deleted
+ ELSE
+  STOR '       ' TO deleted
+ ENDI *
+ STOR trent TO trentx
+ IF ttype = 'P'
+  IF (trentpc*(trentpcr/100)/12)>trent
+   STOR (trentpc*(trentpcr/100)/12) TO trentx
+  ENDI (trentpc)
+ ENDI ttype = 'P'
+ IF ttype = 'O'
+  STOR ((trentpc*(trentpcr/100)/12)+trent) TO trentx
+ ENDI ttype = 'O'
+ STOR (trentx + tlatec + taddl + trente + trentm) TO trentxx
+* show the current record, and find out what to do next
+ @ 0, 0 SAY deleted
+ @ 3,10 SAY tenant
+ @ 3,59 SAY bcode
+ @ 4,10 SAY tunit
+ @ 4,36 SAY baddr
+ @ 5,10 SAY tcontac
+ @ 5,59 SAY tphone
+ @ 6,36 SAY alt
+ @ 7,10 SAY altad
+ @ 8,10 SAY altcty
+ @ 10,10 SAY ttype
+ @ 10,36 SAY trentpc USING '99.9999'
+ @ 10,59 SAY texpir
+ @ 11,10 SAY trentpcr USING '$999,999,999'
+ @ 11,59 SAY tfirst
+ @ 12,10 SAY tsec USING '$99,999.99'
+ @ 12,36 SAY tsecb
+ @ 12,59 SAY tlate
+ @ 13,10 SAY trent USING '$99,999.99'
+ @ 13,36 SAY tlatec USING '$99,999.99'
+ @ 13,59 SAY taddl USING '$99,999.99'
+ @ 14,10 SAY trente USING '$99,999.99'
+ @ 14,36 SAY trentm USING '$99,999.99'
+ @ 14,59 SAY trentxx USING '$99,999.99'
+ @ 15,10 SAY trentd USING '$99,999.99'
+ @ 15,36 SAY trentpd PICTURE '99/99/99'
+ @ 15,59 SAY trentp USING '$99,999.99'
+ @ 16,10 SAY trenty USING '$99,999.99'
+ @ 16,36 SAY tflag
+ @ 16,59 SAY trentt USING '$99,999.99'
+ @ 18,10 SAY tnotes
+ @ 18,61 SAY tupdate
+ @ 22,41 SAY "WHAT NEXT ?"
+ @ 22,60 GET command PICTURE '!'
+ READ
+* perform selected function
+ DO CASE
+ CASE (command = 'B' .OR. command = ',' )
+* move backwards one record
+  SKIP -1
+ CASE command = 'D'
+* switch the current record from deleted to recalled
+  IF *
+   RECA
+  ELSE
+   DELE
+  ENDI *
+ CASE command = 'E'
+  SET console OFF
+  RECA
+  STOR # TO rec:number
+  SET INDEX TO
+  IF rec:number=0
+   GO 1
+  ELSE
+   GO rec:number
+  ENDI rec:number=0
+  SET console ON
+  RELE rec:number
+  DO EDIT.tnt
+ CASE (command = 'F' .OR. command = '.' )
+* move forward one record
+  SKIP
+ CASE (command = 'H' .OR. command = '?' )
+* display a screen full of instructions
+  STOR t TO first
+  ERAS
+TEXT
+
+
+
+           M A I N   T E N A N T   M E N U   H E L P   F I L E
+
+    Welcome to the  SIG/M PROPERTY MANAGER main tenant data base file.
+    I am here to help you and you can call me anytime by just entering
+    a ? mark at any place where this program asks for a command.
+
+    When you go back to the screen you will see two lines -  on top of     
+    the first line it says   'Main Tenant Database Menu' - thus,   the
+    program always tells you where you are!
+
+    Between the two lines  we have the information you or someone else
+    entered into the computer.  This information tells you all about a  
+    particular tenant.
+
+
+
+               If you press any key I will tell you more.
+
+
+ENDT
+  SET CONSOLE OFF
+  WAIT
+  SET CONSOLE ON
+  ERAS
+TEXT
+
+   This is a multiple data base - by that I mean - you can have one screen of
+information about the building and another screen of information about any of 
+the tenants in that building.  To find the information about the building the
+tenant resides in, hit 'U' for b<U>ilding records.                           
+
+The information on screen in clear, so let's look below the line.  This shows
+what you can do.  To look at the next record -  hit 'F' (or a period).  To go
+back one record - hit 'B' (or a comma). To delete a record hit 'D' and a sign
+will appear at the upper right corner.  To remove the delete - hit 'D' again.
+Don't worry  -   you cannot accidentally delete a record just by hitting 'D'.  
+You must run another program on the Maintenance Menu (purge) to delete.
+
+To find a file - hit 'S' for search.  To edit an entry hit 'E'  (although you
+usually would search for a file - and Edit from the search menu.) To add more
+tenants, however, you must go back to the building data base and hit 'A'  for
+Add. The Add option allows you to enter new buildings and tenants or just new
+tenants.                                                                   
+
+                      Please hit any key to continue         
+
+
+
+ENDT
+  SET CONSOLE OFF
+  WAIT
+  SET CONSOLE ON
+  ERAS
+TEXT
+
+       The Type of tenancy can be either 'R' for regular, 'P' for per-
+   centage rent (in which the higher of the percentage or base becomes the  
+   base or 'O' for overage, where an overage rent is added to the base rent.
+   To use different methods of calculation, the code in the files ending in
+   'TNT' should be changed.                        
+                                                                         
+   -------------------------------------------------------------------------
+   WHATEVER YOU DO  -  NEVER SHUT OFF THE MACHINE OR REMOVE A DISK UNTIL YOU 
+   FIRST RETURN TO THE MAIN MENU AND THEN QUIT TO THE OPERATING SYSTEM.     
+
+   If you ever get a SYNTAX error that just hitting ENTER does not correct, 
+   hit the ESCAPE key and type Quit. Then try all over again.
+
+   EVERY SO OFTEN YOU WILL FIND YOU WANT TO USE THE ESCAPE KEY AND WHEN YOU
+   TRY TO TYPE 'QUIT' NOTHING HAPPENS. AT A FEW POINTS IN THIS PROGRAN SCREEN
+   ACCESS HAS BEEN ELIMINATED. THEREFORE, TYPE 'QUIT' EVEN THOUGH IT DOES NOT
+   APPEAR ON THE SCREEN - AND UNLESS THE MACHINE IS LOCKED UP - YOU WILL EXIT
+   TO THE OPERATING SYSTEM.
+   -------------------------------------------------------------------------
+
+             Please hit any key to get back to the data base
+
+ENDT
+  SET CONSOLE OFF
+  WAIT
+  SET CONSOLE ON
+  ERAS
+ CASE command = 'P'
+  DO PRINT.tnt
+ CASE command = 'Q'
+  STOR t TO keepitup
+  STOR 0 TO box
+  RETU
+ CASE command = 'U'
+  STOR $(bcode,1,2) TO linker
+  SAVE to move
+  STOR 3 TO box
+  STOR t TO keepitup
+  RETU
+ CASE command = 'S'
+  SAVE TO move
+  STOR f TO moveit
+  STOR 6 TO box
+  STOR t TO keepitup
+  RETU
+ ENDC
+* loop back again
+ENDD WHILE t
+

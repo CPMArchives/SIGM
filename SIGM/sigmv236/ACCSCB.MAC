@@ -1,0 +1,18 @@
+        .z80
+
+        entry accscb
+
+bdos    equ 5
+
+accscb: ld a,(hl)
+        ld (scbpb),a
+        ld c,49
+        ld de,scbpb
+        jp bdos
+
+scbpb:  ds 1
+        db 0
+        ds 2
+
+        end
+    ;PATTERN LENGTH - FOR NK*4 MEMORY COMPO

@@ -1,0 +1,69 @@
+
+
+                        WADUZITDO
+
+
+How to write a language in 256 words or less.
+
+From BYTE magazine, September 1978. It is highly recommended
+that you obtain the above magazine. This program is only
+provided as a learning experience. If you make any changes to
+the program please provide a copy to your Pascal Users Group.
+
+--------------------------------------------------------------
+  Statement     Format          What it does
+--------------------------------------------------------------
+  type          T:text  Display text on the terminal.
+--------------------------------------------------------------
+  accept        A:      Input one character from the
+                        terminal keyboard.
+--------------------------------------------------------------
+  match         M:x     Compare x to last input character
+                        and set match flag to Y if equal,
+                        set to N if not equal.
+--------------------------------------------------------------
+  jump          J:n     If n = 0 jump to last accept.
+                        If n = 1 thru 9 jump to nth program
+                        marker forward from the J.
+--------------------------------------------------------------
+  stop          S:      Terminate program and return to
+                        text editor.
+--------------------------------------------------------------
+  subroutine    S:x     Call user machine language program.
+                        (Requires program modification).
+--------------------------------------------------------------
+  conditionals          May precede any operation code.
+                Y       Execute only if match flag is 'Y'.
+                N       Execute only if match flag is 'N'.
+--------------------------------------------------------------
+ program        *       May precede any statement, serves
+ marker                 as a jump destination.
+--------------------------------------------------------------
+        Table 1: Program instructions for the WADUZITDO
+
+
+--------------------------------------------------------------
+ Edit character HEX             Meaning
+--------------------------------------------------------------
+        $       24      Start program execution
+--------------------------------------------------------------
+        \       5C      Move edit pointer to program start.
+--------------------------------------------------------------
+        /       2F      Display next line of program.
+--------------------------------------------------------------
+        %       25      Erase line. Pads with nulls.
+--------------------------------------------------------------
+   bs or <-  08 or 5F   Backspace to correct typing error.
+--------------------------------------------------------------
+        cr      0D      End of current statement.
+--------------------------------------------------------------
+  any others            Character stored in program and
+                        edit pointer advances.
+--------------------------------------------------------------
+        Table 2: Editing characters used by the built-in
+                 text editor.
+
+
+--------------------------------
+        Table 2: Editing characters used by the built-in
+                 t

@@ -1,0 +1,323 @@
+
+	TITLE	'BIDIRECT. VERSION SHOW'
+
+; CP/M-86 translation using XLT86 05/22/83 H.M. Van Tassell
+; use GENCMD BISHOW 8080 CODE[M240] 64*128+400H OF CODE
+
+; CHANGED TO USE WYSE-100/200 SCRL KEYS BUT YOU CAN USE ANY
+; KEYS TO SCROOL JUST MAKE SURE MESSAGES MATCH YOUR CHOICE
+; ALSO CHECK THAT CLRSCR SEQUENCE WORKS ON YOUR TERMINAL
+; HI-BIT MASKING ADDED SO WILL PRINT WORDSTAR FILES
+;
+; BISHOW.A86
+;
+;A buffered, bidirectional version of SHOW.ASM.
+;Ver 1.0, 23 Aug 82
+;Phil Cary, 748 Kenilworth Parkway, Baton Rouge, LA  70808
+;Ver 1.1, 30 Mar 83 added BDOS function 6 W.F.McGee
+;
+; Begin code
+;
+M	EQU	Byte Ptr 0[BX]		;xlt86 way to make 'M'
+;
+false	EQU	0
+true	EQU	not false
+;
+; BDOS equates
+;
+boot	EQU	0			;warm boot
+wrcon	EQU	2			;console write
+bdos	EQU	5			;bdos entry
+open	EQU	15			;open file
+readr	EQU	33			;read file random access
+stdma	EQU	26			;set dma address
+;
+; FCB equates
+;
+fcb	EQU	05ch			;default fcb drive number
+fcbfn	EQU	fcb+1			;start of filename
+fcbft	EQU	fcb+9			;start of filetype
+fcbex	EQU	fcb+12			;current extent number
+fcbcrr	EQU	fcb+33			;current record number, random access
+;
+; ASCII equates
+;
+cr	EQU	0dh			;carriage return
+lf	EQU	0ah			;line feed
+eof	EQU	01ah			;end of file
+esc	EQU	01bh			;escape
+bell	EQU	07h			;bell
+;
+;
+; Operational equates
+;
+maxsec	EQU	64			;number of sectors in buffer
+;
+	ORG	100h
+;
+	JMPS	start			;skip over next subroutine
+mes0	DB	esc,'*','$'		;Wyse-100/200 terminal.
+					;.. change as required
+clrscr:	mov	dx,offset mes0		;code to erase screen and home cursor
+	call	prnstr
+	RET
+;
+start:	CALL	clrscr			;clear the screen
+	CALL	opnfil			;open file in default fcb
+	XOR	AL,AL			;get a 0
+	MOV	Byte Ptr lincnt,AL	;store in line count
+	MOV	Byte Ptr .fcbex,AL	;zero current extent
+	MOV	Byte Ptr .fcbcrr,AL	;zero current record
+	MOV	Byte Ptr .fcbcrr+1,AL	;..both bytes
+	MOV	Byte Ptr .fcbcrr+2,AL	;..and the overflow
+	CALL	filbuf			;fill the disk buffer
+;
+wrtfwd:	MOV	BX,(Offset dskbuf)	;point to beginning of buffer
+wrtfwd1:MOV	AL,M			;get a character
+	CMP	AL,eof			;if it is EOF
+	JZ	getcmd			;..loop for another command
+	LAHF				;save character from BDOS clobber
+	XCHG	AL,AH
+	PUSH	AX
+	XCHG	AL,AH
+	CALL	ctype			;put it on console
+	POP	AX			;get character
+	XCHG	AL,AH
+  	and	al,7fh
+	CMP	AL,cr			;see if end of line
+	JZ	fwdcnt			;yes, count line
+wrtfwd2:INC	BX			;no, bump buffer
+	MOV	DX,fulbuf		;get end of buffer address
+	MOV	AL,DH			;compare high
+	CMP	AL,BH			;..order bytes
+	JNZ	wrtfwd1			;if not equal, continue
+	MOV	AL,DL			;else compare low
+	CMP	AL,BL			;..order bytes
+	JNZ	L_1	
+	CALL	filbuf			;if end of buffer, go refill
+L_1:
+	JZ	wrtfwd			;..and start at beginning of buffer
+	JMPS	wrtfwd1			;else, continue with next character
+;
+fwdcnt:
+	MOV	AL,Byte Ptr lincnt	;get number of lines displayed
+	INC	AL			;bump it
+	MOV	Byte Ptr lincnt,AL	;..and store it
+	XCHG	BX,DX			;save the buffer pointer
+	MOV	BX,Offset linmax	;point to max number of line for this pass
+	CMP	AL,M			;compare with line count
+	XCHG	BX,DX			;restore pointer
+	JNZ	wrtfwd2			;if not there, continue, else get command
+	XOR	AL,AL			;zero the
+	MOV	Byte Ptr lincnt,AL	;..line count
+;
+getcmd:
+	PUSH	BX
+	PUSH	DX
+	PUSH	CX
+getcmd1:
+	MOV	CL,06
+	MOV	DL,0FFH
+	INT	224
+	CMP	AL,00h			;char. ready?
+	JZ	getcmd1
+	CMP	AL,esc			;skip if esc
+	JZ	getcmd1
+	AND	AL,5fH			;make it upper case
+	PUSH	AX			;save char
+	MOV	AL,22			;set up for only 22 lines on forward
+	MOV	Byte Ptr linmax,AL	;..scrolls
+	POP	AX			;get char 
+	POP	CX
+	POP	DX
+	POP	BX
+	CMP	AL,'W'			;scroll forward?-WYSE-100 SCRL DOWN
+	JE 	wrtfwd1			;scroll forward
+	CMP	AL,'C'-40H		;CTRL C
+	JE 	wrtfwd1			;scroll forward
+	CMP	AL,'Z'-40H		;CTRL Z
+	JE 	wrtfwd1			;scroll forward
+	PUSH	AX			;else save character again
+	MOV	AL,24			;set up for full screen on scroll
+	MOV	Byte Ptr linmax,AL	;..backward
+	POP	AX			;get character
+	CMP	AL,'V'			;scroll backward?-WYSE-100 SCRL UP
+	JZ	wrtbak			;yes
+	CMP	AL,'R'-40H		;CTRL R
+	JZ	wrtbak			;yes
+	CMP	AL,'W'-40H		;CTRL W
+	JZ	wrtbak			;yes
+	CMP	AL,'X'			;must be exit
+	JNZ	L_3	
+	JMP	exit			;yes, or
+L_3:
+	mov	dx,offset mes1
+	call	prnstr
+	JMPS	getcmd			;try again for command
+;
+wrtbak:	MOV	AL,44
+	MOV	Byte Ptr lincnt,AL
+	push 	bx
+	CALL	clrscr			;clear the screen
+	pop	bx
+wrtbak1:MOV	DX,(Offset dskbuf)	;get address of buffer start
+	MOV	AL,DH			;compare high
+	CMP	AL,BH			;..order bytes
+	JNZ	wrtbak2			;continue if not equal
+	MOV	AL,DL			;else, compare low
+	CMP	AL,BL			;..order bytes
+	JNZ	wrtbak2			;continue if not equal
+	JMPS	filbak			;..and go write it
+wrtbak2:MOV	AL,M			;get a character
+ 	and	al,7fh
+	CMP	AL,cr			;see if end of line
+	LAHF				;decrement buffer
+	DEC	BX
+	SAHF
+	JNZ	wrtbak1			;..and loop if not
+;
+bakcnt:	MOV	AL,Byte Ptr lincnt	;else, get number of lines to move back
+	DEC	AL			;..and decrement it
+	MOV	Byte Ptr lincnt,AL	;..store it
+	JNZ	wrtbak1			;..and loop if not there
+	INC	BX			;else bump pointer to account for lf with cr
+	JMP	wrtfwd1			;..and go write a screen
+;
+filbak:	MOV	DX,maxsec		;get the buffer size
+	MOV	BX,Word Ptr seccnt	;..and number of sectors last read
+	ADD	BX,DX			;add them
+	XCHG	BX,DX			;..and put them in DE
+	MOV	AL,Byte Ptr .fcbcrr	;subtract low order byte 
+	SUB	AL,DL			;..from current record count
+	MOV	Byte Ptr .fcbcrr,AL	;..and store in current record count
+	MOV	AL,Byte Ptr .fcbcrr+1	;same with high order byte
+	SBB	AL,DH			;..but with borrow
+	JS	filbeg			;if beyond beginning of file, go zero count
+	MOV	Byte Ptr .fcbcrr+1,AL	;else, store high order byte
+	CALL	filbuf			;fill the buffer
+	MOV	BX,fulbuf		;..and point to end of buffer
+	CALL	clrscr			;clear the screen
+	JMPS	wrtbak2			;continue moving back in file
+;				
+filbeg:	XOR	AL,AL			;if beyond beginning of file
+	MOV	Byte Ptr .fcbcrr,AL	;..zero the current record field
+	MOV	Byte Ptr .fcbcrr+1,AL
+	MOV	Byte Ptr lincnt,AL	;..and the line count
+	CALL	filbuf			;fill the buffer again
+	JMP	wrtfwd			;..and go write it
+;
+filbuf:	MOV	DX,(Offset dskbuf)	;load start of disk buffer
+	MOV	CH,maxsec		;number of sectors to resd
+	MOV	BX,0			;zero out the
+	MOV	Word Ptr seccnt,BX	;..number of sectors in buffer
+filbuf1:PUSH	BX			;save all
+	PUSH	DX			;..registers from
+	PUSH	CX			;..BDOS clobber
+	MOV	CL,stdma		;set dma to
+	INT	224			;..disk buffer
+	MOV	DX,fcb			;set up to read
+	MOV	CL,readr		;..a record
+	INT	224			;do it
+	CMP	AL,0			;read OK?
+	MOV	BX,Word Ptr .fcbcrr	;get current record number
+	LAHF				;..bump it
+	INC	BX
+	SAHF
+	MOV	Word Ptr .fcbcrr,BX	;..and save it
+	MOV	BX,Word Ptr seccnt	;get sectors in buffer
+	LAHF				;bump it
+	INC	BX
+	SAHF
+	MOV	Word Ptr seccnt,BX	;store it
+	JNZ	rderr			;no, last sector read
+	POP	CX			;yes, get sector count
+	DEC	CH			;decrement it
+	POP	DX			;get de off stack to expose return address
+	POP	BX			;
+	JNZ	L_4	
+	RET				;if done return
+L_4:
+	MOV	BX,128			;else, add 128 to
+	ADD	BX,DX			;..dma address
+	XCHG	BX,DX			;put it in de
+	JMPS	filbuf1			;read another sector
+;
+rderr:	POP	CX			;restore
+	POP	DX			;..registers
+	POP	BX			;..and
+	XOR	AL,AL			;..get a zero to direct to start of buffer
+	RET				;..on ret
+;
+opnfil:	MOV	AL,Byte Ptr .fcbfn	;point to first letter of filename
+	CMP	AL,' '			;anything there?
+	JZ	help			;no, give help message
+	MOV	DX,fcb			;file name in default fcb
+	MOV	CL,open			;set up to open
+	INT	224			;do it
+	CMP	AL,0ffh			;open OK?
+	JZ	L_5	
+	RET				;yes
+;
+L_5:	mov	dx,offset mes2
+	call	prnstr
+	JMP	exit1			;leave msg on screen on exit
+;
+help:	mov	dx,offset mes3
+	call	prnstr
+	JMP	exit1
+;
+prnstr:	push	bx			;print string
+	push	cx
+	mov	cl,9
+	int	224
+	pop	cx
+	pop	bx
+	ret
+;
+ctype:	PUSH	CX			;Save the registers
+	PUSH	DX			;..from bdos
+	PUSH	BX			;..clobber
+	CMP	AL,'O'-40H		;wordstar uses ^O
+	JNE	NOTCO			;as non-break space
+	MOV	AL,' '			;..so substitute space
+NOTCO:	AND	AL,7FH			;strip hi-bit
+	MOV	DL,AL			;set up character
+	MOV	CL,wrcon		;..to send to console
+	INT	224			;do it
+	POP	BX			;restore
+	POP	DX			;..the registers
+	POP	CX
+	RET
+;
+exit:	CALL	clrscr			;clear the screen
+exit1:	MOV	CL,0			;warm boot
+	MOV	DL,0
+	INT	224
+L_6	EQU	$
+	DSEG
+	ORG	Offset L_6
+;
+;
+mes1	DB	cr,lf,lf,'Use the SCRL keys (or ^C,^R) to go forward and '
+	DB	'backward, or X to exit.',cr,bell,'$'
+;
+mes2	DB	cr,lf,lf,'Requested file is not on this disk.',cr,lf,bell
+	DB	'Please check your spelling or use DIR.',cr,lf,lf,bell,'$'
+;
+mes3	DB	'Correct usage of SHOW',lf,lf
+	DB	'    A>SHOW filename  ',cr,lf,lf
+	DB	'After first page is displayed, use SCRL down (^C) to go'
+	DB	' forward',cr,lf
+	DB	'and SCRL up (^R) for backward, or X to exit.'
+	DB	cr,lf,lf,bell,'$'
+;
+; Memory allocation
+;
+seccnt	DW	0			;number of sectors read into buffer
+linmax	DB	24			;number of to write lines on console
+lincnt	DB	0			;line number on write or move back in buffer
+dskbuf	EQU	(Offset $)		;disk buffer area above the program
+fulbuf	EQU	(Offset dskbuf)+(maxsec*128)	;need to know end of buffer
+;
+	END
+

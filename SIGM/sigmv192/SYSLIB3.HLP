@@ -1,0 +1,436 @@
+Introduction to Byte-Oriented File Input/Output Routines
+Fxn$OPEN      -- Byte-Oriented Input and Output File Open
+Fxn$CLOSE     -- Byte-Oriented Input and Output File Close
+Fn$GET/Fn$PUT -- Byte-Oriented Input and Output
+Error Return Codes
+Byte-Oriented File I/O Routines with Variable Buffers
+FXx$OPEN      -- Input and Output File Open
+FXx$CLOSE     -- Input and Output File Close
+FX$GET/FX$PUT -- Input and Output
+:Byte-Oriented File Input/Output Routines
+
+     Thå  followinç documentatioî coveró thå serieó oæ byte-
+orienteä  filå  input/outpuô  routineó  iî  SYSLIB®    Theså 
+routineó allo÷ thå useò tï sequentiallù reaä froí (GET©  anä 
+writå  tï  (PUT© á filå oî á  byte-for-bytå  basis®   Hence¬ 
+theså  routineó  providå aî exceptionallù simplå methoä  foò 
+handlinç inpuô froí anä outpuô tï á file.
+
+     Á  typicaì  prograí whicè employó theså  routineó  musô 
+opeî  thå requireä fileó beforå doinç anù  processing¬  musô 
+theî  perforí thå processinç oî thå openeä files¬  anä  musô 
+theî  closå  thå  fileó  wheî  thå  processinç  ió  completå 
+(closinç thå fileó ió optionaì foò inpuô fileó anä mandatorù 
+foò outpuô files).
+
+
+     SYSLIÂ provideó fouò setó oæ routineó foò byte-orienteä 
+filå inpuô anä output®  Theså routineó arå --
+
+Input Open     Output Open     GET    PUT   Input Close  Output Close
+----------     -----------     ---    --­   -----------  ------------
+ FI0$OPEN       FO0$OPEN      F0$GET F0$PUT  FI0$CLOSE    FO0$CLOSE
+ FI1$OPEN       FO1$OPEN      F1$GET F1$PUT  FI1$CLOSE    FO1$CLOSE
+ FI2$OPEN       FO2$OPEN      F2$GET F2$PUT  FI2$CLOSE    FO2$CLOSE
+ FI3$OPEN       FO3$OPEN      F3$GET F3$PUT  FI3$CLOSE    FO3$CLOSE
+
+
+     Thió systeí allowó thå useò tï havå uğ tï ¸ fileó  opeî 
+simultaneouslù -- fouò arå opeî foò inpuô usinç GEÔ anä fouò 
+arå opeî foò outpuô usinç PUT®   Foò example¬  thå followinç 
+ió á samplå codå sectioî usinç theså routineó foò twï files:
+
+
+          EXT  FI0$OPEN   ; DECLARE LIBRARY REFERENCES
+          EXT  FO0$OPEN
+          EXT  FI0$CLOSE
+          EXT  FO0$CLOSE
+          EXT  F0$GET
+          EXT  F0$PUT
+          ...
+          LXI  D,FCBI    ; PT TO FCB OF INPUT FILE
+          CALL FI0$OPEN
+          LXI  D,FCBO    ; PT TO FCB OF OUTPUT FILE
+          CALL FO0$OPEN
+          ...
+          [body containing CALL F0$GET and CALL F0$PUT]
+          ...
+          CALL FI0$CLOSE  ; CLOSE FILE
+          CALL FO0$CLOSE
+          ...
+          END
+
+
+     Notå  thaô onlù thå routineó tï bå useä arå  referenceä 
+iî  thå  EXÔ statements®   Iæ yoõ dï noô neeä  á  particulaò 
+routine¬  dï noô referencå it®   Noô referencinç aî unneedeä 
+routinå generallù saveó thå overheaä memorù spacå oæ loadinç 
+iô froí thå library.
+
+     Eacè  seô  oæ INPUÔ OPEN¬  INPUÔ  CLOSE¬  OUTPUÔ  OPEN¬ 
+OUTPUÔ  CLOSE¬  GET¬  anä  PUÔ routineó ió containeä iî  onå 
+librarù module¬  sï referencinç anù oæ theså routineó causeó 
+thå  entirå modulå tï bå loaded¬  anä alì thå  routineó  arå 
+accessablå  tï thå useò (provideä theù arå mentioneä iî  thå 
+externaì   definitions©   withouô  anù   additionaì   memorù 
+overhead®    Specifically¬  FI0$OPEN¬  FI0$CLOSE¬  FO0$OPEN¬ 
+FO0$CLOSE¬  F0$GET¬  anä F0$PUÔ arå containeä iî onå module¬ 
+anä  referencå  tï  anù oæ theså routineó loadó  thå  entirå 
+module» thå samå ió truå foò thå otheò setó oæ routines.
+
+
+     Thå  CLOSÅ  routinå foò outpuô  (FOn$CLOSE©  ió  ALWAYÓ 
+required» iô filló thå resô oæ thå currenô blocë witè Ctrl-Ú 
+followeä  bù  <NULL¾ byteó anä properlù  closeó  file®   Thå 
+CLOSÅ  routinå foò inpuô (FIn$CLOSE© ió requireä ONLÙ IÆ yoõ 
+arå  goinç  tï lateò opeî anotheò filå foò inpuô  usinç  thå 
+correspondinç  OPEÎ  routinå  (FIn$OPEN)®    FIn$CLOSÅ  onlù 
+serveó tï reseô thå OPEÎ flaç (useä tï GEÔ tï ascertaiî thaô 
+thå filå haó beeî properlù opened).
+
+:FIn$OPEN and FOn$OPEN
+     Routine Names:  FI0$OPEN, FI1$OPEN, FI2$OPEN, FI3$OPEN
+
+     Functionº
+
+     Opeî  thå filå whoså FCÂ ió pointeä tï bù DÅ foò  inpuô 
+(uså witè F$GET)®   FIn$OPEÎ initializeó thå FCÂ fields¬  sï 
+furtheò initializatioî ió noô necessary.
+
+     Inputs:  DE = ptr to FCB of file to open
+
+     Outputs:  Z Flag is Error Indicator, A is Error Code
+
+     Registers Affected:  PSW
+
+     SYSLIB Routines Called:  Internal
+
+     Special Error Conditions:  See Section on Error Codes
+
+
+     Routine Names:  FO0$OPEN, FO1$OPEN, FO2$OPEN, FO3$OPEN
+
+     Functionº
+
+     Opeî thå filå whoså FCÂ ió pointeä tï bù DÅ foò  outpuô 
+(uså witè F$PUT)®   FOn$OPEÎ initializeó thå FCÂ fields¬  sï 
+furtheò  initializatioî ió noô necessary®   Iô alsï  createó 
+thå indicateä filå iæ iô doeó noô alreadù exist.
+
+     Inputs:  DE = ptr to FCB of file to open
+
+     Outputs:  Z Flag is Error Indicator, A is Error Code
+
+     Registers Affected:  PSW
+
+     SYSLIB Routines Called:  Internal
+
+     Special Error Conditions:  See Section on Error Codes
+
+:FIn$CLOSE and FOn$CLOSE
+     Routine Names:  FI0$CLOSE, FI1$CLOSE, FI2$CLOSE, FI3$CLOSE
+
+     Functionº
+
+     Closå  thå filå previouslù openeä bù thå  correspondinç 
+FI$OPEÎ  routine®   Uså oæ theså routineó ió optionaì iæ thå 
+anotheò filå wilì noô bå openeä lateò iî thå prograí bù  thå 
+correspondinç FI$OPEÎ routine.
+
+     Inputs:  -None-
+
+     Outputs:  Z Flag is Error Indicator, A is Error Code
+
+     Registers Affected:  PSW
+
+     SYSLIB Routines Called:  Internal
+
+     Speciaì Erroò Conditions:  See Section on Error Codes
+
+
+     Routine Names:  FO0$CLOSE, FO1$CLOSE, FO2$CLOSE, FO3$CLOSE
+
+     Functionº
+
+     Closå  thå filå previouslù openeä bù thå  correspondinç 
+FO$OPEÎ  routine®   Uså oæ theså routineó ió MANDATORÙ afteò 
+outpuô  tï thå filå (usinç thå correspondinç F$PUÔ  routine© 
+ió complete.
+
+     Inputs:  -None-
+
+     Outputs:  Z Flag is Error Indicator, A is Error Code
+
+     Registers Affected:  -None-
+
+     SYSLIB Routines Called:  Internal
+
+     Speciaì Erroò Conditions:  See Section on Error Codes
+
+:Fn$GET and Fn$PUT
+     Routine Names:  F0$GET, F1$GET, F2$GET, F3$GET
+
+     Functionº
+
+     Geô thå nexô bytå iî sequencå froí thå filå  previouslù 
+openeä  bù  thå  correspondinç  FI$OPEÎ  routine®   Bytå  ió 
+returneä iî Registeò A.
+
+     Inputs:  -None-
+
+     Outputs:  A = Next byte from file if no error
+               If Error, NZ and A = Error Code
+
+     Registers Affected:  PSW
+
+     SYSLIB Routines Called:  Internal
+
+     Speciaì Erroò Conditions:  See Section on Error Codes
+
+
+     Routine Names:  F0$PUT, F1$PUT, F2$PUT, F3$PUT
+
+     Functionº
+
+     Puô  thå  bytå iî Registeò Á ontï thå enä oæ  thå  filå 
+previouslù openeä bù thå correspondinç FO$OPEÎ routine.
+
+     Inputs:  A = Byte to PUT
+
+     Outputs:  Z Flag is Error Indicator, A is Error Code
+
+     Registers Affected:  PSW
+
+     SYSLIB Routines Called:  Internal
+
+     Speciaì  Erroò Conditionsº  See Section on Error Codes
+
+:Error Return Codes
+
+     Foò  eacè oæ thå routineó iî thió seô oæ  byte-orienteä 
+filå  I/Ï routines¬  thå Zerï Flaç anä thå Á Registeò plaù á 
+keù rolå iî indicatinç thå erroò conditionó oæ thå routines.
+
+     Iæ  thå Zerï Flaç ió Seô (Z© afteò á routinå  haó  beeî 
+executed¬  theî  thió indicateó thaô nï erroò haó  occurred®  
+Thå  Á  Registeò  ió eitheò unaffecteä (iî  mosô  cases©  oò 
+containó  á  returneä valuå (iæ sï indicated¬  aó iî  Fn$GEÔ 
+routines).
+
+     Iæ thå Zerï Flaç ió Cleaò (NZ© afteò á routinå haó beeî 
+executed¬  theî  thió indicateó thaô aî erroò haó  occurred®  
+Thå Á Registeò no÷ containó thå Erroò Code®   Thå  followinç 
+tablå  summarizeó  thå Erroò Codeó whicè maù bå returneä  iî 
+thå Á Register.
+
+     Thå  followinç  screeî  displaù  summarizeó  thå  Erroò 
+Codes.
+
+
+                   Summary of Error Codes
+        Returned by Byte-Oriented File I/O Routines
+
+          Code Meaning
+          ---- -------
+
+            1  GET or PUT attempted on an unopened file
+            2  Disk Full (Ran out of space)
+            3  Input File Not Found
+            4  Attempt to Read Past EOF
+            5  Directory Full
+            6  Error in Closing a File
+            7  Attempt to Open a File which is already Open
+
+:Byte-Oriented File I/O Routines with Variable Buffers
+     Iî additioî tï thå routineó mentioneä previously¬ á seô 
+oæ byte-orienteä filå I/Ï routineó ió availablå undeò SYSLIÂ 
+³  whicè permitó thå useò tï definå thå sizå anä locatioî oæ 
+thå  bufferó tï bå used®   Thå routineó mentioneä abovå  alì 
+uså 128-bytå buffers¬  and¬  oî largeò capacitù disë systemó 
+(anä oî anù systemó iî general)¬ iô maù bå morå efficienô tï 
+buffeò morå thaî 12¸ byteó aô á time®  Thió wilì cuô dowî oî 
+thå  disë  activitù anä leavå morå  memory-baseä  processinç 
+overhead.
+
+     The routines described in this section are:
+
+          Routine   Similar to  Function
+          -------   ----------  --------
+          FXI$OPEN  FIn$OPEN    Open File for Input
+          FXO$OPEN  FOn$OPEN    Open File for Output
+          FXI$CLOSE FIn$CLOSE   Close Input File
+          FXO$CLOSE FOn$CLOSE   Close Output File
+          FX$GET    Fn$GET      Get Byte
+          FX$PUT    Fn$PUT      Put Byte
+     Alì  oæ thå Filå Extendeä Bytå I/Ï Routineó  (FØ  meanó 
+Filå  Extended©  worë  witè aî I/Ï Controì  Blocë  whicè  ió 
+structured as follows:
+
+Block     Length    User-
+Offset    (Bytes)   Set?*     Function
+------    -------   -----     --------
+   0         1        Y       Number of 128-Byte Pages in
+                                   Working Buffer
+   1         1        N       End of File Flag
+   2         2        N       Byte Counter
+   4         2        N       Next Byte Pointer
+   6         2        Y       Address of Working Buffer
+   8        36        Y       FCB of File (Only FN and FT
+                                   Fields Set by User)
+
+
+ª  Bù  "User-Set"¬   É  meaî  thaô  thå  programmeò  haó  tï 
+initializå thió valuå beforå theså routineó arå called.
+
+     Thå  followinç  DB/DÓ  structurå  caî bå  useä  iî  thå 
+calling program to implement the I/O Control Block:
+
+     IOCTL:
+               DB   8    ; Use 8 128-Byte Pages (1K)
+               DS   1    ; Filled in by FXIO
+               DS   2    ; Filled in by FXIO
+               DS   2    ; Filled in by FXIO
+               DW   WORK ; Address of Working Buffer
+     IOCFCB:
+               DS   1    ; Filled in by FXIO to 0
+               DB   'MYFILE  '     ; File Name
+               DB   'TXT'          ; File Type
+               DS   24   ; Filled in by FXIO
+     WORK:
+               DS   128*8     ; Working Buffer (1K)
+
+     Alì  oæ  thå FXIÏ routineó arå consistenô  iî  thaô  DÅ 
+alwayó  pointó tï thå I/Ï Controì Blocë (IOCTÌ above© anä  Á 
+anä  thå  PS× arå useä tï pasó flagó anä values®   Á  samplå 
+program body which illustrates the calling procedures:
+
+          ...
+   ¼ Iniô IOCTL± anä IOCTL2¬ wherå ± ió input¬ ² ió output>
+          ...
+          LXI  D,IOCTL1
+          CALL FXI$OPEN  ; Open 1 for Input
+          JZ   FNF       ; File Not Found Error
+          LXI  D,IOCTL2
+          CALL FXO$OPEN  ; Open 2 for Output
+          JZ   NODIR     ; No Dir Space Error
+          ...
+
+
+          ...
+          LXI  D,IOCTL1
+          CALL FX$GET    ; Get Next Input Byte in A
+          JZ   EOF       ; Process EOF
+          ...
+          LXI  D,IOCTL2
+          CALL FX$PUT    ; Put Byte in A to Output File
+          JZ   WERR      ; Process Write Error
+          ...
+          LXI  D,IOCTL1
+          CALL FXI$CLOSE ; Close Input File
+          JZ   FCERR     ; File Close Error
+          LXI  D,IOCTL2
+          CALL FXO$CLOSE ; Close Output File
+          JZ   FCERR
+          ...
+
+
+     Thió  simplå examplå illustrateó thå flexibilitù oæ thå 
+FXIÏ  routines®   Aó manù fileó aó desireä maù bå  opeî  foò 
+inpuô oò output¬  eacè filå havinç itó owî I/Ï Controì Blocë 
+anä  Workinç  Buffer®   Thå  advantageó  iî  efficienô  disë 
+accessinç  witè thió seô oæ routineó oveò thå previouó  oneó 
+are notable.
+
+     Thå  majoò disadvantagå oæ usinç theså routineó ió thaô 
+thå  bufferó arå largeò anä thå overheaä oæ alwayó  ensurinç 
+thaô  DÅ pointó tï thå propeò I/Ï Controì Blocë beforå  eacè 
+routine is called is present.
+
+:FXIO Open Routines
+     Routine Names:  FXI$OPEN, FXO$OPEN
+
+     Functionº
+
+     Opeî thå filå whoså I/Ï Controì Blocë ió pointeä tï  bù 
+DÅ  foò  Inpuô (FXI$OPEN© oò  Outpuô  (FXO$OPEN)®   FXI$OPEÎ 
+openó  thå filå iî thå currenô directorù afteò  initializinç 
+thå  FCÂ  anä loadó aó mucè oæ thå buffeò spacå aó  possiblå 
+witè  datá  froí  thå file®   Iæ thå filå  doeó  noô  exist¬ 
+FXI$OPEÎ returnó aî erroò code®   FXO$OPEÎ deleteó thå  filå 
+referenceä  bù thå FCÂ iæ iô existó anä openó thå referenceä 
+filå foò output®   Iæ therå ió nï directorù spacå  remaininç 
+iî  whicè  tï storå thå file'ó entry¬  FXO$OPEÎ  returnó  aî 
+erroò code.
+
+     Thå FXIÏ standarä erroò returî codeó arå used®  A=° anä 
+Zero Flag Set (Z) if error.
+
+
+     Inputs:  DE = ptr to I/O Control Block of file to open
+
+     Outputs:  A=0 and Zero Flag Set (Z) if error;
+               A=0FFH and Zero Flag Reset (NZ) if OK
+
+     Registers Affected:  PSW
+
+     SYSLIB Routines Called:  INITFCB, F$OPEN, F$DELETE,
+                              F$MAKE, F$READ
+
+     Special Error Conditions:  None
+
+:FXIO File Close Routines
+     Routine Names:  FXI$CLOSE, FXO$CLOSE
+
+     Functionº
+
+     Closå thå filå whoså I/Ï Controì Blocë ió Pointeä tï bù 
+DE®   FXI$CLOSÅ  simplù closeó thå file®   FXO$CLOSÅ flusheó 
+thå workinç buffeò tï disk¬  fillinç thå lasô 128-bytå blocë 
+witè ^Z'ó iæ noô completelù filleä already¬  anä closeó  thå 
+file.
+
+     Thå FXIÏ standarä erroò returî codeó arå used®  A=° anä 
+Zero Flag Set (Z) if error.
+
+     Inputs:  DE pts to I/O Control Block
+
+     Outputs:  A=0 and Zero Flag Set (Z) if Close Error;
+               A=0FFH and Zero Flag Reset (NZ) if OK
+
+
+     Registers Affected:  PSW
+
+     SYSLIB Routines Called:  F$CLOSE, F$WRITE
+
+     Speciaì Erroò Conditions:  None
+
+:FXIO Byte Input and Output Routines
+     Routine Names:  FX$GET, FX$PUT
+
+     Functionº
+
+     FX$GEÔ  getó  thå  nexô bytå froí thå  filå  whoså  I/Ï 
+Controì Blocë ió pointeä tï bù DE®   FXI$OPEÎ musô havå beeî 
+calleä beforå anù calì tï FX$GET®  FX$PUÔ putó thå nexô bytå 
+intï  thå filå whoså I/Ï Controì Blocë ió pointeä tï bù  DE®  
+FXO$OPEN must have been called before any call to FX$PUT.
+
+     Registeò Á ió unaffecteä bù theså routines®   Thå erroò 
+codå ió returneä witè thå Zerï Flaç ONLY¬  anä Zerï Flaç Seô 
+(Z) means error while Zero Flag Reset (NZ) means OK.
+
+     Inputs:  A = Byte to Output for FX$PUT
+
+     Outputsº  Á ½ Nexô bytå iæ nï erroò foò FX$GET
+               For FX$GET: Z Flag if past EOF
+               For FX$PUT: Z Flag if Write Error
+
+
+     Registers Affected:  PSW
+
+     SYSLIB Routines Called:  F$READ, F$WRITE
+
+     Speciaì Erroò Conditions:  None
+
+
+

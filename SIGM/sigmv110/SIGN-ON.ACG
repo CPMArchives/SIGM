@@ -1,0 +1,26 @@
+* sign-on.cmd 02/12/83 sml
+ERASE
+?
+?
+? '    * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *' 
+? '    *                                                                     *' 
+? '    *             AMATEUR COMPUTER GROUP OF NEW JERSEY                    *' 
+? '    *                                                                     *' 
+? '    *             PO BOX 319 SOUTH BOUND BROOK,NJ 08880                   *' 
+? '    *                                                                     *' 
+? '    *                                                                     *' 
+? '    *                 SAMPLE DATA MANAGEMENT PROGRAM                      *' 
+? '    *                                                                     *' 
+? '    *                                                                     *' 
+? '    *                                    Vers 1.0 Feb. 1983               *' 
+? '    * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *' 
+?
+IF $(DATE(),1,2)= '00' 
+  STORE '        ' TO date:var
+  @ 18,10 SAY 'Enter date as MM/DD/YY ' GET date:var PICTURE '##/##/##' 
+  READ
+  SET DATE TO &date:var
+  RELEASE date:var
+ENDIF $(DATE(),1,2)= '00'  
+
+

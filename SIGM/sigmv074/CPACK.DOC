@@ -1,0 +1,278 @@
+
+
+
+
+
+             CPACK - UTILITY PROGRAMS FOR CP/M
+
+
+
+
+
+
+                      Copyright (C) 1980
+                         FBN Software
+                      24 Mistral Avenue
+                      Mosman  NSW  2088
+
+         Permission is granted to copy this  document 
+         and the associated programs for all purposes 
+         with  the  exception  of  resale  for profit
+
+
+NOTE
+
+You  may find that the file BACKUP mentioned in this  document 
+has  been  renamed  BCKUP  on  this disk  in  order  to  avoid 
+confusion with another program with a similar name.
+
+
+PACKAGE DESCRIPTION
+
+
+     CPACK  is a package of utility programs designed for  use 
+with  the  CP/M operating system.   It contains  a  number  of 
+programs  designed  to  make  use of  the  system  easier,  in 
+particular  for those systems using a single disk drive  which 
+are  not  well  catered  for by the CP/M  software  as  it  is 
+distributed.
+
+
+     The following programs are included in the package:
+	BACKUP - Disk copier
+	COMPARE - File comparison utility
+	COPY - File copier
+	RESTORE - File recovery program
+	SORTDIR - Directory sorter
+
+
+    (CP/M is a trademark of Digital Research, PO Box 579,
+            Pacific Grove, California, 93950, USA)
+
+
+OVERVIEW
+
+     On the following pages, the CP/M command lines applicable 
+to each program are listed,  followed by a description of  the 
+program  operation  and use.  THe general comments  below  are 
+applicable to  all programs.
+ 
+     Disk  prompts:   All programs prompt the operator  for  a 
+possible  disk  change prior to  commencing  execution.   This 
+allows  use  of a single disk for utility programs and  avoids 
+the  requirement to have a copy of commonly used  programs  on 
+each  disk.   BACKUP,  COPY  and COMPARE also prompt  for  the 
+necessary  changes during operation.   The prompt calls for  a 
+carriage return (<CR>) and this character will cause execution 
+to continue.  Control-C  in response to a prompt will cause an 
+immediate warm boot.   All other responses are ignored.  If no 
+disk change is required, simply depress <CR>.
+
+     Program  termination:  With the exception of BACKUP,  all 
+programs  return  to CP/M on  termination  without  rebooting. 
+This  avoids system crashes when using disks without a  system 
+copy on tracks 0 and 1.   BACKUP overwrites the CP/M system in 
+order  to  provide  the largest possible memory buffer  and  a 
+reboot is therefore necessary. Before terminating, the program 
+issues a disk change prompt. 
+ 
+     Drive Selection:  None of the programs attempts to access 
+any drive other than the one currently logged in by CP/M.   In 
+a  single  drive  system,   this  will  be  drive   A.    COPY 
+specifically   calls  the  'Reset  BDOS'  CP/M  entry  and  is 
+therefore useable only in drive A.  However,  if you have more 
+than one drive, there are easier ways to perform a file copy!
+
+     Logged  Disk:  All programs which write on a  disk  leave 
+the  one  in the drive on termination as the currently  logged 
+disk.    This  will  be  in  Read/Write  mode  (unless  it  is 
+physically write protected).   COMPARE, which reads disk files 
+only, does not alter the currently logged disk.
+ 
+     Use  of CBIOS:  BACKUP,  SORTDIR and RESTORE all directly 
+access  the CBIOS  to perform some I/O  operations.   This  is 
+necessary  in the case of BACKUP to provide the maximum buffer 
+space and of the other two to allow direct access to the  CP/M 
+disk  directory.   In standard CP/M systems this will cause no 
+problems but difficulties may be encountered in systems with a 
+non-standard CBIOS jump vector.
+
+     Directory  access:   Both  RESTORE  and  SORTDIR  conduct 
+operations  on  the CP/M Disk Directory.   Version 1.4 of  the 
+CP/M system uses a standard directory structure with up to  64 
+entries  of 32 bytes each and this is the structure assumed by 
+the programs.   Version 2.2 allows different structures, which 
+may vary between different drives of the same system.  Neither 
+of  the programs should be used with Version 2.2  CP/M  unless 
+you  are  sure  that  your system is  using  the  Version  1.4 
+compatible structure.
+
+
+
+A>BACKUP
+ 
+     BACKUP is a program for making backup copies of an entire 
+diskette on a single drive system.
+
+        BACKUP   prompts  the  user  to  insert   source   and 
+destination disks.  The disk contents are copied on a track to 
+track basis, buffered in memory.  BACKUP automatically adjusts 
+the  size  of the memory buffer to the maximum allowed by  the 
+host  system.   In  a  56K system an  8  inch  single  density 
+diskette can be backed up in five passes.
+
+     On  completion of the transfer,  the program asks whether 
+another  disk is to be backed up.  If the answer is  yes,  the 
+operation  repeats,  otherwise the operator is prompted for  a 
+command to return to  CP/M.
+
+
+
+A>COPY <sourcefile> <destfile>
+A>COPY <sourcefile>
+A>COPY
+ 
+     Copy  is  a program to simplify disk to  disk  copies  of 
+files in CP/M systems having a single drive.  It operates in a 
+somewhat similar manner to the CP/M supplied utility PIP,  the 
+disk file copying  routines of which are not usable in  single 
+drive systems.
+
+     COPY  operates by buffering the file into memory and then 
+prompting  for a disk change before dumping the file onto  the 
+new  disk.   The buffer size is automatically adjusted to  the 
+TPA  area available under the CP/M system in use and for  long 
+files,  the  program  prompts for the necessary  disk  changes 
+caused by the requirement to transfer the file in two or  more 
+buffer loads.
+
+     The  single  copy  version of the program is  invoked  by 
+either  of  the  first two command lines  listed  above  where 
+<sourcefile>   and  <destfile>  are  unambiguous  file   names 
+complying with the CP/M syntax.  If <destfile> is omitted,  it 
+is  assumed  to  be  the same as  <sourcefile>  and  the  file 
+transferred to the new disk has the same name as the original. 
+On completion of the transfer,  the program returns control to 
+the CP/M Console Command Processor (CCP) without rebooting the 
+system.   The logged-in disk is the one to which the  transfer 
+was made.
+
+     If  both  file names are omitted,  then COPY  enters  the 
+multiple  copy mode and responds with a prompt character ('*') 
+and commands may be entered in the following form:  
+
+     *<sourcefile> <destfile>
+
+     Omission  of  <destfile> has the same effect  as  in  the 
+single  copy mode.   On completion of each transfer the prompt 
+is  re-issued and further transfers may be made.   Control  is 
+returned  to  the  CCP by typing <return>  after  the  prompt. 
+Control  may  be  returned at any time by  typing  <^C>  which 
+causes a warm boot. 
+
+     During the transfer,  COPY initially creates a  temporary 
+file  'COPY.$$$'  on  the  destination  disk.   On  successful 
+completion  of the transfer,  any file on the destination disk 
+having  the same name as <destfile> is erased and COPY.$$$  is 
+renamed <destfile>.  Note that COPY may be used to duplicate a 
+file  on  the same disk merely by leaving  the  original  disk 
+inserted  before responding to the prompt.   In this case  the 
+<sourcefile>  and <destfile> must have different names or  the 
+original file will be deleted.
+
+
+
+A>COMPARE <sourcefile> <compfile>
+
+      COMPARE  carries out a byte for byte comparison  between 
+two  files.    If  any  difference  is  found,  the  following 
+information is presented on the console: 
+      The record number in the file
+      The byte number within the record
+      The ASCII and hex values of the differing bytes
+
+      If  the  files are of differing lengths,  this  fact  is 
+reported  but  the 'overlapping' bytes are not listed.  If  no 
+differences  are  detected,  a 'Files  Identical'  message  is 
+issued.
+
+     COMPARE  operates  in a somewhat similar manner to  COPY, 
+buffering   <sourcefile>   into  memory  and   then    reading 
+<compfile>  record by record for the comparison.  Disk  change 
+prompts are issued as necessary, as described for COPY.
+
+      If   the   files  to  be   compared   have   substantial 
+differences, the listing of differing bytes at the console may 
+be  excessively long.   To avoid waiting,  the program may  be 
+terminated by typing a space at the console. 
+
+
+
+A>RESTORE <filename>
+A>RESTORE <filename> n
+
+          *****************************************
+          *        WARNING - USE WITH CP/M        *
+          *   VERSION 1.4 COMPATIBLE DISKS ONLY   *
+          *****************************************
+ 
+     RESTORE  is  a program to recover CP/M files  which  have 
+been  inadvertently  ERAsed.   CP/M erases files by setting  a 
+byte  in their disk directory entry,  the actual file data  is 
+not erased but merely becomes  eligible for being overwritten. 
+RESTORE resets the byte, making the file once again useable.
+ 
+     Use  with  long  files:  CP/M files with  more  than  128 
+records  have more than one directory entry.   The second  and 
+subsequent  entries describe extensions of the file,  each  of 
+128  records  or less.   The second form of the  command  line 
+above allows extension n of the file to be recovered,  where n 
+is a hex digit.  (RESTORE <filename> 0 means exactly the  same 
+as  RESTORE <filename>).  To restore a long  file,  successive 
+calls  to RESTORE should be made,  with n increasing,  until a 
+'Not found' message results.
+
+     WARNING: Restore can have some strange and  unpredictable 
+effects  if it  is  not used properly.  It should only be used 
+after  a file has been erased and before any other  operations 
+affecting  the disk directory (such as  SAVE,  Editing,  COPY, 
+etc) have been carried out.  The reason for this is that these 
+operations  may  have utilised part of the disk space  of  the 
+ERAsed file.
+ 
+     Similarly,   RESTORE   only  restores  the  first  erased 
+filename  it finds which matches the name  specified.  If  you 
+have  been  doing a lot of editing or other work there may  be 
+more  than  one  erased  'edition'  of  the  file.  After  use 
+therefore,   the file should be  carefully checked.   If it is 
+not the correct one, it can be RENamed, ERAsed  again and then 
+RESTORE  reinvoked  to find the right copy.   Note  that  this 
+situation can be avoided by periodic use of SORTDIR.
+
+
+
+A>SORTDIR
+A>SORTDIR *
+ 
+          *****************************************
+          *        WARNING - USE WITH CP/M        *
+          *   VERSION 1.4 COMPATIBLE DISKS ONLY   *
+          *****************************************
+
+     SORTDIR  is a program which will sort the disk  directory 
+into  alphabetical order,  either by filename or by file  type 
+(ASM,  COM, etc) and name. The second command line above sorts 
+by file type. 
+ 
+     In addition to sorting the directory, SORTDIR also tidies 
+the  directory entries by completely deleting all ERAsed files 
+and  all zero length files.  These files have  their  complete 
+directory entries overwritten.   Use of SORTDIR is recommended 
+after RESTORE has been used and all files have been checked.
+ 
+     Note that RESTORE will not work immediately after SORTDIR 
+has  been  used because all ERAsed file names will  have  been 
+completely deleted from the directory.
+
+
+

@@ -1,0 +1,234 @@
+          PLEASE READ THIS FILE FIRST BEFORE YOU PROCEED
+
+	
+	We have assembled all current overlays and other information
+on MDM727 on Volumes 168, 169 and 170 together with a completely separate
+communication program, COMM725. Both of these programs are excellent
+and one or both should suit your requirements.
+
+        For both space and ease of use reasons, we have removed these
+files from the .LBR format.  We have had to leave them squeezed, but
+have included the current wildcard version of unsqueeze.
+
+	In most cases to assemble MDM727 you unsqueeze the overlay file
+for your computer and edit in any changes called for by the file. All of
+these changes are clearly explained in the overlay files. Also in the 
+overlay file are instructions on how to assemble the file. COMM7 is 
+assembles with LASM.COM, which is provided.
+
+	NOTE: Modem 727 grew in size from the earlier versions to 73
+sectors. Some of the overlays call for a smaller "SAVE." Please read the
+note at the end of this file.
+
+	As part of this memorandum we have included the file note on the
+additional size and the update note explaining the function key addition.
+Please read them before you proceed.
+
+                                                 SIG/M  
+
+--------------------------------------------------------------------------
+
+TOPIC:	MDM727.ASM MODEM PROGRAM
+
+FROM :	IRV HOFF W6FFC
+
+DATE :	03 MAR 84
+
+
+	NOTE:	This program when assembled is 73 sectors
+		long.  Use this figure when merging the
+		appropriate overlay file for your computer
+		via DDT, etc.  (Most of the overlays were
+		written when MDM7xx.COM was only 66 sectors
+		and the example included in each says to
+		store 66 sectors.)  For MDM727 use:
+
+			B>SAVE 73 MDM727.COM
+
+	NOTE:	Use M7FNK.COM to easily and quickly change
+		any of the 10 function key assignments.  You
+		can read the M7FNK.DOC file for additional
+		information.  (by Sigi Kluger.)
+
+	NOTE:	M7LIB.COM is a rapid and surprisingly easy
+		way to quickly change any entries in the
+		phone number library.  See M7LIB.DOC if
+		instructions are needed.  M7NM-6.ASM is
+		necessary for setting or altering numbers
+		for 'SPRINT', 'MCI', etc.  It would also
+		be better if making a lot of changes such
+		as adding or deleting '1-' required for
+		long distance dialing in some areas.
+		
+	NOTE:	If using the phone number overlay to change
+		the phone library numbers, be sure to use:
+
+			     M7NM-6.ASM
+
+		(Previous versions of M7NM will not work with
+		this new version, as the phone number library
+		now contains 36 numbers (A-Z as usual plus 0-9)
+		rather than the 26 in versions prior to MDM722.)
+
+     Most users will not need the lengthy (162k) source code at all.
+     Just get MDM727.COM and then check one of the associated over-
+     lay programs to obtain the overlay for your particular computer.
+     Merge that with MDM727.COM according to the instructions near
+     the start of the overlay file, using DDT.COM, etc.  (See above
+     note relative to saving 73 sectors.  STAT.COM would then show
+     146 records for 20k.)
+
+     The following bytes can be changed easily with DDT, then SAVE 73
+
+	0DFEH  -  HEXSHOW 00 = do not show hex record count
+			  FF = show both hex and decimal count
+	0DFFH  -  SAVSIZ  20 = 4k file transfer buffer size
+			       (see table below for other options)
+	0E00H  -  NUMBLIB (start of telephone number library)
+
+     To change the file transfer buffer size via DDT, change byte 0DFFH:
+
+		10   (hex)   =   16 records   =   2k
+		20   (hex)   =   32 records   =   4k
+		40   (hex)   =   64 records   =   8K
+		60   (hex)   =   96 records   =  12k
+		80   (hex)   =  128 records   =  16k
+
+				- Irv Hoff
+RECENT CHANGES:
+--------------
+
+(READ THE UPDATE HISTORY IN MDM727.ASM FOR MORE DETAILED INFORMATION)
+
+MDM727 - function key character shown in menu.  Typing that character
+	 on command line shows all function key definitions, providing
+	 more versatility and ease in using the function keys.  Fixed
+	 the dialing routine so phone library lines from (0-9) can now
+	 redial and continuously redial properly.
+
+MDM726 - 'T' no longer needed to return to terminal mode after a file
+	 transfer, i.e., 'RT' or 'ST' no longer used, just 'R' or 'S'.
+	 Exit routine changed to enable returning to CP/M even though
+	 incoming characters are still arriving.
+
+MDM725 - function key character can be used now even if it is a control
+	 character and local character required before control character.
+	 ACKNAK permanently set to robust mode.  Option permits a retry
+	 for TYM-SHAR mainframes not using XMODEM, if set 'NO'.
+
+MDM724 - added 10 function keys for auto-typing preselected messages
+
+MDM723 - alphabetizes the phone library vertically for:
+         'CAL' - used with auto-dial modems including PMMI
+	 'NUM' - used with manually-dialed modems
+
+MDM722 - phone number library now has 36 entries rather than 26 (has
+	 A-Z as usual plus 0-9).  Better supports single-digit result
+	 codes for the Anchor Mark XII modem as well as Hayes and USR.
+
+MDM721 - makes it easier to abort an auto-dial call with CTL-X.
+
+MDM720 - changed from BIOS to BDOS call to run the printer.
+
+MDM719 - modest changes, PMMI pulse dialing set faster.
+
+MDM718 - now supports the Anchor Mark XII modem.  Buffer size for ASCII
+	 capture set for 16k.  Buffer size for file transfers adjustable
+	 from 1 sector to 16k.  (Allows for slow floppy disk systems so
+	 XMODEM does not show a timeout error.)
+
+MDM717 - Log-on now works properly on main frames that echo characters
+ 	 with parity set.
+
+MDM716 - Robust addition to minimize problems due to intermittent noise.
+	 Gives added protection against timeouts on mainframes.  Batch
+	 mode transfer improved.
+
+CREDITS:
+-------
+MDM727 - Irv Hoff
+MDM726 - Irv Hoff
+MDM725 - Irv Hoff
+MDM724 - Sigi Kluger
+MDM723 - Irv Hoff with routine developed by Ken Lovett
+MDM722 - Bill Brehm with routines developed by Fred Viles
+MDM721 - Bill Brehm
+MDM720 - Irv Hoff
+MDM719 - Keith Petersen
+MDM718 - Irv Hoff with routine developed by Fred Viles
+MDM717 - Irv Hoff
+MDM716 - Bob Plouffe
+
+------------------------------------------------------------------------
+MDM7 update information			02/17/84
+
+Sigi Kluger, El Paso TX  02-17-84
+
+Being used to a great non-public modem program with a number of function
+keys, I decided to add ten function keys to MDM7.  Great for things you
+do most, like DIR *.* $U0AD, or XMODEM S, or you could even save your
+name in a function key for logon.
+
+
+1. HOW TO ACCESS (transmit) THE FUNCTION KEYS.
+
+You transmit the contents of a function key by typing first the INTERCEPT
+
+CHARACTER, then a digit 0..9.  The INTERCEPT CHARACTER is an unique char-
+acter which tells MDM7 that a function key command follows. The INTERCEPT
+CHARACTER is set to ^ (circumflex).  It could as easily be set to CTL-A
+or 'escape', for example.  In the distribution version, the following
+keys are defined:
+
+^A0	DIR <cr>
+^A1	DIR *.* $U0AD <cr>
+^A2	XMODEM S
+^A3	XMODEM R
+^A4	BYE <cr>
+^A5	CBBS <cr>
+
+(Function keys 2 and 3 have no trailing CR).
+
+
+2. HOW MUCH ROOM?
+
+A total of 256 bytes are reserved for the function key definition.  Each
+definition takes up the number of bytes in the string, PLUS 2.  Note that
+you must not enclose any control characters in the definitions (CR is
+allowed and is optional).
+
+
+3. HOW TO CHANGE THE FUNCTION KEYS
+
+In order to not increase the size of MDM7 considerably, I have written
+the M7FNK utility.  M7FNK.COM is virtually self-explanatory and it is
+covered by its own short DOC file.  (M7FNK.COM v1.10 is current.)
+
+
+4. WHAT WILL NOT WORK
+
+Do not attempt to use DDT to modify the function keys.  Especially, do
+not force any control characters into the definitions.  There can only
+be three non-printing characters in each definition, the start byte,
+an optional CR at the end, and the end byte.
+
+
+5. DEFINITION FORMAT
+
+This is an example of the definition for function key 1:
+
+DB	1,'THIS IS A FUNCTION KEY',CR,0
+	|		|	      |
+	|		|	      |__stop character
+	|		|________________key definition plus CR
+	|________________________________start character
+
+Each key definition string starts with the key number in binary.  The
+function key processor searches for that number.  Those numbers must be
+unique throughout the key definitions.  EMPTY key definitions are en-
+coded thusly:
+
+DB	9,0		;empty function key #9
+
+
+
