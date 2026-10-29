@@ -13,7 +13,7 @@ This is a BASH shell script which will rebuild SIG/M volumes, pulling from the e
 ./buildvol 104
 ```
 
-It creates a director -- sigmv104/ in this example -- to place the individual files in, then also builds .ARK and .LBR CP/M archives, and .DSK files, which are IBM-3740-format disk images intended for use in **CP/M** emulators.
+It creates a directory -- sigmv104/ in this example -- to place the individual files in, then also builds .ARK and .LBR CP/M archives, and .DSK files, which are IBM-3740-format disk images intended for use in **CP/M** emulators.
 
 #### USAGE
 
@@ -48,4 +48,4 @@ Output is to the screen.
 
 ### SIGM/
 
-The SIGM/ directory contains the entire rebuilt SIG/M catalog. Be aware, however, that GitHub doesn't preserve file dates, so if you're browsing the individual volume folders, the dates there may differ from what ./buildvol originally assigned.
+The SIGM/ directory contains the entire rebuilt SIG/M collection, including expanded volume directories and ARK, LBR, and DSK versions. Be aware, however, that Git does not preserve filesystem modification timestamps; dates displayed by GitHub reflect repository activity rather than the volume release dates assigned by buildvol. To obtain the collection with its assigned timestamps, download sigm.iso from the Releases page.
