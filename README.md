@@ -7,7 +7,13 @@ Versions of the SIG/M library are still available from a number of sources on th
 
 ### BUILDVOL
 
-This is a BASH shell script which will rebuild SIG/M volumes, pulling from the extant sources. It creates a series of directories -- sigmv001/, sigmv002/, etc. -- for each volume, as well as .ARK and .LBR CP/M archives, and .DSK files, which are IBM-3740-format disk images intended for use in **CP/M** emulators.
+This is a BASH shell script which will rebuild SIG/M volumes, pulling from the extant sources. You specify the SIG/M volume you wish to rebuild:
+
+```
+./buildvol 104
+```
+
+It creates a director -- sigmv104/ in this example -- to place the individual files in, then also builds .ARK and .LBR CP/M archives, and .DSK files, which are IBM-3740-format disk images intended for use in **CP/M** emulators.
 
 #### USAGE
 
@@ -34,7 +40,12 @@ This second script will produce a file listing reminiscent of SIG/M's -CATALOG l
 ```
 ./list 167
 ```
+Output is to the screen.
 
 #### -CATALOG.ALL
 
 -CATALOG.ALL is a cleaned-up, prettified compilation of all the individual -CATALOG.xxx files, providing details of the contents of each volume.
+
+### SIGM/
+
+The SIGM/ directory contains the entire rebuilt SIG/M catalog. Be aware, however, that GitHub doesn't preserve file dates, so if you're browsing the individual volume folders, the dates there may differ from what ./buildvol originally assigned.
